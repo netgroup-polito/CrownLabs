@@ -1,0 +1,7 @@
+domain: crown.team.com
+repo: github.com/netgroup-polito/CrownLabs/labInstance-operator
+resources:
+- group: instance
+  kind: LabInstance
+  version: v1
+version: "2"
