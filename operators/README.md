@@ -1,6 +1,6 @@
 # CrownLabs operators
 
-##LabTemplate
+## LabTemplate
 The commands below are written assuming your working directory is `labTemplate-operator`.
 
 ### CRD generation
@@ -18,7 +18,7 @@ To get the list of LabTemplate resources run `kubectl get labt` (`labi` for LabI
 ### Controller logic
 The logic of the controller should be put under _controllers/labtemplate_controller.go_, in the `Reconcile` method.
 
-##LabInstance
+## LabInstance
 
 The instructions for LabInstance generation and installation are exactly the same of LabTemplate, you just need to replace _labTemplate_ with _labInstance_. 
 
