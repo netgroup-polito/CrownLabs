@@ -27,17 +27,21 @@ type LabInstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of LabInstance. Edit LabInstance_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	LabTemplateName string `json:"labTemplateName,omitempty"` 	// must be the same of LabInstance
+	Student			string `json:"student,omitempty"`
 }
 
 // LabInstanceStatus defines the observed state of LabInstance
 type LabInstanceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	Phase 	string 	`json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName="labi"
 
 // LabInstance is the Schema for the labinstances API
 type LabInstance struct {

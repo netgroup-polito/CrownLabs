@@ -5,7 +5,10 @@
 *.dll
 *.so
 *.dylib
-bin
+labTemplate-operator/bin
+labInstance-operator/bin
+labTemplate-operator/.idea
+labInstance-operator/.idea
 
 # Test binary, build with `go test -c`
 *.test

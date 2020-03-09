@@ -16,6 +16,8 @@ limitations under the License.
 package v1
 
 import (
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,8 +29,8 @@ type LabTemplateSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of LabTemplate. Edit LabTemplate_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	VMSize       resource.Quantity `json:"vmSize,omitempty"`
+	ImageToMount v1.ContainerImage `json:"imageToMount,omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate
@@ -38,6 +40,8 @@ type LabTemplateStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName="labt"
 
 // LabTemplate is the Schema for the labtemplates API
 type LabTemplate struct {
