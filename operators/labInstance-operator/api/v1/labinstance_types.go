@@ -27,8 +27,8 @@ type LabInstanceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	LabTemplateName string `json:"labTemplateName,omitempty"` 	// must be the same of LabInstance
-	Student			string `json:"student,omitempty"`
+	LabTemplateName string `json:"labTemplateName,omitempty"`
+	StudentID       string `json:"studentId,omitempty"`
 }
 
 // LabInstanceStatus defines the observed state of LabInstance
@@ -36,7 +36,9 @@ type LabInstanceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Phase 	string 	`json:"phase,omitempty"`
+	Phase string `json:"phase,omitempty"`
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true

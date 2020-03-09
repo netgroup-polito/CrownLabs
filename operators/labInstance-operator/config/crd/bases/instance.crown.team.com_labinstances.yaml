@@ -13,8 +13,12 @@ spec:
     kind: LabInstance
     listKind: LabInstanceList
     plural: labinstances
+    shortNames:
+    - labi
     singular: labinstance
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: LabInstance is the Schema for the labinstances API
@@ -34,13 +38,19 @@ spec:
         spec:
           description: LabInstanceSpec defines the desired state of LabInstance
           properties:
-            foo:
-              description: Foo is an example field of LabInstance. Edit LabInstance_types.go
-                to remove/update
+            labTemplateName:
+              type: string
+            studentId:
               type: string
           type: object
         status:
           description: LabInstanceStatus defines the observed state of LabInstance
+          properties:
+            observedGeneration:
+              format: int64
+              type: integer
+            phase:
+              type: string
           type: object
       type: object
   version: v1

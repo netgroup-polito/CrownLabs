@@ -13,8 +13,12 @@ spec:
     kind: LabTemplate
     listKind: LabTemplateList
     plural: labtemplates
+    shortNames:
+    - labt
     singular: labtemplate
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: LabTemplate is the Schema for the labtemplates API

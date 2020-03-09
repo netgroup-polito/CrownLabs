@@ -1,12 +1,11 @@
 apiVersion: template.crown.team.com/v1
 kind: LabTemplate
 metadata:
-  name: labtemplate-sample
+  name: web-applications-course
 spec:
   # Add fields here
   vmSize: 100Mi
   imageToMount:
-    - names:
-        - "nginx"
-    - size:
-        200Ki
+    names:
+      - "nginx"
+    size: 200Ki
