@@ -1,0 +1,8 @@
+apiVersion: instance.crown.team.com/v1
+kind: LabInstance
+metadata:
+  name: web-applications-course-instance1
+spec:
+  # Add fields here
+  labTemplateName: web-applications-course
+  studentId: "123456"
