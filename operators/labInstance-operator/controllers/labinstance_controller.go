@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labTemplate-operator/api/v1"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 )
 
 // LabInstanceReconciler reconciles a LabInstance object

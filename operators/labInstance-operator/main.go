@@ -21,7 +21,7 @@ import (
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/controllers"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labTemplate-operator/api/v1"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
