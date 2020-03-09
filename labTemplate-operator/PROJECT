@@ -1,0 +1,7 @@
+domain: crown.team.com
+repo: github.com/netgroup-polito/CrownLabs/labTemplate-operator
+resources:
+- group: template
+  kind: LabTemplate
+  version: v1
+version: "2"

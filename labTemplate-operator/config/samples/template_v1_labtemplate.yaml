@@ -1,0 +1,7 @@
+apiVersion: template.crown.team.com/v1
+kind: LabTemplate
+metadata:
+  name: labtemplate-sample
+spec:
+  # Add fields here
+  foo: bar

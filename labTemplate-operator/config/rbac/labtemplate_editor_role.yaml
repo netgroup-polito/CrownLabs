@@ -1,0 +1,26 @@
+# permissions to do edit labtemplates.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: labtemplate-editor-role
+rules:
+- apiGroups:
+  - template.crown.team.com
+  resources:
+  - labtemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - template.crown.team.com
+  resources:
+  - labtemplates/status
+  verbs:
+  - get
+  - patch
+  - update
