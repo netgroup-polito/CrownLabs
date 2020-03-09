@@ -1,7 +1,0 @@
-apiVersion: instance.crown.team.com/v1
-kind: LabInstance
-metadata:
-  name: labinstance-sample
-spec:
-  # Add fields here
-  foo: bar
