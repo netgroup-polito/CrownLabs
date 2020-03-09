@@ -1,0 +1,39 @@
+apiVersion: template.crown.team.com/v1
+kind: LabTemplate
+metadata:
+  name: cloud-computing-course
+spec:
+  # Add fields here
+  courseName: "Cloud Computing"
+  labName: "Kubernetes"
+  labNum: "1"
+  description: "Kubevirt library sucks :)"
+  vmSpec:
+    running: false
+    template:
+      metadata:
+        labels:
+          kubevirt.io/vm: vm-cirros
+      spec:
+        domain:
+          devices:
+            disks:
+              - disk:
+                  bus: virtio
+                name: containerdisk
+              - disk:
+                  bus: virtio
+                name: cloudinitdisk
+          machine:
+            type: ""
+          resources:
+            requests:
+              memory: 64M
+        terminationGracePeriodSeconds: 0
+        volumes:
+          - name: containerdisk
+            containerDisk:
+              image: kubevirt/cirros-container-disk-demo:latest
+          - cloudInitNoCloud:
+              userDataBase64: IyEvYmluL3NoCgplY2hvICdwcmludGVkIGZyb20gY2xvdWQtaW5pdCB1c2VyZGF0YScK
+            name: cloudinitdisk
