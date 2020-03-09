@@ -19,8 +19,8 @@ import (
 	"flag"
 	"os"
 
-	templatev1 "github.com/netgroup-polito/CrownLabs/labTemplate-operator/api/v1"
-	"github.com/netgroup-polito/CrownLabs/labTemplate-operator/controllers"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labTemplate-operator/api/v1"
+	"github.com/netgroup-polito/CrownLabs/operators/labTemplate-operator/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

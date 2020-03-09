@@ -23,7 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	templatev1 "github.com/netgroup-polito/CrownLabs/labTemplate-operator/api/v1"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labTemplate-operator/api/v1"
 )
 
 // LabTemplateReconciler reconciles a LabTemplate object
