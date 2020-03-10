@@ -25,6 +25,13 @@ After the disks are converted, you can make them available to be used in Contain
   <img src="https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/import-disk.jpg" width="600" height="100" />
   
 
+# VM defination
+
+- Depending on original VM configuration,writing VM yaml file could be tough.
+- Translation of old VM configuration to new VM yaml is done manually.
+
+
+
 All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeVirt documentation][df3].
 
 
