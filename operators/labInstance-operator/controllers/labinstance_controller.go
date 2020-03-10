@@ -17,7 +17,10 @@ package controllers
 
 import (
 	"context"
+	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"kubevirt.io/client-go/kubecli"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,6 +71,27 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
+
+	// THIS CODE IS TAKEN FROM https://github.com/kubevirt/kubevirt/blob/master/staging/src/kubevirt.io/client-go/examples/listvms/list-vms.go
+	virtClient, err := getKubeVirtClient()
+	if err != nil {
+		log.Error(err, "cannot create KubeVirt client")
+	}
+
+	namespace := "default"
+	// Fetch list of VMs & VMIs
+	_, err = virtClient.VirtualMachine(namespace).List(&metav1.ListOptions{})
+	if err != nil {
+		log.Error(err, "cannot list KubeVirt vm")
+	}
+	_, err = virtClient.VirtualMachineInstance(namespace).List(&metav1.ListOptions{})
+	if err != nil {
+		log.Error(err, "cannot list KubeVirt vmi")
+	}
+
+	//TODO: - instantiate a vm with KubeVirt
+	//      - add student home to vm
+
 	// set labInstance status to DEPLOYED
 	labInstance = setPhase(labInstance)
 	if err := r.Status().Update(ctx, &labInstance); err != nil {
@@ -87,4 +111,18 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	labInstance.Status.Phase = "DEPLOYED"
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
+}
+
+func getKubeVirtClient() (kubecli.KubevirtClient, error){
+	// kubecli.DefaultClientConfig() prepares config using kubeconfig.
+	// typically, you need to set env variable, KUBECONFIG=<path-to-kubeconfig>/.kubeconfig
+	clientConfig := kubecli.DefaultClientConfig(&pflag.FlagSet{})
+
+	// get the kubevirt client, using which kubevirt resources can be managed.
+	virtClient, err := kubecli.GetKubevirtClientFromClientConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return virtClient, err
 }

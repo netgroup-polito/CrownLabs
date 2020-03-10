@@ -19,24 +19,20 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	virtv1 "kubevirt.io/client-go/api/v1"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // LabTemplateSpec defines the desired state of LabTemplate
 type LabTemplateSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	VMSize       resource.Quantity `json:"vmSize,omitempty"`
 	ImageToMount v1.ContainerImage `json:"imageToMount,omitempty"`
+	VmSpec		 virtv1.VirtualMachineSpec `json:"vmSpec, omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate
 type LabTemplateStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Important: Run "make lab-template" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
