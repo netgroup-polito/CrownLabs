@@ -1,0 +1,8 @@
+---
+- hosts: physical_hosts
+  become: yes
+  roles:
+  - role: common
+  - role: configure-network
+  - role: configure-virtual-ips
+    when: host_role == "worker"

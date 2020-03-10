@@ -1,0 +1,42 @@
+---
+- name: Install the ifenslave dependency (required to create bonds)
+  apt:
+    name: ifenslave
+    state: present
+  when: host_role != "master"
+
+- name: Ensure presence of the “bonding” module
+  modprobe:
+    name: 8021q
+    state: present
+  when: host_role != "master"
+
+- name: Load bonding modules during boot
+  lineinfile:
+    path: /etc/modules
+    state: present
+    line: bonding
+  when: host_role != "master"
+
+- name: Allow the connection from/to the master VM (1)
+  iptables:
+    chain: FORWARD
+    source: "{{ master_ip_address }}"
+    jump: ACCEPT
+  when: host_role == "master-host"
+
+- name: Allow the connection from/to the master VM (2)
+  iptables:
+    chain: FORWARD
+    destination: "{{ master_ip_address }}"
+    jump: ACCEPT
+  when: host_role == "master-host"
+
+- name: Update /etc/netplan/50-cloud-init.yaml
+  template:
+    src: templates/50-cloud-init-{{ host_role }}.yaml.j2
+    dest: /etc/netplan/50-cloud-init.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Apply netplan configuration
