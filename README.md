@@ -30,12 +30,16 @@ After the disks are converted, you can make them available to be used in Contain
 - Depending on original VM configuration,writing VM yaml file could be tough.
 - Translation of old VM configuration to new VM yaml is done manually.
 
-![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/vm-yaml.jpg)
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/VM-yaml.jpg)
 
 
 All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeVirt documentation][df3].
 
+# Service defination
 
+- All solutions of Service Discovery of Kubernetes shall work with KubeVirt VMs too
+
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/service-defination.jpg)
 
 
    [df1]: <https://docs.cloud.oracle.com/en-us/iaas/Content/Registry/Concepts/registryoverview.htm>
