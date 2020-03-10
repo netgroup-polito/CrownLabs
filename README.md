@@ -22,8 +22,7 @@ After the disks are converted, you can make them available to be used in Contain
   - Create a Docker image of the raw disk and upload it into a public registry like [Oracle Cloud Infrastructure Registry][df1].
   - Clone a disk and create a persistent volume claim with it.
   
-  ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/import-disk.jpg)
-  
+  <img src="https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/import-disk.jpg" width="600" height="100" />
   
 
 All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeVirt documentation][df3].
