@@ -1,7 +1,5 @@
 
-# Migration of VM to KubeVirt
-
-![](./CrownLabs/pic/migration-steps.jpg)
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/migration-steps.jpg)
 
 # Running KVM VMs in Container Engine
 
