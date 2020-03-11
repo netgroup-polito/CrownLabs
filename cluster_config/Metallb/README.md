@@ -1,16 +1,18 @@
 # METALLB
 MetalLB is a load-balancer implementation for bare metal Kubernetes clusters, using standard routing protocols.
+
 ## Install MetalLB
-Run this command to install MetalLB. After this command it will stay in pending state waiting for a ConfigMap- 
+Run the following command to install MetalLB:
 
 ````
 $ kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.8.3/manifests/metallb.yaml
 ````
 
-## Configuration
-The configmap.yaml contains the ConfigMap with addresses that are used by MetalLB to expose services.
+After this command, MetalLB remains in pending state waiting for a ConfigMap (see next step).
 
-We assigned addresses from 192.168.31.135 to 192.168.31.199 
+## Configuration
+File [configmap.yaml](configmap.yaml) contains the ConfigMap with the set of IP addresses that are used by MetalLB to expose services.
+Addresses (which are visible in the proper section of [configmap.yaml](configmap.yaml)) are applied with this command:
 
 ````
 $ kubectl apply -f configmap.yaml
