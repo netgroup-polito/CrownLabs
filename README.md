@@ -54,6 +54,38 @@ Available Commands:
   vnc          Open a vnc connection to a virtual machine instance.
 ```
 
+This step is optional, right now anything related with the Virtual Machines can be done running the virtctl command. In case there’s a need to interact with the Virtual Machines without leaving the scope of the kubectl command, the virt plugin for Krew can be installed following the instructions below:
+
+```sh
+k8s-test.local# (
+  set -x; cd "$(mktemp -d)" &&
+  curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/download/v0.3.1/krew.{tar.gz,yaml}" &&
+  tar zxvf krew.tar.gz &&
+  ./krew-"$(uname | tr '[:upper:]' '[:lower:]')_amd64" install \
+    --manifest=krew.yaml --archive=krew.tar.gz
+)
+...
+Installed plugin: krew
+WARNING: You installed a plugin from the krew-index plugin repository.
+   These plugins are not audited for security by the Krew maintainers.
+   Run them at your own risk.
+```
+
+The warning printed by the Krew maintainers can be ignored. To have the krew plugin available, the PATH variable has to be modified:
+
+```sh
+k8s-test.local# vim ~/.bashrc
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+k8s-test.local# source ~/.bashrc
+```
+Now, the virt plugin is going to be installed using the krew plugin manager:
+
+```sh
+k8s-test.local# kubectl krew install virt
+```
+
+# Installing the first Virtual Machine in KubeVirt
+
 ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/migration-steps.jpg)
 
 # Running KVM VMs in Container Engine
