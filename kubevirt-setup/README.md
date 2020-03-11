@@ -87,7 +87,7 @@ k8s-test.local# kubectl krew install virt
 # Installing the first Virtual Machine in KubeVirt
 
 ```sh
-k8s-test.local# kubectl apply -f https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/vm.yaml
+k8s-test.local# kubectl apply -f https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/kubevirt-setup/vm.yaml
 
 k8s-test.local# kubectl get vms
 NAME        AGE   RUNNING   VOLUME
@@ -140,7 +140,7 @@ VM testvm was scheduled to stop
 ```
 # Migration of VM to KubeVirt
 
-![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/migration-steps.jpg)
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/kubevirt-setup/pic/migration-steps.jpg)
 
 # Running KVM VMs in Container Engine
 
@@ -163,7 +163,7 @@ After the disks are converted, you can make them available to be used in Contain
   - Create a Docker image of the raw disk and upload it into a public registry like [Oracle Cloud Infrastructure Registry][df1].
   - Clone a disk and create a persistent volume claim with it.
   
-  <img src="https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/import-disk.jpg" width="600" height="100" />
+  <img src="https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/kubevirt-setup/pic/import-disk.jpg" width="600" height="100" />
   
 
 # VM defination
@@ -171,14 +171,14 @@ After the disks are converted, you can make them available to be used in Contain
 - Depending on original VM configuration,writing VM yaml file could be tough.
 - Translation of old VM configuration to new VM yaml is done manually.
 
-![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/VM-yaml.jpg)
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/kubevirt-setup/pic/VM-yaml.jpg)
 
 
 # Service defination
 
 - All solutions of Service Discovery of Kubernetes shall work with KubeVirt VMs too
 
-![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/service-defination.jpg)
+![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/kubevirt-setup/pic/service-defination.jpg)
 
 
 
