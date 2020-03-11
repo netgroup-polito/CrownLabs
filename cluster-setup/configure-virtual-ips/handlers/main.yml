@@ -1,0 +1,5 @@
+---
+- name: Restart the keepalived service
+  systemd:
+    name: keepalived
+    state: reloaded
