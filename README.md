@@ -86,6 +86,19 @@ k8s-test.local# kubectl krew install virt
 
 # Installing the first Virtual Machine in KubeVirt
 
+```sh
+k8s-test.local# kubectl apply -f https://raw.githubusercontent.com/kubevirt/kubevirt.github.io/master/labs/manifests/vm.yaml
+
+k8s-test.local# kubectl get vms
+NAME        AGE   RUNNING   VOLUME
+testvm   13s   false
+```
+
+After the Virtual Machine has been created, it has to be started, to do so, the virtctl or the kubectl can be used (depending on what method has been chosen in previous steps).
+
+
+
+
 ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/migration-steps.jpg)
 
 # Running KVM VMs in Container Engine
