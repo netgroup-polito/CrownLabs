@@ -33,8 +33,6 @@ After the disks are converted, you can make them available to be used in Contain
 ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/VM-yaml.jpg)
 
 
-All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeVirt documentation][df3].
-
 # Service defination
 
 - All solutions of Service Discovery of Kubernetes shall work with KubeVirt VMs too
@@ -42,6 +40,11 @@ All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeV
 ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/service-defination.jpg)
 
 
+
+All of these options are explained in the [KubeVirt GitHub repo][df2] and [KubeVirt documentation][df3].
+
+
    [df1]: <https://docs.cloud.oracle.com/en-us/iaas/Content/Registry/Concepts/registryoverview.htm>
    [df2]: <https://github.com/kubevirt/kubevirt/>
    [df3]: <https://kubevirt.io/user-guide/#/creation/creating-virtual-machines>
+
