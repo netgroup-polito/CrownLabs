@@ -1,6 +1,10 @@
 # CrownLabs operators
 
 ## LabInstance
+LabInstance is a K8s operator that  handles the lifecycle of a single lab instance, e.g., a Virtual Machine running in the K8s infrastructure.
+A LabInstance requires the presence of a "template" lab, e.g., a ready-to-go VM with the proper installed software, which can be instantiated multiple times.
+Each LabInstance (e.g., VM) will accept a VNC (or equivalent) connection from its associated user (e.g., student).
+
 The commands below are written assuming your working directory is `labInstance-operator`.
 
 ### LabTemplate
