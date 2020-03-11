@@ -87,7 +87,7 @@ k8s-test.local# kubectl krew install virt
 # Installing the first Virtual Machine in KubeVirt
 
 ```sh
-k8s-test.local# kubectl apply -f https://raw.githubusercontent.com/kubevirt/kubevirt.github.io/master/labs/manifests/vm.yaml
+k8s-test.local# kubectl apply -f https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/vm.yaml
 
 k8s-test.local# kubectl get vms
 NAME        AGE   RUNNING   VOLUME
@@ -96,8 +96,48 @@ testvm   13s   false
 
 After the Virtual Machine has been created, it has to be started, to do so, the virtctl or the kubectl can be used (depending on what method has been chosen in previous steps).
 
+```sh
+k8s-test.local# ./virtctl start testvm
+VM vm-cirros was scheduled to start
+
+k8s-test.local# kubectl get vms
+NAME        AGE     RUNNING   VOLUME
+testvm   7m11s   true
+```
+
+Next thing to do is to use the kubectl command for getting the IP address and the actual status of the virtual machines:
+
+```sh
+k8s-test.local# kubectl get vmis
+kubectl get vmis
+NAME        AGE    PHASE        IP    NODENAME
+testvm    14s   Scheduling
+
+k8s-test.local# kubectl get vmis
+NAME     AGE   PHASE     IP            NODENAME
+testvm   63s   Running   10.244.0.15   k8s-test
+```
+
+So, finally the Virtual Machine is running and has an IP address. To connect to that VM, the console can be used (./virtctl console testvm) or also a direct connection with SSH can be made:
+
+```sh
+k8s-test.local# ssh cirros@10.244.0.15
+cirros@10.244.0.15's password: gocubsgo
+$ uname -a
+Linux testvm 4.4.0-28-generic #47-Ubuntu SMP Fri Jun 24 10:09:13 UTC 2016 x86_64 GNU/Linux
+$ exit
+```
+
+To stop the Virtual Machine one of the following commands can be executed:
 
 
+```sh
+k8s-test.local# ./virtctl stop testvm
+VM testvm was scheduled to stop
+
+k8s-test.local# kubectl virt stop testvm
+VM testvm was scheduled to stop
+```
 
 ![](https://github.com/netgroup-polito/CrownLabs/blob/Amir/Kubevirt/pic/migration-steps.jpg)
 
