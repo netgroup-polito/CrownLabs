@@ -1,3 +1,6 @@
 ---
 - name: Apply netplan configuration
   shell: netplan apply
+
+- name: Run update-grub
+  shell: update-grub
