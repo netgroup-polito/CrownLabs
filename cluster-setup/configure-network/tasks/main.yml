@@ -41,6 +41,12 @@
     mode: '0644'
   notify: Apply netplan configuration
 
+# For some reasons, LADISPE seems to have IPv6 running in its network,
+# although there's no IPv6 connectivity that goes beyond the lab.
+# This means that when we try to connect to an IPv4/6-host (e.g., google),
+# the connection is started in IPv6, leading to a long waiting time before
+# recognizing that the path to host does not exist. So, much better to
+# disable the IPv6 stack.
 - name: Disable IPv6 Networking (1)
   sysctl:
     name: net.ipv6.conf.all.disable_ipv6
