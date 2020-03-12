@@ -22,3 +22,13 @@ operators/labInstance-operator/bin
 operators/labTemplate-operator/.idea
 operators/labInstance-operator/.idea
 .idea
+
+# webservice
+CrownLabs.iml
+webservice/dist
+webservice/node_modules
+webservice/package-lock.json
+webservice/website/node_modules
+webservice/website/package-lock.json
+webservice/old/serena/node_modules
+webservice/old/serena/package-lock.json

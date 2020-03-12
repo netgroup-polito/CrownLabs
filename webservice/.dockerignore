@@ -1,0 +1,8 @@
+# Files and Directories to be ignore during docker build
+./node_modules
+./package-lock.json
+./dist
+./old
+./README.md
+./website/node_modules
+./website/package-lock.json
