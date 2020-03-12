@@ -16,17 +16,18 @@ limitations under the License.
 package v1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	virtv1 "kubevirt.io/client-go/api/v1"
 )
 
 // LabTemplateSpec defines the desired state of LabTemplate
 type LabTemplateSpec struct {
-	VMSize       resource.Quantity `json:"vmSize,omitempty"`
-	ImageToMount v1.ContainerImage `json:"imageToMount,omitempty"`
-	VmSpec		 virtv1.VirtualMachineSpec `json:"vmSpec, omitempty"`
+	CourseName string            `json:"courseName,omitempty"`
+	LabName    string            `json:"labName,omitempty"`
+	LabNum     resource.Quantity `json:"vmSize,omitempty"`
+
+	VmSpec virtv1.VirtualMachineSpec `json:"vmSpec,omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate
