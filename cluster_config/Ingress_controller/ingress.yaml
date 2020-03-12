@@ -1,0 +1,99 @@
+apiVersion: v1
+items:
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/auth-realm":"Authentication Required - ok","nginx.ingress.kubernetes.io/auth-secret":"basic-auth","nginx.ingress.kubernetes.io/auth-type":"basic"},"name":"alertmanager","namespace":"monitoring"},"spec":{"rules":[{"host":"alertmanager.ipv6.polito.it","http":{"paths":[{"backend":{"serviceName":"alertmanager-main","servicePort":9093},"path":"/"}]}}],"tls":[{"hosts":["alertmanager.ipv6.polito.it"]}]}}
+      nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
+      nginx.ingress.kubernetes.io/auth-secret: basic-auth
+      nginx.ingress.kubernetes.io/auth-type: basic
+    creationTimestamp: "2019-10-08T08:27:19Z"
+    generation: 1
+    name: alertmanager
+    namespace: monitoring
+    resourceVersion: "3701504"
+    selfLink: /apis/extensions/v1beta1/namespaces/monitoring/ingresses/alertmanager
+    uid: 3b3ccd99-1f14-4614-8f1b-7db9f8a8a656
+  spec:
+    rules:
+    - host: alertmanager-ladispe.ipv6.polito.it
+      http:
+        paths:
+        - backend:
+            serviceName: alertmanager-main
+            servicePort: 9093
+          path: /
+    tls:
+    - hosts:
+      - alertmanager-ladispe.ipv6.polito.it
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 192.168.31.136
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{},"name":"grafana","namespace":"monitoring"},"spec":{"rules":[{"host":"grafana.ipv6.polito.it","http":{"paths":[{"backend":{"serviceName":"grafana","servicePort":3000},"path":"/"}]}}],"tls":[{"hosts":["grafana.ipv6.polito.it"]}]}}
+    creationTimestamp: "2019-10-08T08:40:51Z"
+    generation: 1
+    name: grafana
+    namespace: monitoring
+    resourceVersion: "3707118"
+    selfLink: /apis/extensions/v1beta1/namespaces/monitoring/ingresses/grafana
+    uid: b55079e2-6c86-4a49-8612-b83d3a6f201f
+  spec:
+    rules:
+    - host: grafana-ladispe.ipv6.polito.it
+      http:
+        paths:
+        - backend:
+            serviceName: grafana
+            servicePort: 3000
+          path: /
+    tls:
+    - hosts:
+      - grafana-ladispe.ipv6.polito.it
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 192.168.31.136
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"extensions/v1beta1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/auth-realm":"Authentication Required - ok","nginx.ingress.kubernetes.io/auth-secret":"basic-auth","nginx.ingress.kubernetes.io/auth-type":"basic"},"name":"prometheus","namespace":"monitoring"},"spec":{"rules":[{"host":"prometheus.ipv6.polito.it","http":{"paths":[{"backend":{"serviceName":"prometheus-k8s","servicePort":9090},"path":"/"}]}}],"tls":[{"hosts":["prometheus.ipv6.polito.it"]}]}}
+      nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
+      nginx.ingress.kubernetes.io/auth-secret: basic-auth
+      nginx.ingress.kubernetes.io/auth-type: basic
+    creationTimestamp: "2019-10-08T08:27:19Z"
+    generation: 1
+    name: prometheus
+    namespace: monitoring
+    resourceVersion: "3701503"
+    selfLink: /apis/extensions/v1beta1/namespaces/monitoring/ingresses/prometheus
+    uid: a93307ca-6f7d-4e97-90d8-f45fc1d838be
+  spec:
+    rules:
+    - host: prometheus-ladispe.ipv6.polito.it
+      http:
+        paths:
+        - backend:
+            serviceName: prometheus-k8s
+            servicePort: 9090
+          path: /
+    tls:
+    - hosts:
+      - prometheus-ladispe.ipv6.polito.it
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 192.168.31.136
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: "" 
