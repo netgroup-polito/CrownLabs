@@ -1,14 +1,13 @@
 apiVersion: template.crown.team.com/v1
 kind: LabTemplate
 metadata:
-  name: web-applications-course
+  name: cloud-computing-course
 spec:
   # Add fields here
-  vmSize: 100Mi
-  imageToMount:
-    names:
-      - "nginx"
-    size: 200Ki
+  courseName: "Cloud Computing"
+  labName: "Kubernetes"
+  labNum: "1"
+  description: "Kubevirt library sucks :)"
   vmSpec:
     running: false
     template:
