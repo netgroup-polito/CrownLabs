@@ -40,3 +40,31 @@
     group: root
     mode: '0644'
   notify: Apply netplan configuration
+
+- name: Disable IPv6 Networking (1)
+  sysctl:
+    name: net.ipv6.conf.all.disable_ipv6
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: Disable IPv6 Networking (2)
+  sysctl:
+    name: net.ipv6.conf.default.disable_ipv6
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+# Apparently, due to a bug, the above configurations are not sufficient
+# to persist the modification across reboots, and it is necessary to
+# pass the "ipv6.disable=1" parameter during the boot time.
+- name: Disable IPv6 Networking (3)
+  lineinfile:
+    state: present
+    dest: /etc/default/grub
+    backrefs: yes
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=(?!.*ipv6\.disable)\"[^\"]+)(\".*)'
+    line: '\1 ipv6.disable=1\2'
+  notify: Run update-grub
