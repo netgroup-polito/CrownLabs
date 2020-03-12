@@ -1,4 +1,4 @@
-module github.com/netgroup-polito/CrownLabs/operators
+module github.com/netgroup-polito/CrownLabs/operators/labInstance-operator
 
 go 1.13
 
