@@ -40,9 +40,11 @@ spec:
           properties:
             courseName:
               type: string
+            description:
+              type: string
             labName:
               type: string
-            vmSize:
+            labNum:
               type: string
             vmSpec:
               description: VirtualMachineSpec describes how the proper VirtualMachine
@@ -2407,8 +2409,6 @@ spec:
               required:
               - template
               type: object
-          required:
-          - vmSpec
           type: object
         status:
           description: LabTemplateStatus defines the observed state of LabTemplate
