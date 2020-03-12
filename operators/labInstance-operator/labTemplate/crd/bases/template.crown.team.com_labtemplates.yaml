@@ -38,23 +38,13 @@ spec:
         spec:
           description: LabTemplateSpec defines the desired state of LabTemplate
           properties:
-            imageToMount:
-              description: Describe a container image
-              properties:
-                names:
-                  description: Names by which this image is known. e.g. ["k8s.gcr.io/hyperkube:v1.0.7",
-                    "dockerhub.io/google_containers/hyperkube:v1.0.7"]
-                  items:
-                    type: string
-                  type: array
-                sizeBytes:
-                  description: The size of the image in bytes.
-                  format: int64
-                  type: integer
-              required:
-              - names
-              type: object
-            vmSize:
+            courseName:
+              type: string
+            description:
+              type: string
+            labName:
+              type: string
+            labNum:
               type: string
             vmSpec:
               description: VirtualMachineSpec describes how the proper VirtualMachine
@@ -2419,8 +2409,6 @@ spec:
               required:
               - template
               type: object
-          required:
-          - vmSpec
           type: object
         status:
           description: LabTemplateStatus defines the observed state of LabTemplate
