@@ -18,16 +18,16 @@ kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ### Access the dashboards
 We use an ingress controller to access to these services.
 
-Prometheus: access via [https://prometheus-ladispe.ipv6.polito.it](https://prometheus-ladispe.ipv6.polito.it)
+Prometheus: access via [https://prometheus.crown-labs.ipv6.polito.it:4443](https://prometheus.crown-labs.ipv6.polito.it:4443)
 
-Grafana: access via [https://grafana-ladispe.ipv6.polito.it](https://grafana-ladispe.ipv6.polito.it)
+Grafana: access via [https://grafana.crown-labs.ipv6.polito.it:4443](https://grafana.crown-labs.ipv6.polito.it:4443)
 
-Alert Manager: access via [https://alertmanager-ladispe.ipv6.polito.it](https://alertmanager-ladispe.ipv6.polito.it)
+Alert Manager: access via [https://alertmanager.crown-labs.ipv6.polito.it:4443](https://alertmanager.crown-labs.ipv6.polito.it:4443)
 
 
 
 ### Persistent storage
-We have modified two posters (for grafana and prometheus) to have persistent storage.
+We have modified two manifests (for grafana and prometheus) to have persistent storage.
 
 ### Other information
 [https://github.com/coreos/kube-prometheus](https://github.com/coreos/kube-prometheus).
