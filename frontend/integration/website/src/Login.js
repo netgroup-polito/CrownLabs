@@ -5,9 +5,9 @@ import './App.css';
 
 const logo = require('./assets/logo_poli.png');
 
-import {k8Render} from './k8s_client/index.js';
+import {getCRD} from './k8s_client/index.js';
 
-k8Render();
+getCRD();
 
 function Login() {
     return(

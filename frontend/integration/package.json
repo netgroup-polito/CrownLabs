@@ -108,10 +108,5 @@
     "trailingComma": "all",
     "singleQuote": true,
     "arrowParens": "always"
-  },
-  "husky": {
-    "hooks": {
-      "pre-push": "npm test && npm run lint"
-    }
   }
 }
