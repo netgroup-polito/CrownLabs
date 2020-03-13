@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <secret_name>
+  namespace: <namespace>
+type: Opaque
+stringData:
+  userdata: |-
+    #cloud-config
+    network:
+      version: 2
+      id0:
+        dhcp4: true
