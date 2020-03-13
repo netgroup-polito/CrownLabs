@@ -15,7 +15,7 @@ module.exports = {
   devServer: {
 		port: 8000,
 		historyApiFallback: true,
-    contentBase: './dist'
+    contentBase: './public'
 	},
 	module: {
       rules: [
@@ -27,7 +27,19 @@ module.exports = {
             test: /\.css$/,
             use: ['style-loader', 'css-loader'],
          },
-         { test: /\.(png|jpg|jpeg|gif|svg)$/,  loader: 'file-loader' },
+         {
+            test: /\.(gif|png|jpe?g|svg)$/i,
+            use: [
+              'file-loader',
+              {
+                loader: 'image-webpack-loader',
+                options: {
+                  bypassOnDebug: true, // webpack@1.x
+                  disable: true, // webpack@2.x and newer
+                },
+              },
+            ],
+         },
          { test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff" },
          { test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "file-loader" }
 			]

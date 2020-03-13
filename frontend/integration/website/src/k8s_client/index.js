@@ -55,7 +55,7 @@ if (window.location.pathname === '/callback') {
                 }, false);
                 //document.body.append(loginButton);
             } else {
-                render(user);
+                k8Render(user);
             }
         });
 }
@@ -64,7 +64,7 @@ if (window.location.pathname === '/callback') {
 const user = userManager.getUser();
 user.token = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImVFa0U1Q2FjVjhMRk9VT3NpdzNGRGR1aTAtcmUxbl84OVVoOGhWTTIyLUUifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRlZmF1bHQtdG9rZW4tZndnMjUiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoiZGVmYXVsdCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImU0ZmJmNTA1LTQxYjItNGM2OS05OTU3LTNhMGYxY2I1ZDZiMyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpkZWZhdWx0OmRlZmF1bHQifQ.FtWSBY7SHTIq7HS9IL-7ePyJkq6br35P5iiTryAZ2T2COoW3AH_b6ONvwe535v-TyPtp0CbAei-dLb0GCJ4hYhZwQOkRs7NK2ffTWzalrRdHyzhvS1oTeSWLfMZEPGV8_14vUVs2zVYa5hdHahfYKO69UgWFcCrNeNcGtcpx8pqvfrGQse109WKadtUygaIBmlNuq1FyVVniGrf1dYtHWT0FTHPzVYCAs_YQwjIoq4cQDMl4U8uEO5pnSS8-JDEawPneXw7fvk9z-7yUgazTNVddOzUWrr9GR2z6WCjiH7b1FZpAGjjoO9dP54_Kke-ksm9vQv9TK-env6dCLCMQLQ";
 user.token_type = "Bearer";
-render(user);
+//render(user);
 
 /*
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -80,7 +80,8 @@ render(user);
 *
 * */
 
-export function render(user){
+export function k8Render(user){
+    /*
     // Variable used to track which CRD the user has selected
     let selectedCRD = "";
 
@@ -180,14 +181,15 @@ export function render(user){
         }
     };
     document.body.append(connect);
-
+    */
     // Loading config from cluster authenticating via token
-    const kc = new Config("APISERVER_URL", user.token, user.token_type);
+    const kc = new Config("https://127.0.0.1:32771", "", "");
     // Base api, not used right now since we need to work with CRDs
     //const k8sApi_base = kc.makeApiClient(CoreV1Api);
     // CRD api
     const k8sApi_crd = kc.makeApiClient(CustomObjectsApi);
 
+    /*
     // Install watcher for all Cluster Events
     watch(kc, '/api/v1/watch/events', {},
         (type, object) => {
@@ -197,25 +199,26 @@ export function render(user){
         (e) => {
             console.log('Stream ended', e);
         });
-
+        */
     // Retrieving CRD labtemplates
     // TODO : once updated courses, repeat this operation for each course
     k8sApi_crd.listClusterCustomObject("template.crown.team.com", "v1", "labtemplates")
         .then((nodesResponse) => {
             const nodes = nodesResponse.body.items;
-            const ul = document.createElement('ul');
+            //const ul = document.createElement('ul');
             for (const idx in nodes) {
-                const li = document.createElement('li');
-                const btn = document.createElement("BUTTON");
-                btn.innerText = nodes[idx].metadata.name;
-                btn.onclick = () => {
-                    selectedCRD = nodes[idx].metadata.name;
-                    course_selected_content.innerText = nodes[idx].metadata.name;
-                };
-                li.appendChild(btn);
-                ul.append(li);
+                //const li = document.createElement('li');
+                //const btn = document.createElement("BUTTON");
+                //btn.innerText = nodes[idx].metadata.name;
+                //btn.onclick = () => {
+                 //   selectedCRD = nodes[idx].metadata.name;
+                 //   course_selected_content.innerText = nodes[idx].metadata.name;
+                //};
+                //li.appendChild(btn);
+                //ul.append(li);
+                alert(nodes[idx].metadata.name);
             }
-            document.body.append(ul);
+            //document.body.append(ul);
         })
         .catch((error) => {
             alert('Error retrieving nodes, check console');
