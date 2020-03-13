@@ -23,11 +23,11 @@ import (
 
 // LabTemplateSpec defines the desired state of LabTemplate
 type LabTemplateSpec struct {
-	CourseName  string                    `json:"courseName,omitempty"`
-	LabName     string                    `json:"labName,omitempty"`
-	LabNum      resource.Quantity         `json:"labNum,omitempty"`
-	Description string                    `json:"description,omitempty"`
-	VmSpec      virtv1.VirtualMachineSpec `json:"vmSpec,omitempty"`
+	CourseName  string                `json:"courseName,omitempty"`
+	LabName     string                `json:"labName,omitempty"`
+	LabNum      resource.Quantity     `json:"labNum,omitempty"`
+	Description string                `json:"description,omitempty"`
+	Vm          virtv1.VirtualMachine `json:"vm,omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate
