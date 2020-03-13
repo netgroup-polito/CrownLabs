@@ -22,3 +22,10 @@ operators/labInstance-operator/bin
 operators/labTemplate-operator/.idea
 operators/labInstance-operator/.idea
 .idea
+
+# frontend
+webservice/dist
+webservicenode_modules
+webservicepackage-lock.json
+webservice/website/node_modules
+webservice/website/package-lock.json

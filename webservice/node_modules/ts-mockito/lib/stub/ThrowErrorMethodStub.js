@@ -1,0 +1,37 @@
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var ArgsToMatchersValidator_1 = require("../matcher/ArgsToMatchersValidator");
+var AbstractMethodStub_1 = require("./AbstractMethodStub");
+var ThrowErrorMethodStub = (function (_super) {
+    __extends(ThrowErrorMethodStub, _super);
+    function ThrowErrorMethodStub(groupIndex, matchers, error) {
+        var _this = _super.call(this) || this;
+        _this.groupIndex = groupIndex;
+        _this.matchers = matchers;
+        _this.error = error;
+        _this.validator = new ArgsToMatchersValidator_1.ArgsToMatchersValidator();
+        return _this;
+    }
+    ThrowErrorMethodStub.prototype.isApplicable = function (args) {
+        return this.validator.validate(this.matchers, args);
+    };
+    ThrowErrorMethodStub.prototype.execute = function (args) {
+        throw this.error;
+    };
+    ThrowErrorMethodStub.prototype.getValue = function () {
+        return null;
+    };
+    return ThrowErrorMethodStub;
+}(AbstractMethodStub_1.AbstractMethodStub));
+exports.ThrowErrorMethodStub = ThrowErrorMethodStub;
+//# sourceMappingURL=ThrowErrorMethodStub.js.map
