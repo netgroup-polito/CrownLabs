@@ -23,9 +23,9 @@ operators/labTemplate-operator/.idea
 operators/labInstance-operator/.idea
 .idea
 
-# frontend
+# webservice
 webservice/dist
-webservicenode_modules
-webservicepackage-lock.json
+webservice/node_modules
+webservice/package-lock.json
 webservice/website/node_modules
 webservice/website/package-lock.json
