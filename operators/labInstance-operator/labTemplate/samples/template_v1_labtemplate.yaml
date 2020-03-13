@@ -7,7 +7,7 @@ spec:
   courseName: "Cloud Computing"
   labName: "Kubernetes"
   labNum: "1"
-  description: "Kubevirt library sucks :)"
+  description: "In this first lab we will begin to explore Kubernetes and its features..."
   vm:
     apiVersion: kubevirt.io/v1alpha3
     kind: VirtualMachine
