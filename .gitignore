@@ -24,8 +24,8 @@ operators/labInstance-operator/.idea
 .idea
 
 # frontend
-frontend/integration/dist
-frontend/integration/node_modules
-frontend/integration/package-lock.json
-frontend/integration/website/node_modules
-frontend/integration/website/package-lock.json
+webservice/dist
+webservicenode_modules
+webservicepackage-lock.json
+webservice/website/node_modules
+webservice/website/package-lock.json
