@@ -17,6 +17,9 @@ package controllers
 
 import (
 	"context"
+	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
@@ -68,6 +71,24 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
+	vm := labTemplate.Spec.Vm
+	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
+
+	ownerRef := []v1.OwnerReference{
+		{
+			APIVersion: labInstance.APIVersion,
+			Kind:       labInstance.Kind,
+			Name:       labInstance.Name,
+			UID:        labInstance.UID,
+		},
+	}
+	vm.SetOwnerReferences(ownerRef)
+
+	if err := CreateOrUpdateVM(r.Client, ctx, log, vm); err != nil {
+		log.Info("Could not create vm " + vm.Name)
+		return ctrl.Result{}, err
+	}
+
 	// set labInstance status to DEPLOYED
 	labInstance = setPhase(labInstance)
 	if err := r.Status().Update(ctx, &labInstance); err != nil {
@@ -87,4 +108,30 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	labInstance.Status.Phase = "DEPLOYED"
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
+}
+
+// create a VirtualMachine CR or update it if already exists
+func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachine) error {
+
+	var tmp virtv1.VirtualMachine
+	err := c.Get(ctx, types.NamespacedName{
+		Namespace: vm.Namespace,
+		Name:      vm.Name,
+	}, &tmp)
+	if err != nil {
+		err = c.Create(ctx, &vm, &client.CreateOptions{})
+		if err != nil && !errors.IsAlreadyExists(err) {
+			log.Error(err, "unable to create virtual machine "+vm.Name)
+			return err
+		}
+	} else {
+		vm.SetResourceVersion(tmp.ResourceVersion)
+		err = c.Update(ctx, &vm, &client.UpdateOptions{})
+		if err != nil {
+			log.Error(err, "unable to update virtual machine "+vm.Name)
+			return err
+		}
+	}
+
+	return nil
 }
