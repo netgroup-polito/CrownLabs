@@ -79,7 +79,6 @@
     "@types/stream-buffers": "^3.0.3",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "husky": "^2.3.0",
     "jasmine": "^3.3.0",
     "mocha": "^6.1.4",
     "mock-fs": "^4.7.0",
@@ -108,10 +107,5 @@
     "trailingComma": "all",
     "singleQuote": true,
     "arrowParens": "always"
-  },
-  "husky": {
-    "hooks": {
-      "pre-push": "npm test && npm run lint"
-    }
   }
 }

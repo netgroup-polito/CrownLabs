@@ -5,10 +5,6 @@ import './App.css';
 
 const logo = require('./assets/logo_poli.png');
 
-import {k8Render} from './k8s_client/index.js';
-
-k8Render();
-
 function Login() {
     return(
         <div>
