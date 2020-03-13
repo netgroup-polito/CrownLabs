@@ -1,7 +1,7 @@
  
 ## CNI CONFIGURATION NOTES
 
-In order to correctly setup the CNI the yaml file have been modified to use the address range 172.16.0.0/16 as pod network cidr
+In order to correctly setup the cluster the `calico.yaml` confiuration file of the CNI have been slightly modified, in particular the pod network CIDR have been changed, as it's shown in the following snippet: 
 
 ```sh
 ...
@@ -10,4 +10,13 @@ In order to correctly setup the CNI the yaml file have been modified to use the 
 ...
 ```
 
-Instead the service address range is 10.96.0.0/16
+Once the `calico.yaml` file is applied  
+
+```sh
+kubectl apply -f calico.yaml
+```
+
+we end up with the following configuration of the cluster:
+ - IP addresses of the workers: 192.168.31.[101-104] (outside CALICO configuration)
+ - IP addresses of the pods: 172.16.0.0/16
+ - IP addresses of the services: 10.96.0.0/12
