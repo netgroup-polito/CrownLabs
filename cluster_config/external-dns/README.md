@@ -1,6 +1,6 @@
-# external-dns
+# External DNS
 
-ExternalDNS synchronizes exposed Kubernetes Services and Ingresses with DNS providers (e.g. bind9).
+[ExternalDNS](https://github.com/kubernetes-sigs/external-dns) synchronizes exposed Kubernetes Services and Ingresses with DNS providers (e.g. bind9).
 
 ## Configure bind9
 
