@@ -1,4 +1,4 @@
-
+# Build the manager binary
 FROM golang:1.13 as builder
 ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
