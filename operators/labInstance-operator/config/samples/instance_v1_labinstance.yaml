@@ -1,8 +1,8 @@
 apiVersion: instance.crown.team.com/v1
 kind: LabInstance
 metadata:
-  name: web-applications-course-instance1
+  name: cloud-computing-lab1-123456
 spec:
   # Add fields here
-  labTemplateName: web-applications-course
+  labTemplateName: cloud-computing-lab1
   studentId: "123456"

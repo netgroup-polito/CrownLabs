@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"os"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -41,6 +42,8 @@ func init() {
 	_ = instancev1.AddToScheme(scheme)
 
 	_ = templatev1.AddToScheme(scheme)
+
+	_ = virtv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

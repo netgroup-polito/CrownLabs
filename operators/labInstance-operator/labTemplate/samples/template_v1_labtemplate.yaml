@@ -1,39 +1,44 @@
 apiVersion: template.crown.team.com/v1
 kind: LabTemplate
 metadata:
-  name: cloud-computing-course
+  name: cloud-computing-lab1
 spec:
   # Add fields here
   courseName: "Cloud Computing"
   labName: "Kubernetes"
   labNum: "1"
-  description: "Kubevirt library sucks :)"
-  vmSpec:
-    running: false
-    template:
-      metadata:
-        labels:
-          kubevirt.io/vm: vm-cirros
-      spec:
-        domain:
-          devices:
-            disks:
-              - disk:
-                  bus: virtio
-                name: containerdisk
-              - disk:
-                  bus: virtio
-                name: cloudinitdisk
-          machine:
-            type: ""
-          resources:
-            requests:
-              memory: 64M
-        terminationGracePeriodSeconds: 0
-        volumes:
-          - name: containerdisk
-            containerDisk:
-              image: kubevirt/cirros-container-disk-demo:latest
-          - cloudInitNoCloud:
-              userDataBase64: IyEvYmluL3NoCgplY2hvICdwcmludGVkIGZyb20gY2xvdWQtaW5pdCB1c2VyZGF0YScK
-            name: cloudinitdisk
+  description: "In this first lab we will begin to explore Kubernetes and its features..."
+  vm:
+    apiVersion: kubevirt.io/v1alpha3
+    kind: VirtualMachine
+    metadata:
+      namespace: default
+    spec:
+      running: false
+      template:
+        metadata:
+          labels:
+            kubevirt.io/vm: vm-cirros
+        spec:
+          domain:
+            devices:
+              disks:
+                - disk:
+                    bus: virtio
+                  name: containerdisk
+                - disk:
+                    bus: virtio
+                  name: cloudinitdisk
+            machine:
+              type: ""
+            resources:
+              requests:
+                memory: 64M
+          terminationGracePeriodSeconds: 0
+          volumes:
+            - name: containerdisk
+              containerDisk:
+                image: kubevirt/cirros-container-disk-demo:latest
+            - cloudInitNoCloud:
+                userDataBase64: IyEvYmluL3NoCgplY2hvICdwcmludGVkIGZyb20gY2xvdWQtaW5pdCB1c2VyZGF0YScK
+              name: cloudinitdisk
