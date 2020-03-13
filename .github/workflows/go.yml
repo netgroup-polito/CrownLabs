@@ -18,7 +18,7 @@ jobs:
       with:
         name: crownlabs/laboratory-operator
         username: ${{ secrets.DOCKER_USERNAME }}
-        dockerfile: operators/labInstance-operator/Dockerfile
+        dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
       if: github.ref == 'refs/heads/master'
