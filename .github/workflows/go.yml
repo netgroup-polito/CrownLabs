@@ -10,17 +10,17 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.CI_TOKEN }}
-    - name: Build LabInstance-Operator image
+    - name: Build Laboratory-Operator image
       run: cd operators/labInstance-operator/ && docker build -f Dockerfile . 
       if: github.ref != 'refs/heads/master'
-    - name: Build LabTemplate-Operator image
+    - name: Build Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
-        name: crownlabs/labinstance-operator
+        name: crownlabs/laboratory-operator
         username: ${{ secrets.DOCKER_USERNAME }}
         dockerfile: operators/labInstance-operator/Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
-        workdir: labInstance-operator
+        workdir: operators/labInstance-operator/
       if: github.ref == 'refs/heads/master'
     - uses: 8398a7/action-slack@v2
       with:
