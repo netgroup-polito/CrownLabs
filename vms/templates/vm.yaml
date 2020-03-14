@@ -27,7 +27,7 @@ spec:
   volumes:
   - name: containerdisk
     containerDisk:
-      image: <tag/image:latest>
+      image: <user/image:latest>
   - name: cloudinitdisk
     cloudInitNoCloud:
       secretRef:
