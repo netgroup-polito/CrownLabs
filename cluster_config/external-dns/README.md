@@ -4,7 +4,7 @@
 
 ## Configure bind9
 
-1. Ensure that `/etc/bind/named.conf` containes the following:
+1. Ensure that `/etc/bind/named.conf` contains the following:
     ```
     ...
     include "/etc/bind/named.conf.keys";
@@ -23,16 +23,16 @@
     };
 
     ```
-3. Edit `/etc/bind/named.conf.local`, and authorize the `k8s-ladispe-externaldns` key to perform updates for the zone of interest (e.g. `ipv6.polito.it`):
+4. Edit `/etc/bind/named.conf.local`, and authorize the `k8s-ladispe-externaldns` key to perform updates for the zone of interest (e.g. `crown-labs.ipv6.polito.it`):
     ```
     zone "ipv6.polito.it" {
         ...
         update-policy {
-            grant k8s-ladispe-externaldns zonesub ANY;
+            grant k8s-ladispe-externaldns wildcard *.crown-labs.ipv6.polito.it ANY;
         };
     };
     ```
-4. Reload the bind9 configuration:
+5. Reload the `bind9` configuration:
     ```sh
     # rndc reload
     ```
@@ -40,13 +40,25 @@
 
 ## Deploy external-dns
 
-1. Edit [external-dns.yaml](external-dns.yaml) and replace `<TSIG-key>` (`--rfc2136-tsig-secret=<TSIG-key>`) with the TSIG key previously generated.
+1. Edit [external-dns.yaml](external-dns.yaml) and configure the `external-dns` arguments to match the `bind9` settings.
+   In particular, replace `<TSIG-key>` (`--rfc2136-tsig-secret=<TSIG-key>`) with the TSIG key previously generated to interact with the DNS server.
 2. Deploy external-dns:
     ```sh
     $ kubectl create -f external-dns.yaml
     ```
 
+## Use external-dns
 
-## References
+To use external-dns add an Ingress or a LoadBalancer service with a host that is part of the domain-filter previously configured (e.g. `example.crown-labs.ipv6.polito.it`).
+As for the LoadBalancer Service, the host is specified through the ad-hoc annotation:
+```
+...
+annotations:
+    external-dns.alpha.kubernetes.io/hostname: example.crown-labs.ipv6.polito.it
+...
+```
+
+
+## Additional References
 1. [external-dns](https://github.com/kubernetes-sigs/external-dns)
 2. [external-dns - bind9](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/rfc2136.md)
