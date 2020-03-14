@@ -17,17 +17,16 @@ Addresses (which are visible in the proper section of [configmap.yaml](configmap
 ````
 $ kubectl apply -f configmap.yaml
 ````
-This configuration creates two addresses pools: one private and one public.
- - private: 192.168.31.[135-199]
- - public: 130.192.31.[240-244]
+In particular, the above  configuration creates two addresses pools: one private (192.168.31.[135-199]) and one public (130.192.31.[240-244]), which can be modified in other setup.
 
-In order to create a service of type LoadBalancer with a public ip you must add the following annotation:
+Given the presence of *two* address pools, a service of type LoadBalancer with a public IP requires the following annotation:
+
 ````
  metallb.universe.tf/address-pool: public
 ````
-If this annotation is omitted metallb will choose a private ip.
+If this annotation is omitted metallb will choose a private IP.
 
-To check which node has been assigned to LoadBalancer ip you can run the following command to get a description of a service:
+To see which physical node is currently in charge of the LoadBalancer IP you can run the following command, which gets a description of the service:
 ````
 $ k describe svc <name-of-service> -n <service-namespace>
 ````
