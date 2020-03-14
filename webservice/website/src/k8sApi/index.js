@@ -3,20 +3,16 @@
 
 // CustomObjectsApi is used to perform all operations on CRD available here
 // https://github.com/scality/kubernetes-client-javascript/blob/browser/src/gen/api/customObjectsApi.ts
-import { Config, CoreV1Api, CustomObjectsApi, watch } from '@kubernetes/client-node';
+import { Config, CustomObjectsApi, watch } from '@kubernetes/client-node';
 import { UserManager } from 'oidc-client';
 
 /*
-*
 * UserManager section, handles the oidc authZ
-*
-* uncomment the `document.body.append(loginButton);` to see the button and test oidc
-* (need to provide a working OIDC_PROVIDER_URL and OIDC_CLIENT_ID)
-*
 * */
+
 const userManager = new UserManager({
-    authority: "OIDC_PROVIDER_URL",
-    client_id: "OIDC_CLIENT_ID",
+    authority: OIDC_PROVIDER_URL,
+    client_id: OIDC_CLIENT_ID,
     redirect_uri: 'http://localhost:8000/callback',
     post_logout_redirect_uri: '/logout',
     response_type: 'id_token',
@@ -24,41 +20,8 @@ const userManager = new UserManager({
     loadUserInfo: false,
 });
 
-if (window.location.pathname === '/callback') {
-    userManager.signinRedirectCallback()
-        .then((user) => {
-            window.location = '/';
-        })
-        .catch((e) => {
-            console.error(e);
-            alert('Error oidc callback, see console');
-        });
-} else if (window.location.pathname === '/logout') {
-    userManager.signoutRedirectCallback().then(function() {
-        const h1 = document.createElement('h1');
-        h1.innerText = 'Logged out';
-        document.body.append(h1);
-
-        const link = document.createElement('a');
-        link.href = '/';
-        link.innerText = 'Return to homepage';
-        document.body.append(link);
-    });
-} else {
-    userManager.getUser()
-        .then((user) => {
-            if (!user) {
-                const loginButton = document.createElement('button');
-                loginButton.innerText = 'Login';
-                loginButton.addEventListener('click', function() {
-                    userManager.signinRedirect();
-                }, false);
-                //document.body.append(loginButton);
-            } else {
-                k8Render(user);
-            }
-        });
-}
+// TODO : implement signin silently
+//userManager.signinSilent();
 
 //Manually Bypassing authN :)
 const user = userManager.getUser();
@@ -66,27 +29,13 @@ user.token = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImVFa0U1Q2FjVjhMRk9VT3NpdzNGRGR1aTAtcm
 user.token_type = "Bearer";
 
 /*
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-*/
-
-/*
-*
 * KubernetesJavascript client section
-*
-*
-*
 */
-
 
 // Loading config from cluster authenticating via token
-const kc = new Config("https://127.0.0.1:32771", user.token, user.token_type);
+const kc = new Config(APISERVER_URL, user.token, user.token_type);
 // CRD api
 const k8sApi_crd = kc.makeApiClient(CustomObjectsApi);
-// Base api, not used right now since we need to work with CRDs
-//const k8sApi_base = kc.makeApiClient(CoreV1Api);
-
 
 export function getCRD() {
     k8sApi_crd.listClusterCustomObject("template.crown.team.com", "v1", "labtemplates")
@@ -95,7 +44,6 @@ export function getCRD() {
         })
         .catch((error) => {
             console.error('Error retrieving nodes', error.body ? error.body : error);
-            return;
         });
 }
 
@@ -117,7 +65,6 @@ export function createCRD(selectedCRD) {
                     },
                     (err) => {
                         console.log('Error!: ' + err);
-                        return;
                     }
                 );
 }
@@ -130,7 +77,6 @@ export function deleteCRD(selectedCRD) {
                     },
                     (err) => {
                         console.log('Error!: ' + err);
-                        return;
                     }
                 );
 }

@@ -1,5 +1,6 @@
 FROM node:alpine
 
+# ignored files and directories are listed in .dockerignore
 ADD . /webservice
 
 # install k8s client
