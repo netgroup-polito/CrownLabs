@@ -6,7 +6,12 @@ metadata:
 data:
   config: |
     address-pools:
-    - name: default
+    - name: private
       protocol: layer2
       addresses:
-      - 192.168.31.135-192.168.31.199 
+      - 192.168.31.135-192.168.31.199
+    - name: public
+      protocol: layer2
+      addresses:
+      - 130.192.31.240-130.192.31.244
+      auto-assign: false
