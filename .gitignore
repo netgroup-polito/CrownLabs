@@ -24,6 +24,7 @@ operators/labInstance-operator/.idea
 .idea
 
 # webservice
+CrownLabs.iml
 webservice/dist
 webservice/node_modules
 webservice/package-lock.json
