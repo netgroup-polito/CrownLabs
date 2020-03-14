@@ -1,5 +1,9 @@
 # kube-prometheus
 
+## Manifests
+
+The manifests contain the definition of namespace (monitoring), the various CRD (Custom Resource Definitions), Prometheus rules, dashboards and so on.
+
 ## Quickstart
 * Create the monitoring stack using the config in the `manifests` directory:
 
@@ -15,23 +19,75 @@ kubectl create -f manifests/
 kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ```
 
-### Access the dashboards
-We use an ingress controller to access to these services.
-
-Prometheus: access via [https://prometheus.crown-labs.ipv6.polito.it:4443](https://prometheus.crown-labs.ipv6.polito.it:4443)
-
-Grafana: access via [https://grafana.crown-labs.ipv6.polito.it:4443](https://grafana.crown-labs.ipv6.polito.it:4443)
-
-Alert Manager: access via [https://alertmanager.crown-labs.ipv6.polito.it:4443](https://alertmanager.crown-labs.ipv6.polito.it:4443)
-
-
 
 ### Persistent storage
 We have modified two manifests (for grafana and prometheus) to have persistent storage.
 
+* grafana-deployment.yaml
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pv-claim-grafana
+  labels:
+    app: grafana
+spec:
+  storageClassName: rook-ceph-block
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+```
+* grafana-deployment.yaml
+```
+ volumes:
+      
+      - name: grafana-storage
+        persistentVolumeClaim:
+          claimName: pv-claim-grafana
+```
+* prometheus-prometheus.yaml
+```
+retention: 15d
+  resources:
+    requests:
+      memory: 2Gi
+```
+
+* prometheus-prometheus.yaml: before applying your cluster configuration you have to enter the correct value
+```
+externalUrl: <>
+```
+* prometheus-prometheus.yaml
+```
+storage:
+    volumeClaimTemplate:
+      metadata:
+        annotations:
+          name: prometheus-storage
+      spec:
+        resources:
+          requests:
+            storage: 50Gi
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: rook-ceph-block
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 99
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - prometheus
+          topologyKey: kubernetes.io/hostname
+```
+
+
+
 ### Other information
-[https://github.com/coreos/kube-prometheus](https://github.com/coreos/kube-prometheus).
-
-
-
-
+Github of [kube-prometheus](https://github.com/coreos/kube-prometheus).
