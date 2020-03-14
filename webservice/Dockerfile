@@ -1,14 +1,14 @@
-FROM node:12.2.0-alpine as build
+FROM node:alpine
+
+ADD . /webservice
 
 # install k8s client
 WORKDIR /webservice
-ADD . /webservice
-RUN npm install --silent
+RUN npm install --silent --no-fund
 
 # install React-Webpack app
 WORKDIR /webservice/website
-COPY /website/package.json /webservice/website/package.json
-RUN npm install --silent
+RUN npm install --silent --no-fund
 
 EXPOSE 8000
 CMD ["npm", "start"]
