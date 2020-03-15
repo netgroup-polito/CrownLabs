@@ -138,8 +138,6 @@ storage:
           topologyKey: kubernetes.io/hostname
 ```
 
-
-
 ## Other information
 * Github of [kube-prometheus](https://github.com/coreos/kube-prometheus).
 
