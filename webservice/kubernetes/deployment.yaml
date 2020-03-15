@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - image: registry.crown-labs.ipv6.polito.it/frontend
+          imagePullPolicy: IfNotPresent
+          name: frontend
+          ports:
+          - containerPort: 8000
+            protocol: TCP
+            name: http
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: regcred
+
