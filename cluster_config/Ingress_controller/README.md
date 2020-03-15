@@ -36,7 +36,4 @@ Once everything is checked we can apply the ingress rules:
 kubectl apply -f ingress.yaml
 ```
 
-The file `ingress.yaml` contains all the ingress rules for Prometheus, Grafana and Alert Manager. In particular the following DNS name are associated to them:
- - Prometheus https://prometheus.crown-labs.ipv6.polito.it:4443
- - Grafana https://grafana.crown-labs.ipv6.polito.it:4443
- - AlertManager https://alertmanager.crown-labs.ipv6.polito.it:4443
+The file `ingress.yaml` contains all the ingress rules for Prometheus, Grafana and Alert Manager.
