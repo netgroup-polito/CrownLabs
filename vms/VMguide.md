@@ -22,6 +22,8 @@ This can be done with the [convert_vm.sh](scripts/convert_vm.sh) script, typing 
 $ convert_vm.sh <your_vm>.vdi
 ```
 
+**NOTE**: the above command assumes that the VM runs on a Linux host. If not, please transfer your image to a Linux machine and run the `convert_vm.sh` script from there.
+
 The script generates a folder called `docker_output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
 Now build the Docker image with the following command:
 
