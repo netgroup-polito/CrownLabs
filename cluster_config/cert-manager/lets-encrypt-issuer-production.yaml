@@ -1,0 +1,24 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+  namespace: cert-manager
+spec:
+  acme:
+    # Let's Encrypt will use this email to contact you about expiring
+    # certificates, and issues related to your account.
+    email: crownlabs2020@gmail.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource used to store the account's private key.
+      name: letsencrypt-production-private-key
+    # Use bind as the challenge solver
+    solvers:
+    - dns01:
+        rfc2136:
+          nameserver: 130.192.225.79
+          tsigKeyName: k8s-ladispe-cert-manager
+          tsigAlgorithm: HMACSHA512
+          tsigSecretSecretRef:
+            name: cert-manager-tsig-secret
+            key: cert-manager-tsig-secret-key
