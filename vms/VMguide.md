@@ -15,7 +15,7 @@ To verify that the setup works, reboot the machine after running the `prepare_vm
 From inside the machine, start a browser and connect to page `http://localhost:6080`, using password `ccroot`.
 
 ### Conversion and upload
-Once you made sure that the VM has been properly configured and runs smothly, shutdown again the VM and convert it to the `qcow2` format, which is used by the Kuvernetes virtualization module (Kube-virt).
+Once you made sure that the VM has been properly configured and runs smothly, shutdown again the VM and convert it to the `qcow2` format, which is used by the Kubernetes virtualization module (Kube-virt).
 This can be done with the [convert_vm.sh](scripts/convert_vm.sh) script, typing the following command:
 
 ```sh
