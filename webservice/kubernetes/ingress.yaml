@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  name: frontend
+  namespace: frontend
+spec:
+  rules:
+    - host: labs.crown-labs.ipv6.polito.it
+      http:
+        paths:
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /
+  tls:
+    - hosts:
+        - labs.crown-labs.ipv6.polito.it
+      secretName: frontend-cert
