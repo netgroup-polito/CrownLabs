@@ -18,7 +18,6 @@ package controllers
 import (
 	"context"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,6 +75,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	vm := labTemplate.Spec.Vm
 	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
+	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	ownerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
@@ -94,6 +94,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	ingress := createIngress()
 	ingress.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
 	ingress.Namespace = "test-vm-ns"
+	ingress.SetOwnerReferences(ownerRef)
 
 	if err := CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		log.Info("Could not create ingress " + ingress.Name)
@@ -146,16 +147,6 @@ func createIngress() v1beta1.Ingress {
 								},
 							},
 						},
-					},
-				},
-			},
-		},
-		Status: v1beta1.IngressStatus{
-			LoadBalancer: corev1.LoadBalancerStatus{
-				Ingress: []corev1.LoadBalancerIngress{
-					{
-						IP:       "130.192.31.241",
-						Hostname: "",
 					},
 				},
 			},
