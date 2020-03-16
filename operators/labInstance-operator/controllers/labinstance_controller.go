@@ -18,6 +18,7 @@ package controllers
 import (
 	"context"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,9 +75,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	vm := labTemplate.Spec.Vm
-	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
+	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-vm"
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
-	ownerRef := []metav1.OwnerReference{
+	labiOwnerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
 			Kind:       labInstance.Kind,
@@ -84,17 +85,27 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			UID:        labInstance.UID,
 		},
 	}
-	vm.SetOwnerReferences(ownerRef)
+	vm.SetOwnerReferences(labiOwnerRef)
 
 	if err := CreateOrUpdate(r.Client, ctx, log, vm); err != nil {
 		log.Info("Could not create vm " + vm.Name)
 		return ctrl.Result{}, err
 	}
 
-	ingress := createIngress()
-	ingress.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
+	service := createService()
+	service.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-svc"
+	service.Namespace = "test-vm-ns"
+	service.SetOwnerReferences(labiOwnerRef)
+
+	if err := CreateOrUpdate(r.Client, ctx, log, service); err != nil {
+		log.Info("Could not create service " + service.Name)
+		return ctrl.Result{}, err
+	}
+
+	ingress := createIngress(service)
+	ingress.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-ing"
 	ingress.Namespace = "test-vm-ns"
-	ingress.SetOwnerReferences(ownerRef)
+	ingress.SetOwnerReferences(labiOwnerRef)
 
 	if err := CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		log.Info("Could not create ingress " + ingress.Name)
@@ -116,8 +127,34 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	return labInstance
 }
 
+func createService() corev1.Service {
 
-func createIngress() v1beta1.Ingress {
+	service := corev1.Service{
+		Spec:       corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name: "vnc",
+					Protocol: corev1.ProtocolTCP,
+					Port: 6080,
+					TargetPort: intstr.IntOrString{IntVal: 6080},
+				},
+				{
+					Name: "ssh",
+					Protocol: corev1.ProtocolTCP,
+					Port: 22,
+					TargetPort: intstr.IntOrString{IntVal: 6081},
+				},
+			},
+			Selector:                 map[string]string{"name": "cloud-lab1"},
+			ClusterIP:                "",
+			Type:                     corev1.ServiceTypeClusterIP,
+		},
+	}
+
+	return service
+}
+
+func createIngress(svc corev1.Service) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -141,8 +178,8 @@ func createIngress() v1beta1.Ingress {
 								{
 									Path: "/",
 									Backend: v1beta1.IngressBackend{
-										ServiceName: "vm-access-svc",
-										ServicePort: intstr.IntOrString{IntVal: 6080},
+										ServiceName: svc.Spec.Ports[0].Name,
+										ServicePort: svc.Spec.Ports[0].TargetPort,
 									},
 								},
 							},
@@ -173,15 +210,26 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				return err
 			}
 		}
-		// CHECK: no need for update??
-		//} else {
-		//	obj.SetResourceVersion(vmi.ResourceVersion)
-		//	err = c.Update(ctx, &obj, &client.UpdateOptions{})
-		//	if err != nil {
-		//		log.Error(err, "unable to update virtual machine "+obj.Name)
-		//		return err
-		//	}
-		//}
+	case corev1.Service:
+		var svc corev1.Service
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &svc)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create service "+obj.Name)
+				return err
+			}
+		} else {
+			obj.SetResourceVersion(svc.ResourceVersion)
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update service "+obj.Name)
+				return err
+			}
+		}
 	case v1beta1.Ingress:
 		var ing v1beta1.Ingress
 		err := c.Get(ctx, types.NamespacedName{
