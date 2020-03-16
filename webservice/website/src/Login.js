@@ -4,11 +4,12 @@ import MaterialIcon from 'material-icons-react';
 import './App.css';
 
 const logo = require('./assets/logo_poli.png');
+const githubIcon = require('./assets/github-logo.png');
 
 function Login() {
     return(
         <div>
-            <Container>
+            <Container className="cover">
                 <Row className="my-5">
                     <Col className="col-4"></Col>
                     <Col className="col-4">
@@ -49,6 +50,14 @@ function Login() {
                     <Col className="col-4"></Col>
                 </Row>
             </Container>
+            <footer className="py-4 blockquote-footer footerstyle">
+                <Container fluid className="m-0 text-center text-secondary">
+                <p className="d-inline">This software has been proudly developed at Politecnico di Torino. </p>
+                <p className="d-inline">For info visit our</p>
+                <img className="d-inline" height="25px" src={githubIcon}/>
+                <a className="d-inline" href="https://github.com/netgroup-polito/CrownLabs">Github project repository</a>
+                </Container>
+            </footer>
         </div>
     );
 }

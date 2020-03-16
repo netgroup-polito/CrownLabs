@@ -133,3 +133,14 @@ If you want to extend or improve the provided docker, you should refer to the [D
 #### Webpack
 
 The configuration file used by WebPack is [here](website/webpack.config.js);
+
+#### Change image in login page
+
+If you want to change the image displayed in login page, you have to:
+
+* Upload your image inside [this](./website/src/assets) directory
+* Update the image name in the Login.js file (you can find it [here](./website/src/Login.js)) as follows:
+
+    ```
+    const logo = require('./assets/<image_name>');
+    ```

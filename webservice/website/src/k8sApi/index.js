@@ -91,3 +91,25 @@ export function watchEvents() {
             console.log('Stream ended', e);
         });
 }
+
+/*
+ * Asynchronous methods for testing rendering in React
+ */
+function resolveAfter2Seconds() {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve('resolved');
+      }, 2000);
+    });
+  }
+  
+  async function AsyncCall() {
+    console.log('calling');
+    const result = await resolveAfter2Seconds();
+    console.log(result);
+    return result;
+  }
+  
+  export function makeTest() {
+      return AsyncCall();
+  }
