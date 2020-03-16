@@ -7,7 +7,7 @@ In order to get a certificate from Let's Encrypt, it is necessary to prove the c
 * HTTP-01 challenge: requires to put a specific value in a file on the web server at a specific path;
 * DNS-01 challenge: requires to put a specific value in a TXT record under that domain name.
 
-In the following, the DNS-01 challenge is adopted. Although being a bit more complex to configure, it is more flexible (does not require the web server to be accessible at port 80) and allows to issue wildcard certificates.
+In the following, both types of challenges are configured and made available. Indeed, the former is easier to use but it requires port 80 to be open and reachable. The latter, on the other hand, does not suffer from this limitation and allows to issue wildcard certificates, but it can be used only for the DNS names under our control.
 
 ## Configure bind9
 
@@ -73,7 +73,15 @@ A valid certificate associated with the `Ingress` host is automatically generate
 ### Certificate Resources
 A `Certificate` resource can be created to manually request the issuance of a digital certificate for a specific host name belonging to the DNS zone under control. [certificate-example.yaml](certificate-example.yaml) provides an example configuration to request a certificate; please refer to the official documentation [[4]](https://cert-manager.io/docs/usage/certificate/) for more information.
 
+### Select the type of challenge to use (i.e. HTTP-01 or DNS-01)
+By default, cert-manager has been configured to prove the control of the domain names to be certified using HTTP-01 challenges. To use DNS-01 challenges, instead, it is necessary to add the ad-hoc label to the `Ingress` or `Certificate` resource:
+```yaml
+labels:
+    use-dns01-solver: "true"
+```
+
 ## Additional References
 1. [cert-manager documentation](https://cert-manager.io/docs/)
-2. [cert-manager configuration with DNS01](https://cert-manager.io/docs/configuration/acme/dns01/)
-3. [cert-manager usage](https://cert-manager.io/docs/usage/)
+2. [cert-manager configuration with HTTP01](https://cert-manager.io/docs/configuration/acme/http01/)
+3. [cert-manager configuration with DNS01](https://cert-manager.io/docs/configuration/acme/dns01/)
+4. [cert-manager usage](https://cert-manager.io/docs/usage/)
