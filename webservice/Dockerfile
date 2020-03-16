@@ -1,15 +1,13 @@
-FROM node:alpine
-
-# ignored files and directories are listed in .dockerignore
+# Dockerfile to build and deploy in production mode the web service
+### builder image builds both the k8s libraries and Reack front-end
+FROM node:alpine as builder
 ADD . /webservice
-
-# install k8s client
 WORKDIR /webservice
 RUN npm install --silent --no-fund
-
-# install React-Webpack app
 WORKDIR /webservice/website
 RUN npm install --silent --no-fund
+RUN npm run-script build
 
-EXPOSE 8000
-CMD ["npm", "start"]
+### image to export the service
+FROM nginx
+COPY --from=builder /webservice/website/dist /usr/share/nginx/html

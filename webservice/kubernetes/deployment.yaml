@@ -21,11 +21,11 @@ spec:
         app: frontend
     spec:
       containers:
-        - image: registry.crown-labs.ipv6.polito.it/frontend
-          imagePullPolicy: IfNotPresent
+        - image: crownlabs/frontend
+          imagePullPolicy: Always
           name: frontend
           ports:
-          - containerPort: 8000
+          - containerPort: 80
             protocol: TCP
             name: http
       dnsPolicy: ClusterFirst

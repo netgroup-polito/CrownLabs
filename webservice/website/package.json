@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "start": "webpack-dev-server"
+    "start": "webpack-dev-server",
+    "build": "webpack -p"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
