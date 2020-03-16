@@ -76,7 +76,6 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	vm := labTemplate.Spec.Vm
 	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
-
 	ownerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
@@ -87,13 +86,19 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 	vm.SetOwnerReferences(ownerRef)
 
-	if err := CreateOrUpdateVM(r.Client, ctx, log, vm); err != nil {
+	if err := CreateOrUpdate(r.Client, ctx, log, vm); err != nil {
 		log.Info("Could not create vm " + vm.Name)
 		return ctrl.Result{}, err
 	}
 
 	ingress := createIngress()
-	println(ingress.Name)
+	ingress.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
+	ingress.Namespace = "test-vm-ns"
+
+	if err := CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
+		log.Info("Could not create ingress " + ingress.Name)
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -110,38 +115,11 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	return labInstance
 }
 
-// create a VirtualMachine CR or update it if already exists
-func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachineInstance) error {
-
-	var tmp virtv1.VirtualMachineInstance
-	err := c.Get(ctx, types.NamespacedName{
-		Namespace: vm.Namespace,
-		Name:      vm.Name,
-	}, &tmp)
-	if err != nil {
-		err = c.Create(ctx, &vm, &client.CreateOptions{})
-		if err != nil && !errors.IsAlreadyExists(err) {
-			log.Error(err, "unable to create virtual machine "+vm.Name)
-			return err
-		}
-	} else {
-		vm.SetResourceVersion(tmp.ResourceVersion)
-		err = c.Update(ctx, &vm, &client.UpdateOptions{})
-		if err != nil {
-			log.Error(err, "unable to update virtual machine "+vm.Name)
-			return err
-		}
-	}
-
-	return nil
-}
 
 func createIngress() v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        "lab2-test-vm",
-			Namespace:   "test-vm-ns",
 			Labels:      nil,
 			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
 		},
@@ -185,39 +163,58 @@ func createIngress() v1beta1.Ingress {
 	}
 
 	return ingress
-	//vkConfig := corev1.ConfigMap{
-	//	ObjectMeta: metav1.ObjectMeta{
-	//		Name:      "vk-config-" + adv.Spec.ClusterId,
-	//		Namespace: "default",
-	//		OwnerReferences: pkg.GetOwnerReference(adv),
-	//	},
-	//	Data: map[string]string{
-	//		"ingress.yaml": `
-	//			apiVersion: extensions/v1beta1
-	//			kind: Ingress
-	//			metadata:
-	//			  name: lab2-test-vm
-	//			  namespace: test-vm-ns
-	//			  annotations:
-	//				cert-manager.io/cluster-issuer: letsencrypt-production
-	//			spec:
-	//			  rules:
-	//			  - host: lab2-test-vm.crown-labs.ipv6.polito.it
-	//				http:
-	//				  paths:
-	//				  - backend:
-	//					  serviceName: vm-access-svc
-	//					  servicePort: 6080
-	//					path: /
-	//			  tls:
-	//			  - hosts:
-	//				- lab2-test-vm.crown-labs.ipv6.polito.it
-	//				secretName: lab2-test-vm-cert
-	//			status:
-	//			  loadBalancer:
-	//				ingress:
-	//				- ip: 130.192.31.241
-	//	`},
-	//}
-
 }
+
+// create a resource or update it if already exists
+func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, object interface{}) error {
+
+	switch obj := object.(type) {
+	case virtv1.VirtualMachineInstance:
+		var vmi virtv1.VirtualMachineInstance
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &vmi)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create virtual machine "+obj.Name)
+				return err
+			}
+		}
+		// CHECK: no need for update??
+		//} else {
+		//	obj.SetResourceVersion(vmi.ResourceVersion)
+		//	err = c.Update(ctx, &obj, &client.UpdateOptions{})
+		//	if err != nil {
+		//		log.Error(err, "unable to update virtual machine "+obj.Name)
+		//		return err
+		//	}
+		//}
+	case v1beta1.Ingress:
+		var ing v1beta1.Ingress
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &ing)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create ingress "+obj.Name)
+				return err
+			}
+		} else {
+			obj.SetResourceVersion(ing.ResourceVersion)
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update ingress "+obj.Name)
+				return err
+			}
+		}
+	}
+
+
+	return nil
+}
+
+
