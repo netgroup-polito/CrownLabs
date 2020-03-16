@@ -10,35 +10,38 @@ spec:
   description: "In this first lab we will begin to explore Kubernetes and its features..."
   vm:
     apiVersion: kubevirt.io/v1alpha3
-    kind: VirtualMachine
+    kind: VirtualMachineInstance
     metadata:
-      namespace: default
+      name: cloud-lab1
+      namespace: test-vm-ns
+      labels:
+        name: cloud-lab1
     spec:
-      running: false
-      template:
-        metadata:
-          labels:
-            kubevirt.io/vm: vm-cirros
-        spec:
-          domain:
-            devices:
-              disks:
-                - disk:
-                    bus: virtio
-                  name: containerdisk
-                - disk:
-                    bus: virtio
-                  name: cloudinitdisk
-            machine:
-              type: ""
-            resources:
-              requests:
-                memory: 64M
-          terminationGracePeriodSeconds: 0
-          volumes:
+      terminationGracePeriodSeconds: 30
+      domain:
+        cpu:
+          cores: 2
+        resources:
+          requests:
+            cpu: 2
+            memory: 4G
+          limits:
+            cpu: 2
+            memory: 4G
+        devices:
+          disks:
             - name: containerdisk
-              containerDisk:
-                image: kubevirt/cirros-container-disk-demo:latest
-            - cloudInitNoCloud:
-                userDataBase64: IyEvYmluL3NoCgplY2hvICdwcmludGVkIGZyb20gY2xvdWQtaW5pdCB1c2VyZGF0YScK
-              name: cloudinitdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: registry.crown-labs.ipv6.polito.it/netgroup/lab2:latest
+            imagePullSecret: dockercreds
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            secretRef:
+              name: cloud-lab2
