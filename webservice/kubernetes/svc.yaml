@@ -10,7 +10,7 @@ spec:
     - name: http
       port: 80
       protocol: TCP
-      targetPort: 8000
+      targetPort: 80
   selector:
     app: frontend
   type: ClusterIP

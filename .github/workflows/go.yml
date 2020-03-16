@@ -13,7 +13,7 @@ jobs:
     - name: Build Laboratory-Operator image
       run: cd operators/labInstance-operator/ && docker build -f Dockerfile . 
       if: github.ref != 'refs/heads/master'
-    - name: Build Laboratory-Operator image
+    - name: Build and Push Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
         name: crownlabs/laboratory-operator
@@ -21,6 +21,18 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
+      if: github.ref == 'refs/heads/master'
+    - name: Build Frontend image
+      run: cd webservice && docker build -f Dockerfile . 
+      if: github.ref != 'refs/heads/master'
+    - name: Build and Push Frontend image
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: crownlabs/frontend
+        username: ${{ secrets.DOCKER_USERNAME }}
+        dockerfile: Dockerfile
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: webservice
       if: github.ref == 'refs/heads/master'
     - uses: 8398a7/action-slack@v2
       with:
