@@ -18,9 +18,12 @@ package controllers
 import (
 	"context"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,7 +77,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	vm := labTemplate.Spec.Vm
 	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
 
-	ownerRef := []v1.OwnerReference{
+	ownerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
 			Kind:       labInstance.Kind,
@@ -89,12 +92,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	// set labInstance status to DEPLOYED
-	labInstance = setPhase(labInstance)
-	if err := r.Status().Update(ctx, &labInstance); err != nil {
-		log.Error(err, "unable to update Advertisement status")
-		return ctrl.Result{}, err
-	}
+	ingress := createIngress()
+	println(ingress.Name)
+
 	return ctrl.Result{}, nil
 }
 
@@ -111,9 +111,9 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 }
 
 // create a VirtualMachine CR or update it if already exists
-func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachine) error {
+func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachineInstance) error {
 
-	var tmp virtv1.VirtualMachine
+	var tmp virtv1.VirtualMachineInstance
 	err := c.Get(ctx, types.NamespacedName{
 		Namespace: vm.Namespace,
 		Name:      vm.Name,
@@ -134,4 +134,90 @@ func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm 
 	}
 
 	return nil
+}
+
+func createIngress() v1beta1.Ingress {
+
+	ingress := v1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "lab2-test-vm",
+			Namespace:   "test-vm-ns",
+			Labels:      nil,
+			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
+		},
+		Spec: v1beta1.IngressSpec{
+			Backend: nil,
+			TLS: []v1beta1.IngressTLS{
+				{
+					Hosts:      []string{"lab2-test-vm.crown-labs.ipv6.polito.it"},
+					SecretName: "lab2-test-vm-cert",
+				},
+			},
+			Rules: []v1beta1.IngressRule{
+				{
+					Host: "lab2-test-vm.crown-labs.ipv6.polito.it",
+					IngressRuleValue: v1beta1.IngressRuleValue{
+						HTTP: &v1beta1.HTTPIngressRuleValue{
+							Paths: []v1beta1.HTTPIngressPath{
+								{
+									Path: "/",
+									Backend: v1beta1.IngressBackend{
+										ServiceName: "vm-access-svc",
+										ServicePort: intstr.IntOrString{IntVal: 6080},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Status: v1beta1.IngressStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{
+					{
+						IP:       "130.192.31.241",
+						Hostname: "",
+					},
+				},
+			},
+		},
+	}
+
+	return ingress
+	//vkConfig := corev1.ConfigMap{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      "vk-config-" + adv.Spec.ClusterId,
+	//		Namespace: "default",
+	//		OwnerReferences: pkg.GetOwnerReference(adv),
+	//	},
+	//	Data: map[string]string{
+	//		"ingress.yaml": `
+	//			apiVersion: extensions/v1beta1
+	//			kind: Ingress
+	//			metadata:
+	//			  name: lab2-test-vm
+	//			  namespace: test-vm-ns
+	//			  annotations:
+	//				cert-manager.io/cluster-issuer: letsencrypt-production
+	//			spec:
+	//			  rules:
+	//			  - host: lab2-test-vm.crown-labs.ipv6.polito.it
+	//				http:
+	//				  paths:
+	//				  - backend:
+	//					  serviceName: vm-access-svc
+	//					  servicePort: 6080
+	//					path: /
+	//			  tls:
+	//			  - hosts:
+	//				- lab2-test-vm.crown-labs.ipv6.polito.it
+	//				secretName: lab2-test-vm-cert
+	//			status:
+	//			  loadBalancer:
+	//				ingress:
+	//				- ip: 130.192.31.241
+	//	`},
+	//}
+
 }
