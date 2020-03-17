@@ -24,6 +24,11 @@ spec:
   selector:
     matchLabels:
       app: grafana
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 100%
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -46,6 +51,9 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        envFrom:
+        - configMapRef:
+            name: grafana-configuration
         volumeMounts:
         - mountPath: /var/lib/grafana
           name: grafana-storage
@@ -135,11 +143,9 @@ spec:
         runAsUser: 65534
       serviceAccountName: grafana
       volumes:
-      
       - name: grafana-storage
         persistentVolumeClaim:
           claimName: pv-claim-grafana
-
       - name: grafana-datasources
         secret:
           secretName: grafana-datasources

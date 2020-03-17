@@ -1,5 +1,5 @@
 # kube-prometheus
-Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheus rules to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator. 
+Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheus rules to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
 
 
 ## Table of contents
@@ -15,8 +15,9 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
     - [Manifests](#manifests)
     - [Quickstart](#quickstart)
     - [Persistent storage](#persistent-storage)
+    - [Grafana OAuth2 Authentication](#grafana-oauth2-authentication)
   - [Other information](#other-information)
- 
+
 ## Introduction
 
 ### Monitoring
@@ -44,7 +45,7 @@ The Alertmanager handles alerts sent by client applications such as the Promethe
 
 ## Manifests
 These manifests contain the most important elements required to monitor the cluster:
-- The namespace 
+- The namespace
 - The Prometheus Operator
 - Highly available Prometheus
 - Highly available Alertmanager
@@ -57,7 +58,7 @@ These manifests contain the most important elements required to monitor the clus
 1. Create the monitoring stack using the config in the `manifests` directory:
 
 ```shell
-# Create the namespace and CRDs, and then wait for them to be availble before creating the remaining resources
+# Create the namespace and CRDs, and then wait for them to be available before creating the remaining resources
 kubectl create -f manifests/setup
 until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
 kubectl create -f manifests/
@@ -72,7 +73,7 @@ kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ## Persistent storage
 
 ### Why?
-Running cluster monitoring with persistent storage means that your metrics are stored to a Persistent Volume and can survive a pod being restarted or recreated. This is ideal if you require your metrics or alerting data to be guarded from data loss. For production environments, it is highly recommended to configure persistent storage. 
+Running cluster monitoring with persistent storage means that your metrics are stored to a Persistent Volume and can survive a pod being restarted or recreated. This is ideal if you require your metrics or alerting data to be guarded from data loss. For production environments, it is highly recommended to configure persistent storage.
 
 ### How?
 We need to modify two manifests (for Grafana and Prometheus) to have persistent storage.
@@ -95,7 +96,7 @@ spec:
 ```
 ```
  volumes:
-      
+
       - name: grafana-storage
         persistentVolumeClaim:
           claimName: pv-claim-grafana
@@ -107,7 +108,7 @@ retention: 15d
     requests:
       memory: 2Gi
 ```
-3. Before applying your cluster configuration, you have to enter the correct value for the 
+3. Before applying your cluster configuration, you have to enter the correct value for the
 ```
 externalUrl: <>
 ```
@@ -138,6 +139,29 @@ storage:
           topologyKey: kubernetes.io/hostname
 ```
 
+## Grafana OAuth2 Authentication
+It is possible to configure many different oauth2 authentication services with Grafana using the `generic_oauth` feature. In the following, we will setup Grafana to use Keycloak as identity provider. *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../Keycloak/README.md) for more information.
+
+### Keycloak configuration
+
+1. Create a new client for Grafana;
+2. Configure the Client Protocol to be `openid-connect`;
+3. Set Access Type to `confidential`;
+4. Configure the Root URL and the Base URL to the grafana URL (e.g. https://grafana.example.com/);
+5. Configure the Valid Redirect URIs to the grafana URL (e.g. https://grafana.example.com/*);
+6. From the Credentials tab, copy the Client Secret that has been generated.
+
+### Grafana configuration
+
+1. Edit the [grafana-configuration configmap](manifests/grafana-configuration.yaml) and adapt it to your configuration (each line corresponds to an environment variable). In particular, it is necessary to adapt the different URIs and specify the Client ID and Secrets generated in Keycloak. The meaning of the different fields is specified by the embedded comments. More information can be found in the [official documentation](https://grafana.com/docs/grafana/latest/auth/generic-oauth/).
+2. Restart the Grafana deployment:
+   ```sh
+   $ kubectl rollout restart deploy/grafana -n monitoring
+   ```
+
+### Limit access to a subset of Keycloak users
+**Warning:** At the time of writing, it seems not possible to restrict login by role/group when using the `generic_oauth` feature. Hence, all valid users of the Keycloak realm would be able to access Grafana. As a temporary workaround, the [grafana-configuration configmap](manifests/grafana-configuration.yaml) disables the access to users not already present within the Grafana database. As soon as this inherent [PR](https://github.com/grafana/grafana/pull/22383) is merged and the new version of Grafana released, it should be possible to limit the access to only a subset of Keycloak users directly from grafana, without needing to create duplicated accounts.
+
+
 ## Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
-
