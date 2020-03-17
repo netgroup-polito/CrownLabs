@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Card, Form, InputGroup, FormControl, Button, Row, Col } from 'react-bootstrap';
 import MaterialIcon from 'material-icons-react';
+import {Link} from 'react-router-dom';
 import './App.css';
 import {AuthenticatorInstance} from "./App";
 
@@ -43,7 +44,7 @@ function Login() {
                                             </InputGroup.Append>
                                         </InputGroup>
                                     </Form.Group>
-                                    <Button className="btn-block login mt-5" variant="primary" onClick={AuthenticatorInstance.login}>Login</Button>
+                                    <Button as={Link} to="/userview" className="btn-block login mt-5" variant="primary" onClick={AuthenticatorInstance.login}>Login</Button>
                                 </Form>
                             </Card.Body>
                         </Card>

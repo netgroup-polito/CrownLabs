@@ -22,7 +22,7 @@ export default class Authenticator {
     completeLogin() {
         this.manager.signinRedirectCallback()
             .then(() => {
-                document.location.href = '/home';
+                document.location.href = '/userview';
             });
     }
 }
