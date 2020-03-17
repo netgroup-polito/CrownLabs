@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  generation: 1
+  name: ingress-apiserver
+  namespace: kube-system
+  selfLink: /apis/extensions/v1beta1/namespaces/monitoring/ingresses/lab2-vm
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  labels:
+    use-dns01-solver: "true"
+spec:
+  rules:
+  - host: apiserver.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: apiserver-svc
+          servicePort: 6443
+        path: /
+  tls:
+    - hosts:
+      - apiserver.crown-labs.ipv6.polito.it
+      secretName: apiserver-ingress-cert
