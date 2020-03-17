@@ -16,6 +16,7 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
     - [Quickstart](#quickstart)
     - [Persistent storage](#persistent-storage)
     - [Monitor the Bind DNS Server](#monitor-the-bind-dns-server)
+    - [Monitor all namespaces](#monitor-all-namespaces)
     - [Grafana OAuth2 Authentication](#grafana-oauth2-authentication)
   - [Other information](#other-information)
 
@@ -25,6 +26,7 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
 Cluster Monitoring is the process of assessing the performance of cluster entities either as individual nodes or as a collection. Cluster Monitoring should be able to provide information about the communication and interoperability between various nodes of the cluster.
 
 ### Prometheus
+From [Promtheus](https://prometheus.io/docs/introduction/overview/) official documentation. 
 Prometheus is an open-source systems monitoring and alerting toolkit.
 Prometheus's main features are:
 - a multi-dimensional data model with time series data identified by metric name and key/value pairs
@@ -36,9 +38,11 @@ Prometheus's main features are:
 - multiple modes of graphing and dashboarding support
 
 ### Grafana
+From [Grafana](https://grafana.com/docs/grafana/latest/guides/what-is-grafana/) official documentation.
 Grafana is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics no matter where they are stored. We can also say that Grafana is the tool for beautiful monitoring and metric analytics & dashboards for Graphite, InfluxDB & Prometheus & More.
 
 ### Alertmanager
+From Promtheus [Alertmanager](https://prometheus.io/docs/alerting/alertmanager/) official documentation.
 The Alertmanager handles alerts sent by client applications such as the Prometheus server. It takes care of deduplicating, grouping, and routing them to the correct receiver integration such as email, PagerDuty, or OpsGenie. It also takes care of silencing and inhibition of alerts
 
 
@@ -58,16 +62,16 @@ These manifests contain the most important elements required to monitor the clus
 ## Quickstart
 1. Create the monitoring stack using the config in the `manifests` directory:
 
-```shell
+```
 # Create the namespace and CRDs, and then wait for them to be available before creating the remaining resources
-kubectl create -f manifests/setup
-until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
-kubectl create -f manifests/
+$ kubectl create -f manifests/setup
+$ until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
+$ kubectl create -f manifests/
 ```
 
-2. Now, teardown the stack:
-```shell
-kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
+2. If you want to teardown the stack:
+```
+$ kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ```
 
 
@@ -126,6 +130,8 @@ storage:
         accessModes:
           - ReadWriteOnce
         storageClassName: rook-ceph-block
+ ```
+ ```
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -139,6 +145,14 @@ storage:
               - prometheus
           topologyKey: kubernetes.io/hostname
 ```
+
+## Monitor all namespaces
+We need to give permission to the pod prometheus to be able to get on endpoints that it does not know. To know them he has to talk with his APIserver and to do so he need an identity i.e. a ServiceAccount, finally the permissions are needed. To do this we use the concepts of ClusterRole and ClusterRoleBinding.
+So
+```
+kubectl apply -f prometheus-scraper-cluster-role.yaml 
+```
+Now Prometheus can scrape all the namespaces in the cluster.
 
 ## Grafana OAuth2 Authentication
 It is possible to configure many different oauth2 authentication services with Grafana using the `generic_oauth` feature. In the following, we will setup Grafana to use Keycloak as identity provider. *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../Keycloak/README.md) for more information.
@@ -247,3 +261,5 @@ It is possible to configure many different oauth2 authentication services with G
 
 ## Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
+
+
