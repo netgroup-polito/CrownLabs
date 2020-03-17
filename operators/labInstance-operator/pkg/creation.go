@@ -18,18 +18,18 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
-
+	vm.Labels = map[string]string{"name": name}
 	return vm
 }
 
-func CreateSecret(name string, namespace string) corev1.Secret{
+func CreateSecret(name string, namespace string) corev1.Secret {
 
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + "-secret",
+			Name:      name + "-secret",
 			Namespace: namespace,
 		},
-		Data:       nil,
+		Data: nil,
 		StringData: map[string]string{"userdata": `
 			network:
 			  version: 2
@@ -45,7 +45,7 @@ func CreateService(name string, namespace string) corev1.Service {
 
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + "-svc",
+			Name:      name + "-svc",
 			Namespace: namespace,
 		},
 		Spec: corev1.ServiceSpec{
@@ -76,8 +76,8 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name + "-ingress",
-			Namespace: namespace,
+			Name:        name + "-ingress",
+			Namespace:   namespace,
 			Labels:      nil,
 			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
 		},
@@ -85,20 +85,20 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 			Backend: nil,
 			TLS: []v1beta1.IngressTLS{
 				{
-					Hosts:      []string{"trololo.crown-labs.ipv6.polito.it"},
+					Hosts:      []string{"crownlabs.polito.it"},
 					SecretName: secretName,
 				},
 			},
 			Rules: []v1beta1.IngressRule{
 				{
-					Host: "trololo.crown-labs.ipv6.polito.it",
+					Host: "crownlabs.polito.it",
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
 								{
-									Path: "/",
+									Path: "/" + name,
 									Backend: v1beta1.IngressBackend{
-										ServiceName: svc.Spec.Ports[0].Name,
+										ServiceName: svc.Name,
 										ServicePort: svc.Spec.Ports[0].TargetPort,
 									},
 								},
@@ -173,4 +173,3 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 
 	return nil
 }
-

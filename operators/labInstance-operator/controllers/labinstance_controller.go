@@ -89,13 +89,17 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		log.Info("Could not create secret " + secret.Name)
 		return ctrl.Result{}, err
+	} else {
+		log.Info("Secret " + secret.Name + " correctly created")
 	}
 	// create VirtualMachineInstance
-	vm := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
-	vm.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vm); err != nil {
-		log.Info("Could not create vm " + vm.Name)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
+	vmi.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
+		log.Info("Could not create vm " + vmi.Name)
 		return ctrl.Result{}, err
+	} else {
+		log.Info("VirtualMachineInstance " + vmi.Name + " correctly created")
 	}
 	// create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
@@ -103,6 +107,8 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
 		log.Info("Could not create service " + service.Name)
 		return ctrl.Result{}, err
+	} else {
+		log.Info("Service " + service.Name + " correctly created")
 	}
 	// create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
@@ -110,6 +116,8 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		log.Info("Could not create ingress " + ingress.Name)
 		return ctrl.Result{}, err
+	} else {
+		log.Info("Ingress " + ingress.Name + " correctly created")
 	}
 
 	return ctrl.Result{}, nil
