@@ -15,6 +15,7 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
     - [Manifests](#manifests)
     - [Quickstart](#quickstart)
     - [Persistent storage](#persistent-storage)
+    - [Monitor the Bind DNS Server](#monitor-the-bind-dns-server)
     - [Grafana OAuth2 Authentication](#grafana-oauth2-authentication)
   - [Other information](#other-information)
 
@@ -154,7 +155,11 @@ It is possible to configure many different oauth2 authentication services with G
 ### Grafana configuration
 
 1. Edit the [grafana-configuration configmap](manifests/grafana-configuration.yaml) and adapt it to your configuration (each line corresponds to an environment variable). In particular, it is necessary to adapt the different URIs and specify the Client ID and Secrets generated in Keycloak. The meaning of the different fields is specified by the embedded comments. More information can be found in the [official documentation](https://grafana.com/docs/grafana/latest/auth/generic-oauth/).
-2. Restart the Grafana deployment:
+2. Apply the `ConfigMap`:
+   ```sh
+   $ kubectl create -f manifests/grafana-configuration.yaml
+   ```
+3. Restart the Grafana deployment:
    ```sh
    $ kubectl rollout restart deploy/grafana -n monitoring
    ```
@@ -162,6 +167,83 @@ It is possible to configure many different oauth2 authentication services with G
 ### Limit access to a subset of Keycloak users
 **Warning:** At the time of writing, it seems not possible to restrict login by role/group when using the `generic_oauth` feature. Hence, all valid users of the Keycloak realm would be able to access Grafana. As a temporary workaround, the [grafana-configuration configmap](manifests/grafana-configuration.yaml) disables the access to users not already present within the Grafana database. As soon as this inherent [PR](https://github.com/grafana/grafana/pull/22383) is merged and the new version of Grafana released, it should be possible to limit the access to only a subset of Keycloak users directly from grafana, without needing to create duplicated accounts.
 
+
+## Monitor the Bind DNS Server
+
+[bind_exporter](https://github.com/prometheus-community/bind_exporter) is a Prometheus exporter from Bind. The following guide is an adapted version of this [blog post](https://computingforgeeks.com/how-to-monitor-bind-dns-server-with-prometheus-and-grafana/).
+
+### Bind configuration
+1. Download the latest release of the `bind_exporter` binary:
+    ```sh
+    $ wget -qO - https://api.github.com/repos/prometheus-community/bind_exporter/releases/latest | grep browser_download_url | grep linux-amd64 |  cut -d '"' -f 4 | wget -qi -
+    ```
+2. Extract the binary and move it to the /url/local/bin folder:
+    ```sh
+    $ sudo tar xvf bind_exporter-*.tar.gz --directory /usr/local/bin --wildcards --strip-components 1 '*/bind_exporter'
+    ```
+3. Edit `/etc/bind/named.conf.options`, and open a statistics channel:
+    ```
+    statistics-channels {
+        inet 127.0.0.1 port 8053 allow { 127.0.0.1; };
+    };
+    ```
+4. Reload the `bind9` configuration:
+    ```sh
+    $ sudo rndc reload
+    ```
+5. Add the `prometheus` system user account
+    ```sh
+    $ sudo groupadd --system prometheus
+    $ sudo useradd -s /sbin/nologin --system -g prometheus prometheus
+    ```
+6. Create a `systemd` unit file for `bind_exporter`:
+    ```sh
+    $ sudo tee /etc/systemd/system/bind_exporter.service<<'EOF'
+    [Unit]
+    Description=Prometheus
+    Documentation=https://github.com/digitalocean/bind_exporter
+    Wants=network-online.target
+    After=network-online.target
+
+    [Service]
+    Type=simple
+    User=prometheus
+    Group=prometheus
+    ExecReload=/bin/kill -HUP $MAINPID
+    ExecStart=/usr/local/bin/bind_exporter \
+      --bind.pid-file=/var/run/named/named.pid \
+      --bind.timeout=20s \
+      --web.listen-address=0.0.0.0:9153 \
+      --web.telemetry-path=/metrics \
+      --bind.stats-url=http://localhost:8053/ \
+      --bind.stats-groups=server,view,tasks
+
+    SyslogIdentifier=prometheus
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    ```
+7. Reload `systemd` and start the `bind_exporter` service:
+    ```sh
+    $ sudo systemctl daemon-reload
+    $ sudo systemctl enable bind_exporter.service
+    $ sudo systemctl restart bind_exporter.service
+    ```
+8. Configure `iptables` to limit the access to `bind_exporter` to specific IP addresses (optional):
+    ```sh
+    $ sudo iptables -A INPUT -p tcp -s 130.192.0.0/16 --dport 9153 -j ACCEPT
+    $ sudo iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport 9153 -j ACCEPT
+    $ sudo iptables -A INPUT -p tcp --dport 9153 -j DROP
+    ```
+
+### Prometheus and Grafana configuration
+1. Create the `Endpoint`, `Service` and `ServiceMonitor` resources to scrape the metrics exported by `bind_exporter`:
+    ```sh
+    $ kubectl create -f manifests/prometheus-bind-exporter.yaml
+    ```
+2. Open the Grafana web page and import the dashboard with ID 1666.
 
 ## Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
