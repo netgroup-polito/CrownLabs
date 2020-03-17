@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: apiserver-svc
+  namespace: kube-system
+spec:
+  selector:
+    component: kube-apiserver
+  ports:
+    - protocol: TCP
+      port: 6443
+      targetPort: 6443
