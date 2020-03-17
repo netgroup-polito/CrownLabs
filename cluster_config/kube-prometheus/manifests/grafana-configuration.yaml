@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-configuration
+  namespace: monitoring
+data:
+  # Configure the DNS name associated with Grafana
+  GF_SERVER_DOMAIN: grafana.crown-labs.ipv6.polito.it
+  GF_SERVER_ROOT_URL: https://grafana.crown-labs.ipv6.polito.it
+  # Enable OAuth authentication (i.e. with Keycloak)
+  GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+  # Allow access via OAuth only to already existing accounts
+  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "false"
+  # Client configuration in Keycloak (ID and Secret)
+  GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: <grafana-secret>
+  # Keycloak URLs
+  GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/auth
+  GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/token
+  GF_AUTH_GENERIC_OAUTH_API_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/userinfo
+  GF_AUTH_SIGNOUT_REDIRECT_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fgrafana.crown-labs.ipv6.polito.it
+  # Map the 'grafana_role' configured in keycloak to the role in Grafana
+  GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(grafana_role, 'Admin') && 'Admin' || contains(grafana_role, 'Editor') && 'Editor' || 'Viewer'
