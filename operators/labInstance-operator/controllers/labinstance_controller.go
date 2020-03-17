@@ -17,13 +17,9 @@ package controllers
 
 import (
 	"context"
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,8 +70,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	vm := labTemplate.Spec.Vm
-	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-vm"
+	// prepare variables common to all resources
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
+	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	labiOwnerRef := []metav1.OwnerReference{
 		{
@@ -85,29 +82,32 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			UID:        labInstance.UID,
 		},
 	}
-	vm.SetOwnerReferences(labiOwnerRef)
 
-	if err := CreateOrUpdate(r.Client, ctx, log, vm); err != nil {
+	// create secret referenced by VirtualMachineInstance
+	secret := pkg.CreateSecret(name, namespace)
+	secret.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
+		log.Info("Could not create secret " + secret.Name)
+		return ctrl.Result{}, err
+	}
+	// create VirtualMachineInstance
+	vm := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
+	vm.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vm); err != nil {
 		log.Info("Could not create vm " + vm.Name)
 		return ctrl.Result{}, err
 	}
-
-	service := createService()
-	service.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-svc"
-	service.Namespace = "test-vm-ns"
+	// create Service to expose the vm
+	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
-
-	if err := CreateOrUpdate(r.Client, ctx, log, service); err != nil {
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
 		log.Info("Could not create service " + service.Name)
 		return ctrl.Result{}, err
 	}
-
-	ingress := createIngress(service)
-	ingress.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID + "-ing"
-	ingress.Namespace = "test-vm-ns"
+	// create Ingress to manage the service
+	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
-
-	if err := CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		log.Info("Could not create ingress " + ingress.Name)
 		return ctrl.Result{}, err
 	}
@@ -126,134 +126,3 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
 }
-
-func createService() corev1.Service {
-
-	service := corev1.Service{
-		Spec:       corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Name: "vnc",
-					Protocol: corev1.ProtocolTCP,
-					Port: 6080,
-					TargetPort: intstr.IntOrString{IntVal: 6080},
-				},
-				{
-					Name: "ssh",
-					Protocol: corev1.ProtocolTCP,
-					Port: 22,
-					TargetPort: intstr.IntOrString{IntVal: 6081},
-				},
-			},
-			Selector:                 map[string]string{"name": "cloud-lab1"},
-			ClusterIP:                "",
-			Type:                     corev1.ServiceTypeClusterIP,
-		},
-	}
-
-	return service
-}
-
-func createIngress(svc corev1.Service) v1beta1.Ingress {
-
-	ingress := v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:      nil,
-			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
-		},
-		Spec: v1beta1.IngressSpec{
-			Backend: nil,
-			TLS: []v1beta1.IngressTLS{
-				{
-					Hosts:      []string{"lab2-test-vm.crown-labs.ipv6.polito.it"},
-					SecretName: "lab2-test-vm-cert",
-				},
-			},
-			Rules: []v1beta1.IngressRule{
-				{
-					Host: "lab2-test-vm.crown-labs.ipv6.polito.it",
-					IngressRuleValue: v1beta1.IngressRuleValue{
-						HTTP: &v1beta1.HTTPIngressRuleValue{
-							Paths: []v1beta1.HTTPIngressPath{
-								{
-									Path: "/",
-									Backend: v1beta1.IngressBackend{
-										ServiceName: svc.Spec.Ports[0].Name,
-										ServicePort: svc.Spec.Ports[0].TargetPort,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return ingress
-}
-
-// create a resource or update it if already exists
-func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, object interface{}) error {
-
-	switch obj := object.(type) {
-	case virtv1.VirtualMachineInstance:
-		var vmi virtv1.VirtualMachineInstance
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: obj.Namespace,
-			Name:      obj.Name,
-		}, &vmi)
-		if err != nil {
-			err = c.Create(ctx, &obj, &client.CreateOptions{})
-			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create virtual machine "+obj.Name)
-				return err
-			}
-		}
-	case corev1.Service:
-		var svc corev1.Service
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: obj.Namespace,
-			Name:      obj.Name,
-		}, &svc)
-		if err != nil {
-			err = c.Create(ctx, &obj, &client.CreateOptions{})
-			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create service "+obj.Name)
-				return err
-			}
-		} else {
-			obj.SetResourceVersion(svc.ResourceVersion)
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update service "+obj.Name)
-				return err
-			}
-		}
-	case v1beta1.Ingress:
-		var ing v1beta1.Ingress
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: obj.Namespace,
-			Name:      obj.Name,
-		}, &ing)
-		if err != nil {
-			err = c.Create(ctx, &obj, &client.CreateOptions{})
-			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create ingress "+obj.Name)
-				return err
-			}
-		} else {
-			obj.SetResourceVersion(ing.ResourceVersion)
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update ingress "+obj.Name)
-				return err
-			}
-		}
-	}
-
-
-	return nil
-}
-
-
