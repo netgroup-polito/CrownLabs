@@ -93,7 +93,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Info("Secret " + secret.Name + " correctly created")
 	}
 	// create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, "cloud-computing-lab1-123456-pvc")
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		log.Info("Could not create vm " + vmi.Name)
