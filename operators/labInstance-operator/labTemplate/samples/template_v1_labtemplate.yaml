@@ -4,7 +4,6 @@ metadata:
   name: cloud-computing-lab1
   namespace: test-francesco
 spec:
-  # Add fields here
   courseName: "Cloud Computing"
   labName: "Kubernetes"
   labNum: "1"
@@ -13,10 +12,10 @@ spec:
     apiVersion: kubevirt.io/v1alpha3
     kind: VirtualMachineInstance
     metadata:
-      name: cloud-lab1
-      namespace: test-vm-ns
+      name: xxx
+      namespace: xxx
       labels:
-        name: cloud-lab1
+        name: xxx
     spec:
       terminationGracePeriodSeconds: 30
       domain:
@@ -37,6 +36,9 @@ spec:
             - name: cloudinitdisk
               disk:
                 bus: virtio
+            - name: pvcdisk
+              disk:
+                bus: virtio
       volumes:
         - name: containerdisk
           containerDisk:
@@ -45,4 +47,7 @@ spec:
         - name: cloudinitdisk
           cloudInitNoCloud:
             secretRef:
-              name: cloud-lab2
+              name: xxx
+        - name: pvcdisk
+          persistentVolumeClaim:
+            claimName: xxx
