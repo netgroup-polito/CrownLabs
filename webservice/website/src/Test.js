@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { Container, Card, Button, Row, Col } from 'react-bootstrap';
-import { makeTest } from './k8sApi/index';
 
 class Test extends Component {
     constructor(props) {
@@ -12,10 +11,16 @@ class Test extends Component {
     }
 
     test() {
-        makeTest().then(response => {
-            console.log(response);
-            this.setState({msg: response});
-        }).catch(error => {console.log(error)});
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve('resolved');
+            }, 2000);
+        })
+            .then(response => {
+                console.log(response);
+                this.setState({msg: response});
+            })
+            .catch(error => {console.log(error)});
     }
 
     render() {

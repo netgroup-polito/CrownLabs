@@ -2,7 +2,10 @@
 ./node_modules
 ./package-lock.json
 ./dist
-./old
 ./README.md
 ./website/node_modules
 ./website/package-lock.json
+./website/dist
+./kubernetes
+./Dockerfile
+./.dockerignore

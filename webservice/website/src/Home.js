@@ -1,37 +1,21 @@
 import React from 'react';
-import {Navbar, Nav, Container, Card, Row, Col, Button} from 'react-bootstrap';
+import {Navbar, Nav, NavItem, Container, Card, Row, Col, Button} from 'react-bootstrap';
 import './App.css';
-import {AuthenticatorInstance} from './App';
-import ApiManager from './ApiManager';
 
 const logo = require('./assets/logo_poli3.png');
 const githubIcon = require('./assets/github-logo.png');
 
-let apiManager;
-
-export default class Home extends React.Component{
-    constructor(props) {
-        super(props);
-        AuthenticatorInstance.manager.getUser().then(user => {
-            if(user != null) {
-                apiManager = new ApiManager(user.id_token, user.token_type === undefined ? "Bearer" : user.token_type);
-                //apiManager.getCRD();
-                //apiManager.createCRD();
-                //apiManager.deleteCRD();
-            }
-        });
-    }
-    render() {
-        return (
+export default function Home(props) {
+    return (
             <div>
                 <header>
                     <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
                         <Container>
                             <Navbar.Brand href="">CrownLabs</Navbar.Brand>
                             <Nav className="ml-auto" as="ul">
-                                <Nav.Item as="li">
+                                <NavItem as="li">
                                     <img src={logo} height="50px" alt=""/>
-                                </Nav.Item>
+                                </NavItem>
                             </Nav>
                         </Container>
                     </Navbar>
@@ -43,7 +27,7 @@ export default class Home extends React.Component{
                             <Card className="mt-5 p-2 text-center" bg="light">
                                 <Card.Title as="h1">Welcome to CrownLabs web site!</Card.Title>
                                 <Card.Body>
-                                    <Button variant="link" onClick={AuthenticatorInstance.login}>Log in</Button>
+                                    <Button variant="link" onClick={props.authManager.login}>Log in</Button>
                                     <p className="d-inline"> to access laboratories.</p>
                                 </Card.Body>
                             </Card>
@@ -62,5 +46,4 @@ export default class Home extends React.Component{
                 </footer>
             </div>
         );
-    }
 }

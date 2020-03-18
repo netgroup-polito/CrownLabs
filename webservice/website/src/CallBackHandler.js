@@ -1,13 +1,9 @@
-import React, { Component } from 'react';
-import {AuthenticatorInstance} from './App';
+import React from "react";
 
-export default class CallBackHandler extends Component {
-    constructor(props) {
-		super(props);
-		AuthenticatorInstance.completeLogin();
-	}
-    
-    render() {
-	    return(<div />);
-	}
+export default function CallBackHandler(props) {
+	if(props.action === 'login')
+		props.authManager.completeLogin();
+	else
+		props.authManager.completeLogout();
+	return(<div />);
 }

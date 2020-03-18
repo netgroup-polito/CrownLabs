@@ -17,20 +17,8 @@ export default class ApiManager {
         this.deleteCRD = this.deleteCRD.bind(this);
         this.updateSelectedCRD = this.updateSelectedCRD.bind(this);
     }
-    async getCRD() {
-        this.api.listNamespacedCustomObject(this.templateGroup, this.version, this.templateNamespace, this.templatePlural)
-            .then((nodesResponse) => {
-                console.log(nodesResponse);
-                const nodes = nodesResponse.body.items;
-                if(Array.isArray(nodes)) {
-                    for(const idx in nodes) {
-                        console.log("Ho trovato -> " + nodes[idx].metadata.name);
-                    }
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-            });
+    getCRD() {
+        return this.api.listNamespacedCustomObject(this.templateGroup, this.version, this.templateNamespace, this.templatePlural);
     }
     createCRD() {
         this.api.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
