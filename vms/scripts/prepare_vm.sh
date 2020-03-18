@@ -31,6 +31,10 @@ fi
 # Numpy is needed by novnc
 sudo apt-get install -y openssh-server cloud-init python-numpy
 
+# Edit config of cloudinit
+sudo sed -i "/ - runcmd/c\ - [runcmd, always]" /etc/cloud/cloud.cfg
+sudo sed -i "/ - scripts-user/c\ - [scripts-user, always]" /etc/cloud/cloud.cfg
+
 # Install tigervnc
 # TigerVNC is the vncserver of choice
 wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz | sudo tar xz --strip 1 -C /
@@ -99,6 +103,36 @@ sudo systemctl enable $NOVNC_SERVICE
 
 # Link to NoVNC landing page for easy url access
 sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
+
+sudo awk '
+/<head>/ {
+    print;
+    print "    <script>"
+    print "        var baseElem = document.createElement(\"base\");"
+    print "        var relPath = window.location.pathname;"
+    print "        if (relpath.length == 1) {"
+    print "            baseElem.setAttribute(\"href\", \"index.html\");"
+    print "        } else {"
+    print "            baseElem.setAttribute(\"href\", window.location.pathname + \"/index.html\");"
+    print "        }"
+    print "        document.getElementsByTagName(\"head\")[0].appendChild(baseElem);"
+    print "    </script>";
+    next;
+}1' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
+
+sudo mv /home/$USER/vnc.html $NOVNC_PATH/vnc.html
+
+sudo awk '
+/ <\/body>/ {
+    print "    <script>"
+    print "        document.addEventListener(\"DOMContentLoaded\", function() { "
+    print "            document.getElementById(\"noVNC_setting_resize\").selectedIndex = 2;"
+    print "            document.getElementById(\"noVNC_setting_resize\").dispatchEvent(new Event(\"change\"));"
+    print "        });"
+    print "    </script>"
+}{ print }' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
+
+sudo mv /home/$USER/vnc.html $NOVNC_PATH/vnc.html
 
 # Install prometheus node exporter
 # This package allows to export the node information using the 9100 TCP port
