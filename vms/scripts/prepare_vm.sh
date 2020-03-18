@@ -100,6 +100,18 @@ sudo systemctl enable $NOVNC_SERVICE
 # Link to NoVNC landing page for easy url access
 sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
 
+sudo awk '
+/ <\/body>/ {
+    print "    <script>"
+    print "        document.getElementById(\"noVNC_setting_resize\").selectedIndex = 2;"
+    print "        document.getElementById(\"noVNC_setting_resize\").dispatchEvent(new Event(\"change\"));"
+    print "    </script>"
+}
+{ print }
+' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
+
+sudo mv /home/$USER/vnc.html $NOVNC_PATH/vnc.html
+
 # Install prometheus node exporter
 # This package allows to export the node information using the 9100 TCP port
 wget -qO- https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-amd64.tar.gz | tar xz --strip 1
