@@ -22,7 +22,6 @@ This can be done with the [convert-vm.sh](scripts/convert-vm.sh) script, typing 
 
 ```sh
 $ convert-vm.sh <your-vm>.vdi
-$ docker login registry.crown-labs.ipv6.polito.it
 ```
 
 **NOTES**:
