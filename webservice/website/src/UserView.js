@@ -1,5 +1,5 @@
 import React from 'react';
-import {Container, Card, ButtonGroup, Button, Row, Col} from 'react-bootstrap';
+import {Container, Card, ButtonGroup, Button, Row, Col, Navbar, Nav} from 'react-bootstrap';
 import SideBar from './components/SideBar';
 import './App.css';
 import ApiManager from "./services/ApiManager";
@@ -61,16 +61,29 @@ export default class UserView extends React.Component {
     }
     render() {
         return (
-            <div style={{backgroundColor: '#F2F2F2'}}>
-                <Container className="cover">
-                    <Row>
+	   <div style={{minHeight: '100vh'}}>
+                <header>
+                    <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
+                        <Container>
+                            <Navbar.Brand href="">CrownLabs</Navbar.Brand>
+                            <Nav className="ml-auto" as="ul">
+                                <Nav.Item as="li">
+                                    <Button variant="outline-light" onClick={this.props.authManager.logout}>Logout</Button>
+                                </Nav.Item>
+                            </Nav>
+                        </Container>
+                    </Navbar>
+                </header>
+                <Container fluid className="cover" style={{backgroundColor: '#F2F2F2'}}>
+                    <Row className="mt-5">
                         <Col className="col-3">
                             <SideBar labs={this.state.labs} func={this.changeSelectedCRD}/>
                         </Col>
-                        <Col className="col-9">
+                        <Col className="col-6">
                             <Row className="my-5">
-                                <Col className="col-6">
-                                    <Card className="my-5 text-center headerstyle">
+				<Col className="col-1"/>
+                                <Col className="col-10">
+                                    <Card className="text-center headerstyle">
                                         <Card.Body>
                                             <Card.Text as="h6">Status information</Card.Text>
                                             <textarea align="center" className="textareastyle"/>
@@ -80,26 +93,28 @@ export default class UserView extends React.Component {
                                                 <Button variant="dark" className="text-success" onClick={this.startCRD}>Start</Button>
                                                 <Button variant="dark" className="text-danger" onClick={this.stopCRD}>Stop</Button>
                                                 <Button variant="dark">Connect</Button>
-                                                <Button variant="light"
-                                                        onClick={this.props.authManager.logout}>Logout</Button>
                                             </ButtonGroup>
                                         </Card.Footer>
                                     </Card>
                                 </Col>
-                                <Col className="col-6">
-                                    <Card className="my-5 text-center headerstyle">
-                                        <Card.Body>
-                                            <Card.Text as="h6">Information</Card.Text>
-                                            <p align="center">Selected lab: {this.state.selectedCRD}</p>
-                                            <p align="center">Running lab:  {this.state.runningCRD}</p>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
+				<Col className="col-1"/>
                             </Row>
                         </Col>
+			<Col className="col-2 text-center">
+                            <Card className="my-5 p-2 text-center text-dark" border="dark" style={{backgroundColor: 'transparent'}}>
+                                <Card.Body>
+                                    <Card.Title className="p-2">Details</Card.Title>
+				    <p>Selected Lab</p>
+				    <p className="text-success">{this.state.selectedCRD}</p>
+				    <p>Running Labs</p>
+				    <ul>{this.state.runningCRD}</ul>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+			<Col className="col-1"/>
                     </Row>
                 </Container>
-            </div>
+	   </div>
         );
     }
 }

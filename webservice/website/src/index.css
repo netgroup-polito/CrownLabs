@@ -8,6 +8,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+#main {
+  min-height: 100vh;
+  min-width: 100%;
+  overflow-y: hidden;
+  margin-left: 0;
+  margin-right: 0;
+}
+
 html {
   height: 100%;
   margin: 0;

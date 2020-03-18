@@ -7,7 +7,7 @@ const githubIcon = require('./assets/github-logo.png');
 
 export default function Home(props) {
     return (
-            <div>
+            <div style={{minHeight: '100vh'}}>
                 <header>
                     <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
                         <Container>
@@ -20,22 +20,21 @@ export default function Home(props) {
                         </Container>
                     </Navbar>
                 </header>
-                <Container className="cover">
+                <Container fluid className="cover">
                     <Row className="mt-5">
                         <Col className="col-2"/>
                         <Col className="col-8 mt-5">
-                            <Card className="mt-5 p-2 text-center" bg="light">
+                            <Card className="mt-5 p-3 text-center headerstyle">
                                 <Card.Title as="h1">Welcome to CrownLabs web site!</Card.Title>
                                 <Card.Body>
                                     <Button variant="link" onClick={props.authManager.login}>Log in</Button>
-                                    <p className="d-inline"> to access laboratories.</p>
+                                    <p className="d-inline">to access laboratories.</p>
                                 </Card.Body>
                             </Card>
                         </Col>
                         <Col className="col-2"/>
                     </Row>
-                </Container>
-                <footer className="py-4 blockquote-footer footerstyle">
+		<footer className="py-4 blockquote-footer footerstyle">
                     <Container fluid className="m-0 text-center text-secondary">
                         <p className="d-inline">This software has been proudly developed at Politecnico di Torino. </p>
                         <p className="d-inline">For info visit our</p>
@@ -44,6 +43,8 @@ export default function Home(props) {
                             repository</a>
                     </Container>
                 </footer>
+                </Container>
+                
             </div>
         );
 }
