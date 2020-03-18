@@ -1,4 +1,4 @@
-import { Config, CustomObjectsApi } from '@kubernetes/client-node';
+import {Config, CustomObjectsApi} from '@kubernetes/client-node';
 
 export default class ApiManager {
     constructor(token, type) {
@@ -11,49 +11,29 @@ export default class ApiManager {
         this.instanceNamespace = 'test-simone';
         this.templatePlural = "labtemplates";
         this.instancePlural = "labinstances";
-        this.selectedCRD = "";
         this.getCRD = this.getCRD.bind(this);
         this.createCRD = this.createCRD.bind(this);
         this.deleteCRD = this.deleteCRD.bind(this);
-        this.updateSelectedCRD = this.updateSelectedCRD.bind(this);
     }
+
     getCRD() {
         return this.api.listNamespacedCustomObject(this.templateGroup, this.version, this.templateNamespace, this.templatePlural);
     }
-    createCRD() {
-        this.api.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
+    createCRD(labTemplateName) {
+        return this.api.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
             apiVersion: this.instanceGroup + "/" + this.version,
             kind: "LabInstance",
             metadata: {
-                name: "cloud-computing-lab1-simone",
+                name: labTemplateName + "-instance",
                 namespace: this.instanceNamespace,
             },
             spec: {
-                labTemplateName: "cloud-computing-lab1",
+                labTemplateName: labTemplateName,
                 studentId: "123456"
             }
-        })
-            .then(
-                (response) => {
-                    console.log(response);
-                },
-                (err) => {
-                    console.log(err);
-                }
-            );
+        });
     }
-    deleteCRD() {
-        this.api.deleteNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, "cloud-computing-lab1-simone", {})
-            .then(
-                (response) => {
-                    console.log(response);
-                },
-                (error) => {
-                    console.log(error);
-                }
-            );
-    }
-    updateSelectedCRD(newCRD) {
-        this.selectedCRD = newCRD;
+    deleteCRD(labTemplateName) {
+        return this.api.deleteNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, labTemplateName + "-instance", {});
     }
 }
