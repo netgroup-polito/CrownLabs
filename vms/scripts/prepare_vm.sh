@@ -107,8 +107,10 @@ sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
 sudo awk '
 / <\/body>/ {
     print "    <script>"
-    print "        document.getElementById(\"noVNC_setting_resize\").selectedIndex = 2;"
-    print "        document.getElementById(\"noVNC_setting_resize\").dispatchEvent(new Event(\"change\"));"
+    print "        document.addEventListener("DOMContentLoaded", function() {
+    print "            document.getElementById(\"noVNC_setting_resize\").selectedIndex = 2;"
+    print "            document.getElementById(\"noVNC_setting_resize\").dispatchEvent(new Event(\"change\"));"
+    print "        });
     print "    </script>"
 }
 { print }
