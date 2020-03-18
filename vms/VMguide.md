@@ -63,7 +63,7 @@ Finally you can push the image with the following command:
 $ sudo docker image list
 ```
 
-Now simply login to the docker registry (with `docker login <registry_url>`) and push the image (with `sudo docker push`).
+Now simply login to the docker registry (with `sudo docker login <registry_url>`) and push the image (with `sudo docker push`).
 
 ```sh
 $ docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
