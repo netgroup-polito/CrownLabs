@@ -17,9 +17,8 @@ package controllers
 
 import (
 	"context"
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-logr/logr"
@@ -71,10 +70,11 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	vm := labTemplate.Spec.Vm
-	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
-
-	ownerRef := []v1.OwnerReference{
+	// prepare variables common to all resources
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
+	namespace := labInstance.Namespace
+	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
+	labiOwnerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
 			Kind:       labInstance.Kind,
@@ -82,19 +82,44 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			UID:        labInstance.UID,
 		},
 	}
-	vm.SetOwnerReferences(ownerRef)
 
-	if err := CreateOrUpdateVM(r.Client, ctx, log, vm); err != nil {
-		log.Info("Could not create vm " + vm.Name)
+	// create secret referenced by VirtualMachineInstance
+	secret := pkg.CreateSecret(name, namespace)
+	secret.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
+		log.Info("Could not create secret " + secret.Name)
 		return ctrl.Result{}, err
+	} else {
+		log.Info("Secret " + secret.Name + " correctly created")
+	}
+	// create VirtualMachineInstance
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
+	vmi.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
+		log.Info("Could not create vm " + vmi.Name)
+		return ctrl.Result{}, err
+	} else {
+		log.Info("VirtualMachineInstance " + vmi.Name + " correctly created")
+	}
+	// create Service to expose the vm
+	service := pkg.CreateService(name, namespace)
+	service.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
+		log.Info("Could not create service " + service.Name)
+		return ctrl.Result{}, err
+	} else {
+		log.Info("Service " + service.Name + " correctly created")
+	}
+	// create Ingress to manage the service
+	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
+	ingress.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
+		log.Info("Could not create ingress " + ingress.Name)
+		return ctrl.Result{}, err
+	} else {
+		log.Info("Ingress " + ingress.Name + " correctly created")
 	}
 
-	// set labInstance status to DEPLOYED
-	labInstance = setPhase(labInstance)
-	if err := r.Status().Update(ctx, &labInstance); err != nil {
-		log.Error(err, "unable to update Advertisement status")
-		return ctrl.Result{}, err
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -108,30 +133,4 @@ func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
 	labInstance.Status.Phase = "DEPLOYED"
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
-}
-
-// create a VirtualMachine CR or update it if already exists
-func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachine) error {
-
-	var tmp virtv1.VirtualMachine
-	err := c.Get(ctx, types.NamespacedName{
-		Namespace: vm.Namespace,
-		Name:      vm.Name,
-	}, &tmp)
-	if err != nil {
-		err = c.Create(ctx, &vm, &client.CreateOptions{})
-		if err != nil && !errors.IsAlreadyExists(err) {
-			log.Error(err, "unable to create virtual machine "+vm.Name)
-			return err
-		}
-	} else {
-		vm.SetResourceVersion(tmp.ResourceVersion)
-		err = c.Update(ctx, &vm, &client.UpdateOptions{})
-		if err != nil {
-			log.Error(err, "unable to update virtual machine "+vm.Name)
-			return err
-		}
-	}
-
-	return nil
 }
