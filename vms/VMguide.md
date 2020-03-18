@@ -4,7 +4,7 @@
 
 ### Dependencies
 
-Before uploading your VM, you must run the [prepare-vm.sh](scripts/prepare_vm.sh) script from inside the VM.
+Before uploading your VM, you must run the [prepare-vm.sh](scripts/prepare-vm.sh) script from inside the VM.
 The script will install and configure:
 - **TigerVNC server**, which allows to connect to the VM desktop from a remote machine;
 - **NoVNC with websockify server**, which allows the above connection to be established through HTTP/HTTPS;
