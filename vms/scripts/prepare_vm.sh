@@ -105,6 +105,24 @@ sudo systemctl enable $NOVNC_SERVICE
 sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
 
 sudo awk '
+/<head>/ {
+    print;
+    print "    <script>"
+    print "        var baseElem = document.createElement(\"base\");"
+    print "        var relPath = window.location.pathname;"
+    print "        if (relpath.length == 1) {"
+    print "            baseElem.setAttribute(\"href\", \"index.html\");"
+    print "        } else {"
+    print "            baseElem.setAttribute(\"href\", window.location.pathname + \"/index.html\");"
+    print "        }"
+    print "        document.getElementsByTagName(\"head\")[0].appendChild(baseElem);"
+    print "    </script>";
+    next;
+}1' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
+
+sudo mv /home/$USER/vnc.html $NOVNC_PATH/vnc.html
+
+sudo awk '
 / <\/body>/ {
     print "    <script>"
     print "        document.addEventListener(\"DOMContentLoaded\", function() { "
@@ -112,9 +130,7 @@ sudo awk '
     print "            document.getElementById(\"noVNC_setting_resize\").dispatchEvent(new Event(\"change\"));"
     print "        });"
     print "    </script>"
-}
-{ print }
-' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
+}{ print }' $NOVNC_PATH/vnc.html > /home/$USER/vnc.html
 
 sudo mv /home/$USER/vnc.html $NOVNC_PATH/vnc.html
 
