@@ -40,7 +40,7 @@ You can check now that your image is stored locally, on your host machine:
 $ sudo docker image list
 ```
 
-Now simply login to the docker registry (with `docker login <registry_url>`) and push the image (with `sudo docker push`).
+Now simply login to the docker registry (with `sudo docker login <registry_url>`) and push the image (with `sudo docker push`).
 
 
 ## Run on the cluster
