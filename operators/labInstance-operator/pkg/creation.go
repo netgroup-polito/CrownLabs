@@ -8,17 +8,27 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string, pvcName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
 	vm.Labels = map[string]string{"name": name}
+
+	for _, volume := range vm.Spec.Volumes {
+		if volume.Name == "cloudinitdisk" {
+			volume.CloudInitNoCloud.UserDataSecretRef = &corev1.LocalObjectReference{Name: secretName}
+		}
+		if volume.Name == "pvcdisk" {
+			volume.PersistentVolumeClaim.ClaimName = pvcName
+		}
+	}
 	return vm
 }
 
@@ -72,6 +82,26 @@ func CreateService(name string, namespace string) corev1.Service {
 	return service
 }
 
+func CreatePerstistentVolumeClaim(name string, namespace string, storageClassName string) corev1.PersistentVolumeClaim {
+	pvc := corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-pvc",
+			Namespace: namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			Resources: corev1.ResourceRequirements{
+				Limits: nil,
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: resource.MustParse("1Gi")},
+			},
+			StorageClassName: &storageClassName,
+		},
+	}
+
+	return pvc
+}
+
 func CreateIngress(name string, namespace string, secretName string, svc corev1.Service) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
@@ -79,7 +109,7 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 			Name:        name + "-ingress",
 			Namespace:   namespace,
 			Labels:      nil,
-			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
+			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production", "nginx.ingress.kubernetes.io/rewrite-target": "/$2"},
 		},
 		Spec: v1beta1.IngressSpec{
 			Backend: nil,
@@ -96,7 +126,7 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
 								{
-									Path: "/" + name,
+									Path: "/" + name + "(/|$)(.*)",
 									Backend: v1beta1.IngressBackend{
 										ServiceName: svc.Name,
 										ServicePort: svc.Spec.Ports[0].TargetPort,
@@ -126,20 +156,32 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create virtual machine "+obj.Name)
+				log.Error(err, "unable to create secret "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update secret "+obj.Name)
 				return err
 			}
 		}
-	case virtv1.VirtualMachineInstance:
-		var vmi virtv1.VirtualMachineInstance
+	case corev1.PersistentVolumeClaim:
+		var pvc corev1.PersistentVolumeClaim
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: obj.Namespace,
 			Name:      obj.Name,
-		}, &vmi)
+		}, &pvc)
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create virtual machine "+obj.Name)
+				log.Error(err, "unable to create pvc "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update pvc "+obj.Name)
 				return err
 			}
 		}
@@ -155,6 +197,12 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				log.Error(err, "unable to create service "+obj.Name)
 				return err
 			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update service "+obj.Name)
+				return err
+			}
 		}
 	case v1beta1.Ingress:
 		var ing v1beta1.Ingress
@@ -166,6 +214,25 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Error(err, "unable to create ingress "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update ingress "+obj.Name)
+				return err
+			}
+		}
+	case virtv1.VirtualMachineInstance:
+		var vmi virtv1.VirtualMachineInstance
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &vmi)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create virtual machine "+obj.Name)
 				return err
 			}
 		}
