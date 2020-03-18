@@ -4,7 +4,7 @@
 
 ### Dependencies
 
-Before uploading your VM, you must run the [prepare_vm.sh](scripts/prepare_vm.sh) script from inside the VM.
+Before uploading your VM, you must run the [prepare-vm.sh](scripts/prepare_vm.sh) script from inside the VM.
 The script will install and configure:
 - **TigerVNC server**, which allows to connect to the VM desktop from a remote machine;
 - **NoVNC with websockify server**, which allows the above connection to be established through HTTP/HTTPS;
@@ -30,7 +30,7 @@ The script generates a folder called `docker-output` in the directory of the `vd
 Now build the Docker image with the following command:
 
 ```sh
-$ sudo docker build -t user/image:latest docker_output/
+$ sudo docker build -t user/image:latest docker-output/
 ```
 where `user/image:latest` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd:version1.0`, or `alice/networkinglabs:latest`, and more.
 
