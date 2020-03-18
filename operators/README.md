@@ -15,7 +15,7 @@ To modify the LabTemplate CRD you need to
 1. open the file _labTemplate/api/v1/labtemplate_types.go_. Here you have all the `struct` types related to the LabTemplate CRD
 2. add/modify/delete the fields of `LabTemplateSpec` and/or `LabTemplateStatus`
 3. run `make lab-template`; this will regenerate the code for the new version of LabTemplate
-4. you can find the CRD generated in _labTemplate_crd_bases_
+4. you can find the CRD generated in _labTemplate/crd/bases_
 
 To install the LabTemplate CRD on your cluster
 1. run `make install-lab-template`. This will install the CRD LabTemplate on your cluster.
@@ -28,7 +28,7 @@ To modify the LabInstance CRD you need to
 1. open the file _labInstance-operator/api/v1/labinstance_types.go_. Here you have all the `struct` types related to the LabInstance CRD
 2. add/modify/delete the fields of `LabInstanceSpec` and/or `LabInstanceStatus`
 3. run `make`; this will regenerate the code for the new version of LabInstance
-4. you can find the CRD generate in _config_crd_bases_
+4. you can find the CRD generate in _config/crd/bases_
 
 ### Installation
 1. run `make install`. This will install the CRD LabInstance on your cluster.
@@ -41,9 +41,13 @@ If you want to delete the CRD run `make uninstall`.
 ### Controller logic
 The logic of the controller should be put under _controllers/labinstance_controller.go_, in the `Reconcile` method.
 When a LabInstance resource is created, the `Reconcile` method is triggered. 
-It is checked if a LabTemplate resource with the associated name exists, and in this case the `Status` of the LabInstance is set to "DEPLOYED".
+It is checked if a LabTemplate resource with the associated name exists, and in this case all the resources necessary to launch the Lab are created:
+
+- the `VirtualMachineInstance` CR managed by KubeVirt
+- the `Ingress` resource
 
 ### Run instructions
 To run the application
 
 - **outside** a cluster: run 'make run'
+- **inside** a cluster: create a Pod with `container.image: crownlabs/laboratory-operator`
