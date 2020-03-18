@@ -24,19 +24,14 @@ import (
 
 // LabInstanceSpec defines the desired state of LabInstance
 type LabInstanceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	LabTemplateName string `json:"labTemplateName,omitempty"`
 	StudentID       string `json:"studentId,omitempty"`
 }
 
 // LabInstanceStatus defines the observed state of LabInstance
 type LabInstanceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	Phase string `json:"phase,omitempty"`
+	Url   string `json:"url,omitempty"`
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }

@@ -1,7 +1,7 @@
 apiVersion: template.crown.team.com/v1
 kind: LabTemplate
 metadata:
-  name: cloud-computing-lab1
+  name: cloud-computing-lab3
   namespace: test-francesco
 spec:
   courseName: "Cloud Computing"
@@ -42,7 +42,7 @@ spec:
       volumes:
         - name: containerdisk
           containerDisk:
-            image: registry.crown-labs.ipv6.polito.it/netgroup/lab2:latest
+            image: registry.crown-labs.ipv6.polito.it/netgroup/lab2-test:latest
             imagePullSecret: dockercreds
         - name: cloudinitdisk
           cloudInitNoCloud:
