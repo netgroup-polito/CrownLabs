@@ -22,23 +22,23 @@ This can be done with the [convert-vm.sh](scripts/convert-vm.sh) script, typing 
 
 ```sh
 $ convert-vm.sh <your-vm>.vdi
+$ docker login registry.crown-labs.ipv6.polito.it
 ```
 
 **NOTES**:
-
 - Virtualbox uses, by default, disks in VDI format, which is the format supported by this script. Other tools are available to convert your images into VDI, or directly into the QCOW2 `raw` format, which is used in the next steps of our processing.
 - the above command assumes that the VM runs on a Linux host. If not, please transfer your image to a Linux machine and run the `convert-vm.sh` script from there.
 
 The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
+Now build the Docker image with the following command:
 
-### Create Docker adnd upload on Crown Team registry
+### Create Docker and upload on Crown Team registry
 
 For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
 
 ```sh
 $ docker login registry.crown-labs.ipv6.polito.it
 ```
-
 Now you can build the Docker image with the following command:
 
 ```sh
@@ -55,8 +55,16 @@ You can check that your image is stored locally, on your host machine, with this
 ```sh
 $ sudo docker image list
 ```
+where `user/image:latest` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd:version1.0`, or `alice/networkinglabs:latest`, and more.
+
+You can check now that your image is stored locally, on your host machine:
 
 Finally you can push the image with the following command:
+```sh
+$ sudo docker image list
+```
+
+Now simply login to the docker registry (with `docker login <registry_url>`) and push the image (with `sudo docker push`).
 
 ```sh
 $ docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
