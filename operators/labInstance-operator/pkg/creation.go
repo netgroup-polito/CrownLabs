@@ -21,11 +21,11 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	vm.Namespace = namespace
 	vm.Labels = map[string]string{"name": name}
 
-	for _, volume := range vm.Spec.Volumes{
-		if volume.Name == "cloudinitdisk"{
-			volume.CloudInitNoCloud.UserDataSecretRef = &corev1.LocalObjectReference{Name:secretName}
+	for _, volume := range vm.Spec.Volumes {
+		if volume.Name == "cloudinitdisk" {
+			volume.CloudInitNoCloud.UserDataSecretRef = &corev1.LocalObjectReference{Name: secretName}
 		}
-		if volume.Name == "pvcdisk"{
+		if volume.Name == "pvcdisk" {
 			volume.PersistentVolumeClaim.ClaimName = pvcName
 		}
 	}
@@ -82,16 +82,16 @@ func CreateService(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreatePerstistentVolumeClaim(name string, namespace string, storageClassName string) corev1.PersistentVolumeClaim{
+func CreatePerstistentVolumeClaim(name string, namespace string, storageClassName string) corev1.PersistentVolumeClaim {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-pvc",
 			Namespace: namespace,
 		},
-		Spec:       corev1.PersistentVolumeClaimSpec{
+		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources:        corev1.ResourceRequirements{
-				Limits:   nil,
+			Resources: corev1.ResourceRequirements{
+				Limits: nil,
 				Requests: map[corev1.ResourceName]resource.Quantity{
 					corev1.ResourceStorage: resource.MustParse("1Gi")},
 			},
@@ -126,9 +126,9 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
 								{
-									Path: "/" + name,
+									Path: "/" + name + "(/|$)(.*)",
 									Backend: v1beta1.IngressBackend{
-										ServiceName: svc.Name + "(/|$)(.*)",
+										ServiceName: svc.Name,
 										ServicePort: svc.Spec.Ports[0].TargetPort,
 									},
 								},
