@@ -93,7 +93,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Info("Secret " + secret.Name + " correctly created")
 	}
 	// create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, name+"-pvc")
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		log.Info("Could not create vm " + vmi.Name)
@@ -118,6 +118,12 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Ingress " + ingress.Name + " correctly created")
+	}
+
+	labInstance.Status.Url = ingress.Spec.Rules[0].Host + "/" + name
+	if err := r.Status().Update(ctx, &labInstance); err != nil {
+		log.Error(err, "unable to update LabInstance status")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
