@@ -17,7 +17,7 @@ Now we can create the LoadBalancer service for the ingress controller, i.e., the
 kubectl apply -f svc-ingress-nginx.yaml
 ```
 
-Once the LB service is created, we must check which IP address have been assigned to it: 
+Once the LB service is created, we must check which IP address have been assigned to it:
 
 ```sh
 kubectl get svc -n ingress-nginx -o wide
@@ -54,7 +54,7 @@ kubectl apply -f servicemonitor-ingress.yaml
 ```
 
 ## Exposing kube-apiserver
-Not only third party application can be connected to the `ingress controller`, but also some Kubernetes object as well. This is the case of the kube-apiserver. 
+Not only third party application can be connected to the `ingress controller`, but also some Kubernetes object as well. This is the case of the kube-apiserver.
 
 In order to do so the fist thing to do is to create a service and connect it to the apiserver using the command:
 
@@ -67,3 +67,25 @@ Once it's done the last thing to do is to apply the ingress rules for our new se
 ```sh
 kubectl apply -f ingress-apiserver.yaml
 ```
+
+## Securing the ingress controller with ModSecurity
+
+[ModSecurity](https://modsecurity.org/) is an open source, cross-platform web application firewall (WAF) module. Known as the "Swiss Army Knife" of WAFs, it enables web application defenders to gain visibility into HTTP(S) traffic and provides a power rules language and API to implement advanced protections.
+
+### Global configuration
+ModSecurity is enabled globally through the [nginx-configuration](mandatory.yaml) ConfigMap. By default, it operates in Audit only mode; hence, the violations detected are logged but not blocked. Finally, the ConfigMap introduces also some whitelisting rules to prevent legitimate requests from being blocked.
+
+### Per-Ingress configuration
+ModSecurity can be configured in enforcement mode by setting an ad-hoc annotation to the Ingress resource:
+```yaml
+annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+        modsecurity_rules '
+            SecRuleEngine On
+        ';
+```
+
+### Additional references
+1. [Enabling ModSecurity in the Kubernetes Ingress-NGINX Controller](https://medium.com/@awkwardferny/enabling-modsecurity-in-the-kubernetes-ingress-nginx-controller-111f9c877998)
+2. [Creating an OpenWAF solution with Nginx, ElasticSearch and ModSecurity](https://karlstoney.com/2018/02/23/nginx-ingress-modsecurity-and-secchatops/)
+3. [ModSecurity does not block request, only logs, while SecRuleEngine is set to On](https://github.com/kubernetes/ingress-nginx/issues/4385)
