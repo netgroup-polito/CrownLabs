@@ -156,20 +156,32 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create virtual machine "+obj.Name)
+				log.Error(err, "unable to create secret "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update secret "+obj.Name)
 				return err
 			}
 		}
-	case virtv1.VirtualMachineInstance:
-		var vmi virtv1.VirtualMachineInstance
+	case corev1.PersistentVolumeClaim:
+		var pvc corev1.PersistentVolumeClaim
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: obj.Namespace,
 			Name:      obj.Name,
-		}, &vmi)
+		}, &pvc)
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create virtual machine "+obj.Name)
+				log.Error(err, "unable to create pvc "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update pvc "+obj.Name)
 				return err
 			}
 		}
@@ -185,6 +197,12 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				log.Error(err, "unable to create service "+obj.Name)
 				return err
 			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update service "+obj.Name)
+				return err
+			}
 		}
 	case v1beta1.Ingress:
 		var ing v1beta1.Ingress
@@ -196,6 +214,25 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Error(err, "unable to create ingress "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update ingress "+obj.Name)
+				return err
+			}
+		}
+	case virtv1.VirtualMachineInstance:
+		var vmi virtv1.VirtualMachineInstance
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &vmi)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create virtual machine "+obj.Name)
 				return err
 			}
 		}
