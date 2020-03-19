@@ -44,6 +44,10 @@ Now you can build the Docker image with the following command:
 ```sh
 $ docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
 ```
+where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
+Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+
+Note also that you have to run this command from the directory that contains `docker-output`.
 
 where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
 Example values can be `fedora/httpd`, or `alice/networklabs`, and more.

@@ -51,6 +51,8 @@ spec:
               type: integer
             phase:
               type: string
+            url:
+              type: string
           type: object
       type: object
   version: v1

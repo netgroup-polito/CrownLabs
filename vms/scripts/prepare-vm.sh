@@ -78,6 +78,7 @@ sudo systemctl enable $VNC_SERVICE
 
 # Install NoVNC
 sudo mkdir -p $NOVNC_PATH/utils/websockify
+
 wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.0-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
 wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
 
