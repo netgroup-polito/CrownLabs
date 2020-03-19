@@ -31,21 +31,23 @@ $ convert-vm.sh <your-vm>.vdi
 
 The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
 
-### Create Docker adnd upload on Crown Team registry
+### Create Docker and upload on Crown Team registry
 
 For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
 
 ```sh
 $ docker login registry.crown-labs.ipv6.polito.it
 ```
+**Note**: in case this command fails, try using `sudo` before the command itself. Depending on how Docker has been installed on your machine, you may have to use `sudo` before all the commands involving Docker.
 
 Now you can build the Docker image with the following command:
 
 ```sh
 $ docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
 ```
-where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
-Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+where:
+- `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+- `registry.crown-labs.ipv6.polito.it` is the name of the private registry your are using, which is compulsory in Docker in order to tell the daemon that the private registry (instead of DockerHub) has to be used.
 
 Note also that you have to run this command from the directory that contains `docker-output`.
 
@@ -57,7 +59,7 @@ Note also that you have to run this command from the directory that contains `do
 You can check that your image is stored locally, on your host machine, with this command:
 
 ```sh
-$ sudo docker image list
+$ docker image list
 ```
 
 Finally you can push the image with the following command:
