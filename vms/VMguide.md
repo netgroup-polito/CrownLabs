@@ -29,7 +29,7 @@ $ convert-vm.sh <your-vm>.vdi
 
 The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
 
-### Create Docker and upload on Crown Team registry
+### Create Docker and upload on private registry
 
 For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
 
@@ -49,11 +49,6 @@ where:
 
 Note also that you have to run this command from the directory that contains `docker-output`.
 
-where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
-Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
-
-Note also that you have to run this command from the directory that contains `docker-output`.
-
 You can check that your image is stored locally, on your host machine, with this command:
 
 ```sh
@@ -65,6 +60,15 @@ Now simply login to the docker registry (with `sudo docker login <registry_url>`
 ```sh
 $ docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
 ```
+
+## Cleaning up private registry
+
+Since the private registry can become crowded with new images, you can control its resources with two scripts:
+- list of available images: [list-img-from-registry.sh](scripts/list-img-from-registry.sh)
+- delete an existing image: [del-img-from-registry.sh](scripts/del-img-from-registry.sh)
+
+Remember either to login in the registry before running the scripts, or to customize `user/password` in the above scripts.
+
 
 ## Run on the cluster
 
