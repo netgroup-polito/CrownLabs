@@ -53,6 +53,9 @@ export class App extends React.Component {
                             <CallBackHandler authManager={this.state.authManager} action={'logout'}/> :
                             <Redirect to="/"/>
                     )}/>
+		    <Route path="*">
+			<Redirect to="/"/>
+		    </Route>
                 </Switch>
             </Router>
         );
