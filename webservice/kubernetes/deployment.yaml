@@ -24,6 +24,11 @@ spec:
         - image: crownlabs/frontend
           imagePullPolicy: Always
           name: frontend
+          args: [-e, OIDC_CLIENT_ID="k8s",
+                -e, OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/virtlabs",
+                -e, APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it",
+                -e, OIDC_REDIRECT_URI="http://localhost:8000"
+          ]
           ports:
           - containerPort: 80
             protocol: TCP
