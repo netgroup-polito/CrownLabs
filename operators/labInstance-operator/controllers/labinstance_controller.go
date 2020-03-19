@@ -83,7 +83,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		},
 	}
 
-	// 1: create secret referenced by VirtualMachineInstance
+	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
@@ -92,9 +92,13 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		log.Info("Secret " + secret.Name + " correctly created")
 	}
-	// 2: create pvc referenced by VirtualMachineInstance
+	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
+	// Check if exists
+	// If exists, can we attach?
+	// If yes, attach
+	// If not, update the status with error
 	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
-	pvc.SetOwnerReferences(labiOwnerRef)
+	//pvc.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil {
 		log.Info("Could not create pvc " + pvc.Name)
 		return ctrl.Result{}, err

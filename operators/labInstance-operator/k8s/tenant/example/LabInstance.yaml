@@ -1,0 +1,10 @@
+ 
+apiVersion: instance.crown.team.com/v1
+kind: LabInstance
+metadata:
+  name: cloud-computing-lab3-123456
+  namespace: lab-operator
+spec:
+  # Add fields here
+  labTemplateName: cloud-computing-lab3
+  studentId: "123456"
