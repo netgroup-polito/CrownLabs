@@ -7,7 +7,7 @@ ENV OIDC_CLIENT_ID="k8s" \
     APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it" \
     #Change OIDC_REDIRECT_URI to => http://localhost:8000 if you want to host your website locally
     #or in a docker run locally with the port 80 mapped to your host port 8000
-    OIDC_REDIRECT_URI="http://localhost:8000"
+    OIDC_REDIRECT_URI="http://crownlabs.polito.it"
 
 ADD . /webservice
 WORKDIR /webservice
