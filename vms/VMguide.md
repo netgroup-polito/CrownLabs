@@ -44,8 +44,9 @@ Now you can build the Docker image with the following command:
 ```sh
 $ sudo docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
 ```
-where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
-Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+where:
+- `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+- `registry.crown-labs.ipv6.polito.it` is the name of the private registry your are using, which is compulsory in Docker in order to tell the daemon that the private registry (instead of DockerHub) has to be used.
 
 Note also that you have to run this command from the directory that contains `docker-output`.
 
