@@ -2,8 +2,9 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /index.html
     cert-manager.io/cluster-issuer: letsencrypt-production
-  name: frontend
+  name: frontend-auxiliary
   namespace: frontend
 spec:
   rules:
@@ -13,7 +14,15 @@ spec:
           - backend:
               serviceName: frontend
               servicePort: 80
-            path: /
+            path: /callback
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /logout
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /userview
   tls:
     - hosts:
         - crownlabs.polito.it
