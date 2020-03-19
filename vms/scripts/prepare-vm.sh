@@ -31,6 +31,10 @@ fi
 # Numpy is needed by novnc
 sudo apt-get install -y openssh-server cloud-init python-numpy
 
+# Edit config of cloudinit
+sudo sed -i "/ - runcmd/c\ - [runcmd, always]" /etc/cloud/cloud.cfg
+sudo sed -i "/ - scripts-user/c\ - [scripts-user, always]" /etc/cloud/cloud.cfg
+
 # Install tigervnc
 # TigerVNC is the vncserver of choice
 wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz | sudo tar xz --strip 1 -C /
@@ -74,7 +78,8 @@ sudo systemctl enable $VNC_SERVICE
 
 # Install NoVNC
 sudo mkdir -p $NOVNC_PATH/utils/websockify
-wget -qO- https://github.com/novnc/noVNC/archive/v1.1.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
+
+wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.0-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
 wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
 
 # Create the service for NoVNC

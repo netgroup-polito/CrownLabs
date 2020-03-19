@@ -16,6 +16,33 @@ metadata:
   labels:
     app.kubernetes.io/name: ingress-nginx
     app.kubernetes.io/part-of: ingress-nginx
+data:
+  enable-modsecurity: "true"
+  modsecurity-snippet: |
+    # Include the OWASP rules
+    Include /etc/nginx/owasp-modsecurity-crs/nginx-modsecurity.conf
+    # Allow PATCH and DELETE verbs
+    SecRuleUpdateActionById 901160 "setvar:\'tx.allowed_methods=GET HEAD POST OPTIONS PATCH DELETE\'"
+    # Allow to request /nginx_status with numeric host (accessible only from localhost)
+    SecRule REQUEST_LINE "@streq GET /nginx_status HTTP/1.1" \
+        "id:905120, phase:1, pass, t:none, nolog,\
+        tag:\'application-multi\',\
+        tag:\'language-multi\',\
+        tag:\'platform-apache\',\
+        tag:\'attack-generic\',\
+        chain"
+        SecRule REMOTE_ADDR "@ipMatch 127.0.0.1,::1" \
+            "t:none, ctl:ruleEngine=Off, ctl:auditEngine=Off"
+    # Allow to request /nginx_status with numeric host (accessible only from localhost)
+    SecRule REQUEST_LINE "@streq GET /is-dynamic-lb-initialized HTTP/1.1" \
+        "id:905130, phase:1, pass, t:none, nolog,\
+        tag:\'application-multi\',\
+        tag:\'language-multi\',\
+        tag:\'platform-apache\',\
+        tag:\'attack-generic\',\
+        chain"
+        SecRule REMOTE_ADDR "@ipMatch 127.0.0.1,::1" \
+            "t:none, ctl:ruleEngine=Off, ctl:auditEngine=Off"
 
 ---
 kind: ConfigMap
@@ -215,6 +242,19 @@ spec:
       serviceAccountName: nginx-ingress-serviceaccount
       nodeSelector:
         kubernetes.io/os: linux
+      affinity:
+        # Ask the scheduler to schedule different replicas on different nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 99
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - ingress-nginx
+              topologyKey: kubernetes.io/hostname
       containers:
         - name: nginx-ingress-controller
           image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.30.0

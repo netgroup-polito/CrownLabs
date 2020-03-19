@@ -1,8 +1,9 @@
 apiVersion: instance.crown.team.com/v1
 kind: LabInstance
 metadata:
-  name: cloud-computing-lab1-123456
+  name: cloud-computing-lab3-987654
+  namespace: test-francesco
 spec:
   # Add fields here
-  labTemplateName: cloud-computing-lab1
-  studentId: "123456"
+  labTemplateName: cloud-computing-lab3
+  studentId: "987654"

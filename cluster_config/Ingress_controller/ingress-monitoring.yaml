@@ -1,0 +1,77 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  name: alertmanager
+  namespace: monitoring
+spec:
+  rules:
+  - host: alertmanager.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: alertmanager-main
+          servicePort: 9093
+        path: /
+  tls:
+  - hosts:
+    - alertmanager.crown-labs.ipv6.polito.it
+    secretName: alertmanager-cert
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+    modsecurity_rules '
+        SecRuleEngine On
+        SecRuleRemoveById 932110 932130 933210 942100
+    ';
+  name: grafana
+  namespace: monitoring
+spec:
+  rules:
+  - host: grafana.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: grafana
+          servicePort: 3000
+        path: /
+  tls:
+  - hosts:
+    - grafana.crown-labs.ipv6.polito.it
+    secretName: grafana-cert
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  generation: 1
+  name: prometheus
+  namespace: monitoring
+spec:
+  rules:
+  - host: prometheus.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: prometheus-k8s
+          servicePort: 9090
+        path: /
+  tls:
+  - hosts:
+    - prometheus.crown-labs.ipv6.polito.it
+    secretName: prometheus-cert
