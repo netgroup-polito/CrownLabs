@@ -15,6 +15,7 @@ export default class UserView extends React.Component {
         this.startCRD = this.startCRD.bind(this);
         this.stopCRD = this.stopCRD.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
+        this.startIntervalCRDstatus = this.startIntervalCRDstatus.bind(this);
         this.state = {templateLabs: [], instanceLabs: new Map(), selectedCRD: null, events: ""};
         if (localStorage.getItem('token')) {
             this.apiManager = new ApiManager(localStorage.getItem('token'), localStorage.getItem('token_type'));
@@ -43,7 +44,25 @@ export default class UserView extends React.Component {
                 .catch((error) => {
                     console.error(error);
                 });
+            //this.startIntervalCRDstatus();
         }
+    }
+
+    startIntervalCRDstatus() {
+        // TODO: to be completed in next PR
+        setInterval(() => {
+            alert("ci siamo");
+            const keys = Array.from(this.state.instanceLabs.keys());
+            for(const lab in keys) {
+                this.apiManager.getCRDstatus(lab)
+                    .then(response => {
+                        console.log(response);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            }
+        }, 10000);
     }
 
     notifyEvent(msg, obj) {
@@ -152,7 +171,7 @@ export default class UserView extends React.Component {
     render() {
         const keys = Array.from(this.state.instanceLabs.keys());
         const runningLabs = keys.map(x => {
-            return <Button variant="link" onClick={() => this.changeSelectedCRD(x)}>{x}</Button>;
+            return <Button key={x} variant="link" onClick={() => this.changeSelectedCRD(x)}>{x}</Button>;
         });
         return (
             <div style={{minHeight: '100vh'}}>
@@ -206,7 +225,7 @@ export default class UserView extends React.Component {
                                     <p>Selected Lab</p>
                                     <p className="text-success">{this.state.selectedCRD || "-"}</p>
                                     <p>Running Labs</p>
-                                    <p className="text-success">{runningLabs.length>0 ? "" : "-"}</p>
+                                    <p className="text-success">{runningLabs.length > 0 ? "" : "-"}</p>
                                     {runningLabs}
                                 </Card.Body>
                             </Card>

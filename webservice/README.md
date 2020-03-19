@@ -12,16 +12,20 @@ This component is the result of many frameworks integrated:
 
 Please **READ** this section before installing.
 
-Both if you are going to deploy our webservice locally or in a Docker container, you need to provide 3 environment variables:
+Both if you are going to deploy our webservice locally or in a Docker container, you need to provide 4 environment variables:
 
 * OIDC_PROVIDER_URL
 * OIDC_CLIENT_ID
+* OIDC_REDIRECT_URI
 * APISERVER_URL
 
-*OIDC_PROVIDER_URL* and *OIDC_CLIENT_ID* are parameters used by our library to setup the **OpenID Connect** protocol.
+*OIDC_PROVIDER_URL*, *OIDC_CLIENT_ID*  and *OIDC_REDIRECT_URI* are parameters used by our library to setup the **OpenID Connect** protocol.
+More in detail, the provider URL is the IdentityProvider you are going to contact (in our case our keycloak).
+The client id is the client id that your IdentityProvider is going to accept. The redirect URI is the URL you are going to be 
+redirected after you complete the login. Please **NOTE** that if you are going to run the webservice locally, this will be
+something like http://localhost:8000 , while in production this will correspond to our website URL https://crownlabs.polito.it .
 
-*API_SERVER_URL* is the url to the API server to whom our Kubernetes library interact with. In our case, this is the combination
-of *URL:PORT* of our Kubernetes.
+*API_SERVER_URL* is the url to the API server to whom our Kubernetes library interact with. In our case, this is our Kubernetes address.
 
 For further information about these protocols and infrastructure, please refer to [How it works](#how-it-works) section.
 
@@ -45,12 +49,13 @@ Export now the 3 variables as described [before](#variable-exporting):
 ```bash
 export OIDC_PROVIDER_URL=https://2.2.2.2:4444
 export OIDC_CLIENT_ID=xxxxxxx
+export OIDC_REDIRECT_URI=http://localhost:8000
 export APISERVER_URL=https://1.1.1.1:3333
 ```
 
 To run the service, type `npm start`.
 
-Visit http://localhost:8000 .
+Visit http://localhost:8000 or wherever you decided to host your website (also according to the OIDC_REDIRECT_URI you have set).
 
 ## Docker installation
 
@@ -59,20 +64,20 @@ Requirements:
     * Docker
     
 We offer a [Dockerfile](./Dockerfile) to build an image containing our complete web service.
+
+When building the image, you need to set an ENV variable inside the Dockerfile (or from the docker build command) whether
+you are going to run your docker container locally or not.
+
+If you are going to run it locally, please set OIDC_REDIRECT_URI=http://localhost:8000 , while if you want to deploy this docker
+in our domain set it to OIDC_REDIRECT_URI=https://crownlabs.polito.it . 
+
 To build, type `docker build -t <tag> .` from this directory.
 
-To run the image, you need to provide the same 3 environment variables as [before](#variable-exporting) to the container you are going to create.
+Run the image. If running locally, map the port 8000 of your host to the port 80 of your container. Otherwise just enjoy.
 
-So the command would be 
-```bash
-docker run --rm
-    -e OIDC_PROVIDER_URL=https://2.2.2.2:4444 \
-    -e OIDC_CLIENT_ID=xxxxxxx \
-    -e APISERVER_URL=https://1.1.1.1:3333 \
-    <image_name>
-```
+`docker run -p 8000:80 --rm <image_tag>`
 
-Visit [http://<container_ip>:8000]().
+Visit http://localhost:8000 or https://crownlabs.polito.it .
 
 ## How it works
 

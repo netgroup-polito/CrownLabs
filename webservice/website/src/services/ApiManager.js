@@ -13,6 +13,7 @@ export default class ApiManager {
         this.instancePlural = "labinstances";
         this.getCRDtemplate = this.getCRDtemplate.bind(this);
         this.getCRDinstance = this.getCRDinstance.bind(this);
+        this.getCRDstatus = this.getCRDstatus.bind(this);
         this.createCRD = this.createCRD.bind(this);
         this.deleteCRD = this.deleteCRD.bind(this);
     }
@@ -59,5 +60,8 @@ export default class ApiManager {
                 console.log('Stream ended', e);
             }
         );*/
+    }
+    getCRDstatus(name) {
+        return this.api.getNamespacedCustomObjectStatus(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name);
     }
 }
