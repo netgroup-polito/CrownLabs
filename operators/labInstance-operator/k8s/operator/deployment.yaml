@@ -1,0 +1,24 @@
+ 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: laboratory-operator
+  name: laboratory-operator
+  namespace: lab-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: laboratory-operator
+  template:
+    metadata:
+      labels:
+        run: laboratory-operator
+    spec:
+      serviceAccountName: lab-operator
+      containers:
+      - image: crownlabs/laboratory-operator
+        imagePullPolicy: Always
+        name: laboratory-operator
+        command: ["/usr/bin/controller"]
