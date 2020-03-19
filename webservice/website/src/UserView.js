@@ -158,15 +158,13 @@ export default class UserView extends React.Component {
             <div style={{minHeight: '100vh'}}>
                 <header>
                     <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
-                        <Container>
-                            <Navbar.Brand href="">CrownLabs</Navbar.Brand>
-                            <Nav className="ml-auto" as="ul">
-                                <Nav.Item as="li">
-                                    <Button variant="outline-light"
-                                            onClick={this.props.authManager.logout}>Logout</Button>
-                                </Nav.Item>
-                            </Nav>
-                        </Container>
+		            <Navbar.Brand href="">CrownLabs</Navbar.Brand>
+		            <Nav className="ml-auto" as="ul">
+		                <Nav.Item as="li">
+		                    <Button variant="outline-light"
+		                            onClick={this.props.authManager.logout}>Logout</Button>
+		                </Nav.Item>
+		            </Nav>
                     </Navbar>
                 </header>
                 <Container fluid className="cover" style={{backgroundColor: '#F2F2F2'}}>
