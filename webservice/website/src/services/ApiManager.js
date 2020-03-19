@@ -1,4 +1,4 @@
-import {Config, CustomObjectsApi, watch } from '@kubernetes/client-node';
+import {Config, CustomObjectsApi, watch} from '@kubernetes/client-node';
 
 export default class ApiManager {
     constructor(token, type) {
@@ -17,12 +17,15 @@ export default class ApiManager {
         this.createCRD = this.createCRD.bind(this);
         this.deleteCRD = this.deleteCRD.bind(this);
     }
+
     getCRDtemplate() {
         return this.api.listNamespacedCustomObject(this.templateGroup, this.version, this.templateNamespace, this.templatePlural);
     }
+
     getCRDinstance() {
         return this.api.listNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural);
     }
+
     createCRD(labTemplateName) {
         return this.api.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
             apiVersion: this.instanceGroup + "/" + this.version,
@@ -37,9 +40,11 @@ export default class ApiManager {
             }
         });
     }
+
     deleteCRD(name) {
         return this.api.deleteNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name, {});
     }
+
     startWatching(func) {
         /*
         watch(this.kc, '/apis/instance.crown.team.com/v1/namespaces/test-simone/labinstances/watch/events', {},
@@ -61,6 +66,7 @@ export default class ApiManager {
             }
         );*/
     }
+
     getCRDstatus(name) {
         return this.api.getNamespacedCustomObjectStatus(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name);
     }

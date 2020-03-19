@@ -11,12 +11,12 @@ export default function Home(props) {
         <div style={{minHeight: '100vh'}}>
             <header>
                 <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
-                        <Navbar.Brand href="">CrownLabs</Navbar.Brand>
-                        <Nav className="ml-auto" as="ul">
-                            <NavItem as="li">
-                                <img src={logo} height="50px" alt=""/>
-                            </NavItem>
-                        </Nav>
+                    <Navbar.Brand href="">CrownLabs</Navbar.Brand>
+                    <Nav className="ml-auto" as="ul">
+                        <NavItem as="li">
+                            <img src={logo} height="50px" alt=""/>
+                        </NavItem>
+                    </Nav>
                 </Navbar>
             </header>
             <Container fluid className="cover">

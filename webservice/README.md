@@ -65,7 +65,7 @@ Requirements:
     
 We offer a [Dockerfile](./Dockerfile) to build an image containing our complete web service.
 
-When building the image, you need to set an ENV variable inside the Dockerfile (or from the docker build command) whether
+When building the image, you need to set an ENV variable inside the Dockerfile whether
 you are going to run your docker container locally or not.
 
 If you are going to run it locally, please set OIDC_REDIRECT_URI=http://localhost:8000 , while if you want to deploy this docker

@@ -41,7 +41,7 @@ export class App extends React.Component {
                     </Route>
                     <Route path="/userview" render={() => (
                         this.state.isLoggedIn === 'true' ?
-                            <UserView authManager={this.state.authManager} /> :
+                            <UserView authManager={this.state.authManager}/> :
                             <Redirect to="/"/>
                     )}/>
                     <Route path="/callback" render={() => (
@@ -53,9 +53,9 @@ export class App extends React.Component {
                             <CallBackHandler authManager={this.state.authManager} action={'logout'}/> :
                             <Redirect to="/"/>
                     )}/>
-		    <Route path="*">
-			<Redirect to="/"/>
-		    </Route>
+                    <Route path="*">
+                        <Redirect to="/userview"/>
+                    </Route>
                 </Switch>
             </Router>
         );
