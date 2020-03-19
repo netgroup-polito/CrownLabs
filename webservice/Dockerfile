@@ -19,4 +19,4 @@ RUN npm run build
 ### image to export the service
 FROM nginx
 COPY --from=builder /webservice/website/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+#COPY nginx.conf /etc/nginx/conf.d/default.conf
