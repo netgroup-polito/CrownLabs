@@ -42,6 +42,32 @@
   border: none;
 }
 
+.cover {
+  overflow-y: hidden;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  position: absolute;
+}
+
+.footerstyle {
+  position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.textareastyle {
+  color: white;
+  border-color: #2E2E2E; 
+  background-color: #2E2E2E;
+  width: 100%;
+  height: 150px;
+  resize: none;
+  border-radius: 10px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

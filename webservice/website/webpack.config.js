@@ -5,7 +5,7 @@ const webpack = require('webpack');
 
 module.exports = {
     context: __dirname,
-    entry: './src/index.js',
+    entry: ['@babel/polyfill', './src/index.js'],
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js',
@@ -58,6 +58,7 @@ module.exports = {
             OIDC_PROVIDER_URL: JSON.stringify(process.env.OIDC_PROVIDER_URL),
             OIDC_CLIENT_ID: JSON.stringify(process.env.OIDC_CLIENT_ID),
             APISERVER_URL: JSON.stringify(process.env.APISERVER_URL),
+            OIDC_REDIRECT_URI: JSON.stringify(process.env.OIDC_REDIRECT_URI)
         }),
         new RobotstxtPlugin({
             "User-agent": "*",
