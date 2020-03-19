@@ -1,5 +1,8 @@
 name: Go
-on: [push]
+on:
+  push:
+    tags:
+    - '*'
 jobs:
   build:
     name: Build
@@ -10,9 +13,6 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.CI_TOKEN }}
-    - name: Build Laboratory-Operator image
-      run: cd operators/labInstance-operator/ && docker build -f Dockerfile . 
-      if: github.ref != 'refs/heads/master'
     - name: Build and Push Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -21,11 +21,7 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
-        tags: "latest,${{ github.sha }}"
-      if: github.ref == 'refs/heads/master'
-    - name: Build Frontend image
-      run: cd webservice && docker build -f Dockerfile . 
-      if: github.ref != 'refs/heads/master'
+        tags: "latest,${{ github.ref }}"
     - name: Build and Push Frontend image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -34,13 +30,5 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: webservice
-        tags: "latest,${{ github.sha }}"
-      if: github.ref == 'refs/heads/master'
-    - uses: 8398a7/action-slack@v2
-      with:
-        status: ${{ job.status }}
-        author_name: Integration Test # default: 8398a7@action-slack
-      env:
-        GITHUB_TOKEN: ${{ secrets.CI_TOKEN }} # required
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }} # required
-      if: always() && github.ref == 'refs/heads/master' # Pick up events even if the job fails or is canceled.
+        tags: "latest,${{ github.ref }}"
+
