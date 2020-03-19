@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-oauth2-proxy
+  namespace: monitoring
+  labels:
+    app: monitoring-oauth2-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monitoring-oauth2-proxy
+  template:
+    metadata:
+      labels:
+        app: monitoring-oauth2-proxy
+    spec:
+      containers:
+      - name: monitoring-oauth2-proxy
+        image: quay.io/pusher/oauth2_proxy:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4180
+          protocol: TCP
+        args:
+        # General configurations
+        - --http-address=0.0.0.0:4180
+        - --reverse-proxy=true
+        # Cookie configurations
+        - --cookie-secret=<cookie-secret>
+        - --cookie-expire=1h
+        - --cookie-refresh=45m
+        # Use Keycloak as provider
+        - --provider=keycloak
+        # Client configuration in Keycloak (ID and Secret)
+        - --client-id=monitoring
+        - --client-secret=<monitoring-secret>
+        # Keycloak URLs
+        - --login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/auth
+        - --redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/token
+        - --validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/userinfo
+        # Restrictions
+        - --keycloak-group=/monitoring
+        - --email-domain=*
