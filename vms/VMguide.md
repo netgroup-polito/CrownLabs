@@ -36,13 +36,14 @@ The script generates a folder called `docker-output` in the directory of the `vd
 For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
 
 ```sh
-$ sudo docker login registry.crown-labs.ipv6.polito.it
+$ docker login registry.crown-labs.ipv6.polito.it
 ```
+**Note**: in case this command fails, try using `sudo` before the command itself. Depending on how Docker has been installed on your machine, you may have to use `sudo` before all the commands involving Docker.
 
 Now you can build the Docker image with the following command:
 
 ```sh
-$ sudo docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
+$ docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
 ```
 where:
 - `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
@@ -58,13 +59,13 @@ Note also that you have to run this command from the directory that contains `do
 You can check that your image is stored locally, on your host machine, with this command:
 
 ```sh
-$ sudo docker image list
+$ docker image list
 ```
 
 Finally you can push the image with the following command:
 
 ```sh
-$ sudo docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
+$ docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
 ```
 
 ## Run on the cluster
