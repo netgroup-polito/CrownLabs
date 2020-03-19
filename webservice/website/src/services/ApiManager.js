@@ -16,6 +16,7 @@ export default class ApiManager {
         this.getCRDstatus = this.getCRDstatus.bind(this);
         this.createCRD = this.createCRD.bind(this);
         this.deleteCRD = this.deleteCRD.bind(this);
+
     }
 
     getCRDtemplate() {
@@ -46,25 +47,15 @@ export default class ApiManager {
     }
 
     startWatching(func) {
-        /*
-        watch(this.kc, '/apis/instance.crown.team.com/v1/namespaces/test-simone/labinstances/watch/events', {},
+        watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
             function(type, object) {
-                let msg = "";
-                if (type === 'ADDED') {
-                    msg += 'Created Object';
-                } else if (type === 'MODIFIED') {
-                    msg += 'Modified Object';
-                } else if (type === 'DELETED') {
-                    msg += 'Deleted Object';
-                } else {
-                    msg += 'Unknown Event on object';
-                }
+                let msg = "[" + object.metadata.creationTimestamp + "] " + type + " " + object.metadata.name;
                 func(msg, object);
             },
             function(e) {
                 console.log('Stream ended', e);
             }
-        );*/
+        );
     }
 
     getCRDstatus(name) {
