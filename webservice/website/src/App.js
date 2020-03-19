@@ -26,9 +26,12 @@ export class App extends React.Component {
                 localStorage.setItem('isLoggedIn', 'true');
             }
         });
+        authManager.manager.events.addAccessTokenExpired(() => {
+            alert("AAAAAAAAAAAAAAAAAAAAAAAa");
+        });
         authManager.manager.events.addUserUnloaded(() => {
             localStorage.clear();
-            this.state = {isLoggedIn: 'false'};
+            this.setState({isLoggedIn: 'false'});
         })
     }
 
