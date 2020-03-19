@@ -31,7 +31,7 @@ $ convert-vm.sh <your-vm>.vdi
 
 The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
 
-### Create Docker adnd upload on Crown Team registry
+### Create Docker and upload on Crown Team registry
 
 For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
 
