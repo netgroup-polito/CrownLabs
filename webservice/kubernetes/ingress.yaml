@@ -4,7 +4,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   name: frontend
-  namespace: frontend
+  namespace: test-mattia
 spec:
   rules:
     - host: labs.crown-labs.ipv6.polito.it
