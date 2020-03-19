@@ -7,6 +7,7 @@ import * as serviceWorker from './serviceWorker';
 
 const main = document.createElement('div');
 document.body.appendChild(main);
+main.setAttribute('id', 'main');
 ReactDOM.render(<App />, main);
 
 // If you want your app to work offline and load faster, you can change

@@ -1,6 +1,7 @@
 import React from 'react';
-import {Container, Card, ButtonGroup, Button, Row, Col} from 'react-bootstrap';
+import {Container, Card, ButtonGroup, Button, Row, Col, Navbar, Nav} from 'react-bootstrap';
 import SideBar from './components/SideBar';
+import Footer from './components/Footer';
 import './App.css';
 import ApiManager from "./services/ApiManager";
 import Toastr from 'toastr';
@@ -136,12 +137,12 @@ export default class UserView extends React.Component {
     }
 
     connect() {
-        if(!this.state.selectedCRD) {
+        if (!this.state.selectedCRD) {
             Toastr.info("No lab selected to connect to");
             return
         }
-        if(!this.state.instanceLabs.has(this.state.selectedCRD)) {
-            Toastr.info("The lab `" + this.state.selectedCRD +  "` is not running");
+        if (!this.state.instanceLabs.has(this.state.selectedCRD)) {
+            Toastr.info("The lab `" + this.state.selectedCRD + "` is not running");
             return;
         }
         window.open(this.state.instanceLabs.get(this.state.selectedCRD), '_blank');
@@ -151,19 +152,33 @@ export default class UserView extends React.Component {
     render() {
         const keys = Array.from(this.state.instanceLabs.keys());
         const runningLabs = keys.map(x => {
-            return <li key={x}><Button variant="link" onClick={() => this.changeSelectedCRD(x)}>{x}</Button></li>;
+            return <Button variant="link" onClick={() => this.changeSelectedCRD(x)}>{x}</Button>;
         });
         return (
-            <div style={{backgroundColor: '#F2F2F2'}}>
-                <Container className="cover">
-                    <Row>
+            <div style={{minHeight: '100vh'}}>
+                <header>
+                    <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
+                        <Container>
+                            <Navbar.Brand href="">CrownLabs</Navbar.Brand>
+                            <Nav className="ml-auto" as="ul">
+                                <Nav.Item as="li">
+                                    <Button variant="outline-light"
+                                            onClick={this.props.authManager.logout}>Logout</Button>
+                                </Nav.Item>
+                            </Nav>
+                        </Container>
+                    </Navbar>
+                </header>
+                <Container fluid className="cover" style={{backgroundColor: '#F2F2F2'}}>
+                    <Row className="mt-5">
                         <Col className="col-3">
                             <SideBar labs={this.state.templateLabs} func={this.changeSelectedCRD}/>
                         </Col>
-                        <Col className="col-9">
+                        <Col className="col-6">
                             <Row className="my-5">
-                                <Col className="col-6">
-                                    <Card className="my-5 text-center headerstyle">
+                                <Col className="col-1"/>
+                                <Col className="col-10">
+                                    <Card className="text-center headerstyle">
                                         <Card.Body>
                                             <Card.Text as="h6">Status information</Card.Text>
                                             <textarea readOnly align="center" className="textareastyle"
@@ -176,26 +191,29 @@ export default class UserView extends React.Component {
                                                 <Button variant="dark" className="text-danger"
                                                         onClick={this.stopCRD}>Stop</Button>
                                                 <Button variant="dark" onClick={this.connect}>Connect</Button>
-                                                <Button variant="light"
-                                                        onClick={this.props.authManager.logout}>Logout</Button>
                                             </ButtonGroup>
                                         </Card.Footer>
                                     </Card>
                                 </Col>
-                                <Col className="col-6">
-                                    <Card className="my-5 text-center headerstyle">
-                                        <Card.Body>
-                                            <Card.Text as="h6">Information</Card.Text>
-                                            <p align="center">Selected lab: {this.state.selectedCRD}</p>
-                                            <ul>
-                                                {runningLabs}
-                                            </ul>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
+                                <Col className="col-1"/>
                             </Row>
                         </Col>
+                        <Col className="col-2 text-center">
+                            <Card className="my-5 p-2 text-center text-dark" border="dark"
+                                  style={{backgroundColor: 'transparent'}}>
+                                <Card.Body>
+                                    <Card.Title className="p-2">Details</Card.Title>
+                                    <p>Selected Lab</p>
+                                    <p className="text-success">{this.state.selectedCRD || "-"}</p>
+                                    <p>Running Labs</p>
+                                    <p className="text-success">{runningLabs.length>0 ? "" : "-"}</p>
+                                    {runningLabs}
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                        <Col className="col-1"/>
                     </Row>
+                    <Footer/>
                 </Container>
             </div>
         );
