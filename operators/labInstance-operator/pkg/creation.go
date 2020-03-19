@@ -159,12 +159,6 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				log.Error(err, "unable to create secret "+obj.Name)
 				return err
 			}
-		} else {
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update secret "+obj.Name)
-				return err
-			}
 		}
 	case corev1.PersistentVolumeClaim:
 		var pvc corev1.PersistentVolumeClaim
@@ -179,11 +173,7 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				return err
 			}
 		} else {
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update pvc "+obj.Name)
-				return err
-			}
+			return errors.NewBadRequest("ALREADY EXISTS")
 		}
 	case corev1.Service:
 		var svc corev1.Service
@@ -197,12 +187,6 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				log.Error(err, "unable to create service "+obj.Name)
 				return err
 			}
-		} else {
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update service "+obj.Name)
-				return err
-			}
 		}
 	case v1beta1.Ingress:
 		var ing v1beta1.Ingress
@@ -214,12 +198,6 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Error(err, "unable to create ingress "+obj.Name)
-				return err
-			}
-		} else {
-			err = c.Update(ctx, &obj, &client.UpdateOptions{})
-			if err != nil {
-				log.Error(err, "unable to update ingress "+obj.Name)
 				return err
 			}
 		}
