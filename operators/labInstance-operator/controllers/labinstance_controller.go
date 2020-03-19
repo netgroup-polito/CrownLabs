@@ -88,9 +88,19 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		log.Info("Could not create secret " + secret.Name)
+		labInstance = setLabInstanceStatus(labInstance, "SECRET ERROR", err.Error())
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Secret " + secret.Name + " correctly created")
+		labInstance = setLabInstanceStatus(labInstance, "SECRET CREATED", "")
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	}
 	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
 	// Check if exists
@@ -98,45 +108,88 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If yes, attach
 	// If not, update the status with error
 	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
-	//pvc.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil {
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
 		log.Info("Could not create pvc " + pvc.Name)
+		labInstance = setLabInstanceStatus(labInstance, "PVC ERROR", err.Error())
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
+	} else if err != nil && err.Error() == "ALREADY EXISTS" {
+		log.Info("PeristentVolumeClaim " + pvc.Name + " already exists")
+		labInstance = setLabInstanceStatus(labInstance, "PVC ATTACHED", "")
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	} else {
 		log.Info("PeristentVolumeClaim " + pvc.Name + " correctly created")
+		labInstance = setLabInstanceStatus(labInstance, "PVC CREATED", "")
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	}
+
 	// 3: create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		log.Info("Could not create vm " + vmi.Name)
+		labInstance = setLabInstanceStatus(labInstance, "VMI ERROR", err.Error())
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	} else {
 		log.Info("VirtualMachineInstance " + vmi.Name + " correctly created")
+		labInstance = setLabInstanceStatus(labInstance, "VMI CREATED", "")
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	}
+
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
 		log.Info("Could not create service " + service.Name)
+		labInstance = setLabInstanceStatus(labInstance, "SERVICE ERROR", err.Error())
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Service " + service.Name + " correctly created")
+		labInstance = setLabInstanceStatus(labInstance, "SERVICE CREATED", "")
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	}
+
 	// 5: create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		log.Info("Could not create ingress " + ingress.Name)
+		labInstance = setLabInstanceStatus(labInstance, "INGRESS ERROR", err.Error())
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Ingress " + ingress.Name + " correctly created")
-	}
-
-	labInstance = setLabInstanceStatus(labInstance, ingress.Spec.Rules[0].Host + "/" + name)
-	if err := r.Status().Update(ctx, &labInstance); err != nil {
-		log.Error(err, "unable to update LabInstance status")
-		return ctrl.Result{}, err
+		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", ingress.Spec.Rules[0].Host+"/"+name)
+		if err := r.Status().Update(ctx, &labInstance); err != nil {
+			log.Error(err, "unable to update LabInstance status")
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -148,8 +201,8 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func setLabInstanceStatus(labInstance instancev1.LabInstance, url string) instancev1.LabInstance {
-	labInstance.Status.Phase = "DEPLOYED"
+func setLabInstanceStatus(labInstance instancev1.LabInstance, phase string, url string) instancev1.LabInstance {
+	labInstance.Status.Phase = phase
 	labInstance.Status.Url = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
