@@ -32,7 +32,7 @@ metadata:
     nginx.ingress.kubernetes.io/configuration-snippet: |
     modsecurity_rules '
         SecRuleEngine On
-        SecRuleRemoveById 932110 933210 942100
+        SecRuleRemoveById 932110 932130 933210 942100
     ';
   name: grafana
   namespace: monitoring
