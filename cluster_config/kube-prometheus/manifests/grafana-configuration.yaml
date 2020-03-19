@@ -13,8 +13,8 @@ data:
   # Allow access via OAuth only to already existing accounts
   GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "false"
   # Client configuration in Keycloak (ID and Secret)
-  GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
-  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: <grafana-secret>
+  GF_AUTH_GENERIC_OAUTH_CLIENT_ID: monitoring
+  GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: <monitoring-secret>
   # Keycloak URLs
   GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/auth
   GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/token
