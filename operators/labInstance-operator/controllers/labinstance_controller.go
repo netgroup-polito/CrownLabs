@@ -83,7 +83,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		},
 	}
 
-	// create secret referenced by VirtualMachineInstance
+	// 1: create secret referenced by VirtualMachineInstance
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
@@ -92,8 +92,17 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		log.Info("Secret " + secret.Name + " correctly created")
 	}
-	// create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, name+"-pvc")
+	// 2: create pvc referenced by VirtualMachineInstance
+	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
+	pvc.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil {
+		log.Info("Could not create pvc " + pvc.Name)
+		return ctrl.Result{}, err
+	} else {
+		log.Info("PeristentVolumeClaim " + pvc.Name + " correctly created")
+	}
+	// 3: create VirtualMachineInstance
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		log.Info("Could not create vm " + vmi.Name)
@@ -101,7 +110,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		log.Info("VirtualMachineInstance " + vmi.Name + " correctly created")
 	}
-	// create Service to expose the vm
+	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
@@ -110,7 +119,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		log.Info("Service " + service.Name + " correctly created")
 	}
-	// create Ingress to manage the service
+	// 5: create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
@@ -120,7 +129,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Info("Ingress " + ingress.Name + " correctly created")
 	}
 
-	labInstance.Status.Url = ingress.Spec.Rules[0].Host + "/" + name
+	labInstance = setLabInstanceStatus(labInstance, ingress.Spec.Rules[0].Host + "/" + name)
 	if err := r.Status().Update(ctx, &labInstance); err != nil {
 		log.Error(err, "unable to update LabInstance status")
 		return ctrl.Result{}, err
@@ -135,8 +144,9 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
+func setLabInstanceStatus(labInstance instancev1.LabInstance, url string) instancev1.LabInstance {
 	labInstance.Status.Phase = "DEPLOYED"
+	labInstance.Status.Url = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	return labInstance
 }
