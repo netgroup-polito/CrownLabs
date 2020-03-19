@@ -1,16 +1,19 @@
 import React from 'react';
 import { Container, Card, Form, InputGroup, FormControl, Button, Row, Col } from 'react-bootstrap';
 import MaterialIcon from 'material-icons-react';
+import {Link} from 'react-router-dom';
 import './App.css';
+import {AuthenticatorInstance} from "./App";
 
 const logo = require('./assets/logo_poli.png');
+const githubIcon = require('./assets/github-logo.png');
 
 function Login() {
     return(
         <div>
-            <Container>
+            <Container className="cover">
                 <Row className="my-5">
-                    <Col className="col-4"></Col>
+                    <Col className="col-4"/>
                     <Col className="col-4">
                         <Card className="my-5 p-2" bg="light">
                             <Card.Header className="text-center headerstyle">
@@ -41,14 +44,22 @@ function Login() {
                                             </InputGroup.Append>
                                         </InputGroup>
                                     </Form.Group>
-                                    <Button className="btn-block login mt-5" variant="primary">Login</Button>
+                                    <Button as={Link} to="/userview" className="btn-block login mt-5" variant="primary" onClick={AuthenticatorInstance.login}>Login</Button>
                                 </Form>
                             </Card.Body>
                         </Card>
                     </Col>
-                    <Col className="col-4"></Col>
+                    <Col className="col-4"/>
                 </Row>
             </Container>
+            <footer className="py-4 blockquote-footer footerstyle">
+                <Container fluid className="m-0 text-center text-secondary">
+                <p className="d-inline">This software has been proudly developed at Politecnico di Torino. </p>
+                <p className="d-inline">For info visit our</p>
+                <img className="d-inline" height="25px" src={githubIcon}/>
+                <a className="d-inline" href="https://github.com/netgroup-polito/CrownLabs">Github project repository</a>
+                </Container>
+            </footer>
         </div>
     );
 }
