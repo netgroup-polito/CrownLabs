@@ -3,10 +3,9 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth
-    nginx.ingress.kubernetes.io/auth-type: basic
     cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+    nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
   name: alertmanager
   namespace: monitoring
 spec:
@@ -18,6 +17,28 @@ spec:
           serviceName: alertmanager-main
           servicePort: 9093
         path: /
+  tls:
+  - hosts:
+    - alertmanager.crown-labs.ipv6.polito.it
+    secretName: alertmanager-cert
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  name: alertmanager-oauth2
+  namespace: monitoring
+spec:
+  rules:
+  - host: alertmanager.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: monitoring-oauth2-proxy
+          servicePort: 4180
+        path: /oauth2
   tls:
   - hosts:
     - alertmanager.crown-labs.ipv6.polito.it
@@ -55,10 +76,9 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth
-    nginx.ingress.kubernetes.io/auth-type: basic
     cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+    nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
   generation: 1
   name: prometheus
   namespace: monitoring
@@ -71,6 +91,29 @@ spec:
           serviceName: prometheus-k8s
           servicePort: 9090
         path: /
+  tls:
+  - hosts:
+    - prometheus.crown-labs.ipv6.polito.it
+    secretName: prometheus-cert
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  generation: 1
+  name: prometheus-oauth2
+  namespace: monitoring
+spec:
+  rules:
+  - host: prometheus.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: monitoring-oauth2-proxy
+          servicePort: 4180
+        path: /oauth2
   tls:
   - hosts:
     - prometheus.crown-labs.ipv6.polito.it
