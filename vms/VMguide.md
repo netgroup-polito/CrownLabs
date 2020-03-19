@@ -25,11 +25,11 @@ $ convert-vm.sh <your-vm>.vdi
 ```
 
 **NOTES**:
+
 - Virtualbox uses, by default, disks in VDI format, which is the format supported by this script. Other tools are available to convert your images into VDI, or directly into the QCOW2 `raw` format, which is used in the next steps of our processing.
 - the above command assumes that the VM runs on a Linux host. If not, please transfer your image to a Linux machine and run the `convert-vm.sh` script from there.
 
 The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
-Now build the Docker image with the following command:
 
 ### Create Docker and upload on Crown Team registry
 
@@ -38,11 +38,17 @@ For this step, you have to login in CrownLabs's Docker registry using the proper
 ```sh
 $ sudo docker login registry.crown-labs.ipv6.polito.it
 ```
+
 Now you can build the Docker image with the following command:
 
 ```sh
 $ sudo docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
 ```
+where:
+- `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
+- `registry.crown-labs.ipv6.polito.it` is the name of the private registry your are using, which is compulsory in Docker in order to tell the daemon that the private registry (instead of DockerHub) has to be used.
+
+Note also that you have to run this command from the directory that contains `docker-output`.
 
 where `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image.
 Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
@@ -54,16 +60,8 @@ You can check that your image is stored locally, on your host machine, with this
 ```sh
 $ sudo docker image list
 ```
-where `user/image:latest` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd:version1.0`, or `alice/networkinglabs:latest`, and more.
-
-You can check now that your image is stored locally, on your host machine:
 
 Finally you can push the image with the following command:
-```sh
-$ sudo docker image list
-```
-
-Now simply login to the docker registry (with `sudo docker login <registry_url>`) and push the image (with `sudo docker push`).
 
 ```sh
 $ sudo docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
