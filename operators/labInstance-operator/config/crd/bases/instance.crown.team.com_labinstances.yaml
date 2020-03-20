@@ -40,6 +40,8 @@ spec:
           properties:
             labTemplateName:
               type: string
+            labTemplateNamespace:
+              type: string
             studentId:
               type: string
           type: object

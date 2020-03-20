@@ -17,12 +17,16 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-
+	"os"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,7 +70,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	// check if labTemplate exists
 	templateName := types.NamespacedName{
-		Namespace: labInstance.Namespace,
+		Namespace: labInstance.Spec.LabTemplateNamespace,
 		Name:      labInstance.Spec.LabTemplateName,
 	}
 	var labTemplate templatev1.LabTemplate
@@ -159,7 +163,6 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			return ctrl.Result{}, err
 		}
 	}
-
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
@@ -193,7 +196,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Ingress " + ingress.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", "https://" + ingress.Spec.Rules[0].Host+"/"+name)
+		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", "https://"+ingress.Spec.Rules[0].Host+"/"+name)
 		if err := r.Status().Update(ctx, &labInstance); err != nil {
 			log.Error(err, "unable to update LabInstance status")
 			return ctrl.Result{}, err
@@ -216,6 +219,123 @@ func setLabInstanceStatus(labInstance instancev1.LabInstance, phase string, url 
 	return labInstance
 }
 
-func VmWatcher(client kubernetes.Clientset) error {
+func GetConfig(path string) (*rest.Config, error) {
+	var config *rest.Config
+	var err error
 
+	if path == "" {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+	} else if path != "" {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			// Get the kubeconfig from the filepath.
+			config, err = clientcmd.BuildConfigFromFlags("", path)
+			config.GroupVersion = &virtv1.GroupVersion
+			config.NegotiatedSerializer = virtv1.ne
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return config, err
+}
+
+// create a standard K8s client -> to access use client.CoreV1().<resource>(<namespace>).<method>())
+func getClient(path string) (*rest.RESTClient, error) {
+	config, err := GetConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	return rest.RESTClientFor(config)
+}
+
+func VmWatcher(client *rest.RESTClient) error {
+	resource := "virtualmachineinstances"
+	namespace := corev1.NamespaceAll
+	watch, err := client.Get().
+		Prefix("watch").
+		Namespace(namespace).
+		Resource(resource).
+		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec).
+		Watch()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for event := range watch.ResultChan() {
+			vmi, ok := event.Object.(*virtv1.VirtualMachineInstance)
+			if !ok {
+				_ = fmt.Errorf("unexpected type")
+			}
+			s := vmi.Status.Phase
+			print(s)
+		}
+	}()
+
+	return nil
+	//resp, err := http.Get("http://localhost:8001/apis/cw.com/v1/apigateways?watch=true")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer resp.Body.Close()
+	//decoder := json.NewDecoder(resp.Body)
+	//for {
+	//	var event v1.ApiGatewayWatchEvent
+	//	if err := decoder.Decode(&event); err == io.EOF {
+	//		break
+	//	} else if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	log.Printf("Received watch event: %s: %s: \n", event.Type, event.Object.Metadata.Name)
+	//
+	//}
+	//
+	//client.ExtensionsV1beta1().RESTClient().w
+	//watch, err := client..CoreV1().Pods(p.config.Namespace).Watch(metav1.ListOptions{})
+	//if err != nil {
+	//	errors.Wrap(err, err.Error())
+	//}
+	//go func() {
+	//	for event := range watch.ResultChan() {
+	//		p2, ok := event.Object.(*v1.Pod)
+	//		if !ok {
+	//			_ = fmt.Errorf("unexpected type")
+	//		}
+	//		p.notifier(F2HTranslate(p2, p.config.RemoteNewPodCidr))
+	//	}
+	//}()
+	//return nil
+	//resp, err := http.Get(url)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer resp.Body.Close()
+	//decoder := json.NewDecoder(resp.Body)
+	//go func(){
+	//	for {
+	//		var event metav1.WatchEvent
+	//		if err := decoder.Decode(&event); err == io.EOF {
+	//			break
+	//		} else if err != nil {
+	//
+	//		}
+	//
+	//	}
+	//}()
+	//func(options metav1.ListOptions) (watch.Interface, error) {
+	//	options.FieldSelector = fieldSelector.String()
+	//	options.LabelSelector = labelSelector.String()
+	//	return c.Get().
+	//		Prefix("watch").
+	//		Namespace(namespace).
+	//		Resource(resource).
+	//		VersionedParams(&options, metav1.ParameterCodec).
+	//		Watch()
+	//}
+
+	
 }

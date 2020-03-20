@@ -6,4 +6,5 @@ metadata:
 spec:
   # Add fields here
   labTemplateName: cloud-computing-lab3
+  labTemplateNamespace: cloud-computing
   studentId: "987654"
