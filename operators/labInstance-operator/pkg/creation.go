@@ -159,6 +159,17 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 				log.Error(err, "unable to create secret "+obj.Name)
 				return err
 			}
+		} else {
+			err = c.Delete(ctx, &obj, &client.DeleteOptions{})
+			if err != nil {
+				log.Error(err, "unable to delete secret "+obj.Name)
+				return err
+			}
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create secret "+obj.Name)
+				return err
+			}
 		}
 	case corev1.PersistentVolumeClaim:
 		var pvc corev1.PersistentVolumeClaim
