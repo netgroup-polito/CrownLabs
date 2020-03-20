@@ -17,13 +17,18 @@ package controllers
 
 import (
 	"context"
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
+	"fmt"
 	"github.com/go-logr/logr"
+	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/record"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,12 +39,15 @@ import (
 // LabInstanceReconciler reconciles a LabInstance object
 type LabInstanceReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	EventsRecorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
 func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -61,40 +69,97 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	// check if labTemplate exists
 	templateName := types.NamespacedName{
-		Namespace: labInstance.Namespace,
+		Namespace: labInstance.Spec.LabTemplateNamespace,
 		Name:      labInstance.Spec.LabTemplateName,
 	}
 	var labTemplate templatev1.LabTemplate
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
-		log.Info("LabTemplate " + templateName.Name + " doesn't exist")
+		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
+		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "LabTemplate " + templateName.Name + " not found in namespace " + labTemplate.Namespace)
+		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
+	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate " + templateName.Name + " found in namespace " + labTemplate.Namespace)
 
-	vm := labTemplate.Spec.Vm
-	vm.Name = labTemplate.Name + "-" + labInstance.Spec.StudentID
-
-	ownerRef := []v1.OwnerReference{
+	// prepare variables common to all resources
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
+	namespace := labInstance.Namespace
+	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
+	b := true
+	labiOwnerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
 			Kind:       labInstance.Kind,
 			Name:       labInstance.Name,
 			UID:        labInstance.UID,
+			BlockOwnerDeletion: &b,
 		},
 	}
-	vm.SetOwnerReferences(ownerRef)
 
-	if err := CreateOrUpdateVM(r.Client, ctx, log, vm); err != nil {
-		log.Info("Could not create vm " + vm.Name)
+	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
+	secret := pkg.CreateSecret(name, namespace)
+	secret.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create secret " + secret.Name + "in namespace " + secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Secret " + secret.Name + " correctly created in namespace " + secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
+	}
+	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
+	// Check if exists
+	// If exists, can we attach?
+	// If yes, attach
+	// If not, update the status with error
+	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
+		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name + "in namespace " + pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
+	} else if err != nil && err.Error() == "ALREADY EXISTS" {
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " already exists in namespace " + pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
+	} else {
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created in namespace " + pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
-	// set labInstance status to DEPLOYED
-	labInstance = setPhase(labInstance)
-	if err := r.Status().Update(ctx, &labInstance); err != nil {
-		log.Error(err, "unable to update Advertisement status")
+	// 3: create VirtualMachineInstance
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
+	vmi.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + "in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
+
+	//restClient, err := getClient("")
+	//if err != nil {
+	//	log.Info("could not create rest client ")
+	//} else {
+	//	err = VmWatcher(restClient)
+	//	if err != nil {
+	//		log.Info("could not watch vmi " + vmi.Name)
+	//	}
+	//}
+
+	// 4: create Service to expose the vm
+	service := pkg.CreateService(name, namespace)
+	service.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create service " + service.Name + "in namespace " + service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created in namespace " + service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
+	}
+
+	// 5: create Ingress to manage the service
+	ingress := pkg.CreateIngress(name, namespace, service)
+	ingress.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name + "in namespace " + ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created in namespace " + ingress.Namespace, "Normal", "IngressCreated", &labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -104,34 +169,79 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func setPhase(labInstance instancev1.LabInstance) instancev1.LabInstance {
-	labInstance.Status.Phase = "DEPLOYED"
+
+func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
+	msg string, eventType string, eventReason string,
+	labInstance *instancev1.LabInstance, url string) {
+
+	log.Info(msg)
+	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
+
+	labInstance.Status.Phase = eventReason
+	labInstance.Status.Url = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
-	return labInstance
+	if err := r.Status().Update(ctx, labInstance); err != nil {
+		log.Error(err, "unable to update LabInstance status")
+	}
+	return
 }
 
-// create a VirtualMachine CR or update it if already exists
-func CreateOrUpdateVM(c client.Client, ctx context.Context, log logr.Logger, vm virtv1.VirtualMachine) error {
+func GetConfig(path string) (*rest.Config, error) {
+	var config *rest.Config
+	var err error
 
-	var tmp virtv1.VirtualMachine
-	err := c.Get(ctx, types.NamespacedName{
-		Namespace: vm.Namespace,
-		Name:      vm.Name,
-	}, &tmp)
-	if err != nil {
-		err = c.Create(ctx, &vm, &client.CreateOptions{})
-		if err != nil && !errors.IsAlreadyExists(err) {
-			log.Error(err, "unable to create virtual machine "+vm.Name)
-			return err
-		}
-	} else {
-		vm.SetResourceVersion(tmp.ResourceVersion)
-		err = c.Update(ctx, &vm, &client.UpdateOptions{})
+	if path == "" {
+		config, err = rest.InClusterConfig()
 		if err != nil {
-			log.Error(err, "unable to update virtual machine "+vm.Name)
-			return err
+			return nil, err
+		}
+	} else if path != "" {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			// Get the kubeconfig from the filepath.
+			config, err = clientcmd.BuildConfigFromFlags("", path)
+			if err != nil {
+				return nil, err
+			}
+			config.GroupVersion = &virtv1.GroupVersion
+			//config.NegotiatedSerializer =
 		}
 	}
+
+	return config, err
+}
+
+// create a generic REST client
+func getClient(path string) (*rest.RESTClient, error) {
+	config, err := GetConfig(path)
+	if err != nil {
+		return nil, err
+	}
+	return rest.RESTClientFor(config)
+}
+
+func VmWatcher(client *rest.RESTClient) error {
+	resource := "virtualmachineinstances"
+	namespace := corev1.NamespaceAll
+	watch, err := client.Get().
+		Prefix("watch").
+		Namespace(namespace).
+		Resource(resource).
+		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec).
+		Watch()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for event := range watch.ResultChan() {
+			vmi, ok := event.Object.(*virtv1.VirtualMachineInstance)
+			if !ok {
+				_ = fmt.Errorf("unexpected type")
+			}
+			s := vmi.Status.Phase
+			print(s)
+		}
+	}()
 
 	return nil
 }

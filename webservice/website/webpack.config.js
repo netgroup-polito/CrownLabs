@@ -1,12 +1,11 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const RobotstxtPlugin = require("robotstxt-webpack-plugin");
 const path = require('path');
 const webpack = require('webpack');
-const ManifestPlugin = require('webpack-manifest-plugin');
-const RobotstxtPlugin = require("robotstxt-webpack-plugin");
 
 module.exports = {
     context: __dirname,
-    entry: './src/index.js',
+    entry: ['@babel/polyfill', './src/index.js'],
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'bundle.js',
@@ -15,8 +14,7 @@ module.exports = {
     devServer: {
         host: "0.0.0.0",
         port: 8000,
-        historyApiFallback: true,
-        contentBase: './public'
+        historyApiFallback: true
     },
     module: {
         rules: [
@@ -48,38 +46,19 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, 'public/index.html'),
-            filename: 'index.html'
+            filename: 'index.html',
+            title: "CrownLabs",
+            meta: {
+                viewport: "width=device-width, initial-scale=1",
+                "theme-color": "#000000",
+                description: "CrownLabs fantastic website"
+            }
         }),
         new webpack.DefinePlugin({
             OIDC_PROVIDER_URL: JSON.stringify(process.env.OIDC_PROVIDER_URL),
             OIDC_CLIENT_ID: JSON.stringify(process.env.OIDC_CLIENT_ID),
             APISERVER_URL: JSON.stringify(process.env.APISERVER_URL),
-        }),
-        new ManifestPlugin({
-            short_name: "React App",
-            name: "Create React App Sample",
-            icons: [
-                {
-                    src: "favicon.ico",
-                    sizes: "64x64 32x32 24x24 16x16",
-                    type: "image/x-icon"
-                },
-                {
-                    src: "logo192.png",
-                    type: "image/png",
-                    sizes: "192x192"
-                },
-                {
-                    src: "logo512.png",
-                    type: "image/png",
-                    sizes: "512x512"
-                }
-            ],
-            start_url: ".",
-            display: "standalone",
-            theme_color: "#000000",
-            background_color: "#ffffff"
+            OIDC_REDIRECT_URI: JSON.stringify(process.env.OIDC_REDIRECT_URI)
         }),
         new RobotstxtPlugin({
             "User-agent": "*",

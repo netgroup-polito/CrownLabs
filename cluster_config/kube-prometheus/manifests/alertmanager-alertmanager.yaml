@@ -16,3 +16,15 @@ spec:
     runAsUser: 1000
   serviceAccountName: alertmanager-main
   version: v0.20.0
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 99
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - alertmanager
+          topologyKey: kubernetes.io/hostname
