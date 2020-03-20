@@ -37,9 +37,9 @@ spec:
         - --client-id=monitoring
         - --client-secret=<monitoring-secret>
         # Keycloak URLs
-        - --login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/auth
-        - --redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/token
-        - --validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/virtlabs/protocol/openid-connect/userinfo
+        - --login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth
+        - --redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token
+        - --validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo
         # Restrictions
         - --keycloak-group=/monitoring
         - --email-domain=*
