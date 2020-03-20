@@ -28,6 +28,32 @@ spec:
           - containerPort: 80
             protocol: TCP
             name: http
+          env:
+          - name: OIDC_PROVIDER_URL
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-env-vars
+                key: oidc_provider_url
+          - name: OIDC_CLIENT_ID
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-env-vars
+                key: oidc_client_id
+          - name: OIDC_CLIENT_SECRET
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-env-vars
+                key: oidc_client_secret
+          - name: OIDC_REDIRECT_URI
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-env-vars
+                key: oidc_redirect_uri
+          - name: APISERVER_URL
+            valueFrom:
+              configMapKeyRef:
+                name: frontend-env-vars
+                key: apiserver_url
       dnsPolicy: ClusterFirst
       imagePullSecrets:
         - name: regcred
