@@ -13,18 +13,25 @@ import 'toastr/build/toastr.min.css'
 export default class UserView extends React.Component {
     constructor(props) {
         super(props);
+        let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
+        if(!retrievedSessionToken) {
+            document.location.href = '/logout';
+        }
         this.connect = this.connect.bind(this);
         this.changeSelectedCRD = this.changeSelectedCRD.bind(this);
         this.startCRD = this.startCRD.bind(this);
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
         this.retrieveCRDinstanceStatus = this.retrieveCRDinstanceStatus.bind(this);
-        this.state = {templateLabs: [], instanceLabs: new Map(), selectedCRD: null, events: ""};
-        if (localStorage.getItem('token')) {
-            this.apiManager = new ApiManager(localStorage.getItem('token'), localStorage.getItem('token_type'));
-            this.retrieveCRDtemplate();
-            this.retrieveCRDinstance();
-        }
+        this.state = {
+            templateLabs: new Map(),
+            instanceLabs: new Map(),
+            selectedCRD: null,
+            events: ""
+        };
+        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer");
+        this.retrieveCRDtemplates();
+        this.retrieveCRDinstance();
     }
 
     /**
@@ -39,34 +46,31 @@ export default class UserView extends React.Component {
                     newMap.set(x.metadata.name, null);
                 });
                 this.setState({instanceLabs: newMap});
+                this.retrieveCRDinstanceStatus();
+                setInterval(() => {
+                    this.retrieveCRDinstanceStatus();
+                }, 10000);
             })
             .catch((error) => {
-                console.error(error);
-            })
-            .finally(() => {
-                this.retrieveCRDinstanceStatus()
+                this.handleErrors(error);
             });
-        setInterval(() => {
-            this.retrieveCRDinstanceStatus();
-        }, 10000);
     }
 
     /**
      * Function to retrieve all CRD templates available
      */
-    retrieveCRDtemplate() {
-        this.apiManager.getCRDtemplate()
-            .then((nodesResponse) => {
-                const nodes = nodesResponse.body.items;
-                this.setState({
-                    templateLabs: nodes.map(x => {
-                        return x.metadata.name;
-                    })
+    retrieveCRDtemplates() {
+        this.apiManager.getCRDtemplates()
+            .then(res => {
+                let newMap = this.state.templateLabs;
+                res.forEach(x => {
+                    x? newMap.set(x.course, x.labs) : null;
                 });
+                this.setState({templateLabs: newMap});
                 this.apiManager.startWatching(this.notifyEvent);
             })
             .catch((error) => {
-                console.error(error);
+                this.handleErrors(error);
             });
     }
 
@@ -80,6 +84,7 @@ export default class UserView extends React.Component {
                 .then(response => {
                     if (response.body.status && response.body.status.url) {
                         const newMap = this.state.instanceLabs;
+                        const status = response.body.status.url;
                         if (this.state.instanceLabs.get(lab) !== status) {
                             newMap.set(lab, status);
                         }
@@ -87,7 +92,7 @@ export default class UserView extends React.Component {
                     }
                 })
                 .catch(error => {
-                    console.log(error);
+                    this.handleErrors(error);
                 });
         });
     }
@@ -98,7 +103,7 @@ export default class UserView extends React.Component {
      * @param obj the resource of interest
      */
     notifyEvent(msg, obj) {
-        this.setState({events: msg + "\n" + this.state.events});
+        this.setState({events: this.state.events + msg + "\n"});
     }
 
     /**
@@ -130,24 +135,32 @@ export default class UserView extends React.Component {
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
-                    let code = error.response._fetchResponse.status;
-                    let msg = "";
-                    switch (code) {
-                        case 403:
-                            msg += "Unable to create " + this.state.selectedCRD + ", lack of permissions";
-                            break;
-                        case 409 :
-                            msg += "Resource " + this.state.selectedCRD + " already exists";
-                            break;
-                        default :
-                            msg += "An unusual error occurred (" + code + "), please try again";
-                    }
-                    Toastr.error(msg);
+                    this.handleErrors(error);
                 }
             )
             .finally(() => {
                 this.changeSelectedCRD(null);
             });
+    }
+
+    handleErrors(error) {
+        let msg = "";
+        switch(error.response._fetchResponse.status) {
+            case 401 :
+                msg += "Cluster expired, please authenticate again";
+                setInterval(() => { document.location.href = '/logout'}, 2000);
+                break;
+            case 403 :
+                msg += "It seems you do not have the right permissions to perform this operation";
+                break;
+            case 409 :
+                msg += "Resource already present";
+                break;
+            default :
+                msg += "An error occurred(" + error.response._fetchResponse.status + "), please try again";
+                setInterval(() => { document.location.href = '/logout'}, 2000);
+        }
+        Toastr.error(msg);
     }
 
     /**
@@ -171,9 +184,7 @@ export default class UserView extends React.Component {
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
-                    let code = error.response._fetchResponse.status;
-                    let msg = code === 403 ? "Unable to delete " + this.state.selectedCRD + ", lack of permissions" : "An unusual error occurred (" + code + "), please try again";
-                    Toastr.error(msg);
+                    this.handleErrors(error);
                 }
             )
             .finally(() => {
@@ -222,7 +233,7 @@ export default class UserView extends React.Component {
                         <Nav className="ml-auto" as="ul">
                             <Nav.Item as="li">
                                 <Button variant="outline-light"
-                                        onClick={this.props.authManager.logout}>Logout</Button>
+                                        onClick={this.props.logout}>Logout</Button>
                             </Nav.Item>
                         </Nav>
                     </Navbar>
