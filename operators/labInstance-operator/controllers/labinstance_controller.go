@@ -17,12 +17,12 @@ package controllers
 
 import (
 	"context"
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,12 +33,15 @@ import (
 // LabInstanceReconciler reconciles a LabInstance object
 type LabInstanceReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	EventsRecorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
 func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -60,16 +63,18 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	// check if labTemplate exists
 	templateName := types.NamespacedName{
-		Namespace: labInstance.Namespace,
+		Namespace: labInstance.Spec.LabTemplateNamespace,
 		Name:      labInstance.Spec.LabTemplateName,
 	}
 	var labTemplate templatev1.LabTemplate
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
-		log.Info("LabTemplate " + templateName.Name + " doesn't exist")
+		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
+		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "Error")
+		r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
-
+	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "Correct")
 	// prepare variables common to all resources
 	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
 	namespace := labInstance.Namespace
@@ -151,7 +156,6 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			return ctrl.Result{}, err
 		}
 	}
-
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
@@ -185,7 +189,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	} else {
 		log.Info("Ingress " + ingress.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", ingress.Spec.Rules[0].Host+"/"+name)
+		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", "https://"+ingress.Spec.Rules[0].Host+"/"+name)
 		if err := r.Status().Update(ctx, &labInstance); err != nil {
 			log.Error(err, "unable to update LabInstance status")
 			return ctrl.Result{}, err
