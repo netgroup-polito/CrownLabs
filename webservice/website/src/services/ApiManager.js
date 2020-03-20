@@ -50,7 +50,7 @@ export default class ApiManager {
         return this.apiCRD.listNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural);
     }
 
-    createCRD(labTemplateName) {
+    createCRD(labTemplateName, labTemplateNamespace) {
         return this.apiCRD.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
             apiVersion: this.instanceGroup + "/" + this.version,
             kind: "LabInstance",
@@ -60,6 +60,7 @@ export default class ApiManager {
             },
             spec: {
                 labTemplateName: labTemplateName,
+                labTemplateNamespace: labTemplateNamespace,
                 studentId: this.studentID
             }
         });
@@ -73,7 +74,7 @@ export default class ApiManager {
         watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
             function(type, object) {
                 let msg = "[" + object.metadata.creationTimestamp + "] " + type + " " + object.metadata.name;
-                func(msg, object);
+                func(msg);
             },
             function(e) {
                 console.log('Stream ended', e);

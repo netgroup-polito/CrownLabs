@@ -8,7 +8,7 @@ export default function SideBar(props) {
             return match.toUpperCase();
         });
         let labInCourse = props.labs.get(courseName).map(courseLab => {
-            return <li key={courseLab}><Button variant="link" onClick={() => props.func(courseLab)}>{courseLab}</Button>
+            return <li key={courseLab}><Button variant="link" onClick={() => props.func(courseLab, courseName)}>{courseLab}</Button>
             </li>
         });
         return <Nav.Item key={courseName} as="h6">{camelizedName}<Nav.Item as="ul">{labInCourse}</Nav.Item></Nav.Item>
