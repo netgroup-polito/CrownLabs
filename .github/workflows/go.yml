@@ -21,6 +21,7 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
+        tags: "latest,${{ github.sha }}"
       if: github.ref == 'refs/heads/master'
     - name: Build Frontend image
       run: cd webservice && docker build -f Dockerfile . 
@@ -33,6 +34,7 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: webservice
+        tags: "latest,${{ github.sha }}"
       if: github.ref == 'refs/heads/master'
     - uses: 8398a7/action-slack@v2
       with:

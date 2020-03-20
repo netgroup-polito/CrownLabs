@@ -1,0 +1,34 @@
+name: Go
+on:
+  push:
+    tags:
+    - '*'
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.CI_TOKEN }}
+    - name: Build and Push Laboratory-Operator image
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: crownlabs/laboratory-operator
+        username: ${{ secrets.DOCKER_USERNAME }}
+        dockerfile: Dockerfile
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: operators/labInstance-operator/
+        tags: "latest,${{ github.ref }}"
+    - name: Build and Push Frontend image
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: crownlabs/frontend
+        username: ${{ secrets.DOCKER_USERNAME }}
+        dockerfile: Dockerfile
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: webservice
+        tags: "latest,${{ github.ref }}"
+

@@ -40,6 +40,8 @@ spec:
           properties:
             labTemplateName:
               type: string
+            labTemplateNamespace:
+              type: string
             studentId:
               type: string
           type: object
@@ -50,6 +52,8 @@ spec:
               format: int64
               type: integer
             phase:
+              type: string
+            url:
               type: string
           type: object
       type: object

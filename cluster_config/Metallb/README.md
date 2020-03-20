@@ -26,11 +26,26 @@ Given the presence of *two* address pools, a service of type LoadBalancer with a
 ````
 If this annotation is omitted metallb will choose a private IP.
 
-To see which physical node is currently in charge of the LoadBalancer IP you can run the following command, which gets a description of the service:
+To see which physical node is currently in charge of a given LoadBalancer IP, you can go through the following steps:
+
+**1.** Identify the service that has currently asked for a given LoadBalancer IP:
+
+````
+$ kubectl get services -A
+NAMESPACE       NAME                TYPE           CLUSTER-IP       EXTERNAL-IP   
+....
+ingress-nginx   ingress-nginx       LoadBalancer   10.110.183.89    130.192.31.241
+````
+In this case, the service is `ingress-nginx`, in a namespace `ingress-nginx`.
+
+**2.** Get a description of that service:
+
 ````
 $ k describe svc <name-of-service> -n <service-namespace>
 ````
-and check events label. This is an example:
+where  `<name-of-service> ` and  `<service-namespace> ` are the ones obtained in the previous step.
+
+The information you are looking for is in the `events` label of the previous output, such as in the following:
 ````
 Events:
   Type    Reason        Age                    From             Message

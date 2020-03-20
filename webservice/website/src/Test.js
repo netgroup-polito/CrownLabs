@@ -1,5 +1,5 @@
-import React, { Component } from 'react';
-import { Container, Card, Button, Row, Col } from 'react-bootstrap';
+import React, {Component} from 'react';
+import {Container, Card, Button, Row, Col} from 'react-bootstrap';
 
 class Test extends Component {
     constructor(props) {
@@ -20,11 +20,13 @@ class Test extends Component {
                 console.log(response);
                 this.setState({msg: response});
             })
-            .catch(error => {console.log(error)});
+            .catch(error => {
+                console.log(error)
+            });
     }
 
     render() {
-        return(
+        return (
             <div>
                 <Container>
                     <Row className="my-5">
@@ -33,7 +35,8 @@ class Test extends Component {
                             <Card className="my-5 p-2" bg="light">
                                 <Card.Body>
                                     <Card.Text as="h5">{this.state.msg}</Card.Text>
-                                    <Button className="btn-block mt-5" variant="primary" onClick={this.test}>Make test</Button>
+                                    <Button className="btn-block mt-5" variant="primary" onClick={this.test}>Make
+                                        test</Button>
                                 </Card.Body>
                             </Card>
                         </Col>
