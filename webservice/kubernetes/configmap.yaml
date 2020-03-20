@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-env-vars
+  namespace: frontend
+data:
+  oidc_client_id: "k8s"
+  oidc_provider_url: "https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs"
+  oidc_client_secret: "229a9d87-2bae-4e9b-8567-e8864b2bac4b"
+  oidc_redirect_uri: "https://crownlabs.polito.it/"
+  apiserver_url: "https://apiserver.crown-labs.ipv6.polito.it"
