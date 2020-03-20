@@ -102,7 +102,7 @@ func CreatePerstistentVolumeClaim(name string, namespace string, storageClassNam
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, secretName string, svc corev1.Service) v1beta1.Ingress {
+func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +116,7 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{"crownlabs.polito.it"},
-					SecretName: secretName,
+					SecretName: name + "-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
@@ -154,17 +154,6 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			Name:      obj.Name,
 		}, &sec)
 		if err != nil {
-			err = c.Create(ctx, &obj, &client.CreateOptions{})
-			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create secret "+obj.Name)
-				return err
-			}
-		} else {
-			err = c.Delete(ctx, &obj, &client.DeleteOptions{})
-			if err != nil {
-				log.Error(err, "unable to delete secret "+obj.Name)
-				return err
-			}
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Error(err, "unable to create secret "+obj.Name)
