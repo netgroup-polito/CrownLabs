@@ -7,7 +7,7 @@ ENV OIDC_CLIENT_ID="k8s" \
     APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it" \
     #Change OIDC_REDIRECT_URI to => http://localhost:8000 if you want to host your website locally
     #or in a docker run locally with the port 80 mapped to your host port 8000
-    OIDC_REDIRECT_URI="http://crownlabs.polito.it"
+    OIDC_REDIRECT_URI="https://crownlabs.polito.it/"
 
 ADD . /webservice
 WORKDIR /webservice
@@ -19,4 +19,3 @@ RUN npm run build
 ### image to export the service
 FROM nginx
 COPY --from=builder /webservice/website/dist /usr/share/nginx/html
-#COPY nginx.conf /etc/nginx/conf.d/default.conf
