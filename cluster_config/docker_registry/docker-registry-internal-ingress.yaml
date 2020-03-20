@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: docker-registry-internal
+  namespace: docker-registry
+  annotations:
+    kubernetes.io/ingress.class: "nginx-internal"
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  labels:
+    use-dns01-solver: "true"
+spec:
+  rules:
+  - host: registry.internal.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: docker-registry-1584110467
+          servicePort: 5000
+        path: /
+  tls:
+  - hosts:
+    - registry.internal.crown-labs.ipv6.polito.it
+    secretName: certificate-registry-internal
