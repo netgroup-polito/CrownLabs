@@ -1,4 +1,4 @@
-import {Log, UserManager} from 'oidc-client';
+import {UserManager} from 'oidc-client';
 
 export default class Authenticator {
     constructor() {
@@ -15,23 +15,21 @@ export default class Authenticator {
         this.logout = this.logout.bind(this);
         this.completeLogin = this.completeLogin.bind(this);
         this.completeLogout = this.completeLogout.bind(this);
-        Log.logger = console;
-        Log.level = Log.INFO;
     }
 
     login() {
-        this.manager.signinRedirect();
+        return this.manager.signinRedirect();
     }
 
     completeLogin() {
-        this.manager.signinRedirectCallback();
+        return this.manager.signinRedirectCallback();
     }
 
     logout() {
-        this.manager.signoutRedirect();
+        return this.manager.signoutRedirect();
     }
 
     completeLogout() {
-        this.manager.signoutCallback();
+        return this.manager.signoutCallback();
     }
 }
