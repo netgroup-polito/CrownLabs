@@ -102,7 +102,7 @@ func CreatePerstistentVolumeClaim(name string, namespace string, storageClassNam
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, secretName string, svc corev1.Service) v1beta1.Ingress {
+func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +116,7 @@ func CreateIngress(name string, namespace string, secretName string, svc corev1.
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{"crownlabs.polito.it"},
-					SecretName: secretName,
+					SecretName: name + "-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
