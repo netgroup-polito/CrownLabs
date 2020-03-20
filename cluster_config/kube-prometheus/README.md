@@ -17,6 +17,7 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
     - [Persistent storage](#persistent-storage)
     - [Monitor the Bind DNS Server](#monitor-the-bind-dns-server)
     - [Monitor all namespaces](#monitor-all-namespaces)
+    - [Blackbox monitoring](#blackbox-monitoring)
     - [OAuth2 Authentication](#oauth2-authentication)
   - [Other information](#other-information)
 
@@ -154,6 +155,18 @@ kubectl apply -f prometheus-scraper-cluster-role.yaml
 ```
 Now Prometheus can scrape all the namespaces in the cluster.
 
+
+## Blackbox monitoring
+Testing externally visible behavior as a user would see it.
+
+It allows us to tell if someone is seeing us or not and it is useful if something unexpected happens. We do the scraping from the outside in order to see that there are no access problems, for some reason, perhaps due to some crash.
+
+### Blackbox exporter
+From [Blackbox exporter](https://github.com/prometheus/blackbox_exporter) official Github.
+The blackbox exporter allows blackbox probing of endpoints over HTTP, HTTPS, DNS, TCP and ICMP.
+TO deploy it, we use the [blackbox exporter chart](https://github.com/helm/charts/tree/master/stable/prometheus-blackbox-exporter) by appropriately changing the values of [values](https://github.com/helm/charts/blob/master/stable/prometheus-blackbox-exporter/values.yaml) file.
+
+
 ## OAuth2 Authentication
 In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2_proxy](https://github.com/pusher/oauth2_proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../Keycloak/README.md) for more information.
 
@@ -277,3 +290,4 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 
 ## Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
+
