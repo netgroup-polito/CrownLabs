@@ -77,20 +77,23 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		// no LabTemplate related exists
 		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
 		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "Error")
-		r.Delete(ctx, &labInstance, &client.DeleteOptions{})
+		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
-	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "Correct")
+	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate " + templateName.Name + " found in namespace " + labTemplate.Namespace)
+
 	// prepare variables common to all resources
 	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
+	b := true
 	labiOwnerRef := []metav1.OwnerReference{
 		{
 			APIVersion: labInstance.APIVersion,
 			Kind:       labInstance.Kind,
 			Name:       labInstance.Name,
 			UID:        labInstance.UID,
+			BlockOwnerDeletion: &b,
 		},
 	}
 
@@ -98,20 +101,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
-		log.Info("Could not create secret " + secret.Name)
-		labInstance = setLabInstanceStatus(labInstance, "SECRET ERROR", err.Error())
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, err
+		setLabInstanceStatus(r, ctx, log, "Could not create secret " + secret.Name, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
-		log.Info("Secret " + secret.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "SECRET CREATED", "")
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Secret " + secret.Name + " correctly created", "Normal", "SecretCreated", &labInstance, "")
 	}
 	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
 	// Check if exists
@@ -120,47 +112,22 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If not, update the status with error
 	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		log.Info("Could not create pvc " + pvc.Name)
-		labInstance = setLabInstanceStatus(labInstance, "PVC ERROR", err.Error())
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else if err != nil && err.Error() == "ALREADY EXISTS" {
-		log.Info("PeristentVolumeClaim " + pvc.Name + " already exists")
-		labInstance = setLabInstanceStatus(labInstance, "PVC ATTACHED", "")
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " already exists", "Warning", "PvcAlreadyExists", &labInstance, "")
 	} else {
-		log.Info("PeristentVolumeClaim " + pvc.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "PVC CREATED", "")
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created", "Normal", "PvcCreated", &labInstance, "")
 	}
 
 	// 3: create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		log.Info("Could not create vm " + vmi.Name)
-		labInstance = setLabInstanceStatus(labInstance, "VMI ERROR", err.Error())
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name, "Warning", "VmiNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		log.Info("VirtualMachineInstance " + vmi.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "VMI CREATED", "")
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created", "Normal", "VmiCreated", &labInstance, "")
 	}
 	restClient, err := getClient("/home/francesco/crown/kubeconfig")
 	if err != nil {
@@ -175,40 +142,20 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
-		log.Info("Could not create service " + service.Name)
-		labInstance = setLabInstanceStatus(labInstance, "SERVICE ERROR", err.Error())
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Could not create service " + service.Name, "Warning", "ServiceNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		log.Info("Service " + service.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "SERVICE CREATED", "")
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created", "Normal", "ServiceCreated", &labInstance, "")
 	}
 
 	// 5: create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
-		log.Info("Could not create ingress " + ingress.Name)
-		labInstance = setLabInstanceStatus(labInstance, "INGRESS ERROR", err.Error())
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name, "Warning", "IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		log.Info("Ingress " + ingress.Name + " correctly created")
-		labInstance = setLabInstanceStatus(labInstance, "INGRESS CREATED", "https://"+ingress.Spec.Rules[0].Host+"/"+name)
-		if err := r.Status().Update(ctx, &labInstance); err != nil {
-			log.Error(err, "unable to update LabInstance status")
-			return ctrl.Result{}, err
-		}
+		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created", "Normal", "IngressCreated", &labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
 	}
 
 	return ctrl.Result{}, nil
@@ -220,11 +167,21 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func setLabInstanceStatus(labInstance instancev1.LabInstance, phase string, url string) instancev1.LabInstance {
-	labInstance.Status.Phase = phase
+
+func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
+	msg string, eventType string, eventReason string,
+	labInstance *instancev1.LabInstance, url string) {
+
+	log.Info(msg)
+	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
+
+	labInstance.Status.Phase = eventReason
 	labInstance.Status.Url = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
-	return labInstance
+	if err := r.Status().Update(ctx, labInstance); err != nil {
+		log.Error(err, "unable to update LabInstance status")
+	}
+	return
 }
 
 func GetConfig(path string) (*rest.Config, error) {
@@ -285,64 +242,4 @@ func VmWatcher(client *rest.RESTClient) error {
 	}()
 
 	return nil
-	//resp, err := http.Get("http://localhost:8001/apis/cw.com/v1/apigateways?watch=true")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer resp.Body.Close()
-	//decoder := json.NewDecoder(resp.Body)
-	//for {
-	//	var event v1.ApiGatewayWatchEvent
-	//	if err := decoder.Decode(&event); err == io.EOF {
-	//		break
-	//	} else if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//	log.Printf("Received watch event: %s: %s: \n", event.Type, event.Object.Metadata.Name)
-	//
-	//}
-	//
-	//client.ExtensionsV1beta1().RESTClient().w
-	//watch, err := client..CoreV1().Pods(p.config.Namespace).Watch(metav1.ListOptions{})
-	//if err != nil {
-	//	errors.Wrap(err, err.Error())
-	//}
-	//go func() {
-	//	for event := range watch.ResultChan() {
-	//		p2, ok := event.Object.(*v1.Pod)
-	//		if !ok {
-	//			_ = fmt.Errorf("unexpected type")
-	//		}
-	//		p.notifier(F2HTranslate(p2, p.config.RemoteNewPodCidr))
-	//	}
-	//}()
-	//return nil
-	//resp, err := http.Get(url)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//defer resp.Body.Close()
-	//decoder := json.NewDecoder(resp.Body)
-	//go func(){
-	//	for {
-	//		var event metav1.WatchEvent
-	//		if err := decoder.Decode(&event); err == io.EOF {
-	//			break
-	//		} else if err != nil {
-	//
-	//		}
-	//
-	//	}
-	//}()
-	//func(options metav1.ListOptions) (watch.Interface, error) {
-	//	options.FieldSelector = fieldSelector.String()
-	//	options.LabelSelector = labelSelector.String()
-	//	return c.Get().
-	//		Prefix("watch").
-	//		Namespace(namespace).
-	//		Resource(resource).
-	//		VersionedParams(&options, metav1.ParameterCodec).
-	//		Watch()
-	//}
-
 }
