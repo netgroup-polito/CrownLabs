@@ -14,7 +14,7 @@ export default class UserView extends React.Component {
     constructor(props) {
         super(props);
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        if(!retrievedSessionToken) {
+        if (!retrievedSessionToken) {
             document.location.href = '/logout';
         }
         this.connect = this.connect.bind(this);
@@ -26,7 +26,7 @@ export default class UserView extends React.Component {
         this.state = {
             templateLabs: new Map(),
             instanceLabs: new Map(),
-            selectedCRD: null,
+            selectedCRD: {name: null, namespace: null},
             events: ""
         };
         this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer");
@@ -64,7 +64,7 @@ export default class UserView extends React.Component {
             .then(res => {
                 let newMap = this.state.templateLabs;
                 res.forEach(x => {
-                    x? newMap.set(x.course, x.labs) : null;
+                    x ? newMap.set(x.course, x.labs) : null;
                 });
                 this.setState({templateLabs: newMap});
                 this.apiManager.startWatching(this.notifyEvent);
@@ -86,6 +86,7 @@ export default class UserView extends React.Component {
                         const newMap = this.state.instanceLabs;
                         const status = response.body.status.url;
                         if (this.state.instanceLabs.get(lab) !== status) {
+                            this.notifyEvent("[" + response.body.metadata.creationTimestamp + "] " + response.body.status.phase);
                             newMap.set(lab, status);
                         }
                         this.setState({instanceLabs: newMap});
@@ -102,36 +103,41 @@ export default class UserView extends React.Component {
      * @param msg the message received
      * @param obj the resource of interest
      */
-    notifyEvent(msg, obj) {
+    notifyEvent(msg) {
         this.setState({events: this.state.events + msg + "\n"});
     }
 
     /**
      * Function to change the user selected CRD
      * @param name the name/label of the new one
+     * @param namespace the namespace in which the template should be retrieved (null if want to run an instance)
      */
-    changeSelectedCRD(name) {
-        this.setState({selectedCRD: name});
+    changeSelectedCRD(name, namespace) {
+        this.setState({
+            selectedCRD: {
+                name: name, namespace: namespace
+            }
+        });
     }
 
     /**
      * Function to start and create a CRD instance using the actual selected one
      */
     startCRD() {
-        if (!this.state.selectedCRD) {
+        if (!this.state.selectedCRD.name) {
             Toastr.info("Please select a lab before starting it");
             return;
         }
-        if (this.state.instanceLabs.has(this.state.selectedCRD)) {
-            Toastr.info("The `" + this.state.selectedCRD + '` lab is already running');
+        if (this.state.instanceLabs.has(this.state.selectedCRD.name)) {
+            Toastr.info("The `" + this.state.selectedCRD.name + '` lab is already running');
             return;
         }
-        this.apiManager.createCRD(this.state.selectedCRD)
+        this.apiManager.createCRD(this.state.selectedCRD.name, this.state.selectedCRD.namespace)
             .then(
                 (response) => {
-                    Toastr.success("Successfully started lab `" + this.state.selectedCRD + "`");
+                    Toastr.success("Successfully started lab `" + this.state.selectedCRD.name + "`");
                     const newMap = this.state.instanceLabs;
-                    newMap.set(this.state.selectedCRD, null);
+                    newMap.set(this.state.selectedCRD.name, null);
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
@@ -139,16 +145,18 @@ export default class UserView extends React.Component {
                 }
             )
             .finally(() => {
-                this.changeSelectedCRD(null);
+                this.changeSelectedCRD(null, null);
             });
     }
 
     handleErrors(error) {
         let msg = "";
-        switch(error.response._fetchResponse.status) {
+        switch (error.response._fetchResponse.status) {
             case 401 :
                 msg += "Cluster expired, please authenticate again";
-                setInterval(() => { document.location.href = '/logout'}, 2000);
+                setInterval(() => {
+                    document.location.href = '/logout'
+                }, 2000);
                 break;
             case 403 :
                 msg += "It seems you do not have the right permissions to perform this operation";
@@ -158,7 +166,9 @@ export default class UserView extends React.Component {
                 break;
             default :
                 msg += "An error occurred(" + error.response._fetchResponse.status + "), please try again";
-                setInterval(() => { document.location.href = '/logout'}, 2000);
+                setInterval(() => {
+                    document.location.href = '/logout'
+                }, 2000);
         }
         Toastr.error(msg);
     }
@@ -167,20 +177,20 @@ export default class UserView extends React.Component {
      * Function to stop and delete the current selected CRD instance
      */
     stopCRDinstance() {
-        if (!this.state.selectedCRD) {
+        if (!this.state.selectedCRD.name) {
             Toastr.info("No lab to stop has been selected");
             return;
         }
-        if (!this.state.instanceLabs.has(this.state.selectedCRD)) {
-            Toastr.info("The `" + this.state.selectedCRD + '` lab is not running');
+        if (!this.state.instanceLabs.has(this.state.selectedCRD.name)) {
+            Toastr.info("The `" + this.state.selectedCRD.name + '` lab is not running');
             return;
         }
-        this.apiManager.deleteCRD(this.state.selectedCRD)
+        this.apiManager.deleteCRD(this.state.selectedCRD.name)
             .then(
                 (response) => {
-                    Toastr.success("Successfully stopped `" + this.state.selectedCRD + "`");
+                    Toastr.success("Successfully stopped `" + this.state.selectedCRD.name + "`");
                     const newMap = this.state.instanceLabs;
-                    newMap.delete(this.state.selectedCRD);
+                    newMap.delete(this.state.selectedCRD.name);
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
@@ -188,7 +198,7 @@ export default class UserView extends React.Component {
                 }
             )
             .finally(() => {
-                this.changeSelectedCRD(null);
+                this.changeSelectedCRD(null, null);
             });
     }
 
@@ -196,19 +206,19 @@ export default class UserView extends React.Component {
      * Function to connect to the VM of the actual selected CRD instance
      */
     connect() {
-        if (!this.state.selectedCRD) {
+        if (!this.state.selectedCRD.name) {
             Toastr.info("No lab selected to connect to");
             return
         }
-        if (!this.state.instanceLabs.has(this.state.selectedCRD)) {
-            Toastr.info("The lab `" + this.state.selectedCRD + "` is not running");
+        if (!this.state.instanceLabs.has(this.state.selectedCRD.name)) {
+            Toastr.info("The lab `" + this.state.selectedCRD.name + "` is not running");
             return;
         }
-        if (this.state.instanceLabs.get(this.state.selectedCRD) === null) {
-            Toastr.info("The lab `" + this.state.selectedCRD + "` is still starting");
+        if (this.state.instanceLabs.get(this.state.selectedCRD.name) === null) {
+            Toastr.info("The lab `" + this.state.selectedCRD.name + "` is still starting");
             return;
         }
-        window.open("https://" + this.state.instanceLabs.get(this.state.selectedCRD));
+        window.open(this.state.instanceLabs.get(this.state.selectedCRD.name));
         this.changeSelectedCRD(null);
     }
 
@@ -223,7 +233,7 @@ export default class UserView extends React.Component {
         const runningLabs = keys.map(x => {
             let color = this.state.instanceLabs.get(x) === null ? 'red' : 'green';
             return <Button key={x} variant="link" style={{color: color}}
-                           onClick={() => this.changeSelectedCRD(x)}>{x}</Button>;
+                           onClick={() => this.changeSelectedCRD(x, null)}>{x}</Button>;
         });
         return (
             <div style={{minHeight: '100vh'}}>
@@ -247,7 +257,7 @@ export default class UserView extends React.Component {
                             <CentralView start={this.startCRD} stop={this.stopCRDinstance} connect={this.connect}
                                          events={this.state.events}/>
                         </Col>
-                        <InfoCard runningLabs={runningLabs} selectedCRD={this.state.selectedCRD}/>
+                        <InfoCard runningLabs={runningLabs} selectedCRD={this.state.selectedCRD.name}/>
                         <Col className="col-1"/>
                     </Row>
                     <Footer/>
