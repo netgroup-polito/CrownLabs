@@ -130,15 +130,15 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
 
-	restClient, err := getClient("/home/francesco/crown/kubeconfig")
-	if err != nil {
-		log.Info("could not create rest client ")
-	} else {
-		err = VmWatcher(restClient)
-		if err != nil {
-			log.Info("could not watch vmi " + vmi.Name)
-		}
-	}
+	//restClient, err := getClient("")
+	//if err != nil {
+	//	log.Info("could not create rest client ")
+	//} else {
+	//	err = VmWatcher(restClient)
+	//	if err != nil {
+	//		log.Info("could not watch vmi " + vmi.Name)
+	//	}
+	//}
 
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
