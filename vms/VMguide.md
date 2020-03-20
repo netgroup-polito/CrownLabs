@@ -1,4 +1,4 @@
-# VM Guide
+# Guide for creating and uploading VMs in CrownLabs
 
 ## Upload custom VMs to the cluster
 
@@ -68,6 +68,7 @@ Since the private registry can become crowded with new images, you can control i
 - delete an existing image: [del-img-from-registry.sh](scripts/del-img-from-registry.sh)
 
 Remember either to login in the registry before running the scripts, or to customize `user/password` in the above scripts.
+**NOTE**: in case the *delete* action returns an error `405 Method Not Allowed`, modify the config of your Docker registry to enable the `DELETE` action, which is usually disabled by default, and restart the service.
 
 
 ## Run on the cluster
