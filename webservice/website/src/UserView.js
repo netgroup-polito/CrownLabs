@@ -13,8 +13,9 @@ import 'toastr/build/toastr.min.css'
 export default class UserView extends React.Component {
     constructor(props) {
         super(props);
+        /*Attempting to retrieve the token stored in the sessionStorage by OIDC library, otherwise go back*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        if (!retrievedSessionToken) {
+        if (!retrievedSessionToken || !retrievedSessionToken.id_token) {
             document.location.href = '/logout';
         }
         this.connect = this.connect.bind(this);
@@ -23,6 +24,12 @@ export default class UserView extends React.Component {
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
         this.retrieveCRDinstanceStatus = this.retrieveCRDinstanceStatus.bind(this);
+        /*State variable which contains:
+        * - all lab templates as a Map: (course_group => Array of available templates for that course)
+        * - all lab instances as a Map: (instance_name => status)
+        * - current selected CRD as an object (name, namespace). Namespace set only when a lab instance is selected, not a template (needed by deletion)
+        * - all namespaced events as a string
+        * */
         this.state = {
             templateLabs: new Map(),
             instanceLabs: new Map(),
@@ -31,33 +38,17 @@ export default class UserView extends React.Component {
         };
         this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer");
         this.retrieveCRDtemplates();
-        this.retrieveCRDinstance();
+        this.retrieveCRDinstances();
+        /*Create an interval function to retrieve all lab instances info*/
+        setInterval(() => {
+            this.retrieveCRDinstanceStatus();
+        }, 10000);
+        /*Start watching for namespaced events*/
+        this.apiManager.startWatching(this.notifyEvent);
     }
 
     /**
-     * Function to retrieve all CRD instances running
-     */
-    retrieveCRDinstance() {
-        this.apiManager.getCRDinstance()
-            .then((nodesResponse) => {
-                const nodes = nodesResponse.body.items;
-                let newMap = new Map();
-                nodes.forEach(x => {
-                    newMap.set(x.metadata.name, null);
-                });
-                this.setState({instanceLabs: newMap});
-                this.retrieveCRDinstanceStatus();
-                setInterval(() => {
-                    this.retrieveCRDinstanceStatus();
-                }, 10000);
-            })
-            .catch((error) => {
-                this.handleErrors(error);
-            });
-    }
-
-    /**
-     * Function to retrieve all CRD templates available
+     * Private function to retrieve all CRD templates available
      */
     retrieveCRDtemplates() {
         this.apiManager.getCRDtemplates()
@@ -67,7 +58,24 @@ export default class UserView extends React.Component {
                     x ? newMap.set(x.course, x.labs) : null;
                 });
                 this.setState({templateLabs: newMap});
-                this.apiManager.startWatching(this.notifyEvent);
+            })
+            .catch((error) => {
+                this.handleErrors(error);
+            });
+    }
+
+    /**
+     * Private function to retrieve all CRD instances running
+     */
+    retrieveCRDinstances() {
+        this.apiManager.getCRDinstances()
+            .then((nodesResponse) => {
+                const nodes = nodesResponse.body.items;
+                let newMap = new Map();
+                nodes.forEach(x => {
+                    newMap.set(x.metadata.name, null);
+                });
+                this.setState({instanceLabs: newMap});
             })
             .catch((error) => {
                 this.handleErrors(error);
@@ -99,28 +107,6 @@ export default class UserView extends React.Component {
     }
 
     /**
-     *Function to notify a Kubernetes Event related to your resources
-     * @param msg the message received
-     * @param obj the resource of interest
-     */
-    notifyEvent(msg) {
-        this.setState({events: this.state.events + msg + "\n"});
-    }
-
-    /**
-     * Function to change the user selected CRD
-     * @param name the name/label of the new one
-     * @param namespace the namespace in which the template should be retrieved (null if want to run an instance)
-     */
-    changeSelectedCRD(name, namespace) {
-        this.setState({
-            selectedCRD: {
-                name: name, namespace: namespace
-            }
-        });
-    }
-
-    /**
      * Function to start and create a CRD instance using the actual selected one
      */
     startCRD() {
@@ -137,7 +123,7 @@ export default class UserView extends React.Component {
                 (response) => {
                     Toastr.success("Successfully started lab `" + this.state.selectedCRD.name + "`");
                     const newMap = this.state.instanceLabs;
-                    newMap.set(this.state.selectedCRD.name, null);
+                    newMap.set(response.body.metadata.name, null);
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
@@ -147,30 +133,6 @@ export default class UserView extends React.Component {
             .finally(() => {
                 this.changeSelectedCRD(null, null);
             });
-    }
-
-    handleErrors(error) {
-        let msg = "";
-        switch (error.response._fetchResponse.status) {
-            case 401 :
-                msg += "Cluster expired, please authenticate again";
-                setInterval(() => {
-                    document.location.href = '/logout'
-                }, 2000);
-                break;
-            case 403 :
-                msg += "It seems you do not have the right permissions to perform this operation";
-                break;
-            case 409 :
-                msg += "Resource already present";
-                break;
-            default :
-                msg += "An error occurred(" + error.response._fetchResponse.status + "), please try again";
-                setInterval(() => {
-                    document.location.href = '/logout'
-                }, 2000);
-        }
-        Toastr.error(msg);
     }
 
     /**
@@ -223,14 +185,62 @@ export default class UserView extends React.Component {
     }
 
     /**
+     *Function to notify a Kubernetes Event related to your resources
+     * @param msg the message received
+     */
+    notifyEvent(msg) {
+        this.setState({events: msg + "\n" + this.state.events + msg});
+    }
+
+    /**
+     * Function to change the user selected CRD
+     * @param name the name/label of the new one
+     * @param namespace the namespace in which the template should be retrieved (null if want to run an instance)
+     */
+    changeSelectedCRD(name, namespace) {
+        this.setState({
+            selectedCRD: {
+                name: name, namespace: namespace
+            }
+        });
+    }
+
+    /**
+     * Function to handle all errors
+     * @param error the error message received
+     */
+    handleErrors(error) {
+        let msg = "";
+        switch (error.response._fetchResponse.status) {
+            case 401 :
+                msg += "Cluster expired, please login again";
+                setInterval(() => {
+                    document.location.href = '/logout'
+                }, 2000);
+                break;
+            case 403 :
+                msg += "It seems you do not have the right permissions to perform this operation";
+                break;
+            case 409 :
+                msg += "The resource is already present";
+                break;
+            default :
+                msg += "An error occurred(" + error.response._fetchResponse.status + "), please login again";
+                setInterval(() => {
+                    document.location.href = '/logout'
+                }, 2000);
+        }
+        Toastr.error(msg);
+    }
+
+    /**
      * Function to render this component,
      * It automatically updates every new change in the state variable
      * @returns the component to be drawn
      */
     render() {
         /*Retrieving instance labs to be drawn in the right bar and foreach one draw a button*/
-        const keys = Array.from(this.state.instanceLabs.keys());
-        const runningLabs = keys.map(x => {
+        const runningLabs = Array.from(this.state.instanceLabs.keys()).map(x => {
             let color = this.state.instanceLabs.get(x) === null ? 'red' : 'green';
             return <Button key={x} variant="link" style={{color: color}}
                            onClick={() => this.changeSelectedCRD(x, null)}>{x}</Button>;

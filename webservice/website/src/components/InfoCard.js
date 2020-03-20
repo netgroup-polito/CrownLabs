@@ -1,6 +1,11 @@
 import {Card, Col} from "react-bootstrap";
 import React from "react";
 
+/**
+ * Function to draw the InfoCard
+ * @param props containing the selected CRD and all the running ones
+ * @return the object to be drawn
+ */
 export default function InfoCard(props) {
     return <Col className="col-2 text-center">
         <Card className="my-5 p-2 text-center text-dark" border="dark"
