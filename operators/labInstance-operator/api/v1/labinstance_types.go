@@ -24,8 +24,9 @@ import (
 
 // LabInstanceSpec defines the desired state of LabInstance
 type LabInstanceSpec struct {
-	LabTemplateName string `json:"labTemplateName,omitempty"`
-	StudentID       string `json:"studentId,omitempty"`
+	LabTemplateName      string `json:"labTemplateName,omitempty"`
+	LabTemplateNamespace string `json:"labTemplateNamespace,omitempty"`
+	StudentID            string `json:"studentId,omitempty"`
 }
 
 // LabInstanceStatus defines the observed state of LabInstance
