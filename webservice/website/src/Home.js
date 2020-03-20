@@ -4,7 +4,6 @@ import Footer from "./components/Footer";
 import './App.css';
 
 const logo = require('./assets/logo_poli3.png');
-const logo2 = require('./assets/logo_poli.png');
 
 export default function Home(props) {
     return (
@@ -26,7 +25,7 @@ export default function Home(props) {
                         <Card className="mt-5 p-3 text-center headerstyle">
                             <Card.Title as="h1">Welcome to CrownLabs!</Card.Title>
                             <Card.Body>
-                                <Button variant="link" onClick={props.authManager.login}>Log in</Button>
+                                <Button variant="link" onClick={props.login}>Log in</Button>
                                 <p className="d-inline">to access your laboratories.</p>
                             </Card.Body>
                         </Card>
