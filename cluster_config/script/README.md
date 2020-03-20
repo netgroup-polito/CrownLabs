@@ -7,6 +7,10 @@ This scripts creates the required resources associated to a user account, then s
 This script must work in the same folder with the [namespace_template.yaml](namespace_template.yaml) [regcred_template.yaml](regcred_template.yaml) and the [role_binding_template.yaml](role_binding_template.yaml) and a CSV file containing the list of users that have to be created. 
 The CSV file must follow the template such as [example.csv](example.csv).
 
+To use this script in your cluster, you have to customize the following information:
+- file [regcred_template.yaml](regcred_template.yaml): configure the secret in the `.dockerconfigjson` field;
+- file [adduser.py](adduser.py): configure the URL of your OICD server in the `server_url` field.
+
 ## Dependencies
 The following libraries must be present in order for this script to work:
 - python-keycloak
@@ -19,7 +23,7 @@ To install those dependencies you can run the following command:
 ````
 
 ## How run it
-The name of CSV file is passed on the command line together with the username and password of the keycloak administrator.
+The name of CSV file is passed on the command line together with the username and password of the keycloak administrator:
 ````
  python3 adduser.py <csvfile> <username> <password>
 ````
