@@ -179,7 +179,7 @@ export default class UserView extends React.Component {
                                     <Card className="text-center headerstyle">
                                         <Card.Body>
                                             <Card.Text as="h6">Status information</Card.Text>
-                                            <textarea readOnly align="center" className="textareastyle"
+                                            <textarea readOnly align="center" className="textareastyle p-2"
                                                       value={this.state.events}/>
                                         </Card.Body>
                                         <Card.Footer className="headerstyle">

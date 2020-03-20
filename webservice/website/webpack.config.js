@@ -5,10 +5,14 @@ const webpack = require('webpack');
 
 module.exports = {
     context: __dirname,
-    entry: ['@babel/polyfill', './src/index.js'],
+    //entry: ['@babel/polyfill', './src/index.js'],
+    entry: {
+        app: ['@babel/polyfill', './src/index.js'],
+        config: './src/config.js'
+    },
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js',
+        filename: '[name].bundle.js',
         publicPath: '/',
     },
     devServer: {
@@ -54,12 +58,12 @@ module.exports = {
                 description: "CrownLabs fantastic website"
             }
         }),
-        new webpack.DefinePlugin({
+        /*new webpack.DefinePlugin({
             OIDC_PROVIDER_URL: JSON.stringify(process.env.OIDC_PROVIDER_URL),
             OIDC_CLIENT_ID: JSON.stringify(process.env.OIDC_CLIENT_ID),
             APISERVER_URL: JSON.stringify(process.env.APISERVER_URL),
             OIDC_REDIRECT_URI: JSON.stringify(process.env.OIDC_REDIRECT_URI)
-        }),
+        }),*/
         new RobotstxtPlugin({
             "User-agent": "*",
             "Disallow": ""

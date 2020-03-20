@@ -2,7 +2,7 @@ import {Config, CustomObjectsApi, watch } from '@kubernetes/client-node';
 
 export default class ApiManager {
     constructor(token, type) {
-        this.kc = new Config(APISERVER_URL, token, type);
+        this.kc = new Config(window.APISERVER_URL, token, type);
         this.api = this.kc.makeApiClient(CustomObjectsApi);
         this.templateGroup = "template.crown.team.com";
         this.instanceGroup = "instance.crown.team.com";

@@ -3,10 +3,10 @@ import { Log, UserManager } from 'oidc-client';
 export default class Authenticator {
     constructor() {
         this.manager = new UserManager({
-            authority: OIDC_PROVIDER_URL,
-            client_id: OIDC_CLIENT_ID,
-            redirect_uri: OIDC_REDIRECT_URI + "/callback",
-            post_logout_redirect_uri: OIDC_REDIRECT_URI + '/logout',
+            authority: window.OIDC_PROVIDER_URL,
+            client_id: window.OIDC_CLIENT_ID,
+            redirect_uri: window.OIDC_REDIRECT_URI + "/callback",
+            post_logout_redirect_uri: window.OIDC_REDIRECT_URI + '/logout',
             response_type: 'id_token',
             scope: 'openid',
             loadUserInfo: true

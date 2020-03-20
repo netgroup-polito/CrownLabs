@@ -1,10 +1,10 @@
 # Dockerfile to build and deploy in production mode the web service
 ### builder image builds both the k8s libraries and Reack front-end
 FROM node as builder
-ENV OIDC_CLIENT_ID="k8s" \
-    OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/virtlabs" \
-    APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it" \
-    OIDC_REDIRECT_URI="http://localhost:8000"
+#ENV OIDC_CLIENT_ID="k8s" \
+    #OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/virtlabs" \
+    #APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it" \
+    #OIDC_REDIRECT_URI="http://localhost:8000"
 
 ADD . /webservice
 WORKDIR /webservice
@@ -17,3 +17,7 @@ RUN npm run build
 FROM nginx
 COPY --from=builder /webservice/website/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint.sh generate_config_js.sh /
+RUN chmod +x docker-entrypoint.sh generate_config_js.sh
+ 
+ENTRYPOINT ["/docker-entrypoint.sh"]
