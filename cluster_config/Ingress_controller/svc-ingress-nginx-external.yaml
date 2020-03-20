@@ -22,4 +22,4 @@ spec:
       targetPort: https
     - name: https-alt
       port: 4443
-      targetPort: https 
+      targetPort: https
