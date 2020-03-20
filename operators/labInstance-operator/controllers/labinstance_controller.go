@@ -101,9 +101,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create secret " + secret.Name, "Warning", "SecretNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create secret " + secret.Name + "in namespace " + secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Secret " + secret.Name + " correctly created", "Normal", "SecretCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Secret " + secret.Name + " correctly created in namespace " + secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
 	}
 	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
 	// Check if exists
@@ -112,51 +112,52 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If not, update the status with error
 	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name, "Warning", "PvcNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name + "in namespace " + pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else if err != nil && err.Error() == "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " already exists", "Warning", "PvcAlreadyExists", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " already exists in namespace " + pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
 	} else {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created", "Normal", "PvcCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created in namespace " + pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
 	// 3: create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name, "Warning", "VmiNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + "in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created", "Normal", "VmiCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
 
-	//restClient, err := getClient("/home/francesco/crown/kubeconfig")
-	//if err != nil {
-	//	log.Info("could not create rest client ")
-	//}
-	//err = VmWatcher(restClient)
-	//if err != nil {
-	//	log.Info("could not watch vmi " + vmi.Name)
-	//}
+	restClient, err := getClient("/home/francesco/crown/kubeconfig")
+	if err != nil {
+		log.Info("could not create rest client ")
+	} else {
+		err = VmWatcher(restClient)
+		if err != nil {
+			log.Info("could not watch vmi " + vmi.Name)
+		}
+	}
 
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service " + service.Name, "Warning", "ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service " + service.Name + "in namespace " + service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created", "Normal", "ServiceCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created in namespace " + service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
 	}
 
 	// 5: create Ingress to manage the service
-	ingress := pkg.CreateIngress(name, namespace, secret.Name, service)
+	ingress := pkg.CreateIngress(name, namespace, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name, "Warning", "IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name + "in namespace " + ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created", "Normal", "IngressCreated", &labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
+		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created in namespace " + ingress.Namespace, "Normal", "IngressCreated", &labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
 	}
 
 	return ctrl.Result{}, nil
