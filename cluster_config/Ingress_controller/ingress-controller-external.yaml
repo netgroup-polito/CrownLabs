@@ -21,8 +21,10 @@ data:
   modsecurity-snippet: |
     # Include the OWASP rules
     Include /etc/nginx/owasp-modsecurity-crs/nginx-modsecurity.conf
-    # Allow PATCH and DELETE verbs
-    SecRuleUpdateActionById 901160 "setvar:\'tx.allowed_methods=GET HEAD POST OPTIONS PATCH DELETE\'"
+    # Do not log 401 errors
+    SecAuditLogRelevantStatus "^(?:5|4(?!04|01)"
+    # Allow PATCH, PUT and DELETE verbs
+    SecRuleUpdateActionById 901160 "setvar:\'tx.allowed_methods=GET HEAD POST OPTIONS PATCH PUT DELETE\'"
     # Allow to request /nginx_status with numeric host (accessible only from localhost)
     SecRule REQUEST_LINE "@streq GET /nginx_status HTTP/1.1" \
         "id:905120, phase:1, pass, t:none, nolog,\
