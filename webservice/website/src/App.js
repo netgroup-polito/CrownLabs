@@ -9,27 +9,14 @@ import Authenticator from "./services/Authenticator";
 export class App extends React.Component {
     constructor(props) {
         super(props);
-        const authManager = new Authenticator();
-        if (localStorage.getItem('isLoggedIn')) {
-            this.state = {isLoggedIn: localStorage.getItem('isLoggedIn'), authManager: authManager};
-        } else {
-            this.state = {isLoggedIn: 'false', authManager: authManager};
-        }
-        authManager.manager.events.addUserLoaded(user => {
-            if (user != null) {
-                this.setState({isLoggedIn: 'true'}, () => {
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('token', user.id_token);
-                    localStorage.setItem('token_type', user.token_type != null ? user.token_type : "Bearer");
-                });
-            } else {
-                localStorage.setItem('isLoggedIn', 'true');
+        this.authManager = new Authenticator();
+        this.state = {logged : !!sessionStorage.length};
+        this.authManager.manager.events.addUserLoaded(user => {
+            if (user && !this.state.logged) {
+                this.setState({logged: true});
             }
         });
-        authManager.manager.events.addUserUnloaded(() => {
-            localStorage.clear();
-            this.state = {isLoggedIn: 'false'};
-        })
+        this.authManager.manager.events.addUserUnloaded(() => {document.location.href = '/logout';});
     }
 
     render() {
@@ -37,22 +24,23 @@ export class App extends React.Component {
             <Router>
                 <Switch>
                     <Route exact path="/">
-                        <Home authManager={this.state.authManager}/>
+                        <Home login={this.authManager.login}/>
                     </Route>
                     <Route path="/userview" render={() => (
-                        this.state.isLoggedIn === 'true' ?
-                            <UserView authManager={this.state.authManager}/> :
+                        this.state.logged ?
+                            <UserView logout={this.authManager.logout}/> :
                             <Redirect to="/"/>
                     )}/>
                     <Route path="/callback" render={() => (
-                        this.state.isLoggedIn === 'true' ? <Redirect to="/userview"/> :
-                            <CallBackHandler authManager={this.state.authManager} action={'login'}/>
+                        this.state.logged ? <Redirect to="/userview"/> :
+                            <CallBackHandler func={this.authManager.completeLogin}/>
                     )}/>
-                    <Route path="/logout" render={() => (
-                        this.state.isLoggedIn === 'true' ?
-                            <CallBackHandler authManager={this.state.authManager} action={'logout'}/> :
-                            <Redirect to="/"/>
-                    )}/>
+                    <Route path="/logout">
+                        <CallBackHandler func={() => {
+                            this.setState({logged: false});
+                        }}/>
+                        <Redirect to="/"/>
+                    </Route>
                     <Route path="*">
                         <Redirect to="/userview"/>
                     </Route>
