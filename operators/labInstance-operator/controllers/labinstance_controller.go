@@ -76,7 +76,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
 		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
-		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "Error")
+		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "LabTemplate " + templateName.Name + " not found in namespace " + labTemplate.Namespace)
 		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
@@ -129,14 +129,15 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created", "Normal", "VmiCreated", &labInstance, "")
 	}
-	restClient, err := getClient("/home/francesco/crown/kubeconfig")
-	if err != nil {
-		log.Info("could not create rest client ")
-	}
-	err = VmWatcher(restClient)
-	if err != nil {
-		log.Info("could not watch vmi " + vmi.Name)
-	}
+
+	//restClient, err := getClient("/home/francesco/crown/kubeconfig")
+	//if err != nil {
+	//	log.Info("could not create rest client ")
+	//}
+	//err = VmWatcher(restClient)
+	//if err != nil {
+	//	log.Info("could not watch vmi " + vmi.Name)
+	//}
 
 	// 4: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
@@ -208,7 +209,7 @@ func GetConfig(path string) (*rest.Config, error) {
 	return config, err
 }
 
-// create a standard K8s client -> to access use client.CoreV1().<resource>(<namespace>).<method>())
+// create a generic REST client
 func getClient(path string) (*rest.RESTClient, error) {
 	config, err := GetConfig(path)
 	if err != nil {
