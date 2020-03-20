@@ -44,7 +44,9 @@ class KeycloakHandler:
             self.keycloak_admin.get_client_role(self.client_id, course_code)
         except exceptions.KeycloakGetError:
             self.keycloak_admin.create_client_role(client_role_id=self.client_id, payload={'name': course_code, 'clientRole': True})
-
+    
+    def add_user_role(self,_username,_course_code):
+        self.keycloak_admin.assign_client_role(user_id=self.keycloak_admin.get_user_id(_username), client_id=self.keycloak_admin.get_client_id("k8s"), roles=self.keycloak_admin.get_client_role(client_id=self.keycloak_admin.get_client_id("k8s"), role_name=_course_code))
 
 class KubernetesHandler:
     def __init__(self, template_namespace_path, template_rolebinging_file, template_regcred_file):
@@ -103,3 +105,5 @@ if __name__ == "__main__":
             # Update course_code
             print("\nUpdating user {} ({} {}) enrolled in {}".format(_username, _first_name, _last_name, _course_code))
             _keycloak_handler.add_user_to_course(_user[0], _username, _course_code)
+        
+        _keycloak_handler.add_user_role(_username,_course_code)
