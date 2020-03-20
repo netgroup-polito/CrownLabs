@@ -1,48 +1,59 @@
 # Ingress controller
 
 We use `ngnix` as ingress controller, to dispatch incoming requests to the requested service running in the cluster.
-The ingress controller is coupled with a LoadBalancer service, in order to have this *global frontend* of the cluster reachable through an external (public) IP address.
+In the following, two different ingress controllers are created and coupled with two LoadBalancer services. One operates as a *global frontend* of the cluster reachable through an external (public) IP address, while the other can be adopted to expose resources on the *internal network* (i.e. with a private IP address).
 
 
 ## Setup informations
-In order to deploy the ingress controller, we have to apply the following mandatory file, containing the `ngnix ingress controller` deployment and all the configuration for the service itself:
+In order to deploy the two ingress controllers, we have to apply the following files, containing the `ngnix ingress controller` deployments and all the configurations required:
 
 ```sh
-kubectl apply -f mandatory.yaml
+$ kubectl apply -f ingress-controller-external.yaml
+$ kubectl apply -f ingress-controller-internal.yaml
 ```
 
-Now we can create the LoadBalancer service for the ingress controller, i.e., the external IP address that will be used to reach this service:
+Now we can create the LoadBalancer services for the ingress controllers, i.e., the external IP addresses that will be used to reach this services:
 
 ```sh
-kubectl apply -f svc-ingress-nginx.yaml
+$ kubectl apply -f svc-ingress-nginx-external.yaml
+$ kubectl apply -f svc-ingress-nginx-internal.yaml
 ```
 
-Once the LB service is created, we must check which IP address have been assigned to it:
+Once the LB services are created, we can check which IP address have been assigned to them:
 
 ```sh
-kubectl get svc -n ingress-nginx -o wide
+$ kubectl get svc -n ingress-nginx -o wide
+$ kubectl get svc -n ingress-nginx-internal -o wide
 ```
 
-The output will be similar to the following one, where in this case the external IP is `192.168.31.136`:
+The output should be similar to the following one, where in this case the external IP is `130.192.31.240`:
 
 ```sh
 NAME            TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)                                     AGE
-ingress-nginx   LoadBalancer   10.104.98.160   192.168.31.136   80:31718/TCP,443:30654/TCP,4443:30423/TCP   60m
+ingress-nginx   LoadBalancer   10.104.98.160   130.192.31.240   80:31718/TCP,443:30654/TCP,4443:30423/TCP   60m
 ```
 
-Once everything is checked we can apply the ingress rules:
+Once everything is setup correctly we can apply the ingress rules:
 
 ```sh
-kubectl apply -f ingress-monitoring.yaml
+$ kubectl apply -f ingress-monitoring.yaml
 ```
 
 The file `ingress-monitoring.yaml` contains all the ingress rules for Prometheus, Grafana and Alert Manager. Once it's applied the three services are connected to the ingress controller, associated to a public name (exposed to the internet) and reachable from aoutside the cluster.
+
+## Selecting the ingress controller
+By default, every `Ingress` resource is attached to the Ingress Controller exposed on the external network (with public IP). To select the Ingress Controller exposed on the internal network, it is necessary to add the ad-hoc annotation and specify the `nginx-internal` class:
+```yaml
+  annotations:
+    kubernetes.io/ingress.class: "nginx-internal"
+```
 
 ## Exposing ingress controller metrics
 The `ingress controller` exposes itself some very interesting metrics that can be collected using Prometheus and monitored using Grafana. In order to collect them the first thing to do in to create another service (this time a clusterIP service) and to connect it to the `ingress controller` via the command:
 
 ```sh
-kubectl apply -f svc-ingress-metrics.yaml
+$ kubectl apply -f svc-ingress-metrics-external.yaml
+$ kubectl apply -f svc-ingress-metrics-internal.yaml
 ```
 
 This creates the clusterIP service that exposes the port 10254 of the ingress controller for Prometheus.
@@ -50,7 +61,8 @@ This creates the clusterIP service that exposes the port 10254 of the ingress co
 Once the service is created the last thing to do is to create a ServiceMonitor object in order to make Prometheus aware that our ingress controller is willing to expose his metrics. This can be easily done using the command:
 
 ```sh
-kubectl apply -f servicemonitor-ingress.yaml
+$ kubectl apply -f servicemonitor-ingress-external.yaml
+$ kubectl apply -f servicemonitor-ingress-internal.yaml
 ```
 
 ## Exposing kube-apiserver
@@ -59,13 +71,13 @@ Not only third party application can be connected to the `ingress controller`, b
 In order to do so the fist thing to do is to create a service and connect it to the apiserver using the command:
 
 ```sh
-kubectl apply -f svc-apiserver.yaml
+$ kubectl apply -f svc-apiserver.yaml
 ```
 
 Once it's done the last thing to do is to apply the ingress rules for our new service:
 
 ```sh
-kubectl apply -f ingress-apiserver.yaml
+$ kubectl apply -f ingress-apiserver.yaml
 ```
 
 ## Securing the ingress controller with ModSecurity
