@@ -1,6 +1,11 @@
 # Keycloak
-A brief guide how to install Keycloak in HA with PostgreSQL Database in a K8S cluster 
-##Pre-requisites
+
+Keycloak is an Open Source Identity and Access Management solution for modern Applications and Services.
+It enables to concentrate all the tasks related to identity and access management into the same place; once authenticated, a user session can be associated to a token that can be used to validate the access of all the resources available in the cluster.
+
+This brief guide presents how to install Keycloak in HA in a K8S cluster with a PostgreSQL Database backend (also in HA).
+
+## Pre-requisites
 Here we assume that in the K8S cluster the following operators are installed and configured:
 * [ROOK](https://rook.io/)
 * [NGINX Ingress Controller](https://www.nginx.com/products/nginx/kubernetes-ingress-controller/)
@@ -10,14 +15,13 @@ Here we assume that in the K8S cluster the following operators are installed and
 You will need the following tools installed in your workstation:
 * [Helm](https://helm.sh/)
 
-##PostgreSQL-Operator
-The following steps will install the postgresql-operator in the namespace called **keycloak-ha**
-The Postgres Operator can be installed simply by applying yaml manifests. Note, 
-change the namespace in file **manifests/operator-service-account-rbac.yaml**
- for the **service account** and **cluster rolebinding**
+## PostgreSQL-Operator
+The following steps will install the postgresql-operator in the namespace called **keycloak-ha**.
+The Postgres Operator can be installed simply by applying `yaml` manifests, after properly changing the namespace in file [operator-service-account-rbac.yaml](manifests/operator-service-account-rbac.yaml) for the `service account` and `cluster rolebinding`.
  
- ####Manual deployment setup
- For more details, please visit the [official documentation website](https://github.com/zalando/postgres-operator#documentation)
+### Manual deployment setup
+For more details, please visit the [official documentation website](https://github.com/zalando/postgres-operator#documentation).
+
  ```bash
 # First, clone the repository and change to the directory postgres-operator
 git clone https://github.com/zalando/postgres-operator.git
@@ -27,29 +31,30 @@ kubectl create -f manifests/configmap.yaml -n keycloak-ha  # configuration
 kubectl create -f manifests/operator-service-account-rbac.yaml -n keycloak-ha # identity and permissions
 kubectl create -f manifests/postgres-operator.yaml -n keycloak-ha # deployment
 ```
-####Check if Postgres Operator is running
-Starting the operator may take a few seconds. Check if the operator pod is
-running before applying a Postgres cluster manifest.
+
+### Check if Postgres Operator is running
+Starting the operator may take a few seconds. Check if the operator pod is running before applying a Postgres cluster manifest.
+
 ```bash
 kubectl get pod -l name=postgres-operator -n keycloak-ha
 ```
 
-####Create a Postgres cluster
+### Create a Postgres cluster
 
-If the operator pod is running it listens to new events regarding postgresql resources. Now, it's time to submit your first Postgres cluster manifest that
-you can find in *manifests* folder of this repo. If you need to add some features consult the official docs.
+If the operator pod is running, it listens to new events regarding PostgreSQL resources. Now, it's time to submit your first Postgres cluster manifest that you can find in [manifests](manifests/) folder of this repo.
+If you need to add some more features, refer to the official docs.
 
 ```bash
 # create a Postgres cluster
 kubectl create -f keycloak-postgres-cluster-manifest.yaml
 ```
-After the cluster manifest is submitted and passed the validation the operator will create Service and Endpoint
-esources and a StatefulSet which spins up new Pod(s) given the number of instances specified in the manifest.
-All resources are named like the cluster. The database pods can be identified by their number suffix,
-starting from -0. They run the Spilo container image by Zalando. As for the services and endpoints, 
-there will be one for the master pod and another one for all the replicas (-repl suffix). 
-Check if all components are coming up. Use the label application=spilo to filter and list the label spilo-role 
+
+After the cluster manifest is submitted and passed the validation, the operator will create *Service* and *Endpoint* resources and a *StatefulSet* which spins up new pod(s) given the number of instances specified in the manifest.
+All resources are named like the cluster. The database pods can be identified by their number suffix, starting from -0. They run the Spilo container image by Zalando.
+As for the services and endpoints, there will be one for the master pod and another one for all the replicas (-repl suffix). 
+We sugges to check if all components are coming up. Use the label `application=spilo` to filter, and check the label `spilo-role` 
 to see who is currently the master.
+
 ```bash
 # check the deployed cluster
 kubectl get postgresql
@@ -60,23 +65,31 @@ kubectl get pods -l application=spilo -L spilo-role
 # check created service resources
 kubectl get svc -l application=spilo -L spilo-role
 ```
-##Tls-Certificate
-Apply the the manifest *manifests/cert-manager-keycloak-certificate-request.yaml* in order to get a certificate for the keycloak domain. 
+
+## TLS-Certificate
+Apply the the manifest [cert-manager-keycloak-certificate-request.yaml](manifests/cert-manager-keycloak-certificate-request.yaml) to get a certificate for the keycloak domain.
+
 ```bash
 kubectl create -f manifests/cert-manager-keycloak-certificate-request.yaml -n keycloak-ha
 ```
-This command will create tls-secret named **keycloak-certificate-secret**. We will need it during the keycloak server deployment.
-##Kecloak Server
-First of all get the helm charts from the folks of [Codecentric](https://github.com/codecentric/helm-charts/tree/master/charts/keycloak)
+
+This command will create a `tls-secret` named `keycloak-certificate-secret`. We will need it during the keycloak server deployment.
+
+## Keycloak Server
+First of all get the helm charts from [Codecentric](https://github.com/codecentric/helm-charts/tree/master/charts/keycloak):
+
 ```bash
 #add the codecentric helm repository
 helm repo add codecentric https://codecentric.github.io/helm-charts
 #download the codecentric/keycloak charts on your pc
 helm pull codecentric/keycloak
 ```
-After extracting the archive substitute the file *keycloak/values.yaml* with the file *conf-files/keycloak-values.yaml*.
-Note, you need to rename the later one in **values.yaml**
+
+After extracting the archive, replace file `keycloak/values.yaml` with `conf-files/keycloak-values.yaml`.
+Note, you need to rename the later one in `values.yaml`.
+
 The following are some changes that have bene done to user the resources deployed before in this guide:
+
 ```yaml
 #add the volume and volumeMount of the tls-certificate for keycloak in values.yaml file
   extraVolumes: |
@@ -89,12 +102,15 @@ The following are some changes that have bene done to user the resources deploye
      name: keycloak-tls-certificate
      readOnly: true
 ```
-Set the replicas of the server according to your needs:
+
+Set the number of replicas of the server according to your preferences:
 ```yaml
 keycloak:
   replicas: 3
 ```
-Set the database config to use the PostgreSql Cluster deployed before:
+
+Set the database config to use the PostgreSQL Cluster deployed before:
+
 ```yaml
   persistence:
     # If true, the Postgres chart is deployed
@@ -113,35 +129,43 @@ Set the database config to use the PostgreSql Cluster deployed before:
     existingSecretPasswordKey: "password"  # read keycloak db password from existingSecret under this Key
     existingSecretUsernameKey: "username"  # read keycloak db user from existingSecret under this Key```
 ```
+
 For more information visit the following [page](https://hub.docker.com/r/jboss/keycloak/).
 
-####install keycloak server
+### Install keycloak server
+Type the following command:
+
 ```bash
 helm install keycloak-server keycloak/ --namespace keycloak-ha
 ```
-Then check that the new pods are up and running. Once everything has gone smooth:
+
+Now, check that the new pods are up and running. Once everything has gone smooth, apply the manifest to the service:
+
 ```bash
 #apply manifests/keycloak-ingress.yaml in order to reach keycloak from outside.
 kubectl create -f manifests/keycloak-ingress.yaml -n keycloak-ha
 ```
 
-##Configure K8S api-server to be used with Keycloak
-Please follow the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/)
-
+## Configure K8S api-server to be used with Keycloak
+Please follow the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) to allow the K8s Api-server to exploit the running Keycloak instance as identity provider.
 
 
 ## Accessing K8S cluster using Keycloak as authentication server
+In order to start interacting with your Kubernetes cluster, you will use a command line tool called **kubectl**. You will need to install kubectl on your local machine.
 
+A **kubeconfig** file is a file used to configure access to Kubernetes when used in conjunction with the kubectl commandline tool.
 
-#### Pre-requisites
+For more details on how kubeconfig and kubectl work together, see the [Kubernetes documentation](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
 
-* You should have kubectl installed at a version compatible to your cluster
+### Pre-requisite
+You should have kubectl installed at a version compatible to your cluster.
 
 
 #### Krew 
+First, you should install [Krew](https://krew.sigs.k8s.io/), which facilitates the use of kubectl plugins.
+Here there is the commands for Linux (Bash/Zsh):
 
-First, you should install krew. Here's the commands for Linux (Bash/Zsh). 
- ```
+```
 (
   set -x; cd "$(mktemp -d)" &&
   curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/krew.{tar.gz,yaml}" &&
@@ -153,34 +177,29 @@ First, you should install krew. Here's the commands for Linux (Bash/Zsh).
  ```
 
 Other configurations are available on the krew official documentation.
-
-In addition you have to enable krew, by adding the following to your PATH:
-
+In addition you have to enable krew by adding the following to your PATH:
 ```
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 ```
 
-To persist this modification, you should add the following configuration to your bashrc/zshrc.
+To make persistent this modification, you should add permanently the previous configuration to your `bashrc/zshrc`.
+
 
 ## OIDC-Login
-
-
-First we have to install OIDC login plugin:
-
+First we have to install OIDC login plugin, which enables a single sign on (SSO) to a Kubernetes cluster and other development tools:
 ```
 kubectl krew install oidc-login
 ```
 
-Now, we can proceed to use our cluster.
+Now, we can proceed to use your cluster.
+
 
 ## Login
+Once, you have created your user in your Keycloak instance, you can configure `oidc-login` by setting your credentials.
+This could be done in two different ways:
 
-When you have created your user in your Identity provider (e.g.; Keycloak), you can configure oidc-login by setting your credentials.
-
-This could be done in two different way:
-
-1. You can use a redirect via-browser to login by putting your un/password in the Identity Provider website and store in the kubeconfig only the temporary token.
-2. You can set your username and password directly in the kubeconfig
+1. You can use a redirect via-browser to login by putting your user/password in the Identity Provider website and store only the temporary token in your `kubeconfig`.
+2. (or) You can set your username and password directly in `kubeconfig`.
 
 ```
 apiVersion: v1
