@@ -82,7 +82,7 @@ func CreateService(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreatePerstistentVolumeClaim(name string, namespace string, storageClassName string) corev1.PersistentVolumeClaim {
+func CreatePersistentVolumeClaim(name string, namespace string, storageClassName string) corev1.PersistentVolumeClaim {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-pvc",
