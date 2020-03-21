@@ -10,6 +10,7 @@ export default class ApiManager {
      *
      * @param token the user token
      * @param type the token type
+     * @return {null}
      */
     constructor(token, type) {
         this.kc = new Config(APISERVER_URL, token, type);
@@ -91,7 +92,7 @@ export default class ApiManager {
             apiVersion: this.instanceGroup + "/" + this.version,
             kind: "LabInstance",
             metadata: {
-                name: labTemplateName + "-" + this.studentID + "-" + (Math.floor(Math.random()*100000000)+1),
+                name: labTemplateName + "-" + this.studentID + "-" + (Math.floor(Math.random() * 10000) + 1),
                 namespace: this.instanceNamespace,
             },
             spec: {
@@ -120,11 +121,10 @@ export default class ApiManager {
     startWatching(func) {
         watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
             function (type, object) {
-                let msg = "[" + object.metadata.creationTimestamp + "] " + type + " " + object.metadata.name;
-                func(msg);
+                func(type, object);
             },
             function (e) {
-                console.log('Stream ended', e);
+                func(null, e);
             }
         );
     }

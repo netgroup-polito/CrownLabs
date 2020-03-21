@@ -1,10 +1,14 @@
 import {Button, ButtonGroup, Card, Col, Row} from "react-bootstrap";
 import React from "react";
 
+/**
+ * Function to render the central part of the UserView
+ * @param props the functions to be called when buttons are clicked
+ * @return the component to be drawn
+ */
 export default function CentralView(props) {
     return <Row className="my-5">
-        <Col className="col-1"/>
-        <Col className="col-10">
+        <Col className="col-12">
             <Card className="text-center headerstyle">
                 <Card.Body>
                     <Card.Text as="h6">Status information</Card.Text>
@@ -22,6 +26,5 @@ export default function CentralView(props) {
                 </Card.Footer>
             </Card>
         </Col>
-        <Col className="col-1"/>
     </Row>;
 }
