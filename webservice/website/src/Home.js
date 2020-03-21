@@ -1,23 +1,17 @@
 import React from 'react';
-import {Navbar, Nav, NavItem, Container, Card, Row, Col, Button, Image} from 'react-bootstrap';
+import {Container, Card, Row, Col, Button} from 'react-bootstrap';
 import Footer from "./components/Footer";
 import './App.css';
+import Header from "./components/Header";
 
-const logo = require('./assets/logo_poli3.png');
-
+/**
+ * Function to draw the Home
+ * @param props the function passed by App to perform login
+ * @return the component to be drawn
+ */
 export default function Home(props) {
-    return (
-        <div style={{minHeight: '100vh'}}>
-            <header>
-                <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
-                    <Navbar.Brand href="">CrownLabs</Navbar.Brand>
-                    <Nav className="ml-auto" as="ul">
-                        <NavItem as="li">
-                            <img src={logo} height="50px" alt=""/>
-                        </NavItem>
-                    </Nav>
-                </Navbar>
-            </header>
+    return <div style={{minHeight: '100vh'}}>
+            <Header logged={false}/>
             <Container fluid className="cover">
                 <Row className="mt-5">
                     <Col className="col-2"/>
@@ -34,7 +28,5 @@ export default function Home(props) {
                 </Row>
                 <Footer/>
             </Container>
-
-        </div>
-    );
+        </div>;
 }
