@@ -51,7 +51,7 @@ module.exports = {
             meta: {
                 viewport: "width=device-width, initial-scale=1",
                 "theme-color": "#000000",
-                description: "CrownLabs fantastic website"
+                description: "CrownLabs website"
             }
         }),
         new webpack.DefinePlugin({
