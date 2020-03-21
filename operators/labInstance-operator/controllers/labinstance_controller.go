@@ -17,11 +17,10 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-logr/logr"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,6 +30,7 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
 	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
@@ -110,7 +110,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If exists, can we attach?
 	// If yes, attach
 	// If not, update the status with error
-	pvc := pkg.CreatePerstistentVolumeClaim(name, namespace, "rook-ceph-block")
+	pvc := pkg.CreatePersistentVolumeClaim(name, namespace, "rook-ceph-block")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
 		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name + "in namespace " + pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
@@ -120,27 +120,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created in namespace " + pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
-	// 3: create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
-	vmi.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + "in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
-		return ctrl.Result{}, err
-	} else {
-		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
-	}
-
-	//restClient, err := getClient("")
-	//if err != nil {
-	//	log.Info("could not create rest client ")
-	//} else {
-	//	err = VmWatcher(restClient)
-	//	if err != nil {
-	//		log.Info("could not watch vmi " + vmi.Name)
-	//	}
-	//}
-
-	// 4: create Service to expose the vm
+	// 3: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
@@ -150,15 +130,27 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created in namespace " + service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
 	}
 
-	// 5: create Ingress to manage the service
+	// 4: create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name + "in namespace " + ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created in namespace " + ingress.Namespace, "Normal", "IngressCreated", &labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
+		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created in namespace " + ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
 	}
+
+	// 5: create VirtualMachineInstance
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
+	vmi.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + "in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
+	}
+
+	go getVmiStatus(r, ctx, log, name, ingress, &labInstance, vmi)
 
 	return ctrl.Result{}, nil
 }
@@ -186,6 +178,32 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 	return
 }
 
+func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
+	name string, ingress v1beta1.Ingress,
+	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance){
+
+	var vmStatus virtv1.VirtualMachineInstancePhase
+	for {
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Namespace: vmi.Namespace,
+			Name:      vmi.Name,
+		}, &vmi)
+		if err == nil {
+			if vmStatus != vmi.Status.Phase {
+				vmStatus = vmi.Status.Phase
+				if vmStatus != virtv1.Running {
+					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "")
+				} else {
+					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
+					break
+				}
+			}
+		}
+		time.Sleep(10 * time.Second)
+	}
+	return
+}
+
 func GetConfig(path string) (*rest.Config, error) {
 	var config *rest.Config
 	var err error
@@ -208,40 +226,4 @@ func GetConfig(path string) (*rest.Config, error) {
 	}
 
 	return config, err
-}
-
-// create a generic REST client
-func getClient(path string) (*rest.RESTClient, error) {
-	config, err := GetConfig(path)
-	if err != nil {
-		return nil, err
-	}
-	return rest.RESTClientFor(config)
-}
-
-func VmWatcher(client *rest.RESTClient) error {
-	resource := "virtualmachineinstances"
-	namespace := corev1.NamespaceAll
-	watch, err := client.Get().
-		Prefix("watch").
-		Namespace(namespace).
-		Resource(resource).
-		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec).
-		Watch()
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for event := range watch.ResultChan() {
-			vmi, ok := event.Object.(*virtv1.VirtualMachineInstance)
-			if !ok {
-				_ = fmt.Errorf("unexpected type")
-			}
-			s := vmi.Status.Phase
-			print(s)
-		}
-	}()
-
-	return nil
 }
