@@ -3,8 +3,12 @@ import Home from './Home';
 import UserView from './UserView';
 import {BrowserRouter as Router, Redirect, Route, Switch} from 'react-router-dom';
 import './App.css';
-import CallBackHandler from "./CallBackHandler";
 import Authenticator from "./services/Authenticator";
+
+function CallBackHandler(props) {
+    props.func();
+    return (<div/>);
+}
 
 export class App extends React.Component {
     constructor(props) {
@@ -37,6 +41,7 @@ export class App extends React.Component {
                     )}/>
                     <Route path="/logout">
                         <CallBackHandler func={() => {
+                            sessionStorage.clear();
                             this.setState({logged: false});
                         }}/>
                         <Redirect to="/"/>
