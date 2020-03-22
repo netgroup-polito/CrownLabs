@@ -69,9 +69,9 @@ For a complete configuration looks [here](https://github.com/helm/charts/tree/ma
 
 
 ### *warning*
-The ingress has protection on the maximum size of the http body. If the image to be uploaded is larger, an error is received (403). To get around this problem just go to the ingress and add 0 to:
+The ingress has protection on the maximum size of the http body. If the image to be uploaded is larger, an error is received (403). To get around this problem just go to the ingress and add a new value:
 `` `
-nginx.ingress.kubernetes.io/proxy-body-size: "0"
+nginx.ingress.kubernetes.io/proxy-body-size: <>
 `` `
 
 
