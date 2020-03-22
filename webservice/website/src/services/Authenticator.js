@@ -12,11 +12,11 @@ export default class Authenticator {
             redirect_uri: OIDC_REDIRECT_URI + "/callback",
             automaticSilentRenew: true,
             post_logout_redirect_uri: OIDC_REDIRECT_URI + '/',
-            response_type: 'id_token',
-            //response_type: 'code',
+            response_type: 'code',
             filterProtocolClaims: true,
-            scope: 'openid ',//profile api1',
-            loadUserInfo: true
+            scope: 'openid ',
+            loadUserInfo: true,
+            client_secret: OIDC_CLIENT_SECRET
         });
         this.login = this.login.bind(this);
         this.logout = this.logout.bind(this);
@@ -25,7 +25,7 @@ export default class Authenticator {
     }
 
     login() {
-        return this.manager.signinRedirect();
+        return this.manager.signinRedirect({});
     }
 
     completeLogin() {
