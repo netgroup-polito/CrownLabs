@@ -39,7 +39,7 @@ ingress:
   path: /
   # Used to create an Ingress record.
   hosts:
-    - registry.crown-labs.ipv6.polito.it
+    - <>
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
@@ -48,7 +48,7 @@ ingress:
     # Secrets must be manually created in the namespace.
      #- secretName: 
        - hosts:
-         - registry.crown-labs.ipv6.polito.it
+         - <>
 ```
 ```
 persistence:
