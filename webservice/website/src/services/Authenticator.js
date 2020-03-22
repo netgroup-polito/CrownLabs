@@ -2,7 +2,7 @@ import {UserManager} from 'oidc-client';
 
 /**
  * Api class to manage authN
- * (use the commented field if ImplicitFlow disabled and if the server hosting the website allows CORS)
+ *
  */
 export default class Authenticator {
     constructor() {
@@ -21,22 +21,30 @@ export default class Authenticator {
         this.login = this.login.bind(this);
         this.logout = this.logout.bind(this);
         this.completeLogin = this.completeLogin.bind(this);
-        this.completeLogout = this.completeLogout.bind(this);
     }
 
+    /**
+     * Function to perform the login.
+     * It will automatically redirect you
+     * @return {Promise<void>}
+     */
     login() {
-        return this.manager.signinRedirect({});
+        return this.manager.signinRedirect();
     }
 
+    /**
+     * Function to process response from the authN endpoint
+     * @return {Promise<User>}
+     */
     completeLogin() {
         return this.manager.signinRedirectCallback();
     }
 
+    /**
+     * Function to logout
+     * @return {Promise<void>}
+     */
     logout() {
         return this.manager.signoutRedirect();
-    }
-
-    completeLogout() {
-        return this.manager.signoutCallback();
     }
 }

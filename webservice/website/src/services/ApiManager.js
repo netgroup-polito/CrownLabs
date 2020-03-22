@@ -87,7 +87,7 @@ export default class ApiManager {
      * @param labTemplateNamespace the namespace which the lab template belongs
      * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the creation as a promise
      */
-    createCRD(labTemplateName, labTemplateNamespace) {
+    createCRDinstance(labTemplateName, labTemplateNamespace) {
         return this.apiCRD.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
             apiVersion: this.instanceGroup + "/" + this.version,
             kind: "LabInstance",
@@ -109,8 +109,19 @@ export default class ApiManager {
      * @param name the name of the object you want to delete
      * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the operation as a promise
      */
-    deleteCRD(name) {
+    deleteCRDinstance(name) {
         return this.apiCRD.deleteNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name, {});
+    }
+
+    /**
+     * Function to create a lab template (by a professor)
+     * @param name the name of the template to be created
+     * @param namespace the namespace where the template should be created
+     */
+    createCRDtemplate(name, namespace) {
+        return this.apiCRD.createNamespacedCustomObject(this.templateGroup, this.version, namespace, this.templatePlural, {
+            /*FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE*/
+        }, );
     }
 
     /**
@@ -127,15 +138,5 @@ export default class ApiManager {
                 func(null, e);
             }
         );
-    }
-
-    /**
-     * Function to get a specific lab instance status
-     *
-     * @param name the name of the lab instance
-     * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result as a promise
-     */
-    getCRDstatus(name) {
-        return this.apiCRD.getNamespacedCustomObjectStatus(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name);
     }
 }

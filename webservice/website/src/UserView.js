@@ -11,11 +11,16 @@ import Toastr from 'toastr';
 import './App.css';
 import 'toastr/build/toastr.min.css'
 
+/**
+ * Main window class, by now rendering only the unprivileged user view
+ */
 export default class UserView extends React.Component {
     constructor(props) {
         super(props);
         /*Attempting to retrieve the token stored in the sessionStorage by OIDC library, otherwise go back*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
+        /*For future development: the parseToken function in the ApiManager could be moved here and check the token fields here,
+        * allowing this class to understand if the user is unprivileged or not*/
         if (!retrievedSessionToken || !retrievedSessionToken.id_token) {
             Toastr.error("You received a non valid token, please check carefully its fields");
             sessionStorage.clear();
@@ -28,7 +33,7 @@ export default class UserView extends React.Component {
         this.notifyEvent = this.notifyEvent.bind(this);
         /*State variable which contains:
         * - all lab templates as a Map: (course_group => Array of available templates for that course)
-        * - all lab instances as a Map: (instance_name => status)
+        * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
         * - current selected CRD as an object (name, namespace). Namespace set only when a lab instance is selected, not a template (needed by deletion)
         * - all namespaced events as a string
         * */
@@ -94,7 +99,7 @@ export default class UserView extends React.Component {
             Toastr.info("The `" + this.state.selectedCRD.name + '` lab is already running');
             return;
         }
-        this.apiManager.createCRD(this.state.selectedCRD.name, this.state.selectedCRD.namespace)
+        this.apiManager.createCRDinstance(this.state.selectedCRD.name, this.state.selectedCRD.namespace)
             .then(
                 (response) => {
                     Toastr.success("Successfully started lab `" + this.state.selectedCRD.name + "`");
@@ -123,7 +128,7 @@ export default class UserView extends React.Component {
             Toastr.info("The `" + this.state.selectedCRD.name + '` lab is not running');
             return;
         }
-        this.apiManager.deleteCRD(this.state.selectedCRD.name)
+        this.apiManager.deleteCRDinstance(this.state.selectedCRD.name)
             .then(
                 (response) => {
                     Toastr.success("Successfully stopped `" + this.state.selectedCRD.name + "`");
@@ -237,6 +242,9 @@ export default class UserView extends React.Component {
      * @returns the component to be drawn
      */
     render() {
+        /*For future development, a part from Footer and Header the other components could be moved into another UserView class
+        (and renaming this one to MainWindow) and handle the rendering of the correct view(privileged or not) here in this method
+        by checking the parsed token field*/
         return (
             <div style={{minHeight: '100vh'}}>
                 <Header logged={true} logout={this.props.logout}/>
