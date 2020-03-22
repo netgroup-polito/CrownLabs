@@ -4,11 +4,13 @@
 FROM node:alpine as builder
 ENV OIDC_CLIENT_ID="k8s" \
     OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/crownlabs" \
-    APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it" \
-    #Change OIDC_REDIRECT_URI to => http://localhost:8000 if you want to host your website locally
-    #or in a docker run locally with the port 80 mapped to your host port 8000
+    #Change OIDC_REDIRECT_URI to => http://localhost:8000 if you want to host your website locally (with npm start => webpack-dev-server)
+    #or in a docker run locally with the port 80 mapped to your host port 8000 (docker run -p 8000:80 <tag>)
     OIDC_REDIRECT_URI="https://crownlabs.polito.it" \
-    OIDC_CLIENT_SECRET="229a9d87-2bae-4e9b-8567-e8864b2bac4b"
+    #The secret of the OIDC_CLIENT_ID
+    #Should not be pushed when the repo becomes PUBLIC
+    OIDC_CLIENT_SECRET="229a9d87-2bae-4e9b-8567-e8864b2bac4b" \
+    APISERVER_URL="https://apiserver.crown-labs.ipv6.polito.it"
 
 ADD . /webservice
 WORKDIR /webservice
