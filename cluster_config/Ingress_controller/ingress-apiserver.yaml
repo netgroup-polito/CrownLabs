@@ -7,6 +7,15 @@ metadata:
   selfLink: /apis/extensions/v1beta1/namespaces/monitoring/ingresses/lab2-vm
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-allow-headers: DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization
+    nginx.ingress.kubernetes.io/cors-allow-methods: PUT, GET, POST, OPTIONS, DELETE,
+        PATCH
+    nginx.ingress.kubernetes.io/cors-allow-origin: https://*
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     cert-manager.io/cluster-issuer: letsencrypt-production
   labels:
     use-dns01-solver: "true"
