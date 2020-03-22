@@ -12,7 +12,9 @@ module.exports = {
         publicPath: '/',
     },
     devServer: {
-        host: "0.0.0.0",
+        headers: {
+            'Access-Control-Allow-Origin': '*'
+        },
         port: 8000,
         historyApiFallback: true
     },
@@ -58,7 +60,8 @@ module.exports = {
             OIDC_PROVIDER_URL: JSON.stringify(process.env.OIDC_PROVIDER_URL),
             OIDC_CLIENT_ID: JSON.stringify(process.env.OIDC_CLIENT_ID),
             APISERVER_URL: JSON.stringify(process.env.APISERVER_URL),
-            OIDC_REDIRECT_URI: JSON.stringify(process.env.OIDC_REDIRECT_URI)
+            OIDC_REDIRECT_URI: JSON.stringify(process.env.OIDC_REDIRECT_URI),
+            OIDC_CLIENT_SECRET: JSON.stringify(process.env.OIDC_CLIENT_SECRET)
         }),
         new RobotstxtPlugin({
             "User-agent": "*",

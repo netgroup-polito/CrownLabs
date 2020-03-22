@@ -178,7 +178,7 @@ export default class UserView extends React.Component {
                 const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: null, status: -1});
                 this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
-            } else if (object.status.phase.match(/VmiRunning/g)) {
+            } else if (object.status.phase.match(/VmiRunning/g) && (type === "ADDED" || type === "MODIFIED")) {
                 /*Object creation succeeded*/
                 const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: object.status.url, status: 1});
