@@ -2,7 +2,6 @@
 ## Table of contents
 - [Docker registry](#docker-registry-first)
   - [Table of contents](#table-of-contents)
-  - [Helm](#helm)
   - [Docker registry](#docker-registry)
   
   
@@ -15,7 +14,7 @@ From the [Docker Registry](https://docs.docker.com/registry/) official documenta
 The Registry is a stateless, highly scalable server side application that stores and lets you distribute Docker images. The Registry is open-source, under the permissive Apache license.
 
 
-## Why we need it?
+### Why we need it?
 You should use the Registry if you want to:
 * tightly control where your images are being stored
 * fully own your images distribution pipeline
