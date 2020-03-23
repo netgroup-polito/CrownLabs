@@ -1,9 +1,10 @@
 import React from 'react';
-import {Container, Button, Row, Col, Navbar, Nav} from 'react-bootstrap';
+import {Row, Col} from 'react-bootstrap';
 import SideBar from './components/SideBar';
 import Footer from './components/Footer';
 import InfoCard from "./components/InfoCard";
 import CentralView from "./components/CentralView";
+import Header from "./components/Header";
 import ApiManager from "./services/ApiManager";
 import Toastr from 'toastr';
 
@@ -16,14 +17,15 @@ export default class UserView extends React.Component {
         /*Attempting to retrieve the token stored in the sessionStorage by OIDC library, otherwise go back*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
         if (!retrievedSessionToken || !retrievedSessionToken.id_token) {
-            document.location.href = '/logout';
+            Toastr.error("You received a non valid token, please check carefully its fields");
+            sessionStorage.clear();
+            document.location.reload();
         }
         this.connect = this.connect.bind(this);
         this.changeSelectedCRD = this.changeSelectedCRD.bind(this);
         this.startCRD = this.startCRD.bind(this);
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
-        this.retrieveCRDinstanceStatus = this.retrieveCRDinstanceStatus.bind(this);
         /*State variable which contains:
         * - all lab templates as a Map: (course_group => Array of available templates for that course)
         * - all lab instances as a Map: (instance_name => status)
@@ -39,10 +41,6 @@ export default class UserView extends React.Component {
         this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer");
         this.retrieveCRDtemplates();
         this.retrieveCRDinstances();
-        /*Create an interval function to retrieve all lab instances info*/
-        setInterval(() => {
-            this.retrieveCRDinstanceStatus();
-        }, 10000);
         /*Start watching for namespaced events*/
         this.apiManager.startWatching(this.notifyEvent);
     }
@@ -71,39 +69,17 @@ export default class UserView extends React.Component {
         this.apiManager.getCRDinstances()
             .then((nodesResponse) => {
                 const nodes = nodesResponse.body.items;
-                let newMap = new Map();
+                let newMap = this.state.instanceLabs;
                 nodes.forEach(x => {
-                    newMap.set(x.metadata.name, null);
+                    if (!newMap.has(x.metadata.name)) {
+                        newMap.set(x.metadata.name, null);
+                    }
                 });
                 this.setState({instanceLabs: newMap});
             })
             .catch((error) => {
                 this.handleErrors(error);
             });
-    }
-
-    /**
-     * Function to retrieve all CRD instances status
-     */
-    retrieveCRDinstanceStatus() {
-        const keys = Array.from(this.state.instanceLabs.keys());
-        keys.forEach(lab => {
-            this.apiManager.getCRDstatus(lab)
-                .then(response => {
-                    if (response.body.status && response.body.status.url) {
-                        const newMap = this.state.instanceLabs;
-                        const status = response.body.status.url;
-                        if (this.state.instanceLabs.get(lab) !== status) {
-                            this.notifyEvent("[" + response.body.metadata.creationTimestamp + "] " + response.body.status.phase);
-                            newMap.set(lab, status);
-                        }
-                        this.setState({instanceLabs: newMap});
-                    }
-                })
-                .catch(error => {
-                    this.handleErrors(error);
-                });
-        });
     }
 
     /**
@@ -123,7 +99,7 @@ export default class UserView extends React.Component {
                 (response) => {
                     Toastr.success("Successfully started lab `" + this.state.selectedCRD.name + "`");
                     const newMap = this.state.instanceLabs;
-                    newMap.set(response.body.metadata.name, null);
+                    newMap.set(response.body.metadata.name, {status: 0, url: null});
                     this.setState({instanceLabs: newMap});
                 },
                 (error) => {
@@ -176,20 +152,42 @@ export default class UserView extends React.Component {
             Toastr.info("The lab `" + this.state.selectedCRD.name + "` is not running");
             return;
         }
-        if (this.state.instanceLabs.get(this.state.selectedCRD.name) === null) {
+        if (this.state.instanceLabs.get(this.state.selectedCRD.name).status !== 1) {
             Toastr.info("The lab `" + this.state.selectedCRD.name + "` is still starting");
             return;
         }
-        window.open(this.state.instanceLabs.get(this.state.selectedCRD.name));
+        window.open(this.state.instanceLabs.get(this.state.selectedCRD.name).url);
         this.changeSelectedCRD(null);
     }
 
     /**
      *Function to notify a Kubernetes Event related to your resources
-     * @param msg the message received
+     * @param type the type of the event
+     * @param object the object of the event
      */
-    notifyEvent(msg) {
-        this.setState({events: msg + "\n" + this.state.events + msg});
+    notifyEvent(type, object) {
+        if (!type) {
+            /*Watch session ended, restart it*/
+            this.apiManager.startWatching(this.notifyEvent);
+            return;
+        }
+        if (object && object.status) {
+            let msg = "[" + object.metadata.creationTimestamp + "] " + object.metadata.name + "\n|===> Event Type: " + type + ", Status: " + object.status.phase;
+            if (object.status.phase.match(/Fail|Not/g)) {
+                /*Object creation failed*/
+                const newMap = this.state.instanceLabs;
+                newMap.set(object.metadata.name, {url: null, status: -1});
+                this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
+            } else if (object.status.phase.match(/VmiRunning/g) && (type === "ADDED" || type === "MODIFIED")) {
+                /*Object creation succeeded*/
+                const newMap = this.state.instanceLabs;
+                newMap.set(object.metadata.name, {url: object.status.url, status: 1});
+                this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
+            } else {
+                /*The object is still creating*/
+                this.setState({events: msg + "\n" + this.state.events});
+            }
+        }
     }
 
     /**
@@ -213,9 +211,9 @@ export default class UserView extends React.Component {
         let msg = "";
         switch (error.response._fetchResponse.status) {
             case 401 :
-                msg += "Cluster expired, please login again";
+                msg += "Token still valid but expired validity for the Cluster, please login again";
                 setInterval(() => {
-                    document.location.href = '/logout'
+                    document.location.reload();
                 }, 2000);
                 break;
             case 403 :
@@ -227,7 +225,7 @@ export default class UserView extends React.Component {
             default :
                 msg += "An error occurred(" + error.response._fetchResponse.status + "), please login again";
                 setInterval(() => {
-                    document.location.href = '/logout'
+                    document.location.reload();
                 }, 2000);
         }
         Toastr.error(msg);
@@ -239,39 +237,23 @@ export default class UserView extends React.Component {
      * @returns the component to be drawn
      */
     render() {
-        /*Retrieving instance labs to be drawn in the right bar and foreach one draw a button*/
-        const runningLabs = Array.from(this.state.instanceLabs.keys()).map(x => {
-            let color = this.state.instanceLabs.get(x) === null ? 'red' : 'green';
-            return <Button key={x} variant="link" style={{color: color}}
-                           onClick={() => this.changeSelectedCRD(x, null)}>{x}</Button>;
-        });
         return (
             <div style={{minHeight: '100vh'}}>
-                <header>
-                    <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
-                        <Navbar.Brand href="">CrownLabs</Navbar.Brand>
-                        <Nav className="ml-auto" as="ul">
-                            <Nav.Item as="li">
-                                <Button variant="outline-light"
-                                        onClick={this.props.logout}>Logout</Button>
-                            </Nav.Item>
-                        </Nav>
-                    </Navbar>
-                </header>
-                <Container fluid className="cover" style={{backgroundColor: '#F2F2F2'}}>
-                    <Row className="mt-5">
-                        <Col className="col-3">
-                            <SideBar labs={this.state.templateLabs} func={this.changeSelectedCRD}/>
-                        </Col>
-                        <Col className="col-6">
-                            <CentralView start={this.startCRD} stop={this.stopCRDinstance} connect={this.connect}
-                                         events={this.state.events}/>
-                        </Col>
-                        <InfoCard runningLabs={runningLabs} selectedCRD={this.state.selectedCRD.name}/>
-                        <Col className="col-1"/>
-                    </Row>
-                    <Footer/>
-                </Container>
+                <Header logged={true} logout={this.props.logout}/>
+                <Row className="mt-5 p-3">
+                    <Col className="col-3">
+                        <SideBar labs={this.state.templateLabs} func={this.changeSelectedCRD}/>
+                    </Col>
+                    <Col className="col-6">
+                        <CentralView start={this.startCRD} stop={this.stopCRDinstance} connect={this.connect}
+                                     events={this.state.events}/>
+                    </Col>
+                    <Col className="col-3 text-center">
+                        <InfoCard runningLabs={this.state.instanceLabs} selectedCRD={this.state.selectedCRD.name}
+                                  func={this.changeSelectedCRD}/>
+                    </Col>
+                </Row>
+                <Footer/>
             </div>
         );
     }

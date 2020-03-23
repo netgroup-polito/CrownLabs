@@ -40,6 +40,7 @@
 .headerstyle {
   background-color: transparent;
   border: none;
+  width: 100%;
 }
 
 .cover {
@@ -66,6 +67,13 @@
   height: 150px;
   resize: none;
   border-radius: 10px;
+  font-size: 15px;
+}
+
+#main {
+  background: #8e9eab; /* fallback for old browsers */
+  background: -webkit-linear-gradient(to bottom, #8e9eab, #eef2f3); /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(to bottom, #8e9eab, #eef2f3); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
 }
 
 @keyframes App-logo-spin {
