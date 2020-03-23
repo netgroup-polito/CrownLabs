@@ -50,7 +50,7 @@ Export now the 5 variables as described [before](#variable-exporting):
 ```bash
 export OIDC_PROVIDER_URL=https://2.2.2.2:4444
 export OIDC_CLIENT_ID=xxxxxxx
-export OIDC_CLIENT_SECRET="229a9d87-2bae-4e9b-8567-e8864b2bac4b"
+export OIDC_CLIENT_SECRET="xxxxxxxxxxxxx"
 export OIDC_REDIRECT_URI=http://localhost:8000
 export APISERVER_URL=https://1.1.1.1:3333
 ```
@@ -167,7 +167,7 @@ The configuration file used by WebPack is [here](website/webpack.config.js);
 If you want to change the image displayed in login page, you have to:
 
 * Upload your image inside [this](./website/src/assets) directory
-* Update the image name in the Login.js file (you can find it [here](./website/src/Login.js)) as follows:
+* Update the image name in the Login.js file (you can find it [here](website/src/old/Login.js)) as follows:
 
     ```
     const logo = require('./assets/<image_name>');
