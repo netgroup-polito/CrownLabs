@@ -7,6 +7,6 @@ WORKDIR /go/src/github.com/netgroup-polito/CrownLabs/operators/labInstance-opera
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o controller .
 RUN cp controller /usr/bin/controller
 
-FROM scratch
+FROM broady/cacerts
 COPY --from=builder /usr/bin/controller /usr/bin/controller
 ENTRYPOINT [ "/usr/bin/controller" ]
