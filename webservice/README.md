@@ -12,16 +12,17 @@ This component is the result of many frameworks integrated:
 
 Please **READ** this section before installing.
 
-Both if you are going to deploy our webservice locally or in a Docker container, you need to provide 4 environment variables:
+Both if you are going to deploy our webservice locally or in a Docker container, you need to provide 5 environment variables:
 
 * OIDC_PROVIDER_URL
 * OIDC_CLIENT_ID
+* OIDC_CLIENT_SECRET
 * OIDC_REDIRECT_URI
 * APISERVER_URL
 
-*OIDC_PROVIDER_URL*, *OIDC_CLIENT_ID*  and *OIDC_REDIRECT_URI* are parameters used by our library to setup the **OpenID Connect** protocol.
+*OIDC_PROVIDER_URL*, *OIDC_CLIENT_ID*, *OIDC_CLIENT_SECRET*  and *OIDC_REDIRECT_URI* are parameters used by our library to setup the **OpenID Connect** protocol.
 More in detail, the provider URL is the IdentityProvider you are going to contact (in our case our keycloak).
-The client id is the client id that your IdentityProvider is going to accept. The redirect URI is the URL you are going to be 
+The client id is the client id that your IdentityProvider is going to accept using your client secret. The redirect URI is the URL you are going to be 
 redirected after you complete the login. Please **NOTE** that if you are going to run the webservice locally, this will be
 something like http://localhost:8000 , while in production this will correspond to our website URL https://crownlabs.polito.it .
 
@@ -44,11 +45,12 @@ Once completed this step, we move the attention to the [website](./website) dire
 From withing [website](./website) type `npm install` to install the actual webservice.
 This command install all the dependencies and builds the service which now can be run from this directory. 
 
-Export now the 3 variables as described [before](#variable-exporting):
+Export now the 5 variables as described [before](#variable-exporting):
 
 ```bash
 export OIDC_PROVIDER_URL=https://2.2.2.2:4444
 export OIDC_CLIENT_ID=xxxxxxx
+export OIDC_CLIENT_SECRET="xxxxxxxxxxxxx"
 export OIDC_REDIRECT_URI=http://localhost:8000
 export APISERVER_URL=https://1.1.1.1:3333
 ```
@@ -70,6 +72,27 @@ you are going to run your docker container locally or not.
 
 If you are going to run it locally, please set OIDC_REDIRECT_URI=http://localhost:8000 , while if you want to deploy this docker
 in our domain set it to OIDC_REDIRECT_URI=https://crownlabs.polito.it . 
+
+Moreover, to run it locally you need to provide the following nginx configuration file, adding the command `COPY nginx.conf /etc/nginx/conf.d/default.conf`
+to the Dockerfile. The nginx.conf is the follwing one:
+
+```bash
+server {
+    listen       80;
+    server_name  localhost;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri /index.html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+```
 
 To build, type `docker build -t <tag> .` from this directory.
 
@@ -129,7 +152,7 @@ All the ReactJS files are under [this](./website/src) directory.
 
 #### Kubernetes API
 
-For the Kubernetes Api, the only file you have to refer to is this [one](./website/src/k8sApi/index.js). 
+For the Kubernetes Api, the only file you have to refer to is this [one](./website/src/services/ApiManager.js). 
 
 #### Docker
 
@@ -144,7 +167,7 @@ The configuration file used by WebPack is [here](website/webpack.config.js);
 If you want to change the image displayed in login page, you have to:
 
 * Upload your image inside [this](./website/src/assets) directory
-* Update the image name in the Login.js file (you can find it [here](./website/src/Login.js)) as follows:
+* Update the image name in the Login.js file (you can find it [here](website/src/old/Login.js)) as follows:
 
     ```
     const logo = require('./assets/<image_name>');

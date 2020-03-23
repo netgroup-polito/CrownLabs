@@ -10,9 +10,11 @@ export default class ApiManager {
      *
      * @param token the user token
      * @param type the token type
-     * @return {null}
+     * @param studentID the student id retrieved
+     * @param templateNS the laboratories the user can see (cloud-computing, software-networking namespaces/roles in cluster)
+     * @param instanceNS the user namespace where to run its instances
      */
-    constructor(token, type) {
+    constructor(token, type, studentID, templateNS, instanceNS) {
         this.kc = new Config(APISERVER_URL, token, type);
         this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
         this.templateGroup = "template.crown.team.com";
@@ -20,22 +22,9 @@ export default class ApiManager {
         this.version = "v1";
         this.templatePlural = "labtemplates";
         this.instancePlural = "labinstances";
-        let parsedToken = this.parseJWTtoken(token);
-        this.studentID = parsedToken.preferred_username;
-        this.templateNamespace = parsedToken.groups;
-        this.instanceNamespace = parsedToken.namespace[0];
-    }
-
-    /**
-     * Function to parse a JWT token
-     * @param token the token received by keycloak
-     * @returns {any} the decrypted token as a JSON object
-     */
-    parseJWTtoken(token) {
-        let base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        return JSON.parse(decodeURIComponent(atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join('')));
+        this.studentID = studentID;
+        this.templateNamespace = templateNS;
+        this.instanceNamespace = instanceNS;
     }
 
     /**
@@ -87,7 +76,7 @@ export default class ApiManager {
      * @param labTemplateNamespace the namespace which the lab template belongs
      * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the creation as a promise
      */
-    createCRD(labTemplateName, labTemplateNamespace) {
+    createCRDinstance(labTemplateName, labTemplateNamespace) {
         return this.apiCRD.createNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, {
             apiVersion: this.instanceGroup + "/" + this.version,
             kind: "LabInstance",
@@ -109,8 +98,19 @@ export default class ApiManager {
      * @param name the name of the object you want to delete
      * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the operation as a promise
      */
-    deleteCRD(name) {
+    deleteCRDinstance(name) {
         return this.apiCRD.deleteNamespacedCustomObject(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name, {});
+    }
+
+    /**
+     * Function to create a lab template (by a professor)
+     * @param name the name of the template to be created
+     * @param namespace the namespace where the template should be created
+     */
+    createCRDtemplate(name, namespace) {
+        return this.apiCRD.createNamespacedCustomObject(this.templateGroup, this.version, namespace, this.templatePlural, {
+            /*FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE*/
+        },);
     }
 
     /**
@@ -127,15 +127,5 @@ export default class ApiManager {
                 func(null, e);
             }
         );
-    }
-
-    /**
-     * Function to get a specific lab instance status
-     *
-     * @param name the name of the lab instance
-     * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result as a promise
-     */
-    getCRDstatus(name) {
-        return this.apiCRD.getNamespacedCustomObjectStatus(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name);
     }
 }
