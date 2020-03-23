@@ -1,4 +1,4 @@
-import {Col, Row} from "react-bootstrap";
+import {Button, Col, Row} from "react-bootstrap";
 import LabTemplatesList from "../components/LabTemplatesList";
 import LabInstancesList from "../components/LabInstancesList";
 import React from "react";
