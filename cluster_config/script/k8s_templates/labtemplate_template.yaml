@@ -1,0 +1,49 @@
+apiVersion: template.crown.team.com/v1
+kind: LabTemplate
+metadata:
+  name: {{ course_code }}-lab{{ lab_number }}
+  namespace: {{ namespace_name }}
+spec:
+  courseName: {{ course_code }}
+  description: {{ description }}
+  labName: {{ course_code }}-lab{{ lab_number }}
+  labNum: "{{ lab_number }}"
+  vm:
+    apiVersion: kubevirt.io/v1alpha3
+    kind: VirtualMachineInstance
+    metadata:
+      name: {{ course_code }}-lab{{ lab_number }}
+      namespace: {{ namespace_name }}
+      labels:
+        name: {{ course_code }}-lab{{ lab_number }}
+    spec:
+      domain:
+        cpu:
+          cores: {{ cpu }}
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+        memory:
+          guest: "{{ memory }}G"
+        resources:
+          limits:
+            cpu: "{{ cpu + 1 }}"
+            memory: "{{ memory + 0.5 }}G"
+          requests:
+            cpu: "{{ cpu + 0.5 }}"
+            memory: "{{ memory }}G"
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - containerDisk:
+          image: {{ image }}
+          imagePullSecret: registry-credentials
+        name: containerdisk
+      - cloudInitNoCloud:
+          secretRef:
+            name: {{ course_code }}-lab{{ lab_name }}
+        name: cloudinitdisk
