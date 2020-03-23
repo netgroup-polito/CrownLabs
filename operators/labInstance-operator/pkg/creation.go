@@ -41,18 +41,19 @@ func CreateSecret(name string, namespace string) corev1.Secret {
 		},
 		Data: nil,
 		StringData: map[string]string{"userdata": `
-			network:
-			  version: 2
-			  id0:
-			    dhcp4: true
-            fs_setup:
-			  - label: "persistence"
-			    device: /dev/vdc
-			    filesystem: "ext4"
-			mounts:
-			  - [ /dev/vdc, /media/persistence, auto, "defaults,nofail,discard" ]
-			runcmd:
-			  - "sudo chown cloud:cloud /media/persistence"`},
+#cloud-config
+network:
+  version: 2
+  id0:
+    dhcp4: true
+fs_setup:
+  - label: "persistence"
+    device: /dev/vdc
+    filesystem: "ext4"
+mounts:
+  - [ /dev/vdc, /media/persistence, auto, "defaults,nofail,discard" ]
+runcmd:
+  - "sudo chown cloud:cloud /media/persistence"`},
 		Type: corev1.SecretTypeOpaque,
 	}
 
