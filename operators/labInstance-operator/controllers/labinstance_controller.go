@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
+	"net/http"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -144,7 +145,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + "in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + " in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
@@ -183,6 +184,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance){
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
+	// iterate until the vm is running
 	for {
 		err := r.Client.Get(ctx, types.NamespacedName{
 			Namespace: vmi.Namespace,
@@ -194,13 +196,31 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 				if vmStatus != virtv1.Running {
 					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "")
 				} else {
-					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "https://"+ingress.Spec.Rules[0].Host+"/"+name)
+					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "")
 					break
 				}
 			}
 		}
 		time.Sleep(10 * time.Second)
 	}
+
+	// when the vm status is Running, it is still not available for some seconds
+	// curl the url until the vm is ready
+	url := "https://" + ingress.Spec.Rules[0].Host + "/" + name
+	for {
+		resp, err := http.Get(url)
+		if err != nil || resp == nil {
+			log.Error(err, "unable to perform get on "+url)
+			resp.Body.Close()
+		}
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
+			resp.Body.Close()
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+
 	return
 }
 
