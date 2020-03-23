@@ -42,6 +42,7 @@ mkdir -p $VNC_PATH
 
 # Set vnc password
 # @featureremoved
+# Need also to start vncserver with '-SecurityTypes None' to avoid password check
 #echo "${VNC_PWD}" | vncpasswd -f > "${VNC_PATH}/passwd"
 #chmod 0600 "${VNC_PATH}/passwd"
 
