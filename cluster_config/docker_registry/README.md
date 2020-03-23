@@ -1,12 +1,12 @@
 # Docker registry
 
 ## Table of contents
-- [What is it](#docker-registry-first)
-- [Why do we need it](#table-of-contents)
-- [Docker registry Helm Chart](#docker-registry)
-  - [Configuration]()
-- [Installing the chart]()
-- [Warning: max HTTP body size in ingress controller]()
+- [What is it](#what-is-it)
+- [Why do we need it](#why-do-we-need-it)
+- [Docker registry Helm Chart](#docker-registry-helm-chart)
+  - [Configuration](#configuration)
+- [Installing the chart](#installing-the-chart)
+- [Warning: max HTTP body size in ingress controller](#warning-max-http-body-size-in-ingress-controller)
   
  
 ## What is it
@@ -72,7 +72,7 @@ Look look [here](https://github.com/helm/charts/tree/master/stable/docker-regist
 
 
 ## Warning: max HTTP body size in ingress controller
-By default, the nginx ingress controller has a limit on the maximum size of the http body. If the image to be uploaded is larger, an error is received (403). To avoid this problem, modify the configuration of your  ingress controller and add a new annotation:
+By default, the nginx ingress controller has a limit on the maximum size of the HTTP body. If the image to be uploaded is larger, an error is received (403). To avoid this problem, modify the configuration of your ingress controller and add a new annotation:
 ```
 nginx.ingress.kubernetes.io/proxy-body-size: <>
 ```
