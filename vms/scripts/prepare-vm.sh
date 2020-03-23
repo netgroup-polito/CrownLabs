@@ -39,6 +39,11 @@ sudo apt-get install -y openssh-server cloud-init python-numpy
 wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz | sudo tar xz --strip 1 -C /
 mkdir -p $VNC_PATH
 
+# Set vnc password
+# @featureremoved
+#echo "${VNC_PWD}" | vncpasswd -f > "${VNC_PATH}/passwd"
+#chmod 0600 "${VNC_PATH}/passwd"
+
 # Set vnc xstartup file
 tee "${VNC_PATH}/xstartup" > /dev/null <<EOT
 #!/bin/sh
