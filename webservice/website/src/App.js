@@ -1,6 +1,6 @@
 import React from 'react';
-import Home from './Home';
-import UserView from './UserView';
+import Home from './views/Home';
+import UserLogic from './UserLogic';
 import {BrowserRouter as Router, Redirect, Route, Switch} from 'react-router-dom';
 import './App.css';
 import Authenticator from "./services/Authenticator";
@@ -35,29 +35,30 @@ export class App extends React.Component {
     }
 
     render() {
-        /*Maybe one of the best solution would be renaming the UserView variable into MainWindow and delegating to it the rendering
+        /*Maybe one of the best solution would be renaming the UserLogic variable into MainWindow and delegating to it the rendering
         * of the different pages (user unprivileged, admin or professor)
         * PLEASE REMEMBER, if you change on of these path names (ex /userview into /mainview) you have to modify the NGINX conf of our Ingress*/
         return (
             <Container className="col-9 p-0" style={{backgroundColor: '#FCF6F5FF'}}>
-                    <Router>
-                        <Switch>
-                            <Route exact path="/">
-                                <Home login={this.authManager.login}/>
-                            </Route>
-                            <Route path="/userview" render={() => (
-                                this.state.logged ?
-                                    <UserView logout={this.authManager.logout}/> :
-                                    <Redirect to="/"/>
-                            )}/>
-                            <Route path="/callback" render={() => (
-                                this.state.logged ? <Redirect to="/userview"/> : <CallBackHandler func={this.authManager.completeLogin}/>
-                            )}/>
-                            <Route path="*">
-                                <Redirect to="/userview"/>
-                            </Route>
-                        </Switch>
-                    </Router>
+                <Router>
+                    <Switch>
+                        <Route exact path="/">
+                            <Home login={this.authManager.login}/>
+                        </Route>
+                        <Route path="/userview" render={() => (
+                            this.state.logged ?
+                                <UserLogic logout={this.authManager.logout}/> :
+                                <Redirect to="/"/>
+                        )}/>
+                        <Route path="/callback" render={() => (
+                            this.state.logged ? <Redirect to="/userview"/> :
+                                <CallBackHandler func={this.authManager.completeLogin}/>
+                        )}/>
+                        <Route path="*">
+                            <Redirect to="/userview"/>
+                        </Route>
+                    </Switch>
+                </Router>
             </Container>
         );
     }

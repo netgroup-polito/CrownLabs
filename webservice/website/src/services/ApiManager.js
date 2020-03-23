@@ -10,9 +10,11 @@ export default class ApiManager {
      *
      * @param token the user token
      * @param type the token type
-     * @return {null}
+     * @param studentID the student id retrieved
+     * @param templateNS the laboratories the user can see (cloud-computing, software-networking namespaces/roles in cluster)
+     * @param instanceNS the user namespace where to run its instances
      */
-    constructor(token, type) {
+    constructor(token, type, studentID, templateNS, instanceNS) {
         this.kc = new Config(APISERVER_URL, token, type);
         this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
         this.templateGroup = "template.crown.team.com";
@@ -20,22 +22,9 @@ export default class ApiManager {
         this.version = "v1";
         this.templatePlural = "labtemplates";
         this.instancePlural = "labinstances";
-        let parsedToken = this.parseJWTtoken(token);
-        this.studentID = parsedToken.preferred_username;
-        this.templateNamespace = parsedToken.groups;
-        this.instanceNamespace = parsedToken.namespace[0];
-    }
-
-    /**
-     * Function to parse a JWT token
-     * @param token the token received by keycloak
-     * @returns {any} the decrypted token as a JSON object
-     */
-    parseJWTtoken(token) {
-        let base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        return JSON.parse(decodeURIComponent(atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join('')));
+        this.studentID = studentID;
+        this.templateNamespace = templateNS;
+        this.instanceNamespace = instanceNS;
     }
 
     /**
@@ -121,7 +110,7 @@ export default class ApiManager {
     createCRDtemplate(name, namespace) {
         return this.apiCRD.createNamespacedCustomObject(this.templateGroup, this.version, namespace, this.templatePlural, {
             /*FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE*/
-        }, );
+        },);
     }
 
     /**
