@@ -65,7 +65,7 @@ Type=forking
 User=${USER}
 Group=${USER}
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill %i > /dev/null 2>&1 || :'
-ExecStart=/usr/bin/vncserver %i -localhost
+ExecStart=/usr/bin/vncserver %i -SecurityTypes None -localhost
 ExecStop=/usr/bin/vncserver -kill %i
 RemainAfterExit=yes
 
