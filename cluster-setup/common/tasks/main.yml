@@ -6,3 +6,22 @@
     regexp: '^%sudo'
     line: '%sudo ALL=(ALL) NOPASSWD:ALL'
     validate: 'visudo -cf %s'
+
+- name: Install ntp packages
+  apt:
+    name: "{{ ntp_packages }}"
+    state: present
+  vars:
+    ntp_packages:
+    - ntp
+    - ntpdate
+    - ntpstat
+
+- name: Copy the ntp configuration
+  template:
+    src: files/ntp.conf
+    dest: /etc/ntp.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart the ntp service
