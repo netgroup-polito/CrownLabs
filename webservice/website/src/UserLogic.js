@@ -207,23 +207,24 @@ export default class UserLogic extends React.Component {
     connect() {
         if (!this.state.selectedInstance) {
             Toastr.info("No running lab selected to connect to");
-            return
-        }
-        if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
+            return;
+        } else if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
             Toastr.info("The lab `" + this.state.selectedInstance + "` is not running");
             return;
+        } else {
+            switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
+                case 1 :
+                    window.open(this.state.instanceLabs.get(this.state.selectedInstance).url);
+                    break;
+                case 0:
+                    Toastr.info("The lab `" + this.state.selectedInstance + "` is still starting");
+                    break;
+                default:
+                    Toastr.info("An error has occurred with the lab `" + this.state.selectedInstance + "`");
+                    break;
+            }
         }
-        switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
-            case 1 :
-                window.open(this.state.instanceLabs.get(this.state.selectedInstance).url);
-                break;
-            case 0:
-                Toastr.info("The lab `" + this.state.selectedInstance + "` is still starting");
-                break;
-            default:
-                Toastr.info("An error has occurred with the lab `" + this.state.selectedInstance + "`");
-                break;
-        }
+        this.changeSelectedCRDinstance(null);
     }
 
     /**
