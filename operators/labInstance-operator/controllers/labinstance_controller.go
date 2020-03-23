@@ -211,7 +211,6 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 		resp, err := http.Get(url)
 		if err != nil || resp == nil {
 			log.Error(err, "unable to perform get on "+url)
-			resp.Body.Close()
 		} else {
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
