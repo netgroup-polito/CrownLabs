@@ -13,8 +13,9 @@ export default class ApiManager {
      * @param studentID the student id retrieved
      * @param templateNS the laboratories the user can see (cloud-computing, software-networking namespaces/roles in cluster)
      * @param instanceNS the user namespace where to run its instances
+     * @param adminNS the namespaces which you are admin
      */
-    constructor(token, type, studentID, templateNS, instanceNS) {
+    constructor(token, type, studentID, templateNS, instanceNS, adminNS) {
         this.kc = new Config(APISERVER_URL, token, type);
         this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
         this.templateGroup = "template.crown.team.com";
@@ -25,6 +26,8 @@ export default class ApiManager {
         this.studentID = studentID;
         this.templateNamespace = templateNS;
         this.instanceNamespace = instanceNS;
+        /*TODO: still to understand how to use admin namespaces*/
+        this.adminNS = adminNS;
     }
 
     /**
@@ -34,21 +37,19 @@ export default class ApiManager {
      * @return the object {courseNamespace, List of lab templates} if available
      */
     async retrieveSingleCRDtemplate(course) {
-        if (course.includes("kubernetes:")) {
-            let courseNs = course.replace("kubernetes:", '');
-            let ret = await this.apiCRD.listNamespacedCustomObject(this.templateGroup, this.version, courseNs, this.templatePlural)
-                .then(nodesResponse => {
-                    return nodesResponse.body.items.map(x => {
-                        return x.metadata.name;
-                    });
-                })
-                .catch(error => {
-                    Promise.reject(error);
+        let ret = await this.apiCRD.listNamespacedCustomObject(this.templateGroup, this.version, course, this.templatePlural)
+            .then(nodesResponse => {
+                return nodesResponse.body.items.map(x => {
+                    return x.metadata.name;
                 });
-            if (ret !== null) {
-                return {course: courseNs, labs: ret};
-            }
+            })
+            .catch(error => {
+                Promise.reject(error);
+            });
+        if (ret !== null) {
+            ret = {course: course, labs: ret};
         }
+        return ret;
     }
 
     /**
@@ -109,7 +110,7 @@ export default class ApiManager {
      */
     createCRDtemplate(name, namespace) {
         return this.apiCRD.createNamespacedCustomObject(this.templateGroup, this.version, namespace, this.templatePlural, {
-            /*FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE*/
+            /*TODO: FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE and check namespaces*/
         },);
     }
 

@@ -12,9 +12,7 @@ module.exports = {
         publicPath: '/',
     },
     devServer: {
-        headers: {
-            'Access-Control-Allow-Origin': '*'
-        },
+        host: "0.0.0.0",
         port: 8000,
         historyApiFallback: true
     },
