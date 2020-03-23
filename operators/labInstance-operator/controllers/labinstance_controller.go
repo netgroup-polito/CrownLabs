@@ -212,11 +212,12 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 		if err != nil || resp == nil {
 			log.Error(err, "unable to perform get on "+url)
 			resp.Body.Close()
-		}
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
-			resp.Body.Close()
-			break
+		} else {
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
+				resp.Body.Close()
+				break
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}
