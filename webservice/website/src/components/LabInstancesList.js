@@ -60,9 +60,9 @@ export default function LabInstancesList(props) {
                 </List>
             </div>
             <ButtonGroup aria-label="Basic example">
-                <Button variant="dark" className="text-light" onClick={props.connect}>Connect</Button>
+                <Button variant="dark" className="text-light" onClick={() =>{props.connect(); setSelectedIndex(-1);}}>Connect</Button>
                 <Button variant="dark" className="text-danger"
-                        onClick={props.stop}>Stop</Button>
+                        onClick={() => {props.stop(); setSelectedIndex(-1)}}>Stop</Button>
                 <Button variant="dark" className="text-info"
                         onClick={props.showStatus}>Show status</Button>
             </ButtonGroup>

@@ -58,7 +58,7 @@ export default function LabTemplatesList(props) {
                 </List>
             </div>
             <Button variant="dark" className="text-success"
-                    onClick={props.start}>Start</Button>
+                    onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
         </div>
     );
 }
