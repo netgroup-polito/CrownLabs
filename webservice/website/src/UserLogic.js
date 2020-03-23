@@ -28,7 +28,7 @@ export default class UserLogic extends React.Component {
         this.connect = this.connect.bind(this);
         this.changeSelectedCRDtemplate = this.changeSelectedCRDtemplate.bind(this);
         this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
-        this.startCRD = this.startCRD.bind(this);
+        this.startCRDinstance = this.startCRDinstance.bind(this);
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
 
@@ -137,7 +137,7 @@ export default class UserLogic extends React.Component {
     /**
      * Function to start and create a CRD instance using the actual selected one
      */
-    startCRD() {
+    startCRDinstance() {
         if (!this.state.selectedTemplate.name) {
             Toastr.info("Please select a lab before starting it");
             return;
@@ -176,8 +176,7 @@ export default class UserLogic extends React.Component {
             return;
         }
         this.apiManager.deleteCRDinstance(this.state.selectedInstance)
-            .then(
-                (response) => {
+            .then(() => {
                     Toastr.success("Successfully stopped `" + this.state.selectedInstance + "`");
                     const newMap = this.state.instanceLabs;
                     newMap.delete(this.state.selectedInstance);
@@ -188,7 +187,7 @@ export default class UserLogic extends React.Component {
                 this.handleErrors(error);
             })
             .finally(() => {
-                this.changeSelectedCRDtemplate(null);
+                this.changeSelectedCRDinstance(null);
             });
     }
 
@@ -285,7 +284,7 @@ export default class UserLogic extends React.Component {
         switch (error.response._fetchResponse.status) {
             case 401 :
                 msg += "Token still valid but expired validity for the Cluster, please login again";
-                this.logoutInterval()
+                this.logoutInterval();
                 break;
             case 403 :
                 msg += "It seems you do not have the right permissions to perform this operation";
@@ -316,7 +315,7 @@ export default class UserLogic extends React.Component {
                         <StudentView templateLabs={this.state.templateLabs}
                                      funcTemplate={this.changeSelectedCRDtemplate}
                                      funcInstance={this.changeSelectedCRDinstance}
-                                     start={this.startCRD}
+                                     start={this.startCRDinstance}
                                      instanceLabs={this.state.instanceLabs}
                                      connect={this.connect}
                                      stop={this.stopCRDinstance}
