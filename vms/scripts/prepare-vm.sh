@@ -41,8 +41,9 @@ wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz |
 mkdir -p $VNC_PATH
 
 # Set vnc password
-echo "${VNC_PWD}" | vncpasswd -f > "${VNC_PATH}/passwd"
-chmod 0600 "${VNC_PATH}/passwd"
+# @featureremoved
+#echo "${VNC_PWD}" | vncpasswd -f > "${VNC_PATH}/passwd"
+#chmod 0600 "${VNC_PATH}/passwd"
 
 # Set vnc xstartup file
 tee "${VNC_PATH}/xstartup" > /dev/null <<EOT
@@ -65,7 +66,7 @@ Type=forking
 User=${USER}
 Group=${USER}
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill %i > /dev/null 2>&1 || :'
-ExecStart=/usr/bin/vncserver %i -localhost
+ExecStart=/usr/bin/vncserver %i -SecurityTypes None -localhost
 ExecStop=/usr/bin/vncserver -kill %i
 RemainAfterExit=yes
 
