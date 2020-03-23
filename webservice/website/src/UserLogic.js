@@ -7,11 +7,22 @@ import ApiManager from "./services/ApiManager";
 import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css'
+import {Container} from "react-bootstrap";
 
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
 export default class UserLogic extends React.Component {
+    /*The State variable contains:
+    * - all lab templates as a Map: (course_group => Array of available templates for that course)
+    * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
+    * - current selected CRD template as an object (name, namespace).
+    * - current selected CRD instance
+    * - all namespaced events as a string
+    * - boolean variable whether to show the status info area
+    * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
+    * - isAdminSomewhere which is false if the user is not admin in any course, otherwise true
+    * */
     constructor(props) {
         super(props);
         this.connect = this.connect.bind(this);
@@ -21,23 +32,16 @@ export default class UserLogic extends React.Component {
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
 
-        /*Attempting to retrieve the token stored in the sessionStorage by OIDC library, otherwise go back*/
+        /*Retrieve, decode and check the token received. If errors immediately logout after a msg prompt*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        if (!retrievedSessionToken || !retrievedSessionToken.id_token) {
-            Toastr.error("You received a non valid token, please check carefully its fields");
-            sessionStorage.clear();
-            document.location.reload();
-        }
-        /*State variable which contains:
-        * - all lab templates as a Map: (course_group => Array of available templates for that course)
-        * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
-        * - current selected CRD template as an object (name, namespace).
-        * - current selected CRD instance
-        * - all namespaced events as a string
-        * */
         let parsedToken = this.parseJWTtoken(retrievedSessionToken.id_token);
-        // TODO : check fields
-        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer", parsedToken.preferred_username, parsedToken.groups, parsedToken.namespace[0]);
+        if (!this.checkToken(parsedToken, retrievedSessionToken)) {
+            this.logoutInterval();
+        }
+        /*Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student*/
+        let adminGroups = parsedToken.groups.filter(x => x.match(/kubernetes:\S+admin/g)).map(x => x.replace('kubernetes:', '').replace('-admin', ''));
+        let userGroups = parsedToken.groups.filter(x => x.includes('kubernetes:') && !x.includes('-admin')).map(x => x.replace('kubernetes:', ''));
+        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer", parsedToken.preferred_username, userGroups, parsedToken.namespace[0], adminGroups);
         this.state = {
             templateLabs: new Map(),
             instanceLabs: new Map(),
@@ -45,8 +49,8 @@ export default class UserLogic extends React.Component {
             selectedInstance: null,
             events: "",
             statusHidden: true,
-            /*TODO : add this field to the access token*/
-            privileged: parsedToken.privileged
+            adminHidden: true,
+            isAdminSomewhere: adminGroups.length > 0
         };
         this.retrieveCRDtemplates();
         this.retrieveCRDinstances()
@@ -69,6 +73,28 @@ export default class UserLogic extends React.Component {
         return JSON.parse(decodeURIComponent(atob(base64).split('').map(function (c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join('')));
+    }
+
+    /**
+     * Function to check the token, but encoded and decoded
+     * @param parsed the decoded one
+     * @param origin the encoded one
+     * @return {boolean} true or false whether the token satisfies the constraints
+     */
+    checkToken(parsed, origin) {
+        if (!origin || !origin.id_token) {
+            Toastr.error("You received a non valid token, please check carefully its fields");
+            return false
+        }
+        if (!parsed.groups || !parsed.groups.length) {
+            Toastr.error("You do not belong to any namespace to see laboratories");
+            return false;
+        }
+        if (!parsed.namespace || !parsed.namespace[0]) {
+            Toastr.error("You do not have your own namespace where to run laboratories");
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -167,11 +193,21 @@ export default class UserLogic extends React.Component {
     }
 
     /**
+     * Function to perform logout when session with cluster expires
+     */
+    logoutInterval() {
+        setInterval(() => {
+            /*A reload probably is sufficient to re-authN the token*/
+            this.props.logout();
+        }, 2000);
+    }
+
+    /**
      * Function to connect to the VM of the actual selected CRD instance
      */
     connect() {
         if (!this.state.selectedInstance) {
-            Toastr.info("No lab selected to connect to");
+            Toastr.info("No running lab selected to connect to");
             return
         }
         if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
@@ -249,9 +285,7 @@ export default class UserLogic extends React.Component {
         switch (error.response._fetchResponse.status) {
             case 401 :
                 msg += "Token still valid but expired validity for the Cluster, please login again";
-                setInterval(() => {
-                    document.location.reload();
-                }, 2000);
+                this.logoutInterval()
                 break;
             case 403 :
                 msg += "It seems you do not have the right permissions to perform this operation";
@@ -261,9 +295,7 @@ export default class UserLogic extends React.Component {
                 break;
             default :
                 msg += "An error occurred(" + error.response._fetchResponse.status + "), please login again";
-                setInterval(() => {
-                    document.location.reload();
-                }, 2000);
+                this.logoutInterval()
         }
         Toastr.error(msg);
     }
@@ -276,17 +308,22 @@ export default class UserLogic extends React.Component {
     render() {
         return (
             <div style={{minHeight: '100vh'}}>
-                <Header logged={true} logout={this.props.logout}/>
-                {this.state.privileged ? <ProfessorView/> :
-                    <StudentView templateLabs={this.state.templateLabs} funcTemplate={this.changeSelectedCRDtemplate}
-                                 funcInstance={this.changeSelectedCRDinstance}
-                                 start={this.startCRD}
-                                 instanceLabs={this.state.instanceLabs}
-                                 connect={this.connect}
-                                 stop={this.stopCRDinstance}
-                                 events={this.state.events}
-                                 showStatus={() => this.setState({statusHidden: !this.state.statusHidden})}
-                                 hidden={this.state.statusHidden}/>}
+                <Header logged={true} logout={this.props.logout} adminHidden={this.state.adminHidden}
+                        renderAdminBtn={this.state.isAdminSomewhere}
+                        switchAdminView={() => this.setState({adminHidden: !this.state.adminHidden})}/>
+                <Container fluid className="cover mt-5">
+                    {!this.state.adminHidden ? <ProfessorView/> :
+                        <StudentView templateLabs={this.state.templateLabs}
+                                     funcTemplate={this.changeSelectedCRDtemplate}
+                                     funcInstance={this.changeSelectedCRDinstance}
+                                     start={this.startCRD}
+                                     instanceLabs={this.state.instanceLabs}
+                                     connect={this.connect}
+                                     stop={this.stopCRDinstance}
+                                     events={this.state.events}
+                                     showStatus={() => this.setState({statusHidden: !this.state.statusHidden})}
+                                     hidden={this.state.statusHidden}/>}
+                </Container>
                 <Footer/>
             </div>
         );
