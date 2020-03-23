@@ -1,53 +1,74 @@
 import React from 'react';
-import {Row, Col} from 'react-bootstrap';
-import SideBar from './components/SideBar';
 import Footer from './components/Footer';
-import InfoCard from "./components/InfoCard";
-import CentralView from "./components/CentralView";
 import Header from "./components/Header";
+import StudentView from "./views/StudentView";
+import ProfessorView from "./views/ProfessorView";
 import ApiManager from "./services/ApiManager";
 import Toastr from 'toastr';
 
-import './App.css';
 import 'toastr/build/toastr.min.css'
 
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
-export default class UserView extends React.Component {
+export default class UserLogic extends React.Component {
     constructor(props) {
         super(props);
+        this.connect = this.connect.bind(this);
+        this.changeSelectedCRDtemplate = this.changeSelectedCRDtemplate.bind(this);
+        this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
+        this.startCRD = this.startCRD.bind(this);
+        this.stopCRDinstance = this.stopCRDinstance.bind(this);
+        this.notifyEvent = this.notifyEvent.bind(this);
+
         /*Attempting to retrieve the token stored in the sessionStorage by OIDC library, otherwise go back*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        /*For future development: the parseToken function in the ApiManager could be moved here and check the token fields here,
-        * allowing this class to understand if the user is unprivileged or not*/
         if (!retrievedSessionToken || !retrievedSessionToken.id_token) {
             Toastr.error("You received a non valid token, please check carefully its fields");
             sessionStorage.clear();
             document.location.reload();
         }
-        this.connect = this.connect.bind(this);
-        this.changeSelectedCRD = this.changeSelectedCRD.bind(this);
-        this.startCRD = this.startCRD.bind(this);
-        this.stopCRDinstance = this.stopCRDinstance.bind(this);
-        this.notifyEvent = this.notifyEvent.bind(this);
         /*State variable which contains:
         * - all lab templates as a Map: (course_group => Array of available templates for that course)
         * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
-        * - current selected CRD as an object (name, namespace). Namespace set only when a lab instance is selected, not a template (needed by deletion)
+        * - current selected CRD template as an object (name, namespace).
+        * - current selected CRD instance
         * - all namespaced events as a string
         * */
+        let parsedToken = this.parseJWTtoken(retrievedSessionToken.id_token);
+        // TODO : check fields
+        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer", parsedToken.preferred_username, parsedToken.groups, parsedToken.namespace[0]);
         this.state = {
             templateLabs: new Map(),
             instanceLabs: new Map(),
-            selectedCRD: {name: null, namespace: null},
-            events: ""
+            selectedTemplate: {name: null, namespace: null},
+            selectedInstance: null,
+            events: "",
+            statusHidden: true,
+            /*TODO : add this field to the access token*/
+            privileged: parsedToken.privileged
         };
-        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer");
         this.retrieveCRDtemplates();
-        this.retrieveCRDinstances();
-        /*Start watching for namespaced events*/
-        this.apiManager.startWatching(this.notifyEvent);
+        this.retrieveCRDinstances()
+            .then(() => {
+                /*Start watching for namespaced events*/
+                this.apiManager.startWatching(this.notifyEvent);
+            })
+            .catch((error) => {
+                this.handleErrors(error);
+            });
+    }
+
+    /**
+     * Function to parse a JWT token
+     * @param token the token received by keycloak
+     * @returns {any} the decrypted token as a JSON object
+     */
+    parseJWTtoken(token) {
+        let base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(decodeURIComponent(atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')));
     }
 
     /**
@@ -71,13 +92,13 @@ export default class UserView extends React.Component {
      * Private function to retrieve all CRD instances running
      */
     retrieveCRDinstances() {
-        this.apiManager.getCRDinstances()
+        return this.apiManager.getCRDinstances()
             .then((nodesResponse) => {
                 const nodes = nodesResponse.body.items;
                 let newMap = this.state.instanceLabs;
                 nodes.forEach(x => {
                     if (!newMap.has(x.metadata.name)) {
-                        newMap.set(x.metadata.name, null);
+                        newMap.set(x.metadata.name, {status: 0, url: null});
                     }
                 });
                 this.setState({instanceLabs: newMap});
@@ -91,28 +112,28 @@ export default class UserView extends React.Component {
      * Function to start and create a CRD instance using the actual selected one
      */
     startCRD() {
-        if (!this.state.selectedCRD.name) {
+        if (!this.state.selectedTemplate.name) {
             Toastr.info("Please select a lab before starting it");
             return;
         }
-        if (this.state.instanceLabs.has(this.state.selectedCRD.name)) {
-            Toastr.info("The `" + this.state.selectedCRD.name + '` lab is already running');
+        if (this.state.instanceLabs.has(this.state.selectedTemplate.name)) {
+            Toastr.info("The `" + this.state.selectedTemplate.name + '` lab is already running');
             return;
         }
-        this.apiManager.createCRDinstance(this.state.selectedCRD.name, this.state.selectedCRD.namespace)
+        this.apiManager.createCRDinstance(this.state.selectedTemplate.name, this.state.selectedTemplate.namespace)
             .then(
                 (response) => {
-                    Toastr.success("Successfully started lab `" + this.state.selectedCRD.name + "`");
+                    Toastr.success("Successfully started lab `" + this.state.selectedTemplate.name + "`");
                     const newMap = this.state.instanceLabs;
                     newMap.set(response.body.metadata.name, {status: 0, url: null});
                     this.setState({instanceLabs: newMap});
-                },
-                (error) => {
-                    this.handleErrors(error);
                 }
             )
+            .catch((error) => {
+                this.handleErrors(error);
+            })
             .finally(() => {
-                this.changeSelectedCRD(null, null);
+                this.changeSelectedCRDtemplate(null, null);
             });
     }
 
@@ -120,28 +141,28 @@ export default class UserView extends React.Component {
      * Function to stop and delete the current selected CRD instance
      */
     stopCRDinstance() {
-        if (!this.state.selectedCRD.name) {
+        if (!this.state.selectedInstance) {
             Toastr.info("No lab to stop has been selected");
             return;
         }
-        if (!this.state.instanceLabs.has(this.state.selectedCRD.name)) {
-            Toastr.info("The `" + this.state.selectedCRD.name + '` lab is not running');
+        if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
+            Toastr.info("The `" + this.state.selectedInstance + '` lab is not running');
             return;
         }
-        this.apiManager.deleteCRDinstance(this.state.selectedCRD.name)
+        this.apiManager.deleteCRDinstance(this.state.selectedInstance)
             .then(
                 (response) => {
-                    Toastr.success("Successfully stopped `" + this.state.selectedCRD.name + "`");
+                    Toastr.success("Successfully stopped `" + this.state.selectedInstance + "`");
                     const newMap = this.state.instanceLabs;
-                    newMap.delete(this.state.selectedCRD.name);
+                    newMap.delete(this.state.selectedInstance);
                     this.setState({instanceLabs: newMap});
-                },
-                (error) => {
-                    this.handleErrors(error);
                 }
             )
+            .catch((error) => {
+                this.handleErrors(error);
+            })
             .finally(() => {
-                this.changeSelectedCRD(null, null);
+                this.changeSelectedCRDtemplate(null);
             });
     }
 
@@ -149,20 +170,25 @@ export default class UserView extends React.Component {
      * Function to connect to the VM of the actual selected CRD instance
      */
     connect() {
-        if (!this.state.selectedCRD.name) {
+        if (!this.state.selectedInstance) {
             Toastr.info("No lab selected to connect to");
             return
         }
-        if (!this.state.instanceLabs.has(this.state.selectedCRD.name)) {
-            Toastr.info("The lab `" + this.state.selectedCRD.name + "` is not running");
+        if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
+            Toastr.info("The lab `" + this.state.selectedInstance + "` is not running");
             return;
         }
-        if (this.state.instanceLabs.get(this.state.selectedCRD.name).status !== 1) {
-            Toastr.info("The lab `" + this.state.selectedCRD.name + "` is still starting");
-            return;
+        switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
+            case 1 :
+                window.open(this.state.instanceLabs.get(this.state.selectedInstance).url);
+                break;
+            case 0:
+                Toastr.info("The lab `" + this.state.selectedInstance + "` is still starting");
+                break;
+            default:
+                Toastr.info("An error has occurred with the lab `" + this.state.selectedInstance + "`");
+                break;
         }
-        window.open(this.state.instanceLabs.get(this.state.selectedCRD.name).url);
-        this.changeSelectedCRD(null);
     }
 
     /**
@@ -173,7 +199,7 @@ export default class UserView extends React.Component {
     notifyEvent(type, object) {
         if (!type) {
             /*Watch session ended, restart it*/
-            this.apiManager.startWatching(this.notifyEvent);
+            document.location.reload();
             return;
         }
         if (object && object.status) {
@@ -183,7 +209,7 @@ export default class UserView extends React.Component {
                 const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: null, status: -1});
                 this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
-            } else if (object.status.phase.match(/VmiRunning/g) && (type === "ADDED" || type === "MODIFIED")) {
+            } else if (object.status.phase.match(/VmiReady/g) && (type === "ADDED" || type === "MODIFIED")) {
                 /*Object creation succeeded*/
                 const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: object.status.url, status: 1});
@@ -196,16 +222,22 @@ export default class UserView extends React.Component {
     }
 
     /**
-     * Function to change the user selected CRD
+     * Function to change the user selected CRD template
      * @param name the name/label of the new one
-     * @param namespace the namespace in which the template should be retrieved (null if want to run an instance)
+     * @param namespace the namespace in which the template should be retrieved
      */
-    changeSelectedCRD(name, namespace) {
+    changeSelectedCRDtemplate(name, namespace) {
         this.setState({
-            selectedCRD: {
-                name: name, namespace: namespace
-            }
+            selectedTemplate: {name: name, namespace: namespace}
         });
+    }
+
+    /**
+     * Function to change the user selected CRD instance
+     * @param name the name/label of the new one
+     */
+    changeSelectedCRDinstance(name) {
+        this.setState({selectedInstance: name});
     }
 
     /**
@@ -242,25 +274,19 @@ export default class UserView extends React.Component {
      * @returns the component to be drawn
      */
     render() {
-        /*For future development, a part from Footer and Header the other components could be moved into another UserView class
-        (and renaming this one to MainWindow) and handle the rendering of the correct view(privileged or not) here in this method
-        by checking the parsed token field*/
         return (
             <div style={{minHeight: '100vh'}}>
                 <Header logged={true} logout={this.props.logout}/>
-                <Row className="mt-5 p-3">
-                    <Col className="col-3">
-                        <SideBar labs={this.state.templateLabs} func={this.changeSelectedCRD}/>
-                    </Col>
-                    <Col className="col-6">
-                        <CentralView start={this.startCRD} stop={this.stopCRDinstance} connect={this.connect}
-                                     events={this.state.events}/>
-                    </Col>
-                    <Col className="col-3 text-center">
-                        <InfoCard runningLabs={this.state.instanceLabs} selectedCRD={this.state.selectedCRD.name}
-                                  func={this.changeSelectedCRD}/>
-                    </Col>
-                </Row>
+                {this.state.privileged ? <ProfessorView/> :
+                    <StudentView templateLabs={this.state.templateLabs} funcTemplate={this.changeSelectedCRDtemplate}
+                                 funcInstance={this.changeSelectedCRDinstance}
+                                 start={this.startCRD}
+                                 instanceLabs={this.state.instanceLabs}
+                                 connect={this.connect}
+                                 stop={this.stopCRDinstance}
+                                 events={this.state.events}
+                                 showStatus={() => this.setState({statusHidden: !this.state.statusHidden})}
+                                 hidden={this.state.statusHidden}/>}
                 <Footer/>
             </div>
         );
