@@ -18,6 +18,7 @@ package controllers
 import (
 	"context"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
 	"k8s.io/api/extensions/v1beta1"
@@ -84,7 +85,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate " + templateName.Name + " found in namespace " + labTemplate.Namespace)
 
 	// prepare variables common to all resources
-	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID + "-" + uuid.New().String()
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	b := true
