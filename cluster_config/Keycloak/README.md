@@ -5,12 +5,13 @@ It enables to concentrate all the tasks related to identity and access managemen
 
 This brief guide presents how to install Keycloak in HA in a K8S cluster with a PostgreSQL Database backend (also in HA).
 
+More info at [Keycloak's website](https://www.keycloak.org)
 ## Pre-requisites
 Here we assume that in the K8S cluster the following operators are installed and configured:
 * [ROOK](https://rook.io/)
 * [NGINX Ingress Controller](https://www.nginx.com/products/nginx/kubernetes-ingress-controller/)
 * [cert-manager](https://cert-manager.io/)
-* A namespace in K8S cluster called **keycloak-ha** 
+* A namespace in K8S cluster called **keycloak-ha**
 
 You will need the following tools installed in your workstation:
 * [Helm](https://helm.sh/)
@@ -18,7 +19,7 @@ You will need the following tools installed in your workstation:
 ## PostgreSQL-Operator
 The following steps will install the postgresql-operator in the namespace called **keycloak-ha**.
 The Postgres Operator can be installed simply by applying `yaml` manifests, after properly changing the namespace in file [operator-service-account-rbac.yaml](manifests/operator-service-account-rbac.yaml) for the `service account` and `cluster rolebinding`.
- 
+
 ### Manual deployment setup
 For more details, please visit the [official documentation website](https://github.com/zalando/postgres-operator#documentation).
 
@@ -51,8 +52,8 @@ kubectl create -f keycloak-postgres-cluster-manifest.yaml
 
 After the cluster manifest is submitted and passed the validation, the operator will create *Service* and *Endpoint* resources and a *StatefulSet* which spins up new pod(s) given the number of instances specified in the manifest.
 All resources are named like the cluster. The database pods can be identified by their number suffix, starting from -0. They run the Spilo container image by Zalando.
-As for the services and endpoints, there will be one for the master pod and another one for all the replicas (-repl suffix). 
-We sugges to check if all components are coming up. Use the label `application=spilo` to filter, and check the label `spilo-role` 
+As for the services and endpoints, there will be one for the master pod and another one for all the replicas (-repl suffix).
+We suggest to check if all components are coming up. Use the label `application=spilo` to filter, and check the label `spilo-role`
 to see who is currently the master.
 
 ```bash
@@ -91,16 +92,44 @@ Note, you need to rename the later one in `values.yaml`.
 The following are some changes that have bene done to user the resources deployed before in this guide:
 
 ```yaml
-#add the volume and volumeMount of the tls-certificate for keycloak in values.yaml file
-  extraVolumes: |
-   - name: keycloak-tls-certificate
-     secret:
-       defaultMode: 420
-       secretName: keycloak-tls-certificate-secret
-  extraVolumeMounts: |
-   - mountPath: /etc/x509/https
-     name: keycloak-tls-certificate
-     readOnly: true
+# add the volume and volumeMount of the tls-certificate and of the custom template for keycloak in values.yaml file
+extraVolumes: |
+  - name: keycloak-tls-certificate
+    secret:
+      defaultMode: 420
+      secretName: keycloak-tls-certificate-secret
+  - configMap:
+      defaultMode: 420
+      name: keycloak-theme-email
+    name: keycloak-theme-email
+  - configMap:
+      defaultMode: 420
+      name: keycloak-theme-email-messages
+    name: keycloak-theme-email-messages
+  - configMap:
+      defaultMode: 420
+      name: keycloak-theme-email-html
+    name: keycloak-theme-email-html
+  - configMap:
+      defaultMode: 420
+      name: keycloak-theme-email-text
+    name: keycloak-theme-email-text
+extraVolumeMounts: |
+  - mountPath: /etc/x509/https
+    name: keycloak-tls-certificate
+    readOnly: true
+  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email
+    name: keycloak-theme-email
+    readOnly: true
+  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/messages
+    name: keycloak-theme-email-messages
+    readOnly: true
+  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/html
+    name: keycloak-theme-email-html
+    readOnly: true
+  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/text
+    name: keycloak-theme-email-text
+    readOnly: true
 ```
 
 Set the number of replicas of the server according to your preferences:
@@ -146,6 +175,19 @@ Now, check that the new pods are up and running. Once everything has gone smooth
 kubectl create -f manifests/keycloak-ingress.yaml -n keycloak-ha
 ```
 
+### Customize the email templates
+In order to customize the different email templates, proceed as follows:
+
+1. Edit the relevant files in [templates/crownlabs](templates/crownlabs);
+2. Create the config maps:
+   ```sh
+   $ kubectl create configmap keycloak-theme-email -n keycloak-ha --from-file=templates/crownlabs/email/
+   $ kubectl create configmap keycloak-theme-email-html -n keycloak-ha --from-file=templates/crownlabs/email/html
+   $ kubectl create configmap keycloak-theme-email-text -n keycloak-ha --from-file=templates/crownlabs/email/text
+   $ kubectl create configmap keycloak-theme-email-messages -n keycloak-ha --from-file=templates/crownlabs/email/messages
+   ```
+3. Restart the `keycloak-server` pods to reload the configuration.
+
 ## Configure K8S api-server to be used with Keycloak
 Please follow the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) to allow the K8s Api-server to exploit the running Keycloak instance as identity provider.
 
@@ -161,7 +203,7 @@ For more details on how kubeconfig and kubectl work together, see the [Kubernete
 You should have kubectl installed at a version compatible to your cluster.
 
 
-#### Krew 
+#### Krew
 First, you should install [Krew](https://krew.sigs.k8s.io/), which facilitates the use of kubectl plugins.
 Here there is the commands for Linux (Bash/Zsh):
 
@@ -225,7 +267,7 @@ users:
       args:
       - oidc-login
       - get-token
-      - --oidc-issuer-url=https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/crownlabs
+      - --oidc-issuer-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs
       - --oidc-client-id=k8s
       - --oidc-client-secret=229a9d87-2bae-4e9b-8567-e8864b2bac4b
       - --skip-open-browser
@@ -234,4 +276,3 @@ users:
       command: kubectl
       env: null
 ```
-
