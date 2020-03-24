@@ -31,17 +31,14 @@ export default class UserLogic extends React.Component {
         this.startCRDinstance = this.startCRDinstance.bind(this);
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
-
-        /*Retrieve, decode and check the token received. If errors immediately logout after a msg prompt*/
-        let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        let parsedToken = this.parseJWTtoken(retrievedSessionToken.id_token);
-        if (!this.checkToken(parsedToken, retrievedSessionToken)) {
+        let parsedToken = this.parseJWTtoken(this.props.id_token);
+        if (!this.checkToken(parsedToken)) {
             this.logoutInterval();
         }
         /*Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student*/
         let adminGroups = parsedToken.groups.filter(x => x.match(/kubernetes:\S+admin/g)).map(x => x.replace('kubernetes:', '').replace('-admin', ''));
         let userGroups = parsedToken.groups.filter(x => x.includes('kubernetes:') && !x.includes('-admin')).map(x => x.replace('kubernetes:', ''));
-        this.apiManager = new ApiManager(retrievedSessionToken.id_token, retrievedSessionToken.token_type || "Bearer", parsedToken.preferred_username, userGroups, parsedToken.namespace[0], adminGroups);
+        this.apiManager = new ApiManager(this.props.id_token, this.props.token_type, parsedToken.preferred_username, userGroups, parsedToken.namespace[0], adminGroups);
         this.state = {
             templateLabs: new Map(),
             instanceLabs: new Map(),
@@ -54,13 +51,16 @@ export default class UserLogic extends React.Component {
         };
         this.retrieveCRDtemplates();
         this.retrieveCRDinstances()
-            .then(() => {
-                /*Start watching for namespaced events*/
-                this.apiManager.startWatching(this.notifyEvent);
-            })
             .catch((error) => {
                 this.handleErrors(error);
+            })
+            .finally(async () => {
+                /*Start watching for namespaced events*/
+                this.retrieveCRDinstanceStatus();
             });
+        setInterval(() => {
+            this.retrieveCRDinstanceStatus();
+        }, 10000);
     }
 
     /**
@@ -78,14 +78,9 @@ export default class UserLogic extends React.Component {
     /**
      * Function to check the token, but encoded and decoded
      * @param parsed the decoded one
-     * @param origin the encoded one
      * @return {boolean} true or false whether the token satisfies the constraints
      */
-    checkToken(parsed, origin) {
-        if (!origin || !origin.id_token) {
-            Toastr.error("You received a non valid token, please check carefully its fields");
-            return false
-        }
+    checkToken(parsed) {
         if (!parsed.groups || !parsed.groups.length) {
             Toastr.error("You do not belong to any namespace to see laboratories");
             return false;
@@ -227,6 +222,29 @@ export default class UserLogic extends React.Component {
     }
 
     /**
+     * Function to retrieve all CRD instances status
+     */
+    retrieveCRDinstanceStatus() {
+        const keys = Array.from(this.state.instanceLabs.keys());
+        keys.forEach(lab => {
+            this.apiManager.getCRDstatus(lab)
+                .then(response => {
+                    if (response.body.status && response.body.status.url) {
+                        const newMap = this.state.instanceLabs;
+                        const status = response.body.status.url;
+                        if (this.state.instanceLabs.get(lab) !== status) {
+                            this.notifyEvent("[" + response.body.metadata.creationTimestamp + "] " + response.body.status.phase);
+                            newMap.set(lab, status);
+                        }
+                        this.setState({instanceLabs: newMap});
+                    }
+                })
+                .catch(error => {
+                    this.handleErrors(error);
+                });
+        });
+    }
+    /**
      *Function to notify a Kubernetes Event related to your resources
      * @param type the type of the event
      * @param object the object of the event
@@ -234,7 +252,8 @@ export default class UserLogic extends React.Component {
     notifyEvent(type, object) {
         if (!type) {
             /*Watch session ended, restart it*/
-            document.location.reload();
+            alert("son qui");
+            this.apiManager.startWatching(this.notifyEvent);
             return;
         }
         if (object && object.status) {
@@ -283,7 +302,7 @@ export default class UserLogic extends React.Component {
         let msg = "";
         switch (error.response._fetchResponse.status) {
             case 401 :
-                msg += "Token still valid but expired validity for the Cluster, please login again";
+                msg += "Forbidden, something in the ticket renewal failed";
                 this.logoutInterval();
                 break;
             case 403 :
