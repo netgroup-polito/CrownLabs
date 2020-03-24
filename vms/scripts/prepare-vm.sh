@@ -1,16 +1,19 @@
 #!/bin/sh
 
 # Vars
-VNC_PWD="ccroot"
 NOVNC_PORT=6080
 
+# Paths
 VNC_PATH="/home/${USER}/.vnc"
 NOVNC_PATH="/usr/share/novnc"
 SYSTEMD_PATH="/etc/systemd/system"
+PERSISTENCE_SCRIPT="/usr/local/bin/persistence.sh"
 
+# Services
 VNC_SERVICE="vncserver@:1.service"
 NOVNC_SERVICE="novnc.service"
 PNE_SERVICE="prometheus_node_exporter.service"
+PERS_SERVICE="persistence.service"
 
 # Install Xfce (gnome gives errors)
 if ! test -f /usr/share/xsessions/xfce.desktop; then
@@ -31,20 +34,10 @@ fi
 # Numpy is needed by novnc
 sudo apt-get install -y openssh-server cloud-init python-numpy
 
-# Edit config of cloudinit
-sudo sed -i "/ - runcmd/c\ - [runcmd, always]" /etc/cloud/cloud.cfg
-sudo sed -i "/ - scripts-user/c\ - [scripts-user, always]" /etc/cloud/cloud.cfg
-
 # Install tigervnc
 # TigerVNC is the vncserver of choice
 wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz | sudo tar xz --strip 1 -C /
 mkdir -p $VNC_PATH
-
-# Set vnc password
-# @featureremoved
-# Need also to start vncserver with '-SecurityTypes None' to avoid password check
-#echo "${VNC_PWD}" | vncpasswd -f > "${VNC_PATH}/passwd"
-#chmod 0600 "${VNC_PATH}/passwd"
 
 # Set vnc xstartup file
 tee "${VNC_PATH}/xstartup" > /dev/null <<EOT
@@ -75,13 +68,10 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 EOT
 
-sudo systemctl daemon-reload
-sudo systemctl enable $VNC_SERVICE
-
 # Install NoVNC
 sudo mkdir -p $NOVNC_PATH/utils/websockify
 
-wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.0-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
+wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.1-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
 wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
 
 # Create the service for NoVNC
@@ -100,9 +90,6 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOT
-
-sudo systemctl daemon-reload
-sudo systemctl enable $NOVNC_SERVICE
 
 # Link to NoVNC landing page for easy url access
 sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
@@ -130,5 +117,31 @@ ExecStart=/usr/local/bin/node_exporter
 WantedBy=multi-user.target
 EOT
 
+# Persistence script as alternative to runcmd to change permissions
+sudo tee $PERSISTENCE_SCRIPT > /dev/null <<EOT
+#!/bin/bash
+if [ -d "/media/persistence" ]; then
+    sudo chown 1000:1000 /media/persistence
+    #sudo rm -rf /media/persistence/lost+found
+fi
+EOT
+sudo chmod +x $PERSISTENCE_SCRIPT
+
+# Persistence service
+sudo tee "${SYSTEMD_PATH}/${PERS_SERVICE}" > /dev/null <<EOT
+[Unit]
+Description=Change permissions to the persistent disk
+ 
+[Service]
+ExecStart=${PERSISTENCE_SCRIPT}
+ 
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# Enable services
 sudo systemctl daemon-reload
 sudo systemctl enable $PNE_SERVICE
+sudo systemctl enable $NOVNC_SERVICE
+sudo systemctl enable $VNC_SERVICE
+sudo systemctl enable $PERS_SERVICE
