@@ -26,7 +26,7 @@ To deliver our services, we leverage several components in the Kubernetes ecosys
 - **Grafana**, as dashboard
 - **Docker Registry**, to keep local the traffic required to download the VMs
 - **CoreDNS**, to resolve names into addresses within the cluster
-- **External DNS** (with bind9), to resolve public IP addresses into names
+- **External DNS** (with bind9), to resolve external names into public IP addresses
 
 In addition, we leverage the usual mixture of `bash`, `ansible`, Docker, Python and Go to create our glue logic.
 
