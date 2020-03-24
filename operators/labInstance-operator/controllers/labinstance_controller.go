@@ -17,6 +17,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
@@ -85,7 +86,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate " + templateName.Name + " found in namespace " + labTemplate.Namespace)
 
 	// prepare variables common to all resources
-	name := labTemplate.Name + "-" + labInstance.Spec.StudentID + "-" + uuid.New().String()
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID + "-" + fmt.Sprintf("%.8s", uuid.New().String())
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	b := true
@@ -207,7 +208,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	// when the vm status is Running, it is still not available for some seconds
 	// curl the url until the vm is ready
-	url := "https://" + ingress.Spec.Rules[0].Host + "/" + name
+	url := "https://" + ingress.Spec.Rules[0].Host + "/" + name + uuid.New().String()
 	for {
 		resp, err := http.Get(url)
 		if err != nil || resp == nil {
