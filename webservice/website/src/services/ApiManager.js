@@ -120,13 +120,27 @@ export default class ApiManager {
      * @param func the function to be called at each event
      */
     startWatching(func) {
-        watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
-            function (type, object) {
-                func(type, object);
-            },
-            function (e) {
-                func(null, e);
-            }
-        );
+        try{
+            watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
+                function (type, object) {
+                    func(type, object);
+                },
+                function (e) {
+                    func(null, e);
+                }
+            );
+        } catch(error) {
+            func(null, error);
+        }
+    }
+
+    /**
+     * Function to get a specific lab instance status
+     *
+     * @param name the name of the lab instance
+     * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result as a promise
+     */
+    getCRDstatus(name) {
+        return this.apiCRD.getNamespacedCustomObjectStatus(this.instanceGroup, this.version, this.instanceNamespace, this.instancePlural, name);
     }
 }
