@@ -3,8 +3,11 @@ import LabTemplatesList from "../components/LabTemplatesList";
 import LabInstancesList from "../components/LabInstancesList";
 import {Button, Col, Row} from "react-bootstrap";
 import StatusArea from "../components/StatusArea";
+import "./admin.css"
+
 
 export default function ProfessorView(props) {
+
     return <div style={{minHeight: '100vh'}}>
         <Row className="mt-5 p-3">
             <Col className="col-2"/>
@@ -23,13 +26,15 @@ export default function ProfessorView(props) {
             <Col className="col-2"/>
         </Row>
         <Row>
-
                 <Button variant="dark" className="text-success"
                         onClick={() => {}}> Create Template</Button>
+            <div className="divider"/>
                 <Button variant="dark" className="text-success"
                         onClick={() => {}}> Create Instance</Button>
+            <div className="divider"/>
                 <Button variant="dark" className="text-success"
                         onClick={() => {}}> Delete Template</Button>
+            <div className="divider"/>
                 <Button variant="dark" className="text-success"
                         onClick={() => {}}> Delete Instance</Button>
 
@@ -41,6 +46,8 @@ export default function ProfessorView(props) {
             </Col>
             <Col className="col-2"/>
         </Row>
+
+
 
     </div>;
 }
