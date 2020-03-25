@@ -54,13 +54,16 @@ export default class UserLogic extends React.Component {
             .catch((error) => {
                 this.handleErrors(error);
             })
-            .finally(async () => {
+            .finally(() => {
                 /*Start watching for namespaced events*/
+                this.apiManager.startWatching(this.notifyEvent);
+
+                /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
                 this.retrieveCRDinstanceStatus();
+                setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
+                */
             });
-        setInterval(() => {
-            this.retrieveCRDinstanceStatus();
-        }, 10000);
+
     }
 
     /**
@@ -223,6 +226,8 @@ export default class UserLogic extends React.Component {
     }
 
     /**
+     * * @@@@ UNUSED (since watcher has been patched and works)
+     *
      * Function to retrieve all CRD instances status
      */
     retrieveCRDinstanceStatus() {
@@ -230,14 +235,17 @@ export default class UserLogic extends React.Component {
         keys.forEach(lab => {
             this.apiManager.getCRDstatus(lab)
                 .then(response => {
-                    if (response.body.status && response.body.status.url) {
+                    if (response.body.status && response.body.status.phase) {
+                        let msg = "[" + response.body.metadata.creationTimestamp + "] " + lab + " => " + response.body.status.phase;
                         const newMap = this.state.instanceLabs;
-                        const status = response.body.status.url;
-                        if (this.state.instanceLabs.get(lab) !== status) {
-                            this.notifyEvent("[" + response.body.metadata.creationTimestamp + "] " + response.body.status.phase);
-                            newMap.set(lab, status);
+                        if (response.body.status.phase.match(/Fail|Not/g)) {
+                            /*Object creation failed*/
+                            newMap.set(lab, {url: null, status: -1});
+                        } else if (response.body.status.phase.match(/VmiReady/g)) {
+                            /*Object creation succeeded*/
+                            newMap.set(lab, {url: response.body.status.url, status: 1});
                         }
-                        this.setState({instanceLabs: newMap});
+                        this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
                     }
                 })
                 .catch(error => {
@@ -245,6 +253,7 @@ export default class UserLogic extends React.Component {
                 });
         });
     }
+
     /**
      *Function to notify a Kubernetes Event related to your resources
      * @param type the type of the event
@@ -253,26 +262,21 @@ export default class UserLogic extends React.Component {
     notifyEvent(type, object) {
         if (!type) {
             /*Watch session ended, restart it*/
-            alert("son qui");
             this.apiManager.startWatching(this.notifyEvent);
+            this.setState({events: ""});
             return;
         }
         if (object && object.status) {
-            let msg = "[" + object.metadata.creationTimestamp + "] " + object.metadata.name + "\n|===> Event Type: " + type + ", Status: " + object.status.phase;
+            let msg = "[" + object.metadata.creationTimestamp + "] " + object.metadata.name + " {type: " + type + ", status: " + object.status.phase + "}";
+            const newMap = this.state.instanceLabs;
             if (object.status.phase.match(/Fail|Not/g)) {
                 /*Object creation failed*/
-                const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: null, status: -1});
-                this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
             } else if (object.status.phase.match(/VmiReady/g) && (type === "ADDED" || type === "MODIFIED")) {
                 /*Object creation succeeded*/
-                const newMap = this.state.instanceLabs;
                 newMap.set(object.metadata.name, {url: object.status.url, status: 1});
-                this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
-            } else {
-                /*The object is still creating*/
-                this.setState({events: msg + "\n" + this.state.events});
             }
+            this.setState({instanceLabs: newMap, events: msg + "\n" + this.state.events})
         }
     }
 
