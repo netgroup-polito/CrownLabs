@@ -26,17 +26,13 @@ export default function ProfessorView(props) {
             <Col className="col-2"/>
         </Row>
         <Row>
-                <Button variant="dark" className="text-success"
-                        onClick={() => {}}> Create Template</Button>
+                <Button variant="dark" className="text-success"> Create Template</Button>
             <div className="divider"/>
-                <Button variant="dark" className="text-success"
-                        onClick={() => {}}> Create Instance</Button>
+                <Button variant="dark" className="text-success"> Create Instance</Button>
             <div className="divider"/>
-                <Button variant="dark" className="text-success"
-                        onClick={() => {}}> Delete Template</Button>
+                <Button variant="dark" className="text-success"> Delete Template</Button>
             <div className="divider"/>
-                <Button variant="dark" className="text-success"
-                        onClick={() => {}}> Delete Instance</Button>
+            <Button variant="dark" className="text-success"> Delete Instance</Button>
 
         </Row>
         <Row>

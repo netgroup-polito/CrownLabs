@@ -346,6 +346,10 @@ export default class UserLogic extends React.Component {
                             showStatus={() => this.setState({statusHidden: !this.state.statusHidden})}
                             hidden={this.state.statusHidden}
                             // createTemplate={this.apiManager.createCRDtemplate(this.MyName,this.MyNamespace)}
+                            // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
+                            // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
+                            // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}
+
                         /> :
                         <StudentView templateLabs={this.state.templateLabs}
                                      funcTemplate={this.changeSelectedCRDtemplate}
