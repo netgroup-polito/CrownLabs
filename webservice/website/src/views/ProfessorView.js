@@ -1,5 +1,46 @@
 import React from "react";
+import LabTemplatesList from "../components/LabTemplatesList";
+import LabInstancesList from "../components/LabInstancesList";
+import {Button, Col, Row} from "react-bootstrap";
+import StatusArea from "../components/StatusArea";
 
 export default function ProfessorView(props) {
-    return <div>This page is not yet available.</div>;
+    return <div style={{minHeight: '100vh'}}>
+        <Row className="mt-5 p-3">
+            <Col className="col-2"/>
+            <Col className="col-4">
+                <LabTemplatesList labs={props.templateLabs} func={props.funcTemplate}
+                                  start={props.start}/>
+                <Button variant="dark" className="text-success"
+                        onClick={() => {}}> Enable/Disable</Button>
+            </Col>
+            <Col className="col-4">
+                <LabInstancesList runningLabs={props.instanceLabs}
+                                  func={props.funcInstance} connect={props.connect}
+                                  stop={props.stop}
+                                  showStatus={props.showStatus}/>
+            </Col>
+            <Col className="col-2"/>
+        </Row>
+        <Row>
+
+                <Button variant="dark" className="text-success"
+                        onClick={() => {}}> Create Template</Button>
+                <Button variant="dark" className="text-success"
+                        onClick={() => {}}> Create Instance</Button>
+                <Button variant="dark" className="text-success"
+                        onClick={() => {}}> Delete Template</Button>
+                <Button variant="dark" className="text-success"
+                        onClick={() => {}}> Delete Instance</Button>
+
+        </Row>
+        <Row>
+            <Col className="col-2"/>
+            <Col className="col-8">
+                <StatusArea hidden={props.hidden} events={props.events}/>
+            </Col>
+            <Col className="col-2"/>
+        </Row>
+
+    </div>;
 }
