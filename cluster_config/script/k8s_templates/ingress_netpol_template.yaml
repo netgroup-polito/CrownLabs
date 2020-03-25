@@ -1,0 +1,39 @@
+# All the ingress traffic to the student VM is automatically dropped.
+# NOTE: exceptions can be created later 
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: {{ namespace_name }}
+  name: deny-ingress-traffic
+spec:
+  podSelector:
+    matchLabels:
+  ingress:
+  - from:
+    - podSelector: {}
+
+
+---
+# These are all the exceptions for ingress rules. All the namespace we want to give access to the student
+# namespace must be labelled with the access-vm=allowed using the following command:
+#
+#   - k label namespace/<namespace-name> access-vm=allowed
+#
+# Allowed namespace are:
+# - monitoring
+# - ingress-nginx
+# - docker-registry
+#
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: {{ namespace_name }}
+  name: allow-trusted-ingress-traffic
+spec:
+  podSelector: {}
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels: 
+            access-vm: allowed 
+         

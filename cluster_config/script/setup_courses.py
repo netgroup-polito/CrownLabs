@@ -229,6 +229,10 @@ class Tenant:
         k8s_templates["registrycredentials"].apply_template(
             namespace_name=self.namespace)
 
+        ## Network Policies
+        k8s_templates["ingress-netpol"].apply_template(
+            namespace_name=self.namespace)
+
     def _create_user(self, keycloak_handler):
         if self.user is None:
             sys.stdout.write("* Creating user {} in Keycloak\n".format(self.username))
@@ -351,6 +355,7 @@ if __name__ == "__main__":
             "resourcequota": KubernetesTemplateHandler("resourcequota_template.yaml", "k8s_templates/"),
             "registrycredentials": KubernetesTemplateHandler("registrycredentials_template.yaml", "k8s_templates/"),
             "labtemplate": KubernetesTemplateHandler("labtemplate_template.yaml", "k8s_templates/"),
+            "ingress-netpol": KubernetesTemplateHandler("ingress_netpol_template.yaml", "k8s_templates/"),
         }
     except Template.exceptions.TemplateNotFound as _ex:
         sys.stderr.write("Failed to parse the Jinja2 template: '{}' does not exist. Abort\n".format(_ex))
