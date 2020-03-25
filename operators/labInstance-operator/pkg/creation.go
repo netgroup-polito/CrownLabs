@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,13 +48,11 @@ network:
   id0:
     dhcp4: true
 fs_setup:
-  - label: "persistence"
+  - label: "MyDrive"
     device: /dev/vdc
     filesystem: "ext4"
 mounts:
-  - [ /dev/vdc, /media/persistence, auto, "defaults,nofail,discard" ]
-runcmd:
-  - "sudo chown cloud:cloud /media/persistence"`},
+  - [ /dev/vdc, /media/MyDrive, auto, "defaults,nofail,discard" ]`},
 		Type: corev1.SecretTypeOpaque,
 	}
 
@@ -112,13 +111,20 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 }
 
 func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
-
+	urlUUID := uuid.New().String()
+	url := "https://crownlabs.polito.it/" + urlUUID
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        name + "-ingress",
-			Namespace:   namespace,
-			Labels:      nil,
-			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production", "nginx.ingress.kubernetes.io/rewrite-target": "/$2"},
+			Name:      name + "-ingress",
+			Namespace: namespace,
+			Labels:    nil,
+			Annotations: map[string]string{
+				"cert-manager.io/cluster-issuer":                 "letsencrypt-production",
+				"nginx.ingress.kubernetes.io/rewrite-target":     "/$2",
+				"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+				"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+				"crownlabs.polito.it/probe-url":                  url,
+			},
 		},
 		Spec: v1beta1.IngressSpec{
 			Backend: nil,
@@ -135,7 +141,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
 								{
-									Path: "/" + name + "(/|$)(.*)",
+									Path: "/" + urlUUID + "(/|$)(.*)",
 									Backend: v1beta1.IngressBackend{
 										ServiceName: svc.Name,
 										ServicePort: svc.Spec.Ports[0].TargetPort,
