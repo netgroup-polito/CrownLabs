@@ -207,7 +207,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	// when the vm status is Running, it is still not available for some seconds
 	// curl the url until the vm is ready
-	url := "https://" + ingress.Spec.Rules[0].Host + "/" +  ingress.Spec.Rules[0].HTTP.Paths[0].Path
+	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
 	for {
 		resp, err := http.Get(url)
 		if err != nil || resp == nil {
