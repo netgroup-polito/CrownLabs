@@ -120,21 +120,18 @@ export default class ApiManager {
      * @param func the function to be called at each event
      */
     startWatching(func) {
-        try{
-            watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
-                function (type, object) {
-                    func(type, object);
-                },
-                function (e) {
-                    func(null, e);
-                }
-            );
-        } catch(error) {
-            func(null, error);
-        }
+        watch(this.kc, '/apis/' + this.instanceGroup + '/' + this.version + '/namespaces/' + this.instanceNamespace + '/' + this.instancePlural, {},
+            function (type, object) {
+                func(type, object);
+            },
+            function (e) {
+                func(null, e);
+            }
+        );
     }
 
     /**
+     * @@@@ UNUSED (since watcher has been patched and works)
      * Function to get a specific lab instance status
      *
      * @param name the name of the lab instance
