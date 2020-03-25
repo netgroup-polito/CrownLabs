@@ -23,6 +23,7 @@ export default class UserLogic extends React.Component {
     * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
     * - isAdminSomewhere which is false if the user is not admin in any course, otherwise true
     * */
+
     constructor(props) {
         super(props);
         this.connect = this.connect.bind(this);
@@ -31,8 +32,12 @@ export default class UserLogic extends React.Component {
         this.startCRDinstance = this.startCRDinstance.bind(this);
         this.stopCRDinstance = this.stopCRDinstance.bind(this);
         this.notifyEvent = this.notifyEvent.bind(this);
-        let parsedToken = this.parseJWTtoken(this.props.id_token);
-        if (!this.checkToken(parsedToken)) {
+
+
+        /*Retrieve, decode and check the token received. If errors immediately logout after a msg prompt*/
+        let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
+        let parsedToken = this.parseJWTtoken(retrievedSessionToken.id_token);
+        if (!this.checkToken(parsedToken, retrievedSessionToken)) {
             this.logoutInterval();
         }
         /*Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student*/
@@ -47,7 +52,7 @@ export default class UserLogic extends React.Component {
             events: "",
             statusHidden: true,
             adminHidden: true,
-            isAdminSomewhere: adminGroups.length > 0
+            isAdminSomewhere: adminGroups.length >= 0
         };
         this.retrieveCRDtemplates();
         this.retrieveCRDinstances()
@@ -335,7 +340,14 @@ export default class UserLogic extends React.Component {
                         renderAdminBtn={this.state.isAdminSomewhere}
                         switchAdminView={() => this.setState({adminHidden: !this.state.adminHidden})}/>
                 <Container fluid className="cover mt-5">
-                    {!this.state.adminHidden ? <ProfessorView/> :
+                    {!this.state.adminHidden ? <ProfessorView
+                            templateLabs={this.state.templateLabs}
+                            instanceLabs={this.state.instanceLabs}
+                            events={this.state.events}
+                            showStatus={() => this.setState({statusHidden: !this.state.statusHidden})}
+                            hidden={this.state.statusHidden}
+                            // createTemplate={this.apiManager.createCRDtemplate(this.MyName,this.MyNamespace)}
+                        /> :
                         <StudentView templateLabs={this.state.templateLabs}
                                      funcTemplate={this.changeSelectedCRDtemplate}
                                      funcInstance={this.changeSelectedCRDinstance}

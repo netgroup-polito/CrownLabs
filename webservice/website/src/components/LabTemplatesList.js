@@ -46,19 +46,22 @@ export default function LabTemplatesList(props) {
         });
     });
 
-    return (
-        <div className="text-center">
-            <div className={classes.root}>
-                <List component="nav" subheader={
-                    <ListSubheader component="div" id="nested-list-subheader">
-                        Available Laboratories
-                    </ListSubheader>
-                }>
-                    {courses}
-                </List>
+        return (
+            <div className="text-center">
+                <div className={classes.root}>
+                    <List component="nav" subheader={
+                        <ListSubheader component="div" id="nested-list-subheader">
+                            Available Laboratories
+                        </ListSubheader>
+                    }>
+                        {courses}
+                    </List>
+                </div>
+                <Button variant="dark" className="text-success"
+                        onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
+
             </div>
-            <Button variant="dark" className="text-success"
-                    onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
-        </div>
-    );
+        );
+
+
 }
