@@ -108,7 +108,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+"in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
 	}
@@ -119,7 +119,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If not, update the status with error
 	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "csi-ceph-fs")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+"in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+" in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else if err != nil && err.Error() == "ALREADY EXISTS" {
 		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" already exists in namespace "+pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
@@ -131,7 +131,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+"in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
@@ -141,7 +141,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	ingress := pkg.CreateIngress(name, namespace, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+"in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
@@ -151,7 +151,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	oauthService := pkg.CreateOauth2Service(name, namespace)
 	oauthService.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+"in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Service "+oauthService.Name+" correctly created in namespace "+oauthService.Namespace, "Normal", "Oauth2ServiceCreated", &labInstance, "")
@@ -161,7 +161,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService)
 	oauthIngress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+"in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Ingress "+oauthIngress.Name+" correctly created in namespace "+oauthIngress.Namespace, "Normal", "Oauth2IngressCreated", &labInstance, "")
@@ -171,7 +171,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+"in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Deployment "+oauthDeploy.Name+" correctly created in namespace "+oauthDeploy.Namespace, "Normal", "Oauth2DeployCreated", &labInstance, "")
