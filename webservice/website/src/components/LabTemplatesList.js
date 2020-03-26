@@ -38,14 +38,13 @@ const useStyles = makeStyles(theme => ({
  * @return the component to be drawn
  */
 export default function LabTemplatesList(props) {
-    
     const classes = useStyles();
     const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
     const handleListItemClick = (event, index) => {
         setSelectedIndex(index);
     };
-    
+
 
 const courses = Array.from(props.labs.keys()).map((courseName, index) => {
     let offset = index * (props.labs.get(courseName).length + 1);
@@ -55,14 +54,14 @@ return (
         { props.labs.get(courseName).map((courseLab, index2) => {
                     let finalIndex = offset + index2;
                     return (
-                        <ListItem key={courseLab} 
+                        <ListItem key={courseLab}
                         button
                         selected={selectedIndex === finalIndex}
                         onClick={event => {
                             handleListItemClick(event, finalIndex);
-                            props.func(courseLab, courseName); 
+                            props.func(courseLab, courseName);
                        }}
-                            > 
+                            >
                         <Tooltip title="Select it">
                         <ListItemText inset primary={courseLab.charAt(0).toUpperCase() + courseLab.slice(1).replace(/-/g, " ")}/>
                         </Tooltip>
@@ -71,7 +70,7 @@ return (
                                     button="true"
                                     onClick={() => {
                                       if(selectedIndex==finalIndex) {
-                                        props.start(); 
+                                        props.start();
                                         setSelectedIndex(-1)
                                       }
                                     }}
@@ -91,7 +90,7 @@ return (
                     <ListSubheader style={{fontSize:"30px"}} component="div" id="nested-list-subheader">
                         Available Laboratories
                     </ListSubheader>
-                }> 
+                }>
                  </List>
             <div className={classes.root}>
                 <List className={classes.root} subheader={<li />}>
