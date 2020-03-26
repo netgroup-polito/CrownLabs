@@ -88,7 +88,7 @@ export default class UserLogic extends React.Component {
      * @param parsed the decoded one
      * @return {boolean} true or false whether the token satisfies the constraints
      */
-    checkToken(parsed) {
+    checkToken(parsed, retrievedSessionToken) {
         if (!parsed.groups || !parsed.groups.length) {
             Toastr.error("You do not belong to any namespace to see laboratories");
             return false;
