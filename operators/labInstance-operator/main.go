@@ -50,9 +50,12 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var namespacePrefix string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&namespacePrefix, "namespace-prefix", "", "The prefix of the namespaces on which the controller will work. " +
+		"If not specified the controller will react to every creation of LabInstances, in all namespaces. ")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(func(o *zap.Options) {
@@ -75,6 +78,7 @@ func main() {
 		Log:            ctrl.Log.WithName("controllers").WithName("LabInstance"),
 		Scheme:         mgr.GetScheme(),
 		EventsRecorder: mgr.GetEventRecorderFor("LabInstanceOperator"),
+		NamespacePrefix: namespacePrefix,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LabInstance")
 		os.Exit(1)
