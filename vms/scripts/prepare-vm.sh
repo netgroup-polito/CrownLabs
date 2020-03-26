@@ -120,9 +120,9 @@ EOT
 # Persistence script as alternative to runcmd to change permissions
 sudo tee $PERSISTENCE_SCRIPT > /dev/null <<EOT
 #!/bin/bash
-if [ -d "/media/persistence" ]; then
-    sudo chown 1000:1000 /media/persistence
-    #sudo rm -rf /media/persistence/lost+found
+if [ -d "/media/MyDrive" ]; then
+    sudo chown 1000:1000 /media/MyDrive
+    #sudo rm -rf /media/MyDrive/lost+found
 fi
 EOT
 sudo chmod +x $PERSISTENCE_SCRIPT
