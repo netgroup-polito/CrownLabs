@@ -17,7 +17,9 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
 	"k8s.io/api/extensions/v1beta1"
@@ -77,23 +79,23 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
 		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
-		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "LabTemplate " + templateName.Name + " not found in namespace " + labTemplate.Namespace)
+		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "LabTemplate "+templateName.Name+" not found in namespace "+labTemplate.Namespace)
 		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
-	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate " + templateName.Name + " found in namespace " + labTemplate.Namespace)
+	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 
 	// prepare variables common to all resources
-	name := labTemplate.Name + "-" + labInstance.Spec.StudentID
+	name := labTemplate.Name + "-" + labInstance.Spec.StudentID + "-" + fmt.Sprintf("%.8s", uuid.New().String())
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	b := true
 	labiOwnerRef := []metav1.OwnerReference{
 		{
-			APIVersion: labInstance.APIVersion,
-			Kind:       labInstance.Kind,
-			Name:       labInstance.Name,
-			UID:        labInstance.UID,
+			APIVersion:         labInstance.APIVersion,
+			Kind:               labInstance.Kind,
+			Name:               labInstance.Name,
+			UID:                labInstance.UID,
 			BlockOwnerDeletion: &b,
 		},
 	}
@@ -102,53 +104,53 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	secret := pkg.CreateSecret(name, namespace)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create secret " + secret.Name + "in namespace " + secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+"in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Secret " + secret.Name + " correctly created in namespace " + secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
 	}
-	// 2: create pvc referenced by VirtualMachineInstance ( Persistent Data)
+	// 2: create pvc referenced by VirtualMachineInstance (Persistent Data)
 	// Check if exists
 	// If exists, can we attach?
 	// If yes, attach
 	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(name, namespace, "rook-ceph-block")
+	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Spec.LabTemplateName, namespace, "rook-ceph-block")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "Could not create pvc " + pvc.Name + "in namespace " + pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+"in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else if err != nil && err.Error() == "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " already exists in namespace " + pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" already exists in namespace "+pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
 	} else {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim " + pvc.Name + " correctly created in namespace " + pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" correctly created in namespace "+pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
 	// 3: create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service " + service.Name + "in namespace " + service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+"in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Service " + service.Name + " correctly created in namespace " + service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
 	}
 
 	// 4: create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, service)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress " + ingress.Name + "in namespace " + ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+"in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Ingress " + ingress.Name + " correctly created in namespace " + ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
 	}
 
 	// 5: create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create vmi " + vmi.Name + " in namespace " + vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance " + vmi.Name + " correctly created in namespace " + vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
 
 	go getVmiStatus(r, ctx, log, name, ingress, &labInstance, vmi)
@@ -161,7 +163,6 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&instancev1.LabInstance{}).
 		Complete(r)
 }
-
 
 func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	msg string, eventType string, eventReason string,
@@ -181,7 +182,7 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	name string, ingress v1beta1.Ingress,
-	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance){
+	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
 	// iterate until the vm is running
@@ -206,7 +207,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	// when the vm status is Running, it is still not available for some seconds
 	// curl the url until the vm is ready
-	url := "https://" + ingress.Spec.Rules[0].Host + "/" + name
+	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
 	for {
 		resp, err := http.Get(url)
 		if err != nil || resp == nil {

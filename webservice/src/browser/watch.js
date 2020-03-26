@@ -20,7 +20,7 @@ module.exports.watch = function watch(config, path, queryParams, callback, done)
     }
 
     const stream = new byline.LineStream();
-    stream.on('data', function(data) {
+    stream.on('data', function (data) {
         if (data instanceof Buffer) {
             obj = JSON.parse(data.toString());
         } else {
@@ -34,11 +34,11 @@ module.exports.watch = function watch(config, path, queryParams, callback, done)
         }
     });
 
-    stream.on('end', function() {
+    stream.on('end', function () {
         done(null);
     });
 
-    stream.on('error', function(error) {
+    stream.on('error', function (error) {
         done(error);
     });
 
@@ -48,49 +48,58 @@ module.exports.watch = function watch(config, path, queryParams, callback, done)
     };
 
     fetch(url + '?' + querystring.stringify(queryParams), fetchOptions)
-        .then(function(response) {
-            new FetchReaderStream(response.body.getReader()).pipe(stream);
+        .then(function (response) {
+            new FetchReaderStream(response.body.getReader(), {}, done).pipe(stream);
         })
-        .catch(function(error) {
+        .catch(function (error) {
             done(error);
-        });
-}
+        })
+        .catch(() => {
+            done(null);
+        })
+};
 
-const FetchReaderStream = (function() {
-    function FetchReaderStream(reader, options) {
+const FetchReaderStream = (function () {
+    function FetchReaderStream(reader, options, doneFunc) {
         if (!(this instanceof FetchReaderStream)) {
             return new FetchReaderStream(reader);
         }
 
+        this._doneFunc = doneFunc;
+        this._isDestroyed = false;
         this._reader = reader;
-
         stream.Readable.call(this, options);
-    };
+    }
 
     util.inherits(FetchReaderStream, stream.Readable);
 
-    FetchReaderStream.prototype._read = function(_size) {
+    FetchReaderStream.prototype._read = function (_size) {
         const self = this;
 
         function loop() {
             self._reader.read()
-                .then(function(data) {
-                    if (data.done) {
-                        self.push(null);
-                        return;
-                    }
+                .then(function (data) {
+                    if (!self._isDestroyed) {
+                        if (data.done) {
+                            self.push(null);
+                            return;
+                        }
 
-                    const keepPushing = self.push(data.value);
-                    if (!keepPushing) {
-                        return;
-                    }
+                        const keepPushing = self.push(data.value);
+                        if (!keepPushing) {
+                            return;
+                        }
 
-                    loop();
+                        loop();
+                    }
                 })
-                .catch(function(error) {
-                    self.emit('error', error);
+                .catch(function () {
+                    if (!self._isDestroyed) {
+                        self._isDestroyed = true;
+                        self._doneFunc(null);
+                    }
                 });
-        };
+        }
 
         loop();
     };
