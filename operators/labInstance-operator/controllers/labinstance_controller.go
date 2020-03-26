@@ -117,7 +117,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If exists, can we attach?
 	// If yes, attach
 	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "csi-ceph-fs")
+	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "csi-cephfs")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
 		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+" in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
