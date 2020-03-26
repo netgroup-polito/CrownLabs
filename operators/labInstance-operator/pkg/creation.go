@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -113,6 +115,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
 	urlUUID := uuid.New().String()
 	url := "https://crownlabs.polito.it/" + urlUUID
+
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-ingress",
@@ -123,8 +126,8 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 				"nginx.ingress.kubernetes.io/rewrite-target":     "/$2",
 				"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
 				"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-				"nginx.ingress.kubernetes.io/auth-signin": "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
-				"nginx.ingress.kubernetes.io/auth-url": "https://$host/" + urlUUID + "/oauth2/auth",
+				"nginx.ingress.kubernetes.io/auth-signin":        "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
+				"nginx.ingress.kubernetes.io/auth-url":           "https://$host/" + urlUUID + "/oauth2/auth",
 				"crownlabs.polito.it/probe-url":                  url,
 			},
 		},
@@ -160,6 +163,123 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 	return ingress
 }
 
+func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
+	deploy := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-oauth2-deploy",
+			Namespace: namespace,
+			Labels:    map[string]string{"app": name},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: pointer.Int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": name},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  name,
+							Image: "quay.io/pusher/oauth2_proxy:latest",
+							Args: []string{
+								"--http-address", "0.0.0.0:4180",
+								"--reverse-proxy", "true",
+								"--skip-provider-button", "true",
+								"--cookie-secret", "IhdqbJE3ty1dIl3ZG1gPAw==",
+								"--cookie-expire", "1h",
+								"--cookie-refresh", "45m",
+								"--provider", "keycloak",
+								"--client-id", "k8s",
+								"--client-secret", "229a9d87-2bae-4e9b-8567-e8864b2bac4b",
+								"--login-url", "https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
+								"--redeem-url", "https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
+								"--validate-url", "https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
+								"--proxy-prefix", "/" + name,
+								"--email-domain", "*",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 4180,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return deploy
+}
+
+func CreateOauth2Service(name string, namespace string) corev1.Service {
+
+	service := corev1.Service{
+		TypeMeta:   metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-oauth2-svc",
+			Namespace: namespace,
+			Labels:    map[string]string{"app": name},
+		},
+		Spec:       corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http",
+					Protocol:   corev1.ProtocolTCP,
+					Port:       4180,
+					TargetPort: intstr.IntOrString{IntVal: 4180},
+				},
+			},
+			Selector:  map[string]string{"app": name},
+		},
+	}
+
+	return service
+}
+
+func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
+
+	ingress := v1beta1.Ingress{
+		TypeMeta:   metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-oauth2-ingress",
+			Namespace: namespace,
+			Labels:    map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
+		},
+		Spec: v1beta1.IngressSpec{
+			TLS: []v1beta1.IngressTLS{
+				{
+					Hosts:      []string{"crownlabs.polito.it"},
+					SecretName: name + "-oauth2-ingress-secret",
+				},
+			},
+			Rules: []v1beta1.IngressRule{
+				{
+					Host: "crownlabs.polito.it",
+					IngressRuleValue: v1beta1.IngressRuleValue{
+						HTTP: &v1beta1.HTTPIngressRuleValue{
+							Paths: []v1beta1.HTTPIngressPath{
+								{
+									Path: "/" + name + "/oauth2/.*",
+									Backend: v1beta1.IngressBackend{
+										ServiceName: svc.Name,
+										ServicePort: svc.Spec.Ports[0].TargetPort,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return ingress
+}
 // create a resource or update it if already exists
 func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, object interface{}) error {
 
@@ -215,6 +335,25 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
 				log.Error(err, "unable to create ingress "+obj.Name)
+				return err
+			}
+		}
+	case appsv1.Deployment:
+		var deploy appsv1.Deployment
+		err := c.Get(ctx, types.NamespacedName{
+			Namespace: obj.Namespace,
+			Name:      obj.Name,
+		}, &deploy)
+		if err != nil {
+			err = c.Create(ctx, &obj, &client.CreateOptions{})
+			if err != nil && !errors.IsAlreadyExists(err) {
+				log.Error(err, "unable to create deployment "+obj.Name)
+				return err
+			}
+		} else {
+			err = c.Update(ctx, &obj, &client.UpdateOptions{})
+			if err != nil {
+				log.Error(err, "unable to update deployment "+obj.Name)
 				return err
 			}
 		}

@@ -147,7 +147,37 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
 	}
 
-	// 5: create VirtualMachineInstance
+	// 5: create Service for oauth2
+	oauthService := pkg.CreateOauth2Service(name, namespace)
+	oauthService.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+"in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Service "+oauthService.Name+" correctly created in namespace "+oauthService.Namespace, "Normal", "Oauth2ServiceCreated", &labInstance, "")
+	}
+
+	// 6: create Ingress to manage the oauth2 service
+	oauthIngress := pkg.CreateIngress(name, namespace, oauthService)
+	oauthIngress.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+"in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Ingress "+oauthIngress.Name+" correctly created in namespace "+oauthIngress.Namespace, "Normal", "Oauth2IngressCreated", &labInstance, "")
+	}
+
+	// 6: create Deployment for oauth2
+	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace)
+	oauthDeploy.SetOwnerReferences(labiOwnerRef)
+	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
+		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+"in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
+		return ctrl.Result{}, err
+	} else {
+		setLabInstanceStatus(r, ctx, log, "Deployment "+oauthDeploy.Name+" correctly created in namespace "+oauthDeploy.Namespace, "Normal", "Oauth2DeployCreated", &labInstance, "")
+	}
+
+	// 7: create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
