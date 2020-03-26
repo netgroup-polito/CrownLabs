@@ -188,7 +188,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--http-address", "0.0.0.0:4180",
 								"--reverse-proxy", "true",
 								"--skip-provider-button", "true",
-								"--cookie-secret", "IhdqbJE3ty1dIl3ZG1gPAw==",
+								"--cookie-secret", uuid.New().String(),
 								"--cookie-expire", "1h",
 								"--cookie-refresh", "45m",
 								"--provider", "keycloak",
