@@ -158,7 +158,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 6: create Ingress to manage the oauth2 service
-	oauthIngress := pkg.CreateIngress(name, namespace, oauthService)
+	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService)
 	oauthIngress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+"in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
