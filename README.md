@@ -77,7 +77,7 @@ Mattia Lavacca, "I want to start a PhD!". Instead, he did CI/CD in a magnificent
 Serena Flocco, "I don't have Internet at home, how can I create the GUI?". Really hard to work when forced to stay home, without Internet. But ladies are a must in a good looking project: they have always a better taste than (male) engineers.
 
 ![Simone Magnani](images/simone.jpg "Simone Magnani")
-Simone Magnani, Frontend developer, "I'll do also what I don't  like at all" (GUIs). Active day and night.
+Simone Magnani, Webservice API developer, "I'll do also what I don't  like at all" (GUIs). Active day and night.
 
 ![Stefano Galantino](images/stefano.jpg "Stefano Galantino")
 Stefano Galantino, "To enter, you have to pass on my body". He is the only one who knows about Kubernetes ingress controllers.
