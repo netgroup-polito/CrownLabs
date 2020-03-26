@@ -202,7 +202,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
-								"--proxy-prefix=/" + name,
+								"--proxy-prefix=/" + name + "/oauth2",
 								"--email-domain=*",
 							},
 							Ports: []corev1.ContainerPort{
