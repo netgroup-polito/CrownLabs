@@ -16,25 +16,26 @@ class ProfessorView extends React.Component{
     state = {showForm: false};
     showForm = () => {
         return (
-            <div>
+            <div className="w3-panel w3-white w3-card w3-display-container">
                 <form id="add-app">
-                    <Col className="center-col">
 
-                            <label> Server: </label>
+
+                            <p className="w3-text-blue"><b>Server:</b></p>
                             <input type="text" id="fname" name="firstname" placeholder="Your name.."/>
 
                             <div className="divider"/>
-                            <label> id : </label>
+                            <p className="w3-text-blue"><b>ID:</b></p>
                             <input type="text"/>
 
 
-                            <label>Server details : </label>
+                             <p className="w3-text-blue"><b>Server details:</b></p>
                             <input type="text"/>
 
-                            <button>Create</button>
+                            <Button  variant="dark" className="nav_new" onClick={() => this.setState({showForm: false})} >Create</Button>
 
 
-                    </Col>
+
+
                 </form>
             </div>
         );

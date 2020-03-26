@@ -7,6 +7,7 @@ import {Button, ButtonGroup} from "react-bootstrap";
 import ListSubheader from "material-ui-core/ListSubheader";
 import ListItemIcon from "material-ui-core/ListItemIcon";
 import Icon from "material-ui-core/Icon";
+import "../views/admin.css"
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -49,7 +50,7 @@ export default function LabInstancesList(props) {
     });
 
     return (
-        <div className="text-center">
+        <div className="w3-panel w3-white w3-card w3-display-container">
             <div className={classes.root}>
                 <List component="nav" subheader={
                     <ListSubheader component="div" id="nested-list-subheader">
@@ -60,10 +61,10 @@ export default function LabInstancesList(props) {
                 </List>
             </div>
             <ButtonGroup aria-label="Basic example">
-                <Button variant="dark" className="text-light" onClick={() =>{props.connect(); setSelectedIndex(-1);}}>Connect</Button>
-                <Button variant="dark" className="text-danger"
+                <Button variant="dark" className="nav_new" onClick={() =>{props.connect(); setSelectedIndex(-1);}}>Connect</Button>
+                <Button variant="dark" className="nav_new"
                         onClick={() => {props.stop(); setSelectedIndex(-1)}}>Stop</Button>
-                <Button variant="dark" className="text-info"
+                <Button variant="dark" className="nav_new"
                         onClick={props.showStatus}>Show status</Button>
             </ButtonGroup>
         </div>

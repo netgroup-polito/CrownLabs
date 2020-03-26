@@ -5,6 +5,7 @@ import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
 import {Button} from "react-bootstrap";
 import ListSubheader from "material-ui-core/ListSubheader";
+import "../views/admin.css"
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -47,7 +48,7 @@ export default function LabTemplatesList(props) {
     });
 
         return (
-            <div className="text-center">
+            <div className="w3-panel w3-white w3-card w3-display-container">
                 <div className={classes.root}>
                     <List component="nav" subheader={
                         <ListSubheader component="div" id="nested-list-subheader">
@@ -57,7 +58,7 @@ export default function LabTemplatesList(props) {
                         {courses}
                     </List>
                 </div>
-                <Button variant="dark" className="text-success"
+                <Button variant="dark" className="nav_new"
                         onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
 
             </div>
