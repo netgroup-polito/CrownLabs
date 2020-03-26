@@ -26,13 +26,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"net/http"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"time"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -45,6 +43,7 @@ type LabInstanceReconciler struct {
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
 	EventsRecorder record.EventRecorder
+	NamespacePrefix string
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
@@ -62,6 +61,11 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		// reconcile was triggered by a delete request
 		log.Info("LabInstance " + req.Name + " deleted")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// perform reconcile only if the LabInstance belongs to the watched namespaces
+	if !strings.HasPrefix(labInstance.Namespace, r.NamespacePrefix){
+		return ctrl.Result{}, nil
 	}
 
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
@@ -113,7 +117,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If exists, can we attach?
 	// If yes, attach
 	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Spec.LabTemplateName, namespace, "rook-ceph-block")
+	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "csi-ceph-fs")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
 		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+"in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
@@ -225,26 +229,3 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	return
 }
 
-func GetConfig(path string) (*rest.Config, error) {
-	var config *rest.Config
-	var err error
-
-	if path == "" {
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else if path != "" {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			// Get the kubeconfig from the filepath.
-			config, err = clientcmd.BuildConfigFromFlags("", path)
-			if err != nil {
-				return nil, err
-			}
-			config.GroupVersion = &virtv1.GroupVersion
-			//config.NegotiatedSerializer =
-		}
-	}
-
-	return config, err
-}

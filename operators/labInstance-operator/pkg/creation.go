@@ -123,6 +123,8 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 				"nginx.ingress.kubernetes.io/rewrite-target":     "/$2",
 				"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
 				"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+				"nginx.ingress.kubernetes.io/auth-signin": "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
+				"nginx.ingress.kubernetes.io/auth-url": "https://$host/" + urlUUID + "/oauth2/auth",
 				"crownlabs.polito.it/probe-url":                  url,
 			},
 		},
