@@ -22,7 +22,7 @@ import (
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
-	"k8s.io/api/extensions/v1beta1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,9 +40,9 @@ import (
 // LabInstanceReconciler reconciles a LabInstance object
 type LabInstanceReconciler struct {
 	client.Client
-	Log            logr.Logger
-	Scheme         *runtime.Scheme
-	EventsRecorder record.EventRecorder
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	EventsRecorder  record.EventRecorder
 	NamespacePrefix string
 }
 
@@ -64,7 +64,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// perform reconcile only if the LabInstance belongs to the watched namespaces
-	if !strings.HasPrefix(labInstance.Namespace, r.NamespacePrefix){
+	if !strings.HasPrefix(labInstance.Namespace, r.NamespacePrefix) {
 		return ctrl.Result{}, nil
 	}
 
@@ -187,7 +187,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
 
-	go getVmiStatus(r, ctx, log, name, ingress, &labInstance, vmi)
+	go getVmiStatus(r, ctx, log, name, service, &labInstance, vmi)
 
 	return ctrl.Result{}, nil
 }
@@ -215,7 +215,7 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 }
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
-	name string, ingress v1beta1.Ingress,
+	name string, service v1.Service,
 	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
@@ -241,7 +241,8 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	// when the vm status is Running, it is still not available for some seconds
 	// curl the url until the vm is ready
-	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
+
+	url := "http://" + service.Name + "." + service.Namespace + ".svc.cluster.local:" + fmt.Sprintf("%d", service.Spec.Ports[0].Port)
 	for {
 		resp, err := http.Get(url)
 		if err != nil || resp == nil {
@@ -258,4 +259,3 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	return
 }
-
