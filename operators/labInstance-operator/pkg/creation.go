@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"encoding/base64"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
@@ -99,7 +100,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
 			Resources: corev1.ResourceRequirements{
 				Limits: nil,
 				Requests: map[corev1.ResourceName]resource.Quantity{
@@ -164,6 +165,10 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 }
 
 func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
+
+	id, _ := uuid.New().MarshalBinary()
+	cookieSecret := base64.StdEncoding.EncodeToString(id)
+
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-oauth2-deploy",
@@ -188,7 +193,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--http-address=0.0.0.0:4180",
 								"--reverse-proxy=true",
 								"--skip-provider-button=true",
-								"--cookie-secret=" + uuid.New().String(),
+								"--cookie-secret=" + cookieSecret,
 								"--cookie-expire=1h",
 								"--cookie-refresh=45m",
 								"--provider=keycloak",
@@ -197,7 +202,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
-								"--proxy-prefix=/" + name,
+								"--proxy-prefix=/" + name + "/oauth2",
 								"--email-domain=*",
 							},
 							Ports: []corev1.ContainerPort{
