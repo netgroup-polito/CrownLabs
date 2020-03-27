@@ -50,34 +50,34 @@ Given the way this project was set up at the beginning, it is worth mentioning a
 **Aldo Lacuku**, "To authenticate, you have to come to me". He really knows about security. He also knows the boss of the hosting room, which was very helpful indeed.
 
 ![Alex Palesandro](images/alex.jpg "Alex Palesandro")
-Alex Palesandro, The true leader, manager, developer, tester. Nothing can be done without him.
+**Alex Palesandro**, The true leader, manager, developer, tester. Nothing can be done without him.
 
 ![Andrea Cossio](images/andrea.jpg "Andrea Cossio")
-Andrea Cossio, "I know how to connect to the VM". He knows VNC more than the actual developers.
+**Andrea Cossio**, "I know how to connect to the VM". He knows VNC more than the actual developers.
 
 ![Francesco Borgogni](images/francesco.jpg "Francesco Borgogni")
-Francesco Borgogni, "Kubernetes CRDs are my future". Give him to a CRD to create, code will come in minutes.
+**Francesco Borgogni**, "Kubernetes CRDs are my future". Give him to a CRD to create, code will come in minutes.
 
 ![Fulvio Risso](images/fulvio.jpg "Fulvio Risso")
 **Fulvio Risso**, project leader, tester. Nobody knows what he does. Always in some calls.
 
 ![Giuseppe Ognibene](images/giuseppe.jpg "Giuseppe Ognibene")
-Giuseppe Ognibene, "Give me a probe, and I'll dominate the world". Prometheus can never relax, with Giuseppe around.
+**Giuseppe Ognibene**, "Give me a probe, and I'll dominate the world". Prometheus can never relax, with Giuseppe around.
 
 ![Hamza Rhaouati](images/hamza.jpg "Hamza Rhaouati")
-Hamza Rhaouati, "Divide et impera". With him, you don't have to worry about scalability.
+**Hamza Rhaouati**, "Divide et impera". With him, you don't have to worry about scalability.
 
 ![Marco Iorio](images/marco.jpg "Marco Iorio")
-Marco Iorio, "No words, only facts". Whatever he does (silently), you can be sure that it will be perfect.
+**Marco Iorio**, "No words, only facts". Whatever he does (silently), you can be sure that it will be perfect.
 
 ![Mattia Lavacca](images/mattia.jpg "Mattia Lavacca")
-Mattia Lavacca, "I want to start a PhD!". Instead, he did CI/CD in a magnificent way. Not really a topic for PhD students.
+**Mattia Lavacca**, "I want to start a PhD!". Instead, he did CI/CD in a magnificent way. Not really a topic for PhD students.
 
 ![Serena Flocco](images/serena.jpg "Serena Flocco")
-Serena Flocco, "I don't have Internet at home, how can I create the GUI?". Really hard to work when forced to stay home, without Internet. But ladies are a must in a good looking project: they have always a better taste than (male) engineers.
+**Serena Flocco**, "I don't have Internet at home, how can I create the GUI?". Really hard to work when forced to stay home, without Internet. But ladies are a must in a good looking project: they have always a better taste than (male) engineers.
 
 ![Simone Magnani](images/simone.jpg "Simone Magnani")
-Simone Magnani, Webservice API developer, "I'll do also what I don't  like at all" (GUIs). Active day and night.
+**Simone Magnani**, Webservice API developer, "I'll do also what I don't  like at all" (GUIs). Active day and night.
 
 ![Stefano Galantino](images/stefano.jpg "Stefano Galantino")
-Stefano Galantino, "To enter, you have to pass on my body". He is the only one who knows about Kubernetes ingress controllers.
+**Stefano Galantino**, "To enter, you have to pass on my body". He is the only one who knows about Kubernetes ingress controllers.
