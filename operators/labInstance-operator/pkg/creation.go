@@ -100,7 +100,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 			Resources: corev1.ResourceRequirements{
 				Limits: nil,
 				Requests: map[corev1.ResourceName]resource.Quantity{

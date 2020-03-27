@@ -3,16 +3,31 @@ import {makeStyles} from 'material-ui-core/styles';
 import List from 'material-ui-core/List';
 import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
-import {Button} from "react-bootstrap";
 import ListSubheader from "material-ui-core/ListSubheader";
+import "../views/admin.css"
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
     root: {
         width: '100%',
+        height: '100%',
         backgroundColor: theme.palette.background.paper,
+        position: 'relative',
+        overflow: 'auto',
+        maxHeight: '44vh',
+        '& > svg': {
+            margin: theme.spacing(2),
+          },
+      },
+    listSection: {
+      backgroundColor: 'inherit',
     },
-}));
+    ul: {
+      backgroundColor: 'inherit',
+      padding: 0,
+    },
+  }));
+
 
 /**
  * Function to draw a list of available lab templates
@@ -20,45 +35,69 @@ const useStyles = makeStyles(theme => ({
  * @return the component to be drawn
  */
 export default function LabTemplatesList(props) {
+    
     const classes = useStyles();
     const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
     const handleListItemClick = (event, index) => {
         setSelectedIndex(index);
     };
+    
 
-    /*Parse the template maps and foreach one draw a ListItem with the right events associated
-    * the index are linearized to make the click events take the right row*/
-    const courses = Array.from(props.labs.keys()).map((courseName, index) => {
-        let offset = index * (props.labs.get(courseName).length + 1);
-        return props.labs.get(courseName).map((courseLab, index2) => {
-            let finalIndex = offset + index2;
-            return <ListItem key={courseLab}
-                             button
-                             selected={selectedIndex === finalIndex}
-                             onClick={event => {
-                                 handleListItemClick(event, finalIndex);
-                                 props.func(courseLab, courseName)
-                             }}
-            >
-                <ListItemText>{courseLab}</ListItemText>
-            </ListItem>;
-        });
-    });
+const courses = Array.from(props.labs.keys()).map((courseName, index) => {
+    let offset = index * (props.labs.get(courseName).length + 1);
+return (
+    <li key={courseName} className={classes.listSection}>
+      <ul className={classes.ul}>
+        { props.labs.get(courseName).map((courseLab, index2) => {
+                    let finalIndex = offset + index2;
+                    return (
+                        <ListItem key={courseLab} 
+                        button
+                        selected={selectedIndex === finalIndex}
+                        onClick={event => {
+                            handleListItemClick(event, finalIndex);
+                            props.func(courseLab, courseName); 
+                       }}
+                            > 
+                        <Tooltip title="Select it">
+                        <ListItemText inset primary={courseLab.charAt(0).toUpperCase() + courseLab.slice(1).replace(/-/g, " ")}/>
+                        </Tooltip>
+                       {selectedIndex==finalIndex ?  <Tooltip title="Create VM">
+                       <IconButton key={courseLab} variant="dark" className="text-success"
+                                    button="true"
+                                    onClick={() => {
+                                      if(selectedIndex==finalIndex) {
+                                        props.start(); 
+                                        setSelectedIndex(-1)
+                                      }
+                                    }}
+                    >
+                      <PlayArrowIcon fontSize="large" />
+                      </IconButton>
+                       </Tooltip> : null}
+                    </ListItem>
+                )})}
+      </ul>
+    </li>
+  )});
 
-    return (
-        <div className="text-center">
-            <div className={classes.root}>
-                <List component="nav" subheader={
-                    <ListSubheader component="div" id="nested-list-subheader">
-                        Available Laboratories
-                    </ListSubheader>
-                }>
-                    {courses}
-                </List>
+        return (
+            <div className="w3-panel w3-white w3-card w3-display-container">
+                <div className={classes.root}>
+                    <List component="nav" subheader={
+                        <ListSubheader component="div" id="nested-list-subheader">
+                            Available Laboratories
+                        </ListSubheader>
+                    }>
+                        {courses}
+                    </List>
+                </div>
+                <Button variant="dark" className="nav_new"
+                        onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
+
             </div>
-            <Button variant="dark" className="text-success"
-                    onClick={() => {props.start(); setSelectedIndex(-1)}}>Start</Button>
-        </div>
-    );
+        );
+
+
 }
