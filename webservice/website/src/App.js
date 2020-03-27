@@ -19,25 +19,34 @@ function CallBackHandler(props) {
  * The main class of this project.
  */
 export class App extends React.Component {
+    /*Unique authN among the entire application;
+    * childKey used to redraw UserLogin every token refreshed*/
     constructor(props) {
         super(props);
-        /*It hash an authenticator which will be used by all the subclasses*/
         this.authManager = new Authenticator();
-        /*The state is composed (by now) by a logged (true|false) variable. The sessionStage is checked since the OIDC library
-        * stores there the token if the user is logged */
-        this.state = {logged: !!sessionStorage.length};
-        this.authManager.manager.startSilentRenew();
+        this.childKey = 0;
+        /*Check if previously logged*/
+        let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
+        if(retrievedSessionToken) {
+            this.state = {logged: true, id_token: retrievedSessionToken.id_token, token_type: retrievedSessionToken.token_type || "Bearer"};
+        } else {
+            this.state = {logged: false, id_token: null, token_type: null};
+        }
         this.authManager.manager.events.addUserLoaded(user => {
             if (user && !this.state.logged) {
-                this.setState({logged: true});
+                this.setState({logged: true, id_token: user.id_token, token_type: user.token_type || "Bearer"});
             }
+        });
+        this.authManager.manager.events.addAccessTokenExpiring(() => {
+            this.authManager.manager.signinSilent()
+                .then(user => {
+                   this.childKey++;
+                   this.setState({logged: true, id_token: user.id_token, token_type: user.token_type || "Bearer"});
+                });
         });
     }
 
     render() {
-        /*Maybe one of the best solution would be renaming the UserLogic variable into MainWindow and delegating to it the rendering
-        * of the different pages (user unprivileged, admin or professor)
-        * PLEASE REMEMBER, if you change on of these path names (ex /userview into /mainview) you have to modify the NGINX conf of our Ingress*/
         return (
             <Container className="col-9 p-0" style={{backgroundColor: '#FCF6F5FF'}}>
                 <Router>
@@ -47,7 +56,7 @@ export class App extends React.Component {
                         </Route>
                         <Route path="/userview" render={() => (
                             this.state.logged ?
-                                <UserLogic logout={this.authManager.logout}/> :
+                                <UserLogic key={this.childKey} id_token={this.state.id_token} token_type={this.state.token_type} logout={this.authManager.logout}/> :
                                 <Redirect to="/"/>
                         )}/>
                         <Route path="/callback" render={() => (

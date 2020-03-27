@@ -3,7 +3,7 @@
 ### builder image builds both the k8s libraries and Reack front-end
 FROM node:alpine as builder
 ENV OIDC_CLIENT_ID="k8s" \
-    OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it:4443/auth/realms/crownlabs" \
+    OIDC_PROVIDER_URL="https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs" \
     #Change OIDC_REDIRECT_URI to => http://localhost:8000 if you want to host your website locally (with npm start => webpack-dev-server)
     #or in a docker run locally with the port 80 mapped to your host port 8000 (docker run -p 8000:80 <tag>)
     OIDC_REDIRECT_URI="https://crownlabs.polito.it" \
