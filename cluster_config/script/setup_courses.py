@@ -180,8 +180,8 @@ class Tenant:
     def __init__(self, record, is_admin=False):
         self.username = record['Username']
         self.email = record['Email']
-        self.last_name = record['Last name']
-        self.first_name = record['First name']
+        self.last_name = record['Last name'].title()
+        self.first_name = record['First name'].title()
         self.course_code = record['Course (code)'].lower()
         self.namespace = Tenant.get_namespace_name(self.username)
         self.group_name = Tenant.get_group_name(self.username)
@@ -205,7 +205,7 @@ class Tenant:
         # Namespace
         k8s_templates["namespace"].apply_template(
             namespace_name=self.namespace,
-            rendered_name="{} {}".format(self.first_name, self.last_name).replace(" ", "_"),
+            rendered_name="{} {}".format(self.first_name, self.last_name).replace(" ", "_").replace("'", ""),
             namespace_type=Tenant.get_namespace_type())
         KubernetesHandler.add_resource_label(
             "namespaces", self.namespace, Course.get_group_name(self.course_code),
@@ -271,11 +271,11 @@ class Tenant:
 
     @staticmethod
     def get_namespace_name(username):
-        return "tenant-{}".format(username.lower())
+        return "tenant-{}".format(username.lower()).replace(".", "-")
 
     @staticmethod
     def get_group_name(username):
-        return "tenant-{}".format(username.lower())
+        return "tenant-{}".format(username.lower()).replace(".", "-")
 
 
 class Laboratory:
@@ -307,7 +307,7 @@ def _parse_csv_file(path):
         return pd.DataFrame(columns=["Course (code)"])
 
     try:
-        return pd.read_csv(path)
+        return pd.read_csv(path, comment='#')
     except FileNotFoundError:
         sys.stderr.write("Input CSV file ('{}') does not exist. Abort\n".format(path))
         sys.exit(1)
@@ -317,13 +317,13 @@ def _parse_csv_file(path):
 
 if __name__ == "__main__":
     # Parse the command line arguments
-    _parser = argparse.ArgumentParser()
-    _parser.add_argument("keycloak_user", help="The admin username for keycloak")
-    _parser.add_argument("keycloak_pass", help="The admin password for keycloak")
-    _parser.add_argument("--courses", help="The CSV file containing the courses to be created")
-    _parser.add_argument("--teachers", help="The CSV file containing the teachers to be created")
-    _parser.add_argument("--students", help="The CSV file containing the students to be created")
-    _parser.add_argument("--laboratories", help="The CSV file containing the list of courses to be created")
+    _parser = argparse.ArgumentParser(description="Automatic creation of CrownLabs courses, laboratory and tenants")
+    _parser.add_argument("keycloak_user", help="The admin username for the OIDC server")
+    _parser.add_argument("keycloak_pass", help="The admin password for the OIDC server")
+    _parser.add_argument("-c", "--courses", metavar="<courses.csv>", help="The CSV file containing the courses to be created")
+    _parser.add_argument("-l", "--laboratories", metavar="<laboratories.csv>", help="The CSV file containing the list of laboratories to be created")
+    _parser.add_argument("-t", "--teachers", metavar="<teachers.csv>", help="The CSV file containing the professor accounts to be created")
+    _parser.add_argument("-s", "--students", metavar="<students.csv>", help="The CSV file containing the student accounts to be created")
 
     _args = _parser.parse_args()
 

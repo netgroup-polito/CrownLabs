@@ -28,6 +28,9 @@ spec:
           - disk:
               bus: virtio
             name: cloudinitdisk
+          - disk:
+              bus: virtio
+            name: pvcdisk
         memory:
           guest: "{{ memory }}G"
         resources:
@@ -47,3 +50,6 @@ spec:
           secretRef:
             name: {{ course_code }}-lab{{ lab_name }}
         name: cloudinitdisk
+      - name: pvcdisk
+        persistentVolumeClaim:
+          claimName: xxx

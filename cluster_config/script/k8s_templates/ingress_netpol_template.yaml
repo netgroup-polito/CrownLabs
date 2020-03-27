@@ -1,5 +1,5 @@
 # All the ingress traffic to the student VM is automatically dropped.
-# NOTE: exceptions can be created later 
+# NOTE: exceptions can be created later
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
@@ -23,6 +23,7 @@ spec:
 # - monitoring
 # - ingress-nginx
 # - docker-registry
+# - lab-operator
 #
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
@@ -34,6 +35,5 @@ spec:
   ingress:
     - from:
       - namespaceSelector:
-          matchLabels: 
-            access-vm: allowed 
-         
+          matchLabels:
+            access-vm: allowed
