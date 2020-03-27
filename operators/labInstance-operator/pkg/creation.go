@@ -100,7 +100,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 			Namespace: namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 			Resources: corev1.ResourceRequirements{
 				Limits: nil,
 				Requests: map[corev1.ResourceName]resource.Quantity{
@@ -211,6 +211,16 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("250m"),
+									corev1.ResourceMemory: resource.MustParse("512Mi"),
+								},
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("100m"),
+									corev1.ResourceMemory: resource.MustParse("256Mi"),
+								},
+							},
 						},
 					},
 				},
@@ -224,13 +234,13 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 func CreateOauth2Service(name string, namespace string) corev1.Service {
 
 	service := corev1.Service{
-		TypeMeta:   metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-oauth2-svc",
 			Namespace: namespace,
 			Labels:    map[string]string{"app": name},
 		},
-		Spec:       corev1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "http",
@@ -239,7 +249,7 @@ func CreateOauth2Service(name string, namespace string) corev1.Service {
 					TargetPort: intstr.IntOrString{IntVal: 4180},
 				},
 			},
-			Selector:  map[string]string{"app": name},
+			Selector: map[string]string{"app": name},
 		},
 	}
 
@@ -249,11 +259,11 @@ func CreateOauth2Service(name string, namespace string) corev1.Service {
 func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
-		TypeMeta:   metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-oauth2-ingress",
-			Namespace: namespace,
-			Annotations:    map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
+			Name:        name + "-oauth2-ingress",
+			Namespace:   namespace,
+			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
 		},
 		Spec: v1beta1.IngressSpec{
 			TLS: []v1beta1.IngressTLS{
@@ -285,6 +295,7 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1be
 
 	return ingress
 }
+
 // create a resource or update it if already exists
 func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, object interface{}) error {
 
