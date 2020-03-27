@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1alpha2 
+kind: Certificate 
+metadata: 
+ name: keycloak-certificate 
+ namespace: keycloak-ha 
+spec: 
+ secretName: keycloak-certificate-secret 
+ duration: 2160h # 90d 
+ renewBefore: 360h # 15d 
+ commonName: auth.crown-labs.ipv6.polito.it 
+ dnsNames: 
+ - auth.crown-labs.ipv6.polito.it 
+ uriSANs: 
+ - auth.crown-labs.ipv6.polito.it 
+ issuerRef: 
+   name: letsencrypt-production 
+   kind: ClusterIssuer

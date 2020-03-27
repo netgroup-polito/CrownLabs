@@ -41,13 +41,13 @@ If you want to delete the CRD run `make uninstall`.
 ### Controller logic
 The logic of the controller should be put under _controllers/labinstance_controller.go_, in the `Reconcile` method.
 When a LabInstance resource is created, the `Reconcile` method is triggered. 
-It is checked if a LabTemplate resource with the associated name exists, and in this case all the resources necessary to launch the Lab are created:
-
-- the `VirtualMachineInstance` CR managed by KubeVirt
-- the `Ingress` resource
+It is checked if a LabTemplate resource with the associated name exists, and in this case all the resources necessary to launch the Lab are created,
+in particular the `VirtualMachineInstance` CR managed by KubeVirt. 
 
 ### Run instructions
 To run the application
 
 - **outside** a cluster: run 'make run'
 - **inside** a cluster: create a Pod with `container.image: crownlabs/laboratory-operator`
+
+If you want to run the operator only on some namespaces, specify the namespace prefix with the `--namespace-prefix <string>` option.
