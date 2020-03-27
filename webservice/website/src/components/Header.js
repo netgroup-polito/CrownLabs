@@ -1,6 +1,7 @@
 import {Button, Nav, Navbar} from "react-bootstrap";
 import React from "react";
 import NavItem from "react-bootstrap/NavItem";
+import './Header.css'
 
 /**
  * Function to draw the page header
@@ -12,8 +13,8 @@ export default function Header(props) {
     const name = props.adminHidden ? "Professor Area" : "Student Area";
     const adminBtn = props.renderAdminBtn ? <Button variant="outline-light" onClick={props.switchAdminView}>{name}</Button> : <div/>;
     return <header>
-        <Navbar bg="dark" variant="dark" expand="lg">
-            <Navbar.Brand href="">CrownLabs</Navbar.Brand>
+        <Navbar className="nav_new" variant="dark" expand="lg">
+            <Navbar.Brand className="navText" href="">CrownLabs</Navbar.Brand>
             <Nav className="ml-auto" as="ul">
                 <NavItem as="li" className="mr-2">
                     {adminBtn}

@@ -19,8 +19,8 @@ export default function Home(props) {
                         <Card className="mt-5 p-3 text-center headerstyle">
                             <Card.Title as="h1">Welcome to CrownLabs!</Card.Title>
                             <Card.Body>
-                                <Button variant="link" onClick={props.login}>Log in</Button>
-                                <p className="d-inline">to access your laboratories.</p>
+                                <a href='#' onClick={props.login}>Log in</a>
+                                <p className="d-inline">  to access your laboratories.</p>
                             </Card.Body>
                         </Card>
                     </Col>

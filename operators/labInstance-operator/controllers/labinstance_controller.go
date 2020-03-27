@@ -118,7 +118,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// If exists, can we attach?
 	// If yes, attach
 	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "csi-cephfs")
+	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "rook-ceph-block")
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
 		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+" in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
 		return ctrl.Result{}, err
@@ -249,7 +249,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	for {
 		resp, err := http.Get(urlProbe)
 		if err != nil || resp == nil {
-			log.Error(err, "unable to perform get on "+urlProbe)
+			log.Info("unable to perform get on "+urlProbe)
 		} else {
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
