@@ -27,8 +27,12 @@ export class App extends React.Component {
         this.childKey = 0;
         /*Check if previously logged*/
         let retrievedSessionToken = JSON.parse(sessionStorage.getItem('oidc.user:' + OIDC_PROVIDER_URL + ":" + OIDC_CLIENT_ID));
-        if(retrievedSessionToken) {
-            this.state = {logged: true, id_token: retrievedSessionToken.id_token, token_type: retrievedSessionToken.token_type || "Bearer"};
+        if (retrievedSessionToken) {
+            this.state = {
+                logged: true,
+                id_token: retrievedSessionToken.id_token,
+                token_type: retrievedSessionToken.token_type || "Bearer"
+            };
         } else {
             this.state = {logged: false, id_token: null, token_type: null};
         }
@@ -40,8 +44,8 @@ export class App extends React.Component {
         this.authManager.manager.events.addAccessTokenExpiring(() => {
             this.authManager.manager.signinSilent()
                 .then(user => {
-                   this.childKey++;
-                   this.setState({logged: true, id_token: user.id_token, token_type: user.token_type || "Bearer"});
+                    this.childKey++;
+                    this.setState({logged: true, id_token: user.id_token, token_type: user.token_type || "Bearer"});
                 });
         });
     }
@@ -56,7 +60,8 @@ export class App extends React.Component {
                         </Route>
                         <Route path="/userview" render={() => (
                             this.state.logged ?
-                                <UserLogic key={this.childKey} id_token={this.state.id_token} token_type={this.state.token_type} logout={this.authManager.logout}/> :
+                                <UserLogic key={this.childKey} id_token={this.state.id_token}
+                                           token_type={this.state.token_type} logout={this.authManager.logout}/> :
                                 <Redirect to="/"/>
                         )}/>
                         <Route path="/callback" render={() => (
