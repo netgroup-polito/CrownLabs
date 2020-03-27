@@ -91,7 +91,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 
 	// prepare variables common to all resources
-	name := labTemplate.Name + "-" + labInstance.Spec.StudentID + "-" + fmt.Sprintf("%.8s", uuid.New().String())
+	name := labTemplate.Name + "-" + fmt.Sprintf("%.8s", uuid.New().String())
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	b := true
