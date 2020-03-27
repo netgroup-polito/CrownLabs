@@ -37,6 +37,6 @@
   },
   "dependencies": {
     "@kubernetes/client-node": "file:../",
-    "oidc-client": "^1.10.1",
+    "oidc-client": "^1.10.1"
   }
 }
