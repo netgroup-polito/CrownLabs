@@ -37,15 +37,15 @@ class ProfessorView extends React.Component {
 
     render() {
         return <div style={{minHeight: '100vh'}}>
-            <Row >
-                <Col >
+            <Row>
+                <Col>
                     <LabTemplatesList labs={this.props.templateLabs} func={this.props.funcTemplate}
                                       start={this.props.start}/>
                     <Button variant="dark" className="text-success"
                             onClick={() => {
                             }}> Enable/Disable</Button>
                 </Col>
-                <Col >
+                <Col>
                     <LabInstancesList runningLabs={this.props.instanceLabs}
                                       func={this.props.funcInstance} connect={this.props.connect}
                                       stop={this.props.stop}
@@ -55,22 +55,23 @@ class ProfessorView extends React.Component {
             <Row>
                 <Col>
                     <div className="divider">
-                    <Button variant="dark" className="text-success" onClick={() => this.setState({showForm: true})}> Create Template</Button>
+                        <Button variant="dark" className="text-success"
+                                onClick={() => this.setState({showForm: true})}> Create Template</Button>
                     </div>
                 </Col>
                 <Col>
                     <div className="divider">
-                    <Button variant="dark" className="text-success"> Create Instance</Button>
+                        <Button variant="dark" className="text-success"> Create Instance</Button>
                     </div>
                 </Col>
                 <Col>
                     <div className="divider">
-                    <Button variant="dark" className="text-success"> Delete Template</Button>
+                        <Button variant="dark" className="text-success"> Delete Template</Button>
                     </div>
                 </Col>
                 <Col>
                     <div className="divider">
-                    <Button variant="dark" className="text-success"> Delete Instance</Button>
+                        <Button variant="dark" className="text-success"> Delete Instance</Button>
                     </div>
                 </Col>
             </Row>

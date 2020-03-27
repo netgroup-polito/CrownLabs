@@ -63,7 +63,6 @@
     "isomorphic-ws": "^4.0.1",
     "js-yaml": "^3.13.1",
     "jsonpath-plus": "^0.19.0",
-    "mdbreact": "^4.25.4",
     "portable-fetch": "^3.0.0",
     "react": "^16.13.1",
     "react-native": "^0.61.5",

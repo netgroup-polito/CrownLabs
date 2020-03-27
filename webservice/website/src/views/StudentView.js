@@ -6,7 +6,7 @@ import StatusArea from "../components/StatusArea";
 import "./admin.css"
 
 export default function StudentView(props) {
-    return<div style={{minHeight: '100vh'}}>
+    return <div style={{minHeight: '100vh'}}>
         <Row>
             <Col>
                 <LabTemplatesList labs={props.templateLabs} func={props.funcTemplate}
@@ -26,5 +26,5 @@ export default function StudentView(props) {
             </Col>
             <Col className="col-2"/>
         </Row>
-     </div>;
+    </div>;
 }
