@@ -84,3 +84,13 @@
         transform: rotate(360deg);
     }
 }
+
+.nav_new {
+    background-color: #032364;
+    /*margin-top: 10px;*/
+    margin-bottom: 10px;
+}
+
+.navText {
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
