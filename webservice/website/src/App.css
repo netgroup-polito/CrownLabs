@@ -44,12 +44,12 @@
 }
 
 .cover {
-    overflow-y: hidden;
     left: 0;
     right: 0;
     bottom: 0;
     top: 0;
     position: absolute;
+    overflow-y: scroll;
 }
 
 .footerstyle {
@@ -83,4 +83,14 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+.nav_new {
+    background-color: #032364;
+    /*margin-top: 10px;*/
+    margin-bottom: 10px;
+}
+
+.navText {
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
