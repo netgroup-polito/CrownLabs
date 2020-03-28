@@ -1,7 +1,7 @@
 import request = require('request');
-import {Writable} from 'stream';
+import { Writable } from 'stream';
 
-import {KubeConfig} from './config';
+import { KubeConfig } from './config';
 
 export interface LogOptions {
     /**

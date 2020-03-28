@@ -4,7 +4,7 @@ const qs = require('qs');
 const querystring = require('querystring');
 
 /* A stub for the `http.ClientResponse` type */
-const FakeResponse = (function () {
+const FakeResponse = (function() {
     function FakeResponse(fetchResponse) {
         this._fetchResponse = fetchResponse;
     }
@@ -26,9 +26,9 @@ function initParams(uri, options, callback) {
 
     const params = {};
     if (typeof options === 'object') {
-        extend(params, options, {uri: uri});
+        extend(params, options, { uri: uri });
     } else if (typeof uri === 'string') {
-        extend(params, {uri: uri});
+        extend(params, { uri: uri });
     } else {
         extend(params, uri);
     }
@@ -51,7 +51,7 @@ function requestOptionsToFetchOptions(options) {
         'qs',
     ];
 
-    Object.keys(options).forEach(function (key) {
+    Object.keys(options).forEach(function(key) {
         if (supportedKeys.indexOf(key) === -1) {
             throw new Error('Unsupported option: ' + key);
         }
@@ -108,16 +108,16 @@ module.exports = function request(uri, options, callback) {
         : params.uri + '?' + (params.useQuerystring ? querystring.stringify : qs.stringify)(params.qs);
 
     fetch(fetchUri, requestOptionsToFetchOptions(params))
-        .then(function (response) {
+        .then(function(response) {
             (params.json ? response.json() : response.text())
-                .then(function (body) {
+                .then(function(body) {
                     params.callback(null, new FakeResponse(response), body);
                 })
-                .catch(function (error) {
+                .catch(function(error) {
                     params.callback(error, new FakeResponse(response), null);
                 });
         })
-        .catch(function (error) {
+        .catch(function(error) {
             params.callback(error, null, null);
         });
 };

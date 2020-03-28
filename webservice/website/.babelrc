@@ -1,8 +1,6 @@
 {
   "presets": [
-    [
-      "@babel/preset-env",
-      {
+      [ "@babel/preset-env", {
         "modules": "auto",
         "targets": {
           "browsers": [
@@ -13,13 +11,9 @@
             "last 1 Android version",
             "last 1 ChromeAndroid version",
             "ie 11"
-          ]
-        }
-      }
-    ],
+          ]}
+        }],
     "@babel/preset-react"
   ],
-  "plugins": [
-    "@babel/plugin-proposal-class-properties"
-  ]
+  "plugins": [ "@babel/plugin-proposal-class-properties" ]
 }

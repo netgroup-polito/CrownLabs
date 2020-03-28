@@ -1,21 +1,22 @@
-import {expect, use} from 'chai';
+import { expect, use } from 'chai';
+import chaiAsPromised = require('chai-as-promised');
 
 import * as mock from 'ts-mockito';
 
-import {V1ListMeta, V1Namespace, V1NamespaceList, V1ObjectMeta, V1Pod} from './api';
-import {deleteItems, deleteObject, ListWatch} from './cache';
-import {ADD, DELETE, ListPromise, UPDATE} from './informer';
-import {Watch} from './watch';
-import chaiAsPromised = require('chai-as-promised');
-
 import http = require('http');
 
+import { V1Namespace, V1NamespaceList, V1ObjectMeta, V1Pod, V1ListMeta } from './api';
+import { deleteObject, ListWatch, deleteItems } from './cache';
+import { ListCallback, ADD, UPDATE, DELETE, ListPromise } from './informer';
+
 use(chaiAsPromised);
+
+import { Watch } from './watch';
 
 describe('ListWatchCache', () => {
     it('should throw on unknown update', () => {
         const fake = mock.mock(Watch);
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
@@ -30,8 +31,7 @@ describe('ListWatchCache', () => {
         };
         const lw = new ListWatch('/some/path', fake, listFn);
         const verb = 'FOOBAR';
-        expect(() => lw.on(verb, (obj: V1Namespace) => {
-        })).to.throw(`Unknown verb: ${verb}`);
+        expect(() => lw.on(verb, (obj: V1Namespace) => {})).to.throw(`Unknown verb: ${verb}`);
     });
 
     it('should perform basic caching', async () => {
@@ -55,13 +55,13 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -134,13 +134,13 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -196,13 +196,13 @@ describe('ListWatchCache', () => {
         return Promise.all([
             expect(addPromise)
                 .to.eventually.have.property('metadata')
-                .that.deep.equals({name: 'name3'}),
+                .that.deep.equals({ name: 'name3' }),
             expect(updatePromise)
                 .to.eventually.have.property('metadata')
-                .that.deep.equals({name: 'name3', resourceVersion: 'baz'}),
+                .that.deep.equals({ name: 'name3', resourceVersion: 'baz' }),
             expect(deletePromise)
                 .to.eventually.have.property('metadata')
-                .that.deep.equals({name: 'name2'}),
+                .that.deep.equals({ name: 'name2' }),
         ]);
     });
 
@@ -215,13 +215,13 @@ describe('ListWatchCache', () => {
             items: [],
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -258,10 +258,10 @@ describe('ListWatchCache', () => {
         return Promise.all([
             expect(addPromise)
                 .to.eventually.have.property('metadata')
-                .that.deep.equals({name: 'name3'}),
+                .that.deep.equals({ name: 'name3' }),
             expect(addPromise2)
                 .to.eventually.have.property('metadata')
-                .that.deep.equals({name: 'name3'}),
+                .that.deep.equals({ name: 'name3' }),
         ]);
     });
 
@@ -286,13 +286,13 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -359,13 +359,13 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -436,13 +436,13 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>(
                 (resolve, reject) => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 },
             );
         };
@@ -558,12 +558,12 @@ describe('ListWatchCache', () => {
             } as V1ListMeta,
             items: list,
         } as V1NamespaceList;
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>((resolve) => {
-                resolve({response: {} as http.IncomingMessage, body: listObj});
+                resolve({ response: {} as http.IncomingMessage, body: listObj });
             });
         };
         const watchCalled = new Promise((resolve) => {
@@ -574,11 +574,11 @@ describe('ListWatchCache', () => {
         const informer = new ListWatch('/some/path', mock.instance(fakeWatch), listFn);
 
         const addedList1: V1Namespace[] = [];
-        const addToList1Fn = function (obj: V1Namespace) {
+        const addToList1Fn = function(obj: V1Namespace) {
             addedList1.push(obj);
         };
         const addedList2: V1Namespace[] = [];
-        const addToList2Fn = function (obj: V1Namespace) {
+        const addToList2Fn = function(obj: V1Namespace) {
             addedList2.push(obj);
         };
 
@@ -617,12 +617,12 @@ describe('ListWatchCache', () => {
             } as V1ListMeta,
             items: list,
         } as V1NamespaceList;
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>((resolve) => {
-                resolve({response: {} as http.IncomingMessage, body: listObj});
+                resolve({ response: {} as http.IncomingMessage, body: listObj });
             });
         };
         const watchCalled = new Promise((resolve) => {
@@ -633,10 +633,10 @@ describe('ListWatchCache', () => {
         const informer = new ListWatch('/some/path', mock.instance(fakeWatch), listFn);
 
         const addedList: V1Namespace[] = [];
-        const addToListFn = function (obj: V1Namespace) {
+        const addToListFn = function(obj: V1Namespace) {
             addedList.push(obj);
         };
-        const removeSelf = function () {
+        const removeSelf = function() {
             informer.off(ADD, removeSelf);
         };
 
@@ -677,14 +677,14 @@ describe('ListWatchCache', () => {
             items: list,
         } as V1NamespaceList;
 
-        const listFn: ListPromise<V1Namespace> = function (): Promise<{
+        const listFn: ListPromise<V1Namespace> = function(): Promise<{
             response: http.IncomingMessage;
             body: V1NamespaceList;
         }> {
             return new Promise<{ response: http.IncomingMessage; body: V1NamespaceList }>((resolve) => {
                 // setImmediate will defer the resolve to the next message loop to keep the list from being immediately available
                 setImmediate(() => {
-                    resolve({response: {} as http.IncomingMessage, body: listObj});
+                    resolve({ response: {} as http.IncomingMessage, body: listObj });
                 });
             });
         };

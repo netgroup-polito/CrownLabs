@@ -1,10 +1,11 @@
-import {expect} from 'chai';
-import {anyFunction, anything, capture, instance, mock, verify, when} from 'ts-mockito';
-
-import {KubeConfig} from './config';
-import {Cluster, Context, User} from './config_types';
-import {DefaultRequest, Watch} from './watch';
+import { expect } from 'chai';
 import request = require('request');
+import { ReadableStreamBuffer, WritableStreamBuffer } from 'stream-buffers';
+import { anyFunction, anything, capture, instance, mock, reset, verify, when } from 'ts-mockito';
+
+import { KubeConfig } from './config';
+import { Cluster, Context, User } from './config_types';
+import { DefaultRequest, Watch } from './watch';
 
 const server = 'foo.company.com';
 
@@ -106,7 +107,7 @@ describe('Watch', () => {
         expect(doneCalled).to.equal(true);
         expect(doneErr).to.equal(null);
 
-        const errIn = {error: 'err'};
+        const errIn = { error: 'err' };
         doneCallback(errIn, null, null);
         expect(doneErr).to.deep.equal(errIn);
     });

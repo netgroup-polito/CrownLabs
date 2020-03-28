@@ -25,9 +25,9 @@ spec:
           imagePullPolicy: Always
           name: frontend
           ports:
-            - containerPort: 80
-              protocol: TCP
-              name: http
+          - containerPort: 80
+            protocol: TCP
+            name: http
       dnsPolicy: ClusterFirst
       imagePullSecrets:
         - name: regcred

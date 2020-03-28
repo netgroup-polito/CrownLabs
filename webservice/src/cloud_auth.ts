@@ -1,10 +1,10 @@
 import * as proc from 'child_process';
-import * as jsonpath from 'jsonpath-plus';
-
-import {Authenticator} from './auth';
-import {User} from './config_types';
 import https = require('https');
+import * as jsonpath from 'jsonpath-plus';
 import request = require('request');
+
+import { Authenticator } from './auth';
+import { User } from './config_types';
 
 /* FIXME: maybe we can extend the User and User.authProvider type to have a proper type.
 Currently user.authProvider has `any` type and so we don't have a type for user.authProvider.config.
@@ -18,7 +18,6 @@ interface Config {
     ['expiry-key']: string;
     ['access-token']?: string;
 }
-
 export class CloudAuth implements Authenticator {
     public isAuthProvider(user: User): boolean {
         if (!user || !user.authProvider) {

@@ -1,8 +1,9 @@
 import execa = require('execa');
 import https = require('https');
 import request = require('request');
-import {Authenticator} from './auth';
-import {User} from './config_types';
+
+import { Authenticator } from './auth';
+import { User } from './config_types';
 
 export interface CredentialStatus {
     readonly token: string;
@@ -89,7 +90,7 @@ export class ExecAuth implements Authenticator {
         if (exec.env) {
             const env = process.env;
             exec.env.forEach((elt) => (env[elt.name] = elt.value));
-            opts = {...opts, env};
+            opts = { ...opts, env };
         }
         const result = this.execFn(exec.command, exec.args, opts);
         if (result.code === 0) {

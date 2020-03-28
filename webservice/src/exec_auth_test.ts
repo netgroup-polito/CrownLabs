@@ -1,15 +1,14 @@
-import {expect, use} from 'chai';
-import * as shell from 'shelljs';
-
-import {ExecAuth} from './exec_auth';
-import {User} from './config_types';
+import { expect, use } from 'chai';
 import chaiAsPromised = require('chai-as-promised');
+use(chaiAsPromised);
+
+import * as shell from 'shelljs';
 
 import execa = require('execa');
 import request = require('request');
 
-use(chaiAsPromised);
-
+import { ExecAuth } from './exec_auth';
+import { User } from './config_types';
 
 describe('ExecAuth', () => {
     it('should claim correctly', () => {
@@ -62,7 +61,7 @@ describe('ExecAuth', () => {
         ): execa.ExecaSyncReturnValue => {
             return {
                 code: 0,
-                stdout: JSON.stringify({status: {token: 'foo'}}),
+                stdout: JSON.stringify({ status: { token: 'foo' } }),
             } as execa.ExecaSyncReturnValue;
         };
         const opts = {} as request.Options;
@@ -92,7 +91,7 @@ describe('ExecAuth', () => {
         ): execa.ExecaSyncReturnValue => {
             return {
                 code: 0,
-                stdout: JSON.stringify({status: {clientCertificateData: 'foo', clientKeyData: 'bar'}}),
+                stdout: JSON.stringify({ status: { clientCertificateData: 'foo', clientKeyData: 'bar' } }),
             } as execa.ExecaSyncReturnValue;
         };
 
@@ -129,7 +128,7 @@ describe('ExecAuth', () => {
             return {
                 code: 0,
                 stdout: JSON.stringify({
-                    status: {token: tokenValue, expirationTimestamp: expire},
+                    status: { token: tokenValue, expirationTimestamp: expire },
                 }),
             } as execa.ExecaSyncReturnValue;
         };
@@ -184,7 +183,7 @@ describe('ExecAuth', () => {
         ): execa.ExecaSyncReturnValue => {
             return {
                 code: 100,
-                stdout: JSON.stringify({status: {token: 'foo'}}),
+                stdout: JSON.stringify({ status: { token: 'foo' } }),
                 stderr: 'Some error!',
             } as execa.ExecaSyncReturnValue;
         };
@@ -217,7 +216,7 @@ describe('ExecAuth', () => {
             optsOut = opts;
             return {
                 code: 0,
-                stdout: JSON.stringify({status: {token: 'foo'}}),
+                stdout: JSON.stringify({ status: { token: 'foo' } }),
             } as execa.ExecaSyncReturnValue;
         };
         process.env.BLABBLE = 'flubble';

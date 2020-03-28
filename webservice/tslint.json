@@ -10,21 +10,10 @@
   },
   "jsRules": {},
   "rules": {
-    "quotemark": [
-      true,
-      "single",
-      "avoid-escape",
-      "avoid-template"
-    ],
-    "interface-name": [
-      true,
-      "never-prefix"
-    ],
+    "quotemark": [true, "single", "avoid-escape", "avoid-template"],
+    "interface-name": [true, "never-prefix"],
     "object-literal-sort-keys": false,
-    "object-literal-key-quotes": [
-      true,
-      "as-needed"
-    ],
+    "object-literal-key-quotes": [true, "as-needed"],
     "max-classes-per-file": false
   },
   "rulesDirectory": []
