@@ -94,6 +94,7 @@ User=${USER}
 Group=${USER}
 ExecStart=${NOVNC_PATH}/utils/launch.sh --listen 6080 --vnc localhost:5901
 RemainAfterExit=yes
+Nice=-10
 
 [Install]
 WantedBy=multi-user.target
@@ -114,13 +115,13 @@ sudo tee "${SYSTEMD_PATH}/${PNE_SERVICE}" > /dev/null <<EOT
 [Unit]
 Description=Prometheus Node Exporter
 After=network.target
- 
+
 [Service]
 Type=simple
 User=pne_user
 Group=pne_user
 ExecStart=/usr/local/bin/node_exporter
- 
+
 [Install]
 WantedBy=multi-user.target
 EOT
@@ -139,10 +140,10 @@ sudo chmod +x $PERSISTENCE_SCRIPT
 sudo tee "${SYSTEMD_PATH}/${PERS_SERVICE}" > /dev/null <<EOT
 [Unit]
 Description=Change permissions to the persistent disk
- 
+
 [Service]
 ExecStart=${PERSISTENCE_SCRIPT}
- 
+
 [Install]
 WantedBy=multi-user.target
 EOT
