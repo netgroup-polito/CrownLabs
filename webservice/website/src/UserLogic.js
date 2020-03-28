@@ -47,7 +47,7 @@ export default class UserLogic extends React.Component {
             events: "",
             statusHidden: true,
             adminHidden: true,
-            isAdminSomewhere: adminGroups.length >= 0
+            isAdminSomewhere: adminGroups.length > 0
         };
         this.retrieveCRDtemplates();
         this.retrieveCRDinstances()

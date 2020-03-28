@@ -1,7 +1,6 @@
 import http = require('http');
 import url = require('url');
-
-import { KubeConfig } from './config';
+import {KubeConfig} from './config';
 
 export class ProtoClient {
     public readonly 'config': KubeConfig;

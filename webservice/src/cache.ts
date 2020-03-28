@@ -1,9 +1,10 @@
-import { ADD, DELETE, Informer, ListPromise, ObjectCallback, UPDATE } from './informer';
-import { KubernetesObject } from './types';
-import { Watch } from './watch';
+import {ADD, DELETE, Informer, ListPromise, ObjectCallback, UPDATE} from './informer';
+import {KubernetesObject} from './types';
+import {Watch} from './watch';
 
 export interface ObjectCache<T> {
     get(name: string, namespace?: string): T | undefined;
+
     list(namespace?: string): ReadonlyArray<T>;
 }
 
@@ -75,7 +76,7 @@ export class ListWatch<T extends KubernetesObject> implements ObjectCache<T>, In
         this.addOrUpdateItems(list.items);
         this.watch.watch(
             this.path,
-            { resourceVersion: list.metadata!.resourceVersion },
+            {resourceVersion: list.metadata!.resourceVersion},
             this.watchHandler.bind(this),
             this.doneHandler.bind(this),
         );

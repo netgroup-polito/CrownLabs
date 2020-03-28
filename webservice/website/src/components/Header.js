@@ -15,6 +15,7 @@ export default function Header(props) {
         <Button variant="outline-light" onClick={props.switchAdminView}>{name}</Button> : <div/>;
     return <header>
         <Navbar className="nav_new" variant="dark" expand="lg">
+            <img src={require('../assets/crown.png')} height="40px" alt=""/>;
             <Navbar.Brand className="navText" href="">CrownLabs</Navbar.Brand>
             <Nav className="ml-auto" as="ul">
                 <NavItem as="li" className="mr-2">

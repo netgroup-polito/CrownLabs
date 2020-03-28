@@ -1,13 +1,12 @@
-import { promisify } from 'util';
-import { expect } from 'chai';
-import WebSocket = require('isomorphic-ws');
-import { ReadableStreamBuffer, WritableStreamBuffer } from 'stream-buffers';
-import { anyFunction, capture, instance, mock, reset, verify } from 'ts-mockito';
+import {promisify} from 'util';
+import {expect} from 'chai';
+import {WritableStreamBuffer} from 'stream-buffers';
 
-import { V1Status } from './api';
-import { KubeConfig } from './config';
-import { Cluster, Context, User } from './config_types';
-import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
+import {V1Status} from './api';
+import {KubeConfig} from './config';
+import {Cluster, Context, User} from './config_types';
+import {WebSocketHandler} from './web-socket-handler';
+import WebSocket = require('isomorphic-ws');
 
 const setImmediatePromise = promisify(setImmediate);
 

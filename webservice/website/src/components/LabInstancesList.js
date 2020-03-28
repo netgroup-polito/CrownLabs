@@ -106,9 +106,11 @@ export default function LabInstancesList(props) {
     return (
         <div className="w3-panel w3-white w3-card w3-display-container">
             <List component="nav" subheader={
-                <ListSubheader style={{fontSize: "30px"}} component="div" id="nested-list-subheader">
-                    Running Laboratories
-                </ListSubheader>
+                <div className="divider">
+                    <ListSubheader style={{fontSize: "30px"}} component="div" id="nested-list-subheader">
+                        Running Laboratories
+                    </ListSubheader>
+                </div>
             }>
             </List>
             <List className={classes.root} subheader={<li/>}>

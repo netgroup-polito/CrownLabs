@@ -1,8 +1,8 @@
-import { expect } from 'chai';
+import {expect} from 'chai';
 import * as request from 'request';
 
-import { User } from './config_types';
-import { OpenIDConnectAuth } from './oidc_auth';
+import {User} from './config_types';
+import {OpenIDConnectAuth} from './oidc_auth';
 
 describe('OIDCAuth', () => {
     const auth = new OpenIDConnectAuth();
