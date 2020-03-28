@@ -1,10 +1,10 @@
 import WebSocket = require('isomorphic-ws');
 import querystring = require('querystring');
 import stream = require('stream');
-import { isUndefined } from 'util';
+import {isUndefined} from 'util';
 
-import { KubeConfig } from './config';
-import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
+import {KubeConfig} from './config';
+import {WebSocketHandler, WebSocketInterface} from './web-socket-handler';
 
 export class PortForward {
     private readonly handler: WebSocketInterface;

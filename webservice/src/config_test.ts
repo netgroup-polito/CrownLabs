@@ -1,15 +1,15 @@
-import { readFileSync } from 'fs';
+import {readFileSync} from 'fs';
 import * as https from 'https';
-import { dirname, join } from 'path';
-
-import { expect } from 'chai';
-import mockfs = require('mock-fs');
-import * as requestlib from 'request';
 import * as path from 'path';
+import {join} from 'path';
 
-import { CoreV1Api } from './api';
-import { bufferFromFileOrString, findHomeDir, findObject, KubeConfig, makeAbsolutePath } from './config';
-import { Cluster, newClusters, newContexts, newUsers, User } from './config_types';
+import {expect} from 'chai';
+import * as requestlib from 'request';
+
+import {CoreV1Api} from './api';
+import {bufferFromFileOrString, findHomeDir, findObject, KubeConfig, makeAbsolutePath} from './config';
+import {Cluster, newClusters, newContexts, newUsers, User} from './config_types';
+import mockfs = require('mock-fs');
 
 const kcFileName = 'testdata/kubeconfig.yaml';
 const kc2FileName = 'testdata/kubeconfig-2.yaml';
@@ -20,7 +20,8 @@ const kcDupeUser = 'testdata/kubeconfig-dupe-user.yaml';
 const kcNoUserFileName = 'testdata/empty-user-kubeconfig.yaml';
 
 /* tslint:disable: no-empty */
-describe('Config', () => {});
+describe('Config', () => {
+});
 
 function validateFileLoad(kc: KubeConfig) {
     // check clusters
@@ -77,6 +78,7 @@ describe('KubeConfig', () => {
                 some: any;
                 cluster: any;
             }
+
             const list: MyNamed[] = [
                 {
                     name: 'foo',
@@ -382,7 +384,7 @@ describe('KubeConfig', () => {
             process.env.HOME = expectedHome;
             const dir = join(process.env.HOME, '.kube');
             const arg = {};
-            arg[dir] = { config: 'data' };
+            arg[dir] = {config: 'data'};
             mockfs(arg);
 
             const home = findHomeDir();
@@ -435,7 +437,7 @@ describe('KubeConfig', () => {
             process.env.HOMEPATH = 'bar';
             const dir = join(process.env.HOMEDRIVE, process.env.HOMEPATH);
             const arg = {};
-            arg[dir] = { config: 'data' };
+            arg[dir] = {config: 'data'};
             mockfs(arg);
 
             const home = findHomeDir();
@@ -451,7 +453,7 @@ describe('KubeConfig', () => {
             process.env.HOMEPATH = 'bar';
             process.env.USERPROFILE = dir;
             const arg = {};
-            arg[dir] = { config: 'data' };
+            arg[dir] = {config: 'data'};
             mockfs(arg);
 
             const home = findHomeDir();
@@ -521,7 +523,7 @@ describe('KubeConfig', () => {
             const user = 'user';
             const passwd = 'password';
 
-            config.loadFromClusterAndUser({} as Cluster, { username: user, password: passwd } as User);
+            config.loadFromClusterAndUser({} as Cluster, {username: user, password: passwd} as User);
             const opts = {} as https.RequestOptions;
             await config.applytoHTTPSOptions(opts);
 
@@ -556,7 +558,7 @@ describe('KubeConfig', () => {
         it('should not populate strict ssl', async () => {
             const config = new KubeConfig();
 
-            config.loadFromClusterAndUser({ skipTLSVerify: false } as Cluster, {} as User);
+            config.loadFromClusterAndUser({skipTLSVerify: false} as Cluster, {} as User);
             const opts = {} as requestlib.Options;
 
             await config.applyToRequest(opts);
@@ -567,7 +569,7 @@ describe('KubeConfig', () => {
             const config = new KubeConfig();
             const token = 'token';
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     token,
                 } as User,
@@ -584,7 +586,7 @@ describe('KubeConfig', () => {
             const config = new KubeConfig();
             const token = 'token';
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -612,7 +614,7 @@ describe('KubeConfig', () => {
             const config = new KubeConfig();
             const token = 'token';
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -635,7 +637,7 @@ describe('KubeConfig', () => {
             const config = new KubeConfig();
             const token = 'token';
             config.loadFromClusterAndUser(
-                { skipTLSVerify: true } as Cluster,
+                {skipTLSVerify: true} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -676,7 +678,7 @@ describe('KubeConfig', () => {
         it('should throw with expired token and no cmd', () => {
             const config = new KubeConfig();
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -694,7 +696,7 @@ describe('KubeConfig', () => {
         it('should throw with bad command', () => {
             const config = new KubeConfig();
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -717,7 +719,7 @@ describe('KubeConfig', () => {
             const token = 'token';
             const responseStr = `{"token":{"accessToken":"${token}"}}`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -743,7 +745,7 @@ describe('KubeConfig', () => {
             const token = 'token';
             const responseStr = `{"token":{"accessToken":"${token}"}}`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -768,7 +770,7 @@ describe('KubeConfig', () => {
             const token = 'token';
             const responseStr = `{"token":{"accessToken":"${token}"}}`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'azure',
@@ -793,7 +795,7 @@ describe('KubeConfig', () => {
             const token = 'token';
             const responseStr = `{"status": { "token": "${token}" }}`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'exec',
@@ -831,7 +833,7 @@ describe('KubeConfig', () => {
                 }
               }`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'exec',
@@ -863,7 +865,7 @@ describe('KubeConfig', () => {
                 }
               }`;
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     exec: {
                         command: 'echo',
@@ -882,7 +884,7 @@ describe('KubeConfig', () => {
         it('should throw with no command.', () => {
             const config = new KubeConfig();
             config.loadFromClusterAndUser(
-                { skipTLSVerify: false } as Cluster,
+                {skipTLSVerify: false} as Cluster,
                 {
                     authProvider: {
                         name: 'exec',
@@ -962,7 +964,7 @@ describe('KubeConfig', () => {
             const data = readFileSync(kcFileName);
             const dir = join(process.env.HOME, '.kube');
             const arg = {};
-            arg[dir] = { config: data };
+            arg[dir] = {config: data};
             mockfs(arg);
 
             const kc = new KubeConfig();

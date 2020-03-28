@@ -3,7 +3,6 @@ import {Card, Col, Container, Row} from 'react-bootstrap';
 import Footer from "../components/Footer";
 import '../App.css';
 import Header from "../components/Header";
-import blue from "@material-ui/core/colors/blue";
 
 /**
  * Function to draw the Home
@@ -20,7 +19,8 @@ export default function Home(props) {
                     <Card className="mt-5 p-3 text-center headerstyle">
                         <Card.Title as="h1">Welcome to CrownLabs!</Card.Title>
                         <Card.Body>
-                            <a href='#' onClick={props.login} style={{ color: '#0000FF' , background: '#ffffa0' }} >Log in</a>
+                            <a href='#' onClick={props.login} style={{color: '#0000FF', background: '#ffffa0'}}>Log
+                                in</a>
                             <p className="d-inline"> to access your laboratories.</p>
                         </Card.Body>
                     </Card>

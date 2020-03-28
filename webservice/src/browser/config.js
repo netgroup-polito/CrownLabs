@@ -1,4 +1,4 @@
-module.exports.Config = (function() {
+module.exports.Config = (function () {
     function Cluster(server) {
         this._server = server;
     }
@@ -33,19 +33,19 @@ module.exports.Config = (function() {
             return this._tokenType;
         },
 
-        makeApiClient: function(apiClientType) {
+        makeApiClient: function (apiClientType) {
             const apiClient = new apiClientType(this.apiServer);
             apiClient.setDefaultAuthentication(this);
             return apiClient;
         },
 
-        applyToRequest: function(request) {
+        applyToRequest: function (request) {
             if (this.token) {
                 request.headers['authorization'] = this.tokenType + ' ' + this.token;
             }
         },
 
-        getCurrentCluster: function() {
+        getCurrentCluster: function () {
             return new Cluster(this.apiServer);
         },
     };

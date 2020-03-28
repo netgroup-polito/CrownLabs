@@ -1,14 +1,14 @@
-import { expect } from 'chai';
-import WebSocket = require('isomorphic-ws');
-import { ReadableStreamBuffer, WritableStreamBuffer } from 'stream-buffers';
-import { anyFunction, anything, capture, instance, mock, verify, when } from 'ts-mockito';
+import {expect} from 'chai';
+import {ReadableStreamBuffer, WritableStreamBuffer} from 'stream-buffers';
+import {anyFunction, anything, capture, instance, mock, verify, when} from 'ts-mockito';
 
-import { CallAwaiter, matchBuffer, ResizableWriteableStreamBuffer } from '../test';
-import { V1Status } from './api';
-import { KubeConfig } from './config';
-import { Exec } from './exec';
-import { TerminalSize } from './terminal-size-queue';
-import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
+import {CallAwaiter, matchBuffer, ResizableWriteableStreamBuffer} from '../test';
+import {V1Status} from './api';
+import {KubeConfig} from './config';
+import {Exec} from './exec';
+import {TerminalSize} from './terminal-size-queue';
+import {WebSocketHandler, WebSocketInterface} from './web-socket-handler';
+import WebSocket = require('isomorphic-ws');
 
 describe('Exec', () => {
     describe('basic', () => {
@@ -123,7 +123,7 @@ describe('Exec', () => {
                 expect(buff[i]).to.equal(20);
             }
 
-            const initialTerminalSize: TerminalSize = { height: 0, width: 0 };
+            const initialTerminalSize: TerminalSize = {height: 0, width: 0};
             await callAwaiter.awaitCall('send');
             verify(
                 fakeWebSocket.send(
@@ -137,7 +137,7 @@ describe('Exec', () => {
             await inputPromise;
             verify(fakeWebSocket.send(matchBuffer(WebSocketHandler.StdinStream, msg))).called();
 
-            const terminalSize: TerminalSize = { height: 80, width: 120 };
+            const terminalSize: TerminalSize = {height: 80, width: 120};
             const resizePromise = callAwaiter.awaitCall('send');
             osStream.rows = terminalSize.height;
             osStream.columns = terminalSize.width;

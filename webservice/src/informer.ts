@@ -1,8 +1,7 @@
-import { ListWatch } from './cache';
-import { KubeConfig } from './config';
-import { KubernetesListObject, KubernetesObject } from './types';
-import { Watch } from './watch';
-
+import {ListWatch} from './cache';
+import {KubeConfig} from './config';
+import {KubernetesListObject, KubernetesObject} from './types';
+import {Watch} from './watch';
 import http = require('http');
 
 export type ObjectCallback<T extends KubernetesObject> = (obj: T) => void;
@@ -18,7 +17,9 @@ export const DELETE: string = 'delete';
 
 export interface Informer<T> {
     on(verb: string, fn: ObjectCallback<T>);
+
     off(verb: string, fn: ObjectCallback<T>);
+
     start(): Promise<void>;
 }
 

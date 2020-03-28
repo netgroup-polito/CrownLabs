@@ -1,10 +1,10 @@
-import { expect } from 'chai';
+import {expect} from 'chai';
+
+import {User} from './config_types';
+import {FileAuth} from './file_auth';
 import mockfs = require('mock-fs');
 
 import request = require('request');
-
-import { User } from './config_types';
-import { FileAuth } from './file_auth';
 
 describe('FileAuth', () => {
     it('should refresh when expired', async () => {
