@@ -1,10 +1,11 @@
 import WebSocket = require('isomorphic-ws');
 import querystring = require('querystring');
 import stream = require('stream');
-import {V1Status} from './api';
-import {KubeConfig} from './config';
-import {isResizable, ResizableStream, TerminalSizeQueue} from './terminal-size-queue';
-import {WebSocketHandler, WebSocketInterface} from './web-socket-handler';
+
+import { V1Status } from './api';
+import { KubeConfig } from './config';
+import { isResizable, ResizableStream, TerminalSizeQueue } from './terminal-size-queue';
+import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
 
 export class Exec {
     public 'handler': WebSocketInterface;

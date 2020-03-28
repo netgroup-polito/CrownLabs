@@ -1,10 +1,10 @@
-import {expect} from 'chai';
-import {ReadableStreamBuffer, WritableStreamBuffer} from 'stream-buffers';
-import {anyFunction, capture, instance, mock, verify} from 'ts-mockito';
+import { expect } from 'chai';
+import { ReadableStreamBuffer, WritableStreamBuffer } from 'stream-buffers';
+import { anyFunction, capture, instance, mock, reset, verify } from 'ts-mockito';
 
-import {KubeConfig} from './config';
-import {PortForward} from './portforward';
-import {WebSocketHandler, WebSocketInterface} from './web-socket-handler';
+import { KubeConfig } from './config';
+import { PortForward } from './portforward';
+import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
 
 describe('PortForward', () => {
     it('should correctly port-forward to a url', async () => {

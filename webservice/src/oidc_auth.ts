@@ -1,7 +1,8 @@
 import https = require('https');
 import request = require('request');
-import {Authenticator} from './auth';
-import {User} from './config_types';
+
+import { Authenticator } from './auth';
+import { User } from './config_types';
 
 export class OpenIDConnectAuth implements Authenticator {
     public isAuthProvider(user: User): boolean {

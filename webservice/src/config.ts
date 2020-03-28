@@ -6,13 +6,14 @@ import path = require('path');
 import yaml = require('js-yaml');
 import request = require('request');
 import shelljs = require('shelljs');
+
 import * as api from './api';
-import {Authenticator} from './auth';
-import {CloudAuth} from './cloud_auth';
-import {Cluster, Context, newClusters, newContexts, newUsers, User} from './config_types';
-import {ExecAuth} from './exec_auth';
-import {FileAuth} from './file_auth';
-import {OpenIDConnectAuth} from './oidc_auth';
+import { Authenticator } from './auth';
+import { CloudAuth } from './cloud_auth';
+import { Cluster, Context, newClusters, newContexts, newUsers, User } from './config_types';
+import { ExecAuth } from './exec_auth';
+import { FileAuth } from './file_auth';
+import { OpenIDConnectAuth } from './oidc_auth';
 
 // fs.existsSync was removed in node 10
 function fileExists(filepath: string): boolean {
@@ -20,8 +21,7 @@ function fileExists(filepath: string): boolean {
         fs.accessSync(filepath);
         return true;
         // tslint:disable-next-line:no-empty
-    } catch (ignore) {
-    }
+    } catch (ignore) {}
     return false;
 }
 
@@ -288,8 +288,8 @@ export class KubeConfig {
         }
 
         this.loadFromClusterAndUser(
-            {name: 'cluster', server: 'http://localhost:8080'} as Cluster,
-            {name: 'user'} as User,
+            { name: 'cluster', server: 'http://localhost:8080' } as Cluster,
+            { name: 'user' } as User,
         );
     }
 
@@ -452,8 +452,7 @@ export function findHomeDir(): string | null {
             fs.accessSync(process.env.HOME);
             return process.env.HOME;
             // tslint:disable-next-line:no-empty
-        } catch (ignore) {
-        }
+        } catch (ignore) {}
     }
     if (process.platform !== 'win32') {
         return null;
@@ -464,16 +463,14 @@ export function findHomeDir(): string | null {
             fs.accessSync(dir);
             return dir;
             // tslint:disable-next-line:no-empty
-        } catch (ignore) {
-        }
+        } catch (ignore) {}
     }
     if (process.env.USERPROFILE) {
         try {
             fs.accessSync(process.env.USERPROFILE);
             return process.env.USERPROFILE;
             // tslint:disable-next-line:no-empty
-        } catch (ignore) {
-        }
+        } catch (ignore) {}
     }
     return null;
 }

@@ -1,9 +1,8 @@
-import {Readable, ReadableOptions} from 'stream';
+import { Readable, ReadableOptions } from 'stream';
 
 export interface ResizableStream {
     columns: number;
     rows: number;
-
     on(event: 'resize', cb: () => void);
 }
 
@@ -17,8 +16,7 @@ export class TerminalSizeQueue extends Readable {
         super({
             ...opts,
             // tslint:disable-next-line:no-empty
-            read() {
-            },
+            read() {},
         });
     }
 
@@ -47,5 +45,5 @@ export function isResizable(stream: any) {
 }
 
 function getTerminalSize(writeStream: ResizableStream): TerminalSize {
-    return {height: writeStream.rows!, width: writeStream.columns!};
+    return { height: writeStream.rows!, width: writeStream.columns! };
 }

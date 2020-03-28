@@ -1,10 +1,10 @@
-import {expect, use} from 'chai';
-
-import {CoreV1Api} from './api';
-import {KubeConfig} from './config';
-import {Cluster, User} from './config_types';
+import { expect, use } from 'chai';
 import chaiAsPromised = require('chai-as-promised');
 import nock = require('nock');
+
+import { CoreV1Api } from './api';
+import { KubeConfig } from './config';
+import { Cluster, User } from './config_types';
 
 use(chaiAsPromised);
 

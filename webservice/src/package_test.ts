@@ -1,4 +1,4 @@
-import {expect} from 'chai';
+import { expect } from 'chai';
 
 // Generic set of tests to verify the package is built and configured correctly
 describe('package', () => {

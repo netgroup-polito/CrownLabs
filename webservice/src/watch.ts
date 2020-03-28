@@ -1,6 +1,6 @@
 import byline = require('byline');
 import request = require('request');
-import {KubeConfig} from './config';
+import { KubeConfig } from './config';
 
 export interface WatchUpdate {
     type: string;

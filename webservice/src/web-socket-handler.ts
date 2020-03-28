@@ -1,7 +1,8 @@
 import WebSocket = require('isomorphic-ws');
 import stream = require('stream');
-import {V1Status} from './api';
-import {KubeConfig} from './config';
+
+import { V1Status } from './api';
+import { KubeConfig } from './config';
 
 const protocols = ['v4.channel.k8s.io', 'v3.channel.k8s.io', 'v2.channel.k8s.io', 'channel.k8s.io'];
 
@@ -19,13 +20,6 @@ export class WebSocketHandler implements WebSocketInterface {
     public static readonly StderrStream = 2;
     public static readonly StatusStream = 3;
     public static readonly ResizeStream = 4;
-
-    // factory is really just for test injection
-    public constructor(
-        readonly config: KubeConfig,
-        readonly socketFactory?: (uri: string, opts: WebSocket.ClientOptions) => WebSocket,
-    ) {
-    }
 
     public static handleStandardStreams(
         streamNum: number,
@@ -129,6 +123,12 @@ export class WebSocketHandler implements WebSocketInterface {
         return () => ws;
     }
 
+    // factory is really just for test injection
+    public constructor(
+        readonly config: KubeConfig,
+        readonly socketFactory?: (uri: string, opts: WebSocket.ClientOptions) => WebSocket,
+    ) {}
+
     /**
      * Connect to a web socket endpoint.
      * @param path The HTTP Path to connect to on the server.
@@ -173,7 +173,7 @@ export class WebSocketHandler implements WebSocketInterface {
                 }
             };
 
-            client.onmessage = ({data}: { data: WebSocket.Data }) => {
+            client.onmessage = ({ data }: { data: WebSocket.Data }) => {
                 // TODO: support ArrayBuffer and Buffer[] data types?
                 if (typeof data === 'string') {
                     if (textHandler && !textHandler(data)) {

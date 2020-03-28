@@ -1,13 +1,13 @@
-import {expect} from 'chai';
-import {ReadableStreamBuffer, WritableStreamBuffer} from 'stream-buffers';
-import {anyFunction, anything, capture, instance, mock, verify, when} from 'ts-mockito';
-
-import {CallAwaiter, matchBuffer, ResizableWriteableStreamBuffer} from '../test';
-import {Attach} from './attach';
-import {KubeConfig} from './config';
-import {TerminalSize} from './terminal-size-queue';
-import {WebSocketHandler, WebSocketInterface} from './web-socket-handler';
+import { expect } from 'chai';
 import WebSocket = require('isomorphic-ws');
+import { ReadableStreamBuffer, WritableStreamBuffer } from 'stream-buffers';
+import { anyFunction, anything, capture, instance, mock, verify, when } from 'ts-mockito';
+
+import { CallAwaiter, matchBuffer, ResizableWriteableStreamBuffer } from '../test';
+import { Attach } from './attach';
+import { KubeConfig } from './config';
+import { TerminalSize } from './terminal-size-queue';
+import { WebSocketHandler, WebSocketInterface } from './web-socket-handler';
 
 describe('Attach', () => {
     describe('basic', () => {
@@ -98,7 +98,7 @@ describe('Attach', () => {
                 expect(buff[i]).to.equal(20);
             }
 
-            const initialTerminalSize: TerminalSize = {height: 0, width: 0};
+            const initialTerminalSize: TerminalSize = { height: 0, width: 0 };
             await callAwaiter.awaitCall('send');
             verify(
                 fakeWebSocket.send(
@@ -112,7 +112,7 @@ describe('Attach', () => {
             await inputPromise;
             verify(fakeWebSocket.send(matchBuffer(WebSocketHandler.StdinStream, msg))).called();
 
-            const terminalSize: TerminalSize = {height: 80, width: 120};
+            const terminalSize: TerminalSize = { height: 80, width: 120 };
             const resizePromise = callAwaiter.awaitCall('send');
             osStream.rows = terminalSize.height;
             osStream.columns = terminalSize.width;

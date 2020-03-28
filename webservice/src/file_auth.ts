@@ -1,8 +1,9 @@
 import fs = require('fs');
 import https = require('https');
 import request = require('request');
-import {Authenticator} from './auth';
-import {User} from './config_types';
+
+import { Authenticator } from './auth';
+import { User } from './config_types';
 
 export class FileAuth implements Authenticator {
     private token: string | null = null;
