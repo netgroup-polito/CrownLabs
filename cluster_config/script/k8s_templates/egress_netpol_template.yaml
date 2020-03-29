@@ -1,0 +1,29 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: deny-access-kube-system
+  namespace: student-sgalantino
+spec:
+  types:
+  - Egress
+  egress:
+  - action: Deny
+    destination:
+      namespaceSelector: name == 'kube-system'
+
+
+
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: deny-access-monitoring
+  namespace: student-sgalantino
+spec:
+  types:
+  - Egress
+  egress:
+  - action: Deny
+    destination:
+      selector: all()
+      namespaceSelector: projectcalico.org/name == 'monitoring'
+
