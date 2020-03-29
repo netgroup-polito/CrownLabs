@@ -36,7 +36,7 @@ class ProfessorView extends React.Component {
     };
 
     render() {
-        return <div style={{minHeight: '100vh'}}>
+        return <div>
             <Row>
                 <Col>
                     <LabTemplatesList labs={this.props.templateLabs} func={this.props.funcTemplate}

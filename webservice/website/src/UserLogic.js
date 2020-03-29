@@ -176,15 +176,15 @@ export default class UserLogic extends React.Component {
         this.apiManager.deleteCRDinstance(this.state.selectedInstance)
             .then(() => {
                     Toastr.success("Successfully stopped `" + this.state.selectedInstance + "`");
-                    const newMap = this.state.instanceLabs;
-                    newMap.delete(this.state.selectedInstance);
-                    this.setState({instanceLabs: newMap});
                 }
             )
             .catch((error) => {
                 this.handleErrors(error);
             })
             .finally(() => {
+                const newMap = this.state.instanceLabs;
+                newMap.delete(this.state.selectedInstance);
+                this.setState({instanceLabs: newMap});
                 this.changeSelectedCRDinstance(null);
             });
     }
@@ -313,6 +313,9 @@ export default class UserLogic extends React.Component {
             case 403 :
                 msg += "It seems you do not have the right permissions to perform this operation";
                 break;
+            case 404 :
+                msg += "Resource not found, probably you have already destroyed it";
+                break;
             case 409 :
                 msg += "The resource is already present";
                 break;
@@ -334,7 +337,7 @@ export default class UserLogic extends React.Component {
                 <Header logged={true} logout={this.props.logout} adminHidden={this.state.adminHidden}
                         renderAdminBtn={this.state.isAdminSomewhere}
                         switchAdminView={() => this.setState({adminHidden: !this.state.adminHidden})}/>
-                <Container fluid className="cover mt-5">
+                <Container fluid className="cover pt-5 mt-5">
                     {!this.state.adminHidden ? <ProfessorView
                             templateLabs={this.state.templateLabs}
                             instanceLabs={this.state.instanceLabs}
