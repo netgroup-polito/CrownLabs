@@ -1,29 +1,52 @@
-# Students Creator
-This Python script allows the creation of student accounts in Keycloak with their companion set of resources, namely Namespaces, Secrets and RoleBindings in Kubernetes.
+# Course Creator
+This Python script allows the automatic creation of *CrownLabs* courses, including the different laboratories and the tenant (i.e. student and professor) accounts. In particular, tenants are characterized both by the actual accounts in the OIDC server (i.e. Keycloak), as well as their companion set of resources in Kubernetes.
 
-## How does it work
-This scripts creates the required resources associated to a user account, then sends an email to each new user to set the password for the account. In case the user already exists, this script adds a new binding for the given user to the new group.
+## Overview
+This script processes different CSV files to obtain the information regarding the resources characteristics of the resources to be created. The files must be compliant with the templates provided in the [csv_examples](csv_examples) folder:
 
-This script must work in the same folder with the [namespace_template.yaml](namespace_template.yaml) [regcred_template.yaml](regcred_template.yaml) and the [role_binding_template.yaml](role_binding_template.yaml) and a CSV file containing the list of users that have to be created. 
-The CSV file must follow the template such as [example.csv](example.csv).
+* [courses.csv](csv_examples/courses.csv): enumerates the list of courses to be created by the script;
+* [laboratories.csv](csv_examples/laboratories.csv): enumerates the list of laboratories to be created by the script;
+* [students.csv](csv_examples/students.csv): enumerates the list of student accounts to be created by the script;
+* [teachers.csv](csv_examples/teachers.csv): enumerates the list of professor accounts (i.e. with additional privileges) to be created by the script.
 
-To use this script in your cluster, you have to customize the following information:
-- file [regcred_template.yaml](regcred_template.yaml): configure the secret in the `.dockerconfigjson` field;
-- file [adduser.py](adduser.py): configure the URL of your OICD server in the `server_url` field.
+Upon the creation of a new tenant account, the system automatically sends a welcome email to the tenant. In particular, the email contains a confirmation link that needs to be accessed to complete the registration and setup a new password for the account.
+
+The script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results. Additionally, the modifications are incremental, e.g. it is possible to introduce new laboratories or allow tenants to access additional courses even after the initial creation.
+
+The script depends upon a series of Kubernetes resource templates stored within the [k8s_templates](k8s_templates) folder. Before executing the script, it is necessary to customize the following files:
+- [registrycredentials_template.yaml](k8s_templates/registrycredentials_template.yaml): to specify the credentials to access the docker registry where the laboratory images are made available for download;
+- [setup_courses.py](setup_courses.py): optional, to configure the URL of a different OICD server (`server_url` field).
 
 ## Dependencies
 The following libraries must be present in order for this script to work:
-- python-keycloak
-- pandas
-- jinja2
+- `python-keycloak`
+- `pandas`
+- `jinja2`
 
 To install those dependencies you can run the following command:
 ````
- pip3 install <library-name>
+ pip3 install -r requirements.txt
 ````
 
-## How run it
-The name of CSV file is passed on the command line together with the username and password of the keycloak administrator:
-````
- python3 adduser.py <csvfile> <username> <password>
-````
+## Usage
+
+```
+usage: setup_courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
+                        [-t <teachers.csv>] [-s <students.csv>]
+                        keycloak_user keycloak_pass
+```
+
+#### Positional arguments:
+
+* `keycloak_user`: The admin username for the OIDC server;
+* `keycloak_pass`: The admin password for the OIDC server;
+
+#### Optional arguments:
+
+* `-h, --help`: Show this help message and exit;
+* `-c <courses.csv>, --courses <courses.csv>`: The CSV file containing the courses to be created
+* `-l <laboratories.csv>, --laboratories <laboratories.csv>`: The CSV file containing the list of laboratories to be created;
+* `-t <teachers.csv>, --teachers <teachers.csv>`: The CSV file containing the professor accounts to be created;
+* `-s <students.csv>, --students <students.csv>`: The CSV file containing the student accounts to be created;
+
+**Note:** the optional arguments specifying the input files can be provided both all together or during multiple runs of the script. The only constraint relates to the courses: courses must be either already present before creating the other resources or the `--courses <courses.csv>` parameter needs to be specified.
