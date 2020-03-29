@@ -13,7 +13,7 @@ export default function Header(props) {
     const name = props.adminHidden ? "Professor Area" : "Student Area";
     const adminBtn = props.renderAdminBtn ?
         <Button variant="outline-light" onClick={props.switchAdminView}>{name}</Button> : <div/>;
-    return <header>
+    return <header className="sticky-top">
         <Navbar className="nav_new" variant="dark" expand="lg">
             <img src={require('../assets/crown.png')} height="40px" alt=""/>;
             <Navbar.Brand className="navText" href="">CrownLabs</Navbar.Brand>
