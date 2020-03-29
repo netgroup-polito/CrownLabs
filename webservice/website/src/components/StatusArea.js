@@ -7,7 +7,7 @@ import React from "react";
  * @return the component to be drawn
  */
 export default function StatusArea(props) {
-    return <div style={{minHeight: '100vh'}}>
+    return <div>
         {props.hidden ? <div/> : <Row className="my-5">
             <Col className="col-12">
                 <Card className="text-center headerstyle">

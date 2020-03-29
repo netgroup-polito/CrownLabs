@@ -313,7 +313,7 @@ input[type=submit]:hover {
 }
 
 .scrollbar-primary::-webkit-scrollbar {
-    width: 12fpx;
+    width: 12px;
     background-color: #F5F5F5;
 }
 
