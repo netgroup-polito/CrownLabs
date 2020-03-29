@@ -67,13 +67,13 @@ export default function LabTemplatesList(props) {
                                     <ListItemText inset
                                                   primary={courseLab.charAt(0).toUpperCase() + courseLab.slice(1).replace(/-/g, " ")}/>
                                 </Tooltip>
-                                {selectedIndex == finalIndex ? <Tooltip title="Create VM">
+                                {selectedIndex === finalIndex ? <Tooltip title="Create VM">
                                     <IconButton key={courseLab} variant="dark" className="text-success"
                                                 button="true"
                                                 onClick={() => {
-                                                    if (selectedIndex == finalIndex) {
+                                                    if (selectedIndex === finalIndex) {
                                                         props.start();
-                                                        setSelectedIndex(-1)
+                                                        setSelectedIndex(-1);
                                                     }
                                                 }}
                                     >

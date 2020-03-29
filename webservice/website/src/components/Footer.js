@@ -6,7 +6,7 @@ import React from "react";
  * @return the object to be drawn
  */
 export default function Footer() {
-    return <footer className="py-4 blockquote-footer footerstyle">
+    return <footer className="py-4 footerstyle">
         <Container fluid className="m-0 text-center text-secondary">
             <p className="d-inline">This software has been proudly developed at Politecnico di Torino. </p>
             <p className="d-inline">For info visit our</p>
