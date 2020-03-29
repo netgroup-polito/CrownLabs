@@ -12,7 +12,7 @@ import Header from "../components/Header";
 export default function Home(props) {
     return <div style={{minHeight: '100vh'}}>
         <Header logged={false}/>
-        <Container fluid className="cover">
+        <Container fluid>
             <Row className="mt-5">
                 <Col className="col-2"/>
                 <Col className="col-8 mt-5">

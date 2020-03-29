@@ -1,6 +1,5 @@
 body {
     background-color: #ffffff;
-    overflow-y: scroll;
 }
 
 
@@ -314,7 +313,7 @@ input[type=submit]:hover {
 }
 
 .scrollbar-primary::-webkit-scrollbar {
-    width: 12px;
+    width: 12fpx;
     background-color: #F5F5F5;
 }
 
