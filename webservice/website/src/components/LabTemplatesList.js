@@ -38,6 +38,7 @@ const useStyles = makeStyles(theme => ({
  * @return the component to be drawn
  */
 export default function LabTemplatesList(props) {
+
     const classes = useStyles();
     const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
