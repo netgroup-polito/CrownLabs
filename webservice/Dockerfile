@@ -18,7 +18,6 @@ RUN npm install --silent --unsafe-perm
 WORKDIR /webservice/website
 RUN npm install --silent --unsafe-perm
 RUN npm run build
-RUN sed -i "s|__HOMEPAGEURL__|$OIDC_REDIRECT_URI|g" /webservice/website/error-pages/error.html
 
 ### image to export the service
 FROM nginx
