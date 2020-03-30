@@ -14,10 +14,7 @@ RUN npm run build
 FROM nginx
 COPY --from=builder /webservice/website/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /
-COPY generate_config_js.sh / 
+COPY generate_config_js.sh /
 RUN chmod +x docker-entrypoint.sh generate_config_js.sh
-COPY --from=builder /webservice/nginx-default.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /webservice/website/error-pages /usr/share/nginx/html/error-pages
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
