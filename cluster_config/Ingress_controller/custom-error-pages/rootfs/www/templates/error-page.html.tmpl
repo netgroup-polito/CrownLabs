@@ -12,7 +12,7 @@
 	<link href="https://fonts.googleapis.com/css?family=Montserrat:200,400,700" rel="stylesheet">
 
 	<!-- Custom stlylesheet -->
-	<link type="text/css" rel="stylesheet" href="/error-pages/error.css" />
+	<link type="text/css" rel="stylesheet" href="{{.StaticUri}}/error-page.min.css" />
 
 	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
 	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -24,18 +24,16 @@
 </head>
 
 <body>
-
 	<div id="notfound">
 		<div class="notfound">
-			<img src="/error-pages/crown.svg" />
+			<img src="{{.StaticUri}}/crown.svg" />
 			<div class="notfound-err">
 				<h1>Oops!</h1>
-				<h2><!--# echo var="status" default="???" --> &ndash; <!--# echo var="status_text" default="Something goes wrong" --></h2>
+				<h2>{{.ErrorCode}} &ndash; {{.ErrorMsg}}</h2>
 			</div>
 			<a href="/">Homepage</a>
 		</div>
 	</div>
-
 </body><!-- This templates was made by Colorlib (https://colorlib.com) -->
 
 </html>
