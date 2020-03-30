@@ -44,3 +44,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CI_TOKEN }} # required
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }} # required
       if: always() && github.ref == 'refs/heads/master' # Pick up events even if the job fails or is canceled.
+    - name: Notify Event to CrownOps
+      run: |
+          curl -X POST https://api.github.com/repos/netgroup-polito/CrownOps/dispatches \
+          -H 'Accept: application/vnd.github.everest-preview+json' \
+          -u ${{ secrets.CI_TOKEN }} \
+          --data '{"event_type": "update", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
+      if: github.ref == 'refs/heads/master'
