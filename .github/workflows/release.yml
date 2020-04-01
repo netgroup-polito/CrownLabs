@@ -13,6 +13,13 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.CI_TOKEN }}
+    - name: Extract tag name
+      id: tag
+      uses: actions/github-script@0.2.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          return context.payload.ref.replace(/\/refs\/tags\//, '');
     - name: Build and Push Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -21,7 +28,7 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
-        tags: "latest,${{ github.ref }}"
+        tags: "latest,${{ steps.tag.outputs.result }}"
     - name: Build and Push Frontend image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -30,5 +37,5 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: webservice
-        tags: "latest,${{ github.ref }}"
+        tags: "latest,${{ steps.tag.outputs.result }}"
 
