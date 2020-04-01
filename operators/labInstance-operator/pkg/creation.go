@@ -165,7 +165,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 }
 
 func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
-
+	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
 	cookieSecret := base64.StdEncoding.EncodeToString(id)
 
@@ -196,6 +196,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--cookie-secret=" + cookieSecret,
 								"--cookie-expire=24h",
 								"--cookie-refresh=23h",
+								"--cookie-name=_oauth2_cookie_" + string([]rune(cookieUUID)[:6]),
 								"--provider=keycloak",
 								"--client-id=k8s",
 								"--client-secret=229a9d87-2bae-4e9b-8567-e8864b2bac4b",
@@ -263,7 +264,14 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1be
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name + "-oauth2-ingress",
 			Namespace:   namespace,
-			Annotations: map[string]string{"cert-manager.io/cluster-issuer": "letsencrypt-production"},
+			Annotations: map[string]string{
+				"cert-manager.io/cluster-issuer": "letsencrypt-production",
+				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
+				"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
+				"nginx.ingress.kubernetes.io/cors-allow-methods": "PUT, GET, POST, OPTIONS, DELETE,PATCH",
+				"nginx.ingress.kubernetes.io/cors-allow-origin": "https://*",
+				"nginx.ingress.kubernetes.io/enable-cors": "true",
+			},
 		},
 		Spec: v1beta1.IngressSpec{
 			TLS: []v1beta1.IngressTLS{
