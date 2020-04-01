@@ -64,6 +64,8 @@
     "js-yaml": "^3.13.1",
     "jsonpath-plus": "^0.19.0",
     "portable-fetch": "^3.0.0",
+    "react": "^16.13.1",
+    "react-native": "^0.61.5",
     "request": "^2.88.0",
     "shelljs": "^0.8.2",
     "tslib": "^1.9.3",

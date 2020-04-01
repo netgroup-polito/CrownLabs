@@ -22,3 +22,6 @@ RUN npm run build
 ### image to export the service
 FROM nginx
 COPY --from=builder /webservice/website/dist /usr/share/nginx/html
+
+COPY --from=builder /webservice/nginx-default.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /webservice/website/error-pages /usr/share/nginx/html/error-pages
