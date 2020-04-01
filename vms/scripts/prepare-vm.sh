@@ -28,6 +28,9 @@ if ! test -f /usr/share/xsessions/xfce.desktop; then
     done
 fi
 
+# Block logout button
+sudo mv /usr/bin/xfce4-session-logout /usr/bin/xfce4-session-logout_bak
+
 # Install cloud-init
 # Cloud-init is needed to start the VM on the cluster
 # SSH right now is needed for testing
