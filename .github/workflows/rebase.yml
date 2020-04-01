@@ -15,7 +15,7 @@ jobs:
       - name: Automatic Rebase
         uses: cirrus-actions/rebase@1.3
         env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   always_job:
     name: Always run job
     runs-on: ubuntu-latest
