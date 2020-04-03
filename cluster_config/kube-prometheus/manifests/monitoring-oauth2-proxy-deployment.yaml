@@ -7,7 +7,7 @@ metadata:
   labels:
     app: monitoring-oauth2-proxy
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: monitoring-oauth2-proxy
@@ -16,9 +16,21 @@ spec:
       labels:
         app: monitoring-oauth2-proxy
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - ingress-nginx
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       containers:
       - name: monitoring-oauth2-proxy
-        image: quay.io/pusher/oauth2_proxy:v5.0.0
+        image: crownlabs/oauth2_proxy:v5.1.0-crown
         imagePullPolicy: Always
         ports:
         - containerPort: 4180
