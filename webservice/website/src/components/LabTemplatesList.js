@@ -78,10 +78,8 @@ export default function LabTemplatesList(props) {
                       className="text-success"
                       button="true"
                       onClick={() => {
-                        if (selectedIndex === finalIndex) {
-                          props.start();
-                          setSelectedIndex(-1);
-                        }
+                        props.start();
+                        setSelectedIndex(-1);
                       }}
                     >
                       <PlayArrowIcon fontSize="large" />
