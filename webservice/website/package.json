@@ -3,7 +3,7 @@
   "scripts": {
     "start": "webpack-dev-server",
     "build": "webpack -p --display-error-details",
-    "prettify-all": "node_modules/.bin/prettier --write *.{js,json,css,md}"
+    "prettify-all": "node_modules/.bin/prettier --write **/*.{js,json,css,md}"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
