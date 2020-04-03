@@ -41,19 +41,23 @@ In the following, both types of challenges are configured and made available. In
 
 1. Install the `CustomResourceDefinitions` and `cert-manager` itself:
     ```sh
-    $ kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.14.0/cert-manager.yaml
+    $ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.14.1/cert-manager.yaml
     ```
-2. Create the `ClusterIssuer` resources, which operate as an interface to request the issuance of digital certificates. In the following, two different resources are created, respectively for development (`letsencrypt-staging`) and production (`letsencrypt-production`). Indeed, the latter is associated with stricter rate limits [[3]](https://letsencrypt.org/docs/rate-limits/):
+2. Create the `ServiceMonitor` resource, to make Prometheus aware of the metrics exposed by `cert-manager` (Grafana dashboard with ID 11001):
+    ```sh
+    $ kubectl create -f cert-mananger-service-monitor.yaml
+    ```
+3. Create the `ClusterIssuer` resources, which operate as an interface to request the issuance of digital certificates. In the following, two different resources are created, respectively for development (`letsencrypt-staging`) and production (`letsencrypt-production`). Indeed, the latter is associated with stricter rate limits [[3]](https://letsencrypt.org/docs/rate-limits/):
     ```sh
     $ kubectl create -f lets-encrypt-issuer-staging.yaml
     $ kubectl create -f lets-encrypt-issuer-production.yaml
     ```
     *Note:* in case a different DNS server is used, it is necessary to edit the `yaml` files with the correct configuration. Additionally, it is also possible to configure the email address that will be associated with the digital certificates issued by Let's Encrypt.
-3. Create a new `Secret` resource storing the TSIG key previously generated to interact with the DNS server:
+4. Create a new `Secret` resource storing the TSIG key previously generated to interact with the DNS server:
     ```sh
     $ kubectl -n cert-manager create secret generic cert-manager-tsig-secret --from-literal=cert-manager-tsig-secret-key=$(base64 <TSIG-key>)
     ```
-4. Verify that the `ClusterIssuer` resources are in Ready state:
+5. Verify that the `ClusterIssuer` resources are in Ready state:
     ```sh
     $ kubectl describe ClusterIssuer -n cert-manager
     ```
