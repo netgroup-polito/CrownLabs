@@ -5,8 +5,8 @@ import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
 import ListSubheader from 'material-ui-core/ListSubheader';
 import '../views/admin.css';
-import StopIcon from '@material-ui/icons/Stop';
-import DesktopWindowsIcon from '@material-ui/icons/DesktopWindows';
+import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
+import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
 import { IconButton } from 'material-ui-core';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
@@ -89,7 +89,7 @@ export default function LabInstancesList(props) {
                     setSelectedIndex(-1);
                   }}
                 >
-                  <StopIcon fontSize="large" />
+                  <CancelOutlinedIcon fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
@@ -103,7 +103,7 @@ export default function LabInstancesList(props) {
                     setSelectedIndex(-1);
                   }}
                 >
-                  <DesktopWindowsIcon fontSize="large" />
+                  <OpenInBrowserIcon fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
