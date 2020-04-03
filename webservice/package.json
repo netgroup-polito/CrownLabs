@@ -102,12 +102,5 @@
   "keywords": [
     "kubernetes",
     "client"
-  ],
-  "prettier": {
-    "tabWidth": 4,
-    "printWidth": 110,
-    "trailingComma": "all",
-    "singleQuote": true,
-    "arrowParens": "always"
-  }
+  ]
 }
