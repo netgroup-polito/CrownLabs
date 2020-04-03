@@ -113,8 +113,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
-	urlUUID := uuid.New().String()
+func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string) v1beta1.Ingress {
 	url := "https://crownlabs.polito.it/" + urlUUID
 
 	ingress := v1beta1.Ingress{
@@ -137,7 +136,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{"crownlabs.polito.it"},
-					SecretName: name + "-ingress-secret",
+					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
@@ -164,7 +163,8 @@ func CreateIngress(name string, namespace string, svc corev1.Service) v1beta1.In
 	return ingress
 }
 
-func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
+func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv1.Deployment {
+
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
 	cookieSecret := base64.StdEncoding.EncodeToString(id)
@@ -188,7 +188,7 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  name,
-							Image: "quay.io/pusher/oauth2_proxy:latest",
+							Image: "crownlabs/oauth2_proxy:v5.1.0-crown",
 							Args: []string{
 								"--http-address=0.0.0.0:4180",
 								"--reverse-proxy=true",
@@ -203,7 +203,8 @@ func CreateOauth2Deployment(name string, namespace string) appsv1.Deployment {
 								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
-								"--proxy-prefix=/" + name + "/oauth2",
+								"--proxy-prefix=/" + urlUUID + "/oauth2",
+								"--cookie-path=/" +  urlUUID,
 								"--email-domain=*",
 							},
 							Ports: []corev1.ContainerPort{
@@ -257,7 +258,7 @@ func CreateOauth2Service(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1beta1.Ingress {
+func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
@@ -268,7 +269,7 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1be
 				"cert-manager.io/cluster-issuer": "letsencrypt-production",
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
 				"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
-				"nginx.ingress.kubernetes.io/cors-allow-methods": "PUT, GET, POST, OPTIONS, DELETE,PATCH",
+				"nginx.ingress.kubernetes.io/cors-allow-methods": "PUT, GET, POST, OPTIONS, DELETE, PATCH",
 				"nginx.ingress.kubernetes.io/cors-allow-origin": "https://*",
 				"nginx.ingress.kubernetes.io/enable-cors": "true",
 			},
@@ -277,7 +278,7 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1be
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{"crownlabs.polito.it"},
-					SecretName: name + "-oauth2-ingress-secret",
+					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
@@ -287,7 +288,7 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service) v1be
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
 								{
-									Path: "/" + name + "/oauth2/.*",
+									Path: "/" + urlUUID + "/oauth2/.*",
 									Backend: v1beta1.IngressBackend{
 										ServiceName: svc.Name,
 										ServicePort: svc.Spec.Ports[0].TargetPort,

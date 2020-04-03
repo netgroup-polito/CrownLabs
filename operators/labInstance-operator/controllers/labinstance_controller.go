@@ -138,8 +138,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		setLabInstanceStatus(r, ctx, log, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
 	}
 
+	urlUUID := uuid.New().String()
 	// 4: create Ingress to manage the service
-	ingress := pkg.CreateIngress(name, namespace, service)
+	ingress := pkg.CreateIngress(name, namespace, service, urlUUID)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
@@ -159,7 +160,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 6: create Ingress to manage the oauth2 service
-	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService)
+	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService, urlUUID)
 	oauthIngress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
@@ -169,7 +170,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 6: create Deployment for oauth2
-	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace)
+	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
