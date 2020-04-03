@@ -1,96 +1,104 @@
 .App {
-    text-align: center;
+  text-align: center;
 }
 
 .App-logo {
-    height: 40vmin;
-    pointer-events: none;
+  height: 40vmin;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
 }
 
 .App-header {
-    background-color: #282c34;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
 }
 
 .App-link {
-    color: #61dafb;
+  color: #61dafb;
 }
 
 .login {
-    background-color: #004990;
-    border-color: #004990;
+  background-color: #004990;
+  border-color: #004990;
 }
 
 .login:hover {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 .headerstyle {
-    background-color: transparent;
-    border: none;
-    width: 100%;
+  background-color: transparent;
+  border: none;
+  width: 100%;
 }
 
 .cover {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: 0;
-    position: absolute;
-    overflow-y: scroll;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  position: absolute;
+  overflow-y: scroll;
 }
 
 .footerstyle {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .textareastyle {
-    color: white;
-    border-color: #2E2E2E;
-    background-color: #2E2E2E;
-    width: 100%;
-    height: 150px;
-    resize: none;
-    border-radius: 10px;
-    font-size: 15px;
+  color: white;
+  border-color: #2e2e2e;
+  background-color: #2e2e2e;
+  width: 100%;
+  height: 150px;
+  resize: none;
+  border-radius: 10px;
+  font-size: 15px;
 }
 
 #main {
-    background: #8e9eab; /* fallback for old browsers */
-    background: -webkit-linear-gradient(to bottom, #8e9eab, #eef2f3); /* Chrome 10-25, Safari 5.1-6 */
-    background: linear-gradient(to bottom, #8e9eab, #eef2f3); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+  background: #8e9eab; /* fallback for old browsers */
+  background: -webkit-linear-gradient(
+    to bottom,
+    #8e9eab,
+    #eef2f3
+  ); /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(
+    to bottom,
+    #8e9eab,
+    #eef2f3
+  ); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
 }
 
 @keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .nav_new {
-    background-color: #032364;
-    /*margin-top: 10px;*/
-    margin-bottom: 10px;
+  background-color: #032364;
+  /*margin-top: 10px;*/
+  margin-bottom: 10px;
 }
 
 .navText {
-    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  font-family: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
 }
