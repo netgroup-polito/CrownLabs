@@ -107,10 +107,10 @@ export default function LabInstancesList(props) {
                 </IconButton>
               </Tooltip>
             ) : null}
-            {selectedIndex == index && status === 0 ? (
+            {status === 0 ? (
               <Tooltip title="Loading VM">
                 <IconButton style={{ color: 'orange' }}>
-                  <HourglassEmptyIcon fontSize="large" />
+                  <HourglassEmptyIcon className="rotating" fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
