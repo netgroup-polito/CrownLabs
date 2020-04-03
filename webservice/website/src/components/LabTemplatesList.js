@@ -40,10 +40,6 @@ export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
-  const handleListItemClick = (event, index) => {
-    setSelectedIndex(index);
-  };
-
   const courses = Array.from(props.labs.keys()).map((courseName, index) => {
     let offset = index * (props.labs.get(courseName).length + 1);
     return (
@@ -56,8 +52,8 @@ export default function LabTemplatesList(props) {
                 key={courseLab}
                 button
                 selected={selectedIndex === finalIndex}
-                onClick={event => {
-                  handleListItemClick(event, finalIndex);
+                onClick={() => {
+                  setSelectedIndex(finalIndex);
                   props.func(courseLab, courseName);
                 }}
               >
@@ -77,9 +73,10 @@ export default function LabTemplatesList(props) {
                       variant="dark"
                       className="text-success"
                       button="true"
-                      onClick={() => {
+                      onClick={e => {
                         props.start();
                         setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick of ListIstem
                       }}
                     >
                       <PlayCircleOutlineIcon fontSize="large" />
