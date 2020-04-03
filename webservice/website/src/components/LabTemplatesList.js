@@ -5,7 +5,7 @@ import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
 import ListSubheader from 'material-ui-core/ListSubheader';
 import '../views/admin.css';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import { IconButton } from 'material-ui-core';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -82,7 +82,7 @@ export default function LabTemplatesList(props) {
                         setSelectedIndex(-1);
                       }}
                     >
-                      <PlayArrowIcon fontSize="large" />
+                      <PlayCircleOutlineIcon fontSize="large" />
                     </IconButton>
                   </Tooltip>
                 ) : null}
