@@ -50,10 +50,6 @@ export default function LabInstancesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
-  const handleListItemClick = (event, index) => {
-    setSelectedIndex(index);
-  };
-
   /*Parsing the instances array and draw for each one a list item with the right coloration, according to its status*/
   const courses = Array.from(props.runningLabs.keys()).map((x, index) => {
     let status = props.runningLabs.get(x)
@@ -68,7 +64,7 @@ export default function LabInstancesList(props) {
             button
             selected={selectedIndex === index}
             onClick={event => {
-              handleListItemClick(event, index);
+              setSelectedIndex(index);
               props.func(x, null);
             }}
           >
@@ -84,9 +80,10 @@ export default function LabInstancesList(props) {
                 <IconButton
                   style={{ color: 'red' }}
                   button="true"
-                  onClick={() => {
+                  onClick={e => {
                     props.stop();
                     setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
                   }}
                 >
                   <CancelOutlinedIcon fontSize="large" />
@@ -98,9 +95,10 @@ export default function LabInstancesList(props) {
                 <IconButton
                   style={{ color: 'black' }}
                   button="true"
-                  onClick={() => {
+                  onClick={e => {
                     props.connect();
                     setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
                   }}
                 >
                   <OpenInBrowserIcon fontSize="large" />
