@@ -102,3 +102,16 @@
 .navText {
   font-family: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
 }
+
+.rotating {
+  animation: rotate 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotateZ(0deg);
+  }
+  to {
+    transform: rotateZ(180deg);
+  }
+}

@@ -5,7 +5,7 @@ import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
 import ListSubheader from 'material-ui-core/ListSubheader';
 import '../views/admin.css';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import { IconButton } from 'material-ui-core';
 import Tooltip from '@material-ui/core/Tooltip';
 
@@ -40,10 +40,6 @@ export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
-  const handleListItemClick = (event, index) => {
-    setSelectedIndex(index);
-  };
-
   const courses = Array.from(props.labs.keys()).map((courseName, index) => {
     let offset = index * (props.labs.get(courseName).length + 1);
     return (
@@ -56,8 +52,8 @@ export default function LabTemplatesList(props) {
                 key={courseLab}
                 button
                 selected={selectedIndex === finalIndex}
-                onClick={event => {
-                  handleListItemClick(event, finalIndex);
+                onClick={() => {
+                  setSelectedIndex(finalIndex);
                   props.func(courseLab, courseName);
                 }}
               >
@@ -77,14 +73,13 @@ export default function LabTemplatesList(props) {
                       variant="dark"
                       className="text-success"
                       button="true"
-                      onClick={() => {
-                        if (selectedIndex === finalIndex) {
-                          props.start();
-                          setSelectedIndex(-1);
-                        }
+                      onClick={e => {
+                        props.start();
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick of ListIstem
                       }}
                     >
-                      <PlayArrowIcon fontSize="large" />
+                      <PlayCircleOutlineIcon fontSize="large" />
                     </IconButton>
                   </Tooltip>
                 ) : null}

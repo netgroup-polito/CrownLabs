@@ -5,8 +5,8 @@ import ListItem from 'material-ui-core/ListItem';
 import ListItemText from 'material-ui-core/ListItemText';
 import ListSubheader from 'material-ui-core/ListSubheader';
 import '../views/admin.css';
-import StopIcon from '@material-ui/icons/Stop';
-import DesktopWindowsIcon from '@material-ui/icons/DesktopWindows';
+import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
+import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
 import { IconButton } from 'material-ui-core';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
@@ -50,10 +50,6 @@ export default function LabInstancesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
-  const handleListItemClick = (event, index) => {
-    setSelectedIndex(index);
-  };
-
   /*Parsing the instances array and draw for each one a list item with the right coloration, according to its status*/
   const courses = Array.from(props.runningLabs.keys()).map((x, index) => {
     let status = props.runningLabs.get(x)
@@ -68,7 +64,7 @@ export default function LabInstancesList(props) {
             button
             selected={selectedIndex === index}
             onClick={event => {
-              handleListItemClick(event, index);
+              setSelectedIndex(index);
               props.func(x, null);
             }}
           >
@@ -84,12 +80,13 @@ export default function LabInstancesList(props) {
                 <IconButton
                   style={{ color: 'red' }}
                   button="true"
-                  onClick={() => {
+                  onClick={e => {
                     props.stop();
                     setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
                   }}
                 >
-                  <StopIcon fontSize="large" />
+                  <CancelOutlinedIcon fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
@@ -98,19 +95,20 @@ export default function LabInstancesList(props) {
                 <IconButton
                   style={{ color: 'black' }}
                   button="true"
-                  onClick={() => {
+                  onClick={e => {
                     props.connect();
                     setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
                   }}
                 >
-                  <DesktopWindowsIcon fontSize="large" />
+                  <OpenInBrowserIcon fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
-            {selectedIndex == index && status === 0 ? (
+            {status === 0 ? (
               <Tooltip title="Loading VM">
                 <IconButton style={{ color: 'orange' }}>
-                  <HourglassEmptyIcon fontSize="large" />
+                  <HourglassEmptyIcon className="rotating" fontSize="large" />
                 </IconButton>
               </Tooltip>
             ) : null}
