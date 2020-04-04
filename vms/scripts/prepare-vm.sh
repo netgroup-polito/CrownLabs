@@ -35,7 +35,7 @@ sudo mv /usr/bin/xfce4-session-logout /usr/bin/xfce4-session-logout_bak
 # Cloud-init is needed to start the VM on the cluster
 # SSH right now is needed for testing
 # Numpy is needed by novnc
-sudo apt-get install -y openssh-server cloud-init python-numpy
+sudo apt-get install -y openssh-server cloud-init python-numpy davfs2
 
 # Install tigervnc
 # TigerVNC is the vncserver of choice
@@ -79,7 +79,7 @@ EOT
 # Install NoVNC
 sudo mkdir -p $NOVNC_PATH/utils/websockify
 
-wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.2-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
+wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.1-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
 wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
 
 # Create the service for NoVNC
