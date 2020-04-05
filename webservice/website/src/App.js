@@ -9,7 +9,8 @@ import {
 } from 'react-router-dom';
 import './App.css';
 import Authenticator from './services/Authenticator';
-import { Container } from 'react-bootstrap';
+// import { Container } from 'react-bootstrap';
+import Container from 'material-ui-core/Container';
 import CssBaseline from 'material-ui-core/CssBaseline';
 
 /**
@@ -69,7 +70,7 @@ export class App extends React.Component {
 
   render() {
     return (
-      <Container className="col-9 p-0" style={{ backgroundColor: '#FCF6F5FF' }}>
+      <>
         <CssBaseline />
         <Router>
           <Switch>
@@ -106,7 +107,7 @@ export class App extends React.Component {
             </Route>
           </Switch>
         </Router>
-      </Container>
+      </>
     );
   }
 }
