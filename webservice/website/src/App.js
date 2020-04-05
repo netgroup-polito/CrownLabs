@@ -9,8 +9,6 @@ import {
 } from 'react-router-dom';
 import './App.css';
 import Authenticator from './services/Authenticator';
-// import { Container } from 'react-bootstrap';
-import Container from 'material-ui-core/Container';
 import CssBaseline from 'material-ui-core/CssBaseline';
 
 /**
