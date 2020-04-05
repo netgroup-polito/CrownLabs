@@ -54,11 +54,16 @@ func main() {
 	var enableLeaderElection bool
 	var namespaceWhiteList string
 	var webdavSecret string
+	var websiteBaseUrl string
+	var nextcloudBaseUrl string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "{}", "The prefix of the namespaces on which the controller will work. " +
-		"If not specified the controller will react to every creation of LabInstances, in all namespaces. ")
+	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "production=true", "The prefix of the namespaces on "+
+		"which the controller will work. Different labels (key=value) can be specified, by separating themn with a &"+
+		"( e.g. key1=value1&key2=value2")
+	flag.StringVar(&websiteBaseUrl, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&nextcloudBaseUrl, "nextcloud-base-url", "nextcloud.crown-labs.ipv6.polito.it", "Base URL of NextCloud website to use")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
 	flag.Parse()
 
@@ -79,11 +84,13 @@ func main() {
 
 	whiteListMap := parseMap(namespaceWhiteList)
 	if err = (&controllers.LabInstanceReconciler{
-		Client:         mgr.GetClient(),
-		Log:            ctrl.Log.WithName("controllers").WithName("LabInstance"),
-		Scheme:         mgr.GetScheme(),
-		EventsRecorder: mgr.GetEventRecorderFor("LabInstanceOperator"),
+		Client:             mgr.GetClient(),
+		Log:                ctrl.Log.WithName("controllers").WithName("LabInstance"),
+		Scheme:             mgr.GetScheme(),
+		EventsRecorder:     mgr.GetEventRecorderFor("LabInstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		NextcloudBaseUrl:   nextcloudBaseUrl,
+		WebsiteBaseUrl:     websiteBaseUrl,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LabInstance")
 		os.Exit(1)
@@ -97,8 +104,7 @@ func main() {
 	}
 }
 
-
-// This method parses a string to get a map
+// This method parses a string to get a map. The different labels should divided by a &
 func parseMap(raw string) map[string]string {
 	ss := strings.Split(raw, "&")
 	m := make(map[string]string)
