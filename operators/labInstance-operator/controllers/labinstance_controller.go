@@ -31,7 +31,6 @@ import (
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 	"time"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -41,10 +40,12 @@ import (
 // LabInstanceReconciler reconciles a LabInstance object
 type LabInstanceReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	EventsRecorder  record.EventRecorder
-	NamespacePrefix string
+	Log                logr.Logger
+	Scheme             *runtime.Scheme
+	EventsRecorder     record.EventRecorder
+	NamespaceWhitelist metav1.LabelSelector
+	WebsiteBaseUrl     string
+	WebdavSecretName   string
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
@@ -63,10 +64,20 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Info("LabInstance " + req.Name + " deleted")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	ns := v1.Namespace{}
+	namespaceName := types.NamespacedName{
+		Name: labInstance.Namespace,
+	}
 
-	// perform reconcile only if the LabInstance belongs to the watched namespaces
-	if !strings.HasPrefix(labInstance.Namespace, r.NamespacePrefix) {
-		return ctrl.Result{}, nil
+	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
+	// by checking the existence of keys in labInstance namespace
+	if err := r.Get(ctx, namespaceName, &ns); err != nil {
+		for key, _ := range r.NamespaceWhitelist.MatchLabels {
+			if _, ok := ns.Labels[key]; !ok {
+				// namespace has not the required labels, returning
+				return ctrl.Result{}, nil
+			}
+		}
 	}
 
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
@@ -106,7 +117,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
-	secret := pkg.CreateSecret(name, namespace)
+	// To be extracted in a configuration flag
+	user, password := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace)
+	secret := pkg.CreateSecret(name, namespace, user, password)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
@@ -140,7 +153,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	urlUUID := uuid.New().String()
 	// 4: create Ingress to manage the service
-	ingress := pkg.CreateIngress(name, namespace, service, urlUUID)
+	ingress := pkg.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
@@ -250,7 +263,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	for {
 		resp, err := http.Get(urlProbe)
 		if err != nil || resp == nil {
-			log.Info("unable to perform get on "+urlProbe)
+			log.Info("unable to perform get on " + urlProbe)
 		} else {
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
