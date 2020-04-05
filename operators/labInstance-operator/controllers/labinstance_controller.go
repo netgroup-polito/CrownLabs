@@ -45,6 +45,7 @@ type LabInstanceReconciler struct {
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
 	WebsiteBaseUrl     string
+	NextcloudBaseUrl   string
 	WebdavSecretName   string
 }
 
@@ -75,6 +76,8 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		for key, _ := range r.NamespaceWhitelist.MatchLabels {
 			if _, ok := ns.Labels[key]; !ok {
 				// namespace has not the required labels, returning
+				log.Info("LabInstance" + req.Name + "ignored: Namespace" + req.Namespace + " does not meet " +
+					"the selector labels")
 				return ctrl.Result{}, nil
 			}
 		}
@@ -119,26 +122,12 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
 	// To be extracted in a configuration flag
 	user, password := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace)
-	secret := pkg.CreateSecret(name, namespace, user, password)
+	secret := pkg.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
-	}
-	// 2: create pvc referenced by VirtualMachineInstance (Persistent Data)
-	// Check if exists
-	// If exists, can we attach?
-	// If yes, attach
-	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "rook-ceph-block")
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+" in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
-		return ctrl.Result{}, err
-	} else if err != nil && err.Error() == "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" already exists in namespace "+pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
-	} else {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" correctly created in namespace "+pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
 	// 3: create Service to expose the vm
