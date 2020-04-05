@@ -57,9 +57,8 @@ code {
 }
 
 .nav_new {
-  background-color: #032364;
-  /*margin-top: 10px;*/
-  margin-bottom: 10px;
+  max-width: 1920px;
+  flex: 1;
 }
 
 .navText {
