@@ -36,8 +36,7 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	return vm
 }
 
-func CreateSecret(name string, namespace string) corev1.Secret {
-
+func CreateSecret(name string, namespace string, username string, password string) corev1.Secret {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-secret",
@@ -50,12 +49,14 @@ network:
   version: 2
   id0:
     dhcp4: true
-fs_setup:
-  - label: "MyDrive"
-    device: /dev/vdc
-    filesystem: "ext4"
 mounts:
-  - [ /dev/vdc, /media/MyDrive, auto, "defaults,nofail,discard" ]`},
+  - [ https://nextcloud.crown-labs.ipv6.polito.it/nextcloud/register.php/webdav, /media/MyDrive, auto, "defaults,nofail,discard" ]
+write_files:
+-   content: |
+      https://nextcloud.crown-labs.ipv6.polito.it/nextcloud/register.php/webdav` + username + " " + password + ` 
+    path: /etc/davfs2/secrets
+    permissions: '0600'
+`},
 		Type: corev1.SecretTypeOpaque,
 	}
 
@@ -113,7 +114,7 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string) v1beta1.Ingress {
+func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string,websiteBaseUrl string) v1beta1.Ingress {
 	url := "https://crownlabs.polito.it/" + urlUUID
 
 	ingress := v1beta1.Ingress{
@@ -135,13 +136,13 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 			Backend: nil,
 			TLS: []v1beta1.IngressTLS{
 				{
-					Hosts:      []string{"crownlabs.polito.it"},
+					Hosts:      []string{websiteBaseUrl},
 					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
 				{
-					Host: "crownlabs.polito.it",
+					Host: websiteBaseUrl,
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
@@ -398,4 +399,13 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 	}
 
 	return nil
+}
+
+func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretname string, namespace string) (string,string) {
+	sec := corev1.Secret{}
+	c.Get(ctx,types.NamespacedName{
+		Namespace: namespace,
+		Name:      secretname,
+	}, &sec)
+	return sec.StringData["user"], sec.StringData["password"]
 }
