@@ -10,7 +10,7 @@
   bottom: 0;
   top: 0;
   position: absolute;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .footerstyle {
