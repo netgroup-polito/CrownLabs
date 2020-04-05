@@ -36,7 +36,7 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	return vm
 }
 
-func CreateSecret(name string, namespace string, username string, password string) corev1.Secret {
+func CreateSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string) corev1.Secret {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-secret",
@@ -50,10 +50,10 @@ network:
   id0:
     dhcp4: true
 mounts:
-  - [ https://nextcloud.crown-labs.ipv6.polito.it/nextcloud/register.php/webdav, /media/MyDrive, auto, "defaults,nofail,discard" ]
+  - [` + nextCloudBaseUrl + `/nextCloudBaseUrl/nextcloud/register.php/webdav/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user",0,0 ]
 write_files:
 -   content: |
-      https://nextcloud.crown-labs.ipv6.polito.it/nextcloud/register.php/webdav` + username + " " + password + ` 
+      ` + nextCloudBaseUrl + `/nextcloud/register.php/webdav` + nextUsername + " " + nextPassword + `
     path: /etc/davfs2/secrets
     permissions: '0600'
 `},
@@ -114,8 +114,8 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string,websiteBaseUrl string) v1beta1.Ingress {
-	url := "https://crownlabs.polito.it/" + urlUUID
+func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string) v1beta1.Ingress {
+	url := websiteBaseUrl + "/" + urlUUID
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -205,7 +205,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
 								"--proxy-prefix=/" + urlUUID + "/oauth2",
-								"--cookie-path=/" +  urlUUID,
+								"--cookie-path=/" + urlUUID,
 								"--email-domain=*",
 							},
 							Ports: []corev1.ContainerPort{
@@ -264,15 +264,15 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlU
 	ingress := v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        name + "-oauth2-ingress",
-			Namespace:   namespace,
+			Name:      name + "-oauth2-ingress",
+			Namespace: namespace,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer": "letsencrypt-production",
+				"cert-manager.io/cluster-issuer":                     "letsencrypt-production",
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
-				"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
-				"nginx.ingress.kubernetes.io/cors-allow-methods": "PUT, GET, POST, OPTIONS, DELETE, PATCH",
-				"nginx.ingress.kubernetes.io/cors-allow-origin": "https://*",
-				"nginx.ingress.kubernetes.io/enable-cors": "true",
+				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
+				"nginx.ingress.kubernetes.io/cors-allow-methods":     "PUT, GET, POST, OPTIONS, DELETE, PATCH",
+				"nginx.ingress.kubernetes.io/cors-allow-origin":      "https://*",
+				"nginx.ingress.kubernetes.io/enable-cors":            "true",
 			},
 		},
 		Spec: v1beta1.IngressSpec{
@@ -401,11 +401,11 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 	return nil
 }
 
-func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretname string, namespace string) (string,string) {
+func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretname string, namespace string) (string, string) {
 	sec := corev1.Secret{}
-	c.Get(ctx,types.NamespacedName{
+	c.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
 		Name:      secretname,
 	}, &sec)
-	return sec.StringData["user"], sec.StringData["password"]
+	return sec.StringData["username"], sec.StringData["password"]
 }
