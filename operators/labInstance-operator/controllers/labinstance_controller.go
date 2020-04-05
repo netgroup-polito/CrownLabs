@@ -31,7 +31,6 @@ import (
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 	"time"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -41,10 +40,13 @@ import (
 // LabInstanceReconciler reconciles a LabInstance object
 type LabInstanceReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	EventsRecorder  record.EventRecorder
-	NamespacePrefix string
+	Log                logr.Logger
+	Scheme             *runtime.Scheme
+	EventsRecorder     record.EventRecorder
+	NamespaceWhitelist metav1.LabelSelector
+	WebsiteBaseUrl     string
+	NextcloudBaseUrl   string
+	WebdavSecretName   string
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
@@ -63,12 +65,21 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Info("LabInstance " + req.Name + " deleted")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	// perform reconcile only if the LabInstance belongs to the watched namespaces
-	if !strings.HasPrefix(labInstance.Namespace, r.NamespacePrefix) {
-		return ctrl.Result{}, nil
+	ns := v1.Namespace{}
+	namespaceName := types.NamespacedName{
+		Name: labInstance.Namespace,
+		Namespace: "",
 	}
 
+	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
+	// by checking the existence of keys in labInstance namespace
+	if err := r.Get(ctx, namespaceName, &ns); err == nil && !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
+		log.Info("Namespace" + req.Namespace + " does not meet " +
+			"the selector labels")
+		return ctrl.Result{}, nil
+	} else {
+		log.Error(err, "unable to get LabInstance namespace")
+	}
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
 	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
@@ -88,6 +99,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
+
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 
 	// prepare variables common to all resources
@@ -106,26 +118,14 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
-	secret := pkg.CreateSecret(name, namespace)
+	// To be extracted in a configuration flag
+	user, password := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace)
+	secret := pkg.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
-	}
-	// 2: create pvc referenced by VirtualMachineInstance (Persistent Data)
-	// Check if exists
-	// If exists, can we attach?
-	// If yes, attach
-	// If not, update the status with error
-	pvc := pkg.CreatePersistentVolumeClaim(labInstance.Namespace, namespace, "rook-ceph-block")
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil && err.Error() != "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "Could not create pvc "+pvc.Name+" in namespace "+pvc.Namespace, "Warning", "PvcNotCreated", &labInstance, "")
-		return ctrl.Result{}, err
-	} else if err != nil && err.Error() == "ALREADY EXISTS" {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" already exists in namespace "+pvc.Namespace, "Warning", "PvcAlreadyExists", &labInstance, "")
-	} else {
-		setLabInstanceStatus(r, ctx, log, "PersistentVolumeClaim "+pvc.Name+" correctly created in namespace "+pvc.Namespace, "Normal", "PvcCreated", &labInstance, "")
 	}
 
 	// 3: create Service to expose the vm
@@ -140,7 +140,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	urlUUID := uuid.New().String()
 	// 4: create Ingress to manage the service
-	ingress := pkg.CreateIngress(name, namespace, service, urlUUID)
+	ingress := pkg.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
@@ -180,7 +180,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 7: create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
@@ -250,7 +250,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	for {
 		resp, err := http.Get(urlProbe)
 		if err != nil || resp == nil {
-			log.Info("unable to perform get on "+urlProbe)
+			log.Info("unable to perform get on " + urlProbe)
 		} else {
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)

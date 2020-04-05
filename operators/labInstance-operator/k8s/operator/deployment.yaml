@@ -1,4 +1,14 @@
- 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: operator-config
+  namespace: lab-operator
+data:
+  whitelistLabels: "production=true"
+  nextcloudBaseUrl: "https://nextcloud.internal.crown-labs.ipv6.polito.it"
+  websiteBaseUrl: "https://crownlabs.polito.it"
+  WebdavSecretName: "nextcloud-credentials"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,4 +32,33 @@ spec:
         imagePullPolicy: Always
         name: laboratory-operator
         command: ["/usr/bin/controller"]
-        args: ["--namespace-prefix", ""] # use this to limit the namespaces you want the operator to work on
+        args:
+          - "--webdav-secret-name"
+          - "$WEBDAV_SECRET_NAME"
+          - "--namespace-whitelist"
+          - "WHITE_LIST_LABELS"
+          - "--website-base-url"
+          - "$WEBSITE_BASE_URL"
+          - "--nextcloud-base-url"
+          - "$NEXTCLOUD_BASE_URL"
+        env:
+        - name: WHITE_LIST_LABELS
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: whitelistLabels
+        - name: NEXTCLOUD_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: nextcloudBaseUrl
+        - name: WEBSITE_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: websiteBaseUrl
+        - name: WEBDAV_SECRET_NAME
+          valueFrom:
+           configMapKeyRef:
+            name: operator-config
+            key: WebdavSecretName
