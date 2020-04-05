@@ -7,7 +7,7 @@ import ApiManager from './services/ApiManager';
 import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
-import { Container } from 'react-bootstrap';
+import Container from 'material-ui-core/Container';
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -403,7 +403,7 @@ export default class UserLogic extends React.Component {
    */
   render() {
     return (
-      <div style={{ minHeight: '100vh' }}>
+      <div>
         <Header
           logged={true}
           logout={this.props.logout}
@@ -413,7 +413,7 @@ export default class UserLogic extends React.Component {
             this.setState({ adminHidden: !this.state.adminHidden })
           }
         />
-        <Container fluid className="cover pt-5 mt-5">
+        <Container>
           {!this.state.adminHidden ? (
             <ProfessorView
               templateLabs={this.state.templateLabs}
