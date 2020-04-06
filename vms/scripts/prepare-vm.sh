@@ -120,47 +120,9 @@ WantedBy=multi-user.target
 EOT
 
 # Install webdav support
-# Manually installing and configuring the davfs2 package to avoid post-install interactive configuration
-sudo mkdir temp
-sudo chown _apt:root temp/
-cd temp/
-sudo apt-get download davfs2
-PACKAGE_NAME=$(find . -name *.deb)
-sudo dpkg --unpack $PACKAGE_NAME
-
-# Custom postinst script to avoid interactive config
-sudo tee /var/lib/dpkg/info/davfs2.postinst > /dev/null <<EOT
-#!/bin/sh -e
-# postinst script for davfs2
-dpkg-statoverride --update --add root root 4755 /usr/sbin/mount.davfs > /dev/null 2>&1 || true
-
-sys_uid=\$(getent passwd davfs2 | cut -d ':' -f 3)
-sys_gid=\$(getent group davfs2 | cut -d ':' -f 3)
-if [ "\$sys_uid" = "" -a "\$sys_gid" = "" ]; then
-    adduser --system --home "/var/cache/davfs2" --no-create-home --group davfs2 > /dev/null 2>&1 || true
-elif [ "\$sys_uid" = "" ]; then
-    adduser --system --home "/var/cache/davfs2" --no-create-home --ingroup davfs2 davfs2 > /dev/null 2>&1 || true
-elif [ "\$sys_gid" = "" ]; then
-    addgroup --system davfs2 > /dev/null 2>&1 || true
-    usermod -g davfs2 davfs2 > /dev/null 2>&1 || true
-fi
-
-chown root:davfs2 /var/cache/davfs2 > /dev/null 2>&1 || true
-chown root:davfs2 /var/run/mount.davfs > /dev/null 2>&1 || true
-chmod 775 /var/cache/davfs2 > /dev/null 2>&1 || true
-chmod 1775 /var/run/mount.davfs > /dev/null 2>&1 || true
-
-for file in mount.davfs umount.davfs; do
-    if [ ! -e /sbin/\$file ]; then
-        ln -s /usr/sbin/\$file /sbin/\$file
-    fi
-done
-EOT
-
-sudo apt-get install -yf
-
-cd ..
-sudo rm -rf temp/
+sudo apt-get install -y debconf
+echo 'davfs2 davfs2/suid_file boolean true' | sudo debconf-set-selections
+sudo apt-get install -y davfs2
 
 # Enable services
 sudo systemctl daemon-reload
