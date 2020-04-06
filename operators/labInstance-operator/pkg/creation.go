@@ -9,6 +9,7 @@ import (
 	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string, pvcName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
@@ -28,9 +29,6 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	for _, volume := range vm.Spec.Volumes {
 		if volume.Name == "cloudinitdisk" {
 			volume.CloudInitNoCloud.UserDataSecretRef = &corev1.LocalObjectReference{Name: secretName}
-		}
-		if volume.Name == "pvcdisk" {
-			volume.PersistentVolumeClaim.ClaimName = pvcName
 		}
 	}
 	return vm
@@ -130,6 +128,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 				"nginx.ingress.kubernetes.io/auth-signin":        "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
 				"nginx.ingress.kubernetes.io/auth-url":           "https://$host/" + urlUUID + "/oauth2/auth",
 				"crownlabs.polito.it/probe-url":                  url,
+				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href=https://$host/"`+ urlUUID + `/index.html">';`,
 			},
 		},
 		Spec: v1beta1.IngressSpec{
@@ -408,4 +407,13 @@ func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger,
 		Name:      secretname,
 	}, &sec)
 	return sec.StringData["username"], sec.StringData["password"]
+}
+
+func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
+	for key, _ := range matchLabels {
+		if _, ok := ns.Labels[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
