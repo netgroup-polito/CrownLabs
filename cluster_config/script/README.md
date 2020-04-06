@@ -22,6 +22,8 @@ The following libraries must be present in order for this script to work:
 - `python-keycloak`
 - `pandas`
 - `jinja2`
+- `requests`
+- `secrets`
 
 To install those dependencies you can run the following command:
 ````
@@ -33,13 +35,15 @@ To install those dependencies you can run the following command:
 ```
 usage: setup_courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
                         [-t <teachers.csv>] [-s <students.csv>]
-                        keycloak_user keycloak_pass
+                        keycloak_user keycloak_pass nextcloud_user nextcloud_pass
 ```
 
 #### Positional arguments:
 
 * `keycloak_user`: The admin username for the OIDC server;
 * `keycloak_pass`: The admin password for the OIDC server;
+* `nextcloud_user`: The admin username for Nextcloud server;
+* `nextcloud_pass`: The admin password for Nextcloud server;
 
 #### Optional arguments:
 
