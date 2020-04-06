@@ -7,13 +7,11 @@ NOVNC_PORT=6080
 VNC_PATH="/home/${USER}/.vnc"
 NOVNC_PATH="/usr/share/novnc"
 SYSTEMD_PATH="/etc/systemd/system"
-PERSISTENCE_SCRIPT="/usr/local/bin/persistence.sh"
 
 # Services
 VNC_SERVICE="vncserver@:1.service"
 NOVNC_SERVICE="novnc.service"
 PNE_SERVICE="prometheus_node_exporter.service"
-PERS_SERVICE="persistence.service"
 
 # Install Xfce (gnome gives errors)
 if ! test -f /usr/share/xsessions/xfce.desktop; then
@@ -35,7 +33,7 @@ sudo mv /usr/bin/xfce4-session-logout /usr/bin/xfce4-session-logout_bak
 # Cloud-init is needed to start the VM on the cluster
 # SSH right now is needed for testing
 # Numpy is needed by novnc
-sudo apt-get install -y openssh-server cloud-init python-numpy davfs2
+sudo apt-get install -y openssh-server cloud-init python-numpy
 
 # Install tigervnc
 # TigerVNC is the vncserver of choice
@@ -126,31 +124,51 @@ ExecStart=/usr/local/bin/node_exporter
 WantedBy=multi-user.target
 EOT
 
-# Persistence script as alternative to runcmd to change permissions
-sudo tee $PERSISTENCE_SCRIPT > /dev/null <<EOT
-#!/bin/bash
-if [ -d "/media/MyDrive" ]; then
-    sudo chown 1000:1000 /media/MyDrive
-    #sudo rm -rf /media/MyDrive/lost+found
+# Install webdav support
+# Manually installing and configuring the davfs2 package to avoid post-install interactive configuration
+sudo mkdir temp
+sudo chown _apt:root temp/
+cd temp/
+sudo apt-get download davfs2
+PACKAGE_NAME=$(find . -name *.deb)
+sudo dpkg --unpack $PACKAGE_NAME
+
+# Custom postinst script to avoid interactive config
+sudo tee /var/lib/dpkg/info/davfs2.postinst > /dev/null <<EOT
+#!/bin/sh -e
+# postinst script for davfs2
+dpkg-statoverride --update --add root root 4755 /usr/sbin/mount.davfs > /dev/null 2>&1 || true
+
+sys_uid=\$(getent passwd davfs2 | cut -d ':' -f 3)
+sys_gid=\$(getent group davfs2 | cut -d ':' -f 3)
+if [ "\$sys_uid" = "" -a "\$sys_gid" = "" ]; then
+    adduser --system --home "/var/cache/davfs2" --no-create-home --group davfs2 > /dev/null 2>&1 || true
+elif [ "\$sys_uid" = "" ]; then
+    adduser --system --home "/var/cache/davfs2" --no-create-home --ingroup davfs2 davfs2 > /dev/null 2>&1 || true
+elif [ "\$sys_gid" = "" ]; then
+    addgroup --system davfs2 > /dev/null 2>&1 || true
+    usermod -g davfs2 davfs2 > /dev/null 2>&1 || true
 fi
+
+chown root:davfs2 /var/cache/davfs2 > /dev/null 2>&1 || true
+chown root:davfs2 /var/run/mount.davfs > /dev/null 2>&1 || true
+chmod 775 /var/cache/davfs2 > /dev/null 2>&1 || true
+chmod 1775 /var/run/mount.davfs > /dev/null 2>&1 || true
+
+for file in mount.davfs umount.davfs; do
+    if [ ! -e /sbin/\$file ]; then
+        ln -s /usr/sbin/\$file /sbin/\$file
+    fi
+done
 EOT
-sudo chmod +x $PERSISTENCE_SCRIPT
 
-# Persistence service
-sudo tee "${SYSTEMD_PATH}/${PERS_SERVICE}" > /dev/null <<EOT
-[Unit]
-Description=Change permissions to the persistent disk
+sudo apt-get install -yf
 
-[Service]
-ExecStart=${PERSISTENCE_SCRIPT}
-
-[Install]
-WantedBy=multi-user.target
-EOT
+cd ..
+sudo rm -rf temp/
 
 # Enable services
 sudo systemctl daemon-reload
 sudo systemctl enable $PNE_SERVICE
 sudo systemctl enable $NOVNC_SERVICE
 sudo systemctl enable $VNC_SERVICE
-sudo systemctl enable $PERS_SERVICE
