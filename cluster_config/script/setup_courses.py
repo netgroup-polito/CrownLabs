@@ -1,9 +1,13 @@
 import argparse
+import base64
+import json
 import os
 import sys
 import jinja2 as Template
 import keycloak as kc
 import pandas as pd
+import requests
+import secrets
 
 
 class KeycloakHandler:
@@ -114,12 +118,91 @@ class KeycloakHandler:
         return 3600 * 24 * 7  # 7 days
 
 
+class NextcloudHandler:
+
+    class UserCreationFailed(Exception):
+        pass
+
+    def __init__(self, base_url, admin_user, admin_pass):
+        self.base_url = base_url
+        self.admin_user = admin_user
+        self.admin_pass = admin_pass
+
+    # https://docs.nextcloud.com/server/15/admin_manual/configuration_user/instruction_set_for_users.html#add-a-new-user
+    def create_user(self, email, username, first_name, last_name):
+        _url = self._build_nextcloud_url("users")
+        _headers = self._build_nextcloud_headers()
+        _user_data = {
+            "userid": NextcloudHandler.__get_nextcloud_username(username),
+            "password": NextcloudHandler.__generate_password(),
+            "displayName": "{} {}".format(first_name, last_name),
+        }
+
+        _response = requests.post(url=_url, headers=_headers, data=_user_data)
+        return NextcloudHandler.__process_response(_response, {
+            100: lambda : (True, (_user_data["userid"], _user_data["password"])),
+            102: lambda : (False, None),
+        })
+
+    # https://docs.nextcloud.com/server/15/admin_manual/configuration_user/instruction_set_for_users.html#edit-data-of-a-single-user
+    def update_password(self, username):
+        _userid = NextcloudHandler.__get_nextcloud_username(username)
+        _url = self._build_nextcloud_url("users/{}".format(_userid))
+        _headers = self._build_nextcloud_headers()
+        _user_data = {
+            "key": "password",
+            "value": NextcloudHandler.__generate_password(),
+        }
+
+        _response = requests.put(url=_url, headers=_headers, data=_user_data)
+        return NextcloudHandler.__process_response(_response, {
+            100: lambda : (_userid, _user_data["value"]),
+        })
+
+    def _build_nextcloud_url(self, path):
+        return "{}/ocs/v1.php/cloud/{}?format=json".format(self.base_url, path)
+
+    def _build_nextcloud_headers(self):
+        _credentials = "{}:{}".format(self.admin_user, self.admin_pass).encode("ascii")
+        _auth = base64.b64encode(_credentials).decode("ascii")
+        return {
+            "Authorization": "Basic {}".format(_auth),
+            "OCS-APIRequest": "true",
+        }
+
+    @staticmethod
+    def __process_response(response, processors):
+        if response.status_code == 200:
+            _response_meta = json.loads(response.text)['ocs']['meta']
+            _status = _response_meta['statuscode']
+
+            if _status in processors.keys():
+                return processors[_status]()
+            raise NextcloudHandler.UserCreationFailed("{}: {}".format(_status, _response_meta["message"]))
+
+        raise NextcloudHandler.UserCreationFailed("HTTP Status Code: {}".format(response.status_code))
+
+
+    @staticmethod
+    def __get_nextcloud_username(course_code):
+        return "keycloak-{}".format(course_code)
+
+    @staticmethod
+    def __generate_password():
+        return secrets.token_urlsafe()
+
+
 class KubernetesHandler:
     @staticmethod
     def add_resource_label(resource_type, resource_name, label_key, label_value):
         os.system(("kubectl label --overwrite {0} {1} {2}={3} | "
                    "sed 's/^/*** k8s: /g' | sed 's/not //g' | sed 's/$/ as {2}={3}/g'")
                   .format(resource_type, resource_name, label_key, label_value))
+
+    @staticmethod
+    def check_existence(resource_type, namespace_name, resource_name):
+        return 0 == os.system("kubectl get {0} -n {1} {2} >/dev/null 2>/dev/null"
+                              .format(resource_type, namespace_name, resource_name))
 
 
 class KubernetesTemplateHandler:
@@ -198,6 +281,29 @@ class Tenant:
         # self._assign_self_group(keycloak_handler)
         self._assign_course_group(keycloak_handler)
 
+    def nextcloud_configuration(self, nextcloud_handler, k8s_templates):
+
+        sys.stdout.write("* Creating Nextcloud user {}\n".format(self.username))
+        _created, _credentials = nextcloud_handler.create_user(
+            self.email, self.username, self.first_name, self.last_name)
+
+        if not _created:
+            if KubernetesHandler.check_existence("secret", self.namespace, "nextcloud-credentials"):
+                sys.stdout.write("* The user {} already exists in Nextcloud. Skipping\n".format(self.username))
+                return
+
+            sys.stdout.write("* The user {} already exists but the credentials are unknown. Updating password\n"
+                             .format(self.username))
+            _credentials = nextcloud_handler.update_password(self.username)
+
+        sys.stdout.write("* Storing the credentials in Kubernetes\n")
+        _username, _password = map(
+            lambda str : base64.b64encode(str.encode("ascii")).decode("ascii"),
+            _credentials)
+        k8s_templates["nextcloudcredentials"].apply_template(
+            namespace_name=self.namespace,
+            username=_username, password=_password)
+
     def kubernetes_configuration(self, k8s_templates):
         # Create the Kubernetes resources
         sys.stdout.write("* Creating Kubernetes resources for user {}\n".format(self.username))
@@ -232,6 +338,7 @@ class Tenant:
         ## Network Policies
         k8s_templates["ingress-netpol"].apply_template(
             namespace_name=self.namespace)
+
 
     def _create_user(self, keycloak_handler):
         if self.user is None:
@@ -320,6 +427,8 @@ if __name__ == "__main__":
     _parser = argparse.ArgumentParser(description="Automatic creation of CrownLabs courses, laboratory and tenants")
     _parser.add_argument("keycloak_user", help="The admin username for the OIDC server")
     _parser.add_argument("keycloak_pass", help="The admin password for the OIDC server")
+    _parser.add_argument("nextcloud_user", help="The admin username for Nextcloud server")
+    _parser.add_argument("nextcloud_pass", help="The admin password for Nextcloud server")
     _parser.add_argument("-c", "--courses", metavar="<courses.csv>", help="The CSV file containing the courses to be created")
     _parser.add_argument("-l", "--laboratories", metavar="<laboratories.csv>", help="The CSV file containing the list of laboratories to be created")
     _parser.add_argument("-t", "--teachers", metavar="<teachers.csv>", help="The CSV file containing the professor accounts to be created")
@@ -354,12 +463,18 @@ if __name__ == "__main__":
             "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse_template.yaml", "k8s_templates/"),
             "resourcequota": KubernetesTemplateHandler("resourcequota_template.yaml", "k8s_templates/"),
             "registrycredentials": KubernetesTemplateHandler("registrycredentials_template.yaml", "k8s_templates/"),
+            "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials_template.yaml", "k8s_templates/"),
             "labtemplate": KubernetesTemplateHandler("labtemplate_template.yaml", "k8s_templates/"),
             "ingress-netpol": KubernetesTemplateHandler("ingress_netpol_template.yaml", "k8s_templates/"),
         }
     except Template.exceptions.TemplateNotFound as _ex:
         sys.stderr.write("Failed to parse the Jinja2 template: '{}' does not exist. Abort\n".format(_ex))
         sys.exit(1)
+
+    # Setup the Nextcloud communication handler
+    _nextcloud_handler = NextcloudHandler(
+        "https://nextcloud.crown-labs.ipv6.polito.it",
+        _args.nextcloud_user, _args.nextcloud_pass)
 
     # Iterate over the courses
     for _, _record in _courses.iterrows():
@@ -373,6 +488,8 @@ if __name__ == "__main__":
         _teacher = Tenant(_record, is_admin=True)
         _teacher.keycloak_configuration(_keycloak_handler)
         _teacher.kubernetes_configuration(_k8s_templates)
+        _teacher.nextcloud_configuration(_nextcloud_handler, _k8s_templates)
+
         sys.stdout.write('\n')
 
     # Iterate over the students
@@ -380,6 +497,7 @@ if __name__ == "__main__":
         _student = Tenant(_record)
         _student.keycloak_configuration(_keycloak_handler)
         _student.kubernetes_configuration(_k8s_templates)
+        _student.nextcloud_configuration(_nextcloud_handler, _k8s_templates)
         sys.stdout.write('\n')
 
     # Iterate over the laboratories
