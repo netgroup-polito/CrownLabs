@@ -51,7 +51,7 @@ mounts:
   - [` + nextCloudBaseUrl + `/nextCloudBaseUrl/nextcloud/register.php/webdav/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user",0,0 ]
 write_files:
 -   content: |
-      ` + nextCloudBaseUrl + `/nextcloud/register.php/webdav` + nextUsername + " " + nextPassword + `
+      /media/myDrive` + nextUsername + " " + nextPassword + `
     path: /etc/davfs2/secrets
     permissions: '0600'
 `},
