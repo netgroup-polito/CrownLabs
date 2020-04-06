@@ -73,13 +73,17 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
 	// by checking the existence of keys in labInstance namespace
-	if err := r.Get(ctx, namespaceName, &ns); err == nil && !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
-		log.Info("Namespace" + req.Namespace + " does not meet " +
-			"the selector labels")
-		return ctrl.Result{}, nil
+	if err := r.Get(ctx, namespaceName, &ns); err == nil {
+		if !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
+			log.Info("Namespace" + req.Namespace + " does not meet " +
+				"the selector labels")
+			return ctrl.Result{}, nil
+		}
 	} else {
 		log.Error(err, "unable to get LabInstance namespace")
 	}
+	log.Info("Namespace" + req.Namespace + " met " +
+		"the selector labels")
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
 	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
@@ -99,6 +103,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
+
 
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 

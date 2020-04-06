@@ -41,5 +41,5 @@ func TestWhitelist(t *testing.T) {
 	c1 := CheckLabels(ns1,labels)
 	c2 := CheckLabels(ns2,labels)
 	assert.Equal(t, c1, true, "The two label set should be identical and return true.")
-	assert.Equal(t, c2, false, "The two label set should be identical and return true.")
+	assert.Equal(t, c2, false, "The two labels set should be different and return false.")
 }
