@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -5,3 +6,4 @@ metadata:
   labels:
     name: {{ rendered_name }}
     type: {{ namespace_type }}
+    production: "true"
