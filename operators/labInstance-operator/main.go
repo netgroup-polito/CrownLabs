@@ -18,6 +18,7 @@ package main
 import (
 	"flag"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	"github.com/prometheus/common/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"strings"
@@ -83,6 +84,7 @@ func main() {
 	}
 
 	whiteListMap := parseMap(namespaceWhiteList)
+	log.Info("Reconciling only namespaces with the following labels: ")
 	if err = (&controllers.LabInstanceReconciler{
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("LabInstance"),

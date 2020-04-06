@@ -68,21 +68,18 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	ns := v1.Namespace{}
 	namespaceName := types.NamespacedName{
 		Name: labInstance.Namespace,
+		Namespace: "",
 	}
 
 	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
 	// by checking the existence of keys in labInstance namespace
-	if err := r.Get(ctx, namespaceName, &ns); err != nil {
-		for key, _ := range r.NamespaceWhitelist.MatchLabels {
-			if _, ok := ns.Labels[key]; !ok {
-				// namespace has not the required labels, returning
-				log.Info("LabInstance" + req.Name + "ignored: Namespace" + req.Namespace + " does not meet " +
-					"the selector labels")
-				return ctrl.Result{}, nil
-			}
-		}
+	if err := r.Get(ctx, namespaceName, &ns); err == nil && !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
+		log.Info("Namespace" + req.Namespace + " does not meet " +
+			"the selector labels")
+		return ctrl.Result{}, nil
+	} else {
+		log.Error(err, "unable to get LabInstance namespace")
 	}
-
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
 	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
@@ -102,6 +99,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		_ = r.Delete(ctx, &labInstance, &client.DeleteOptions{})
 		return ctrl.Result{}, err
 	}
+
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 
 	// prepare variables common to all resources
@@ -182,7 +180,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 7: create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name, pvc.Name)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
