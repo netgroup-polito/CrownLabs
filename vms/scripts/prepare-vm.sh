@@ -7,13 +7,11 @@ NOVNC_PORT=6080
 VNC_PATH="/home/${USER}/.vnc"
 NOVNC_PATH="/usr/share/novnc"
 SYSTEMD_PATH="/etc/systemd/system"
-PERSISTENCE_SCRIPT="/usr/local/bin/persistence.sh"
 
 # Services
 VNC_SERVICE="vncserver@:1.service"
 NOVNC_SERVICE="novnc.service"
 PNE_SERVICE="prometheus_node_exporter.service"
-PERS_SERVICE="persistence.service"
 
 # Install Xfce (gnome gives errors)
 if ! test -f /usr/share/xsessions/xfce.desktop; then
@@ -121,31 +119,13 @@ ExecStart=/usr/local/bin/node_exporter
 WantedBy=multi-user.target
 EOT
 
-# Persistence script as alternative to runcmd to change permissions
-sudo tee $PERSISTENCE_SCRIPT > /dev/null <<EOT
-#!/bin/bash
-if [ -d "/media/MyDrive" ]; then
-    sudo chown 1000:1000 /media/MyDrive
-    #sudo rm -rf /media/MyDrive/lost+found
-fi
-EOT
-sudo chmod +x $PERSISTENCE_SCRIPT
-
-# Persistence service
-sudo tee "${SYSTEMD_PATH}/${PERS_SERVICE}" > /dev/null <<EOT
-[Unit]
-Description=Change permissions to the persistent disk
-
-[Service]
-ExecStart=${PERSISTENCE_SCRIPT}
-
-[Install]
-WantedBy=multi-user.target
-EOT
+# Install webdav support
+sudo apt-get install -y debconf
+echo 'davfs2 davfs2/suid_file boolean true' | sudo debconf-set-selections
+sudo apt-get install -y davfs2
 
 # Enable services
 sudo systemctl daemon-reload
 sudo systemctl enable $PNE_SERVICE
 sudo systemctl enable $NOVNC_SERVICE
 sudo systemctl enable $VNC_SERVICE
-sudo systemctl enable $PERS_SERVICE
