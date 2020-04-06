@@ -24,8 +24,20 @@ export default function Header(props) {
     <div />
   );
   return (
-    <header className="sticky-top">
-      <Navbar className="nav_new" variant="dark" expand="lg">
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        backgroundColor: '#032364',
+        alignContent: 'center',
+        height: 70,
+        marginBottom: 30,
+        padding: '0 20px'
+      }}
+    >
+      <Navbar className="nav_new" variant="dark">
         <img src={require('../assets/crown.png')} height="40px" alt="" />;
         <Navbar.Brand className="navText" href="">
           CrownLabs
