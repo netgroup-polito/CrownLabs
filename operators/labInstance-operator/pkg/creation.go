@@ -9,6 +9,7 @@ import (
 	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string, pvcName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
@@ -29,15 +30,11 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 		if volume.Name == "cloudinitdisk" {
 			volume.CloudInitNoCloud.UserDataSecretRef = &corev1.LocalObjectReference{Name: secretName}
 		}
-		if volume.Name == "pvcdisk" {
-			volume.PersistentVolumeClaim.ClaimName = pvcName
-		}
 	}
 	return vm
 }
 
-func CreateSecret(name string, namespace string) corev1.Secret {
-
+func CreateSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string) corev1.Secret {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-secret",
@@ -50,12 +47,14 @@ network:
   version: 2
   id0:
     dhcp4: true
-fs_setup:
-  - label: "MyDrive"
-    device: /dev/vdc
-    filesystem: "ext4"
 mounts:
-  - [ /dev/vdc, /media/MyDrive, auto, "defaults,nofail,discard" ]`},
+  - [` + nextCloudBaseUrl + `/nextCloudBaseUrl/nextcloud/register.php/webdav/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user",0,0 ]
+write_files:
+-   content: |
+      ` + nextCloudBaseUrl + `/nextcloud/register.php/webdav` + nextUsername + " " + nextPassword + `
+    path: /etc/davfs2/secrets
+    permissions: '0600'
+`},
 		Type: corev1.SecretTypeOpaque,
 	}
 
@@ -113,8 +112,8 @@ func CreatePersistentVolumeClaim(name string, namespace string, storageClassName
 	return pvc
 }
 
-func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string) v1beta1.Ingress {
-	url := "https://crownlabs.polito.it/" + urlUUID
+func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string) v1beta1.Ingress {
+	url := websiteBaseUrl + "/" + urlUUID
 
 	ingress := v1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -129,19 +128,20 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 				"nginx.ingress.kubernetes.io/auth-signin":        "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
 				"nginx.ingress.kubernetes.io/auth-url":           "https://$host/" + urlUUID + "/oauth2/auth",
 				"crownlabs.polito.it/probe-url":                  url,
+				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href=https://$host/"`+ urlUUID + `/index.html">';`,
 			},
 		},
 		Spec: v1beta1.IngressSpec{
 			Backend: nil,
 			TLS: []v1beta1.IngressTLS{
 				{
-					Hosts:      []string{"crownlabs.polito.it"},
+					Hosts:      []string{websiteBaseUrl},
 					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
 				{
-					Host: "crownlabs.polito.it",
+					Host: websiteBaseUrl,
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
@@ -204,7 +204,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
 								"--proxy-prefix=/" + urlUUID + "/oauth2",
-								"--cookie-path=/" +  urlUUID,
+								"--cookie-path=/" + urlUUID,
 								"--email-domain=*",
 							},
 							Ports: []corev1.ContainerPort{
@@ -263,15 +263,15 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlU
 	ingress := v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        name + "-oauth2-ingress",
-			Namespace:   namespace,
+			Name:      name + "-oauth2-ingress",
+			Namespace: namespace,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer": "letsencrypt-production",
+				"cert-manager.io/cluster-issuer":                     "letsencrypt-production",
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
-				"nginx.ingress.kubernetes.io/cors-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
-				"nginx.ingress.kubernetes.io/cors-allow-methods": "PUT, GET, POST, OPTIONS, DELETE, PATCH",
-				"nginx.ingress.kubernetes.io/cors-allow-origin": "https://*",
-				"nginx.ingress.kubernetes.io/enable-cors": "true",
+				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
+				"nginx.ingress.kubernetes.io/cors-allow-methods":     "PUT, GET, POST, OPTIONS, DELETE, PATCH",
+				"nginx.ingress.kubernetes.io/cors-allow-origin":      "https://*",
+				"nginx.ingress.kubernetes.io/enable-cors":            "true",
 			},
 		},
 		Spec: v1beta1.IngressSpec{
@@ -398,4 +398,22 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 	}
 
 	return nil
+}
+
+func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretname string, namespace string) (string, string) {
+	sec := corev1.Secret{}
+	c.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      secretname,
+	}, &sec)
+	return sec.StringData["username"], sec.StringData["password"]
+}
+
+func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
+	for key, _ := range matchLabels {
+		if _, ok := ns.Labels[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
