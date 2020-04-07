@@ -33,7 +33,7 @@ export default function Header(props) {
         backgroundColor: '#032364',
         alignContent: 'center',
         height: 70,
-        marginBottom: 30,
+        // marginBottom: 30,
         padding: '0 20px'
       }}
     >
