@@ -48,7 +48,7 @@ network:
   id0:
     dhcp4: true
 mounts:
-  - [` + nextCloudBaseUrl + `/cloud/remote.php/dav/files/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user,rw,uid=1000,gid=1000","0","0" ]
+  - [` + nextCloudBaseUrl + `/remote.php/dav/files/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user,rw,uid=1000,gid=1000","0","0" ]
 write_files:
 -   content: |
       /media/MyDrive ` + nextUsername + " " + nextPassword + `
