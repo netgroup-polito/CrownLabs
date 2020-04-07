@@ -1,83 +1,25 @@
 # CrownLabs
 
-CrownLabs is a set of services that enable to deliver of **remote computing labs** through **per-user virtual machines**.
+CrownLabs is a set of services that can deliver remote computing labs through a per-user virtual machine.
 
-Professors can provision a set of virtual machines, properly equipped with the software required for a given lab (e.g., compilers, simulation software, etc).
-Each student can connect to its own set of (remote) virtual machines, simply through a browser.
+Instructors can provision a set of virtual machines, properly equipped with the software required for a given lab (e.g., compilers, simulation software, etc).
 
-Each student gets his own private environment without requiring to install any additional software but a simple Web browser.
-Optionally, a student can share his remote desktop with his groupmates, enabling multiple students to complete their duties in a team.
-Also professors can connect to the remote desktop of the student and interact with his virtual machines, e.g., in case some help is required.
+Each student can connect to its own set of (remote) private environments without requiring any additional software, just a simple Web browser. No space problems on the student hard disk, no troubles in setting up the environment required to support multiple subjects on the same machine, and more.
 
-Students have full control of the lifecycle of their VMs (e.g., start, stop, reboot). Access is secured and protected through encrypted sessions.
+In addition, each student can share his remote desktop with his groupmates, enabling multiple students to complete their labs in a team.
 
+Finally, CrownLabs supports also instructors, who can connect to the remote desktop of the student and play directly with his environment, e.g., in case some help is required.
 
-## Technology
-This service builds upon many Kubernetes elements, with the addition of some our own glue logic.
-Although Kubernetes was designed for containers and not for virtual machines, we choose that platform because is very scalable, has many built-in features (e.g., autoscaling), is extendible (CRDs), and features an incredible ecosystem of companion services. And, last but not least, is *cool* and provides more *fun* to our team.
-
-To deliver our services, we leverage several components in the Kubernetes ecosystem:
-- **Kubevirt**, as a platform for virtualization
-- **MetalLB**, as (software) load balancer
-- **Keycloak**, an OIDC provider for authentication and authorization
-- **Rook**, for distributed storage
-- **nginx**, as ingress controller
-- **Prometheus**, for monitoring and alerting
-- **Grafana**, as dashboard
-- **Docker Registry**, to keep local the traffic required to download the VMs
-- **CoreDNS**, to resolve names into addresses within the cluster
-- **External DNS** (with bind9), to resolve external names into public IP addresses
-
-In addition, we leverage the usual mixture of `bash`, `ansible`, Docker, Python and Go to create our glue logic.
+For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
 
 
-## History
-This service was set up in about three weeks by a group of students enrolled in the MSc of Computing Engineering at Politecnico di Torino (Italy), under the pressure of the Coronavirus, in March 2020.
+## Install
 
-This virus hit hard the entire country; all students were sent home, the University set up private video conferencing servers in a few days, and classes were transformed into remote lectures.
+CrownLabs can be installed on any Kubernetes cluster, although with a non-negligible degree of adaptation.
+This would require a non-trivial knowledge of how Kubernetes (and the wonderful world of microservices) works. 
+No magic install procedure is unfortunately available (yet).
 
-However, there was no answers for labs, in particular computing labs. How can students practice with their coding labs, simulations, cloud, networking?
-To answer this question, the CrownLabs project brought together a group of volunteering students who decided to put their theorethical knowledge into practice.
-It was a wonderful ride: creating the team, sharing the knowledge owned by different people, defining the objectives, assigning the tasks, a lot of collaboration, a lot of day and night work.
+In a nuthsell, you have to install all the components with your own custom configuration files, which may largely depend upon your physical install.
+A huge degree of customization is possible in this respect: pure data-link vs. BGP-based load balancing, the number (and capabilities) of your servers, the desired degree of high availability, integration with external authentication servers, creation of admin/user credentials, your own secrets to protect the internal communication among the components.
 
-The result was a nice playground for everybody: we demonstrated that with the proper knowledge, team spirit, and a great extent of sacrifice, we can achieve great results.
-And, we started this project, which may be useful also outside the University.
-
-## People
-Given the way this project was set up at the beginning, it is worth mentioning all the people who spend their nights on it.
-
-![Aldo Lacuku](images/aldo.jpg "Aldo Lacuku")
-**Aldo Lacuku**, "To authenticate, you have to come to me". He really knows about security. He also knows the boss of the hosting room, which was very helpful indeed.
-
-![Alex Palesandro](images/alex.jpg "Alex Palesandro")
-**Alex Palesandro**, The true leader, manager, developer, tester. Nothing can be done without him.
-
-![Andrea Cossio](images/andrea.jpg "Andrea Cossio")
-**Andrea Cossio**, "I know how to connect to the VM". He knows VNC more than the actual developers.
-
-![Francesco Borgogni](images/francesco.jpg "Francesco Borgogni")
-**Francesco Borgogni**, "Kubernetes CRDs are my future". Give him to a CRD to create, code will come in minutes.
-
-![Fulvio Risso](images/fulvio.jpg "Fulvio Risso")
-**Fulvio Risso**, project leader, tester. Nobody knows what he does. Always in some calls.
-
-![Giuseppe Ognibene](images/giuseppe.jpg "Giuseppe Ognibene")
-**Giuseppe Ognibene**, "Give me a probe, and I'll dominate the world". Prometheus can never relax, with Giuseppe around.
-
-![Hamza Rhaouati](images/hamza.jpg "Hamza Rhaouati")
-**Hamza Rhaouati**, "Divide et impera". With him, you don't have to worry about scalability.
-
-![Marco Iorio](images/marco.jpg "Marco Iorio")
-**Marco Iorio**, "No words, only facts". Whatever he does (silently), you can be sure that it will be perfect.
-
-![Mattia Lavacca](images/mattia.jpg "Mattia Lavacca")
-**Mattia Lavacca**, "I want to start a PhD!". Instead, he did CI/CD in a magnificent way. Not really a topic for PhD students.
-
-![Serena Flocco](images/serena.jpg "Serena Flocco")
-**Serena Flocco**, "I don't have Internet at home, how can I create the GUI?". Really hard to work when forced to stay home, without Internet. But ladies are a must in a good looking project: they have always a better taste than (male) engineers.
-
-![Simone Magnani](images/simone.jpg "Simone Magnani")
-**Simone Magnani**, Webservice API developer, "I'll do also what I don't  like at all" (GUIs). Active day and night.
-
-![Stefano Galantino](images/stefano.jpg "Stefano Galantino")
-**Stefano Galantino**, "To enter, you have to pass on my body". He is the only one who knows about Kubernetes ingress controllers.
+Do not expect to complete this task in a few hours; likely, you may need several days, or even more.
