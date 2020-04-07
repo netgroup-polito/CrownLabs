@@ -48,10 +48,10 @@ network:
   id0:
     dhcp4: true
 mounts:
-  - [` + nextCloudBaseUrl + `/nextCloudBaseUrl/nextcloud/register.php/webdav/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user",0,0 ]
+  - [` + nextCloudBaseUrl + `/cloud/remote.php/dav/files/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user,rw,uid=1000,gid=1000","0","0" ]
 write_files:
 -   content: |
-      /media/myDrive` + nextUsername + " " + nextPassword + `
+      /media/MyDrive` + nextUsername + " " + nextPassword + `
     path: /etc/davfs2/secrets
     permissions: '0600'
 `},
@@ -121,14 +121,14 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 			Namespace: namespace,
 			Labels:    nil,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer":                 "letsencrypt-production",
-				"nginx.ingress.kubernetes.io/rewrite-target":     "/$2",
-				"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-				"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-				"nginx.ingress.kubernetes.io/auth-signin":        "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
-				"nginx.ingress.kubernetes.io/auth-url":           "https://$host/" + urlUUID + "/oauth2/auth",
-				"crownlabs.polito.it/probe-url":                  url,
-				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href=https://$host/"`+ urlUUID + `/index.html">';`,
+				"cert-manager.io/cluster-issuer":                    "letsencrypt-production",
+				"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
+				"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
+				"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
+				"nginx.ingress.kubernetes.io/auth-signin":           "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
+				"nginx.ingress.kubernetes.io/auth-url":              "https://$host/" + urlUUID + "/oauth2/auth",
+				"crownlabs.polito.it/probe-url":                     "https://" + url,
+				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + urlUUID + `/index.html">';`,
 			},
 		},
 		Spec: v1beta1.IngressSpec{
@@ -400,13 +400,24 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 	return nil
 }
 
-func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretname string, namespace string) (string, string) {
+func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger, secretName string, namespace string, username *string, password *string) error {
 	sec := corev1.Secret{}
-	c.Get(ctx, types.NamespacedName{
+	nsdName := types.NamespacedName{
 		Namespace: namespace,
-		Name:      secretname,
-	}, &sec)
-	return sec.StringData["username"], sec.StringData["password"]
+		Name:      secretName,
+	}
+	if err := c.Get(ctx, nsdName, &sec); err == nil {
+		var ok bool
+		if *username, ok = sec.StringData["username"]; !ok {
+			log.Error(nil,"Unable to find username in webdav secret")
+		}
+		if *password, ok = sec.StringData["password"]; !ok {
+			log.Error(nil,"Unable to find password in webdav secret")
+		}
+		return nil
+	} else {
+		return err
+	}
 }
 
 func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
