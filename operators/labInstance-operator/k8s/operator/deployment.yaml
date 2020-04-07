@@ -5,8 +5,8 @@ metadata:
   namespace: lab-operator
 data:
   whitelistLabels: "production=true"
-  nextcloudBaseUrl: "https://nextcloud.internal.crown-labs.ipv6.polito.it"
-  websiteBaseUrl: "https://crownlabs.polito.it"
+  nextcloudBaseUrl: "https://crownlabs.polito.it/cloud"
+  websiteBaseUrl: "crownlabs.polito.it"
   WebdavSecretName: "nextcloud-credentials"
 ---
 apiVersion: apps/v1
@@ -34,13 +34,13 @@ spec:
         command: ["/usr/bin/controller"]
         args:
           - "--webdav-secret-name"
-          - "$WEBDAV_SECRET_NAME"
+          - "$(WEBDAV_SECRET_NAME)"
           - "--namespace-whitelist"
-          - "WHITE_LIST_LABELS"
+          - "$(WHITE_LIST_LABELS)"
           - "--website-base-url"
-          - "$WEBSITE_BASE_URL"
+          - "$(WEBSITE_BASE_URL)"
           - "--nextcloud-base-url"
-          - "$NEXTCLOUD_BASE_URL"
+          - "$(NEXTCLOUD_BASE_URL)"
         env:
         - name: WHITE_LIST_LABELS
           valueFrom:

@@ -124,7 +124,13 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
 	// To be extracted in a configuration flag
-	user, password := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace)
+
+	var user, password string
+	err := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace, &user, &password)
+	if err != nil {
+		log.Error(err, "unable to get Webdav Credentials")
+	}
+	log.Info("Webdav secrets obtained. Building cloud-init script." + labInstance.Name)
 	secret := pkg.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
