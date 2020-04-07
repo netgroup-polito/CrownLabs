@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Col, Container, Row } from 'react-bootstrap';
+import { Card, Col, Row } from 'react-bootstrap';
+import Container from '@material-ui/core/Container';
 import Footer from '../components/Footer';
 import '../App.css';
 import Header from '../components/Header';
@@ -13,7 +14,13 @@ export default function Home(props) {
   return (
     <div style={{ minHeight: '100vh' }}>
       <Header logged={false} />
-      <Container fluid>
+      <Container
+        // the height of the container is viewport heigh - header height(70) - footer height(70)
+        style={{
+          height: 'calc(100vh - 140px)',
+          overflow: 'auto'
+        }}
+      >
         <Row className="mt-5">
           <Col className="col-2" />
           <Col className="col-8 mt-5">
@@ -33,8 +40,8 @@ export default function Home(props) {
           </Col>
           <Col className="col-2" />
         </Row>
-        <Footer />
       </Container>
+      <Footer />
     </div>
   );
 }
