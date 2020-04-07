@@ -1,15 +1,32 @@
-
-# Prometheus Monitor Service (Metrics)
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: laboratory-operator
+  name: lab-operator-metrics
+  namespace: lab-operator
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    run: laboratory-operator
+  type: ClusterIP
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    control-plane: controller-manager
-  name: controller-manager-metrics-monitor
-  namespace: system
+    run: laboratory-operator
+  name: lab-operator-metrics
+  namespace: lab-operator
 spec:
   endpoints:
     - path: /metrics
-      port: https
+      port: metrics
   selector:
-    control-plane: controller-manager
+    matchLabels:
+      run: laboratory-operator
