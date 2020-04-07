@@ -51,7 +51,7 @@ mounts:
   - [` + nextCloudBaseUrl + `/cloud/remote.php/dav/files/` + nextUsername + `, /media/MyDrive, davfs, "_netdev,auto,user,rw,uid=1000,gid=1000","0","0" ]
 write_files:
 -   content: |
-      /media/MyDrive` + nextUsername + " " + nextPassword + `
+      /media/MyDrive ` + nextUsername + " " + nextPassword + `
     path: /etc/davfs2/secrets
     permissions: '0600'
 `},
@@ -408,11 +408,16 @@ func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger,
 	}
 	if err := c.Get(ctx, nsdName, &sec); err == nil {
 		var ok bool
-		if *username, ok = sec.StringData["username"]; !ok {
-			log.Error(nil,"Unable to find username in webdav secret")
+		var userBytes, passBytes []byte
+		if userBytes, ok = sec.Data["username"]; !ok {
+			log.Error(nil,"Unable to find username in webdav secret " + secretName)
+		} else {
+			*username = string(userBytes)
 		}
-		if *password, ok = sec.StringData["password"]; !ok {
-			log.Error(nil,"Unable to find password in webdav secret")
+		if passBytes, ok = sec.Data["password"]; !ok {
+			log.Error(nil,"Unable to find password in webdav secret" + secretName)
+		} else {
+			*password = string(passBytes)
 		}
 		return nil
 	} else {
