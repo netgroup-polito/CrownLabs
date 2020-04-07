@@ -128,6 +128,7 @@ EOT
 sudo apt-get install -y debconf
 echo 'davfs2 davfs2/suid_file boolean true' | sudo debconf-set-selections
 sudo apt-get install -y davfs2
+sudo adduser $USER davfs2
 
 # Enable services
 sudo systemctl daemon-reload
