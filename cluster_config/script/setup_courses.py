@@ -473,7 +473,7 @@ if __name__ == "__main__":
 
     # Setup the Nextcloud communication handler
     _nextcloud_handler = NextcloudHandler(
-        "https://nextcloud.crown-labs.ipv6.polito.it",
+        "https://crownlabs.polito.it/cloud",
         _args.nextcloud_user, _args.nextcloud_pass)
 
     # Iterate over the courses
