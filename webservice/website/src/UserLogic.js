@@ -403,7 +403,7 @@ export default class UserLogic extends React.Component {
    */
   render() {
     return (
-      <div>
+      <div style={{ height: '100%' }}>
         <Header
           logged={true}
           logout={this.props.logout}
@@ -413,7 +413,13 @@ export default class UserLogic extends React.Component {
             this.setState({ adminHidden: !this.state.adminHidden })
           }
         />
-        <Container>
+        <Container
+          // the height of the container is viewport heigh - header height(70) - footer height(70)
+          style={{
+            height: 'calc(100vh - 140px)',
+            overflow: 'auto'
+          }}
+        >
           {!this.state.adminHidden ? (
             <ProfessorView
               templateLabs={this.state.templateLabs}
