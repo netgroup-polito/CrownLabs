@@ -8,6 +8,7 @@ import '../views/admin.css';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import { IconButton } from 'material-ui-core';
 import Tooltip from '@material-ui/core/Tooltip';
+import Paper from 'material-ui-core/Paper';
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -92,26 +93,20 @@ export default function LabTemplatesList(props) {
   });
 
   return (
-    <div className="w3-panel w3-white w3-card w3-display-container">
+    <Paper
+      elevation={6}
+      style={{ flex: 1, minWidth: 450, maxWidth: 600, padding: 10, margin: 10 }}
+    >
       <List
-        component="nav"
+        className={classes.root}
         subheader={
-          <div className="divider">
-            <ListSubheader
-              style={{ fontSize: '30px' }}
-              component="div"
-              id="nested-list-subheader"
-            >
-              Available Laboratories
-            </ListSubheader>
-          </div>
+          <ListSubheader style={{ fontSize: '30px' }}>
+            Available Laboratories
+          </ListSubheader>
         }
-      ></List>
-      <div className={classes.root}>
-        <List className={classes.root} subheader={<li />}>
-          {courses}
-        </List>
-      </div>
-    </div>
+      >
+        {courses}
+      </List>
+    </Paper>
   );
 }
