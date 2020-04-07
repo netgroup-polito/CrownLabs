@@ -22,6 +22,7 @@ operators/labInstance-operator/bin
 operators/labTemplate-operator/.idea
 operators/labInstance-operator/.idea
 .idea
+operators/labInstance-operator/labInstance-operator
 
 # webservice
 CrownLabs.iml
@@ -32,3 +33,5 @@ webservice/website/node_modules
 webservice/website/package-lock.json
 webservice/website/dist
 webservice/website/yarn.lock
+
+

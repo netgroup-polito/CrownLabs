@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -32,9 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
-
-	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
 )
 
 // LabInstanceReconciler reconciles a LabInstance object
@@ -55,6 +54,7 @@ type LabInstanceReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
 func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	VMstart := time.Now()
 	ctx := context.Background()
 	log := r.Log.WithValues("labinstance", req.NamespacedName)
 
@@ -193,8 +193,10 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
 	}
-
-	go getVmiStatus(r, ctx, log, name, service, ingress, &labInstance, vmi)
+	VmElaborationTimestamp := time.Now()
+	VMElaborationDuration := VmElaborationTimestamp.Sub(VMstart)
+	elaborationTimes.Observe(VMElaborationDuration.Seconds())
+	go getVmiStatus(r, ctx, log, name, service, ingress, &labInstance, vmi, VMstart)
 
 	return ctrl.Result{}, nil
 }
@@ -223,7 +225,7 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	name string, service v1.Service, ingress v1beta1.Ingress,
-	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance) {
+	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance,startTimeVM time.Time) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
 	// iterate until the vm is running
@@ -260,6 +262,9 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
 				resp.Body.Close()
+				readyTime := time.Now()
+				bootTime := readyTime.Sub(startTimeVM)
+				bootTimes.Observe(bootTime.Seconds())
 				break
 			}
 		}
