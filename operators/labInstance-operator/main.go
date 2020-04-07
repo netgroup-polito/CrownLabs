@@ -93,6 +93,7 @@ func main() {
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		NextcloudBaseUrl:   nextcloudBaseUrl,
 		WebsiteBaseUrl:     websiteBaseUrl,
+		WebdavSecretName:   webdavSecret,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LabInstance")
 		os.Exit(1)
