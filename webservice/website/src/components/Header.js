@@ -44,7 +44,7 @@ export default function Header(props) {
           CrownLabs
         </Navbar.Brand>
         <Nav className="ml-auto" as="ul">
-          <a href="https://crownlabs.polito.it" target="_blank">
+          <a href="https://crownlabs.polito.it/cloud" target="_blank">
             <ToolTip title="My drive">
               <FolderSharedIcon
                 style={{
