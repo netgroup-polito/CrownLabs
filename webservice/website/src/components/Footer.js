@@ -9,10 +9,12 @@ export default function Footer() {
   return (
     <footer className="py-4 footerstyle">
       <Container fluid className="m-0 text-center text-secondary">
-        <p className="d-inline">
+        <p className="d-inline" style={{ color: 'white' }}>
           This software has been proudly developed at Politecnico di Torino.{' '}
         </p>
-        <p className="d-inline">For info visit our</p>
+        <p className="d-inline" style={{ color: 'white' }}>
+          For info visit our
+        </p>
         <img
           className="d-inline"
           height="25px"
@@ -22,6 +24,7 @@ export default function Footer() {
         <a
           className="d-inline"
           href="https://github.com/netgroup-polito/CrownLabs"
+          style={{ color: 'white' }}
         >
           Github project repository
         </a>
