@@ -16,7 +16,11 @@ export default class ApiManager {
    * @param adminNS the namespaces which you are admin
    */
   constructor(token, type, studentID, templateNS, instanceNS, adminNS) {
-    this.kc = new Config(APISERVER_URL, token, type);
+    if (window.APISERVER_URL === undefined) {
+      window.APISERVER_URL = APISERVER_URL;
+    }
+
+    this.kc = new Config(window.APISERVER_URL, token, type);
     this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
     this.templateGroup = 'template.crown.team.com';
     this.instanceGroup = 'instance.crown.team.com';

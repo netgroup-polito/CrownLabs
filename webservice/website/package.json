@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "start": "webpack-dev-server",
-    "build": "webpack -p --display-error-details",
+    "start": "webpack-dev-server --config webpack.config.js",
+    "build": "webpack -p --config webpack_docker.config.js --display-error-details",
     "prettify-all": "node_modules/.bin/prettier --write **/*.{js,json,css,md}"
   },
   "devDependencies": {
