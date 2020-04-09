@@ -9,4 +9,4 @@ spec:
     limits.memory: 30Gi
     requests.cpu: "20"
     requests.memory: 30Gi
-    count/labinstances.instance.crown.team.com: "1"
+    count/labinstances.instance.crown.team.com: "5"
