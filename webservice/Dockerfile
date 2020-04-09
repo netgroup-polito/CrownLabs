@@ -17,8 +17,6 @@ RUN npm run build
 ### image to export the service
 FROM nginx
 COPY --from=builder_webservice /webservice/dist /usr/share/nginx/html
-COPY --from=builder_webservice /webservice/nginx-default.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder_webservice /webservice/error-pages /usr/share/nginx/html/error-pages
 COPY docker-entrypoint.sh /
 COPY generate_config_js.sh /
 RUN chmod +x docker-entrypoint.sh generate_config_js.sh

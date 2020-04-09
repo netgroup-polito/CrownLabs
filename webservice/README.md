@@ -39,10 +39,10 @@ Requirements:
 Unfortunately, the patched library we are currently using cannot be directly accessed by NodeJS, since still has not been
 merged in their main project's branch. As a result we need to compile it on our own.
 
-From the current directory [CrownLabs/webservice](.) launch `npm install` to install the patched Kubernetes Javascript library.
-Once completed this step, we move the attention to the [website](./website) directory which is where our website is defined.
+From the directory [CrownLabs/webservice/k8s_library/](./k8s_library) launch `npm install` to install the patched Kubernetes Javascript library.
+Once completed this step, we go back to the [webservice](.) directory.
 
-From withing [website](./website) type `npm install` to install the actual webservice.
+From there, type `npm install` to install the actual webservice.
 This command install all the dependencies and builds the service which now can be run from this directory.
 
 Export now the 5 variables as described [before](#variable-exporting):
@@ -62,9 +62,9 @@ Visit http://localhost:8000 or wherever you decided to host your website (also a
 ## Docker installation
 
 Requirements:
-  
- \* Docker
-  
+
+\* Docker
+
 We offer a [Dockerfile](./Dockerfile) to build an image containing our complete web service. This file is meant to be used
 to compile a version of the docker to be used in our public ingress via a dynamic environment variable injection.
 
