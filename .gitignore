@@ -26,12 +26,10 @@ operators/labInstance-operator/labInstance-operator
 
 # webservice
 CrownLabs.iml
+webservice/yarn.lock
 webservice/dist
 webservice/node_modules
 webservice/package-lock.json
-webservice/website/node_modules
-webservice/website/package-lock.json
-webservice/website/dist
-webservice/website/yarn.lock
-
-
+webservice/k8s_library/node_modules
+webservice/k8s_library/package-lock.json
+webservice/k8s_library/dist
