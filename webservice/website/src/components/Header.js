@@ -1,6 +1,8 @@
 import { Button, Nav, Navbar } from 'react-bootstrap';
 import React from 'react';
 import NavItem from 'react-bootstrap/NavItem';
+import FolderSharedIcon from '@material-ui/icons/FolderShared';
+import ToolTip from '@material-ui/core/Tooltip';
 
 /**
  * Function to draw the page header
@@ -33,7 +35,6 @@ export default function Header(props) {
         backgroundColor: '#032364',
         alignContent: 'center',
         height: 70,
-        marginBottom: 30,
         padding: '0 20px'
       }}
     >
@@ -43,6 +44,17 @@ export default function Header(props) {
           CrownLabs
         </Navbar.Brand>
         <Nav className="ml-auto" as="ul">
+          <a href="https://crownlabs.polito.it/cloud" target="_blank">
+            <ToolTip title="My drive">
+              <FolderSharedIcon
+                style={{
+                  marginRight: 25,
+                  color: 'white',
+                  fontSize: '2.6rem'
+                }}
+              />
+            </ToolTip>
+          </a>
           <NavItem as="li" className="mr-2">
             {adminBtn}
           </NavItem>

@@ -39,10 +39,8 @@ code {
 }
 
 .footerstyle {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  height: 70px;
+  background-color: #032364;
 }
 
 .textareastyle {

@@ -11,6 +11,7 @@ import { IconButton } from 'material-ui-core';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
+import Paper from 'material-ui-core/Paper';
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -119,34 +120,31 @@ export default function LabInstancesList(props) {
   });
 
   return (
-    <div className="w3-panel w3-white w3-card w3-display-container">
+    <Paper
+      elevation={6}
+      style={{ flex: 1, minWidth: 450, maxWidth: 600, padding: 10, margin: 10 }}
+    >
       <List
-        component="nav"
+        className={classes.root}
         subheader={
           <div className="divider">
-            <ListSubheader
-              style={{ fontSize: '30px' }}
-              component="div"
-              id="nested-list-subheader"
-            >
+            <ListSubheader style={{ fontSize: '30px' }}>
               Running Laboratories
             </ListSubheader>
           </div>
         }
-      ></List>
-      <List className={classes.root} subheader={<li />}>
+      >
         {courses}
+        <Tooltip title="Show status">
+          <IconButton
+            style={{ color: 'green' }}
+            button="true"
+            onClick={props.showStatus}
+          >
+            <VisibilityIcon fontSize="large" />
+          </IconButton>
+        </Tooltip>
       </List>
-      {/* maybe it will be deleted */}
-      <Tooltip title="Show status">
-        <IconButton
-          style={{ color: 'green' }}
-          button="true"
-          onClick={props.showStatus}
-        >
-          <VisibilityIcon fontSize="large" />
-        </IconButton>
-      </Tooltip>
-    </div>
+    </Paper>
   );
 }
