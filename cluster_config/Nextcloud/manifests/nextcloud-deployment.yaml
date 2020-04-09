@@ -122,5 +122,3 @@ spec:
         - name: php-configmap-volume
           mountPath: /usr/local/etc/php/conf.d/custom-php.ini
           subPath: custom-php.ini
-# Only uncomment after the database installation has completed
-#
