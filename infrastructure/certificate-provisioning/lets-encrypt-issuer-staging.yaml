@@ -1,4 +1,3 @@
----
 apiVersion: cert-manager.io/v1alpha2
 kind: ClusterIssuer
 metadata:
@@ -14,17 +13,17 @@ spec:
       # Secret resource used to store the account's private key.
       name: letsencrypt-staging-private-key
     solvers:
-      - http01:
-          ingress:
-            class: nginx
-      - dns01:
-          rfc2136:
-            nameserver: 130.192.225.79
-            tsigKeyName: k8s-ladispe-cert-manager
-            tsigAlgorithm: HMACSHA512
-            tsigSecretSecretRef:
-              name: cert-manager-tsig-secret
-              key: cert-manager-tsig-secret-key
-        selector:
-          matchLabels:
-            use-dns01-solver: "true"
+    - http01:
+        ingress:
+          class: nginx
+    - dns01:
+        rfc2136:
+          nameserver: 130.192.225.79
+          tsigKeyName: k8s-ladispe-cert-manager
+          tsigAlgorithm: HMACSHA512
+          tsigSecretSecretRef:
+            name: cert-manager-tsig-secret
+            key: cert-manager-tsig-secret-key
+      selector:
+        matchLabels:
+          use-dns01-solver: "true"
