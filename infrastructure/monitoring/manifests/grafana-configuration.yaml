@@ -1,4 +1,3 @@
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -21,4 +20,5 @@ data:
   GF_AUTH_GENERIC_OAUTH_API_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo
   GF_AUTH_SIGNOUT_REDIRECT_URL: https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Fgrafana.crown-labs.ipv6.polito.it
   # Map the 'grafana_role' configured in keycloak to the role in Grafana
-  GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(grafana_role, 'Admin') && 'Admin' || contains(grafana_role, 'Editor') && 'Editor' || 'Viewer'
+  GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: contains(grafana_role, 'Admin') && 'Admin'
+    || contains(grafana_role, 'Editor') && 'Editor' || 'Viewer'
