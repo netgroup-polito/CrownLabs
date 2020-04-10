@@ -1,0 +1,45 @@
+---
+apiVersion: kubedb.com/v1alpha1
+kind: Redis
+metadata:
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: nextcloud
+  name: redis-nextcloud
+spec:
+  version: "5.0.3-v1"
+  mode: Standalone
+  cluster:
+    master: 1
+    replicas: 3
+  storage:
+    storageClassName: "rook-ceph-block"
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 250Mi
+  podTemplate:
+    spec:
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "250m"
+        limits:
+          memory: "256Mi"
+          cpu: "500m"
+  serviceTemplate:
+    spec:
+      type: ClusterIP
+      ports:
+        - name: http
+          port: 9200
+          targetPort: http
+          terminationPolicy: WipeOut
+  updateStrategy:
+    type: RollingUpdate
+  monitor:
+    agent: prometheus.io/coreos-operator
+    prometheus:
+      namespace: monitoring
+      interval: 10s
