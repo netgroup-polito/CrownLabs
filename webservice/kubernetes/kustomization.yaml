@@ -6,5 +6,5 @@ resources:
 - ns.yaml
 - ingress.yaml
 - ingress-callback.yaml
-
+- configmap.yaml
 
