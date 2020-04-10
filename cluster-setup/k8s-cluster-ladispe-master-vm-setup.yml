@@ -1,6 +1,0 @@
----
-- hosts: ladispe_master
-  become: yes
-  roles:
-  - common
-  - configure-network
