@@ -12,12 +12,12 @@ spec:
     app.kubernetes.io/name: ingress-nginx-internal
     app.kubernetes.io/part-of: ingress-nginx-internal
   ports:
-    - name: http
-      port: 80
-      targetPort: http
-    - name: https
-      port: 443
-      targetPort: https
-    - name: https-alt
-      port: 4443
-      targetPort: https
+  - name: http
+    port: 80
+    targetPort: http
+  - name: https
+    port: 443
+    targetPort: https
+  - name: https-alt
+    port: 4443
+    targetPort: https

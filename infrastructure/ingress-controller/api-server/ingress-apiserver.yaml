@@ -27,6 +27,6 @@ spec:
           servicePort: 6443
         path: /
   tls:
-    - hosts:
-      - apiserver.crown-labs.ipv6.polito.it
-      secretName: apiserver-ingress-cert
+  - hosts:
+    - apiserver.crown-labs.ipv6.polito.it
+    secretName: apiserver-ingress-cert
