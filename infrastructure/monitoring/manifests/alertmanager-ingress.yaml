@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+    nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
+  name: alertmanager
+  namespace: monitoring
+spec:
+  rules:
+  - host: alertmanager.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: alertmanager-main
+          servicePort: 9093
+        path: /
+  tls:
+  - hosts:
+    - alertmanager.crown-labs.ipv6.polito.it
+    secretName: alertmanager-cert
