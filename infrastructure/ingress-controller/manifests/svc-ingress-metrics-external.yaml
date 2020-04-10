@@ -10,7 +10,7 @@ spec:
     app.kubernetes.io/name: ingress-nginx
     app.kubernetes.io/part-of: ingress-nginx
   ports:
-    - protocol: TCP
-      name: prometheus
-      port: 10254 
-      targetPort: 10254
+  - protocol: TCP
+    name: prometheus
+    port: 10254
+    targetPort: 10254
