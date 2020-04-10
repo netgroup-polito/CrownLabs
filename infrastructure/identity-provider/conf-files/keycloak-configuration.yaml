@@ -4,12 +4,12 @@ init:
     tag: 1.31
     pullPolicy: IfNotPresent
   resources: {}
-    # limits:
-    #   cpu: "10m"
-    #   memory: "32Mi"
-    # requests:
-    #   cpu: "10m"
-    #   memory: "32Mi"
+  # limits:
+  #   cpu: "10m"
+  #   memory: "32Mi"
+  # requests:
+  #   cpu: "10m"
+  #   memory: "32Mi"
 clusterDomain: cluster.local
 ## Optionally override the fully qualified name
 # fullnameOverride: keycloak
@@ -48,9 +48,9 @@ keycloak:
   ## The path keycloak will be served from. To serve keycloak from the root path, use two quotes (e.g. "").
   basepath: auth
   ## Additional init containers, e. g. for providing custom themes
-  extraInitContainers: |
+  extraInitContainers: ""
   ## Additional sidecar containers, e. g. for a database proxy, such as Google's cloudsql-proxy
-  extraContainers: |
+  extraContainers: ""
   ## lifecycleHooks defines the container lifecycle hooks
   lifecycleHooks: |
     # postStart:
@@ -71,7 +71,9 @@ keycloak:
   jgroups:
     discoveryProtocol: dns.DNS_PING
     discoveryProperties: >
-      "dns_query={{ template "keycloak.fullname" . }}-headless.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain }}"
+      "dns_query={{ template "keycloak.fullname" . }}-headless.{{ .Release.Namespace
+      }}.svc.{{ .Values.clusterDomain }}"
+
   ## Allows the specification of additional environment variables for Keycloak
   extraEnv: |
     - name: PROXY_ADDRESS_FORWARDING
@@ -133,12 +135,12 @@ keycloak:
     initialDelaySeconds: 30
     timeoutSeconds: 1
   resources: {}
-    # limits:
-    #   cpu: "100m"
-    #   memory: "1024Mi"
-    # requests:
-    #   cpu: "100m"
-    #   memory: "1024Mi"
+  # limits:
+  #   cpu: "100m"
+  #   memory: "1024Mi"
+  # requests:
+  #   cpu: "100m"
+  #   memory: "1024Mi"
   ## WildFly CLI configurations. They all end up in the file 'keycloak.cli' configured in the configmap which is
   ## executed on server startup.
   cli:
@@ -152,30 +154,30 @@ keycloak:
     datasource: |
       {{ .Files.Get "scripts/datasource.cli" }}
     # Custom CLI script
-    custom: |
+    custom: ""
   ## Custom startup scripts to run before Keycloak starts up
   startupScripts: {}
-    # mystartup.sh: |
-    #   #!/bin/sh
-    #
-    #   echo 'Hello from my custom startup script!'
+  # mystartup.sh: |
+  #   #!/bin/sh
+  #
+  #   echo 'Hello from my custom startup script!'
   ## Add additional volumes and mounts, e. g. for custom themes
   ## Volumes added to serve the tls certificate and key to keycloak - Aldo
   ## The subPath entry has to match the entry in the config map - Aldo
   extraVolumes: |
-   - name: keycloak-certificate
-     secret:
-       defaultMode: 420
-       secretName: keycloak-certificate-secret
+    - name: keycloak-certificate
+      secret:
+        defaultMode: 420
+        secretName: keycloak-certificate-secret
   extraVolumeMounts: |
-   - mountPath: /etc/x509/https
-     name: keycloak-certificate
-     readOnly: true
+    - mountPath: /etc/x509/https
+      name: keycloak-certificate
+      readOnly: true
   ## Add additional ports, eg. for custom admin console
-  extraPorts: |
+  extraPorts: ""
   podDisruptionBudget: {}
-    # maxUnavailable: 1
-    # minAvailable: 1
+  # maxUnavailable: 1
+  # minAvailable: 1
   service:
     annotations: {}
     # service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
@@ -198,14 +200,14 @@ keycloak:
     enabled: false
     path: /
     annotations: {}
-      # kubernetes.io/ingress.class: nginx
-      # kubernetes.io/tls-acme: "true"
-      # ingress.kubernetes.io/affinity: cookie
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    # ingress.kubernetes.io/affinity: cookie
     labels: {}
     # key: value
     ## List of hosts for the ingress
     hosts:
-      - keycloak.example.com
+    - keycloak.example.com
     ## TLS configuration
     tls: []
     # - hosts:
@@ -217,11 +219,11 @@ keycloak:
     enabled: false
     path: /
     annotations: {}
-      # kubernetes.io/tls-acme: "true"
-      # haproxy.router.openshift.io/disable_cookies: "true"
-      # haproxy.router.openshift.io/balance: roundrobin
+    # kubernetes.io/tls-acme: "true"
+    # haproxy.router.openshift.io/disable_cookies: "true"
+    # haproxy.router.openshift.io/balance: roundrobin
     labels: {}
-      # key: value
+    # key: value
     # Host name for the route
     host:
     # TLS configuration
@@ -244,8 +246,8 @@ keycloak:
     ## Specify existing Secret
     # If set, specifies the Name of an existing Secret to read db credentials from.
     existingSecret: "keycloak.keycloak-db-cluster.credentials"
-    existingSecretPasswordKey: "password"  # read keycloak db password from existingSecret under this Key
-    existingSecretUsernameKey: "username"  # read keycloak db user from existingSecret under this Key
+    existingSecretPasswordKey: "password" # read keycloak db password from existingSecret under this Key
+    existingSecretUsernameKey: "username" # read keycloak db user from existingSecret under this Key
     ## Provision new Secret
     # Only used if existingSecret is not specified. In this case a new secret is created
     # populated by the variables below.
