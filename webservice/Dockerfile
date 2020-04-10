@@ -1,18 +1,22 @@
 # Dockerfile to build and deploy in production mode the web service
 
-### builder image builds both the k8s libraries and Reack front-end
-FROM node:alpine as builder
-
-ADD . /webservice
-WORKDIR /webservice
+# builder image for the k8s_library js
+FROM node:alpine as builder_k8s
+WORKDIR /k8s_library
+ADD ./k8s_library ./
 RUN npm install --silent --unsafe-perm
-WORKDIR /webservice/website
+
+# builder image for the webservice
+FROM node:alpine as builder_webservice
+WORKDIR /webservice
+ADD . ./
+COPY --from=builder_k8s /k8s_library ./k8s_library
 RUN npm install --silent --unsafe-perm
 RUN npm run build
 
 ### image to export the service
 FROM nginx
-COPY --from=builder /webservice/website/dist /usr/share/nginx/html
+COPY --from=builder_webservice /webservice/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /
 COPY generate_config_js.sh /
 RUN chmod +x docker-entrypoint.sh generate_config_js.sh

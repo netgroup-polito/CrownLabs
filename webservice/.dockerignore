@@ -2,10 +2,11 @@
 ./node_modules
 ./package-lock.json
 ./dist
-./README.md
-./website/node_modules
-./website/package-lock.json
-./website/dist
+./k8s_library/node_modules
+./k8s_library/package-lock.json
+./k8s_library/dist
 ./kubernetes
 ./Dockerfile
+./README.md
+./yarn.lock
 ./.dockerignore
