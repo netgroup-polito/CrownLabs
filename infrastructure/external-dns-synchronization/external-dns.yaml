@@ -4,9 +4,7 @@ metadata:
   name: external-dns
   labels:
     name: external-dns
-
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
@@ -31,17 +29,13 @@ rules:
   - get
   - list
   - watch
-
 ---
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: external-dns
   namespace: external-dns
-
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -55,9 +49,7 @@ subjects:
 - kind: ServiceAccount
   name: external-dns
   namespace: external-dns
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
