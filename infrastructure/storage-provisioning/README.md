@@ -8,19 +8,19 @@ In this scenario we used Rook with Ceph storage provider.
 To install Rook-Ceph apply the following commands.
 Ceph uses a directory under /var/lib/Rook that is a mount point of a free partition.
 
-```
-$ kubectl create -f common.yaml
-$ kubectl create -f operator.yaml
-#edit cluster.yaml with your preferences before deploy it
-$ kubectl create -f cluster.yaml
-$ kubectl create -f toolbox.yaml
+```bash
+$ kubectl create -f manifests/common.yaml
+$ kubectl create -f manifests/operator.yaml
+# edit cluster.yaml with your preferences before deploy it
+$ kubectl create -f manifests/cluster.yaml
+$ kubectl create -f manifests/toolbox.yaml
 ```
 
 ## Test
 
 To check the status of ceph you can run the following command to open toolbox's shell.
 
-```
+```bash
 $ kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') bash
 ```
 
@@ -32,11 +32,10 @@ root$ ceph status
 
 To test Rook follow those commands.
 
-```
-$ cd examples/
-$ kubectl create -f storageclass.yaml
-$ kubectl create -f mysql.yaml
-$ kubectl create -f wordpress.yaml
+```bash
+$ kubectl create -f examples/storageclass.yaml
+$ kubectl create -f examples/mysql.yaml
+$ kubectl create -f examples/wordpress.yaml
 ```
 
 Both of these apps creates a block volume and mount it to their respective pod. You can see the Kubernetes volume claims by running the following:
@@ -49,7 +48,7 @@ wp-pv-claim      Bound    pvc-8d5ec321-eca5-47a1-817a-bb0d04d7064e   20Gi       
 ```
 
 After that you can delete test with commands
-```
-$ kubectl delete -f wordpress.yaml
-$ kubectl delete -f mysql.yaml
+```bash
+$ kubectl delete -f examples/wordpress.yaml
+$ kubectl delete -f examples/mysql.yaml
 ```
