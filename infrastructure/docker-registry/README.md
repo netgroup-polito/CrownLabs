@@ -7,8 +7,8 @@
   - [Configuration](#configuration)
 - [Installing the chart](#installing-the-chart)
 - [Warning: max HTTP body size in ingress controller](#warning-max-http-body-size-in-ingress-controller)
-  
- 
+
+
 ## What is it
 From the [Docker Registry](https://docs.docker.com/registry/) official documentation: the Registry is a stateless, highly scalable server-side application that stores and lets you distribute Docker images.
 
@@ -25,60 +25,50 @@ Finally, consider that, in this Kubernetes setup, users instantiate mainly VMs, 
 We used the [Docker Registry Helm Chart](https://github.com/helm/charts/tree/master/stable/docker-registry), that is a Kubernetes chart to deploy a private Docker Registry where we have appropriately modified the values in [values.yaml](https://github.com/helm/charts/blob/master/stable/docker-registry/values.yaml) file.
 
 ### Configuration
-These are our modification of the values file.
+These are our modification of the various file.
 
-  1. Annotations with respect to the authentication in the Ingress controller.
-```
+  1. Annotations concerning the authentication in the Ingress controller.
+```yaml
 annotations:
    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
    nginx.ingress.kubernetes.io/auth-secret: basic-auth
    nginx.ingress.kubernetes.io/auth-type: basic
 ```
 
-  2. Annotations with respect to the configuration of the Ingress controller.
-```
+  2. Annotations concerning the configuration of the Ingress controller.
+```yaml
 ingress:
   enabled: true
   path: /
-  # Used to create an Ingress record.
   hosts:
-    - <>
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+    - <registry.domain.name>
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
   labels: {}
   tls:
-    # Secrets must be manually created in the namespace.
-     #- secretName: 
-       - hosts:
-         - <>
+    - hosts:
+      - <registry.domain.name>
 ```
 
   3. Configuration of the persistent disk. Please dimension this disk appropriately, as VM images may be rather large and hence you may fill up this space in a very short time.
-```
+```yaml
 persistence:
   accessMode: 'ReadWriteOnce'
   enabled: true
-  size: 100Gi
+  size: 500Gi
   storageClass: 'rook-ceph-block'
 ```
 
 ## Installing the Chart
 To install the chart, use the following command:
-```console
-$ helm install stable/docker-registry -f configfile.yaml -n docker-registry --generate-name
+```bash
+$ helm install stable/docker-registry -f docker-registry-configuration.yaml -n docker-registry --generate-name
 ```
-Look look [here](https://github.com/helm/charts/tree/master/stable/docker-registry#configuration) for a complete configuration guide.
+Look [here](https://github.com/helm/charts/tree/master/stable/docker-registry#configuration) for a complete configuration guide.
 
 
 ## Warning: max HTTP body size in ingress controller
 By default, the nginx ingress controller has a limit on the maximum size of the HTTP body. If the image to be uploaded is larger, an error is received (403). To avoid this problem, modify the configuration of your ingress controller and add a new annotation:
+```yaml
+nginx.ingress.kubernetes.io/proxy-body-size: "0"
 ```
-nginx.ingress.kubernetes.io/proxy-body-size: <>
-```
-
-
-
-
-
-
