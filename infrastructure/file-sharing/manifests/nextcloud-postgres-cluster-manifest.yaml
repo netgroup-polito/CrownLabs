@@ -10,10 +10,10 @@ spec:
     size: 10Gi
   numberOfInstances: 3
   users:
-    nextcloud:  # database owner
+    nextcloud: # database owner
     - superuser
     - createdb
   databases:
-   nextcloud: nextcloud  # dbname: owner
+    nextcloud: nextcloud # dbname: owner
   postgresql:
     version: "12"

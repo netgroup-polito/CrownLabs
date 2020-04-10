@@ -1,4 +1,3 @@
----
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -13,7 +12,6 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-max-temp-file-size: "0"
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/proxy-request-buffering: "on"
-
   generation: 1
   name: crowncloud
   namespace: nextcloud

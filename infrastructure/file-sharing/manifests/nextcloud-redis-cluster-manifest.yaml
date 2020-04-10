@@ -1,4 +1,3 @@
----
 apiVersion: kubedb.com/v1alpha1
 kind: Redis
 metadata:
@@ -32,10 +31,10 @@ spec:
     spec:
       type: ClusterIP
       ports:
-        - name: http
-          port: 9200
-          targetPort: http
-          terminationPolicy: WipeOut
+      - name: http
+        port: 9200
+        targetPort: http
+        terminationPolicy: WipeOut
   updateStrategy:
     type: RollingUpdate
   monitor:

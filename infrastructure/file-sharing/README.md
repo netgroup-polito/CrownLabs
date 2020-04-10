@@ -1,6 +1,6 @@
-# Nextcloud
+# File Sharing - Nextcloud
 
-Nextcloud is a suite of client-server software for creating and using file hosting services. Nextcloud is free and open-source, which means that anyone is allowed to install and operate it on their own private server devices. 
+Nextcloud is a suite of client-server software for creating and using file hosting services. Nextcloud is free and open-source, which means that anyone is allowed to install and operate it on their own private server devices.
 
 More info at [Nextcloud's website](https://nextcloud.com)
 ## Pre-requisites
@@ -23,7 +23,7 @@ Here we decided to deploy the KubeDb Operator in a namespace called **kubedb**
 
 Then we install **redis** applying the [nextcloud-redis-cluster-manifest.yaml](manifests/nextcloud-redis-cluster-manifest.yaml):
 ```bash
-kubectl create -n nextcloud -f redis-cluster-manifest.yaml 
+kubectl create -n nextcloud -f redis-cluster-manifest.yaml
 ```
 ## Postgres cluster
 
@@ -37,11 +37,11 @@ For more information about the Postgres Operator please refer to this [README.md
 ## CEPHfs for the PVC
 The Ceph File System, or CephFS, is a POSIX-compliant file system built on top of Ceph’s distributed object store, RADOS. CephFS endeavors to provide a state-of-the-art, multi-use, highly available,
 and performant file store for a variety of applications, including traditional use-cases like shared home directories, HPC scratch space, and distributed workflow shared storage.
-Now we will create a Persistent Volume Claim which will be attached to the Nextcloud Deployment. Applying the [nextcloud-pvc.yaml](manifests/nextcloud-pvc.yaml) we will have a PVC of 700 Gi in size provisioned 
+Now we will create a Persistent Volume Claim which will be attached to the Nextcloud Deployment. Applying the [nextcloud-pvc.yaml](manifests/nextcloud-pvc.yaml) we will have a PVC of 700 Gi in size provisioned
 by the **csi-cephfs** storage class.
 ```bash
 kubectl create -n nextcloud -f nextcloud-pvc.yaml
-``` 
+```
 ## Nextcloud
 
 ### Install Procedure
@@ -50,7 +50,7 @@ Now we can proceed by installing Nextcloud. We will apply the following manifest
 * [nextcloud-php-configmap.yaml](manifests/nextcloud-php-configmap.yaml), add here the configuration options for php if you have particular needs;
 * [nextcloud-service.yaml](manifests/nextcloud-service.yaml), clusterIP service for the deployment;
 * [nextcloud-admin-credentials-secret.yaml](manifests/nextcloud-admin-credentials-secret.yaml), this credentials will be used during the creation of the admin user;
-* [nextcloud-deployment.yaml](manifests/nextcloud-deployment.yaml), the deployment of Nextcloud. 
+* [nextcloud-deployment.yaml](manifests/nextcloud-deployment.yaml), the deployment of Nextcloud.
 
 For more information on the docker image please check the following section on [dockerhub](https://hub.docker.com/_/nextcloud/).
 
