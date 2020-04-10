@@ -8,15 +8,15 @@ In the following, two different ingress controllers are created and coupled with
 In order to deploy the two ingress controllers, we have to apply the following files, containing the `ngnix ingress controller` deployments and all the configurations required:
 
 ```sh
-$ kubectl apply -f ingress-controller-external.yaml
-$ kubectl apply -f ingress-controller-internal.yaml
+$ kubectl apply -f manifests/ingress-controller-external.yaml
+$ kubectl apply -f manifests/ingress-controller-internal.yaml
 ```
 
 Now we can create the LoadBalancer services for the ingress controllers, i.e., the external IP addresses that will be used to reach this services:
 
 ```sh
-$ kubectl apply -f svc-ingress-nginx-external.yaml
-$ kubectl apply -f svc-ingress-nginx-internal.yaml
+$ kubectl apply -f manifests/svc-ingress-nginx-external.yaml
+$ kubectl apply -f manifests/svc-ingress-nginx-internal.yaml
 ```
 
 Once the LB services are created, we can check which IP address have been assigned to them:
@@ -33,14 +33,6 @@ NAME            TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)         
 ingress-nginx   LoadBalancer   10.104.98.160   130.192.31.240   80:31718/TCP,443:30654/TCP,4443:30423/TCP   60m
 ```
 
-Once everything is setup correctly we can apply the ingress rules:
-
-```sh
-$ kubectl apply -f ingress-monitoring.yaml
-```
-
-The file `ingress-monitoring.yaml` contains all the ingress rules for Prometheus, Grafana and Alert Manager. Once it's applied the three services are connected to the ingress controller, associated to a public name (exposed to the internet) and reachable from aoutside the cluster.
-
 ## Selecting the ingress controller
 By default, every `Ingress` resource is attached to the Ingress Controller exposed on the external network (with public IP). To select the Ingress Controller exposed on the internal network, it is necessary to add the ad-hoc annotation and specify the `nginx-internal` class:
 ```yaml
@@ -49,11 +41,11 @@ By default, every `Ingress` resource is attached to the Ingress Controller expos
 ```
 
 ## Exposing ingress controller metrics
-The `ingress controller` exposes itself some very interesting metrics that can be collected using Prometheus and monitored using Grafana. In order to collect them the first thing to do in to create another service (this time a clusterIP service) and to connect it to the `ingress controller` via the command:
+The `ingress controller` exposes itself some metrics that can be collected using Prometheus and monitored using Grafana. In order to collect them the first thing to do in to create another service (this time a clusterIP service) and to connect it to the `ingress controller` via the command:
 
 ```sh
-$ kubectl apply -f svc-ingress-metrics-external.yaml
-$ kubectl apply -f svc-ingress-metrics-internal.yaml
+$ kubectl apply -f manifests/svc-ingress-metrics-external.yaml
+$ kubectl apply -f manifests/svc-ingress-metrics-internal.yaml
 ```
 
 This creates the clusterIP service that exposes the port 10254 of the ingress controller for Prometheus.
@@ -61,8 +53,8 @@ This creates the clusterIP service that exposes the port 10254 of the ingress co
 Once the service is created the last thing to do is to create a ServiceMonitor object in order to make Prometheus aware that our ingress controller is willing to expose his metrics. This can be easily done using the command:
 
 ```sh
-$ kubectl apply -f servicemonitor-ingress-external.yaml
-$ kubectl apply -f servicemonitor-ingress-internal.yaml
+$ kubectl apply -f manifests/servicemonitor-ingress-external.yaml
+$ kubectl apply -f manifests/servicemonitor-ingress-internal.yaml
 ```
 
 ## Exposing kube-apiserver
@@ -71,13 +63,13 @@ Not only third party application can be connected to the `ingress controller`, b
 In order to do so the fist thing to do is to create a service and connect it to the apiserver using the command:
 
 ```sh
-$ kubectl apply -f svc-apiserver.yaml
+$ kubectl apply -f api-server/svc-apiserver.yaml
 ```
 
 Once it's done the last thing to do is to apply the ingress rules for our new service:
 
 ```sh
-$ kubectl apply -f ingress-apiserver.yaml
+$ kubectl apply -f api-server/ingress-apiserver.yaml
 ```
 
 ## Custom error pages
@@ -87,7 +79,7 @@ In order to do so, in is necessary to create and upload a Docker image containin
 
 Once the image is available, it is possible to create the necessary resources (i.e. deployments, services, ...) through the ad-hoc manifest:
 ```bash
-$ kubectl apply -f custom-error-pages.yaml
+$ kubectl apply -f manifests/custom-error-pages.yaml
 ```
 
 Finally, the custom backend can be globally enabled by adding the corresponding flag to the container arguments of the `nginx` deployment:
