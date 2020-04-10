@@ -1,4 +1,4 @@
-# External DNS
+# External DNS Synchronization - External DNS
 
 [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) synchronizes exposed Kubernetes Services and Ingresses with DNS providers (e.g. bind9).
 
@@ -37,7 +37,6 @@
     # rndc reload
     ```
 
-
 ## Deploy external-dns
 
 1. Edit [external-dns.yaml](external-dns.yaml) and configure the `external-dns` arguments to match the `bind9` settings.
@@ -51,13 +50,12 @@
 
 To use external-dns add an Ingress or a LoadBalancer service with a host that is part of the domain-filter previously configured (e.g. `example.crown-labs.ipv6.polito.it`).
 As for the LoadBalancer Service, the host is specified through the ad-hoc annotation:
-```
+```yaml
 ...
 annotations:
     external-dns.alpha.kubernetes.io/hostname: example.crown-labs.ipv6.polito.it
 ...
 ```
-
 
 ## Additional References
 1. [external-dns](https://github.com/kubernetes-sigs/external-dns)
