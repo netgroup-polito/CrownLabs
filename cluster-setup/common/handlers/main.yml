@@ -1,5 +1,0 @@
----
-- name: Restart the ntp service
-  systemd:
-    name: ntp
-    state: reloaded
