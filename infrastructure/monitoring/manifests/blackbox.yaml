@@ -1,37 +1,30 @@
 restartPolicy: Always
-
 kind: Deployment
-
 podDisruptionBudget: {}
-  # maxUnavailable: 0
+# maxUnavailable: 0
 
 strategy:
   rollingUpdate:
     maxSurge: 1
     maxUnavailable: 0
   type: RollingUpdate
-
 image:
   repository: prom/blackbox-exporter
   tag: v0.16.0
   pullPolicy: IfNotPresent
-
   ## Optionally specify an array of imagePullSecrets.
   ## Secrets must be manually created in the namespace.
   ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   ##
   # pullSecrets:
   #   - myRegistrKeySecretName
-
 ## User to run blackbox-exporter container as
 runAsUser: 1000
 readOnlyRootFilesystem: true
 runAsNonRoot: true
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
 secretConfig: false
 config:
   modules:
@@ -42,100 +35,89 @@ config:
         valid_http_versions: ["HTTP/1.1", "HTTP/2"]
         no_follow_redirects: false
         preferred_ip_protocol: "ip4"
-        valid_status_codes: [200,401,300]
-
+        valid_status_codes: [200, 401, 300]
 extraConfigmapMounts: []
-  # - name: certs-configmap
-  #   mountPath: /etc/secrets/ssl/
-  #   subPath: certificates.crt # (optional)
-  #   configMap: certs-configmap
-  #   readOnly: true
-  #   defaultMode: 420
+# - name: certs-configmap
+#   mountPath: /etc/secrets/ssl/
+#   subPath: certificates.crt # (optional)
+#   configMap: certs-configmap
+#   readOnly: true
+#   defaultMode: 420
 
 ## Additional secret mounts
 # Defines additional mounts with secrets. Secrets must be manually created in the namespace.
 extraSecretMounts: []
-  # - name: secret-files
-  #   mountPath: /etc/secrets
-  #   secretName: blackbox-secret-files
-  #   readOnly: true
-  #   defaultMode: 420
+# - name: secret-files
+#   mountPath: /etc/secrets
+#   secretName: blackbox-secret-files
+#   readOnly: true
+#   defaultMode: 420
 
 allowIcmp: false
-
 resources: {}
-  # limits:
-  #   memory: 300Mi
-  # requests:
-  #   memory: 50Mi
+# limits:
+#   memory: 300Mi
+# requests:
+#   memory: 50Mi
 
 priorityClassName: ""
-
 service:
   annotations: {}
   type: ClusterIP
   port: 9115
   annotations:
-   nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
-   nginx.ingress.kubernetes.io/auth-secret: basic-auth
-   nginx.ingress.kubernetes.io/auth-type: basic
-
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required - ok
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
 ## An Ingress resource can provide name-based virtual hosting and TLS
 ## termination among other things for CouchDB deployments which are accessed
 ## from outside the Kubernetes cluster.
 ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: true
-  hosts: 
-     - blackbox-exporter.crown-labs.ipv6.polito.it
+  hosts:
+  - blackbox-exporter.crown-labs.ipv6.polito.it
   annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-production     
+    cert-manager.io/cluster-issuer: letsencrypt-production
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   tls:
+  - hosts: # - secretName: chart-example-tls
     # Secrets must be manually created in the namespace.
-    # - secretName: chart-example-tls
-    - hosts:
-      - blackbox-exporter.crown-labs.ipv6.polito.it
-      secretName: blackbox-cert
-
+    - blackbox-exporter.crown-labs.ipv6.polito.it
+    secretName: blackbox-cert
 podAnnotations: {}
-
 extraArgs: []
 #  --history.limit=1000
 
 replicas: 1
-
 serviceMonitor:
   ## If true, a ServiceMonitor CRD is created for a prometheus operator
   ## https://github.com/coreos/prometheus-operator
   ##
   enabled: true
-
   # Default values that will be used for all ServiceMonitors created by `targets`
   defaults:
     labels: {}
     interval: 30s
     scrapeTimeout: 30s
     module: http_2xx
-
   targets:
-    - name: prometheus                    # Human readable URL that will appear in Prometheus / AlertManager
-      url: https://prometheus.crown-labs.ipv6.polito.it  # The URL that blackbox will scrape
+  - name: prometheus # Human readable URL that will appear in Prometheus / AlertManager
+    url: https://prometheus.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
+    #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
+    #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
+    #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
+    #      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
+  - name: grafana # Human readable URL that will appear in Prometheus / AlertManager
+    url: https://grafana.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
+    #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
+    #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
+    #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
+    #      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
+  - name: alertmanager # Human readable URL that will appear in Prometheus / AlertManager
+    url: https://alertmanager.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
 #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
 #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
 #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
 #      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
-    - name: grafana                    # Human readable URL that will appear in Prometheus / AlertManager
-      url: https://grafana.crown-labs.ipv6.polito.it  # The URL that blackbox will scrape
-#      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
-#      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
-#      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
-#      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
-    - name: alertmanager                    # Human readable URL that will appear in Prometheus / AlertManager
-      url: https://alertmanager.crown-labs.ipv6.polito.it  # The URL that blackbox will scrape
-#      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
-#      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
-#      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
-#      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
-

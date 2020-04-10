@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      modsecurity_rules '
+          SecRuleEngine On
+          SecRuleRemoveById 932110 932115 932130 933210 942100
+      ';
+  name: grafana
+  namespace: monitoring
+spec:
+  rules:
+  - host: grafana.crown-labs.ipv6.polito.it
+    http:
+      paths:
+      - backend:
+          serviceName: grafana
+          servicePort: 3000
+        path: /
+  tls:
+  - hosts:
+    - grafana.crown-labs.ipv6.polito.it
+    secretName: grafana-cert
