@@ -1,4 +1,3 @@
----
 apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
@@ -7,10 +6,10 @@ metadata:
 spec:
   # The secret where the generated certificate is stored
   secretName: example-certificate-secret
-  duration: 2160h  # 90d
-  renewBefore: 360h  # 15d
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
   dnsNames:
-    - example.crown-labs.ipv6.polito.it
+  - example.crown-labs.ipv6.polito.it
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
