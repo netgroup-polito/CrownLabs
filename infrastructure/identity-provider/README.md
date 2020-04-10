@@ -1,4 +1,4 @@
-# Keycloak
+# Identity Provider - Keycloak
 
 Keycloak is an Open Source Identity and Access Management solution for modern Applications and Services.
 It enables to concentrate all the tasks related to identity and access management into the same place; once authenticated, a user session can be associated to a token that can be used to validate the access of all the resources available in the cluster.

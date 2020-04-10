@@ -10,10 +10,10 @@ spec:
     size: 10Gi
   numberOfInstances: 3
   users:
-    keycloak:  # database owner
+    keycloak: # database owner
     - superuser
     - createdb
   databases:
-   keycloak: keycloak  # dbname: owner
+    keycloak: keycloak # dbname: owner
   postgresql:
     version: "12"
