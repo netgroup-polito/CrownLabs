@@ -457,15 +457,15 @@ if __name__ == "__main__":
     # Prepare the templates for the resources to create in Kubernetes
     try:
         _k8s_templates = {
-            "namespace": KubernetesTemplateHandler("namespace_template.yaml", "k8s_templates/"),
-            "rolebinding-tenant": KubernetesTemplateHandler("rolebindingtenant_template.yaml", "k8s_templates/"),
-            "rolebinding-tenant-allowadmin": KubernetesTemplateHandler("rolebindingtenant_allowadmin_template.yaml", "k8s_templates/"),
-            "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse_template.yaml", "k8s_templates/"),
-            "resourcequota": KubernetesTemplateHandler("resourcequota_template.yaml", "k8s_templates/"),
-            "registrycredentials": KubernetesTemplateHandler("registrycredentials_template.yaml", "k8s_templates/"),
-            "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials_template.yaml", "k8s_templates/"),
-            "labtemplate": KubernetesTemplateHandler("labtemplate_template.yaml", "k8s_templates/"),
-            "ingress-netpol": KubernetesTemplateHandler("ingress_netpol_template.yaml", "k8s_templates/"),
+            "namespace": KubernetesTemplateHandler("namespace_template.yaml", "templates/"),
+            "rolebinding-tenant": KubernetesTemplateHandler("rolebindingtenant_template.yaml", "templates/"),
+            "rolebinding-tenant-allowadmin": KubernetesTemplateHandler("rolebindingtenant_allowadmin_template.yaml", "templates/"),
+            "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse_template.yaml", "templates/"),
+            "resourcequota": KubernetesTemplateHandler("resourcequota_template.yaml", "templates/"),
+            "registrycredentials": KubernetesTemplateHandler("registrycredentials_template.yaml", "templates/"),
+            "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials_template.yaml", "templates/"),
+            "labtemplate": KubernetesTemplateHandler("labtemplate_template.yaml", "templates/"),
+            "ingress-netpol": KubernetesTemplateHandler("ingress_netpol_template.yaml", "templates/"),
         }
     except Template.exceptions.TemplateNotFound as _ex:
         sys.stderr.write("Failed to parse the Jinja2 template: '{}' does not exist. Abort\n".format(_ex))

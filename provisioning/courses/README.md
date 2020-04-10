@@ -2,19 +2,19 @@
 This Python script allows the automatic creation of *CrownLabs* courses, including the different laboratories and the tenant (i.e. student and professor) accounts. In particular, tenants are characterized both by the actual accounts in the OIDC server (i.e. Keycloak), as well as their companion set of resources in Kubernetes.
 
 ## Overview
-This script processes different CSV files to obtain the information regarding the resources characteristics of the resources to be created. The files must be compliant with the templates provided in the [csv_examples](csv_examples) folder:
+This script processes different CSV files to obtain the information regarding the resources characteristics of the resources to be created. The files must be compliant with the templates provided in the [csv-examples](csv-examples) folder:
 
-* [courses.csv](csv_examples/courses.csv): enumerates the list of courses to be created by the script;
-* [laboratories.csv](csv_examples/laboratories.csv): enumerates the list of laboratories to be created by the script;
-* [students.csv](csv_examples/students.csv): enumerates the list of student accounts to be created by the script;
-* [teachers.csv](csv_examples/teachers.csv): enumerates the list of professor accounts (i.e. with additional privileges) to be created by the script.
+* [courses.csv](csv-examples/courses.csv): enumerates the list of courses to be created by the script;
+* [laboratories.csv](csv-examples/laboratories.csv): enumerates the list of laboratories to be created by the script;
+* [students.csv](csv-examples/students.csv): enumerates the list of student accounts to be created by the script;
+* [teachers.csv](csv-examples/teachers.csv): enumerates the list of professor accounts (i.e. with additional privileges) to be created by the script.
 
 Upon the creation of a new tenant account, the system automatically sends a welcome email to the tenant. In particular, the email contains a confirmation link that needs to be accessed to complete the registration and setup a new password for the account.
 
 The script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results. Additionally, the modifications are incremental, e.g. it is possible to introduce new laboratories or allow tenants to access additional courses even after the initial creation.
 
-The script depends upon a series of Kubernetes resource templates stored within the [k8s_templates](k8s_templates) folder. Before executing the script, it is necessary to customize the following files:
-- [registrycredentials_template.yaml](k8s_templates/registrycredentials_template.yaml): to specify the credentials to access the docker registry where the laboratory images are made available for download;
+The script depends upon a series of Kubernetes resource templates stored within the [templates](templates) folder. Before executing the script, it is necessary to customize the following files:
+- [registrycredentials_template.yaml](templates/registrycredentials_template.yaml): to specify the credentials to access the docker registry where the laboratory images are made available for download;
 - [setup_courses.py](setup_courses.py): optional, to configure the URL of a different OICD server (`server_url` field).
 
 ## Dependencies
