@@ -44,7 +44,7 @@ spec:
           requests:
             storage: 50Gi
         accessModes:
-          - ReadWriteOnce
+        - ReadWriteOnce
         storageClassName: rook-ceph-block
   affinity:
     podAntiAffinity:
@@ -58,4 +58,3 @@ spec:
               values:
               - prometheus
           topologyKey: kubernetes.io/hostname
-

@@ -1,6 +1,5 @@
-# kube-prometheus
+# Monitoring - kube-prometheus
 Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheus rules to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
-
 
 ## Table of contents
 
@@ -15,6 +14,7 @@ Kube-prometheus collects Kubernetes manifests, Grafana dashboards, and Prometheu
     - [Manifests](#manifests)
     - [Quickstart](#quickstart)
     - [Persistent storage](#persistent-storage)
+    - [Alert Notification](#alert-notification)
     - [Monitor the Bind DNS Server](#monitor-the-bind-dns-server)
     - [Monitor all namespaces](#monitor-all-namespaces)
     - [Blackbox monitoring](#blackbox-monitoring)
@@ -49,7 +49,7 @@ The Alertmanager handles alerts sent by client applications such as the Promethe
 
 ## Install
 
-## Manifests
+### Manifests
 These manifests contain the most important elements required to monitor the cluster:
 - The namespace
 - The Prometheus Operator
@@ -60,10 +60,10 @@ These manifests contain the most important elements required to monitor the clus
 - kube-state-metrics
 - Grafana
 
-## Quickstart
+### Quickstart
 1. Create the monitoring stack using the config in the `manifests` directory:
 
-```
+```bash
 # Create the namespace and CRDs, and then wait for them to be available before creating the remaining resources
 $ kubectl create -f manifests/setup
 $ until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
@@ -71,21 +71,21 @@ $ kubectl create -f manifests/
 ```
 
 2. If you want to teardown the stack:
-```
+```bash
 $ kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 ```
 
 
-## Persistent storage
+### Persistent storage
 
-### Why?
+#### Why?
 Running cluster monitoring with persistent storage means that your metrics are stored to a Persistent Volume and can survive a pod being restarted or recreated. This is ideal if you require your metrics or alerting data to be guarded from data loss. For production environments, it is highly recommended to configure persistent storage.
 
-### How?
+#### How?
 We need to modify two manifests (for Grafana and Prometheus) to have persistent storage.
 
 1. [Grafana](https://github.com/netgroup-polito/CrownLabs/blob/kube-prometheus/cluster_config/kube-prometheus/manifests/grafana-deployment.yaml) manifest.
-```
+```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -100,7 +100,7 @@ spec:
     requests:
       storage: 50Gi
 ```
-```
+```yaml
  volumes:
 
       - name: grafana-storage
@@ -108,17 +108,17 @@ spec:
           claimName: pv-claim-grafana
 ```
 2. [Prometheus](https://github.com/netgroup-polito/CrownLabs/blob/kube-prometheus/cluster_config/kube-prometheus/manifests/prometheus-prometheus.yaml) manifest.
-```
+```yaml
 retention: 15d
   resources:
     requests:
       memory: 2Gi
 ```
 3. Before applying your cluster configuration, you have to enter the correct value for the
-```
+```yaml
 externalUrl: <>
 ```
-```
+```yaml
 storage:
     volumeClaimTemplate:
       metadata:
@@ -132,7 +132,7 @@ storage:
           - ReadWriteOnce
         storageClassName: rook-ceph-block
  ```
- ```
+ ```yaml
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -147,30 +147,48 @@ storage:
           topologyKey: kubernetes.io/hostname
 ```
 
-## Monitor all namespaces
+### Monitor all namespaces
 We need to give permission to the pod prometheus to be able to get on endpoints that it does not know. To know them he has to talk with his APIserver and to do so he need an identity i.e. a ServiceAccount, finally the permissions are needed. To do this we use the concepts of ClusterRole and ClusterRoleBinding.
 So
-```
-kubectl apply -f prometheus-scraper-cluster-role.yaml
+```bash
+$ kubectl apply -f prometheus-scraper-cluster-role.yaml
 ```
 Now Prometheus can scrape all the namespaces in the cluster.
 
 
-## Blackbox monitoring
+### Blackbox monitoring
 Testing externally visible behavior as a user would see it.
 
 It allows us to tell if someone is seeing us or not and it is useful if something unexpected happens. We do the scraping from the outside in order to see that there are no access problems, for some reason, perhaps due to some crash.
 
-### Blackbox exporter
+#### Blackbox exporter
 From [Blackbox exporter](https://github.com/prometheus/blackbox_exporter) official Github.
 The blackbox exporter allows blackbox probing of endpoints over HTTP, HTTPS, DNS, TCP and ICMP.
 TO deploy it, we use the [blackbox exporter chart](https://github.com/helm/charts/tree/master/stable/prometheus-blackbox-exporter) by appropriately changing the values of [values](https://github.com/helm/charts/blob/master/stable/prometheus-blackbox-exporter/values.yaml) file.
 
+### Alert Notification
+When an alert is sent to AlertManager, those are also sent to Slack.
+This template differentiates alerts based on severity and sends them on the correct Slack channel.
 
-## OAuth2 Authentication
+#### How to install the template
+To install this template, you have to follow the steps below:
+
+1) Configure the fields `api_url` in [alertmanager-slack.yaml](alertmanager-templates/alertmanager-slack.yaml) with your own Slack hook(s).
+
+2) Then encode the above template in base64 (in our case, `<file-template>` is `alertmanager-templates/alertmanager-slack.yaml`):
+```bash
+$ cat <file-template> | base64 -w0
+```
+
+3) Now, you have to edit the secrets of your alertmanager deployment and add the above output (i.e., the entire content of `alertmanager-slack.yaml`, encoded in based 64) as a *secret* in correspondence of field `alertmanager-slack.yaml`. The above command will open an editor that will allow to complete this action:
+```bash
+$ kubectl edit secrets -n <alertmanager namespace> <alertmanager secret name> -o yaml
+```
+
+### OAuth2 Authentication
 In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2_proxy](https://github.com/pusher/oauth2_proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../Keycloak/README.md) for more information.
 
-### Keycloak configuration
+#### Keycloak configuration
 
 1. Create a new client for `monitoring`;
 2. Configure the Client Protocol to be `openid-connect`;
@@ -179,7 +197,7 @@ In the following, we will setup Alertmanager, Grafana and Prometheus to use Keyc
 5. From the Credentials tab, copy the Client Secret that has been generated;
 6. From the Mappers tab, add a new `Group Membership` mapper with Token Claim Name equal to `groups`.
 
-### Alertmanager and Prometheus configuration
+#### Alertmanager and Prometheus configuration
 
 1. Generate a new Cookie Secret:
     ```sh
@@ -188,7 +206,7 @@ In the following, we will setup Alertmanager, Grafana and Prometheus to use Keyc
 2. Edit the [monitoring-oauth2-proxy deployment](manifests/monitoring-oauth2-proxy-deployment.yaml) and adapt it to your configuration. In particular, it is necessary to adapt the different URIs, specify the Cookie Secret previously created and the Client ID and Secret generated in Keycloak. The meaning of the different fields is specified by the embedded comments.
 3. Configure the `Ingress` objects to perform OAuth2 authentication. See [ingress-monitoring.yaml](../Ingress_controller/ingress-monitoring.yaml) for the complete configuration.
 
-### Grafana configuration
+#### Grafana configuration
 
 1. Edit the [grafana-configuration configmap](manifests/grafana-configuration.yaml) and adapt it to your configuration (each line corresponds to an environment variable). In particular, it is necessary to adapt the different URIs and specify the Client ID and Secrets generated in Keycloak. The meaning of the different fields is specified by the embedded comments. More information can be found in the [official documentation](https://grafana.com/docs/grafana/latest/auth/generic-oauth/).
 2. Apply the `ConfigMap`:
@@ -200,28 +218,28 @@ In the following, we will setup Alertmanager, Grafana and Prometheus to use Keyc
    $ kubectl rollout restart deploy/grafana -n monitoring
    ```
 
-### Limit access to a subset of Keycloak users
+#### Limit access to a subset of Keycloak users
 
 The access to Alertmanager and Prometheus is limited to users belonging to the `monitoring` group. Hence, it is possible to grant access to the users by simply adding them to the `monitoring` group.
 
 **Warning:** At the time of writing, in Grafana it seems not possible to restrict login by role/group when using the `generic_oauth` feature. Hence, all valid users of the Keycloak realm would be able to access Grafana. As a temporary workaround, the [grafana-configuration configmap](manifests/grafana-configuration.yaml) disables the access to users not already present within the Grafana database. As soon as this inherent [PR](https://github.com/grafana/grafana/pull/22383) is merged and the new version of Grafana released, it should be possible to limit the access to only a subset of Keycloak users directly from grafana, without needing to create duplicated accounts.
 
-### Additional references
+#### Additional references
 
 1. [ingress-nginx - External OAUTH authentication](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth)
 2. [oauth2_proxy - Configuration](https://pusher.github.io/oauth2_proxy/configuration#config-file)
 
-## Monitor the Bind DNS Server
+### Monitor the Bind DNS Server
 
 [bind_exporter](https://github.com/prometheus-community/bind_exporter) is a Prometheus exporter from Bind. The following guide is an adapted version of this [blog post](https://computingforgeeks.com/how-to-monitor-bind-dns-server-with-prometheus-and-grafana/).
 
-### Bind configuration
+#### Bind configuration
 1. Download the latest release of the `bind_exporter` binary:
-    ```sh
+    ```bash
     $ wget -qO - https://api.github.com/repos/prometheus-community/bind_exporter/releases/latest | grep browser_download_url | grep linux-amd64 |  cut -d '"' -f 4 | wget -qi -
     ```
 2. Extract the binary and move it to the /url/local/bin folder:
-    ```sh
+    ```bash
     $ sudo tar xvf bind_exporter-*.tar.gz --directory /usr/local/bin --wildcards --strip-components 1 '*/bind_exporter'
     ```
 3. Edit `/etc/bind/named.conf.options`, and open a statistics channel:
@@ -231,16 +249,16 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
     };
     ```
 4. Reload the `bind9` configuration:
-    ```sh
+    ```bash
     $ sudo rndc reload
     ```
 5. Add the `prometheus` system user account
-    ```sh
+    ```bash
     $ sudo groupadd --system prometheus
     $ sudo useradd -s /sbin/nologin --system -g prometheus prometheus
     ```
 6. Create a `systemd` unit file for `bind_exporter`:
-    ```sh
+    ```bash
     $ sudo tee /etc/systemd/system/bind_exporter.service<<'EOF'
     [Unit]
     Description=Prometheus
@@ -269,25 +287,24 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
     EOF
     ```
 7. Reload `systemd` and start the `bind_exporter` service:
-    ```sh
+    ```bash
     $ sudo systemctl daemon-reload
     $ sudo systemctl enable bind_exporter.service
     $ sudo systemctl restart bind_exporter.service
     ```
 8. Configure `iptables` to limit the access to `bind_exporter` to specific IP addresses (optional):
-    ```sh
+    ```bash
     $ sudo iptables -A INPUT -p tcp -s 130.192.0.0/16 --dport 9153 -j ACCEPT
     $ sudo iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport 9153 -j ACCEPT
     $ sudo iptables -A INPUT -p tcp --dport 9153 -j DROP
     ```
 
-### Prometheus and Grafana configuration
+#### Prometheus and Grafana configuration
 1. Create the `Endpoint`, `Service` and `ServiceMonitor` resources to scrape the metrics exported by `bind_exporter`:
-    ```sh
+    ```bash
     $ kubectl create -f manifests/prometheus-bind-exporter.yaml
     ```
 2. Open the Grafana web page and import the dashboard with ID 1666.
 
-## Other information
+### Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
-
