@@ -72,9 +72,14 @@ export class App extends React.Component {
         <CssBaseline />
         <Router>
           <Switch>
-            <Route exact path="/">
-              <Home login={this.authManager.login} />
-            </Route>
+            <Route
+              exact
+              path="/"
+              render={() => {
+                this.authManager.login();
+              }}
+            />
+
             <Route
               path="/userview"
               render={() =>
