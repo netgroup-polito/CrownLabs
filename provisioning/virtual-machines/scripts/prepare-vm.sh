@@ -77,7 +77,7 @@ EOT
 # Install NoVNC
 sudo mkdir -p $NOVNC_PATH/utils/websockify
 
-wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.2-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
+wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.3-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
 wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
 
 # Create the service for NoVNC
