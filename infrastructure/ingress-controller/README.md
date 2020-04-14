@@ -96,7 +96,7 @@ custom-http-errors: 400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,
 [ModSecurity](https://modsecurity.org/) is an open source, cross-platform web application firewall (WAF) module. Known as the "Swiss Army Knife" of WAFs, it enables web application defenders to gain visibility into HTTP(S) traffic and provides a power rules language and API to implement advanced protections.
 
 ### Global configuration
-ModSecurity is enabled globally through the [nginx-configuration](mandatory.yaml) ConfigMap. By default, it operates in Audit only mode; hence, the violations detected are logged but not blocked. Finally, the ConfigMap introduces also some whitelisting rules to prevent legitimate requests from being blocked.
+ModSecurity is enabled globally through the [nginx-configuration](manifests/ingress-controller-external.yaml) ConfigMap. By default, it operates in Audit only mode; hence, the violations detected are logged but not blocked. Finally, the ConfigMap introduces also some whitelisting rules to prevent legitimate requests from being blocked.
 
 ### Per-Ingress configuration
 ModSecurity can be configured in enforcement mode by setting an ad-hoc annotation to the Ingress resource:
