@@ -18,7 +18,7 @@ You will need the following tools installed in your workstation:
 
 ## PostgreSQL-Operator
 The following steps will install the postgresql-operator in the namespace called **keycloak-ha**.
-The Postgres Operator can be installed simply by applying `yaml` manifests, after properly changing the namespace in file [operator-service-account-rbac.yaml](manifests/operator-service-account-rbac.yaml) for the `service account` and `cluster rolebinding`.
+The Postgres Operator can be installed simply by applying `yaml` manifests, after properly changing the namespace in file `operator-service-account-rbac.yaml` for the `service account` and `cluster rolebinding`.
 
 ### Manual deployment setup
 For more details, please visit the [official documentation website](https://github.com/zalando/postgres-operator#documentation).
