@@ -13,6 +13,10 @@ Finally, CrownLabs supports also instructors, who can connect to the remote desk
 For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
 
 
+## Components
+
+
+
 ## Install
 
 CrownLabs can be installed on any Kubernetes cluster, although with a non-negligible degree of adaptation.
