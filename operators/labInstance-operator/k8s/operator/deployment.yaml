@@ -41,6 +41,8 @@ spec:
           - "$(WEBSITE_BASE_URL)"
           - "--nextcloud-base-url"
           - "$(NEXTCLOUD_BASE_URL)"
+          - "--oidc-client-secret"
+          - "$(OIDC_CLIENT_SECRET)"
         env:
         - name: WHITE_LIST_LABELS
           valueFrom:
@@ -62,3 +64,8 @@ spec:
            configMapKeyRef:
             name: operator-config
             key: WebdavSecretName
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: oidcClientSecret

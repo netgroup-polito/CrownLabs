@@ -20,11 +20,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
-	vm.Labels = map[string]string{"name": name}
+	vm.Labels = map[string]string{"name": name, "template-name": template.Name, "instance-name": instanceName}
 
 	for _, volume := range vm.Spec.Volumes {
 		if volume.Name == "cloudinitdisk" {
@@ -163,7 +163,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 	return ingress
 }
 
-func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv1.Deployment {
+func CreateOauth2Deployment(name string, namespace string, urlUUID string, clientSecret string) appsv1.Deployment {
 
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
@@ -199,7 +199,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv
 								"--cookie-name=_oauth2_cookie_" + string([]rune(cookieUUID)[:6]),
 								"--provider=keycloak",
 								"--client-id=k8s",
-								"--client-secret=229a9d87-2bae-4e9b-8567-e8864b2bac4b",
+								"--client-secret=" + clientSecret,
 								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
