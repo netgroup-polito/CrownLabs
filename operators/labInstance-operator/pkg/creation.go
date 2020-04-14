@@ -20,11 +20,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, secretName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
-	vm.Labels = map[string]string{"name": name}
+	vm.Labels = map[string]string{"name": name, "template-name": template.Name, "instance-name": instanceName}
 
 	for _, volume := range vm.Spec.Volumes {
 		if volume.Name == "cloudinitdisk" {

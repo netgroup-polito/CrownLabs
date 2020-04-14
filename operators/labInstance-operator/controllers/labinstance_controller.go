@@ -107,6 +107,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
+	labInstance.Labels = map[string]string{"course-name": labTemplate.Spec.CourseName, "template-name": labTemplate.Name, "template-namespace": labTemplate.Namespace}
 
 	// prepare variables common to all resources
 	name := "l-" + labTemplate.Name + "-" + fmt.Sprintf("%.8s", uuid.New().String())
@@ -192,7 +193,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 7: create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, secret.Name)
+	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, labInstance.Name, secret.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")

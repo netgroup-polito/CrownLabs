@@ -64,3 +64,8 @@ spec:
            configMapKeyRef:
             name: operator-config
             key: WebdavSecretName
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: oidcClientSecret
