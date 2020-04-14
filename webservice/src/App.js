@@ -106,7 +106,7 @@ export class App extends React.Component {
               }
             />
             <Route path="*">
-              <Redirect to="/userview" />
+              <Redirect to="/login" />
             </Route>
           </Switch>
         </Router>
