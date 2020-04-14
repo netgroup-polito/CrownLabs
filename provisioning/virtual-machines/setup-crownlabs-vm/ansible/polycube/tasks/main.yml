@@ -1,0 +1,211 @@
+---
+# tasks file for polycube
+
+- name: Install polycube dependencies
+  apt:
+    name: "{{ polycube_dependencies }}"
+    state: present
+
+
+- name: Set pistache directories
+  set_fact:
+    pistache_base: "/home/{{ username }}/polycube/pistache"
+    pistache_build: "/home/{{ username }}/polycube/pistache/build"
+
+- name: Checkout the pistache repository
+  git:
+    repo: "https://github.com/oktal/pistache"
+    dest: "{{ pistache_base }}"
+    recursive: yes
+    version: 117db02eda9d63935193ad98be813987f6c32b33
+  become: no
+
+- name: Create the pistache build directory
+  file:
+    path: "{{ pistache_build }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+
+- name: Cmake pistache
+  command:
+    chdir: "{{ pistache_build }}"
+    cmd: cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DPISTACHE_USE_SSL=ON ..
+  become: no
+
+- name: Make pistache
+  make:
+    chdir: "{{ pistache_build }}"
+    params:
+      NUM_THREADS: "{{ ansible_processor_vcpus }}"
+  become: no
+
+- name: Install pistache
+  make:
+    chdir: "{{ pistache_build }}"
+    target: install
+
+
+- name: Set libtins directories
+  set_fact:
+    libtins_base: "/home/{{ username }}/polycube/libtins"
+    libtins_build: "/home/{{ username }}/polycube/libtins/build"
+
+- name: Checkout the libtins repository
+  git:
+    repo: "https://github.com/mfontanini/libtins"
+    dest: "{{ libtins_base }}"
+    version: v3.5
+  become: no
+
+- name: Create the libtins build directory
+  file:
+    path: "{{ libtins_build }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+
+- name: Cmake libtins
+  command:
+    chdir: "{{ libtins_build }}"
+    cmd: |
+      cmake -DLIBTINS_ENABLE_CXX11=ON -DLIBTINS_BUILD_EXAMPLES=OFF
+        -DLIBTINS_BUILD_TESTS=OFF -DLIBTINS_ENABLE_DOT11=OFF
+        -DLIBTINS_ENABLE_PCAP=OFF -DLIBTINS_ENABLE_WPA2=OFF
+        -DLIBTINS_ENABLE_WPA2_CALLBACKS=OFF ..
+  become: no
+
+- name: Make libtins
+  make:
+    chdir: "{{ libtins_build }}"
+    params:
+      NUM_THREADS: "{{ ansible_processor_vcpus }}"
+  become: no
+
+- name: Install libtins
+  make:
+    chdir: "{{ libtins_build }}"
+    target: install
+
+
+- name: Set polycube directories
+  set_fact:
+    polycube_go: "/home/{{ username }}/polycube/go"
+    polycube_base: "/home/{{ username }}/polycube/polycube"
+    polycube_build: "/home/{{ username }}/polycube/polycube/build"
+
+- name: Create the GOPATH directory
+  file:
+    path: "{{ polycube_go }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+
+- name: Set $GOPATH in bashrc
+  lineinfile:
+    path: "/home/{{ username }}/.bashrc"
+    line: "export GOPATH={{ polycube_go }}"
+
+- name: Checkout the polycube repository
+  git:
+    repo: "https://github.com/polycube-network/polycube"
+    dest: "{{ polycube_base }}"
+    recursive: yes
+  become: no
+
+- name: Create the polycube build directory
+  file:
+    path: "{{ polycube_build }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+
+- name: Cmake polycube
+  command:
+    chdir: "{{ polycube_build }}"
+    cmd: cmake ..
+  environment:
+    GOPATH: "{{ polycube_go }}"
+  become: no
+
+- name: Make polycube
+  make:
+    chdir: "{{ polycube_build }}"
+    params:
+      NUM_THREADS: "{{ ansible_processor_vcpus }}"
+  become: no
+
+- name: Install polycube
+  make:
+    chdir: "{{ polycube_build }}"
+    target: install
+
+
+- name: Install iperf
+  apt:
+    name: "{{ to_install }}"
+    state: present
+  vars:
+    to_install:
+    - iperf
+    - iperf3
+
+
+- name: Install hping3p dependencies
+  apt:
+    name: "{{ hping3p_dependencies }}"
+    state: present
+  vars:
+    hping3p_dependencies:
+    - libpcap-dev
+    - tcl
+    - tcl-dev
+
+- name: Set hping3p directories
+  set_fact:
+    hping3p_base: "/home/{{ username }}/polycube/hping3p"
+
+- name: Checkout the hping3p repository
+  git:
+    repo: "https://github.com/francescoraves483/hping.git"
+    dest: "{{ hping3p_base }}"
+  become: no
+
+- name: Ensure man8 directory exists
+  file:
+    path: "/usr/local/man/man8"
+    state: directory
+
+- name: Link net/bpf.h -> pcap-bpf.h
+  file:
+    src: "/usr/include/pcap-bpf.h"
+    dest: "/usr/include/net/bpf.h"
+    state: link
+
+- name: Configure hping3p
+  command:
+    chdir: "{{ hping3p_base }}"
+    cmd: ./configure
+  become: no
+
+- name: Make hping3p
+  make:
+    chdir: "{{ hping3p_base }}"
+    params:
+      NUM_THREADS: "{{ ansible_processor_vcpus }}"
+  become: no
+
+- name: Install hping3p
+  make:
+    chdir: "{{ hping3p_base }}"
+    target: forced-install
+
+
+- name: Install utility tools
+  apt:
+    name: "{{ to_install }}"
+    state: present
+  vars:
+    to_install:
+    - ncat
+    - net-tools

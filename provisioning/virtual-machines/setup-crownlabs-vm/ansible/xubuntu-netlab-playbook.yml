@@ -1,0 +1,12 @@
+---
+- hosts: all
+  become: yes
+
+  roles:
+  - xubuntu-pre
+  - wireshark
+  - docker
+  - gns3
+  - polycube
+  - netlab-generic
+  - xubuntu-post

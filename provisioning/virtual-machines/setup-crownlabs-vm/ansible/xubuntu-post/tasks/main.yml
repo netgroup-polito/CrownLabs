@@ -1,0 +1,62 @@
+---
+# tasks file for xubuntu-post
+
+- name: Install utility tools
+  apt:
+    name: "{{ to_install }}"
+    state: present
+  vars:
+    to_install:
+    - iftop
+    - htop
+    - nano
+    - vim
+
+- name: Install zerofree
+  apt:
+    name: zerofree
+    state: present
+
+- name: Clean apt cache
+  command: apt clean
+
+- name: Allow users to become sudo without password
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD:ALL'
+    validate: 'visudo -cf %s'
+
+- name: Allow automatic login
+  template:
+    src: templates/lightdm.conf
+    dest: /etc/lightdm/lightdm.conf.d/10-autologin.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Disable compositing (i.e. shadows) in xfce
+  xfconf:
+    channel: xfwm4
+    property: /general/use_compositing
+    value_type: "bool"
+    value: "false"
+  become: true
+  become_user: "{{ username }}"
+
+- name: Copy the README file
+  copy:
+    src: files/README
+    dest: /home/{{ username }}/Desktop
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: '0644'
+
+- name: Copy the zerohdd sript to the root folder
+  copy:
+    src: files/zerohdd.sh
+    dest: /root
+    owner: root
+    group: root
+    mode: '0644'
