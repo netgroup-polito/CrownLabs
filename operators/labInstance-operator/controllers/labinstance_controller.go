@@ -46,6 +46,7 @@ type LabInstanceReconciler struct {
 	WebsiteBaseUrl     string
 	NextcloudBaseUrl   string
 	WebdavSecretName   string
+	OidcClientSecret string
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
@@ -181,7 +182,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 6: create Deployment for oauth2
-	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID)
+	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID, r.OidcClientSecret)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")

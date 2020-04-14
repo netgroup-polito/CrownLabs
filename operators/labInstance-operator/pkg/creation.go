@@ -163,7 +163,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 	return ingress
 }
 
-func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv1.Deployment {
+func CreateOauth2Deployment(name string, namespace string, urlUUID string, clientSecret string) appsv1.Deployment {
 
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
@@ -199,7 +199,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string) appsv
 								"--cookie-name=_oauth2_cookie_" + string([]rune(cookieUUID)[:6]),
 								"--provider=keycloak",
 								"--client-id=k8s",
-								"--client-secret=229a9d87-2bae-4e9b-8567-e8864b2bac4b",
+								"--client-secret=" + clientSecret,
 								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
 								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
 								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",

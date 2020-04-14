@@ -57,15 +57,18 @@ func main() {
 	var webdavSecret string
 	var websiteBaseUrl string
 	var nextcloudBaseUrl string
+	var oidcClientSecret string
+
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "production=true", "The prefix of the namespaces on "+
-		"which the controller will work. Different labels (key=value) can be specified, by separating themn with a &"+
+	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
+		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 	flag.StringVar(&websiteBaseUrl, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&nextcloudBaseUrl, "nextcloud-base-url", "nextcloud.crown-labs.ipv6.polito.it", "Base URL of NextCloud website to use")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
+	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(func(o *zap.Options) {
@@ -94,6 +97,7 @@ func main() {
 		NextcloudBaseUrl:   nextcloudBaseUrl,
 		WebsiteBaseUrl:     websiteBaseUrl,
 		WebdavSecretName:   webdavSecret,
+		OidcClientSecret:       oidcClientSecret,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LabInstance")
 		os.Exit(1)
