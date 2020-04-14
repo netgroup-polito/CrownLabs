@@ -91,7 +91,7 @@ export class App extends React.Component {
                     logout={this.authManager.logout}
                   />
                 ) : (
-                  <Redirect to="/" />
+                  <Redirect to="/login" />
                 )
               }
             />
