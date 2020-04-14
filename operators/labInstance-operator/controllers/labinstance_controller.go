@@ -33,6 +33,7 @@ import (
 	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// by checking the existence of keys in labInstance namespace
 	if err := r.Get(ctx, namespaceName, &ns); err == nil {
 		if !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
-			log.Info("Namespace" + req.Namespace + " does not meet " +
+			log.Info("Namespace " + req.Namespace + " does not meet " +
 				"the selector labels")
 			return ctrl.Result{}, nil
 		}
@@ -107,7 +108,15 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
-	labInstance.Labels = map[string]string{"course-name": labTemplate.Spec.CourseName, "template-name": labTemplate.Name, "template-namespace": labTemplate.Namespace}
+	labInstance.Labels = map[string]string{
+		"course-name": strings.ReplaceAll(strings.ToLower(labTemplate.Spec.CourseName), " ", "-"),
+		"template-name": labTemplate.Name,
+		"template-namespace": labTemplate.Namespace,
+	}
+	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
+	if err := r.Update(ctx, &labInstance); err != nil {
+		log.Error(err, "unable to update LabInstance labels")
+	}
 
 	// prepare variables common to all resources
 	name := "l-" + labTemplate.Name + "-" + fmt.Sprintf("%.8s", uuid.New().String())
