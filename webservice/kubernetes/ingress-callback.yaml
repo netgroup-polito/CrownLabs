@@ -28,6 +28,10 @@ spec:
               serviceName: frontend
               servicePort: 80
             path: /userview
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /login
   tls:
     - hosts:
         - crownlabs.polito.it

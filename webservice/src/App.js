@@ -74,7 +74,7 @@ export class App extends React.Component {
           <Switch>
             <Route
               exact
-              path="/"
+              path="/login"
               render={() => {
                 this.authManager.login();
               }}
