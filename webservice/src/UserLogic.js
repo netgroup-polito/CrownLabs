@@ -21,7 +21,7 @@ export default class UserLogic extends React.Component {
    * - all namespaced events as a string
    * - boolean variable whether to show the status info area
    * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
-   * - isAdminSomewhere which is false if the user is not admin in any course, otherwise true
+   * - isAdmin which is false if the user is not admin in any course, otherwise true
    * */
   constructor(props) {
     super(props);
@@ -47,18 +47,22 @@ export default class UserLogic extends React.Component {
       this.props.token_type,
       parsedToken.preferred_username,
       userGroups,
-      parsedToken.namespace[0],
-      adminGroups
+      parsedToken.namespace[0]
     );
     this.state = {
+      name: parsedToken['name'],
       templateLabs: new Map(),
       instanceLabs: new Map(),
+      templateLabsAdmin: new Map(),
+      instanceLabsAdmin: new Map(),
+      adminGroups: adminGroups,
       selectedTemplate: { name: null, namespace: null },
       selectedInstance: null,
       events: '',
+      eventsAdmin: '',
       statusHidden: true,
       adminHidden: true,
-      isAdminSomewhere: adminGroups.length > 0
+      isAdmin: adminGroups.length > 0
     };
     this.retrieveCRDtemplates();
     this.retrieveCRDinstances()
@@ -68,6 +72,10 @@ export default class UserLogic extends React.Component {
       .finally(() => {
         /*Start watching for namespaced events*/
         this.apiManager.startWatching(this.notifyEvent);
+
+        /*Start watching for admin namespaces events*/
+        // TODO: this request returns 403 forbidden
+        //this.apiManager.startWatching(this.notifyEvent, {'labelSelector': 'template-namespace in (' + adminGroups.join() +  ')'})
 
         /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
                 this.retrieveCRDinstanceStatus();
@@ -122,10 +130,15 @@ export default class UserLogic extends React.Component {
       .getCRDtemplates()
       .then(res => {
         let newMap = this.state.templateLabs;
+        let newMapAdmin = this.state.templateLabsAdmin;
         res.forEach(x => {
-          x ? newMap.set(x.course, x.labs) : null;
+          if (x) {
+            newMap.set(x.course, x.labs);
+            if (this.state.adminGroups.includes(x.course))
+              newMapAdmin.set(x.course, x.labs);
+          }
         });
-        this.setState({ templateLabs: newMap });
+        this.setState({ templateLabs: newMap, templateLabsAdmin: newMapAdmin });
       })
       .catch(error => {
         this.handleErrors(error);
@@ -309,12 +322,23 @@ export default class UserLogic extends React.Component {
    *Function to notify a Kubernetes Event related to your resources
    * @param type the type of the event
    * @param object the object of the event
+   * @param isAdminRequest if the event comes from a namespace you are admin
    */
-  notifyEvent(type, object) {
+  notifyEvent(type, object, isAdminRequest) {
     if (!type) {
       /*Watch session ended, restart it*/
-      this.apiManager.startWatching(this.notifyEvent);
-      this.setState({ events: '' });
+      this.apiManager.startWatching(
+        this.notifyEvent,
+        isAdminRequest
+          ? {
+              labelSelector:
+                'template-namespace in (' + this.state.adminGroups.join() + ')'
+            }
+          : {}
+      );
+      isAdminRequest
+        ? this.setState({ eventsAdmin: '' })
+        : this.setState({ events: '' });
       return;
     }
     if (object && object.status) {
@@ -328,7 +352,9 @@ export default class UserLogic extends React.Component {
         ', status: ' +
         object.status.phase +
         '}';
-      const newMap = this.state.instanceLabs;
+      const newMap = isAdminRequest
+        ? this.state.instanceLabsAdmin
+        : this.state.instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /*Object creation failed*/
         newMap.set(object.metadata.name, { url: null, status: -1 });
@@ -339,10 +365,15 @@ export default class UserLogic extends React.Component {
         /*Object creation succeeded*/
         newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
       }
-      this.setState({
-        instanceLabs: newMap,
-        events: msg + '\n' + this.state.events
-      });
+      isAdminRequest
+        ? this.setState({
+            instanceLabsAdmin: newMap,
+            eventsAdmin: msg + '\n' + this.state.eventsAdmin
+          })
+        : this.setState({
+            instanceLabs: newMap,
+            events: msg + '\n' + this.state.events
+          });
     }
   }
 
@@ -407,8 +438,9 @@ export default class UserLogic extends React.Component {
         <Header
           logged={true}
           logout={this.props.logout}
+          name={this.state.name}
           adminHidden={this.state.adminHidden}
-          renderAdminBtn={this.state.isAdminSomewhere}
+          renderAdminBtn={this.state.isAdmin}
           switchAdminView={() =>
             this.setState({ adminHidden: !this.state.adminHidden })
           }
@@ -422,9 +454,9 @@ export default class UserLogic extends React.Component {
         >
           {!this.state.adminHidden ? (
             <ProfessorView
-              templateLabs={this.state.templateLabs}
-              instanceLabs={this.state.instanceLabs}
-              events={this.state.events}
+              templateLabs={this.state.templateLabsAdmin}
+              instanceLabs={this.state.instanceLabsAdmin}
+              events={this.state.eventsAdmin}
               showStatus={() =>
                 this.setState({ statusHidden: !this.state.statusHidden })
               }
@@ -437,10 +469,10 @@ export default class UserLogic extends React.Component {
           ) : (
             <StudentView
               templateLabs={this.state.templateLabs}
+              instanceLabs={this.state.instanceLabs}
               funcTemplate={this.changeSelectedCRDtemplate}
               funcInstance={this.changeSelectedCRDinstance}
               start={this.startCRDinstance}
-              instanceLabs={this.state.instanceLabs}
               connect={this.connect}
               stop={this.stopCRDinstance}
               events={this.state.events}
