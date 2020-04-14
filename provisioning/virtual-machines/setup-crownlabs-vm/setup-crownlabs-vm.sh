@@ -11,7 +11,7 @@
 CROWNLABS_REGISTRY="registry.crown-labs.ipv6.polito.it"
 CROWNLABS_REGISTRY_USERNAME= # Configure to avoid the interactive prompt
 CROWNLABS_REGISTRY_PASSWORD= # Configure to avoid the interactive prompt
-CROWNLABS_REGISTRY_FOLDER="netgroup"
+CROWNLABS_REGISTRY_FOLDER="netgroup" # Must contain only lowercase letters, numbers, dashes
 CROWNLABS_REGISTRY_IMAGE_VERSION="latest"
 
 # Configure the Ubuntu distribution and version
@@ -121,6 +121,13 @@ usage() {
 # The name of the virtual machine to operate with
 VMNAME=$1
 [[ "" == "${VMNAME}" ]] && usage
+
+VMNAMEREGEX='^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$'
+if [[ ! "${VMNAME}" =~ ${VMNAMEREGEX} ]]
+then
+    echo "Error: invalid VM name. Valid characters: lowercase letters, numbers, dashes. Abort."
+    exit ${EXIT_FAILURE}
+fi
 
 echo "Selected Virtual Machine: ${VMNAME}"
 echo
@@ -482,6 +489,22 @@ cleanup() {
 
 # Trigger the cleanup function before exiting
 trap cleanup 0
+
+# Check the correctness of the registry folder name
+CROWNLABS_REGISTRY_FOLDER_REGEX='^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$'
+if [[ ! "${CROWNLABS_REGISTRY_FOLDER}" =~ ${CROWNLABS_REGISTRY_FOLDER_REGEX} ]]
+then
+    echo "Error: invalid registry folder. Valid characters: lowercase letters, numbers, dashes. Abort."
+    exit ${EXIT_FAILURE}
+fi
+
+# Check for the readability of the executable containing the Linux kernel (required by virt-sparsify)
+if [[ ! -r "/boot/vmlinuz-$(uname -r)" ]]
+then
+    echo "Unfortunately it seems you strumbled into this Ubuntu \"bug\" [https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725]"
+    echo "Please run 'sudo dpkg-statoverride --add --update root root 0644 /boot/vmlinuz-$(uname -r)' and then rerun this script."
+    exit ${EXIT_FAILURE}
+fi
 
 # Login to the docker registry
 echo
