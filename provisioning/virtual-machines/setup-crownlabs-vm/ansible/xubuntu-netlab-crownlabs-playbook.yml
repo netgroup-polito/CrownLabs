@@ -3,10 +3,11 @@
   become: yes
 
   vars:
-    crownlabs_mode: False
+    crownlabs_mode: True
 
   roles:
   - xubuntu-pre
+  - crownlabs
   - wireshark
   - docker
   - gns3

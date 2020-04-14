@@ -29,6 +29,8 @@ Ubuntu distribution and version, VM name, credentials, locale information).
    `Wireshark`, `Docker`, `polycube` and `GNS3`.
 
    Some predefined playbook are already provided in the [ansible](ansible) folder.
+   Specifically, those named `*-crownlabs-playbook.yaml` are an extended version to
+   additionally install the software required to enable the access from CrownLabs.
    In case you want to *add/remove* new tasks, you can simply create a new
    ansible script, and optionally new ansible roles, as in
    [xubuntu-netlab-playbook.yml](ansible/xubuntu-netlab-playbook.yml). In particular,
