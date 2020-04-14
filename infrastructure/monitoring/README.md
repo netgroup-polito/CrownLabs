@@ -186,7 +186,7 @@ $ kubectl edit secrets -n <alertmanager namespace> <alertmanager secret name> -o
 ```
 
 ### OAuth2 Authentication
-In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2_proxy](https://github.com/pusher/oauth2_proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../Keycloak/README.md) for more information.
+In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2_proxy](https://github.com/pusher/oauth2_proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../identity-provider/README.md) for more information.
 
 #### Keycloak configuration
 
@@ -204,7 +204,7 @@ In the following, we will setup Alertmanager, Grafana and Prometheus to use Keyc
     python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(16)).decode())'
     ```
 2. Edit the [monitoring-oauth2-proxy deployment](manifests/monitoring-oauth2-proxy-deployment.yaml) and adapt it to your configuration. In particular, it is necessary to adapt the different URIs, specify the Cookie Secret previously created and the Client ID and Secret generated in Keycloak. The meaning of the different fields is specified by the embedded comments.
-3. Configure the `Ingress` objects to perform OAuth2 authentication. See [ingress-monitoring.yaml](../Ingress_controller/ingress-monitoring.yaml) for the complete configuration.
+3. Configure the `Ingress` objects to perform OAuth2 authentication. See [alertmanager-ingress.yaml](manifests/alertmanager-ingress.yaml), [alertmanager-ingress-oauth2.yaml](manifests/alertmanager-ingress-oauth2.yaml), [prometheus-ingress.yaml](manifests/prometheus-ingress.yaml), [prometheus-ingress-oauth2.yaml](manifests/prometheus-ingress-oauth2.yaml) for the complete configuration.
 
 #### Grafana configuration
 
@@ -227,7 +227,7 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 #### Additional references
 
 1. [ingress-nginx - External OAUTH authentication](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth)
-2. [oauth2_proxy - Configuration](https://pusher.github.io/oauth2_proxy/configuration#config-file)
+2. [oauth2_proxy - Configuration](https://oauth2-proxy.github.io/oauth2-proxy/configuration)
 
 ### Monitor the Bind DNS Server
 
@@ -308,3 +308,4 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 
 ### Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
+
