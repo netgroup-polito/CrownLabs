@@ -91,7 +91,7 @@ export class App extends React.Component {
                     logout={this.authManager.logout}
                   />
                 ) : (
-                  <Redirect to="/" />
+                  <Redirect to="/login" />
                 )
               }
             />
@@ -106,7 +106,7 @@ export class App extends React.Component {
               }
             />
             <Route path="*">
-              <Redirect to="/userview" />
+              <Redirect to="/login" />
             </Route>
           </Switch>
         </Router>
