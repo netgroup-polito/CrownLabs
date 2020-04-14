@@ -147,11 +147,11 @@ Identity and Access Management Module. However, all services and components impl
 
 #### UserInterface
 
-All the ReactJS files are under [this](./website/src) directory.
+All the ReactJS files are under [this](./src) directory.
 
 #### Kubernetes API
 
-For the Kubernetes Api, the only file you have to refer to is this [one](./website/src/services/ApiManager.js).
+For the Kubernetes Api, the only file you have to refer to is this [one](./src/services/ApiManager.js).
 
 #### Docker
 
@@ -159,4 +159,4 @@ If you want to extend or improve the provided docker, you should refer to the [D
 
 #### Webpack
 
-The configuration file used by WebPack is [here](website/webpack.config.js);
+The configuration file used by WebPack is [here](./webpack.config.js);
