@@ -4,6 +4,7 @@ import LabInstancesList from '../components/LabInstancesList';
 import { Button, Col, Row } from 'react-bootstrap';
 // import StatusArea from '../components/StatusArea';
 import './admin.css';
+import { labPapersStyle } from './StudentView';
 
 class ProfessorView extends React.Component {
   // state = { showForm: false };
@@ -51,30 +52,24 @@ class ProfessorView extends React.Component {
 */
   render() {
     return (
-      <div>
-        <Row>
-          <Col>
-            <LabTemplatesList
-              labs={this.props.templateLabs}
-              func={this.props.funcTemplate}
-              start={this.props.start}
-            />
-            {/* <Button variant="dark" className="text-success" onClick={() => {}}>
+      <div style={labPapersStyle}>
+        <LabTemplatesList
+          labs={this.props.templateLabs}
+          func={this.props.funcTemplate}
+          start={this.props.start}
+        />
+        {/* <Button variant="dark" className="text-success" onClick={() => {}}>
               {' '}
               Enable/Disable
             </Button> */}
-          </Col>
-          <Col>
-            <LabInstancesList
-              runningLabs={this.props.instanceLabs}
-              func={this.props.funcInstance}
-              connect={this.props.connect}
-              stop={this.props.stop}
-              showStatus={this.props.showStatus}
-              isAdmin={true}
-            />
-          </Col>
-        </Row>
+        <LabInstancesList
+          runningLabs={this.props.instanceLabs}
+          func={this.props.funcInstance}
+          connect={this.props.connect}
+          stop={this.props.stop}
+          showStatus={this.props.showStatus}
+          isAdmin={true}
+        />
         {/* <Row>
           <Col>
             <div className="divider">

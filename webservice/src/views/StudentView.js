@@ -6,14 +6,15 @@ import React from 'react';
 import './admin.css';
 import { makeStyles } from 'material-ui-core/styles';
 
+export const labPapersStyle = {
+  display: 'flex',
+  justifyContent: 'space-around',
+  width: '100%',
+  flexWrap: 'wrap',
+  marginTop: 30
+};
 const useStyles = makeStyles(theme => ({
-  labPapers: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    width: '100%',
-    flexWrap: 'wrap',
-    marginTop: 30
-  }
+  labPapers: labPapersStyle
 }));
 
 export default function StudentView(props) {
