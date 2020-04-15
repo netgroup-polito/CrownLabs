@@ -8,10 +8,11 @@ import '../views/admin.css';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
 import { IconButton } from 'material-ui-core';
-import VisibilityIcon from '@material-ui/icons/Visibility';
+// import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from 'material-ui-core/Paper';
+import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -122,20 +123,30 @@ export default function LabInstancesList(props) {
   return (
     <Paper
       elevation={6}
-      style={{ flex: 1, minWidth: 450, maxWidth: 600, padding: 10, margin: 10 }}
+      style={{
+        flex: 1,
+        minWidth: 450,
+        maxWidth: 600,
+        padding: 10,
+        margin: 10,
+        maxHeight: 350
+      }}
     >
-      <List
-        className={classes.root}
-        subheader={
-          <div className="divider">
+      <ClickAwayListener
+        onClickAway={() => {
+          setSelectedIndex(-1);
+        }}
+      >
+        <List
+          className={classes.root}
+          subheader={
             <ListSubheader style={{ fontSize: '30px' }}>
               Running Laboratories
             </ListSubheader>
-          </div>
-        }
-      >
-        {courses}
-        <Tooltip title="Show status">
+          }
+        >
+          {courses}
+          {/* <Tooltip title="Show status">
           <IconButton
             style={{ color: 'green' }}
             button="true"
@@ -143,8 +154,9 @@ export default function LabInstancesList(props) {
           >
             <VisibilityIcon fontSize="large" />
           </IconButton>
-        </Tooltip>
-      </List>
+        </Tooltip> */}
+        </List>
+      </ClickAwayListener>
     </Paper>
   );
 }

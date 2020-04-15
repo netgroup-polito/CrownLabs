@@ -2,18 +2,19 @@ import { Col, Row } from 'react-bootstrap';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import React from 'react';
-import StatusArea from '../components/StatusArea';
+// import StatusArea from '../components/StatusArea';
 import './admin.css';
 import { makeStyles } from 'material-ui-core/styles';
 
+export const labPapersStyle = {
+  display: 'flex',
+  justifyContent: 'space-around',
+  width: '100%',
+  flexWrap: 'wrap',
+  marginTop: 30
+};
 const useStyles = makeStyles(theme => ({
-  labPapers: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    width: '100%',
-    flexWrap: 'wrap',
-    marginTop: 30
-  }
+  labPapers: labPapersStyle
 }));
 
 export default function StudentView(props) {
@@ -35,7 +36,7 @@ export default function StudentView(props) {
           showStatus={props.showStatus}
         />
       </div>
-      <div>
+      {/* <div>
         <Row className="text-center">
           <Col />
           <Col className="col-8">
@@ -43,7 +44,7 @@ export default function StudentView(props) {
           </Col>
           <Col />
         </Row>
-      </div>
+      </div> */}
     </>
   );
 }

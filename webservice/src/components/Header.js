@@ -47,17 +47,19 @@ export default function Header(props) {
           <Navbar.Text className="navText" href="" style={{ marginRight: 20 }}>
             {props.logged && props.name ? 'Welcome back, ' + props.name : ''}
           </Navbar.Text>
-          <a href="https://crownlabs.polito.it/cloud" target="_blank">
-            <ToolTip title="My drive">
-              <FolderSharedIcon
-                style={{
-                  marginRight: 25,
-                  color: 'white',
-                  fontSize: '2.6rem'
-                }}
-              />
-            </ToolTip>
-          </a>
+          {props.logged ? (
+            <a href="https://crownlabs.polito.it/cloud" target="_blank">
+              <ToolTip title="My drive">
+                <FolderSharedIcon
+                  style={{
+                    marginRight: 25,
+                    color: 'white',
+                    fontSize: '2.6rem'
+                  }}
+                />
+              </ToolTip>
+            </a>
+          ) : null}
           <NavItem as="li" className="mr-2">
             {adminBtn}
           </NavItem>

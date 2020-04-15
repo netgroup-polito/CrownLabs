@@ -2,16 +2,17 @@ import React from 'react';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import { Button, Col, Row } from 'react-bootstrap';
-import StatusArea from '../components/StatusArea';
+// import StatusArea from '../components/StatusArea';
 import './admin.css';
+import { labPapersStyle } from './StudentView';
 
 class ProfessorView extends React.Component {
-  state = { showForm: false };
+  // state = { showForm: false };
 
   constructor(props) {
     super(props);
   }
-
+  /*
   showForm = () => {
     return (
       <div className="w3-panel w3-white w3-card w3-display-container">
@@ -48,34 +49,29 @@ class ProfessorView extends React.Component {
       </div>
     );
   };
-
+*/
   render() {
     return (
-      <div>
-        <Row>
-          <Col>
-            <LabTemplatesList
-              labs={this.props.templateLabs}
-              func={this.props.funcTemplate}
-              start={this.props.start}
-            />
-            <Button variant="dark" className="text-success" onClick={() => {}}>
+      <div style={labPapersStyle}>
+        <LabTemplatesList
+          labs={this.props.templateLabs}
+          func={this.props.funcTemplate}
+          start={this.props.start}
+          isAdmin={true}
+        />
+        {/* <Button variant="dark" className="text-success" onClick={() => {}}>
               {' '}
               Enable/Disable
-            </Button>
-          </Col>
-          <Col>
-            <LabInstancesList
-              runningLabs={this.props.instanceLabs}
-              func={this.props.funcInstance}
-              connect={this.props.connect}
-              stop={this.props.stop}
-              showStatus={this.props.showStatus}
-              isAdmin={true}
-            />
-          </Col>
-        </Row>
-        <Row>
+            </Button> */}
+        <LabInstancesList
+          runningLabs={this.props.instanceLabs}
+          func={this.props.funcInstance}
+          connect={this.props.connect}
+          stop={this.props.stop}
+          showStatus={this.props.showStatus}
+          isAdmin={true}
+        />
+        {/* <Row>
           <Col>
             <div className="divider">
               <Button
@@ -114,15 +110,15 @@ class ProfessorView extends React.Component {
           </Col>
         </Row>
 
-        {this.state.showForm ? this.showForm() : null}
+        {this.state.showForm ? this.showForm() : null} */}
 
-        <Row>
+        {/* <Row>
           <Col className="col-2" />
           <Col className="col-8">
             <StatusArea hidden={this.props.hidden} events={this.props.events} />
           </Col>
           <Col className="col-2" />
-        </Row>
+        </Row> */}
       </div>
     );
   }

@@ -9,6 +9,7 @@ import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import { IconButton } from 'material-ui-core';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from 'material-ui-core/Paper';
+import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 
 /*The style for the ListItem*/
 const useStyles = makeStyles(theme => ({
@@ -53,9 +54,13 @@ export default function LabTemplatesList(props) {
                 key={courseLab}
                 button
                 selected={selectedIndex === finalIndex}
+                disableRipple={props.isAdmin}
                 onClick={() => {
-                  setSelectedIndex(finalIndex);
-                  props.func(courseLab, courseName);
+                  if (!props.isAdmin) {
+                    console.log('clicked');
+                    setSelectedIndex(finalIndex);
+                    props.func(courseLab, courseName);
+                  }
                 }}
               >
                 <Tooltip title="Select it">
@@ -95,18 +100,31 @@ export default function LabTemplatesList(props) {
   return (
     <Paper
       elevation={6}
-      style={{ flex: 1, minWidth: 450, maxWidth: 600, padding: 10, margin: 10 }}
+      style={{
+        flex: 1,
+        minWidth: 450,
+        maxWidth: 600,
+        padding: 10,
+        margin: 10,
+        maxHeight: 350
+      }}
     >
-      <List
-        className={classes.root}
-        subheader={
-          <ListSubheader style={{ fontSize: '30px' }}>
-            Available Laboratories
-          </ListSubheader>
-        }
+      <ClickAwayListener
+        onClickAway={() => {
+          setSelectedIndex(-1);
+        }}
       >
-        {courses}
-      </List>
+        <List
+          className={classes.root}
+          subheader={
+            <ListSubheader style={{ fontSize: '30px' }}>
+              Available Laboratories
+            </ListSubheader>
+          }
+        >
+          {courses}
+        </List>
+      </ClickAwayListener>
     </Paper>
   );
 }
