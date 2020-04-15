@@ -76,10 +76,12 @@ export default class UserLogic extends React.Component {
         /*Start watching for namespaced events*/
         this.apiManager.startWatching(this.notifyEvent);
 
-        /*Start watching for admin namespaces events*/
-        this.apiManager.startWatching(this.notifyEventAdmin, {
-          labelSelector: 'template-namespace in (' + adminGroups.join() + ')'
-        });
+        /*Start watching for admin namespaces events if any*/
+        if (adminGroups.length > 0) {
+          this.apiManager.startWatching(this.notifyEventAdmin, {
+            labelSelector: 'template-namespace in (' + adminGroups.join() + ')'
+          });
+        }
 
         /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
                 this.retrieveCRDinstanceStatus();
