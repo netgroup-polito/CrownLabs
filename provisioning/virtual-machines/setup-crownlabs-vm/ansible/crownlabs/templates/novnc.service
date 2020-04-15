@@ -1,0 +1,14 @@
+[Unit]
+Description=NoVNC service
+After=network.target
+
+[Service]
+Type=oneshot
+User={{ username }}
+Group={{ username }}
+ExecStart={{ novnc_path }}/utils/launch.sh --listen {{ novnc_port }} --vnc localhost:5901
+RemainAfterExit=yes
+Nice=-10
+
+[Install]
+WantedBy=multi-user.target

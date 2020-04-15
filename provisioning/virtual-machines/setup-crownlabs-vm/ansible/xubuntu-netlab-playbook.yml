@@ -1,0 +1,15 @@
+---
+- hosts: all
+  become: yes
+
+  vars:
+    crownlabs_mode: False
+
+  roles:
+  - xubuntu-pre
+  - wireshark
+  - docker
+  - gns3
+  - polycube
+  - netlab-generic
+  - xubuntu-post

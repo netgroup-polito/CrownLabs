@@ -1,0 +1,30 @@
+---
+# vars file for polycube
+
+polycube_dependencies:
+- arping
+- autoconf
+- automake
+- bash-completion
+- bison
+- build-essential
+- cmake
+- flex
+- git
+- gnupg2
+- golang-go
+- jq
+- kmod
+- libclang-6.0-dev
+- libelf-dev
+- libllvm6.0
+- libssl-dev
+- libtool
+- libyang-dev
+- llvm-6.0-dev
+- libnl-route-3-dev
+- libnl-genl-3-dev
+- m4
+- netperf
+- pkg-config
+- uuid-dev

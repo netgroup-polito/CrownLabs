@@ -1,0 +1,22 @@
+Operations to perform in order to complete the setup of GNS3
+
+0) Add GNS3 to the list of favorites (if desired)
+   - Ctrl+Esc -> Education -> GNS3 -> Right click -> Add to favorites
+1) Start GNS3
+   - Run appliances on my local computer
+   - Check "Don't show this again"
+2) Create a new template for the Cisco 2691 router
+   - File -> New Template -> Manually create a new template
+   - Dynamips -> IOS Router -> New
+   - Select the IOS image from the desktop and decompress it
+   - Name: Cisco c2691
+   - Default RAM: 192MiB
+   - Network Adapters -- Slot 0: GT96100-FE, Slot 1: NM-16ESW
+   - Idle-PC: click on Idle-PC finder
+   - Edit the template -> Memories and disks
+   - Set NVRAM: 256KB
+   - Set PCMCIA disk0: 4MB (otherwise the VLAN database does not work)
+3) Configure the Xfce4 terminal in GNS3
+   - Edit -> Preferences -> General -> Console applications
+   - Click Edit and select the Xfce4 Terminal
+4) Delete this README file and the Cisco IOS image from the Desktop
