@@ -57,6 +57,7 @@ class ProfessorView extends React.Component {
           labs={this.props.templateLabs}
           func={this.props.funcTemplate}
           start={this.props.start}
+          isAdmin={true}
         />
         {/* <Button variant="dark" className="text-success" onClick={() => {}}>
               {' '}
