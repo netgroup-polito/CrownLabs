@@ -95,7 +95,14 @@ export default function LabTemplatesList(props) {
   return (
     <Paper
       elevation={6}
-      style={{ flex: 1, minWidth: 450, maxWidth: 600, padding: 10, margin: 10 }}
+      style={{
+        flex: 1,
+        minWidth: 450,
+        maxWidth: 600,
+        padding: 10,
+        margin: 10,
+        maxHeight: 350
+      }}
     >
       <List
         className={classes.root}
