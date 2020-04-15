@@ -4,6 +4,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   namespace: frontend
+  name: frontend-content
 spec:
   rules:
     - host: crownlabs.polito.it
