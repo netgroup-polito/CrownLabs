@@ -4,7 +4,7 @@ resources:
 - deployment.yaml
 - svc.yaml
 - ns.yaml
-- ingress.yaml
+- ingress-content.yaml
 - ingress-callback.yaml
 - configmap.yaml
 
