@@ -8,7 +8,7 @@ import '../views/admin.css';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
 import { IconButton } from 'material-ui-core';
-import VisibilityIcon from '@material-ui/icons/Visibility';
+// import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from 'material-ui-core/Paper';
@@ -135,7 +135,7 @@ export default function LabInstancesList(props) {
         }
       >
         {courses}
-        <Tooltip title="Show status">
+        {/* <Tooltip title="Show status">
           <IconButton
             style={{ color: 'green' }}
             button="true"
@@ -143,7 +143,7 @@ export default function LabInstancesList(props) {
           >
             <VisibilityIcon fontSize="large" />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
       </List>
     </Paper>
   );

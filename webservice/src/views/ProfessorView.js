@@ -2,7 +2,7 @@ import React from 'react';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import { Button, Col, Row } from 'react-bootstrap';
-import StatusArea from '../components/StatusArea';
+// import StatusArea from '../components/StatusArea';
 import './admin.css';
 
 class ProfessorView extends React.Component {
@@ -116,13 +116,13 @@ class ProfessorView extends React.Component {
 
         {this.state.showForm ? this.showForm() : null} */}
 
-        <Row>
+        {/* <Row>
           <Col className="col-2" />
           <Col className="col-8">
             <StatusArea hidden={this.props.hidden} events={this.props.events} />
           </Col>
           <Col className="col-2" />
-        </Row>
+        </Row> */}
       </div>
     );
   }
