@@ -44,8 +44,8 @@ export default function Header(props) {
           CrownLabs
         </Navbar.Brand>
         <Nav className="ml-auto" as="ul">
-          <Navbar.Text className="navText" href="" style={{ marginRight: 10 }}>
-            {props.logged && props.name ? 'Welcome back ' + props.name : ''}
+          <Navbar.Text className="navText" href="" style={{ marginRight: 20 }}>
+            {props.logged && props.name ? 'Welcome back, ' + props.name : ''}
           </Navbar.Text>
           <a href="https://crownlabs.polito.it/cloud" target="_blank">
             <ToolTip title="My drive">

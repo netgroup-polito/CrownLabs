@@ -161,31 +161,31 @@ export default class ApiManager {
    * @param queryParam the query parameters you are going to use (Used when calling function to watch admin namespaces)
    */
   startWatching(func, queryParam = {}) {
-    let isAdminRequest = Object.keys(queryParam).length !== 0;
-    let path = isAdminRequest
-      ? '/apis/' +
-        this.instanceGroup +
-        '/' +
-        this.version +
-        '/' +
-        this.instancePlural
-      : '/apis/' +
-        this.instanceGroup +
-        '/' +
-        this.version +
-        '/namespaces/' +
-        this.instanceNamespace +
-        '/' +
-        this.instancePlural;
+    let path =
+      Object.keys(queryParam).length !== 0
+        ? '/apis/' +
+          this.instanceGroup +
+          '/' +
+          this.version +
+          '/' +
+          this.instancePlural
+        : '/apis/' +
+          this.instanceGroup +
+          '/' +
+          this.version +
+          '/namespaces/' +
+          this.instanceNamespace +
+          '/' +
+          this.instancePlural;
     watch(
       this.kc,
       path,
       queryParam,
       function (type, object) {
-        func(type, object, isAdminRequest);
+        func(type, object);
       },
       function (e) {
-        func(null, e, isAdminRequest);
+        func(null, e);
       }
     );
   }

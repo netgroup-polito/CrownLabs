@@ -16,12 +16,14 @@ export default class UserLogic extends React.Component {
   /*The State variable contains:
    * - all lab templates as a Map: (course_group => Array of available templates for that course)
    * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
+   * - all ADMIN lab templates as a Map: (course_group => Array of available templates for that course)
+   * - all ADMIN lab instances as a Map: (instance_name => URL if running, null otherwise)
    * - current selected CRD template as an object (name, namespace).
    * - current selected CRD instance
    * - all namespaced events as a string
+   * - all ADMIN namespaced events as a string
    * - boolean variable whether to show the status info area
    * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
-   * - isAdmin which is false if the user is not admin in any course, otherwise true
    * */
   constructor(props) {
     super(props);
@@ -31,6 +33,8 @@ export default class UserLogic extends React.Component {
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
+    this.connectAdmin = this.connectAdmin.bind(this);
+    this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
     let parsedToken = this.parseJWTtoken(this.props.id_token);
     if (!this.checkToken(parsedToken)) {
       this.logoutInterval();
@@ -61,8 +65,7 @@ export default class UserLogic extends React.Component {
       events: '',
       eventsAdmin: '',
       statusHidden: true,
-      adminHidden: true,
-      isAdmin: adminGroups.length > 0
+      adminHidden: true
     };
     this.retrieveCRDtemplates();
     this.retrieveCRDinstances()
@@ -74,8 +77,9 @@ export default class UserLogic extends React.Component {
         this.apiManager.startWatching(this.notifyEvent);
 
         /*Start watching for admin namespaces events*/
-        // TODO: this request returns 403 forbidden
-        //this.apiManager.startWatching(this.notifyEvent, {'labelSelector': 'template-namespace in (' + adminGroups.join() +  ')'})
+        this.apiManager.startWatching(this.notifyEventAdmin, {
+          labelSelector: 'template-namespace in (' + adminGroups.join() + ')'
+        });
 
         /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
                 this.retrieveCRDinstanceStatus();
@@ -244,7 +248,7 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to connect to the VM of the actual selected CRD instance
+   * Function to connect to the VM of the actual user selected CRD instance
    */
   connect() {
     if (!this.state.selectedInstance) {
@@ -260,6 +264,44 @@ export default class UserLogic extends React.Component {
         case 1:
           window.open(
             this.state.instanceLabs.get(this.state.selectedInstance).url
+          );
+          break;
+        case 0:
+          Toastr.info(
+            'The lab `' + this.state.selectedInstance + '` is still starting'
+          );
+          break;
+        default:
+          Toastr.info(
+            'An error has occurred with the lab `' +
+              this.state.selectedInstance +
+              '`'
+          );
+          break;
+      }
+    }
+    this.changeSelectedCRDinstance(null);
+  }
+
+  /**
+   * Function to connect to the VM of the actual admin selected CRD instance
+   */
+  connectAdmin() {
+    if (!this.state.selectedInstance) {
+      Toastr.info('No running lab selected to connect to');
+      return;
+    } else if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
+      Toastr.info(
+        'The lab `' + this.state.selectedInstance + '` is not running'
+      );
+      return;
+    } else {
+      switch (
+        this.state.instanceLabsAdmin.get(this.state.selectedInstance).status
+      ) {
+        case 1:
+          window.open(
+            this.state.instanceLabsAdmin.get(this.state.selectedInstance).url
           );
           break;
         case 0:
@@ -319,26 +361,16 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   *Function to notify a Kubernetes Event related to your resources
+   *Function to notify a Kubernetes Event related to your user resources
    * @param type the type of the event
    * @param object the object of the event
-   * @param isAdminRequest if the event comes from a namespace you are admin
    */
-  notifyEvent(type, object, isAdminRequest) {
+  notifyEvent(type, object) {
+    /*TODO: intercept 403 and redirect to logout*/
     if (!type) {
       /*Watch session ended, restart it*/
-      this.apiManager.startWatching(
-        this.notifyEvent,
-        isAdminRequest
-          ? {
-              labelSelector:
-                'template-namespace in (' + this.state.adminGroups.join() + ')'
-            }
-          : {}
-      );
-      isAdminRequest
-        ? this.setState({ eventsAdmin: '' })
-        : this.setState({ events: '' });
+      this.apiManager.startWatching(this.notifyEvent);
+      this.setState({ events: '' });
       return;
     }
     if (object && object.status) {
@@ -352,9 +384,7 @@ export default class UserLogic extends React.Component {
         ', status: ' +
         object.status.phase +
         '}';
-      const newMap = isAdminRequest
-        ? this.state.instanceLabsAdmin
-        : this.state.instanceLabs;
+      const newMap = this.state.instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /*Object creation failed*/
         newMap.set(object.metadata.name, { url: null, status: -1 });
@@ -364,16 +394,65 @@ export default class UserLogic extends React.Component {
       ) {
         /*Object creation succeeded*/
         newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
+      } else if (type === 'DELETED') {
+        newMap.delete(object.metadata.name);
       }
-      isAdminRequest
-        ? this.setState({
-            instanceLabsAdmin: newMap,
-            eventsAdmin: msg + '\n' + this.state.eventsAdmin
-          })
-        : this.setState({
-            instanceLabs: newMap,
-            events: msg + '\n' + this.state.events
-          });
+      this.setState({
+        instanceLabs: newMap,
+        events: msg + '\n' + this.state.events
+      });
+    }
+  }
+
+  /**
+   *Function to notify a Kubernetes Event related to your admin resources
+   * @param type the type of the event
+   * @param object the object of the event
+   */
+  notifyEventAdmin(type, object) {
+    /*TODO: intercept 403 and redirect to logout*/
+    if (!type) {
+      /*Watch session ended, restart it*/
+      this.apiManager.startWatching(this.notifyEventAdmin, {
+        labelSelector:
+          'template-namespace in (' + this.state.adminGroups.join() + ')'
+      });
+      this.setState({ eventsAdmin: '' });
+      return;
+    }
+    if (object && object.status) {
+      let msg =
+        '[' +
+        object.metadata.creationTimestamp +
+        '] ' +
+        object.metadata.name +
+        ' {type: ' +
+        type +
+        ', status: ' +
+        object.status.phase +
+        '}';
+      const newMap = this.state.instanceLabsAdmin;
+      if (object.status.phase.match(/Fail|Not/g)) {
+        /*Object creation failed*/
+        newMap.set(object.metadata.name, { url: null, status: -1 });
+      } else if (
+        object.status.phase.match(/VmiReady/g) &&
+        (type === 'ADDED' || type === 'MODIFIED')
+      ) {
+        /*Object creation succeeded*/
+        newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
+      } else if (type === 'DELETED') {
+        newMap.delete(object.metadata.name);
+      } else if (
+        (type === 'ADDED' || type === 'MODIFIED') &&
+        !newMap.has(object.metadata.name)
+      ) {
+        newMap.set(object.metadata.name, { url: null, status: 0 });
+      }
+      this.setState({
+        instanceLabsAdmin: newMap,
+        eventsAdmin: msg + '\n' + this.state.events
+      });
     }
   }
 
@@ -440,7 +519,7 @@ export default class UserLogic extends React.Component {
           logout={this.props.logout}
           name={this.state.name}
           adminHidden={this.state.adminHidden}
-          renderAdminBtn={this.state.isAdmin}
+          renderAdminBtn={this.state.adminGroups.length > 0}
           switchAdminView={() =>
             this.setState({ adminHidden: !this.state.adminHidden })
           }
@@ -457,6 +536,9 @@ export default class UserLogic extends React.Component {
               templateLabs={this.state.templateLabsAdmin}
               instanceLabs={this.state.instanceLabsAdmin}
               events={this.state.eventsAdmin}
+              funcTemplate={this.changeSelectedCRDtemplate}
+              funcInstance={this.changeSelectedCRDinstance}
+              connect={this.connectAdmin}
               showStatus={() =>
                 this.setState({ statusHidden: !this.state.statusHidden })
               }
