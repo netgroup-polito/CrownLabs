@@ -134,11 +134,9 @@ export default function LabInstancesList(props) {
       <List
         className={classes.root}
         subheader={
-          <div className="divider">
-            <ListSubheader style={{ fontSize: '30px' }}>
-              Running Laboratories
-            </ListSubheader>
-          </div>
+          <ListSubheader style={{ fontSize: '30px' }}>
+            Running Laboratories
+          </ListSubheader>
         }
       >
         {courses}
