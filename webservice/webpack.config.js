@@ -55,7 +55,8 @@ module.exports = {
         viewport: 'width=device-width, initial-scale=1',
         'theme-color': '#000000',
         description: 'CrownLabs website'
-      }
+      },
+      favicon: 'src/assets/crown.png'
     }),
     new webpack.DefinePlugin({
       OIDC_PROVIDER_URL: JSON.stringify(process.env.OIDC_PROVIDER_URL),
