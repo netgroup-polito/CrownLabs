@@ -71,6 +71,7 @@ class ProfessorView extends React.Component {
               connect={this.props.connect}
               stop={this.props.stop}
               showStatus={this.props.showStatus}
+              isAdmin={true}
             />
           </Col>
         </Row>

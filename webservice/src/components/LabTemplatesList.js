@@ -67,7 +67,7 @@ export default function LabTemplatesList(props) {
                     }
                   />
                 </Tooltip>
-                {selectedIndex === finalIndex ? (
+                {selectedIndex === finalIndex && props.start ? (
                   <Tooltip title="Create VM">
                     <IconButton
                       key={courseLab}

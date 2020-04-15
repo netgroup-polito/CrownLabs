@@ -76,7 +76,7 @@ export default function LabInstancesList(props) {
                 x.charAt(0).toUpperCase() + x.slice(1).replace(/-/g, ' ')
               }
             />
-            {selectedIndex == index ? (
+            {selectedIndex == index && props.stop ? (
               <Tooltip title="Stop VM">
                 <IconButton
                   style={{ color: 'red' }}

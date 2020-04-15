@@ -13,9 +13,8 @@ export default class ApiManager {
    * @param studentID the student id retrieved
    * @param templateNS the laboratories the user can see (cloud-computing, software-networking namespaces/roles in cluster)
    * @param instanceNS the user namespace where to run its instances
-   * @param adminNS the namespaces which you are admin
    */
-  constructor(token, type, studentID, templateNS, instanceNS, adminNS) {
+  constructor(token, type, studentID, templateNS, instanceNS) {
     if (window.APISERVER_URL === undefined) {
       window.APISERVER_URL = APISERVER_URL;
     }
@@ -30,8 +29,6 @@ export default class ApiManager {
     this.studentID = studentID;
     this.templateNamespace = templateNS;
     this.instanceNamespace = instanceNS;
-    /*TODO: still to understand how to use admin namespaces*/
-    this.adminNS = adminNS;
   }
 
   /**
@@ -78,7 +75,7 @@ export default class ApiManager {
   /**
    * Function to retrieve all lab instances in your namespace
    *
-   * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result as a promise
+   * @returns the promise handling the request
    */
   getCRDinstances() {
     return this.apiCRD.listNamespacedCustomObject(
@@ -94,7 +91,7 @@ export default class ApiManager {
    *
    * @param labTemplateName the name of the lab template
    * @param labTemplateNamespace the namespace which the lab template belongs
-   * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the creation as a promise
+   * @returns the promise handling the request
    */
   createCRDinstance(labTemplateName, labTemplateNamespace) {
     return this.apiCRD.createNamespacedCustomObject(
@@ -127,7 +124,7 @@ export default class ApiManager {
    * Function to delete a lab instance in your namespace
    *
    * @param name the name of the object you want to delete
-   * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result of the operation as a promise
+   * @returns the promise handling the request
    */
   deleteCRDinstance(name) {
     return this.apiCRD.deleteNamespacedCustomObject(
@@ -161,19 +158,29 @@ export default class ApiManager {
    * Function to watch events in the user namespace
    *
    * @param func the function to be called at each event
+   * @param queryParam the query parameters you are going to use (Used when calling function to watch admin namespaces)
    */
-  startWatching(func) {
+  startWatching(func, queryParam = {}) {
+    let path =
+      Object.keys(queryParam).length !== 0
+        ? '/apis/' +
+          this.instanceGroup +
+          '/' +
+          this.version +
+          '/' +
+          this.instancePlural
+        : '/apis/' +
+          this.instanceGroup +
+          '/' +
+          this.version +
+          '/namespaces/' +
+          this.instanceNamespace +
+          '/' +
+          this.instancePlural;
     watch(
       this.kc,
-      '/apis/' +
-        this.instanceGroup +
-        '/' +
-        this.version +
-        '/namespaces/' +
-        this.instanceNamespace +
-        '/' +
-        this.instancePlural,
-      {},
+      path,
+      queryParam,
       function (type, object) {
         func(type, object);
       },
@@ -188,7 +195,7 @@ export default class ApiManager {
    * Function to get a specific lab instance status
    *
    * @param name the name of the lab instance
-   * @returns {Promise<{response: http.IncomingMessage; body: object}>} the result as a promise
+   * @returns the promise handling the request
    */
   getCRDstatus(name) {
     return this.apiCRD.getNamespacedCustomObjectStatus(
