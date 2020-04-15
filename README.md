@@ -13,9 +13,26 @@ Finally, CrownLabs supports also instructors, who can connect to the remote desk
 For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
 
 
-## Components
+## Architecture
 
+CrownLabs relies on two major components:
 
+* **Frontend**, which is responsible to access Kubernetes API, guiding the user to creation of VMs.
+* **Laboratory Operator**, which reacts to LabInstances creation by creating the Kubernetes objects to launch
+the laboratory.
+
+## Requirements
+
+To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster. In [infrastructure](infrastructure/), we present all the services 
+which should be installed on the cluster, with an example of configuration.
+
+## External libraries
+
+In this project we leverage and modify two external libraries:
+
+* In the frontend component, we use a browser adaption of [Kubernetes JS Client](https://github.com/kubernetes-client/javascript) 
+which is available only for server-side applications. This version is based on a fork from [Scality](https://github.com/scality/kubernetes-client-javascript/tree/browser) which added browser-side support.
+* The laboratory operator leverages the [Kubevirt](https://kubevirt.io/) library to create the VirtualMachineInstances.
 
 ## Install
 
