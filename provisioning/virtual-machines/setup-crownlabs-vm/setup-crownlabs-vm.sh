@@ -266,6 +266,8 @@ then
     exit ${EXIT_SUCCESS};
 fi
 
+ANSIBLE_PLAYBOOK_ARGS="$4"
+
 # Abort if the VM does not exists
 if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
 then
@@ -335,7 +337,7 @@ all:
       username: $USERNAME
 EOF
 
-ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}"
+ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" ${ANSIBLE_PLAYBOOK_ARGS}
 
 # Remove the port forwarding rule
 if [[ "$VMNET" == "nat" ]]
