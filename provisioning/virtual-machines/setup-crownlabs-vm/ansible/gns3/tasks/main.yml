@@ -1,0 +1,75 @@
+---
+# tasks file for gns3
+
+- name: Add gns3 APT repository
+  apt_repository:
+    repo: ppa:gns3/ppa
+
+- name: Add i386 Architecture
+  command: dpkg --add-architecture i386
+  when: ansible_architecture != 'i386'
+
+- name: Let non root to use gns3
+  debconf:
+    name='ubridge'
+    question='ubridge/install-setuid'
+    vtype='boolean'
+    value='true'
+
+- name: Install the gns3 packages
+  apt:
+    name: "{{ gns3_packages }}"
+    state: present
+  vars:
+    gns3_packages:
+    - gns3-gui
+    - gns3-server
+    - gns3-iou
+
+- name: Add the local user to the ubridge, libvirt and kvm groups
+  user:
+    name: "{{ username }}"
+    append: yes
+    groups: "{{ item }}"
+  with_items:
+    - libvirt
+    - kvm
+    - ubridge
+
+# The two following tasks seem to fix a bug occurring in lightdm when no network
+# is available (thus the service NetworkManager-wait-online.service takes longer
+# than usual to terminate). In particular, without this fix, lightdm prensents
+# a black screen with a cursor blinking and it is necessary to switch to tty1 and
+# back to tty7 to correctly display the desktop environment.
+- name: Create a editable copy of the service unit corresponding to libvirtd
+  copy:
+    src: /lib/systemd/system/libvirtd.service
+    dest: /etc/systemd/system/libvirtd.service
+    remote_src: yes
+    owner: root
+    group: root
+    mode: '0644'
+    force: no
+
+- name: Make libvirtd.target start after network-online.target
+  lineinfile:
+    path: /etc/systemd/system/libvirtd.service
+    state: present
+    regexp: '^After=network.target'
+    line: 'After=network-online.target'
+
+- name: Download the Cisco IOS image
+  get_url:
+    url: https://owncloud.ipv6.polito.it:8080/index.php/s/T4Wj9E5jOuAzCJK/download
+    dest: /home/{{ username }}/Desktop/c2691-advipservicesk9-mz.124-25c.bin
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: '0644'
+
+- name: Copy the README file
+  copy:
+    src: files/README_GNS3
+    dest: /home/{{ username }}/Desktop
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: '0644'

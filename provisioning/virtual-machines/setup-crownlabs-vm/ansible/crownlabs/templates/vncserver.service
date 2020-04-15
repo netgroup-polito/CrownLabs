@@ -1,0 +1,15 @@
+[Unit]
+Description=Remote desktop service (VNC)
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User={{ username }}
+Group={{ username }}
+ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill %i > /dev/null 2>&1 || :'
+ExecStart=/usr/bin/vncserver %i -SecurityTypes None -localhost
+ExecStop=/usr/bin/vncserver -kill %i
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
