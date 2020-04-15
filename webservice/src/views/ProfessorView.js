@@ -6,12 +6,12 @@ import StatusArea from '../components/StatusArea';
 import './admin.css';
 
 class ProfessorView extends React.Component {
-  state = { showForm: false };
+  // state = { showForm: false };
 
   constructor(props) {
     super(props);
   }
-
+  /*
   showForm = () => {
     return (
       <div className="w3-panel w3-white w3-card w3-display-container">
@@ -48,7 +48,7 @@ class ProfessorView extends React.Component {
       </div>
     );
   };
-
+*/
   render() {
     return (
       <div>
@@ -59,10 +59,10 @@ class ProfessorView extends React.Component {
               func={this.props.funcTemplate}
               start={this.props.start}
             />
-            <Button variant="dark" className="text-success" onClick={() => {}}>
+            {/* <Button variant="dark" className="text-success" onClick={() => {}}>
               {' '}
               Enable/Disable
-            </Button>
+            </Button> */}
           </Col>
           <Col>
             <LabInstancesList
@@ -75,7 +75,7 @@ class ProfessorView extends React.Component {
             />
           </Col>
         </Row>
-        <Row>
+        {/* <Row>
           <Col>
             <div className="divider">
               <Button
@@ -114,7 +114,7 @@ class ProfessorView extends React.Component {
           </Col>
         </Row>
 
-        {this.state.showForm ? this.showForm() : null}
+        {this.state.showForm ? this.showForm() : null} */}
 
         <Row>
           <Col className="col-2" />
