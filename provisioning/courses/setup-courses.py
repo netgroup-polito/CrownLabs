@@ -241,6 +241,8 @@ class Course:
         k8s_templates["rolebinding-course"].apply_template(
             namespace_name=self.namespace,
             course_group=Course.get_group_name(self.course_code))
+        k8s_templates["clusterrolebinding-courseadmin"].apply_template(
+            course_group_admin=Course.get_group_name_admin(self.course_code))
 
     @staticmethod
     def get_namespace_type():
@@ -321,11 +323,6 @@ class Tenant:
         k8s_templates["rolebinding-tenant"].apply_template(
             namespace_name=self.namespace,
             username=self.username)
-
-        # Role binding to allow admin access
-        k8s_templates["rolebinding-tenant-allowadmin"].apply_template(
-            namespace_name=self.namespace,
-            course_group_admin=Course.get_group_name_admin(self.course_code))
 
         # Resource quota
         k8s_templates["resourcequota"].apply_template(
@@ -454,8 +451,8 @@ if __name__ == "__main__":
     try:
         _k8s_templates = {
             "namespace": KubernetesTemplateHandler("namespace.yaml.tmpl", "templates/"),
+            "clusterrolebinding-courseadmin": KubernetesTemplateHandler("clusterrolebinding-courseadmin.yaml.tmpl", "templates/"),
             "rolebinding-tenant": KubernetesTemplateHandler("rolebindingtenant.yaml.tmpl", "templates/"),
-            "rolebinding-tenant-allowadmin": KubernetesTemplateHandler("rolebindingtenant-allowadmin.yaml.tmpl", "templates/"),
             "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse.yaml.tmpl", "templates/"),
             "resourcequota": KubernetesTemplateHandler("resourcequota.yaml.tmpl", "templates/"),
             "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials.yaml.tmpl", "templates/"),
