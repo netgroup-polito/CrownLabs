@@ -1,0 +1,18 @@
+name: Check linting in webservice
+on: [push]
+jobs:
+  webservice_lint_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code in action environment
+        uses: actions/checkout@v2
+      - name: setup nodeJS in action environment
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - name: install only prettier package to reduce execution time
+        working-directory: ./webservice
+        run: npm i prettier -D
+      - name: run npm script to check linting
+        working-directory: ./webservice
+        run: npm run lint-check
