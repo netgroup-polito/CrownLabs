@@ -84,6 +84,36 @@ labels:
     use-dns01-solver: "true"
 ```
 
+## Synchronize digital certificates between namespaces
+In different scenarios, it may happen to have different `Ingress` resources in different namespaces which refer to the same domain (with different paths). Unfortunately, annotating all these ingresses with the `cert-manager.io/cluster-issuer` annotation soon leads to hitting the Let's Encrypt rate limits. Hence, it is necessary to introduce some mechanism to synchronize the secret generated between multiple namespaces. One of the projects currently providing a solution to this problem is [kubed](https://github.com/appscode/kubed).
+
+### Install kubed
+Kubed can be easily installed with helm [[5]](https://appscode.com/products/kubed/latest/setup/install/).
+
+```bash
+$ helm repo add appscode https://charts.appscode.com/stable/
+$ helm repo update
+$ helm search repo appscode/kubed --version v0.12.0-rc.2
+
+$ kubectl create namespace kubed
+$ helm install kubed appscode/kubed \
+  --version v0.12.0-rc.2 \
+  --namespace kube-system \
+  --set enableAnalytics=false \
+  --set config.clusterName="crownlabs"
+```
+
+### Secret synchronization
+Once kubed is installed, secrets can be duplicated in multiple namespaces, and kept synchronized, by adding the ad-hoc annotation [[6]](https://appscode.com/products/kubed/v0.12.0-rc.2/welcome/):
+```yaml
+...
+annotations:
+    kubed.appscode.com/sync: "namespace-label=value"
+...
+```
+
+Warning, the kubed annotation needs to applied to the `Secret` created by the certificate and not to the `Certificate` itself.
+
 ## Additional References
 1. [cert-manager documentation](https://cert-manager.io/docs/)
 2. [cert-manager configuration with HTTP01](https://cert-manager.io/docs/configuration/acme/http01/)

@@ -331,10 +331,6 @@ class Tenant:
         k8s_templates["resourcequota"].apply_template(
             namespace_name=self.namespace)
 
-        # Docker registry credentials
-        k8s_templates["registrycredentials"].apply_template(
-            namespace_name=self.namespace)
-
         ## Network Policies
         k8s_templates["ingress-netpol"].apply_template(
             namespace_name=self.namespace)
@@ -462,7 +458,6 @@ if __name__ == "__main__":
             "rolebinding-tenant-allowadmin": KubernetesTemplateHandler("rolebindingtenant-allowadmin.yaml.tmpl", "templates/"),
             "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse.yaml.tmpl", "templates/"),
             "resourcequota": KubernetesTemplateHandler("resourcequota.yaml.tmpl", "templates/"),
-            "registrycredentials": KubernetesTemplateHandler("registrycredentials.yaml.tmpl", "templates/"),
             "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials.yaml.tmpl", "templates/"),
             "labtemplate": KubernetesTemplateHandler("labtemplate.yaml.tmpl", "templates/"),
             "ingress-netpol": KubernetesTemplateHandler("ingress-netpol.yaml.tmpl", "templates/"),
