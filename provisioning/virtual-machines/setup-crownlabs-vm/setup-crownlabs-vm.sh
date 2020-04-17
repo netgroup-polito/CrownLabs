@@ -154,6 +154,8 @@ case ${COMMAND} in
 ### Begin Create VM ###
 "create")
 
+GA_FLAG=$3
+
 DOWNLOAD_PATH="${BASEDIR}/downloads"
 mkdir --parents "${DOWNLOAD_PATH}" || \
     { echo "Failed to create '${DOWNLOAD_PATH}'. Abort"; exit ${EXIT_FAILURE}; }
@@ -165,7 +167,7 @@ curl --continue-at - --output "${INSTALL_ISO}" ${UBUNTU_URL} || \
     { echo "Failed to download the Ubuntu image from '${UBUNTU_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 
 # Install guest additions?
-GA_INSTALL=$([[ "--no-guest-additions" == "$2" ]] && echo 0 || echo 1)
+GA_INSTALL=$([[ "--no-guest-additions" == "$GA_FLAG" ]] && echo 0 || echo 1)
 
 if [[ $GA_INSTALL -eq 1 ]]
 then
@@ -334,7 +336,7 @@ all:
       ansible_ssh_pass: $PASSWORD
       ansible_become_pass: $PASSWORD
       ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
-      username: $USERNAME
+      ansible_python_interpreter: auto
 EOF
 
 ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" ${ANSIBLE_PLAYBOOK_ARGS}

@@ -33,13 +33,13 @@
 
 - name: Make sure the Desktop directory does exist
   file:
-    path: /home/{{ username }}/Desktop
+    path: /home/{{ ansible_user }}/Desktop
     state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Remove useless folders from /home
-  file: path=/home/{{ username }}/{{ item }} state=absent recurse=no
+  file: path=/home/{{ ansible_user }}/{{ item }} state=absent recurse=no
   with_items:
   - "Music"
   - "Pictures"

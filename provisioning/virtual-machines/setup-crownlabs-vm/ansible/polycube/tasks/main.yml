@@ -9,8 +9,8 @@
 
 - name: Set pistache directories
   set_fact:
-    pistache_base: "/home/{{ username }}/polycube/pistache"
-    pistache_build: "/home/{{ username }}/polycube/pistache/build"
+    pistache_base: "/home/{{ ansible_user }}/polycube/pistache"
+    pistache_build: "/home/{{ ansible_user }}/polycube/pistache/build"
 
 - name: Checkout the pistache repository
   git:
@@ -24,8 +24,8 @@
   file:
     path: "{{ pistache_build }}"
     state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Cmake pistache
   command:
@@ -48,8 +48,8 @@
 
 - name: Set libtins directories
   set_fact:
-    libtins_base: "/home/{{ username }}/polycube/libtins"
-    libtins_build: "/home/{{ username }}/polycube/libtins/build"
+    libtins_base: "/home/{{ ansible_user }}/polycube/libtins"
+    libtins_build: "/home/{{ ansible_user }}/polycube/libtins/build"
 
 - name: Checkout the libtins repository
   git:
@@ -62,8 +62,8 @@
   file:
     path: "{{ libtins_build }}"
     state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Cmake libtins
   command:
@@ -90,20 +90,20 @@
 
 - name: Set polycube directories
   set_fact:
-    polycube_go: "/home/{{ username }}/polycube/go"
-    polycube_base: "/home/{{ username }}/polycube/polycube"
-    polycube_build: "/home/{{ username }}/polycube/polycube/build"
+    polycube_go: "/home/{{ ansible_user }}/polycube/go"
+    polycube_base: "/home/{{ ansible_user }}/polycube/polycube"
+    polycube_build: "/home/{{ ansible_user }}/polycube/polycube/build"
 
 - name: Create the GOPATH directory
   file:
     path: "{{ polycube_go }}"
     state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Set $GOPATH in bashrc
   lineinfile:
-    path: "/home/{{ username }}/.bashrc"
+    path: "/home/{{ ansible_user }}/.bashrc"
     line: "export GOPATH={{ polycube_go }}"
 
 - name: Checkout the polycube repository
@@ -117,8 +117,8 @@
   file:
     path: "{{ polycube_build }}"
     state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
 
 - name: Cmake polycube
   command:
@@ -163,7 +163,7 @@
 
 - name: Set hping3p directories
   set_fact:
-    hping3p_base: "/home/{{ username }}/polycube/hping3p"
+    hping3p_base: "/home/{{ ansible_user }}/polycube/hping3p"
 
 - name: Checkout the hping3p repository
   git:
