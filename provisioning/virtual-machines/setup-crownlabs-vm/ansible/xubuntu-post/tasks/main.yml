@@ -47,7 +47,7 @@
   - /saver/enabled
   - /lock/enabled
   become: true
-  become_user: "{{ username }}"
+  become_user: "{{ ansible_user }}"
 
 - name: Disable compositing (i.e. shadows) in xfce
   xfconf:
@@ -56,14 +56,14 @@
     value_type: "bool"
     value: "false"
   become: true
-  become_user: "{{ username }}"
+  become_user: "{{ ansible_user }}"
 
 - name: Copy the README file
   copy:
     src: files/README
-    dest: /home/{{ username }}/Desktop
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    dest: /home/{{ ansible_user }}/Desktop
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0644'
   when: crownlabs_mode != True
 

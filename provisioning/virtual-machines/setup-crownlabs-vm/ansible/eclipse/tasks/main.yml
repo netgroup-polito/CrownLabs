@@ -46,10 +46,14 @@
     src: templates/eclipse.desktop
     dest: "{{ eclipse_desktop_file_path }}/eclipse.desktop"
 
-- name: Add Eclipse to the favorites
-  lineinfile:
-    state: present
-    dest: .config/xfce4/panel/whiskermenu-1.rc
-    backrefs: yes
-    regexp: '^(favorites=(?!.*eclipse\.desktop))(.*)(xfhelp4\.desktop)'
-    line: '\1\2eclipse.desktop,\3'
+# This command requires the .config/xfce4/panel/whiskermenu-1.rc file
+# to be present. Unfortunately, it appears to be created only the first
+# time the panel is opened, hence triggering errors in a totally automated
+# scenario. Disabling for the moment.
+# - name: Add Eclipse to the favorites
+#   lineinfile:
+#     state: present
+#     dest: /home/{{ ansible_user }}/.config/xfce4/panel/whiskermenu-1.rc
+#     backrefs: yes
+#     regexp: '^(favorites=(?!.*eclipse\.desktop))(.*)(xfhelp4\.desktop)'
+#     line: '\1\2eclipse.desktop,\3'

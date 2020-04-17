@@ -28,7 +28,7 @@
 
 - name: Add the local user to the ubridge, libvirt and kvm groups
   user:
-    name: "{{ username }}"
+    name: "{{ ansible_user }}"
     append: yes
     groups: "{{ item }}"
   with_items:
@@ -61,15 +61,15 @@
 - name: Download the Cisco IOS image
   get_url:
     url: https://owncloud.ipv6.polito.it:8080/index.php/s/T4Wj9E5jOuAzCJK/download
-    dest: /home/{{ username }}/Desktop/c2691-advipservicesk9-mz.124-25c.bin
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    dest: /home/{{ ansible_user }}/Desktop/c2691-advipservicesk9-mz.124-25c.bin
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0644'
 
 - name: Copy the README file
   copy:
     src: files/README_GNS3
-    dest: /home/{{ username }}/Desktop
-    owner: "{{ username }}"
-    group: "{{ username }}"
+    dest: /home/{{ ansible_user }}/Desktop
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0644'
