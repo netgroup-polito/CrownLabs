@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"encoding/base64"
+
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
@@ -121,7 +122,6 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 			Namespace: namespace,
 			Labels:    nil,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer":                    "letsencrypt-production",
 				"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
 				"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
 				"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
@@ -136,7 +136,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{websiteBaseUrl},
-					SecretName: "crownlabs-ingress-secret",
+					SecretName: "crownlabs-labinstances-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
@@ -266,7 +266,6 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlU
 			Name:      name + "-oauth2-ingress",
 			Namespace: namespace,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer":                     "letsencrypt-production",
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
 				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
 				"nginx.ingress.kubernetes.io/cors-allow-methods":     "PUT, GET, POST, OPTIONS, DELETE, PATCH",
@@ -278,7 +277,7 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlU
 			TLS: []v1beta1.IngressTLS{
 				{
 					Hosts:      []string{"crownlabs.polito.it"},
-					SecretName: "crownlabs-ingress-secret",
+					SecretName: "crownlabs-labinstances-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
@@ -410,12 +409,12 @@ func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger,
 		var ok bool
 		var userBytes, passBytes []byte
 		if userBytes, ok = sec.Data["username"]; !ok {
-			log.Error(nil,"Unable to find username in webdav secret " + secretName)
+			log.Error(nil, "Unable to find username in webdav secret "+secretName)
 		} else {
 			*username = string(userBytes)
 		}
 		if passBytes, ok = sec.Data["password"]; !ok {
-			log.Error(nil,"Unable to find password in webdav secret" + secretName)
+			log.Error(nil, "Unable to find password in webdav secret"+secretName)
 		} else {
 			*password = string(passBytes)
 		}
