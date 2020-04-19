@@ -49,5 +49,5 @@ jobs:
           curl -X POST https://api.github.com/repos/netgroup-polito/CrownOps/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -u ${{ secrets.CI_TOKEN }} \
-          --data '{"event_type": "update", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
+          --data '{"event_type": "preprod-event", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
       if: github.ref == 'refs/heads/master'
