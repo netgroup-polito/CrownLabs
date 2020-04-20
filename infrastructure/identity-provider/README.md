@@ -241,14 +241,14 @@ Once, you have created your user in your Keycloak instance, you can configure `o
 This could be done in two different ways:
 
 1. You can use a redirect via-browser to login by putting your user/password in the Identity Provider website and store only the temporary token in your `kubeconfig`.
-2. (or) You can set your username and password directly in `kubeconfig`.
+2. (or) You can set your username and password directly in `kubeconfig` using the option `--skip-open-browser`.
 
 ```
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVrakNDQTNxZ0F3SUJBZ0lRQ2dGQlFnQUFBVk9GYzJvTGhleW5DREFOQmdrcWhraUc5dzBCQVFzRkFEQS8KTVNRd0lnWURWUVFLRXh0RWFXZHBkR0ZzSUZOcFoyNWhkSFZ5WlNCVWNuVnpkQ0JEYnk0eEZ6QVZCZ05WQkFNVApEa1JUVkNCU2IyOTBJRU5CSUZnek1CNFhEVEUyTURNeE56RTJOREEwTmxvWERUSXhNRE14TnpFMk5EQTBObG93ClNqRUxNQWtHQTFVRUJoTUNWVk14RmpBVUJnTlZCQW9URFV4bGRDZHpJRVZ1WTNKNWNIUXhJekFoQmdOVkJBTVQKR2t4bGRDZHpJRVZ1WTNKNWNIUWdRWFYwYUc5eWFYUjVJRmd6TUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQwpBUThBTUlJQkNnS0NBUUVBbk5NTThGcmxMa2UzY2wwM2c3Tm9ZekRxMXpVbUdTWGh2YjQxOFhDU0w3ZTRTMEVGCnE2bWVOUWhZN0xFcXhHaUhDNlBqZGVUbTg2ZGljYnA1Z1dBZjE1R2FuL1BRZUdkeHlHa09sWkhQL3VhWjZXQTgKU014K3lrMTNFaVNkUnh0YTY3bnNIamNBSEp5c2U2Y0Y2czVLNjcxQjVUYVl1Y3Y5YlR5V2FOOGpLa0tRRElaMApaOGgvcFpxNFVtRVVFejlsNllLSHk5djZEbGIyaG9uemhUK1hocSt3M0JydmF3MlZGbjNFSzZCbHNwa0VObldBCmE2eEs4eHVRU1hndm9wWlBLaUFsS1FUR2RNRFFNYzJQTVRpVkZycW9NN2hEOGJFZnd6Qi9vbmt4RXowdE52amoKL1BJemFyazVNY1d2eEkwTkhXUVdNNnI2aENtMjFBdkEySDNEa3dJREFRQUJvNElCZlRDQ0FYa3dFZ1lEVlIwVApBUUgvQkFnd0JnRUIvd0lCQURBT0JnTlZIUThCQWY4RUJBTUNBWVl3ZndZSUt3WUJCUVVIQVFFRWN6QnhNRElHCkNDc0dBUVVGQnpBQmhpWm9kSFJ3T2k4dmFYTnlaeTUwY25WemRHbGtMbTlqYzNBdWFXUmxiblJ5ZFhOMExtTnYKYlRBN0JnZ3JCZ0VGQlFjd0FvWXZhSFIwY0RvdkwyRndjSE11YVdSbGJuUnlkWE4wTG1OdmJTOXliMjkwY3k5awpjM1J5YjI5MFkyRjRNeTV3TjJNd0h3WURWUjBqQkJnd0ZvQVV4S2V4cEhzc2NmcmI0VXVRZGYvRUZXQ0ZpUkF3ClZBWURWUjBnQkUwd1N6QUlCZ1puZ1F3QkFnRXdQd1lMS3dZQkJBR0MzeE1CQVFFd01EQXVCZ2dyQmdFRkJRY0MKQVJZaWFIUjBjRG92TDJOd2N5NXliMjkwTFhneExteGxkSE5sYm1OeWVYQjBMbTl5WnpBOEJnTlZIUjhFTlRBegpNREdnTDZBdGhpdG9kSFJ3T2k4dlkzSnNMbWxrWlc1MGNuVnpkQzVqYjIwdlJGTlVVazlQVkVOQldETkRVa3d1ClkzSnNNQjBHQTFVZERnUVdCQlNvU21wakJIM2R1dWJST2JlbVJXWHY4Nmpzb1RBTkJna3Foa2lHOXcwQkFRc0YKQUFPQ0FRRUEzVFBYRWZOaldEamRHQlg3Q1ZXK2RsYTVjRWlsYVVjbmU4SWtDSkx4V2g5S0VpazNKSFJSSEdKbwp1TTJWY0dmbDk2UzhUaWhSelp2b3JvZWQ2dGk2V3FFQm10enczV29kYXRnK1Z5T2VwaDRFWXByLzF3WEt0eDgvCndBcEl2SlN3dG1WaTRNRlU1YU1xclNERTZlYTczTWoydGNNeW81ak1kNmptZVdVSEs4c28vam9XVW9IT1Vnd3UKWDRQbzFRWXorM2RzemtEcU1wNGZrbHhCd1hSc1cxMEtYelBNVForc09QQXZleXhpbmRtamtXOGxHeStRc1JsRwpQZlorRzZaNmg3bWplbTBZK2lXbGtZY1Y0UElXTDFpd0JpOHNhQ2JHUzVqTjJwOE0rWCtRN1VOS0VrUk9iM042CktPcWtxbTU3VEgySDNlREpBa1NuaDYvRE5GdTBRZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    server: https://apiserver.crown-labs.ipv6.polito.it
+    certificate-authority-data: < ca.crt of the API Server > 
+    server: https://__Your_API_Server_Address__
   name: kubernetes
 contexts:
 - context:
@@ -267,10 +267,10 @@ users:
       args:
       - oidc-login
       - get-token
-      - --oidc-issuer-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs
+      - --oidc-issuer-url=https://__Keycloak_ingress__/auth/realms/crownlabs
       - --oidc-client-id=k8s
-      - --oidc-client-secret=229a9d87-2bae-4e9b-8567-e8864b2bac4b
-      - --skip-open-browser
+      - --oidc-client-secret=xxx-xxx-xxx-xxx
+      - --skip-open-browser # This will prevent browser redirection
       - --username=<Username>
       - --password=<Password>
       command: kubectl
