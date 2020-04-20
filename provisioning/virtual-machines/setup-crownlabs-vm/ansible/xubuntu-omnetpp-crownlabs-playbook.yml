@@ -1,0 +1,12 @@
+---
+- hosts: all
+  become: yes
+
+  vars:
+    crownlabs_mode: True
+
+  roles:
+  - xubuntu-pre
+  - crownlabs
+  - omnetpp
+  - xubuntu-post
