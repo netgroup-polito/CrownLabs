@@ -3,10 +3,10 @@ Description=NoVNC service
 After=network.target
 
 [Service]
-Type=oneshot
+Type=simple
 User={{ ansible_user }}
 Group={{ ansible_user }}
-ExecStart={{ novnc_path }}/utils/launch.sh --listen {{ novnc_port }} --vnc localhost:5901
+ExecStart={{ novnc_websockify_path }}/run --web {{ novnc_path }} {{ novnc_port }} localhost:5901
 RemainAfterExit=yes
 Nice=-10
 

@@ -65,6 +65,7 @@ After=syslog.target network.target
 Type=forking
 User=${USER}
 Group=${USER}
+WorkingDirectory=${HOME}
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill %i > /dev/null 2>&1 || :'
 ExecStart=/usr/bin/vncserver %i -SecurityTypes None -localhost
 ExecStop=/usr/bin/vncserver -kill %i
@@ -87,10 +88,10 @@ Description=NoVNC service
 After=network.target
 
 [Service]
-Type=oneshot
+Type=simple
 User=${USER}
 Group=${USER}
-ExecStart=${NOVNC_PATH}/utils/launch.sh --listen 6080 --vnc localhost:5901
+ExecStart=${NOVNC_PATH}/utils/websockify/run --web ${NOVNC_PATH} 6080 localhost:5901
 RemainAfterExit=yes
 Nice=-10
 
@@ -135,3 +136,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable $PNE_SERVICE
 sudo systemctl enable $NOVNC_SERVICE
 sudo systemctl enable $VNC_SERVICE
+
+# Since the graphical desktop is accessed through VNC,
+# it is useless to start the default xfce session that is not
+# "seen" by anybody, but consumes memory (about 200M)
+sudo systemctl set-default multi-user.target
