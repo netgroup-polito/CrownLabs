@@ -9,4 +9,5 @@ RUN cp controller /usr/bin/controller
 
 FROM broady/cacerts
 COPY --from=builder /usr/bin/controller /usr/bin/controller
+USER 20000:20000
 ENTRYPOINT [ "/usr/bin/controller" ]

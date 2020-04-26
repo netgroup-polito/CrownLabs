@@ -21,6 +21,7 @@ import (
 	"github.com/prometheus/common/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"strings"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -80,12 +81,14 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		Port:               9443,
+		HealthProbeBindAddress: ":8081",
+		LivenessEndpointName:   "/healthz",
+		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
 	whiteListMap := parseMap(namespaceWhiteList)
 	log.Info("Reconciling only namespaces with the following labels: ")
 	if err = (&controllers.LabInstanceReconciler{
@@ -103,7 +106,19 @@ func main() {
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
+	// Add readiness probe
+	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
+	if err != nil {
+		log.Error(err, "unable add a readiness check")
+		os.Exit(1)
+	}
 
+	// Add liveness probe
+	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
+	if err != nil {
+		log.Error(err, "unable add a health check")
+		os.Exit(1)
+	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
