@@ -21,9 +21,21 @@ spec:
         app: frontend
     spec:
       containers:
-        - image: crownlabs/frontend
+        - image: crownlabs/frontend:stable
           imagePullPolicy: Always
           name: frontend
+          securityContext:
+           allowPrivilegeEscalation: false
+           runAsUser: 101
+           runAsGroup: 101
+           privileged: false
+          resources:
+           limits:
+            memory: 100Mi
+            cpu: 100m
+           requests:
+            memory: 100Mi
+            cpu: 100m
           ports:
           - containerPort: 80
             protocol: TCP
@@ -54,6 +66,19 @@ spec:
               configMapKeyRef:
                 name: frontend-env-vars
                 key: apiserver_url
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+              httpHeaders:
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 3
       dnsPolicy: ClusterFirst
       imagePullSecrets:
         - name: regcred

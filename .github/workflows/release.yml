@@ -13,9 +13,11 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.CI_TOKEN }}
+
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
     - name: Build and Push Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -24,7 +26,8 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: operators/labInstance-operator/
-        tags: "latest,${{ steps.get_version.outputs.VERSION }}"
+        tags: "latest,stable,${{ steps.get_version.outputs.VERSION }}"
+
     - name: Build and Push Frontend image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -33,5 +36,5 @@ jobs:
         dockerfile: Dockerfile
         password: ${{ secrets.DOCKER_PASSWORD }}
         workdir: webservice
-        tags: "latest,${{ steps.get_version.outputs.VERSION }}"
+        tags: "latest,stable,${{ steps.get_version.outputs.VERSION }}"
 

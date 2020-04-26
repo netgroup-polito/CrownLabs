@@ -16,9 +16,21 @@ RUN npm run build
 
 ### image to export the service
 FROM nginx
-COPY --from=builder_webservice /webservice/dist /usr/share/nginx/html
-COPY docker-entrypoint.sh /
-COPY generate_config_js.sh /
+COPY --chown=101:101 --from=builder_webservice /webservice/dist /usr/share/nginx/html
+COPY --chown=101:101 docker-entrypoint.sh /
+COPY --chown=101:101 generate_config_js.sh /
+COPY --chown=101:101 nginx_conf/default.conf /etc/nginx/conf.d/default.conf
+RUN chown -R 101:101 /usr/share/nginx/html
+## add permissions for nginx user
+RUN chown -R 101:101 /var/cache/nginx && \
+        chown -R 101:101 /var/log/nginx && \
+        chown -R 101:101 /etc/nginx/conf.d
+RUN touch /var/run/nginx.pid && \
+        chown -R 101:101 /var/run/nginx.pid
+
+
 RUN chmod +x docker-entrypoint.sh generate_config_js.sh
+RUN apt update && apt install -y libcap2-bin
+RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/sbin/nginx
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
