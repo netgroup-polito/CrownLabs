@@ -1,18 +1,45 @@
-name: Go
+name: Laboratory Operator
 on: [push]
 jobs:
-  build:
+   test:
+    strategy:
+      matrix:
+        go-version: [1.13.x, 1.14.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Test
+      working-directory: operators/labInstance-operator/
+      run: |
+         go test ./pkg/
+   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - name: Check out code into the Go module directory
+    - name: Checkout code
       uses: actions/checkout@v2
+
+    - name: LabOperator - KubeScore Check
+      run: |
+       docker run -v  ${{ github.workspace }}/operators/labInstance-operator/:/labInstance-operator zegl/kube-score score --ignore-test=pod-networkpolicy /labInstance-operator/k8s/operator/deployment.yaml
+
+    - name: Build and Push Laboratory-Operator image (Dev)
+      uses: elgohr/Publish-Docker-Github-Action@master
       with:
-        fetch-depth: 0
-        token: ${{ secrets.CI_TOKEN }}
-    - name: Build Laboratory-Operator image
-      run: cd operators/labInstance-operator/ && docker build -f Dockerfile . 
+        name: crownlabs/laboratory-operator
+        username: ${{ secrets.DOCKER_USERNAME }}
+        dockerfile: Dockerfile
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        workdir: operators/labInstance-operator/
+        tags: "latest,${{ github.sha }}"
       if: github.ref != 'refs/heads/master'
+
     - name: Build and Push Laboratory-Operator image
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
@@ -23,31 +50,13 @@ jobs:
         workdir: operators/labInstance-operator/
         tags: "latest,${{ github.sha }}"
       if: github.ref == 'refs/heads/master'
-    - name: Build Frontend image
-      run: cd webservice && docker build -f Dockerfile . 
-      if: github.ref != 'refs/heads/master'
-    - name: Build and Push Frontend image
-      uses: elgohr/Publish-Docker-Github-Action@master
-      with:
-        name: crownlabs/frontend
-        username: ${{ secrets.DOCKER_USERNAME }}
-        dockerfile: Dockerfile
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        workdir: webservice
-        tags: "latest,${{ github.sha }}"
-      if: github.ref == 'refs/heads/master'
+
     - uses: 8398a7/action-slack@v2
       with:
         status: ${{ job.status }}
-        author_name: Integration Test # default: 8398a7@action-slack
+        author_name: Laboratory Operator Integration Tests # default: 8398a7@action-slack
       env:
         GITHUB_TOKEN: ${{ secrets.CI_TOKEN }} # required
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }} # required
       if: always() && github.ref == 'refs/heads/master' # Pick up events even if the job fails or is canceled.
-    - name: Notify Event to CrownOps
-      run: |
-          curl -X POST https://api.github.com/repos/netgroup-polito/CrownOps/dispatches \
-          -H 'Accept: application/vnd.github.everest-preview+json' \
-          -u ${{ secrets.CI_TOKEN }} \
-          --data '{"event_type": "preprod-event", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
-      if: github.ref == 'refs/heads/master'
+
