@@ -22,5 +22,4 @@ Operations to perform in order to complete the setup of GNS3
 4) Delete this README file and the Cisco IOS image from the Desktop
 
 (*) Remember that the NM-16ESW module has limited switching features,
-    e.g., no Rapid STP:
-    https://www.dslreports.com/forum/r25757402-2621XM-with-NM-16ESW-setup
+    e.g., no Rapid STP: http://forum.gns3.net/topic6289.html
