@@ -166,3 +166,27 @@
     name: "{{ nodeexporter_service_name }}"
     enabled: yes
     daemon_reload: yes
+
+
+# Since the graphical desktop is accessed through VNC,
+# it is useless to start the default xfce session that is not
+# "seen" by anybody, but consumes memory (about 200M)
+- name: Disable the graphical target
+  # This operation cannot be performed with the systemd module
+  # https://github.com/ansible/ansible/issues/65785
+  command:
+    cmd: systemctl set-default multi-user.target
+
+- name: Disable the ubuntu splash screen
+  lineinfile:
+    state: present
+    dest: /etc/default/grub
+    backrefs: yes
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*?)[ ]?splash(.*)$'
+    line: '\1\2'
+  notify: Run update-grub
+
+- name: Uninstall the VirtualBox Guest Additions
+  command:
+    cmd: /opt/VBoxGuestAdditions-*/uninstall.sh
+    removes: /opt/VBoxGuestAdditions-*/uninstall.sh
