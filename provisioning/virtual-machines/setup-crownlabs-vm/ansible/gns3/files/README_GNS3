@@ -11,7 +11,7 @@ Operations to perform in order to complete the setup of GNS3
    - Select the IOS image from the desktop and decompress it
    - Name: Cisco c2691
    - Default RAM: 192MiB
-   - Network Adapters -- Slot 0: GT96100-FE, Slot 1: NM-16ESW
+   - Network Adapters -- Slot 0: GT96100-FE, Slot 1: NM-16ESW (*)
    - Idle-PC: click on Idle-PC finder
    - Edit the template -> Memories and disks
    - Set NVRAM: 256KB
@@ -20,3 +20,6 @@ Operations to perform in order to complete the setup of GNS3
    - Edit -> Preferences -> General -> Console applications
    - Click Edit and select the Xfce4 Terminal
 4) Delete this README file and the Cisco IOS image from the Desktop
+
+(*) Remember that the NM-16ESW module has limited switching features,
+    e.g., no Rapid STP: http://forum.gns3.net/topic6289.html
