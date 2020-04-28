@@ -140,17 +140,6 @@
     chdir: "{{ polycube_build }}"
     target: install
 
-
-- name: Install iperf
-  apt:
-    name: "{{ to_install }}"
-    state: present
-  vars:
-    to_install:
-    - iperf
-    - iperf3
-
-
 - name: Install hping3p dependencies
   apt:
     name: "{{ hping3p_dependencies }}"
