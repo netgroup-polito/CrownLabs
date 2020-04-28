@@ -15,9 +15,12 @@ polycube_dependencies:
 - golang-go
 - jq
 - kmod
+- iperf
+- iperf3
 - libclang-6.0-dev
 - libelf-dev
 - libllvm6.0
+- libpcap-dev
 - libssl-dev
 - libtool
 - libyang-dev
