@@ -58,14 +58,6 @@
     regexp: '^After=network.target'
     line: 'After=network-online.target'
 
-- name: Download the Cisco IOS image
-  get_url:
-    url: https://owncloud.ipv6.polito.it:8080/index.php/s/T4Wj9E5jOuAzCJK/download
-    dest: /home/{{ ansible_user }}/Desktop/c2691-advipservicesk9-mz.124-25c.bin
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0644'
-    
 - name: Pull the network-multitool docker image
   docker_image:
     name: praqma/network-multitool
