@@ -21,23 +21,27 @@ CrownLabs relies on two major components:
 * **Laboratory Operator**, which reacts to LabInstances creation by creating the Kubernetes objects to launch
 the laboratory.
 
+A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure. Please notice that, for the sake of clarity, the figure depicts the elements essential for the provision of the actual service (i.e. remote computing labs), while leaving out with those more low-level or associated with the cluster operation (e.g monitoring).
+
+![CrownLabs High-Level Architecture](documentation/architecture.svg)
+
 ## Requirements
 
-To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster. In [infrastructure](infrastructure/), we present all the services 
+To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster. In [infrastructure](infrastructure/), we present all the services
 which should be installed on the cluster, with an example of configuration.
 
 ## External libraries
 
 In this project we leverage and modify two external libraries:
 
-* In the frontend component, we use a browser adaption of [Kubernetes JS Client](https://github.com/kubernetes-client/javascript) 
+* In the frontend component, we use a browser adaption of [Kubernetes JS Client](https://github.com/kubernetes-client/javascript)
 which is available only for server-side applications. This version is based on a fork from [Scality](https://github.com/scality/kubernetes-client-javascript/tree/browser) which added browser-side support.
 * The laboratory operator leverages the [Kubevirt](https://kubevirt.io/) library to create the VirtualMachineInstances.
 
 ## Install
 
 CrownLabs can be installed on any Kubernetes cluster, although with a non-negligible degree of adaptation.
-This would require a non-trivial knowledge of how Kubernetes (and the wonderful world of microservices) works. 
+This would require a non-trivial knowledge of how Kubernetes (and the wonderful world of microservices) works.
 No magic install procedure is unfortunately available (yet).
 
 In a nutshell, you have to install all the components with your own custom configuration files, which may largely depend upon your physical install.
@@ -47,4 +51,3 @@ Do not expect to complete this task in a few hours; likely, you may need several
 Help is available on our Slack channels.
 
 For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
-
