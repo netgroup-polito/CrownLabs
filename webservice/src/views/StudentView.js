@@ -1,10 +1,9 @@
-import { Col, Row } from 'react-bootstrap';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import React from 'react';
 // import StatusArea from '../components/StatusArea';
-import './admin.css';
-import { makeStyles } from 'material-ui-core/styles';
+// import './admin.css';
+import { makeStyles } from '@material-ui/core/styles';
 
 export const labPapersStyle = {
   display: 'flex',

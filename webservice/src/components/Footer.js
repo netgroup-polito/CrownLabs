@@ -7,7 +7,11 @@ import React from 'react';
  */
 export default function Footer() {
   return (
-    <footer className="py-4 footerstyle">
+    <footer
+      id="footer"
+      className="py-4"
+      style={{ height: '70px', background: '#032364', fontSize: '1.2rem' }}
+    >
       <Container fluid className="m-0 text-center text-secondary">
         <p className="d-inline" style={{ color: 'white' }}>
           This software has been proudly developed at Politecnico di Torino.{' '}

@@ -9,7 +9,7 @@ import {
 } from 'react-router-dom';
 import './App.css';
 import Authenticator from './services/Authenticator';
-import CssBaseline from 'material-ui-core/CssBaseline';
+import CssBaseline from '@material-ui/core/CssBaseline';
 
 /**
  * Dumb function to manage the callback. It renders nothing, just call the function passed as props

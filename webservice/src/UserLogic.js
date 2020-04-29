@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import StudentView from './views/StudentView';
@@ -7,7 +7,7 @@ import ApiManager from './services/ApiManager';
 import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
-import Container from 'material-ui-core/Container';
+import Body from './components/Body';
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -515,7 +515,7 @@ export default class UserLogic extends React.Component {
    */
   render() {
     return (
-      <div style={{ height: '100%' }}>
+      <div id="body" style={{ height: '100%', background: '#fafafa' }}>
         <Header
           logged={true}
           logout={this.props.logout}
@@ -526,47 +526,22 @@ export default class UserLogic extends React.Component {
             this.setState({ adminHidden: !this.state.adminHidden })
           }
         />
-        <Container
-          // the height of the container is viewport heigh - header height(70) - footer height(70)
-          style={{
-            height: 'calc(100vh - 140px)',
-            overflow: 'auto'
-          }}
-        >
-          {!this.state.adminHidden ? (
-            <ProfessorView
-              templateLabs={this.state.templateLabsAdmin}
-              instanceLabs={this.state.instanceLabsAdmin}
-              events={this.state.eventsAdmin}
-              funcTemplate={this.changeSelectedCRDtemplate}
-              funcInstance={this.changeSelectedCRDinstance}
-              connect={this.connectAdmin}
-              showStatus={() =>
-                this.setState({ statusHidden: !this.state.statusHidden })
-              }
-              hidden={this.state.statusHidden}
-              // createTemplate={this.apiManager.createCRDtemplate(this.MyName,this.MyNamespace)}
-              // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
-              // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
-              // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}
-            />
-          ) : (
-            <StudentView
-              templateLabs={this.state.templateLabs}
-              instanceLabs={this.state.instanceLabs}
-              funcTemplate={this.changeSelectedCRDtemplate}
-              funcInstance={this.changeSelectedCRDinstance}
-              start={this.startCRDinstance}
-              connect={this.connect}
-              stop={this.stopCRDinstance}
-              events={this.state.events}
-              showStatus={() =>
-                this.setState({ statusHidden: !this.state.statusHidden })
-              }
-              hidden={this.state.statusHidden}
-            />
-          )}
-        </Container>
+        <Body
+          templateLabs={this.state.templateLabs}
+          funcNewTemplate={this.apiManager.createCRDtemplate}
+          instanceLabs={this.state.instanceLabs}
+          funcTemplate={this.changeSelectedCRDtemplate}
+          funcInstance={this.changeSelectedCRDinstance}
+          start={this.startCRDinstance}
+          connect={this.connect}
+          stop={this.stopCRDinstance}
+          events={this.state.events}
+          showStatus={() =>
+            this.setState({ statusHidden: !this.state.statusHidden })
+          }
+          hidden={this.state.statusHidden}
+          adminHidden={this.state.adminHidden}
+        />
         <Footer />
       </div>
     );

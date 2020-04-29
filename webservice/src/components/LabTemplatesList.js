@@ -1,14 +1,14 @@
 import React from 'react';
-import { makeStyles } from 'material-ui-core/styles';
-import List from 'material-ui-core/List';
-import ListItem from 'material-ui-core/ListItem';
-import ListItemText from 'material-ui-core/ListItemText';
-import ListSubheader from 'material-ui-core/ListSubheader';
+import { makeStyles } from '@material-ui/core/styles';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
 import '../views/admin.css';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import { IconButton } from 'material-ui-core';
+import { IconButton } from '@material-ui/core';
 import Tooltip from '@material-ui/core/Tooltip';
-import Paper from 'material-ui-core/Paper';
+import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 
 /*The style for the ListItem*/

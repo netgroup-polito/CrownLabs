@@ -17,29 +17,29 @@ export default function Home(props) {
       <Container
         // the height of the container is viewport heigh - header height(70) - footer height(70)
         style={{
-          height: 'calc(100vh - 140px)',
+          height: 'calc(100vh - 130px)',
           overflow: 'auto'
         }}
       >
-        <Row className="mt-5">
-          <Col className="col-2" />
-          <Col className="col-8 mt-5">
-            <Card className="mt-5 p-3 text-center headerstyle">
-              <Card.Title as="h1">Welcome to CrownLabs!</Card.Title>
-              <Card.Body>
-                <a
-                  href="#"
-                  onClick={props.login}
-                  style={{ color: '#0000FF', background: '#ffffa0' }}
-                >
-                  Log in
-                </a>
-                <p className="d-inline"> to access your laboratories.</p>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col className="col-2" />
-        </Row>
+        {/*<Row className="mt-5">*/}
+        {/*  <Col className="col-2" />*/}
+        {/*  <Col className="col-8 mt-5">*/}
+        {/*    <Card className="mt-5 p-3 text-center headerstyle">*/}
+        {/*      <Card.Title as="h1">Welcome to CrownLabs!</Card.Title>*/}
+        {/*      <Card.Body>*/}
+        {/*        <a*/}
+        {/*          href="#"*/}
+        {/*          onClick={props.login}*/}
+        {/*          style={{ color: '#0000FF', background: '#ffffa0' }}*/}
+        {/*        >*/}
+        {/*          Log in*/}
+        {/*        </a>*/}
+        {/*        <p className="d-inline"> to access your laboratories.</p>*/}
+        {/*      </Card.Body>*/}
+        {/*    </Card>*/}
+        {/*  </Col>*/}
+        {/*  <Col className="col-2" />*/}
+        {/*</Row>*/}
       </Container>
       <Footer />
     </div>
