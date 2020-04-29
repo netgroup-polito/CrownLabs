@@ -19,7 +19,15 @@ Operations to perform in order to complete the setup of GNS3
 3) Configure the Xfce4 terminal in GNS3
    - Edit -> Preferences -> General -> Console applications
    - Click Edit and select the Xfce4 Terminal
-4) Delete this README file and the Cisco IOS image from the Desktop
+4) Add the network-multitool docker image to the list of end devices
+   - Edit -> Preferences -> Docker containers
+   - Click New and select Existing image -> praqma/network-multitool:tatest (**)
+   - Click next and leave the other settings with default values
+   - Under "Start Command:" insert "sh", then complete the procedure close the window
+   - Ensure that the network-multitool item is available in under end devices
+5) Delete this README file and the Cisco IOS image from the Desktop
 
 (*) Remember that the NM-16ESW module has limited switching features,
     e.g., no Rapid STP: http://forum.gns3.net/topic6289.html
+
+(**) You may need to logout/login (or reboot) to have your user in the docker group

@@ -65,6 +65,11 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: '0644'
+    
+- name: Pull the network-multitool docker image
+  docker_image:
+    name: praqma/network-multitool
+    source: pull
 
 - name: Copy the README file
   copy:

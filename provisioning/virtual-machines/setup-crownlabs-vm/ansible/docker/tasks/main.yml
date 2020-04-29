@@ -29,6 +29,7 @@
     - docker-ce
     - docker-ce-cli
     - containerd.io
+    - python3-docker
 
 - name: Install Docker-compose
   get_url:
