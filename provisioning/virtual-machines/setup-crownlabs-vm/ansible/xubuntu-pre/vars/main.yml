@@ -2,6 +2,9 @@
 # vars file for xubuntu-pre
 
 unnecessary_packages:
+- apport-gtk
+- avahi-autoipd
+- avahi-daemon
 - blueman
 - bluez
 - bluez-cups
@@ -12,19 +15,24 @@ unnecessary_packages:
 - cups-bsd
 - cups-client
 - cups-filters
+- doc-base
 - espeak
+- fonts-noto-cjk
 - gigolo
 - gimp
 - gnome-accessibility-themes
+- gnome-font-viewer
 - gnome-keyring
 - gnome-mines
 - gnome-software
 - gnome-sudoku
 - gstreamer1.0-pulseaudio
+- gucharmap
 - gvfs-backends
 - gvfs-fuse
 - hplip
 - inxi
+- kerneloops
 - libnss-mdns
 - libpam-gnome-keyring
 - libreoffice-calc
@@ -35,7 +43,10 @@ unnecessary_packages:
 - memtest86+
 - network-manager-pptp
 - network-manager-pptp-gnome
+- onboard
+- openprinting-ppds
 - parole
+- packagekit
 - pastebinit
 - pavucontrol
 - pidgin
@@ -46,6 +57,7 @@ unnecessary_packages:
 - printer-driver-foo2zjs
 - printer-driver-m2300w
 - printer-driver-min12xxw
+- printer-driver-pnm2ppa
 - printer-driver-ptouch
 - printer-driver-pxljr
 - printer-driver-sag-gdi
@@ -53,10 +65,18 @@ unnecessary_packages:
 - pulseaudio
 - sgt-launcher
 - simple-scan
+- snapd
+- software-properties-gtk
 - speech-dispatcher
 - system-config-printer
 - thunderbird
 - transmission-gtk
 - update-notifier
 - whoopsie
+- xdg-user-dirs-gtk
 - xfburn
+- xfce4-mailwatch-plugin
+- xfce4-pulseaudio-plugin
+- xfce4-weather-plugin
+- xubuntu-docs
+- xubuntu-community-wallpapers

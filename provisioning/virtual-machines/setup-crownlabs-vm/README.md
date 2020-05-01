@@ -19,10 +19,10 @@ Ubuntu distribution and version, VM name, credentials, locale information).
 
 0. Customize the basic information at the beginning of the [setup-crownlabs-vms.sh](setup-crownlabs-vms.sh)
    script (e.g. username and password and docker registry configuration).
-1. Execute `./setup-crownlabs-vms.sh create (--no-guest-additions)` to automatically create
-   the VM, install the Ubuntu OS and (optionally) the Virtual Box Guest Additions.
+1. Execute `./setup-crownlabs-vms.sh <vm-name> create (--no-guest-additions)` to automatically create
+   a new VM, install the Ubuntu OS and (optionally) the Virtual Box Guest Additions.
 2. Once the installation terminates and the OS completes the reboot, issue
-   `./setup-crownlabs-vms.sh configure <ansible-playbook.yml>`. The script
+   `./setup-crownlabs-vms.sh <vm-name> configure <ansible-playbook.yml>`. The script
    connects to the VM via SSH and runs the specified ansible playbook to
    perform a series of configuration tasks: for instance,
    [xubuntu-netlab-playbook](ansible/xubuntu-netlab-playbook.yml) installs
@@ -41,6 +41,6 @@ Ubuntu distribution and version, VM name, credentials, locale information).
    post-install task listed in [README](ansible/xubuntu-post/files/README).
 3. Log-in the VM and complete the remaining manual tasks as explained in the
    [README](ansible/xubuntu-post/files/README) file (copied to the Desktop).
-4. Shutdown the VM and issue `./setup-crownlabs-vms.sh export [ova|crownlabs]`
+4. Shutdown the VM and issue `./setup-crownlabs-vms.sh <vm-name> export [ova|crownlabs]`
    to export the VM to an `.ova` file or make it available for the *CrownLabs*.
-5. Optionally, delete the VM with `./setup-crownlabs-vms.sh delete`.
+5. Optionally, delete the VM with `./setup-crownlabs-vms.sh <vm-name> delete`.

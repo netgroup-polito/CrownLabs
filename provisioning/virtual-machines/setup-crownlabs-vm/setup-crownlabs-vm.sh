@@ -12,7 +12,7 @@ CROWNLABS_REGISTRY="registry.crown-labs.ipv6.polito.it"
 CROWNLABS_REGISTRY_USERNAME= # Configure to avoid the interactive prompt
 CROWNLABS_REGISTRY_PASSWORD= # Configure to avoid the interactive prompt
 CROWNLABS_REGISTRY_FOLDER="netgroup" # Must contain only lowercase letters, numbers, dashes
-CROWNLABS_REGISTRY_IMAGE_VERSION="latest"
+CROWNLABS_REGISTRY_IMAGE_VERSION="$(date '+%Y%m%d')"
 
 # Configure the Ubuntu distribution and version
 # Warning: changing the distribution may break the subsequent configuration
@@ -155,6 +155,7 @@ case ${COMMAND} in
 "create")
 
 GA_FLAG=$3
+VBOXVERSION=$(${VBOXMANAGE} --version | cut --delimiter '_' --field 1)
 
 DOWNLOAD_PATH="${BASEDIR}/downloads"
 mkdir --parents "${DOWNLOAD_PATH}" || \
@@ -174,9 +175,8 @@ then
     echo
     echo "Downloading Guest Additions ISO..."
     GA_BASE_URL=https://download.virtualbox.org/virtualbox/
-    GA_VERSION=$(curl ${GA_BASE_URL}/LATEST-STABLE.TXT)
-    GA_URL=${GA_BASE_URL}/${GA_VERSION}/VBoxGuestAdditions_${GA_VERSION}.iso
-    GA_ISO="${DOWNLOAD_PATH}/VBoxGuestAdditions_${GA_VERSION}.iso"
+    GA_URL=${GA_BASE_URL}/${VBOXVERSION}/VBoxGuestAdditions_${VBOXVERSION}.iso
+    GA_ISO="${DOWNLOAD_PATH}/VBoxGuestAdditions_${VBOXVERSION}.iso"
     curl --continue-at - --output "${GA_ISO}" ${GA_URL} || \
         { echo "Failed to download the Guest Additions image from '${GA_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 fi
@@ -199,7 +199,6 @@ VMOSTYPE=Ubuntu_64
     { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
 
 # Check the VBoxManage version, since the clipboard flag changed since version 6.1
-VBOXVERSION=$(${VBOXMANAGE} --version)
 printf '%s\n%s\n' "${VBOXVERSION}" "6.1.0" | sort --check=quiet --version-sort \
   && CLIPBOARD_FLAG=clipboard \
   || CLIPBOARD_FLAG=clipboard-mode
@@ -264,7 +263,7 @@ exit ${EXIT_SUCCESS}
 PLAYBOOK_PATH=$3
 if [[ ! -f "${PLAYBOOK_PATH}" ]]
 then
-    echo "Usage: $0 configure <ansible-playbook.yml>"
+    echo "Usage: $0 <vm-name> configure <ansible-playbook.yml>"
     exit ${EXIT_SUCCESS};
 fi
 
@@ -321,7 +320,7 @@ then
 fi
 
 # Remove the SSH association if already present
-ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$SSHREM" 2> /dev/null
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$SSHREM" > /dev/null 2> /dev/null
 
 # Create the inventory file
 INVENTORY_FILE="${BASEDIR}/${VMNAME}-inventory.yml"
@@ -403,7 +402,7 @@ case ${VMNIC} in
 ;;
 
 *)
-echo "Usage: $0 configure-nic [nat|bridged]"
+echo "Usage: $0 <vm-name> configure-nic [nat|bridged]"
 exit ${EXIT_FAILURE};
 ;;
 esac
@@ -554,7 +553,7 @@ docker push "${IMAGE_TAG}" || \
 ;;
 
 *)
-echo "Usage: $0 export [ova|crownlabs]"
+echo "Usage: $0 <vm-name> export [ova|crownlabs]"
 exit ${EXIT_FAILURE};
 ;;
 esac
