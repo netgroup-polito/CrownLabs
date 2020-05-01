@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Footer from './components/Footer';
 import Header from './components/Header';
-import StudentView from './views/StudentView';
-import ProfessorView from './views/ProfessorView';
 import ApiManager from './services/ApiManager';
 import Toastr from 'toastr';
 
@@ -36,6 +34,7 @@ export default class UserLogic extends React.Component {
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
     let parsedToken = this.parseJWTtoken(this.props.id_token);
+    this.theme = false;
     if (!this.checkToken(parsedToken)) {
       this.logoutInterval();
     }
@@ -84,9 +83,9 @@ export default class UserLogic extends React.Component {
         }
 
         /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
-                this.retrieveCRDinstanceStatus();
-                setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
-                */
+                        this.retrieveCRDinstanceStatus();
+                        setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
+                        */
       });
   }
 

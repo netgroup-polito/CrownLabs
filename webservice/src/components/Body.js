@@ -2,14 +2,9 @@ import React, { useState } from 'react';
 import ProfessorView from '../views/ProfessorView';
 import StudentView from '../views/StudentView';
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
-import useMediaQuery from '@material-ui/core/useMediaQuery';
 import IconButton from '@material-ui/core/IconButton';
-import Light from '@material-ui/icons/WbSunny';
-import Dark from '@material-ui/icons/NightsStay';
 
 export default function Body(props) {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-
   const lightTheme = React.useMemo(
     () =>
       createMuiTheme({
@@ -87,12 +82,10 @@ export default function Body(props) {
         )}
       </div>
       <IconButton
+        id="themeSwitch"
         style={{ position: 'absolute' }}
         onClick={toggleTheme}
-        color="secondary"
-      >
-        {theme !== 'light' ? <Light /> : <Dark />}
-      </IconButton>
+      />
     </ThemeProvider>
   );
 }
