@@ -21,6 +21,19 @@
 - name: Clean apt cache
   command: apt clean
 
+- name: Gather journal files information
+  find:
+    paths: "/var/log/journal"
+    file_type: directory
+  register: journal_directories
+
+- name: Remove all journal files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: >
+    {{ journal_directories.files }}
+
 - name: Allow users to become sudo without password
   lineinfile:
     path: /etc/sudoers
@@ -36,6 +49,7 @@
     owner: root
     group: root
     mode: '0644'
+  when: crownlabs_mode != True
 
 - name: Disable the screensaver and the lock screen
   xfconf:

@@ -1,6 +1,6 @@
 [Unit]
 Description=Remote desktop service (VNC)
-After=syslog.target network.target
+After=syslog.target network-online.target
 
 [Service]
 Type=forking

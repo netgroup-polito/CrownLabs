@@ -1,6 +1,13 @@
 ---
 # tasks file for xubuntu-pre
 
+- name: Ensure that the unattended-upgrades service is not running
+  systemd:
+    name: unattended-upgrades
+    state: stopped
+  register: result
+  failed_when: result is failed and not 'Could not find the requested service' in result.msg
+
 - name: Wait for any possibly running unattended-upgrade to finish
   shell: while sudo fuser /var/lib/dpkg/{{ item }} >/dev/null 2>&1; do sleep 1; done;
   with_items:
@@ -25,11 +32,31 @@
     autoremove: yes
     purge: yes
 
+# Not the best ansible way to solve this problem
+# but it seems to achieve the intended purpose
+- name: Get old kernel packages
+  shell: |
+    dpkg --list | \
+      egrep -i "linux-image" | \
+      awk '/ii/{ print $2 }' | \
+      sed 's/linux-image-//' | \
+      egrep '[0-9]\.'        | \
+      sort --version-sort    | \
+      head -n -1             | \
+      sed 's/^/linux-*-/'
+  register: kernel_packages
+
+- name: Remove old kernel packages
+  apt:
+    name: "{{ kernel_packages.stdout_lines }}"
+    state: absent
+    autoremove: yes
+    purge: yes
+  when: kernel_packages.stdout_lines
+
 - name: Upgrade all packages
   apt:
-    name: "*"
-    state: latest
-    force_apt_get: true
+    upgrade: yes
 
 - name: Make sure the Desktop directory does exist
   file:
