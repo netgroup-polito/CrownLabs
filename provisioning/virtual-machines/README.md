@@ -1,81 +1,76 @@
 # Guide for creating and uploading VMs in CrownLabs
 
-## Upload custom VMs to the cluster
+## Create and upload custom VMs to the cluster
 
-### Dependencies
+The approach currently suggested for the creation and upload of VMs in CrownLabs involves the usage of the [setup-crownlabs-vm script](setup-crownlabs-vm/setup-crownlabs-vm.sh).
+In a nutshell, it takes care of automatically:
+- Create new VirtualBox VMs and install the guest OS (`xubuntu`);
+- Install custom software and the tools required by CrownLabs with Ansible;
+- Convert the resulting virtual HDD to the correct format and upload it to a Docker Registry.
 
-Before uploading your VM, you must run the [prepare-vm.sh](scripts/prepare-vm.sh) script from inside the VM.
-The script will install and configure:
+Once the VM image has been correctly uploaded to the registry, it is possible to setup a new laboratory associated to it, as explained [here](../courses).
+
+
+### Quick start guide
+
+0. Open the `setup-crownlabs-vm` directory;
+1. Customize the basic information at the beginning of the [setup-crownlabs-vm.sh](setup-crownlabs-vm/setup-crownlabs-vm.sh) script (e.g. xubuntu version and docker registry configuration);
+2. Execute `./setup-crownlabs-vm.sh <vm-name> create --no-guest-additions` to create a new VM;
+3. Wait for the installation to complete and login into the VM
+4. Execute `./setup-crownlabs-vm <vm-name> configure ansible/xubuntu-<choose>-crownlabs-playbook.yml` to configure the VM;
+5. Once the setup completed, shutdown the VM
+6. Execute `./setup-crownlabs-vm <vm-name> export crownlabs` to export the VM.
+
+Please, refer to the corresponding [README file](setup-crownlabs-vm/README.md) for additional information about this script.
+
+Some predefined playbook are available in the [ansible](setup-crownlabs-vm/ansible) folder (those named `crownlabs` take care of installing the tools required by CrownLabs).
+In case you want to install different software, you can simply create a new ansible script, and optionally new ansible roles.
+Alternatively, it is possible to configure a basic VM (i.e. with the `xubuntu-base-crownlabs` playbook) and proceed with the manual installation of custom software.
+
+**Warning**: the ansible playbooks remove many programs present in a default installation of `xubuntu` and disable different standard services, in order to limit as much as possible the size of the final VM image and speedup the boot process.
+In particular, they disable the automatic startup of the graphical interface, since the remote desktop is accessed through a distinct VNC session.
+Hence, if the VM is rebooted during the local configuration, it may be necessary to manually start the graphical interface with `sudo systemctl isolate graphical.target`.
+
+### Conversion of existing VMs
+
+The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base-crownlabs` playbook (i.e. executing `./setup-crown-labs-vm <vm-name> configure ansible/xubuntu-base-crownlabs-playbook.yml`). Then, it is possible to proceed exporting the VM as in the standard procedure.
+
+**Warning**: depending on your configuration (e.g. virtualization platform and guest OS), the script may require some additional amount of tuning to work. Additionally, verify in advance that the packages automatically removed are of no use to you.
+
+**Warning**: as of today, the only desktop environment officially supported by the playbooks and suggested for usage in CrownLabs is XFCE. The adoption of different desktop environments will probably require the customization of the ansible playbooks and it is not guaranteed to achieve acceptable results in terms of performance.
+
+
+### Conversion of existing VMs with the legacy scripts
+
+The configuration and conversion of existing VMs for usage in CrownLabs can also be performed by means of some legacy scripts:
+
+- [prepare-vm.sh](legacy-scripts/prepare-vm.sh), to install and configure the tools required by CrownLabs (to be executed from within the VM);
+- [convert-vm.sh](legacy-scripts/convert-vm.sh), to convert a `vdi` disk to the `qcow2` format and output the Docker file to prepare the final image.
+
+Once, the `convert-vm.sh` script terminates, it is necessary to build the docker image from the resulting `Dockerfile`, and push it to the selected Docker Registry:
+```
+$ docker login <registry_url>
+$ docker build -t <registry_url>/<image_name>:latest docker-output/
+$ docker push <registry_url>/<image_name>:latest
+```
+
+**Warning**: this approach is not suggested, since these scripts perform less optimizations and require more manual intervention compared to `setup-crownlabs-vm`. Additionally, they are not guaranteed to be maintained up-to-date.
+
+
+### CrownLabs dependencies
+
+The tools that are required by CrownLabs and automatically installed by the different scripts are:
 - **TigerVNC server**, which allows to connect to the VM desktop from a remote machine;
 - **NoVNC with websockify server**, which allows the above connection to be established through HTTP/HTTPS;
 - **Prometheus node exporter**, which exports some run-time information of the VM (e.g., CPU/memory consumption) to the Prometheus monitoring system, running on the Kubernetes cluster
 - **cloud-init**, which enables to customize some running parameters of the VM at boot time.
 
-To verify that the setup works, reboot the machine after running the `prepare-vm.sh` script.
-From inside the machine, start a browser and connect to page `http://localhost:6080`, using password `ccroot`.
 
-### Conversion to raw format
-
-Once you made sure that the VM has been properly configured and runs smothly, shutdown again the VM and convert it to the `qcow2` format, which is used by the Kubernetes virtualization module (Kube-virt).
-This can be done with the [convert-vm.sh](scripts/convert-vm.sh) script, typing the following command:
-
-```sh
-$ convert-vm.sh <your-vm>.vdi
-```
-
-**NOTES**:
-- Virtualbox uses, by default, disks in VDI format, which is the format supported by this script. Other tools are available to convert your images into VDI, or directly into the QCOW2 `raw` format, which is used in the next steps of our processing.
-- the above command assumes that the VM runs on a Linux host. If not, please transfer your image to a Linux machine and run the `convert-vm.sh` script from there.
-
-The script generates a folder called `docker-output` in the directory of the `vdi` image, which contains (1) the converted image in `qcow2` format and (2) a `Dockerfile`.
-
-### Create Docker and upload on private registry
-
-For this step, you have to login in CrownLabs's Docker registry using the proper credentials that you created you set up the service:
-
-```sh
-$ docker login registry.crown-labs.ipv6.polito.it
-```
-**Note**: in case this command fails, try using `sudo` before the command itself. Depending on how Docker has been installed on your machine, you may have to use `sudo` before all the commands involving Docker.
-
-Now you can build the Docker image with the following command:
-
-```sh
-$ docker build -t registry.crown-labs.ipv6.polito.it/<image_name>:latest docker-output/
-```
-where:
-- `<image_name>` is a [tag](https://docs.docker.com/engine/reference/commandline/tag/), used by Docker, which can be used to identify better an image. Example values can be `fedora/httpd`, or `alice/networklabs`, and more.
-- `registry.crown-labs.ipv6.polito.it` is the name of the private registry your are using, which is compulsory in Docker in order to tell the daemon that the private registry (instead of DockerHub) has to be used.
-
-Note also that you have to run this command from the directory that contains `docker-output`.
-
-You can check that your image is stored locally, on your host machine, with this command:
-
-```sh
-$ docker image list
-```
-
-Now simply login to the docker registry (with `sudo docker login <registry_url>`) and push the image (with `sudo docker push`).
-
-```sh
-$ docker push registry.crown-labs.ipv6.polito.it/<image_name>:latest
-```
-
-## Cleaning up private registry
+## Cleaning up private Docker registry
 
 Since the private registry can become crowded with new images, you can control its resources with two scripts:
-- list of available images: [list-img-from-registry.sh](scripts/list-img-from-registry.sh)
-- delete an existing image: [del-img-from-registry.sh](scripts/del-img-from-registry.sh)
+- list of available images: [list-img-from-registry.sh](docker-scripts/list-img-from-registry.sh)
+- delete an existing image: [del-img-from-registry.sh](docker-scripts/del-img-from-registry.sh)
 
 Remember either to login in the registry before running the scripts, or to customize `user/password` in the above scripts.
 **NOTE**: in case the *delete* action returns an error `405 Method Not Allowed`, modify the config of your Docker registry to enable the `DELETE` action, which is usually disabled by default, and restart the service.
-
-
-## Run on the cluster
-
-To run the VM on the cluster you simply have to deploy two resources:
-
-- a `Secret` containing the cloud-init configuration of the VM ([template](templates/cloudinit.yaml))
-- a `VirtualMachineInstance` that uses as image the one pushed on Docker ([template](templates/vm.yaml))
-
-**Warning**: the name of the secret referenced by the VM manifest must match the name of the secret.
