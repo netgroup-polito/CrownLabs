@@ -5,33 +5,25 @@ import TableRow from '@material-ui/core/TableRow';
 import { labPapersStyle } from './StudentView';
 import Container from '@material-ui/core/Container';
 
-class ProfessorView extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-
-  render() {
-    return (
-      <Container>
-        <TableRow style={labPapersStyle}>
-          <LabTemplatesList
-            labs={this.props.templateLabs}
-            func={this.props.funcTemplate}
-            start={this.props.start}
-            isAdmin={true}
-          />
-
-          <LabInstancesList
-            runningLabs={this.props.instanceLabs}
-            func={this.props.funcInstance}
-            connect={this.props.connect}
-            stop={this.props.stop}
-            showStatus={this.props.showStatus}
-            isAdmin={true}
-          />
-        </TableRow>
-      </Container>
-    );
-  }
+export default function ProfessorView(props) {
+  return (
+    <>
+      <TableRow style={labPapersStyle}>
+        <LabTemplatesList
+          labs={props.templateLabs}
+          func={props.funcTemplate}
+          start={props.start}
+          isAdmin={true}
+        />
+        <LabInstancesList
+          runningLabs={props.instanceLabs}
+          func={props.funcInstance}
+          connect={props.connect}
+          stop={props.stop}
+          showStatus={props.showStatus}
+          isAdmin={true}
+        />
+      </TableRow>
+    </>
+  );
 }
-export default ProfessorView;
