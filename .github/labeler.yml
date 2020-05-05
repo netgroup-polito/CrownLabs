@@ -1,0 +1,22 @@
+sig-api:
+  - operators/**/*
+
+sig-ui:
+  - webservice/**/*
+
+sig-operations:
+  - infrastructure/**/*
+  - provisioning/courses/*
+
+sig-user-environment:
+  - provisioning/virtual-machines/**/*
+
+sig-devops:
+  - .github/**/*
+
+sig-community:
+  - AUTHORS
+  - ./**/*/README.md
+  - LICENSE
+  - README.md
+  - documentation/**/*
