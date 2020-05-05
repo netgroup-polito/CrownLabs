@@ -229,6 +229,8 @@
     masked: yes
   with_items: >
     {{ unnecessary_services }}
+  register: result
+  failed_when: result is failed and not 'Could not find the requested service' in result.msg
 
 - name: Delete the NetworkManager configuration from netplan
   file:
