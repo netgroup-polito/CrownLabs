@@ -4,6 +4,7 @@ import LabInstancesList from '../components/LabInstancesList';
 import TableRow from '@material-ui/core/TableRow';
 import { labPapersStyle } from './StudentView';
 import Container from '@material-ui/core/Container';
+import ProfessorFunctionalities from '../components/ProfessorFunctionalities';
 
 export default function ProfessorView(props) {
   return (
@@ -26,4 +27,9 @@ export default function ProfessorView(props) {
       </TableRow>
     </>
   );
+        <TableRow>
+          <ProfessorFunctionalities
+            funcNewTemplate={this.props.createTemplate}
+          />
+        </TableRow>
 }

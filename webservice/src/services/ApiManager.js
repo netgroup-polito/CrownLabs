@@ -147,16 +147,62 @@ export default class ApiManager {
    * @param image
    * @param namespace the namespace where the template should be created
    */
-  createCRDtemplate(
-    course_code,
-    lab_number,
-    description,
-    cpu,
-    memory,
-    image,
-    namespace
-  ) {
-    //TODO: add body
+  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+    return this.apiCRD.createNamespacedCustomObject(
+      this.templateGroup,
+      this.version,
+      namespace,
+      this.templatePlural,
+      {
+        apiVersion: this.instanceGroup + '/' + this.version,
+        kind: 'LabTemplate',
+        metadata: {
+          name: namespace + '-lab' + lab_number,
+          namespace: namespace
+        },
+        spec: {
+          courseName: namespace,
+          description: description,
+          labName: namespace + '-lab' + lab_number,
+          vm: {
+            apiVersion: 'kubevirt.io/v1alpha3',
+            kind: 'VirtualMachineInstance',
+            metadata: {
+              name: namespace + '-lab' + lab_number,
+              namespace: namespace
+            },
+            labels: { name: namespace + '-lab' + lab_number },
+            spec: {
+              domain: {
+                cpu: { cores: cpu },
+                devices: {
+                  disks: {
+                    disk1: { bus: 'virtio', name: 'containerdisk' },
+                    disk2: { bus: 'virtio', name: 'cloudinitdisk' }
+                  },
+                  memory: { guest: { memory } },
+                  resource: {
+                    limits: { cpu: cpu + 1, memory: memory + 0.5 },
+                    request: { cpu: cpu + 0.5, memory: memory + 'G' }
+                  }
+                },
+                terminationGracePeriodSeconds: 30,
+                volumes: {
+                  ContainerDisk: {
+                    image: image,
+                    imagePullSecret: 'registry-credentials'
+                  },
+                  cloudInitNoCloud: {
+                    secretRef: { name: namespace + '-lab' + lab_number },
+                    name: 'cloudinitdisk'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    );
   }
 
   /**
