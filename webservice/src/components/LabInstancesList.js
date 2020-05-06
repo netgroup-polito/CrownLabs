@@ -1,13 +1,13 @@
 import React from 'react';
-import { makeStyles } from 'material-ui-core/styles';
-import List from 'material-ui-core/List';
-import ListItem from 'material-ui-core/ListItem';
-import ListItemText from 'material-ui-core/ListItemText';
-import ListSubheader from 'material-ui-core/ListSubheader';
+import { makeStyles } from '@material-ui/core/styles';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListSubheader from '@material-ui/core/ListSubheader';
 import '../views/admin.css';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
-import { IconButton } from 'material-ui-core';
+import { IconButton } from '@material-ui/core';
 // import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -22,7 +22,7 @@ const useStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.background.paper,
     position: 'relative',
     overflow: 'auto',
-    maxHeight: '44vh',
+    maxHeight: '70vh',
     '& > svg': {
       margin: theme.spacing(2)
     }
@@ -57,7 +57,7 @@ export default function LabInstancesList(props) {
     let status = props.runningLabs.get(x)
       ? props.runningLabs.get(x).status
       : -1;
-    let color = status === 0 ? 'orange' : status === 1 ? 'green' : 'red';
+    let color = status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
     return (
       <li key={x} className={classes.listSection}>
         <ul className={classes.ul}>
@@ -77,7 +77,7 @@ export default function LabInstancesList(props) {
                 x.charAt(0).toUpperCase() + x.slice(1).replace(/-/g, ' ')
               }
             />
-            {selectedIndex == index && props.stop ? (
+            {selectedIndex === index && props.stop ? (
               <Tooltip title="Stop VM">
                 <IconButton
                   style={{ color: 'red' }}
@@ -92,7 +92,7 @@ export default function LabInstancesList(props) {
                 </IconButton>
               </Tooltip>
             ) : null}
-            {selectedIndex == index && status === 1 ? (
+            {selectedIndex === index && status === 1 ? (
               <Tooltip title="Connect VM">
                 <IconButton
                   style={{ color: 'black' }}
@@ -129,7 +129,7 @@ export default function LabInstancesList(props) {
         maxWidth: 600,
         padding: 10,
         margin: 10,
-        maxHeight: 350
+        maxHeight: '70vh'
       }}
     >
       <ClickAwayListener

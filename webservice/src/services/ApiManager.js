@@ -139,19 +139,24 @@ export default class ApiManager {
 
   /**
    * Function to create a lab template (by a professor)
-   * @param name the name of the template to be created
+   * @param course_code
+   * @param lab_number
+   * @param description
+   * @param cpu
+   * @param memory
+   * @param image
    * @param namespace the namespace where the template should be created
    */
-  createCRDtemplate(name, namespace) {
-    return this.apiCRD.createNamespacedCustomObject(
-      this.templateGroup,
-      this.version,
-      namespace,
-      this.templatePlural,
-      {
-        /*TODO: FILL THE BODY HERE WITH A LAB TEMPLATE EXAMPLE and check namespaces*/
-      }
-    );
+  createCRDtemplate(
+    course_code,
+    lab_number,
+    description,
+    cpu,
+    memory,
+    image,
+    namespace
+  ) {
+    //TODO: add body
   }
 
   /**
