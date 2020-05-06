@@ -6,7 +6,7 @@ import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import '../views/admin.css';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import { IconButton } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
