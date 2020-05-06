@@ -5,6 +5,8 @@
   systemd:
     name: unattended-upgrades
     state: stopped
+    enabled: no
+    masked: yes
   register: result
   failed_when: result is failed and not 'Could not find the requested service' in result.msg
 
@@ -32,6 +34,10 @@
     autoremove: yes
     purge: yes
 
+- name: Upgrade all packages
+  apt:
+    upgrade: yes
+
 # Not the best ansible way to solve this problem
 # but it seems to achieve the intended purpose
 - name: Get old kernel packages
@@ -53,10 +59,6 @@
     autoremove: yes
     purge: yes
   when: kernel_packages.stdout_lines
-
-- name: Upgrade all packages
-  apt:
-    upgrade: yes
 
 - name: Make sure the Desktop directory does exist
   file:
