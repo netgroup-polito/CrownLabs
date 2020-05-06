@@ -54,7 +54,7 @@ export default class ApiManager {
         Promise.reject(error);
       });
     if (ret !== null) {
-      ret = { course: course, labs: ret };
+      ret = { course, labs: ret };
     }
     return ret;
   }
@@ -100,20 +100,17 @@ export default class ApiManager {
       this.instanceNamespace,
       this.instancePlural,
       {
-        apiVersion: this.instanceGroup + '/' + this.version,
+        apiVersion: `${this.instanceGroup}/${this.version}`,
         kind: 'LabInstance',
         metadata: {
-          name:
-            labTemplateName +
-            '-' +
-            this.studentID +
-            '-' +
-            (Math.floor(Math.random() * 10000) + 1),
+          name: `${labTemplateName}-${this.studentID}-${
+            Math.floor(Math.random() * 10000) + 1
+          }`,
           namespace: this.instanceNamespace
         },
         spec: {
-          labTemplateName: labTemplateName,
-          labTemplateNamespace: labTemplateNamespace,
+          labTemplateName,
+          labTemplateNamespace,
           studentId: this.studentID
         }
       }
@@ -156,7 +153,7 @@ export default class ApiManager {
     image,
     namespace
   ) {
-    //TODO: add body
+    // TODO: add body
   }
 
   /**
@@ -166,22 +163,10 @@ export default class ApiManager {
    * @param queryParam the query parameters you are going to use (Used when calling function to watch admin namespaces)
    */
   startWatching(func, queryParam = {}) {
-    let path =
+    const path =
       Object.keys(queryParam).length !== 0
-        ? '/apis/' +
-          this.instanceGroup +
-          '/' +
-          this.version +
-          '/' +
-          this.instancePlural
-        : '/apis/' +
-          this.instanceGroup +
-          '/' +
-          this.version +
-          '/namespaces/' +
-          this.instanceNamespace +
-          '/' +
-          this.instancePlural;
+        ? `/apis/${this.instanceGroup}/${this.version}/${this.instancePlural}`
+        : `/apis/${this.instanceGroup}/${this.version}/namespaces/${this.instanceNamespace}/${this.instancePlural}`;
     watch(
       this.kc,
       path,

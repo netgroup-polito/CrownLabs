@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import ProfessorView from '../views/ProfessorView';
-import StudentView from '../views/StudentView';
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
+import ProfessorView from '../views/ProfessorView';
+import StudentView from '../views/StudentView';
 
 export default function Body(props) {
   const lightTheme = React.useMemo(

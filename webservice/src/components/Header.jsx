@@ -73,9 +73,7 @@ export default function Header(props) {
               fontStyle: 'italic'
             }}
           >
-            {props.logged && props.name
-              ? ' Welcome back, ' + props.name + '!'
-              : ''}
+            {props.logged && props.name ? ` Welcome back, ${props.name}!` : ''}
           </Typography>
           {props.logged ? (
             <a href="https://crownlabs.polito.it/cloud" target="_blank">

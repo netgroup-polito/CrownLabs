@@ -1,9 +1,9 @@
 import React from 'react';
+import TableRow from '@material-ui/core/TableRow';
+import Container from '@material-ui/core/Container';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
-import TableRow from '@material-ui/core/TableRow';
 import { labPapersStyle } from './StudentView';
-import Container from '@material-ui/core/Container';
 
 export default function ProfessorView(props) {
   return (
@@ -13,7 +13,7 @@ export default function ProfessorView(props) {
           labs={props.templateLabs}
           func={props.funcTemplate}
           start={props.start}
-          isAdmin={true}
+          isAdmin
         />
         <LabInstancesList
           runningLabs={props.instanceLabs}
@@ -21,7 +21,7 @@ export default function ProfessorView(props) {
           connect={props.connect}
           stop={props.stop}
           showStatus={props.showStatus}
-          isAdmin={true}
+          isAdmin
         />
       </TableRow>
     </>

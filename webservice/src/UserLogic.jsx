@@ -1,8 +1,8 @@
 import React from 'react';
+import Toastr from 'toastr';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import ApiManager from './services/ApiManager';
-import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
@@ -11,7 +11,7 @@ import Body from './components/Body';
  * Main window class, by now rendering only the unprivileged user view
  */
 export default class UserLogic extends React.Component {
-  /*The State variable contains:
+  /* The State variable contains:
    * - all lab templates as a Map: (course_group => Array of available templates for that course)
    * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
    * - all ADMIN lab templates as a Map: (course_group => Array of available templates for that course)
@@ -33,16 +33,16 @@ export default class UserLogic extends React.Component {
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
-    let parsedToken = this.parseJWTtoken(this.props.id_token);
+    const parsedToken = this.parseJWTtoken(this.props.id_token);
     this.theme = false;
     if (!this.checkToken(parsedToken)) {
       this.logoutInterval();
     }
-    /*Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student*/
-    let adminGroups = parsedToken.groups
+    /* Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student */
+    const adminGroups = parsedToken.groups
       .filter(x => x.match(/kubernetes:\S+admin/g))
       .map(x => x.replace('kubernetes:', '').replace('-admin', ''));
-    let userGroups = parsedToken.groups
+    const userGroups = parsedToken.groups
       .filter(x => x.includes('kubernetes:') && !x.includes('-admin'))
       .map(x => x.replace('kubernetes:', ''));
     this.apiManager = new ApiManager(
@@ -53,12 +53,12 @@ export default class UserLogic extends React.Component {
       parsedToken.namespace[0]
     );
     this.state = {
-      name: parsedToken['name'],
+      name: parsedToken.name,
       templateLabs: new Map(),
       instanceLabs: new Map(),
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
-      adminGroups: adminGroups,
+      adminGroups,
       selectedTemplate: { name: null, namespace: null },
       selectedInstance: null,
       events: '',
@@ -72,13 +72,13 @@ export default class UserLogic extends React.Component {
         this.handleErrors(error);
       })
       .finally(() => {
-        /*Start watching for namespaced events*/
+        /* Start watching for namespaced events */
         this.apiManager.startWatching(this.notifyEvent);
 
-        /*Start watching for admin namespaces events if any*/
+        /* Start watching for admin namespaces events if any */
         if (adminGroups.length > 0) {
           this.apiManager.startWatching(this.notifyEventAdmin, {
-            labelSelector: 'template-namespace in (' + adminGroups.join() + ')'
+            labelSelector: `template-namespace in (${adminGroups.join()})`
           });
         }
 
@@ -95,13 +95,13 @@ export default class UserLogic extends React.Component {
    * @returns {any} the decrypted token as a JSON object
    */
   parseJWTtoken(token) {
-    let base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(
       decodeURIComponent(
         atob(base64)
           .split('')
           .map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            return `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`;
           })
           .join('')
       )
@@ -134,8 +134,8 @@ export default class UserLogic extends React.Component {
     this.apiManager
       .getCRDtemplates()
       .then(res => {
-        let newMap = this.state.templateLabs;
-        let newMapAdmin = this.state.templateLabsAdmin;
+        const newMap = this.state.templateLabs;
+        const newMapAdmin = this.state.templateLabsAdmin;
         res.forEach(x => {
           if (x) {
             newMap.set(x.course, x.labs);
@@ -158,7 +158,7 @@ export default class UserLogic extends React.Component {
       .getCRDinstances()
       .then(nodesResponse => {
         const nodes = nodesResponse.body.items;
-        let newMap = this.state.instanceLabs;
+        const newMap = this.state.instanceLabs;
         nodes.forEach(x => {
           if (!newMap.has(x.metadata.name)) {
             newMap.set(x.metadata.name, { status: 0, url: null });
@@ -181,7 +181,7 @@ export default class UserLogic extends React.Component {
     }
     if (this.state.instanceLabs.has(this.state.selectedTemplate.name)) {
       Toastr.info(
-        'The `' + this.state.selectedTemplate.name + '` lab is already running'
+        `The \`${this.state.selectedTemplate.name}\` lab is already running`
       );
       return;
     }
@@ -192,7 +192,7 @@ export default class UserLogic extends React.Component {
       )
       .then(response => {
         Toastr.success(
-          'Successfully started lab `' + this.state.selectedTemplate.name + '`'
+          `Successfully started lab \`${this.state.selectedTemplate.name}\``
         );
         const newMap = this.state.instanceLabs;
         newMap.set(response.body.metadata.name, { status: 0, url: null });
@@ -215,16 +215,14 @@ export default class UserLogic extends React.Component {
       return;
     }
     if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
-      Toastr.info(
-        'The `' + this.state.selectedInstance + '` lab is not running'
-      );
+      Toastr.info(`The \`${this.state.selectedInstance}\` lab is not running`);
       return;
     }
     this.apiManager
       .deleteCRDinstance(this.state.selectedInstance)
       .then(() => {
         Toastr.success(
-          'Successfully stopped `' + this.state.selectedInstance + '`'
+          `Successfully stopped \`${this.state.selectedInstance}\``
         );
       })
       .catch(error => {
@@ -243,7 +241,7 @@ export default class UserLogic extends React.Component {
    */
   logoutInterval() {
     setInterval(() => {
-      /*A reload probably is sufficient to re-authN the token*/
+      /* A reload probably is sufficient to re-authN the token */
       this.props.logout();
     }, 2000);
   }
@@ -255,32 +253,29 @@ export default class UserLogic extends React.Component {
     if (!this.state.selectedInstance) {
       Toastr.info('No running lab selected to connect to');
       return;
-    } else if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
-      Toastr.info(
-        'The lab `' + this.state.selectedInstance + '` is not running'
-      );
-      return;
-    } else {
-      switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
-        case 1:
-          window.open(
-            this.state.instanceLabs.get(this.state.selectedInstance).url
-          );
-          break;
-        case 0:
-          Toastr.info(
-            'The lab `' + this.state.selectedInstance + '` is still starting'
-          );
-          break;
-        default:
-          Toastr.info(
-            'An error has occurred with the lab `' +
-              this.state.selectedInstance +
-              '`'
-          );
-          break;
-      }
     }
+    if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
+      Toastr.info(`The lab \`${this.state.selectedInstance}\` is not running`);
+      return;
+    }
+    switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
+      case 1:
+        window.open(
+          this.state.instanceLabs.get(this.state.selectedInstance).url
+        );
+        break;
+      case 0:
+        Toastr.info(
+          `The lab \`${this.state.selectedInstance}\` is still starting`
+        );
+        break;
+      default:
+        Toastr.info(
+          `An error has occurred with the lab \`${this.state.selectedInstance}\``
+        );
+        break;
+    }
+
     this.changeSelectedCRDinstance(null);
   }
 
@@ -291,34 +286,31 @@ export default class UserLogic extends React.Component {
     if (!this.state.selectedInstance) {
       Toastr.info('No running lab selected to connect to');
       return;
-    } else if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
-      Toastr.info(
-        'The lab `' + this.state.selectedInstance + '` is not running'
-      );
-      return;
-    } else {
-      switch (
-        this.state.instanceLabsAdmin.get(this.state.selectedInstance).status
-      ) {
-        case 1:
-          window.open(
-            this.state.instanceLabsAdmin.get(this.state.selectedInstance).url
-          );
-          break;
-        case 0:
-          Toastr.info(
-            'The lab `' + this.state.selectedInstance + '` is still starting'
-          );
-          break;
-        default:
-          Toastr.info(
-            'An error has occurred with the lab `' +
-              this.state.selectedInstance +
-              '`'
-          );
-          break;
-      }
     }
+    if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
+      Toastr.info(`The lab \`${this.state.selectedInstance}\` is not running`);
+      return;
+    }
+    switch (
+      this.state.instanceLabsAdmin.get(this.state.selectedInstance).status
+    ) {
+      case 1:
+        window.open(
+          this.state.instanceLabsAdmin.get(this.state.selectedInstance).url
+        );
+        break;
+      case 0:
+        Toastr.info(
+          `The lab \`${this.state.selectedInstance}\` is still starting`
+        );
+        break;
+      default:
+        Toastr.info(
+          `An error has occurred with the lab \`${this.state.selectedInstance}\``
+        );
+        break;
+    }
+
     this.changeSelectedCRDinstance(null);
   }
 
@@ -334,24 +326,18 @@ export default class UserLogic extends React.Component {
         .getCRDstatus(lab)
         .then(response => {
           if (response.body.status && response.body.status.phase) {
-            let msg =
-              '[' +
-              response.body.metadata.creationTimestamp +
-              '] ' +
-              lab +
-              ' => ' +
-              response.body.status.phase;
+            const msg = `[${response.body.metadata.creationTimestamp}] ${lab} => ${response.body.status.phase}`;
             const newMap = this.state.instanceLabs;
             if (response.body.status.phase.match(/Fail|Not/g)) {
-              /*Object creation failed*/
+              /* Object creation failed */
               newMap.set(lab, { url: null, status: -1 });
             } else if (response.body.status.phase.match(/VmiReady/g)) {
-              /*Object creation succeeded*/
+              /* Object creation succeeded */
               newMap.set(lab, { url: response.body.status.url, status: 1 });
             }
             this.setState({
               instanceLabs: newMap,
-              events: msg + '\n' + this.state.events
+              events: `${msg}\n${this.state.events}`
             });
           }
         })
@@ -367,40 +353,31 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
-    /*TODO: intercept 403 and redirect to logout*/
+    /* TODO: intercept 403 and redirect to logout */
     if (!type) {
-      /*Watch session ended, restart it*/
+      /* Watch session ended, restart it */
       this.apiManager.startWatching(this.notifyEvent);
       this.setState({ events: '' });
       return;
     }
     if (object && object.status) {
-      let msg =
-        '[' +
-        object.metadata.creationTimestamp +
-        '] ' +
-        object.metadata.name +
-        ' {type: ' +
-        type +
-        ', status: ' +
-        object.status.phase +
-        '}';
+      const msg = `[${object.metadata.creationTimestamp}] ${object.metadata.name} {type: ${type}, status: ${object.status.phase}}`;
       const newMap = this.state.instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
-        /*Object creation failed*/
+        /* Object creation failed */
         newMap.set(object.metadata.name, { url: null, status: -1 });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
         (type === 'ADDED' || type === 'MODIFIED')
       ) {
-        /*Object creation succeeded*/
+        /* Object creation succeeded */
         newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
       }
       this.setState({
         instanceLabs: newMap,
-        events: msg + '\n' + this.state.events
+        events: `${msg}\n${this.state.events}`
       });
     }
   }
@@ -411,36 +388,26 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEventAdmin(type, object) {
-    /*TODO: intercept 403 and redirect to logout*/
+    /* TODO: intercept 403 and redirect to logout */
     if (!type) {
-      /*Watch session ended, restart it*/
+      /* Watch session ended, restart it */
       this.apiManager.startWatching(this.notifyEventAdmin, {
-        labelSelector:
-          'template-namespace in (' + this.state.adminGroups.join() + ')'
+        labelSelector: `template-namespace in (${this.state.adminGroups.join()})`
       });
       this.setState({ eventsAdmin: '' });
       return;
     }
     if (object && object.status) {
-      let msg =
-        '[' +
-        object.metadata.creationTimestamp +
-        '] ' +
-        object.metadata.name +
-        ' {type: ' +
-        type +
-        ', status: ' +
-        object.status.phase +
-        '}';
+      const msg = `[${object.metadata.creationTimestamp}] ${object.metadata.name} {type: ${type}, status: ${object.status.phase}}`;
       const newMap = this.state.instanceLabsAdmin;
       if (object.status.phase.match(/Fail|Not/g)) {
-        /*Object creation failed*/
+        /* Object creation failed */
         newMap.set(object.metadata.name, { url: null, status: -1 });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
         (type === 'ADDED' || type === 'MODIFIED')
       ) {
-        /*Object creation succeeded*/
+        /* Object creation succeeded */
         newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -452,7 +419,7 @@ export default class UserLogic extends React.Component {
       }
       this.setState({
         instanceLabsAdmin: newMap,
-        eventsAdmin: msg + '\n' + this.state.events
+        eventsAdmin: `${msg}\n${this.state.events}`
       });
     }
   }
@@ -464,7 +431,7 @@ export default class UserLogic extends React.Component {
    */
   changeSelectedCRDtemplate(name, namespace) {
     this.setState({
-      selectedTemplate: { name: name, namespace: namespace }
+      selectedTemplate: { name, namespace }
     });
   }
 
@@ -498,10 +465,7 @@ export default class UserLogic extends React.Component {
         msg += 'The resource is already present';
         break;
       default:
-        msg +=
-          'An error occurred(' +
-          error.response._fetchResponse.status +
-          '), please login again';
+        msg += `An error occurred(${error.response._fetchResponse.status}), please login again`;
         this.logoutInterval();
     }
     Toastr.error(msg);
@@ -516,7 +480,7 @@ export default class UserLogic extends React.Component {
     return (
       <div id="body" style={{ height: '100%', background: '#fafafa' }}>
         <Header
-          logged={true}
+          logged
           logout={this.props.logout}
           name={this.state.name}
           adminHidden={this.state.adminHidden}
