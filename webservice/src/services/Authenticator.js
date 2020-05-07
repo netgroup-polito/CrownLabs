@@ -32,8 +32,8 @@ export default class Authenticator {
       client_secret: window.OIDC_CLIENT_SECRET,
       authority: window.OIDC_PROVIDER_URL,
       client_id: window.OIDC_CLIENT_ID,
-      redirect_uri: window.OIDC_REDIRECT_URI + '/callback',
-      post_logout_redirect_uri: window.OIDC_REDIRECT_URI + '/logout'
+      redirect_uri: `${window.OIDC_REDIRECT_URI}/callback`,
+      post_logout_redirect_uri: `${window.OIDC_REDIRECT_URI}/logout`
     });
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);

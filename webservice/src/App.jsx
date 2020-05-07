@@ -1,12 +1,12 @@
 import React from 'react';
-import Home from './views/Home';
-import UserLogic from './UserLogic';
 import {
   BrowserRouter as Router,
   Redirect,
   Route,
   Switch
 } from 'react-router-dom';
+import Home from './views/Home';
+import UserLogic from './UserLogic';
 import './App.css';
 import Authenticator from './services/Authenticator';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -24,17 +24,15 @@ function CallBackHandler(props) {
  * The main class of this project.
  */
 export class App extends React.Component {
-  /*Unique authN among the entire application;
-   * childKey used to redraw UserLogin every token refreshed*/
+  /* Unique authN among the entire application;
+   * childKey used to redraw UserLogin every token refreshed */
   constructor(props) {
     super(props);
     this.authManager = new Authenticator();
     this.childKey = 0;
-    /*Check if previously logged*/
-    let retrievedSessionToken = JSON.parse(
-      sessionStorage.getItem(
-        'oidc.user:' + OIDC_PROVIDER_URL + ':' + OIDC_CLIENT_ID
-      )
+    /* Check if previously logged */
+    const retrievedSessionToken = JSON.parse(
+      sessionStorage.getItem(`oidc.user:${OIDC_PROVIDER_URL}:${OIDC_CLIENT_ID}`)
     );
     if (retrievedSessionToken) {
       this.state = {
