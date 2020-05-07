@@ -36,19 +36,19 @@
 
 - name: Upgrade all packages
   apt:
-    upgrade: yes
+    upgrade: 'yes'
 
 # Not the best ansible way to solve this problem
 # but it seems to achieve the intended purpose
 - name: Get old kernel packages
   shell: |
     dpkg --list | \
-      egrep -i "linux-image" | \
-      awk '/ii/{ print $2 }' | \
-      sed 's/linux-image-//' | \
-      egrep '[0-9]\.'        | \
-      sort --version-sort    | \
-      head -n -1             | \
+      egrep -i "linux-image"          | \
+      awk '/ii/{ print $2 }'          | \
+      sed 's/linux-image-//'          | \
+      egrep '^[0-9]+\.[0-9]+\.[0-9]+' | \
+      sort --version-sort             | \
+      head -n -1                      | \
       sed 's/^/linux-*-/'
   register: kernel_packages
 
