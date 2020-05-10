@@ -1,13 +1,16 @@
 import React from 'react';
 import TableRow from '@material-ui/core/TableRow';
-import Container from '@material-ui/core/Container';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import { labPapersStyle } from './StudentView';
+import ListSubheader from "@material-ui/core/ListSubheader";
 
 export default function ProfessorView(props) {
   return (
     <>
+        <ListSubheader style={{ fontSize: '20px' , textAlign: "center", marginTop:"20px"}}>
+            Professor control panel
+        </ListSubheader>
       <TableRow style={labPapersStyle}>
         <LabTemplatesList
           labs={props.templateLabs}
