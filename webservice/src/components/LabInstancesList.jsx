@@ -7,14 +7,14 @@ import ListSubheader from '@material-ui/core/ListSubheader';
 import '../views/admin.css';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
-import { IconButton } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
 // import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
-import Paper from 'material-ui-core/Paper';
+import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 
-/*The style for the ListItem*/
+/* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -52,12 +52,12 @@ export default function LabInstancesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
-  /*Parsing the instances array and draw for each one a list item with the right coloration, according to its status*/
+  /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
   const courses = Array.from(props.runningLabs.keys()).map((x, index) => {
-    let status = props.runningLabs.get(x)
+    const status = props.runningLabs.get(x)
       ? props.runningLabs.get(x).status
       : -1;
-    let color = status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
+    const color = status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
     return (
       <li key={x} className={classes.listSection}>
         <ul className={classes.ul}>

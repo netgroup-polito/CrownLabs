@@ -6,12 +6,12 @@ import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import '../views/admin.css';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import { IconButton } from '@material-ui/core';
+import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 
-/*The style for the ListItem*/
+/* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
@@ -43,12 +43,12 @@ export default function LabTemplatesList(props) {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
   const courses = Array.from(props.labs.keys()).map((courseName, index) => {
-    let offset = index * (props.labs.get(courseName).length + 1);
+    const offset = index * (props.labs.get(courseName).length + 1);
     return (
       <li key={courseName} className={classes.listSection}>
         <ul className={classes.ul}>
           {props.labs.get(courseName).map((courseLab, index2) => {
-            let finalIndex = offset + index2;
+            const finalIndex = offset + index2;
             return (
               <ListItem
                 key={courseLab}
