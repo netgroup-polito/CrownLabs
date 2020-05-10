@@ -59,19 +59,27 @@ const currencies = [
   }
 ];
 
-const marks = [
-  {
-    value: 1
-  },
-  {
-    value: 2
-  },
-  {
-    value: 4
-  },
-  {
-    value: 16
-  }
+const ram = [
+  { value: 1 },
+  { value: 2 },
+  { value: 4 },
+  { value: 6 },
+  { value: 8 },
+  { value: 10 },
+  { value: 12 },
+  { value: 14 },
+  { value: 16 }
+];
+
+const cpu = [
+  { value: 1 },
+  { value: 2 },
+  { value: 3 },
+  { value: 4 },
+  { value: 5 },
+  { value: 6 },
+  { value: 7 },
+  { value: 8 }
 ];
 
 const IOSSlider = withStyles({
@@ -131,7 +139,6 @@ const NewTemplateSlider = props => {
     setOpen(true);
   };
   const handleClose = () => {
-    setOpen(false);
     let namespace = document.getElementsByName('courseCode')[0].value;
     let lab_number = document.getElementsByName('labNumber')[0].value;
     let description =
@@ -139,6 +146,10 @@ const NewTemplateSlider = props => {
     let cpu = document.getElementsByName('cpu')[0].value;
     let memory = document.getElementsByName('memory')[0].value;
     let image = document.getElementsByName('image')[0].value;
+    if (namespace === '' || lab_number === '' || image === '') {
+      alert('Please fill required text boxes!');
+      return;
+    }
     console.log(
       namespace + ' ' + lab_number + ' ' + cpu + ' ' + memory + ' ' + image
     );
@@ -150,6 +161,19 @@ const NewTemplateSlider = props => {
       memory,
       image
     );
+
+    document.getElementsByName('courseCode')[0].value = '';
+    document.getElementsByName('labNumber')[0].value = '';
+    document.getElementsByName('image')[0].value = '';
+
+    setOpen(false);
+  };
+
+  const handleAbort = () => {
+    document.getElementsByName('courseCode')[0].value = '';
+    document.getElementsByName('labNumber')[0].value = '';
+    document.getElementsByName('image')[0].value = '';
+    setOpen(false);
   };
 
   return (
@@ -171,7 +195,7 @@ const NewTemplateSlider = props => {
         aria-describedby="alert-dialog-slide-description"
       >
         <DialogTitle id="alert-dialog-slide-title">
-          {'Add new student(s)'}
+          {'Create new template'}
         </DialogTitle>
         <DialogContent>
           <TemplateForm close={handleClose} />
@@ -182,6 +206,7 @@ const NewTemplateSlider = props => {
             color="primary"
             startIcon={<CloudUploadIcon />}
             onClick={handleClose}
+            type="submit"
           >
             Upload
           </Button>
@@ -189,7 +214,7 @@ const NewTemplateSlider = props => {
           <Button
             variant="contained"
             color="secondary"
-            onClick={handleClose}
+            onClick={handleAbort}
             startIcon={<DeleteIcon />}
           >
             Abort
@@ -239,6 +264,7 @@ const NewStudentSlider = () => {
             color="primary"
             startIcon={<CloudUploadIcon />}
             onClick={handleClose}
+            type="submit"
           >
             Upload
           </Button>
@@ -336,23 +362,29 @@ const TemplateForm = props => {
       autoComplete="off"
     >
       <TextField
+        required
+        placeholder="insert course code"
         style={{ margin: 10, width: '40%' }}
         id="outlined-basic"
-        label="course_code"
+        label="Course Code"
         name="courseCode"
         variant="outlined"
       />
       <TextField
+        required
+        placeholder="insert lab number"
         style={{ margin: 10, width: '40%' }}
         id="outlined-basic"
-        label="lab_number"
+        label="Lab Number"
         name="labNumber"
         variant="outlined"
       />
       <TextField
+        required
+        placeholder="insert image"
         style={{ margin: 10, width: '83%' }}
         id="outlined-basic"
-        label="image"
+        label="Image"
         name="image"
         variant="outlined"
       />
@@ -367,7 +399,7 @@ const TemplateForm = props => {
         style={{ margin: 10, marginTop: 20, width: '40%' }}
         aria-label="ios slider"
         defaultValue={8}
-        marks={marks}
+        marks={ram}
         valueLabelDisplay="on"
         aria-labelledby="discrete-slider"
         step={1}
@@ -386,12 +418,12 @@ const TemplateForm = props => {
         style={{ margin: 10, marginTop: 20, width: '40%' }}
         aria-label="ios slider"
         defaultValue={2}
-        marks={marks}
+        marks={cpu}
         valueLabelDisplay="on"
         aria-labelledby="discrete-slider"
         step={1}
         min={1}
-        max={4}
+        max={8}
         name="cpu"
       />
     </Grid>

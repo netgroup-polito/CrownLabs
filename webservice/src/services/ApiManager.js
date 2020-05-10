@@ -148,6 +148,7 @@ export default class ApiManager {
    * @param namespace the namespace where the template should be created
    */
   createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+    // console.log(namespace+lab_number+description+cpu+memory+image);
     return this.apiCRD.createNamespacedCustomObject(
       this.templateGroup,
       this.version,

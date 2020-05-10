@@ -30,6 +30,7 @@ export default class UserLogic extends React.Component {
     this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
+    this.createCRDtemplate = this.createCRDtemplate.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
@@ -87,6 +88,24 @@ export default class UserLogic extends React.Component {
                         setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
                         */
       });
+
+    // window._chatlio = window._chatlio || [];
+    // !function () {
+    //   const t = document.getElementById("chatlio-widget-embed");
+    //   if (t && window.ChatlioReact && _chatlio.init)
+    //     return void _chatlio.init(t, ChatlioReact);
+    //   let e = function (t) { return function () { _chatlio.push([t].concat(arguments))} },
+    //       i = ["configure", "identify", "track", "show", "hide", "isShown", "isOnline", "page", "open", "showOrHide"],
+    //       a = 0;
+    //   for (; a < i.length; a++)
+    //     _chatlio[i[a]] || (_chatlio[i[a]] = e(i[a]));
+    //   const n = document.createElement("script"), c = document.getElementsByTagName("script")[0];
+    //   n.id = "chatlio-widget-embed", n.src = "https://w.chatlio.com/w.chatlio-widget.js",
+    //       n.async = !0 ,
+    //       n.setAttribute("data-embed-version", "2.3");
+    //   n.setAttribute('data-widget-id', '72f8dee1-79f9-48ef-716b-14b677bd57a5');
+    //   c.parentNode.insertBefore(n, c);
+    // }();
   }
 
   /**
@@ -203,6 +222,23 @@ export default class UserLogic extends React.Component {
       })
       .finally(() => {
         this.changeSelectedCRDtemplate(null, null);
+      });
+  }
+
+  /**
+   * Function to start and create a CRD instance using the actual selected one
+   */
+  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+    this.apiManager
+      .createCRDtemplate(namespace, lab_number, description, cpu, memory, image)
+      .then(response => {
+        Toastr.success('Successfully create template `' + description + '`');
+        const newMap = this.state.instanceLabs;
+        newMap.set(response.body.metadata.name, { status: 0, url: null });
+        this.setState({ instanceLabs: newMap });
+      })
+      .catch(error => {
+        this.handleErrors(error);
       });
   }
 
@@ -527,7 +563,7 @@ export default class UserLogic extends React.Component {
         />
         <Body
           templateLabs={this.state.templateLabs}
-          funcNewTemplate={this.apiManager.createCRDtemplate}
+          funcNewTemplate={this.createCRDtemplate}
           instanceLabs={this.state.instanceLabs}
           funcTemplate={this.changeSelectedCRDtemplate}
           funcInstance={this.changeSelectedCRDinstance}
