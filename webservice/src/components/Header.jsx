@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import FolderSharedIcon from '@material-ui/icons/FolderShared';
-import ToolTip from '@material-ui/core/Tooltip';
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -12,6 +11,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Light from '@material-ui/icons/WbSunny';
 import Dark from '@material-ui/icons/NightsStay';
 import ProfIcon from '@material-ui/icons/School';
+import HomeIcon from '@material-ui/icons/Home';
 
 /**
  * Function to draw the page header
@@ -49,9 +49,11 @@ export default function Header(props) {
     setAnchorEl(null);
   };
 
-  const name = props.adminHidden ? 'Professor Area' : 'Student Area';
+  // const name = props.adminHidden ? 'Professor Area' : 'Student Area';
   const adminBtn = props.renderAdminBtn ? (
-    <MenuItem onClick={props.switchAdminView}>{name}</MenuItem>
+    <IconButton onClick={props.switchAdminView}>
+      {props.adminHidden ? <ProfIcon style={{ color: '#ffffff' }}/> : <HomeIcon style={{ color: '#ffffff' }}/>}
+    </IconButton>
   ) : null;
 
   return (
@@ -78,17 +80,12 @@ export default function Header(props) {
           </Typography>
           {props.logged ? (
             <a href="https://crownlabs.polito.it/cloud" target="_blank">
-              <ToolTip title="My drive">
-                <FolderSharedIcon
-                  style={{
-                    marginRight: 25,
-                    color: 'white',
-                    fontSize: '2rem'
-                  }}
-                />
-              </ToolTip>
+              <IconButton title="My drive">
+                <FolderSharedIcon style={{ color: '#ffffff' }} />
+              </IconButton>
             </a>
           ) : null}
+          {adminBtn}
           <IconButton
             onClick={() => {
               document.getElementById('themeSwitch').click();
@@ -112,7 +109,7 @@ export default function Header(props) {
                 onClick={handleMenu}
                 color="secondary"
               >
-                {!props.adminHidden ?  <ProfIcon style={{ color: '#ffffff' }}/>: <AccountCircle style={{ color: '#ffffff' }} />}
+                <AccountCircle style={{ color: '#ffffff' }} />
               </IconButton>
               <Menu
                 id="menu-appbar"
@@ -129,7 +126,6 @@ export default function Header(props) {
                 open={open}
                 onClose={handleClose}
               >
-                {adminBtn}
                 <MenuItem onClick={props.logout}>Logout</MenuItem>
               </Menu>
             </div>
