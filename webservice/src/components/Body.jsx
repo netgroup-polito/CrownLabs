@@ -53,8 +53,8 @@ export default function Body(props) {
       >
         {!props.adminHidden ? (
           <ProfessorView
-            templateLabs={props.templateLabs}
-            instanceLabs={props.instanceLabs}
+            templateLabs={props.templateLabsAdmin}
+            instanceLabs={props.instanceLabsAdmin}
             events={props.events}
             funcTemplate={props.funcTemplate}
             funcInstance={props.funcInstance}

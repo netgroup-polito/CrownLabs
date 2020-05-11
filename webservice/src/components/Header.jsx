@@ -11,6 +11,7 @@ import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
 import Light from '@material-ui/icons/WbSunny';
 import Dark from '@material-ui/icons/NightsStay';
+import ProfIcon from '@material-ui/icons/School';
 
 /**
  * Function to draw the page header
@@ -111,7 +112,7 @@ export default function Header(props) {
                 onClick={handleMenu}
                 color="secondary"
               >
-                <AccountCircle style={{ color: '#ffffff' }} />
+                {!props.adminHidden ?  <ProfIcon style={{ color: '#ffffff' }}/>: <AccountCircle style={{ color: '#ffffff' }} />}
               </IconButton>
               <Menu
                 id="menu-appbar"
