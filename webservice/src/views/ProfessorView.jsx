@@ -8,15 +8,12 @@ import ListSubheader from "@material-ui/core/ListSubheader";
 export default function ProfessorView(props) {
   return (
     <>
-        <ListSubheader style={{ fontSize: '20px' , textAlign: "center", marginTop:"20px"}}>
-            Professor control panel
-        </ListSubheader>
       <TableRow style={labPapersStyle}>
         <LabTemplatesList
           labs={props.templateLabs}
           func={props.funcTemplate}
           start={props.start}
-          isAdmin
+          isAdmin={true}
         />
         <LabInstancesList
           runningLabs={props.instanceLabs}
@@ -24,7 +21,7 @@ export default function ProfessorView(props) {
           connect={props.connect}
           stop={props.stop}
           showStatus={props.showStatus}
-          isAdmin
+          isAdmin={true}
         />
       </TableRow>
     </>

@@ -490,9 +490,11 @@ export default class UserLogic extends React.Component {
           }
         />
         <Body
+          templateLabsAdmin={this.state.templateLabsAdmin}
+          instanceLabsAdmin={this.state.instanceLabsAdmin}
           templateLabs={this.state.templateLabs}
-          funcNewTemplate={this.apiManager.createCRDtemplate}
           instanceLabs={this.state.instanceLabs}
+          funcNewTemplate={this.apiManager.createCRDtemplate}
           funcTemplate={this.changeSelectedCRDtemplate}
           funcInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
