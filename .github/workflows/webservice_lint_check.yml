@@ -12,7 +12,7 @@ jobs:
           node-version: 12
       - name: install only prettier package to reduce execution time
         working-directory: ./webservice
-        run: npm i prettier -D
+        run: npm run lint-setup
       - name: run npm script to check linting
         working-directory: ./webservice
         run: npm run lint-check
