@@ -23,8 +23,11 @@ export default function Footer() {
         This software has been proudly developed at Politecnico di Torino. For
         info visit our&nbsp;
       </p>
-      <a href="https://github.com/netgroup-polito/CrownLabs">
-        <p href="https://www.google.it">GitHub page</p>
+      <a
+        href="https://github.com/netgroup-polito/CrownLabs"
+        style={{ color: 'inherit' }}
+      >
+        <p href="https://www.google.it">GitHub Page</p>
       </a>
       &nbsp;
       <a href="https://github.com/netgroup-polito/CrownLabs">
