@@ -3,8 +3,8 @@
   "scripts": {
     "start": "webpack-dev-server --config webpack.config.js",
     "build": "webpack -p --config webpack_docker.config.js --display-error-details",
-    "prettify-all": "node_modules/.bin/prettier --write **/*.{js,json,css}",
-    "lint-check": "node_modules/.bin/prettier --check **/*.{js,json,css}",
+    "prettify-all": "node_modules/.bin/prettier --write **/*.{js,jsx,json,css}",
+    "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css}",
     "lint-setup": " npm i -D prettier eslint eslint-config-airbnb eslint-config-prettier eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-prettier eslint-plugin-react eslint-plugin-react-hooks"
   },
   "devDependencies": {
@@ -48,7 +48,7 @@
     "toastr": "^2.1.4"
   },
   "lint-staged": {
-    "*.{js,json,css}": [
+    "*.{js,jsx,json,css}": [
       "prettier --write"
     ]
   },
