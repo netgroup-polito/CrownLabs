@@ -71,7 +71,7 @@ export default function LabInstancesList(props) {
             }}
           >
             <ListItemText
-              style={{ backgroundColor: color , color:"black"}}
+              style={{ backgroundColor: color, color: 'black' }}
               inset
               primary={
                 x.charAt(0).toUpperCase() + x.slice(1).replace(/-/g, ' ')
