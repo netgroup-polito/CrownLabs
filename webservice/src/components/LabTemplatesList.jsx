@@ -74,7 +74,7 @@ export default function LabTemplatesList(props) {
                     <IconButton
                       key={courseLab}
                       variant="dark"
-                      className="text-success"
+                      style={{ color: 'green' }}
                       button="true"
                       onClick={e => {
                         props.start();

@@ -42,9 +42,7 @@
     "react-router-dom": "^5.1.2",
     "@material-ui/core": "^4.9.7",
     "@material-ui/icons": "^4.9.1",
-    "react-bootstrap": "^1.0.0-beta.17",
     "robotstxt-webpack-plugin": "^7.0.0",
-    "bootstrap": "^4.4.1",
     "webpack": "^4.42.0",
     "html-webpack-plugin": "^3.2.0",
     "toastr": "^2.1.4"

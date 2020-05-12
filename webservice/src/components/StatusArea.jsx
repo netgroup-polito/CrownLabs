@@ -1,4 +1,3 @@
-import { Card, Col, Row } from 'react-bootstrap';
 import React from 'react';
 
 /**
@@ -9,7 +8,8 @@ import React from 'react';
 export default function StatusArea(props) {
   return (
     <div>
-      {props.hidden ? (
+      {/* this was written with bootstrap, before resusing it needs to be adapted to plain HTML or MUI */}
+      {/* {props.hidden ? (
         <div />
       ) : (
         <Row className="my-5">
@@ -27,7 +27,7 @@ export default function StatusArea(props) {
             </Card>
           </Col>
         </Row>
-      )}
+      )} */}
     </div>
   );
 }
