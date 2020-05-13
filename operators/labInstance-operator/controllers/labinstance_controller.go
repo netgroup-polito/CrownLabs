@@ -262,7 +262,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 				}
 			}
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	// when the vm status is Running, it is still not available for some seconds
@@ -285,7 +285,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 				break
 			}
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	return
