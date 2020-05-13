@@ -5,7 +5,6 @@ import {
   Route,
   Switch
 } from 'react-router-dom';
-import Home from './views/Home';
 import UserLogic from './UserLogic';
 import './App.css';
 import Authenticator from './services/Authenticator';
