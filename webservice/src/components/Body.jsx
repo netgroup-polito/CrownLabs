@@ -58,12 +58,12 @@ export default function Body(props) {
             events={props.events}
             funcTemplate={props.funcTemplate}
             funcInstance={props.funcInstance}
-            connect={props.connect}
+            connect={props.connectAdmin}
             showStatus={props.showStatus}
             hidden={props.hidden}
             createTemplate={props.funcNewTemplate}
             start={props.start}
-            stop={props.stop}
+            stop={props.stopAdmin}
             // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
             // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
             // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}

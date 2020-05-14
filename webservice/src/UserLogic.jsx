@@ -30,6 +30,7 @@ export default class UserLogic extends React.Component {
     this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
+    this.stopCRDinstanceAdmin = this.stopCRDinstanceAdmin.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
@@ -232,6 +233,38 @@ export default class UserLogic extends React.Component {
         const newMap = this.state.instanceLabs;
         newMap.delete(this.state.selectedInstance);
         this.setState({ instanceLabs: newMap });
+        this.changeSelectedCRDinstance(null);
+      });
+  }
+
+  /**
+   * Function to stop and delete the current selected CRD instance
+   */
+  stopCRDinstanceAdmin() {
+    if (!this.state.selectedInstance) {
+      Toastr.info('No lab to stop has been selected');
+      return;
+    }
+    if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
+      Toastr.info(
+        'The `' + this.state.selectedInstance + '` lab is not running'
+      );
+      return;
+    }
+    this.apiManager
+      .deleteCRDinstance(this.state.selectedInstance)
+      .then(() => {
+        Toastr.success(
+          'Successfully stopped `' + this.state.selectedInstance + '`'
+        );
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      })
+      .finally(() => {
+        const newMap = this.state.instanceLabsAdmin;
+        newMap.delete(this.state.selectedInstance);
+        this.setState({ instanceLabsAdmin: newMap });
         this.changeSelectedCRDinstance(null);
       });
   }
@@ -499,7 +532,9 @@ export default class UserLogic extends React.Component {
           funcInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
           connect={this.connect}
+          connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
+          stopAdmin={this.stopCRDinstanceAdmin}
           events={this.state.events}
           showStatus={() =>
             this.setState({ statusHidden: !this.state.statusHidden })
