@@ -4,7 +4,6 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
-import '../views/admin.css';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -74,7 +73,7 @@ export default function LabTemplatesList(props) {
                     <IconButton
                       key={courseLab}
                       variant="dark"
-                      className="text-success"
+                      style={{ color: 'green' }}
                       button="true"
                       onClick={e => {
                         props.start();

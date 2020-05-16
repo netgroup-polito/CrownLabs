@@ -5,7 +5,9 @@
     "build": "webpack -p --config webpack_docker.config.js --display-error-details",
     "prettify-all": "node_modules/.bin/prettier --write **/*.{js,jsx,json,css}",
     "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css}",
-    "lint-setup": " npm i -D prettier"
+    "lint-setup": " npm i -D prettier",
+    "clean-k8s": "cd k8s_library && rm -rf dist && rm package-lock.json && cd ..",
+    "install-k8s": "cd k8s_library && npm i && cd .."
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
@@ -40,9 +42,7 @@
     "react-router-dom": "^5.1.2",
     "@material-ui/core": "^4.9.7",
     "@material-ui/icons": "^4.9.1",
-    "react-bootstrap": "^1.0.0-beta.17",
     "robotstxt-webpack-plugin": "^7.0.0",
-    "bootstrap": "^4.4.1",
     "webpack": "^4.42.0",
     "html-webpack-plugin": "^3.2.0",
     "toastr": "^2.1.4"

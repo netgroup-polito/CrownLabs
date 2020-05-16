@@ -1,38 +1,38 @@
-import { Container } from 'react-bootstrap';
 import React from 'react';
-
+import GitHubLogo from '../assets/github-logo.png';
 /**
  * Function to draw the document footer
  * @return the object to be drawn
  */
+
 export default function Footer() {
   return (
-    <footer
+    <div
       id="footer"
-      className="py-4"
-      style={{ height: '70px', background: '#032364', fontSize: '1.2rem' }}
+      style={{
+        height: '70px',
+        background: '#032364',
+        fontSize: '1.2rem',
+        color: 'white',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}
     >
-      <Container fluid className="m-0 text-center text-secondary">
-        <p className="d-inline" style={{ color: 'white' }}>
-          This software has been proudly developed at Politecnico di Torino.{' '}
-        </p>
-        <p className="d-inline" style={{ color: 'white' }}>
-          For info visit our
-        </p>
-        <img
-          className="d-inline"
-          height="25px"
-          src={require('../assets/github-logo.png')}
-          alt="GitHub logo"
-        />
-        <a
-          className="d-inline"
-          href="https://github.com/netgroup-polito/CrownLabs"
-          style={{ color: 'white' }}
-        >
-          Github project repository
-        </a>
-      </Container>
-    </footer>
+      <p>
+        This software has been proudly developed at Politecnico di Torino. For
+        info visit our&nbsp;
+      </p>
+      <a
+        href="https://github.com/netgroup-polito/CrownLabs"
+        style={{ color: 'inherit' }}
+      >
+        <p href="https://www.google.it">GitHub Page</p>
+      </a>
+      &nbsp;
+      <a href="https://github.com/netgroup-polito/CrownLabs">
+        <img height="25px" src={GitHubLogo} alt="GitHub logo" />
+      </a>
+    </div>
   );
 }
