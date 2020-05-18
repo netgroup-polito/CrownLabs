@@ -229,6 +229,13 @@ spec:
         - --annotations-prefix=nginx.ingress.kubernetes.io
         - --ingress-class=nginx-internal
         - --enable-ssl-passthrough
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 4Gi
         securityContext:
           allowPrivilegeEscalation: true
           capabilities:
@@ -278,18 +285,3 @@ spec:
             exec:
               command:
               - /wait-shutdown
----
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: ingress-nginx
-  namespace: ingress-nginx-internal
-  labels:
-    app.kubernetes.io/name: ingress-nginx-internal
-    app.kubernetes.io/part-of: ingress-nginx-internal
-spec:
-  limits:
-  - min:
-      memory: 90Mi
-      cpu: 100m
-    type: Container
