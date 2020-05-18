@@ -55,8 +55,11 @@ export default function LabTemplatesList(props) {
                 selected={selectedIndex === finalIndex}
                 disableRipple={props.isAdmin}
                 onClick={() => {
-                  setSelectedIndex(finalIndex);
-                  props.func(courseLab, courseName);
+                  if (!props.isAdmin) {
+                    console.log('clicked');
+                    setSelectedIndex(finalIndex);
+                    props.func(courseLab, courseName);
+                  }
                 }}
               >
                 <Tooltip title="Select it">
