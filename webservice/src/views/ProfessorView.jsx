@@ -11,6 +11,7 @@ export default function ProfessorView(props) {
     <>
       <TableRow style={labPapersStyle}>
         <LabTemplatesList
+            delete={props.delete}
           labs={props.templateLabs}
           func={props.funcTemplate}
           start={props.start}

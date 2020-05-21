@@ -28,7 +28,7 @@ export default function ProfessorFunc(props) {
       autoComplete="off"
     >
       <NewTemplateSlider funcNewTemplate={props.funcNewTemplate} />
-      <NewStudentSlider />
+      {/*<NewStudentSlider />*/}
     </Grid>
   );
 }
@@ -157,8 +157,8 @@ const NewTemplateSlider = props => {
       namespace,
       lab_number,
       description,
-      cpu,
-      memory,
+      Number(cpu),
+      Number(memory),
       image
     );
 

@@ -64,6 +64,7 @@ export default function Body(props) {
             createTemplate={props.funcNewTemplate}
             start={props.start}
             stop={props.stop}
+            delete={props.delete}
             // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
             // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
             // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}

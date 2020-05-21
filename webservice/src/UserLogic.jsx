@@ -6,6 +6,7 @@ import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
+import {forEach} from "react-bootstrap/cjs/ElementChildren";
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -30,6 +31,7 @@ export default class UserLogic extends React.Component {
     this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
+    this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
     this.createCRDtemplate = this.createCRDtemplate.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
@@ -226,20 +228,22 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to start and create a CRD instance using the actual selected one
+   * Function to start and create a CRD template
    */
   createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
     this.apiManager
       .createCRDtemplate(namespace, lab_number, description, cpu, memory, image)
       .then(response => {
         Toastr.success('Successfully create template `' + description + '`');
-        const newMap = this.state.instanceLabs;
+        const newMap = this.state.templateLabs;
         newMap.set(response.body.metadata.name, { status: 0, url: null });
-        this.setState({ instanceLabs: newMap });
       })
       .catch(error => {
         this.handleErrors(error);
-      });
+      })
+      .finally(() => {
+      location.reload();
+    });
   }
 
   /**
@@ -256,6 +260,7 @@ export default class UserLogic extends React.Component {
       );
       return;
     }
+    console.log(this.state.selectedInstance);
     this.apiManager
       .deleteCRDinstance(this.state.selectedInstance)
       .then(() => {
@@ -272,6 +277,33 @@ export default class UserLogic extends React.Component {
         this.setState({ instanceLabs: newMap });
         this.changeSelectedCRDinstance(null);
       });
+  }
+
+  deleteCRDtemplate() {
+    if (!this.state.selectedTemplate) {
+      Toastr.info('No template to delete has been selected');
+      return;
+    }
+    if (!this.state.templateLabsAdmin.has(this.state.selectedTemplate.namespace)) {
+      Toastr.info(
+          'The `' + this.state.selectedTemplate.name + ' template is not managed by you'
+      );
+      return;
+    }
+
+    this.apiManager
+        .deleteCRDtemplate(this.state.selectedTemplate.namespace,this.state.selectedTemplate.name)
+        .then(() => {
+          Toastr.success(
+              'Successfully deletes `' + this.state.selectedTemplate.name + '`'
+          );
+        })
+        .catch(error => {
+          this.handleErrors(error);
+        })
+        .finally(() => {
+        location.reload();
+        });
   }
 
   /**
@@ -519,6 +551,9 @@ export default class UserLogic extends React.Component {
   handleErrors(error) {
     let msg = '';
     switch (error.response._fetchResponse.status) {
+      case 400:
+        msg+= 'Bad request';
+        break;
       case 401:
         msg += 'Forbidden, something in the ticket renewal failed';
         this.logoutInterval();
@@ -538,7 +573,7 @@ export default class UserLogic extends React.Component {
           'An error occurred(' +
           error.response._fetchResponse.status +
           '), please login again';
-        this.logoutInterval();
+        // this.logoutInterval();
     }
     Toastr.error(msg);
   }
@@ -568,6 +603,7 @@ export default class UserLogic extends React.Component {
           funcTemplate={this.changeSelectedCRDtemplate}
           funcInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
+          delete={this.deleteCRDtemplate}
           connect={this.connect}
           stop={this.stopCRDinstance}
           events={this.state.events}
