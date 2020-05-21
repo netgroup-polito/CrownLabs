@@ -3,7 +3,6 @@ import TableRow from '@material-ui/core/TableRow';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
 import { labPapersStyle } from './StudentView';
-import ListSubheader from '@material-ui/core/ListSubheader';
 import ProfessorFunctionalities from '../components/ProfessorFunctionalities';
 
 export default function ProfessorView(props) {

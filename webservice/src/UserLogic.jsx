@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import ApiManager from './services/ApiManager';
@@ -6,7 +6,6 @@ import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
-import { forEach } from 'react-bootstrap/cjs/ElementChildren';
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -87,9 +86,9 @@ export default class UserLogic extends React.Component {
         }
 
         /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
-                        this.retrieveCRDinstanceStatus();
-                        setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
-                        */
+                                this.retrieveCRDinstanceStatus();
+                                setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
+                                */
       });
 
     // window._chatlio = window._chatlio || [];
