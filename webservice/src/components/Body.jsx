@@ -53,17 +53,17 @@ export default function Body(props) {
       >
         {!props.adminHidden ? (
           <ProfessorView
-            templateLabs={props.templateLabs}
-            instanceLabs={props.instanceLabs}
+            templateLabs={props.templateLabsAdmin}
+            instanceLabs={props.instanceLabsAdmin}
             events={props.events}
             funcTemplate={props.funcTemplate}
             funcInstance={props.funcInstance}
-            connect={props.connect}
+            connect={props.connectAdmin}
             showStatus={props.showStatus}
             hidden={props.hidden}
             createTemplate={props.funcNewTemplate}
             start={props.start}
-            stop={props.stop}
+            stop={props.stopAdmin}
             delete={props.delete}
             // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
             // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}

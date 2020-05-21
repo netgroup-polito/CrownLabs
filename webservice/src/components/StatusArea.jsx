@@ -9,6 +9,9 @@ import React from 'react';
 export default function StatusArea(props) {
   return (
     <div>
+      {props.hidden ? (
+        <div />
+      ) : (
         <Row className="my-5">
           <Col className="col-12">
             <Card className="text-center headerstyle">
@@ -24,6 +27,7 @@ export default function StatusArea(props) {
             </Card>
           </Col>
         </Row>
+      )}
     </div>
   );
 }

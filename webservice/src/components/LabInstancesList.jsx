@@ -4,11 +4,9 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
-import '../views/admin.css';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
 import IconButton from '@material-ui/core/IconButton';
-// import VisibilityIcon from '@material-ui/icons/Visibility';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
@@ -71,7 +69,7 @@ export default function LabInstancesList(props) {
             }}
           >
             <ListItemText
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: color, color: 'black' }}
               inset
               primary={
                 x.charAt(0).toUpperCase() + x.slice(1).replace(/-/g, ' ')

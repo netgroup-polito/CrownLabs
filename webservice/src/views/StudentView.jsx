@@ -2,9 +2,6 @@ import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import LabTemplatesList from '../components/LabTemplatesList';
 import LabInstancesList from '../components/LabInstancesList';
-import StatusArea from "../components/StatusArea";
-// import StatusArea from '../components/StatusArea';
-// import './admin.css';
 
 export const labPapersStyle = {
   display: 'flex',
@@ -35,9 +32,6 @@ export default function StudentView(props) {
           stop={props.stop}
           showStatus={props.showStatus}
         />
-      </div>
-       <div>
-            <StatusArea hidden={props.hidden} events={props.events} />
       </div>
     </>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import { App } from './App';
+import './App.css';
 import * as serviceWorker from './serviceWorker';
 
 /* Since we do not have a index.html template, we create a main div where all our object will be drawn */

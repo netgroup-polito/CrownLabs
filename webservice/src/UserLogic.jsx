@@ -6,7 +6,7 @@ import Toastr from 'toastr';
 
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
-import {forEach} from "react-bootstrap/cjs/ElementChildren";
+import { forEach } from 'react-bootstrap/cjs/ElementChildren';
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -33,6 +33,7 @@ export default class UserLogic extends React.Component {
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
     this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
     this.createCRDtemplate = this.createCRDtemplate.bind(this);
+    this.stopCRDinstanceAdmin = this.stopCRDinstanceAdmin.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
@@ -242,8 +243,8 @@ export default class UserLogic extends React.Component {
         this.handleErrors(error);
       })
       .finally(() => {
-      location.reload();
-    });
+        location.reload();
+      });
   }
 
   /**
@@ -284,26 +285,65 @@ export default class UserLogic extends React.Component {
       Toastr.info('No template to delete has been selected');
       return;
     }
-    if (!this.state.templateLabsAdmin.has(this.state.selectedTemplate.namespace)) {
+    if (
+      !this.state.templateLabsAdmin.has(this.state.selectedTemplate.namespace)
+    ) {
       Toastr.info(
-          'The `' + this.state.selectedTemplate.name + ' template is not managed by you'
+        'The `' +
+          this.state.selectedTemplate.name +
+          ' template is not managed by you'
       );
       return;
     }
 
     this.apiManager
-        .deleteCRDtemplate(this.state.selectedTemplate.namespace,this.state.selectedTemplate.name)
-        .then(() => {
-          Toastr.success(
-              'Successfully deletes `' + this.state.selectedTemplate.name + '`'
-          );
-        })
-        .catch(error => {
-          this.handleErrors(error);
-        })
-        .finally(() => {
+      .deleteCRDtemplate(
+        this.state.selectedTemplate.namespace,
+        this.state.selectedTemplate.name
+      )
+      .then(() => {
+        Toastr.success(
+          'Successfully deletes `' + this.state.selectedTemplate.name + '`'
+        );
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      })
+      .finally(() => {
         location.reload();
-        });
+      });
+  }
+
+  /**
+   * Function to stop and delete the current selected CRD instance
+   */
+  stopCRDinstanceAdmin() {
+    if (!this.state.selectedInstance) {
+      Toastr.info('No lab to stop has been selected');
+      return;
+    }
+    if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
+      Toastr.info(
+        'The `' + this.state.selectedInstance + '` lab is not running'
+      );
+      return;
+    }
+    this.apiManager
+      .deleteCRDinstance(this.state.selectedInstance)
+      .then(() => {
+        Toastr.success(
+          'Successfully stopped `' + this.state.selectedInstance + '`'
+        );
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      })
+      .finally(() => {
+        const newMap = this.state.instanceLabsAdmin;
+        newMap.delete(this.state.selectedInstance);
+        this.setState({ instanceLabsAdmin: newMap });
+        this.changeSelectedCRDinstance(null);
+      });
   }
 
   /**
@@ -552,7 +592,7 @@ export default class UserLogic extends React.Component {
     let msg = '';
     switch (error.response._fetchResponse.status) {
       case 400:
-        msg+= 'Bad request';
+        msg += 'Bad request';
         break;
       case 401:
         msg += 'Forbidden, something in the ticket renewal failed';
@@ -573,7 +613,7 @@ export default class UserLogic extends React.Component {
           'An error occurred(' +
           error.response._fetchResponse.status +
           '), please login again';
-        // this.logoutInterval();
+      // this.logoutInterval();
     }
     Toastr.error(msg);
   }
@@ -597,6 +637,8 @@ export default class UserLogic extends React.Component {
           }
         />
         <Body
+          templateLabsAdmin={this.state.templateLabsAdmin}
+          instanceLabsAdmin={this.state.instanceLabsAdmin}
           templateLabs={this.state.templateLabs}
           funcNewTemplate={this.createCRDtemplate}
           instanceLabs={this.state.instanceLabs}
@@ -605,7 +647,9 @@ export default class UserLogic extends React.Component {
           start={this.startCRDinstance}
           delete={this.deleteCRDtemplate}
           connect={this.connect}
+          connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
+          stopAdmin={this.stopCRDinstanceAdmin}
           events={this.state.events}
           showStatus={() =>
             this.setState({ statusHidden: !this.state.statusHidden })

@@ -241,6 +241,9 @@ class Course:
         k8s_templates["rolebinding-course"].apply_template(
             namespace_name=self.namespace,
             course_group=Course.get_group_name(self.course_code))
+        k8s_templates["rolebinding-courseadmin"].apply_template(
+            namespace_name=self.namespace,
+            course_group_admin=Course.get_group_name_admin(self.course_code))
         k8s_templates["clusterrolebinding-courseadmin"].apply_template(
             course_group_admin=Course.get_group_name_admin(self.course_code))
 
@@ -454,6 +457,7 @@ if __name__ == "__main__":
             "clusterrolebinding-courseadmin": KubernetesTemplateHandler("clusterrolebinding-courseadmin.yaml.tmpl", "templates/"),
             "rolebinding-tenant": KubernetesTemplateHandler("rolebindingtenant.yaml.tmpl", "templates/"),
             "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse.yaml.tmpl", "templates/"),
+            "rolebinding-courseadmin": KubernetesTemplateHandler("rolebindingcourseadmin.yaml.tmpl", "templates/"),
             "resourcequota": KubernetesTemplateHandler("resourcequota.yaml.tmpl", "templates/"),
             "nextcloudcredentials": KubernetesTemplateHandler("nextcloudcredentials.yaml.tmpl", "templates/"),
             "labtemplate": KubernetesTemplateHandler("labtemplate.yaml.tmpl", "templates/"),

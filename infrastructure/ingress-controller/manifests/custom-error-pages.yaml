@@ -29,6 +29,13 @@ spec:
           value: "/error-page"
         - name: ERROR_STATIC_URI
           value: "https://crownlabs.polito.it/error-page"
+        resources:
+          requests:
+            cpu: "10m"
+            memory: 25Mi
+          limits:
+            cpu: "50m"
+            memory: 50Mi
 ---
 apiVersion: v1
 kind: Service
