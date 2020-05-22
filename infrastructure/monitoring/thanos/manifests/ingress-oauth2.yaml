@@ -3,19 +3,19 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
-  generation: 1
-  name: prometheus-oauth2
-  namespace: monitoring
+  name: jaeger-oauth2
+  namespace: observability
 spec:
   rules:
-  - host: prometheus.crown-labs.ipv6.polito.it
+  - host: jaeger.crown-labs.ipv6.polito.it
     http:
       paths:
       - backend:
-          serviceName: monitoring-oauth2-proxy
+          serviceName: observability-oauth2-proxy
           servicePort: 4180
         path: /oauth2
+        pathType: ImplementationSpecific
   tls:
   - hosts:
-    - prometheus.crown-labs.ipv6.polito.it
-    secretName: prometheus-cert
+    - jaeger.crown-labs.ipv6.polito.it
+    secretName: jaeger-cert
