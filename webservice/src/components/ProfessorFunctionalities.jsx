@@ -8,7 +8,6 @@ import Slider from '@material-ui/core/Slider';
 import withStyles from '@material-ui/core/styles/withStyles';
 import Typography from '@material-ui/core/Typography';
 import DeleteIcon from '@material-ui/icons/Delete';
-import CsvIcon from '@material-ui/icons/Description';
 import Slide from '@material-ui/core/Slide';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -31,7 +30,6 @@ export default function ProfessorFunc(props) {
         funcNewTemplate={props.funcNewTemplate}
         adminGroups={props.adminGroups}
       />
-      {/*<NewStudentSlider />*/}
     </Grid>
   );
 }
@@ -42,25 +40,6 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 
 const iOSBoxShadow =
   '0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.13),0 0 0 1px rgba(0,0,0,0.02)';
-
-const currencies = [
-  {
-    value: 'DEF',
-    label: '-----'
-  },
-  {
-    value: 'CLD',
-    label: 'Cloud Computing'
-  },
-  {
-    value: 'RDC',
-    label: 'Reti locali e Data Center'
-  },
-  {
-    value: 'TSR',
-    label: 'Tecnologie e servizi di rete'
-  }
-];
 
 const ram = [
   { value: 1 },
@@ -153,17 +132,14 @@ const NewTemplateSlider = props => {
       alert('Please fill required text boxes!');
       return;
     }
-    console.log(
-      namespace + ' ' + lab_number + ' ' + cpu + ' ' + memory + ' ' + image
+    props.funcNewTemplate(
+      namespace,
+      lab_number,
+      description,
+      Number(cpu),
+      Number(memory),
+      image
     );
-    // props.funcNewTemplate(
-    //   namespace,
-    //   lab_number,
-    //   description,
-    //   Number(cpu),
-    //   Number(memory),
-    //   image
-    // );
 
     document.getElementsByName('courseCode')[0].value = '';
     document.getElementsByName('labNumber')[0].value = '';
@@ -224,131 +200,6 @@ const NewTemplateSlider = props => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Grid>
-  );
-};
-
-const NewStudentSlider = () => {
-  const [open, setOpen] = React.useState(false);
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  return (
-    <>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleClickOpen}
-        startIcon={<AddCircleIcon />}
-        style={{ margin: '10px' }}
-      >
-        Add student(s)
-      </Button>
-      <Dialog
-        open={open}
-        TransitionComponent={Transition}
-        keepMounted
-        aria-labelledby="alert-dialog-slide-title"
-        aria-describedby="alert-dialog-slide-description"
-      >
-        <DialogTitle id="alert-dialog-slide-title">
-          {'Add new student(s)'}
-        </DialogTitle>
-        <DialogContent>
-          <StudentsForm close={handleClose} />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<CloudUploadIcon />}
-            onClick={handleClose}
-            type="submit"
-          >
-            Upload
-          </Button>
-
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleClose}
-            startIcon={<DeleteIcon />}
-          >
-            Abort
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
-};
-
-const StudentsForm = props => {
-  const [currency, setCurrency] = React.useState('DEF');
-
-  const handleChange = event => {
-    setCurrency(event.target.value);
-  };
-
-  return (
-    <Grid
-      container
-      spacing={0}
-      alignItems="center"
-      justify="center"
-      direction="row"
-      noValidate
-      autoComplete="off"
-    >
-      <TextField
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-basic"
-        label="Student ID"
-        variant="outlined"
-      />
-      {/*<TextField style={{margin: 10,width: "40%"}} id="outlined-basic" label="Course name" variant="outlined"/>*/}
-
-      <TextField
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-select-currency"
-        select
-        label="Select course"
-        value={currency}
-        onChange={handleChange}
-        variant="outlined"
-      >
-        {currencies.map(option => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-basic"
-        label="Lab number"
-        variant="outlined"
-      />
-      <TextField
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-basic"
-        label="Other"
-        variant="outlined"
-      />
-
-      {/*<input type="file" id="file"/>*/}
-
-      <Button
-        style={{ width: '80%' }}
-        variant="contained"
-        startIcon={<CsvIcon />}
-      >
-        Upload CSV File
-      </Button>
     </Grid>
   );
 };

@@ -244,7 +244,6 @@ export default class UserLogic extends React.Component {
       );
       return;
     }
-    console.log(this.state.selectedInstance);
     this.apiManager
       .deleteCRDinstance(this.state.selectedInstance)
       .then(() => {

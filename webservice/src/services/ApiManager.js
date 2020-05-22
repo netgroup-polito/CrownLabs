@@ -124,7 +124,6 @@ export default class ApiManager {
    * @returns the promise handling the request
    */
   deleteCRDinstance(name) {
-    console.log(this.instanceNamespace);
     return this.apiCRD.deleteNamespacedCustomObject(
       this.instanceGroup,
       this.version,
@@ -136,7 +135,6 @@ export default class ApiManager {
   }
 
   deleteCRDtemplate(namespace, name) {
-    console.log(this.templateNamespace);
     return this.apiCRD.deleteNamespacedCustomObject(
       this.templateGroup,
       this.version,
@@ -158,62 +156,6 @@ export default class ApiManager {
    * @param namespace the namespace where the template should be created
    */
   createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
-    // console.log(namespace+lab_number+description+cpu+memory+image);
-    console.log({
-      apiVersion: `${this.templateGroup}/${this.version}`,
-      kind: 'LabTemplate',
-      metadata: {
-        name: `${namespace}-lab${lab_number}`,
-        namespace: namespace
-      },
-      spec: {
-        courseName: namespace,
-        description: description,
-        labName: `${namespace}-lab${lab_number}`,
-        labNum: lab_number,
-        vm: {
-          apiVersion: 'kubevirt.io/v1alpha3',
-          kind: 'VirtualMachineInstance',
-          metadata: {
-            labels: {
-              name: `${namespace}-lab${lab_number}`
-            },
-            name: `${namespace}-lab${lab_number}`,
-            namespace: namespace
-          },
-          spec: {
-            domain: {
-              cpu: { cores: cpu },
-              devices: {
-                disks: [
-                  { disk: { bus: 'virtio' }, name: 'containerdisk' },
-                  { disk: { bus: 'virtio' }, name: 'cloudinitdisk' }
-                ]
-              },
-              memory: { guest: memory + 'G' },
-              resources: {
-                limits: { cpu: `${cpu + 1}`, memory: memory + 1 + 'G' },
-                requests: { cpu: `${cpu}`, memory: memory + 'G' }
-              }
-            },
-            volumes: [
-              {
-                containerDisk: {
-                  image: image,
-                  imagePullSecret: 'registry-credentials'
-                },
-                name: 'containerdisk'
-              },
-              {
-                cloudInitNoCloud: { secretRef: { name: 'sid-lab' } },
-                name: 'cloudinitdisk'
-              }
-            ],
-            terminationGracePeriodSeconds: 30
-          }
-        }
-      }
-    });
     return this.apiCRD.createNamespacedCustomObject(
       this.templateGroup,
       this.version,
