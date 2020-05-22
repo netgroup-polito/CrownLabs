@@ -53,6 +53,7 @@ export default function Body(props) {
       >
         {!props.adminHidden ? (
           <ProfessorView
+            adminGroups={props.adminGroups}
             templateLabs={props.templateLabsAdmin}
             instanceLabs={props.instanceLabsAdmin}
             events={props.events}

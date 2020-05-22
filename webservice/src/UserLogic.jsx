@@ -90,24 +90,6 @@ export default class UserLogic extends React.Component {
                                 setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
                                 */
       });
-
-    // window._chatlio = window._chatlio || [];
-    // !function () {
-    //   const t = document.getElementById("chatlio-widget-embed");
-    //   if (t && window.ChatlioReact && _chatlio.init)
-    //     return void _chatlio.init(t, ChatlioReact);
-    //   let e = function (t) { return function () { _chatlio.push([t].concat(arguments))} },
-    //       i = ["configure", "identify", "track", "show", "hide", "isShown", "isOnline", "page", "open", "showOrHide"],
-    //       a = 0;
-    //   for (; a < i.length; a++)
-    //     _chatlio[i[a]] || (_chatlio[i[a]] = e(i[a]));
-    //   const n = document.createElement("script"), c = document.getElementsByTagName("script")[0];
-    //   n.id = "chatlio-widget-embed", n.src = "https://w.chatlio.com/w.chatlio-widget.js",
-    //       n.async = !0 ,
-    //       n.setAttribute("data-embed-version", "2.3");
-    //   n.setAttribute('data-widget-id', '72f8dee1-79f9-48ef-716b-14b677bd57a5');
-    //   c.parentNode.insertBefore(n, c);
-    // }();
   }
 
   /**
@@ -242,7 +224,9 @@ export default class UserLogic extends React.Component {
         this.handleErrors(error);
       })
       .finally(() => {
-        location.reload();
+        this.state.templateLabs.clear();
+        this.state.templateLabsAdmin.clear();
+        this.retrieveCRDtemplates();
       });
   }
 
@@ -309,7 +293,9 @@ export default class UserLogic extends React.Component {
         this.handleErrors(error);
       })
       .finally(() => {
-        location.reload();
+        this.state.templateLabs.clear();
+        this.state.templateLabsAdmin.clear();
+        this.retrieveCRDtemplates();
       });
   }
 
@@ -636,6 +622,7 @@ export default class UserLogic extends React.Component {
           }
         />
         <Body
+          adminGroups={this.state.adminGroups}
           templateLabsAdmin={this.state.templateLabsAdmin}
           instanceLabsAdmin={this.state.instanceLabsAdmin}
           templateLabs={this.state.templateLabs}

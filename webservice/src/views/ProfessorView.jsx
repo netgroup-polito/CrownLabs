@@ -26,7 +26,10 @@ export default function ProfessorView(props) {
         />
       </TableRow>
       <TableRow style={labPapersStyle}>
-        <ProfessorFunctionalities funcNewTemplate={props.createTemplate} />
+        <ProfessorFunctionalities
+          funcNewTemplate={props.createTemplate}
+          adminGroups={props.adminGroups}
+        />
       </TableRow>
     </>
   );

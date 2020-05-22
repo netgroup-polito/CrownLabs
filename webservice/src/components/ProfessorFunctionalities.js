@@ -27,7 +27,10 @@ export default function ProfessorFunc(props) {
       noValidate
       autoComplete="off"
     >
-      <NewTemplateSlider funcNewTemplate={props.funcNewTemplate} />
+      <NewTemplateSlider
+        funcNewTemplate={props.funcNewTemplate}
+        adminGroups={props.adminGroups}
+      />
       {/*<NewStudentSlider />*/}
     </Grid>
   );
@@ -153,14 +156,14 @@ const NewTemplateSlider = props => {
     console.log(
       namespace + ' ' + lab_number + ' ' + cpu + ' ' + memory + ' ' + image
     );
-    props.funcNewTemplate(
-      namespace,
-      lab_number,
-      description,
-      Number(cpu),
-      Number(memory),
-      image
-    );
+    // props.funcNewTemplate(
+    //   namespace,
+    //   lab_number,
+    //   description,
+    //   Number(cpu),
+    //   Number(memory),
+    //   image
+    // );
 
     document.getElementsByName('courseCode')[0].value = '';
     document.getElementsByName('labNumber')[0].value = '';
@@ -198,7 +201,7 @@ const NewTemplateSlider = props => {
           {'Create new template'}
         </DialogTitle>
         <DialogContent>
-          <TemplateForm close={handleClose} />
+          <TemplateForm close={handleClose} adminGroups={props.adminGroups} />
         </DialogContent>
         <DialogActions>
           <Button
@@ -351,6 +354,14 @@ const StudentsForm = props => {
 };
 
 const TemplateForm = props => {
+  let map = new Map();
+  props.adminGroups.forEach(x => map.set(x, x));
+
+  const [namespace, setNamespace] = React.useState('');
+
+  const handleChange = event => {
+    setNamespace(event.target.value);
+  };
   return (
     <Grid
       container
@@ -362,14 +373,20 @@ const TemplateForm = props => {
       autoComplete="off"
     >
       <TextField
-        required
-        placeholder="insert course code"
         style={{ margin: 10, width: '40%' }}
-        id="outlined-basic"
-        label="Course Code"
         name="courseCode"
+        select
+        label="Course Code"
+        value={namespace}
+        onChange={handleChange}
         variant="outlined"
-      />
+      >
+        {props.adminGroups.map(x => (
+          <MenuItem key={x} value={x}>
+            {x}
+          </MenuItem>
+        ))}
+      </TextField>
       <TextField
         required
         placeholder="insert lab number"
