@@ -53,6 +53,7 @@ export default function Body(props) {
       >
         {!props.adminHidden ? (
           <ProfessorView
+            adminGroups={props.adminGroups}
             templateLabs={props.templateLabsAdmin}
             instanceLabs={props.instanceLabsAdmin}
             events={props.events}
@@ -64,6 +65,7 @@ export default function Body(props) {
             createTemplate={props.funcNewTemplate}
             start={props.start}
             stop={props.stopAdmin}
+            delete={props.delete}
             // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
             // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
             // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}

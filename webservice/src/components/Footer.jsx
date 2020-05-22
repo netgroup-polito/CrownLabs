@@ -1,5 +1,6 @@
 import React from 'react';
 import GitHubLogo from '../assets/github-logo.png';
+
 /**
  * Function to draw the document footer
  * @return the object to be drawn
