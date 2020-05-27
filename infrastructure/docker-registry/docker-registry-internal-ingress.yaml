@@ -18,7 +18,7 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: docker-registry-1584110467
+          serviceName: docker-registry
           servicePort: 5000
         path: /
   tls:
