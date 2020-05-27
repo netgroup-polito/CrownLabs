@@ -38,6 +38,9 @@ const useStyles = makeStyles(theme => ({
     position: 'fixed',
     bottom: '0%',
     left: '10%'
+  },
+  rotating: {
+    animation: 'rotate 1.5s ease-in-out infinite'
   }
 }));
 
@@ -108,7 +111,10 @@ export default function LabInstancesList(props) {
             {status === 0 ? (
               <Tooltip title="Loading VM">
                 <IconButton style={{ color: 'orange' }}>
-                  <HourglassEmptyIcon className="rotating" fontSize="large" />
+                  <HourglassEmptyIcon
+                    className={classes.rotating}
+                    fontSize="large"
+                  />
                 </IconButton>
               </Tooltip>
             ) : null}
