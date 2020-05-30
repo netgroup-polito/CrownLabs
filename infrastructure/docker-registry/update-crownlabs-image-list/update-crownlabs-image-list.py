@@ -288,7 +288,7 @@ class ImageListSaver:
 
 
 # Initialize the logger object
-logger = logging.getLogger("list-crownlabs-images")
+logger = logging.getLogger("update-crownlabs-image-list")
 
 def configure_logger():
     """
