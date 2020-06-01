@@ -26,10 +26,13 @@ export default class UserLogic extends React.Component {
   constructor(props) {
     super(props);
     this.connect = this.connect.bind(this);
+    this.retriveImageList = this.retriveImageList.bind(this);
     this.changeSelectedCRDtemplate = this.changeSelectedCRDtemplate.bind(this);
     this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
+    this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
+    this.createCRDtemplate = this.createCRDtemplate.bind(this);
     this.stopCRDinstanceAdmin = this.stopCRDinstanceAdmin.bind(this);
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
@@ -55,6 +58,8 @@ export default class UserLogic extends React.Component {
     );
     this.state = {
       name: parsedToken.name,
+      registryName: '',
+      imageList: new Map(),
       templateLabs: new Map(),
       instanceLabs: new Map(),
       templateLabsAdmin: new Map(),
@@ -67,6 +72,7 @@ export default class UserLogic extends React.Component {
       statusHidden: true,
       adminHidden: true
     };
+    this.retriveImageList();
     this.retrieveCRDtemplates();
     this.retrieveCRDinstances()
       .catch(error => {
@@ -208,6 +214,27 @@ export default class UserLogic extends React.Component {
   }
 
   /**
+   * Function to start and create a CRD template
+   */
+  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+    this.apiManager
+      .createCRDtemplate(namespace, lab_number, description, cpu, memory, image)
+      .then(response => {
+        Toastr.success(`Successfully create template \`${description}\``);
+        const newMap = this.state.templateLabs;
+        newMap.set(response.body.metadata.name, { status: 0, url: null });
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      })
+      .finally(() => {
+        this.state.templateLabs.clear();
+        this.state.templateLabsAdmin.clear();
+        this.retrieveCRDtemplates();
+      });
+  }
+
+  /**
    * Function to stop and delete the current selected CRD instance
    */
   stopCRDinstance() {
@@ -237,6 +264,40 @@ export default class UserLogic extends React.Component {
       });
   }
 
+  deleteCRDtemplate() {
+    if (!this.state.selectedTemplate) {
+      Toastr.info('No template to delete has been selected');
+      return;
+    }
+    if (
+      !this.state.templateLabsAdmin.has(this.state.selectedTemplate.namespace)
+    ) {
+      Toastr.info(
+        `The \`${this.state.selectedTemplate.name} template is not managed by you`
+      );
+      return;
+    }
+
+    this.apiManager
+      .deleteCRDtemplate(
+        this.state.selectedTemplate.namespace,
+        this.state.selectedTemplate.name
+      )
+      .then(() => {
+        Toastr.success(
+          `Successfully deleted \`${this.state.selectedTemplate.name}\``
+        );
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      })
+      .finally(() => {
+        this.state.templateLabs.clear();
+        this.state.templateLabsAdmin.clear();
+        this.retrieveCRDtemplates();
+      });
+  }
+
   /**
    * Function to stop and delete the current selected CRD instance
    */
@@ -246,16 +307,14 @@ export default class UserLogic extends React.Component {
       return;
     }
     if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
-      Toastr.info(
-        'The `' + this.state.selectedInstance + '` lab is not running'
-      );
+      Toastr.info(`The \`${this.state.selectedInstance}\` lab is not running`);
       return;
     }
     this.apiManager
       .deleteCRDinstance(this.state.selectedInstance)
       .then(() => {
         Toastr.success(
-          'Successfully stopped `' + this.state.selectedInstance + '`'
+          `Successfully stopped \`${this.state.selectedInstance}\``
         );
       })
       .catch(error => {
@@ -505,6 +564,26 @@ export default class UserLogic extends React.Component {
   }
 
   /**
+   * Private function to retrieve all CRD instances running
+   */
+  retriveImageList() {
+    this.apiManager
+      .retrieveImageList()
+      .then(nodesResponse => {
+        const newMap = this.state.imageList;
+        this.setState({ registryName: nodesResponse.body.spec.registryName });
+        nodesResponse.body.spec.images.map(x => {
+          newMap.set(x.name, x.versions);
+          return x.name;
+        });
+        this.setState({ imageList: newMap });
+      })
+      .catch(error => {
+        this.handleErrors(error);
+      });
+  }
+
+  /**
    * Function to render this component,
    * It automatically updates every new change in the state variable
    * @returns the component to be drawn
@@ -523,14 +602,18 @@ export default class UserLogic extends React.Component {
           }
         />
         <Body
+          registryName={this.state.registryName}
+          retriveImageList={this.state.imageList}
+          adminGroups={this.state.adminGroups}
           templateLabsAdmin={this.state.templateLabsAdmin}
           instanceLabsAdmin={this.state.instanceLabsAdmin}
           templateLabs={this.state.templateLabs}
+          funcNewTemplate={this.createCRDtemplate}
           instanceLabs={this.state.instanceLabs}
-          funcNewTemplate={this.apiManager.createCRDtemplate}
           funcTemplate={this.changeSelectedCRDtemplate}
           funcInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
+          delete={this.deleteCRDtemplate}
           connect={this.connect}
           connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}

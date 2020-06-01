@@ -31,6 +31,19 @@ export default class ApiManager {
     this.instanceNamespace = instanceNS;
   }
 
+  async retrieveImageList() {
+    return await this.apiCRD
+      .getClusterCustomObject(
+        'crownlabs.polito.it',
+        'v1alpha1',
+        'imagelists',
+        'crownlabs-virtual-machine-images'
+      )
+      .catch(error => {
+        Promise.reject(error);
+      });
+  }
+
   /**
    * Private function called to retrieve all lab templates for a specific course (called by getCRDtemplates)
    *
@@ -134,6 +147,17 @@ export default class ApiManager {
     );
   }
 
+  deleteCRDtemplate(namespace, name) {
+    return this.apiCRD.deleteNamespacedCustomObject(
+      this.templateGroup,
+      this.version,
+      namespace,
+      this.templatePlural,
+      name,
+      {}
+    );
+  }
+
   /**
    * Function to create a lab template (by a professor)
    * @param course_code
@@ -144,16 +168,72 @@ export default class ApiManager {
    * @param image
    * @param namespace the namespace where the template should be created
    */
-  createCRDtemplate(
-    course_code,
-    lab_number,
-    description,
-    cpu,
-    memory,
-    image,
-    namespace
-  ) {
-    // TODO: add body
+  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+    const courseName = namespace.split('course-')[1];
+
+    return this.apiCRD.createNamespacedCustomObject(
+      this.templateGroup,
+      this.version,
+      namespace,
+      this.templatePlural,
+      {
+        apiVersion: `${this.templateGroup}/${this.version}`,
+        kind: 'LabTemplate',
+        metadata: {
+          name: `${courseName}-lab${lab_number}`,
+          namespace
+        },
+        spec: {
+          courseName,
+          description,
+          labName: `${courseName}-lab${lab_number}`,
+          labNum: lab_number,
+          vm: {
+            apiVersion: 'kubevirt.io/v1alpha3',
+            kind: 'VirtualMachineInstance',
+            metadata: {
+              labels: {
+                name: `${courseName}-lab${lab_number}`
+              },
+              name: `${courseName}-lab${lab_number}`,
+              namespace
+            },
+            spec: {
+              domain: {
+                cpu: { cores: cpu },
+                devices: {
+                  disks: [
+                    { disk: { bus: 'virtio' }, name: 'containerdisk' },
+                    { disk: { bus: 'virtio' }, name: 'cloudinitdisk' }
+                  ]
+                },
+                memory: { guest: `${memory}G` },
+                resources: {
+                  limits: { cpu: `${cpu + 1}`, memory: `${memory + 1}G` },
+                  requests: { cpu: `${cpu}`, memory: `${memory}G` }
+                }
+              },
+              volumes: [
+                {
+                  containerDisk: {
+                    image,
+                    imagePullSecret: 'registry-credentials'
+                  },
+                  name: 'containerdisk'
+                },
+                {
+                  cloudInitNoCloud: {
+                    secretRef: { name: `${courseName}-lab${lab_number}` }
+                  },
+                  name: 'cloudinitdisk'
+                }
+              ],
+              terminationGracePeriodSeconds: 30
+            }
+          }
+        }
+      }
+    );
   }
 
   /**
