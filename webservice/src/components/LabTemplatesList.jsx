@@ -9,6 +9,7 @@ import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
+import DeleteIcon from '@material-ui/icons/Delete';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
@@ -68,6 +69,21 @@ export default function LabTemplatesList(props) {
                     }
                   />
                 </Tooltip>
+                {selectedIndex === finalIndex && props.delete ? (
+                  <Tooltip title="Delete template">
+                    <IconButton
+                      style={{ color: 'red' }}
+                      button="true"
+                      onClick={e => {
+                        props.delete();
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick on ListItem
+                      }}
+                    >
+                      <DeleteIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
                 {selectedIndex === finalIndex && props.start ? (
                   <Tooltip title="Create VM">
                     <IconButton

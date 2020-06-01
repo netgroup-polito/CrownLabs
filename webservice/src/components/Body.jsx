@@ -53,6 +53,9 @@ export default function Body(props) {
       >
         {!props.adminHidden ? (
           <ProfessorView
+            registryName={props.registryName}
+            imageList={props.retriveImageList}
+            adminGroups={props.adminGroups}
             templateLabs={props.templateLabsAdmin}
             instanceLabs={props.instanceLabsAdmin}
             events={props.events}
@@ -61,12 +64,10 @@ export default function Body(props) {
             connect={props.connectAdmin}
             showStatus={props.showStatus}
             hidden={props.hidden}
-            createTemplate={props.funcNewTemplate}
+            funcNewTemplate={props.funcNewTemplate}
             start={props.start}
             stop={props.stopAdmin}
-            // createLab={this.apiManager.createCRDinstance(this.MyName,this.MyNamespace)}
-            // deleteLab={this.apiManager.deleteCRDinstance(this.MyName)}
-            // enableOdisable={this.apiManager.setCRDinstanceStatus(CRDinstanceStatus)}
+            delete={props.delete}
           />
         ) : (
           <StudentView
