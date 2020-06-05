@@ -1,73 +1,16 @@
-body {
-  margin: 0;
+html {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  width: 100%;
+}
+
+body {
+  height: 100%;
+  width: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#main {
-  width: 100%;
-  height: 100%;
-}
-
-html {
-  height: 100%;
-  margin: 0;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-.headerstyle {
-  background-color: transparent;
-  border: none;
-  width: 100%;
-}
-
-.cover {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
-  position: absolute;
-  overflow-y: auto;
-}
-
-.footerstyle {
-  height: 70px;
-  background-color: #032364;
-  font-size: 1.2rem;
-}
-
-.textareastyle {
-  color: white;
-  border-color: #2e2e2e;
-  background-color: #2e2e2e;
-  width: 100%;
-  height: 150px;
-  resize: none;
-  border-radius: 10px;
-  font-size: 15px;
-}
-
-.nav_new {
-  max-width: 1920px;
-  flex: 1;
-}
-
-.navText {
-  font-family: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
-}
-
-.rotating {
-  animation: rotate 1.5s ease-in-out infinite;
-}
-
+/*definition for rotate animation (used by hourglass icon)*/
 @keyframes rotate {
   from {
     transform: rotateZ(0deg);
