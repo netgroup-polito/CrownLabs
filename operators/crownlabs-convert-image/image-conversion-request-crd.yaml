@@ -1,0 +1,85 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: imageconversionrequests.crownlabs.polito.it
+spec:
+  group: crownlabs.polito.it
+  names:
+    kind: ImageConversionRequest
+    listKind: ImageConversionRequestList
+    plural: imageconversionrequests
+    singular: imageconversionrequest
+    shortNames:
+    - imagecr
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: ImageConversionRequest is the Schema for the imageconversionrequests API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info:
+              https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info:
+              https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: 'ImageConversionRequestSpec defines the desired state of ImageConversionRequest'
+            properties:
+              dockerImageName:
+                description: 'The name assigned to the converted VM image stored in the Docker registry'
+                pattern: ^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$
+                type: string
+              sourceType:
+                default: ExternalUrl
+                description: 'The type of source the VM image to be converted is retrieved from'
+                enum:
+                  - ExternalUrl
+                type: string
+              sourceUri:
+                description: 'The location the VM image to be converted is retrieved from'
+                format: uri
+                type: string
+            required:
+              - dockerImageName
+              - sourceUri
+            type: object
+          status:
+            description: 'ImageConversionRequestStatus defines the observed state of ImageConversionRequest'
+            properties:
+              conversionPhase:
+                default: Unknown
+                description: 'The current phase of the conversion process'
+                enum:
+                  - ConversionCompleted
+                  - ConvertingImage
+                  - DownloadingImage
+                  - ConversionFailed
+                  - Unknown
+                  - UploadingImage
+                type: string
+            type: object
+        required:
+          - spec
+        type: object
+    additionalPrinterColumns:
+      - description: 'The name assigned to the converted VM image stored in the Docker registry'
+        name: dockerImageName
+        jsonPath: .spec.dockerImageName
+        type: string
+      - description: 'The current phase of the conversion process'
+        name: conversionPhase
+        jsonPath: .status.conversionPhase
+        type: string
