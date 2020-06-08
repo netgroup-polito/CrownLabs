@@ -39,48 +39,68 @@ export default function Body(props) {
       document.getElementById('footer').style.background = '#032364';
     }
   };
+  const {
+    adminHidden,
+    registryName,
+    retriveImageList,
+    adminGroups,
+    templateLabsAdmin,
+    instanceLabsAdmin,
+    events,
+    funcTemplate,
+    funcInstance,
+    connectAdmin,
+    showStatus,
+    hidden,
+    funcNewTemplate,
+    start,
+    stopAdmin,
+    deleteLabTemplate,
+    templateLabs,
+    instanceLabs,
+    connect,
+    stop
+  } = props;
 
   return (
-    <ThemeProvider
-      theme={theme === 'light' ? lightTheme : darkTheme}
-      // the height of the container is viewport heigh - header height(70) - footer height(70)
-    >
+    <ThemeProvider theme={theme === 'light' ? lightTheme : darkTheme}>
       <div
         style={{
+          // the height of the container is viewport heigh - header height(70) - footer height(70)
           height: 'calc(100vh - 134px)',
           overflow: 'auto'
         }}
       >
-        {!props.adminHidden ? (
+        {!adminHidden ? (
           <ProfessorView
-            registryName={props.registryName}
-            imageList={props.retriveImageList}
-            adminGroups={props.adminGroups}
-            templateLabs={props.templateLabsAdmin}
-            instanceLabs={props.instanceLabsAdmin}
-            events={props.events}
-            funcTemplate={props.funcTemplate}
-            funcInstance={props.funcInstance}
-            connect={props.connectAdmin}
-            showStatus={props.showStatus}
-            hidden={props.hidden}
-            funcNewTemplate={props.funcNewTemplate}
-            start={props.start}
-            stop={props.stopAdmin}
-            delete={props.delete}
+            registryName={registryName}
+            imageList={retriveImageList}
+            adminGroups={adminGroups}
+            templateLabs={templateLabsAdmin}
+            instanceLabs={instanceLabsAdmin}
+            events={events}
+            funcTemplate={funcTemplate}
+            funcInstance={funcInstance}
+            connect={connectAdmin}
+            showStatus={showStatus}
+            hidden={hidden}
+            funcNewTemplate={funcNewTemplate}
+            start={start}
+            stop={stopAdmin}
+            deleteLabTemplate={deleteLabTemplate}
           />
         ) : (
           <StudentView
-            templateLabs={props.templateLabs}
-            instanceLabs={props.instanceLabs}
-            funcTemplate={props.funcTemplate}
-            funcInstance={props.funcInstance}
-            start={props.start}
-            connect={props.connect}
-            stop={props.stop}
-            events={props.events}
-            showStatus={props.showStatus}
-            hidden={props.hidden}
+            templateLabs={templateLabs}
+            instanceLabs={instanceLabs}
+            funcTemplate={funcTemplate}
+            funcInstance={funcInstance}
+            start={start}
+            connect={connect}
+            stop={stop}
+            events={events}
+            showStatus={showStatus}
+            hidden={hidden}
           />
         )}
       </div>

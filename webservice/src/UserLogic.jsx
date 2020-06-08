@@ -3,9 +3,46 @@ import Toastr from 'toastr';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import ApiManager from './services/ApiManager';
-
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
+
+/**
+ * Function to parse a JWT token
+ * @param token the token received by keycloak
+ * @returns {any} the decrypted token as a JSON object
+ */
+function parseJWTtoken(token) {
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  return JSON.parse(
+    decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => {
+          return `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`;
+        })
+        .join('')
+    )
+  );
+}
+
+/**
+ * Function to check the token, but encoded and decoded
+ * @param parsed the decoded one
+ * @return {boolean} true or false whether the token satisfies the constraints
+ */
+function checkToken(parsed) {
+  if (!parsed.groups || !parsed.groups.length) {
+    Toastr.error('You do not belong to any namespace to see laboratories');
+    return false;
+  }
+  if (!parsed.namespace || !parsed.namespace[0]) {
+    Toastr.error(
+      'You do not have your own namespace where to run laboratories'
+    );
+    return false;
+  }
+  return true;
+}
 
 /**
  * Main window class, by now rendering only the unprivileged user view
@@ -23,8 +60,10 @@ export default class UserLogic extends React.Component {
    * - boolean variable whether to show the status info area
    * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
    * */
+
   constructor(props) {
     super(props);
+    const { idToken, tokenType } = props;
     this.connect = this.connect.bind(this);
     this.retriveImageList = this.retriveImageList.bind(this);
     this.changeSelectedCRDtemplate = this.changeSelectedCRDtemplate.bind(this);
@@ -37,9 +76,9 @@ export default class UserLogic extends React.Component {
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
-    const parsedToken = this.parseJWTtoken(this.props.id_token);
+    const parsedToken = parseJWTtoken(idToken);
     this.theme = false;
-    if (!this.checkToken(parsedToken)) {
+    if (!checkToken(parsedToken)) {
       this.logoutInterval();
     }
     /* Differentiate the two different kind of group: where the user is admin (professor or PhD) and the one where he is just a student */
@@ -50,8 +89,8 @@ export default class UserLogic extends React.Component {
       .filter(x => x.includes('kubernetes:') && !x.includes('-admin'))
       .map(x => x.replace('kubernetes:', ''));
     this.apiManager = new ApiManager(
-      this.props.id_token,
-      this.props.token_type,
+      idToken,
+      tokenType,
       parsedToken.preferred_username,
       userGroups,
       parsedToken.namespace[0]
@@ -68,7 +107,6 @@ export default class UserLogic extends React.Component {
       selectedTemplate: { name: null, namespace: null },
       selectedInstance: null,
       events: '',
-      eventsAdmin: '',
       statusHidden: true,
       adminHidden: true
     };
@@ -97,56 +135,19 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to parse a JWT token
-   * @param token the token received by keycloak
-   * @returns {any} the decrypted token as a JSON object
-   */
-  parseJWTtoken(token) {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(
-      decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(function (c) {
-            return `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`;
-          })
-          .join('')
-      )
-    );
-  }
-
-  /**
-   * Function to check the token, but encoded and decoded
-   * @param parsed the decoded one
-   * @return {boolean} true or false whether the token satisfies the constraints
-   */
-  checkToken(parsed) {
-    if (!parsed.groups || !parsed.groups.length) {
-      Toastr.error('You do not belong to any namespace to see laboratories');
-      return false;
-    }
-    if (!parsed.namespace || !parsed.namespace[0]) {
-      Toastr.error(
-        'You do not have your own namespace where to run laboratories'
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /**
    * Private function to retrieve all CRD templates available
    */
   retrieveCRDtemplates() {
+    const { templateLabs, templateLabsAdmin, adminGroups } = this.state;
     this.apiManager
       .getCRDtemplates()
       .then(res => {
-        const newMap = this.state.templateLabs;
-        const newMapAdmin = this.state.templateLabsAdmin;
+        const newMap = templateLabs;
+        const newMapAdmin = templateLabsAdmin;
         res.forEach(x => {
           if (x) {
             newMap.set(x.course, x.labs);
-            if (this.state.adminGroups.includes(x.course))
+            if (adminGroups.includes(x.course))
               newMapAdmin.set(x.course, x.labs);
           }
         });
@@ -161,11 +162,12 @@ export default class UserLogic extends React.Component {
    * Private function to retrieve all CRD instances running
    */
   retrieveCRDinstances() {
+    const { instanceLabs } = this.state;
     return this.apiManager
       .getCRDinstances()
       .then(nodesResponse => {
         const nodes = nodesResponse.body.items;
-        const newMap = this.state.instanceLabs;
+        const newMap = instanceLabs;
         nodes.forEach(x => {
           if (!newMap.has(x.metadata.name)) {
             newMap.set(x.metadata.name, { status: 0, url: null });
@@ -182,26 +184,20 @@ export default class UserLogic extends React.Component {
    * Function to start and create a CRD instance using the actual selected one
    */
   startCRDinstance() {
-    if (!this.state.selectedTemplate.name) {
+    const { selectedTemplate, instanceLabs } = this.state;
+    if (!selectedTemplate.name) {
       Toastr.info('Please select a lab before starting it');
       return;
     }
-    if (this.state.instanceLabs.has(this.state.selectedTemplate.name)) {
-      Toastr.info(
-        `The \`${this.state.selectedTemplate.name}\` lab is already running`
-      );
+    if (instanceLabs.has(selectedTemplate.name)) {
+      Toastr.info(`The \`${selectedTemplate.name}\` lab is already running`);
       return;
     }
     this.apiManager
-      .createCRDinstance(
-        this.state.selectedTemplate.name,
-        this.state.selectedTemplate.namespace
-      )
+      .createCRDinstance(selectedTemplate.name, selectedTemplate.namespace)
       .then(response => {
-        Toastr.success(
-          `Successfully started lab \`${this.state.selectedTemplate.name}\``
-        );
-        const newMap = this.state.instanceLabs;
+        Toastr.success(`Successfully started lab \`${selectedTemplate.name}\``);
+        const newMap = instanceLabs;
         newMap.set(response.body.metadata.name, { status: 0, url: null });
         this.setState({ instanceLabs: newMap });
       })
@@ -216,20 +212,21 @@ export default class UserLogic extends React.Component {
   /**
    * Function to start and create a CRD template
    */
-  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+  createCRDtemplate(namespace, labNumber, description, cpu, memory, image) {
+    const { templateLabs, templateLabsAdmin } = this.state;
     this.apiManager
-      .createCRDtemplate(namespace, lab_number, description, cpu, memory, image)
+      .createCRDtemplate(namespace, labNumber, description, cpu, memory, image)
       .then(response => {
         Toastr.success(`Successfully create template \`${description}\``);
-        const newMap = this.state.templateLabs;
+        const newMap = templateLabs;
         newMap.set(response.body.metadata.name, { status: 0, url: null });
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        this.state.templateLabs.clear();
-        this.state.templateLabsAdmin.clear();
+        templateLabs.clear();
+        templateLabsAdmin.clear();
         this.retrieveCRDtemplates();
       });
   }
@@ -238,62 +235,55 @@ export default class UserLogic extends React.Component {
    * Function to stop and delete the current selected CRD instance
    */
   stopCRDinstance() {
-    if (!this.state.selectedInstance) {
+    const { selectedInstance, instanceLabs } = this.state;
+    if (!selectedInstance) {
       Toastr.info('No lab to stop has been selected');
       return;
     }
-    if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
-      Toastr.info(`The \`${this.state.selectedInstance}\` lab is not running`);
+    if (!instanceLabs.has(selectedInstance)) {
+      Toastr.info(`The \`${selectedInstance}\` lab is not running`);
       return;
     }
     this.apiManager
-      .deleteCRDinstance(this.state.selectedInstance)
+      .deleteCRDinstance(selectedInstance)
       .then(() => {
-        Toastr.success(
-          `Successfully stopped \`${this.state.selectedInstance}\``
-        );
+        Toastr.success(`Successfully stopped \`${selectedInstance}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        const newMap = this.state.instanceLabs;
-        newMap.delete(this.state.selectedInstance);
+        const newMap = instanceLabs;
+        newMap.delete(selectedInstance);
         this.setState({ instanceLabs: newMap });
         this.changeSelectedCRDinstance(null);
       });
   }
 
   deleteCRDtemplate() {
-    if (!this.state.selectedTemplate) {
+    const { selectedTemplate, templateLabsAdmin, templateLabs } = this.state;
+    if (!selectedTemplate) {
       Toastr.info('No template to delete has been selected');
       return;
     }
-    if (
-      !this.state.templateLabsAdmin.has(this.state.selectedTemplate.namespace)
-    ) {
+    if (!templateLabsAdmin.has(selectedTemplate.namespace)) {
       Toastr.info(
-        `The \`${this.state.selectedTemplate.name} template is not managed by you`
+        `The \`${selectedTemplate.name} template is not managed by you`
       );
       return;
     }
 
     this.apiManager
-      .deleteCRDtemplate(
-        this.state.selectedTemplate.namespace,
-        this.state.selectedTemplate.name
-      )
+      .deleteCRDtemplate(selectedTemplate.namespace, selectedTemplate.name)
       .then(() => {
-        Toastr.success(
-          `Successfully deleted \`${this.state.selectedTemplate.name}\``
-        );
+        Toastr.success(`Successfully deleted \`${selectedTemplate.name}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        this.state.templateLabs.clear();
-        this.state.templateLabsAdmin.clear();
+        templateLabs.clear();
+        templateLabsAdmin.clear();
         this.retrieveCRDtemplates();
       });
   }
@@ -302,27 +292,26 @@ export default class UserLogic extends React.Component {
    * Function to stop and delete the current selected CRD instance
    */
   stopCRDinstanceAdmin() {
-    if (!this.state.selectedInstance) {
+    const { selectedInstance, instanceLabsAdmin } = this.state;
+    if (!selectedInstance) {
       Toastr.info('No lab to stop has been selected');
       return;
     }
-    if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
-      Toastr.info(`The \`${this.state.selectedInstance}\` lab is not running`);
+    if (!instanceLabsAdmin.has(selectedInstance)) {
+      Toastr.info(`The \`${selectedInstance}\` lab is not running`);
       return;
     }
     this.apiManager
-      .deleteCRDinstance(this.state.selectedInstance)
+      .deleteCRDinstance(selectedInstance)
       .then(() => {
-        Toastr.success(
-          `Successfully stopped \`${this.state.selectedInstance}\``
-        );
+        Toastr.success(`Successfully stopped \`${selectedInstance}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        const newMap = this.state.instanceLabsAdmin;
-        newMap.delete(this.state.selectedInstance);
+        const newMap = instanceLabsAdmin;
+        newMap.delete(selectedInstance);
         this.setState({ instanceLabsAdmin: newMap });
         this.changeSelectedCRDinstance(null);
       });
@@ -333,8 +322,9 @@ export default class UserLogic extends React.Component {
    */
   logoutInterval() {
     setInterval(() => {
+      const { logout } = this.props;
       /* A reload probably is sufficient to re-authN the token */
-      this.props.logout();
+      logout();
     }, 2000);
   }
 
@@ -342,28 +332,25 @@ export default class UserLogic extends React.Component {
    * Function to connect to the VM of the actual user selected CRD instance
    */
   connect() {
-    if (!this.state.selectedInstance) {
+    const { selectedInstance, instanceLabs } = this.state;
+    if (!selectedInstance) {
       Toastr.info('No running lab selected to connect to');
       return;
     }
-    if (!this.state.instanceLabs.has(this.state.selectedInstance)) {
-      Toastr.info(`The lab \`${this.state.selectedInstance}\` is not running`);
+    if (!instanceLabs.has(selectedInstance)) {
+      Toastr.info(`The lab \`${selectedInstance}\` is not running`);
       return;
     }
-    switch (this.state.instanceLabs.get(this.state.selectedInstance).status) {
+    switch (instanceLabs.get(selectedInstance).status) {
       case 1:
-        window.open(
-          this.state.instanceLabs.get(this.state.selectedInstance).url
-        );
+        window.open(instanceLabs.get(selectedInstance).url);
         break;
       case 0:
-        Toastr.info(
-          `The lab \`${this.state.selectedInstance}\` is still starting`
-        );
+        Toastr.info(`The lab \`${selectedInstance}\` is still starting`);
         break;
       default:
         Toastr.info(
-          `An error has occurred with the lab \`${this.state.selectedInstance}\``
+          `An error has occurred with the lab \`${selectedInstance}\``
         );
         break;
     }
@@ -375,30 +362,25 @@ export default class UserLogic extends React.Component {
    * Function to connect to the VM of the actual admin selected CRD instance
    */
   connectAdmin() {
-    if (!this.state.selectedInstance) {
+    const { selectedInstance, instanceLabsAdmin } = this.state;
+    if (!selectedInstance) {
       Toastr.info('No running lab selected to connect to');
       return;
     }
-    if (!this.state.instanceLabsAdmin.has(this.state.selectedInstance)) {
-      Toastr.info(`The lab \`${this.state.selectedInstance}\` is not running`);
+    if (!instanceLabsAdmin.has(selectedInstance)) {
+      Toastr.info(`The lab \`${selectedInstance}\` is not running`);
       return;
     }
-    switch (
-      this.state.instanceLabsAdmin.get(this.state.selectedInstance).status
-    ) {
+    switch (instanceLabsAdmin.get(selectedInstance).status) {
       case 1:
-        window.open(
-          this.state.instanceLabsAdmin.get(this.state.selectedInstance).url
-        );
+        window.open(instanceLabsAdmin.get(selectedInstance).url);
         break;
       case 0:
-        Toastr.info(
-          `The lab \`${this.state.selectedInstance}\` is still starting`
-        );
+        Toastr.info(`The lab \`${selectedInstance}\` is still starting`);
         break;
       default:
         Toastr.info(
-          `An error has occurred with the lab \`${this.state.selectedInstance}\``
+          `An error has occurred with the lab \`${selectedInstance}\``
         );
         break;
     }
@@ -412,14 +394,15 @@ export default class UserLogic extends React.Component {
    * Function to retrieve all CRD instances status
    */
   retrieveCRDinstanceStatus() {
-    const keys = Array.from(this.state.instanceLabs.keys());
+    const { instanceLabs, events } = this.state;
+    const keys = Array.from(instanceLabs.keys());
     keys.forEach(lab => {
       this.apiManager
         .getCRDstatus(lab)
         .then(response => {
           if (response.body.status && response.body.status.phase) {
             const msg = `[${response.body.metadata.creationTimestamp}] ${lab} => ${response.body.status.phase}`;
-            const newMap = this.state.instanceLabs;
+            const newMap = instanceLabs;
             if (response.body.status.phase.match(/Fail|Not/g)) {
               /* Object creation failed */
               newMap.set(lab, { url: null, status: -1 });
@@ -429,7 +412,7 @@ export default class UserLogic extends React.Component {
             }
             this.setState({
               instanceLabs: newMap,
-              events: `${msg}\n${this.state.events}`
+              events: `${msg}\n${events}`
             });
           }
         })
@@ -445,6 +428,7 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
+    const { instanceLabs, events } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -454,7 +438,7 @@ export default class UserLogic extends React.Component {
     }
     if (object && object.status) {
       const msg = `[${object.metadata.creationTimestamp}] ${object.metadata.name} {type: ${type}, status: ${object.status.phase}}`;
-      const newMap = this.state.instanceLabs;
+      const newMap = instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
         newMap.set(object.metadata.name, { url: null, status: -1 });
@@ -469,7 +453,7 @@ export default class UserLogic extends React.Component {
       }
       this.setState({
         instanceLabs: newMap,
-        events: `${msg}\n${this.state.events}`
+        events: `${msg}\n${events}`
       });
     }
   }
@@ -480,18 +464,17 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEventAdmin(type, object) {
+    const { adminGroups, instanceLabsAdmin } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
       this.apiManager.startWatching(this.notifyEventAdmin, {
-        labelSelector: `template-namespace in (${this.state.adminGroups.join()})`
+        labelSelector: `template-namespace in (${adminGroups.join()})`
       });
-      this.setState({ eventsAdmin: '' });
       return;
     }
     if (object && object.status) {
-      const msg = `[${object.metadata.creationTimestamp}] ${object.metadata.name} {type: ${type}, status: ${object.status.phase}}`;
-      const newMap = this.state.instanceLabsAdmin;
+      const newMap = instanceLabsAdmin;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
         newMap.set(object.metadata.name, { url: null, status: -1 });
@@ -510,8 +493,7 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, { url: null, status: 0 });
       }
       this.setState({
-        instanceLabsAdmin: newMap,
-        eventsAdmin: `${msg}\n${this.state.events}`
+        instanceLabsAdmin: newMap
       });
     }
   }
@@ -541,6 +523,8 @@ export default class UserLogic extends React.Component {
    */
   handleErrors(error) {
     let msg = '';
+    // next eslint-disable is because the k8s_library uses the dash in their implementation
+    // eslint-disable-next-line no-underscore-dangle
     switch (error.response._fetchResponse.status) {
       case 401:
         msg += 'Forbidden, something in the ticket renewal failed';
@@ -557,6 +541,8 @@ export default class UserLogic extends React.Component {
         msg += 'The resource is already present';
         break;
       default:
+        // next eslint-disable is because the k8s_library uses the dash in their implementation
+        // eslint-disable-next-line no-underscore-dangle
         msg += `An error occurred(${error.response._fetchResponse.status}), please login again`;
         this.logoutInterval();
     }
@@ -567,10 +553,11 @@ export default class UserLogic extends React.Component {
    * Private function to retrieve all CRD instances running
    */
   retriveImageList() {
+    const { imageList } = this.state;
     this.apiManager
       .retrieveImageList()
       .then(nodesResponse => {
-        const newMap = this.state.imageList;
+        const newMap = imageList;
         this.setState({ registryName: nodesResponse.body.spec.registryName });
         nodesResponse.body.spec.images.map(x => {
           newMap.set(x.name, x.versions);
@@ -589,41 +576,51 @@ export default class UserLogic extends React.Component {
    * @returns the component to be drawn
    */
   render() {
+    const { logout } = this.props;
+    const {
+      name,
+      adminHidden,
+      adminGroups,
+      registryName,
+      imageList,
+      templateLabsAdmin,
+      instanceLabsAdmin,
+      templateLabs,
+      instanceLabs,
+      events,
+      statusHidden
+    } = this.state;
     return (
       <div id="body" style={{ height: '100%', background: '#fafafa' }}>
         <Header
           logged
-          logout={this.props.logout}
-          name={this.state.name}
-          adminHidden={this.state.adminHidden}
-          renderAdminBtn={this.state.adminGroups.length > 0}
-          switchAdminView={() =>
-            this.setState({ adminHidden: !this.state.adminHidden })
-          }
+          logout={logout}
+          name={name}
+          adminHidden={adminHidden}
+          renderAdminBtn={adminGroups.length > 0}
+          switchAdminView={() => this.setState({ adminHidden: !adminHidden })}
         />
         <Body
-          registryName={this.state.registryName}
-          retriveImageList={this.state.imageList}
-          adminGroups={this.state.adminGroups}
-          templateLabsAdmin={this.state.templateLabsAdmin}
-          instanceLabsAdmin={this.state.instanceLabsAdmin}
-          templateLabs={this.state.templateLabs}
+          registryName={registryName}
+          retriveImageList={imageList}
+          adminGroups={adminGroups}
+          templateLabsAdmin={templateLabsAdmin}
+          instanceLabsAdmin={instanceLabsAdmin}
+          templateLabs={templateLabs}
           funcNewTemplate={this.createCRDtemplate}
-          instanceLabs={this.state.instanceLabs}
+          instanceLabs={instanceLabs}
           funcTemplate={this.changeSelectedCRDtemplate}
           funcInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
-          delete={this.deleteCRDtemplate}
+          deleteLabTemplate={this.deleteCRDtemplate}
           connect={this.connect}
           connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
           stopAdmin={this.stopCRDinstanceAdmin}
-          events={this.state.events}
-          showStatus={() =>
-            this.setState({ statusHidden: !this.state.statusHidden })
-          }
-          hidden={this.state.statusHidden}
-          adminHidden={this.state.adminHidden}
+          events={events}
+          showStatus={() => this.setState({ statusHidden: !statusHidden })}
+          hidden={statusHidden}
+          adminHidden={adminHidden}
         />
         <Footer />
       </div>

@@ -11,7 +11,7 @@ import ProfIcon from '@material-ui/icons/School';
 import HomeIcon from '@material-ui/icons/Home';
 import LogoutIcon from '@material-ui/icons/MeetingRoom';
 import { Tooltip } from '@material-ui/core';
-
+import * as CrownLogo from '../assets/crown.png';
 /**
  * Function to draw the page header
  * @param props the property to check whether it is logged or not, to draw the apposite component
@@ -38,11 +38,18 @@ export default function Header(props) {
   const classes = useStyles();
   const [theme, setTheme] = useState('light');
   const iconColor = '#FFFFFF';
-
-  const adminBtn = props.renderAdminBtn ? (
+  const {
+    renderAdminBtn,
+    switchAdminView,
+    adminHidden,
+    logged,
+    name,
+    logout
+  } = props;
+  const adminBtn = renderAdminBtn ? (
     <Tooltip title="Switch professor/student view">
-      <IconButton onClick={props.switchAdminView}>
-        {props.adminHidden ? (
+      <IconButton onClick={switchAdminView}>
+        {adminHidden ? (
           <ProfIcon style={{ color: iconColor }} />
         ) : (
           <HomeIcon style={{ color: iconColor }} />
@@ -56,7 +63,7 @@ export default function Header(props) {
       <AppBar id="toolbar" position="static" style={{ background: '#032364' }}>
         <Toolbar>
           <img
-            src={require('../assets/crown.png')}
+            src={CrownLogo}
             style={{ marginRight: '20px', height: '40px' }}
             alt=""
           />
@@ -71,10 +78,14 @@ export default function Header(props) {
               fontStyle: 'italic'
             }}
           >
-            {props.logged && props.name ? ` Welcome back, ${props.name}!` : ''}
+            {logged && name ? ` Welcome back, ${name}!` : ''}
           </Typography>
-          {props.logged ? (
-            <a href="https://crownlabs.polito.it/cloud" target="_blank">
+          {logged ? (
+            <a
+              href="https://crownlabs.polito.it/cloud"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Tooltip title="MyDrive">
                 <IconButton aria-label="MyDrive">
                   <FolderSharedIcon style={{ color: iconColor }} />
@@ -98,9 +109,9 @@ export default function Header(props) {
               )}
             </IconButton>
           </Tooltip>
-          {props.logged && (
+          {logged && (
             <Tooltip title="Logout">
-              <IconButton onClick={props.logout}>
+              <IconButton onClick={logout}>
                 <LogoutIcon style={{ color: iconColor }} />
               </IconButton>
             </Tooltip>

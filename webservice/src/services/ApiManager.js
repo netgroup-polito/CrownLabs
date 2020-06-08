@@ -32,7 +32,7 @@ export default class ApiManager {
   }
 
   async retrieveImageList() {
-    return await this.apiCRD
+    return this.apiCRD
       .getClusterCustomObject(
         'crownlabs.polito.it',
         'v1alpha1',
@@ -78,10 +78,8 @@ export default class ApiManager {
    * calls as a unique synchronized promise
    */
   async getCRDtemplates() {
-    return await Promise.all(
-      this.templateNamespace.map(
-        async x => await this.retrieveSingleCRDtemplate(x)
-      )
+    return Promise.all(
+      this.templateNamespace.map(async x => this.retrieveSingleCRDtemplate(x))
     );
   }
 
@@ -160,15 +158,14 @@ export default class ApiManager {
 
   /**
    * Function to create a lab template (by a professor)
-   * @param course_code
-   * @param lab_number
+   * @param namespace the namespace where the template should be created
+   * @param labNumber
    * @param description
    * @param cpu
    * @param memory
    * @param image
-   * @param namespace the namespace where the template should be created
    */
-  createCRDtemplate(namespace, lab_number, description, cpu, memory, image) {
+  createCRDtemplate(namespace, labNumber, description, cpu, memory, image) {
     const courseName = namespace.split('course-')[1];
 
     return this.apiCRD.createNamespacedCustomObject(
@@ -180,22 +177,22 @@ export default class ApiManager {
         apiVersion: `${this.templateGroup}/${this.version}`,
         kind: 'LabTemplate',
         metadata: {
-          name: `${courseName}-lab${lab_number}`,
+          name: `${courseName}-lab${labNumber}`,
           namespace
         },
         spec: {
           courseName,
           description,
-          labName: `${courseName}-lab${lab_number}`,
-          labNum: lab_number,
+          labName: `${courseName}-lab${labNumber}`,
+          labNum: labNumber,
           vm: {
             apiVersion: 'kubevirt.io/v1alpha3',
             kind: 'VirtualMachineInstance',
             metadata: {
               labels: {
-                name: `${courseName}-lab${lab_number}`
+                name: `${courseName}-lab${labNumber}`
               },
-              name: `${courseName}-lab${lab_number}`,
+              name: `${courseName}-lab${labNumber}`,
               namespace
             },
             spec: {
@@ -223,7 +220,7 @@ export default class ApiManager {
                 },
                 {
                   cloudInitNoCloud: {
-                    secretRef: { name: `${courseName}-lab${lab_number}` }
+                    secretRef: { name: `${courseName}-lab${labNumber}` }
                   },
                   name: 'cloudinitdisk'
                 }
@@ -251,10 +248,10 @@ export default class ApiManager {
       this.kc,
       path,
       queryParam,
-      function (type, object) {
+      (type, object) => {
         func(type, object);
       },
-      function (e) {
+      e => {
         func(null, e);
       }
     );

@@ -54,7 +54,8 @@ export default function LabInstancesList(props) {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
-  const courses = Array.from(props.runningLabs.keys()).map((x, index) => {
+  const { runningLabs } = props;
+  const courses = Array.from(runningLabs.keys()).map((x, index) => {
     const status = props.runningLabs.get(x)
       ? props.runningLabs.get(x).status
       : -1;
@@ -66,7 +67,7 @@ export default function LabInstancesList(props) {
             key={x}
             button
             selected={selectedIndex === index}
-            onClick={event => {
+            onClick={() => {
               setSelectedIndex(index);
               props.func(x, null);
             }}
@@ -150,15 +151,6 @@ export default function LabInstancesList(props) {
           }
         >
           {courses}
-          {/* <Tooltip title="Show status">
-          <IconButton
-            style={{ color: 'green' }}
-            button="true"
-            onClick={props.showStatus}
-          >
-            <VisibilityIcon fontSize="large" />
-          </IconButton>
-        </Tooltip> */}
         </List>
       </ClickAwayListener>
     </Paper>

@@ -1,7 +1,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const RobotstxtPlugin = require('robotstxt-webpack-plugin');
 const path = require('path');
-const webpack = require('webpack');
 
 module.exports = {
   context: __dirname,

@@ -1,4 +1,5 @@
 import React from 'react';
+import CssBaseline from '@material-ui/core/CssBaseline';
 import {
   BrowserRouter as Router,
   Redirect,
@@ -8,21 +9,11 @@ import {
 import UserLogic from './UserLogic';
 import './App.css';
 import Authenticator from './services/Authenticator';
-import CssBaseline from '@material-ui/core/CssBaseline';
-
-/**
- * Dumb function to manage the callback. It renders nothing, just call the function passed as props
- * @param props the function to be executed
- */
-function CallBackHandler(props) {
-  props.func();
-  return <div />;
-}
-
+import CallBackHandler from './components/CallBackHandler';
 /**
  * The main class of this project.
  */
-export class App extends React.Component {
+export default class App extends React.Component {
   /* Unique authN among the entire application;
    * childKey used to redraw UserLogin every token refreshed */
   constructor(props) {
@@ -36,28 +27,29 @@ export class App extends React.Component {
     if (retrievedSessionToken) {
       this.state = {
         logged: true,
-        id_token: retrievedSessionToken.id_token,
-        token_type: retrievedSessionToken.token_type || 'Bearer'
+        idToken: retrievedSessionToken.id_token,
+        tokenType: retrievedSessionToken.token_type || 'Bearer'
       };
     } else {
-      this.state = { logged: false, id_token: null, token_type: null };
+      this.state = { logged: false, idToken: null, tokenType: null };
     }
     this.authManager.manager.events.addUserLoaded(user => {
-      if (user && !this.state.logged) {
+      const { logged } = this.state;
+      if (user && !logged) {
         this.setState({
           logged: true,
-          id_token: user.id_token,
-          token_type: user.token_type || 'Bearer'
+          idToken: user.id_token,
+          tokenType: user.token_type || 'Bearer'
         });
       }
     });
     this.authManager.manager.events.addAccessTokenExpiring(() => {
       this.authManager.manager.signinSilent().then(user => {
-        this.childKey++;
+        this.childKey += 1;
         this.setState({
           logged: true,
-          id_token: user.id_token,
-          token_type: user.token_type || 'Bearer'
+          idToken: user.id_token,
+          tokenType: user.token_type || 'Bearer'
         });
       });
     });
@@ -79,28 +71,30 @@ export class App extends React.Component {
 
             <Route
               path="/userview"
-              render={() =>
-                this.state.logged ? (
+              render={() => {
+                const { logged, idToken, tokenType } = this.state;
+                return logged ? (
                   <UserLogic
                     key={this.childKey}
-                    id_token={this.state.id_token}
-                    token_type={this.state.token_type}
+                    idToken={idToken}
+                    tokenType={tokenType}
                     logout={this.authManager.logout}
                   />
                 ) : (
                   <Redirect to="/login" />
-                )
-              }
+                );
+              }}
             />
             <Route
               path="/callback"
-              render={() =>
-                this.state.logged ? (
+              render={() => {
+                const { logged } = this.state;
+                return logged ? (
                   <Redirect to="/userview" />
                 ) : (
                   <CallBackHandler func={this.authManager.completeLogin} />
-                )
-              }
+                );
+              }}
             />
             <Route path="*">
               <Redirect to="/login" />

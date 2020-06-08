@@ -10,27 +10,36 @@ export const labPapersStyle = {
   flexWrap: 'wrap',
   marginTop: 30
 };
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles(() => ({
   labPapers: labPapersStyle
 }));
 
 export default function StudentView(props) {
   const classes = useStyles();
-
+  const {
+    templateLabs,
+    funcTemplate,
+    start,
+    instanceLabs,
+    funcInstance,
+    connect,
+    stop,
+    showStatus
+  } = props;
   return (
     <>
       <div className={classes.labPapers}>
         <LabTemplatesList
-          labs={props.templateLabs}
-          func={props.funcTemplate}
-          start={props.start}
+          labs={templateLabs}
+          func={funcTemplate}
+          start={start}
         />
         <LabInstancesList
-          runningLabs={props.instanceLabs}
-          func={props.funcInstance}
-          connect={props.connect}
-          stop={props.stop}
-          showStatus={props.showStatus}
+          runningLabs={instanceLabs}
+          func={funcInstance}
+          connect={connect}
+          stop={stop}
+          showStatus={showStatus}
         />
       </div>
     </>

@@ -4,8 +4,8 @@
     "start": "webpack-dev-server --config webpack.config.js",
     "build": "webpack -p --config webpack_docker.config.js --display-error-details",
     "prettify-all": "node_modules/.bin/prettier --write **/*.{js,jsx,json,css}",
-    "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css}",
-    "lint-setup": " npm i -D prettier",
+    "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css} && node_modules/.bin/eslint . --ext .js --ext .jsx",
+    "lint-setup": "npm i && npm run install-k8s",
     "clean-k8s": "cd k8s_library && rm -rf dist && rm package-lock.json && cd ..",
     "install-k8s": "cd k8s_library && npm i && cd .."
   },
@@ -49,7 +49,8 @@
   },
   "lint-staged": {
     "*.{js,jsx,json,css}": [
-      "prettier --write"
+      "prettier --write",
+      "eslint . --ext .js --ext .jsx"
     ]
   },
   "husky": {
@@ -77,6 +78,11 @@
       "plugin:prettier/recommended"
     ],
     "globals": {
+      "OIDC_PROVIDER_URL": "readonly",
+      "OIDC_CLIENT_ID": "readonly",
+      "APISERVER_URL": "readonly",
+      "OIDC_REDIRECT_URI": "readonly",
+      "OIDC_CLIENT_SECRET": "readonly",
       "Atomics": "readonly",
       "SharedArrayBuffer": "readonly"
     },
@@ -90,6 +96,26 @@
     "plugins": [
       "react"
     ],
-    "rules": {}
+    "rules": {
+      "react/no-multi-comp": "error",
+      "react/jsx-pascal-case": "error",
+      "react/prop-types": "off",
+      "no-nested-ternary": "off",
+      "react/jsx-indent": "off",
+      "react/jsx-wrap-multilines": [
+        "error",
+        {
+          "declaration": false
+        }
+      ],
+      "react/jsx-props-no-spreading": [
+        "error",
+        {
+          "exceptions": [
+            "Slide"
+          ]
+        }
+      ]
+    }
   }
 }
