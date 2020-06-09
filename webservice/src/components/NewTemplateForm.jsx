@@ -82,6 +82,16 @@ const IOSSlider = withStyles({
 })(Slider);
 
 export default function TemplateForm(props) {
+  const {
+    namespace,
+    errorcode,
+    adminGroups,
+    labid,
+    image,
+    imageList,
+    version
+  } = props;
+
   const handleChangeVersion = event => {
     props.setVersion(event.target.value);
   };
@@ -95,7 +105,6 @@ export default function TemplateForm(props) {
     props.setImage(event.target.value);
     const len = props.imageList.get(event.target.value).length;
     const array = props.imageList.get(event.target.value);
-    console.log(array[len - 1]);
     props.setVersion(array[len - 1]);
   };
   return (
@@ -113,12 +122,12 @@ export default function TemplateForm(props) {
         name="courseCode"
         select
         label="Course Code"
-        value={props.namespace}
+        value={namespace}
         onChange={handleChangeNamespace}
         variant="outlined"
-        helperText={props.errorcode === 1 ? 'Select a courseCode' : ' '}
+        helperText={errorcode === 1 ? 'Select a courseCode' : ' '}
       >
-        {props.adminGroups.map(x => (
+        {adminGroups.map(x => (
           <MenuItem key={x} value={x}>
             {x.split('course-')[1]}
           </MenuItem>
@@ -133,9 +142,9 @@ export default function TemplateForm(props) {
         label="Lab ID"
         name="labid"
         variant="outlined"
-        value={props.labid}
+        value={labid}
         onChange={handleChangeLabid}
-        helperText={props.errorcode === 2 ? 'Insert a valid labID!' : ' '}
+        helperText={errorcode === 2 ? 'Insert a valid labID!' : ' '}
       />
       <TextField
         required
@@ -145,12 +154,12 @@ export default function TemplateForm(props) {
         id="outlined-basic"
         label="Image name"
         name="image"
-        value={props.image}
+        value={image}
         onChange={handleChangeImage}
         variant="outlined"
-        helperText={props.errorcode === 3 ? 'Select a valid Image!' : ' '}
+        helperText={errorcode === 3 ? 'Select a valid Image!' : ' '}
       >
-        {Array.from(props.imageList.keys()).map(x => (
+        {Array.from(imageList.keys()).map(x => (
           <MenuItem key={x} value={x}>
             {x}
           </MenuItem>
@@ -166,15 +175,15 @@ export default function TemplateForm(props) {
         id="outlined-basic"
         label="Image Version"
         name="image"
-        value={props.version}
+        value={version}
         onChange={handleChangeVersion}
         variant="outlined"
-        helperText={props.errorcode === 4 ? 'Select a valid Version!' : ' '}
+        helperText={errorcode === 4 ? 'Select a valid Version!' : ' '}
       >
-        {props.image !== null
-          ? props.imageList.get(props.image).map(x => (
-              <MenuItem key={x} value={x}>
-                {x}
+        {image !== null
+          ? imageList.get(image).map(imageName => (
+              <MenuItem key={imageName} value={imageName}>
+                {imageName}
               </MenuItem>
             ))
           : []}

@@ -41,8 +41,8 @@ const useStyles = makeStyles(theme => ({
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
-
-  const courses = Array.from(props.labs.keys()).map((courseName, index) => {
+  const { labs } = props;
+  const courses = Array.from(labs.keys()).map((courseName, index) => {
     const offset = index * (props.labs.get(courseName).length + 1);
     return (
       <li key={courseName} className={classes.listSection}>
