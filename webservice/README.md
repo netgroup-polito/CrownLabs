@@ -145,6 +145,19 @@ Identity and Access Management Module. However, all services and components impl
 
 ## Developing
 
+### Coding Guidelines
+
+- use only functional components
+- not more than a single component for a single file
+- a single place for JSX in each file -> a single return JSX statement
+- better a greater number of small components rather than a smaller number of big ones
+- a single .css file (App.css), to use only for certain tags (\*,html,body) and for specific CSS sintax (like animations)
+- use default import for MUI components (here)
+- use React practices, especially regarding hooks (useState, useEffect, useContext, useReducer)
+- use JSX extension for component files (except only index.js)
+
+### Useful file pointers
+
 #### UserInterface
 
 All the ReactJS files are under [this](./src) directory.

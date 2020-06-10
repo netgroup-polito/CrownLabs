@@ -68,7 +68,6 @@ export default class App extends React.Component {
                 this.authManager.login();
               }}
             />
-
             <Route
               path="/userview"
               render={() => {

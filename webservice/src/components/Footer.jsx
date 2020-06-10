@@ -1,10 +1,10 @@
 import React from 'react';
-import GitHubLogo from '../assets/github-logo.png';
+import GitHubButton from 'react-github-btn';
+
 /**
  * Function to draw the document footer
  * @return the object to be drawn
  */
-
 export default function Footer() {
   return (
     <div
@@ -20,19 +20,17 @@ export default function Footer() {
       }}
     >
       <p>
-        This software has been proudly developed at Politecnico di Torino. For
-        info visit our&nbsp;
+        This software has been proudly developed at Politecnico di Torino
+        &nbsp;&nbsp;&nbsp;
       </p>
-      <a
+      <GitHubButton
         href="https://github.com/netgroup-polito/CrownLabs"
-        style={{ color: 'inherit' }}
+        data-size="large"
+        data-show-count="true"
+        aria-label="Star netgroup-polito/CrownLabs on GitHub"
       >
-        <p href="https://www.google.it">GitHub Page</p>
-      </a>
-      &nbsp;
-      <a href="https://github.com/netgroup-polito/CrownLabs">
-        <img height="25px" src={GitHubLogo} alt="GitHub logo" />
-      </a>
+        Star
+      </GitHubButton>
     </div>
   );
 }
