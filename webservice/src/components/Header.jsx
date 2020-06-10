@@ -36,7 +36,7 @@ const useStyles = makeStyles(theme => ({
 
 export default function Header(props) {
   const classes = useStyles();
-  const [theme, setTheme] = useState('light');
+  const [theme] = useState('light');
   const iconColor = '#FFFFFF';
   const {
     renderAdminBtn,
@@ -46,17 +46,6 @@ export default function Header(props) {
     name,
     logout
   } = props;
-  const adminBtn = renderAdminBtn ? (
-    <Tooltip title="Switch professor/student view">
-      <IconButton onClick={switchAdminView}>
-        {adminHidden ? (
-          <ProfIcon style={{ color: iconColor }} />
-        ) : (
-          <HomeIcon style={{ color: iconColor }} />
-        )}
-      </IconButton>
-    </Tooltip>
-  ) : null;
 
   return (
     <div className={classes.root}>
@@ -93,13 +82,21 @@ export default function Header(props) {
               </Tooltip>
             </a>
           ) : null}
-          {adminBtn}
+          {renderAdminBtn ? (
+            <Tooltip title="Switch professor/student view">
+              <IconButton onClick={switchAdminView}>
+                {adminHidden ? (
+                  <ProfIcon style={{ color: iconColor }} />
+                ) : (
+                  <HomeIcon style={{ color: iconColor }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          ) : null}
           <Tooltip title="Toggle light/dark theme">
             <IconButton
               onClick={() => {
                 document.getElementById('themeSwitch').click();
-                if (theme === 'light') setTheme('dark');
-                else setTheme('light');
               }}
             >
               {theme !== 'light' ? (

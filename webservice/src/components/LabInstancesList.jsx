@@ -55,75 +55,6 @@ export default function LabInstancesList(props) {
 
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
   const { runningLabs } = props;
-  const courses = Array.from(runningLabs.keys()).map((x, index) => {
-    const status = props.runningLabs.get(x)
-      ? props.runningLabs.get(x).status
-      : -1;
-    const color = status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
-    return (
-      <li key={x} className={classes.listSection}>
-        <ul className={classes.ul}>
-          <ListItem
-            key={x}
-            button
-            selected={selectedIndex === index}
-            onClick={() => {
-              setSelectedIndex(index);
-              props.func(x, null);
-            }}
-          >
-            <ListItemText
-              style={{ backgroundColor: color, color: 'black' }}
-              inset
-              primary={
-                x.charAt(0).toUpperCase() + x.slice(1).replace(/-/g, ' ')
-              }
-            />
-            {selectedIndex === index && props.stop ? (
-              <Tooltip title="Stop VM">
-                <IconButton
-                  style={{ color: 'red' }}
-                  button="true"
-                  onClick={e => {
-                    props.stop();
-                    setSelectedIndex(-1);
-                    e.stopPropagation(); // avoid triggering onClick on ListItem
-                  }}
-                >
-                  <CancelOutlinedIcon fontSize="large" />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-            {selectedIndex === index && status === 1 ? (
-              <Tooltip title="Connect VM">
-                <IconButton
-                  style={{ color: 'black' }}
-                  button="true"
-                  onClick={e => {
-                    props.connect();
-                    setSelectedIndex(-1);
-                    e.stopPropagation(); // avoid triggering onClick on ListItem
-                  }}
-                >
-                  <OpenInBrowserIcon fontSize="large" />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-            {status === 0 ? (
-              <Tooltip title="Loading VM">
-                <IconButton style={{ color: 'orange' }}>
-                  <HourglassEmptyIcon
-                    className={classes.rotating}
-                    fontSize="large"
-                  />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-          </ListItem>
-        </ul>
-      </li>
-    );
-  });
 
   return (
     <Paper
@@ -150,7 +81,77 @@ export default function LabInstancesList(props) {
             </ListSubheader>
           }
         >
-          {courses}
+          {Array.from(runningLabs.keys()).map((x, index) => {
+            const status = props.runningLabs.get(x)
+              ? props.runningLabs.get(x).status
+              : -1;
+            const color =
+              status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
+            return (
+              <li key={x} className={classes.listSection}>
+                <ul className={classes.ul}>
+                  <ListItem
+                    key={x}
+                    button
+                    selected={selectedIndex === index}
+                    onClick={() => {
+                      setSelectedIndex(index);
+                      props.func(x, null);
+                    }}
+                  >
+                    <ListItemText
+                      style={{ backgroundColor: color, color: 'black' }}
+                      inset
+                      primary={
+                        x.charAt(0).toUpperCase() +
+                        x.slice(1).replace(/-/g, ' ')
+                      }
+                    />
+                    {selectedIndex === index && props.stop ? (
+                      <Tooltip title="Stop VM">
+                        <IconButton
+                          style={{ color: 'red' }}
+                          button="true"
+                          onClick={e => {
+                            props.stop();
+                            setSelectedIndex(-1);
+                            e.stopPropagation(); // avoid triggering onClick on ListItem
+                          }}
+                        >
+                          <CancelOutlinedIcon fontSize="large" />
+                        </IconButton>
+                      </Tooltip>
+                    ) : null}
+                    {selectedIndex === index && status === 1 ? (
+                      <Tooltip title="Connect VM">
+                        <IconButton
+                          style={{ color: 'black' }}
+                          button="true"
+                          onClick={e => {
+                            props.connect();
+                            setSelectedIndex(-1);
+                            e.stopPropagation(); // avoid triggering onClick on ListItem
+                          }}
+                        >
+                          <OpenInBrowserIcon fontSize="large" />
+                        </IconButton>
+                      </Tooltip>
+                    ) : null}
+                    {status === 0 ? (
+                      <Tooltip title="Loading VM">
+                        <IconButton style={{ color: 'orange' }}>
+                          <HourglassEmptyIcon
+                            className={classes.rotating}
+                            fontSize="large"
+                          />
+                        </IconButton>
+                      </Tooltip>
+                    ) : null}
+                  </ListItem>
+                </ul>
+              </li>
+            );
+          })}
         </List>
       </ClickAwayListener>
     </Paper>
