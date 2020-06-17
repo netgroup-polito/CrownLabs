@@ -134,11 +134,11 @@ export default class ApiManager {
    * @param name the name of the object you want to delete
    * @returns the promise handling the request
    */
-  deleteCRDinstance(name) {
+  deleteCRDinstance(name, targetNamespace) {
     return this.apiCRD.deleteNamespacedCustomObject(
       this.instanceGroup,
       this.version,
-      this.instanceNamespace,
+      targetNamespace || this.instanceNamespace,
       this.instancePlural,
       name,
       {}
