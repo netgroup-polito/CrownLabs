@@ -4,7 +4,7 @@
     "start": "webpack-dev-server --config webpack.config.js",
     "build": "webpack -p --config webpack_docker.config.js --display-error-details",
     "prettify-all": "node_modules/.bin/prettier --write **/*.{js,jsx,json,css}",
-    "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css} && node_modules/.bin/eslint . --ext .js --ext .jsx",
+    "lint-check": "node_modules/.bin/prettier --check **/*.{js,jsx,json,css} && node_modules/.bin/eslint . --ext .js --ext .jsx --max-warnings=0",
     "lint-setup": "npm i && npm run install-k8s",
     "clean-k8s": "cd k8s_library && rm -rf dist && rm package-lock.json && cd ..",
     "install-k8s": "cd k8s_library && npm i && cd .."
@@ -50,8 +50,10 @@
   },
   "lint-staged": {
     "*.{js,jsx,json,css}": [
-      "prettier --write",
-      "eslint . --ext .js --ext .jsx"
+      "prettier --write"
+    ],
+    "*.{js,jsx}": [
+      "eslint --ext .js --ext .jsx --max-warnings=0 "
     ]
   },
   "husky": {
