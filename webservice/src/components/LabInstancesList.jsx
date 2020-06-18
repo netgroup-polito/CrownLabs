@@ -25,13 +25,6 @@ const useStyles = makeStyles(theme => ({
       margin: theme.spacing(2)
     }
   },
-  listSection: {
-    backgroundColor: 'inherit'
-  },
-  ul: {
-    backgroundColor: 'inherit',
-    padding: 0
-  },
   buttonGroup: {
     width: '100%',
     padding: '10px',
@@ -55,6 +48,12 @@ export default function LabInstancesList(props) {
 
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
   const { runningLabs } = props;
+
+  const runningLabNames = Array.from(runningLabs.keys());
+  const runningLabList = runningLabNames.map(labName => ({
+    ...runningLabs.get(labName),
+    labName
+  }));
 
   return (
     <Paper
@@ -81,75 +80,68 @@ export default function LabInstancesList(props) {
             </ListSubheader>
           }
         >
-          {Array.from(runningLabs.keys()).map((x, index) => {
-            const status = props.runningLabs.get(x)
-              ? props.runningLabs.get(x).status
-              : -1;
+          {runningLabList.map(({ labName, status }, i) => {
             const color =
               status === 0 ? 'orange' : status === 1 ? 'lime' : 'red';
             return (
-              <li key={x} className={classes.listSection}>
-                <ul className={classes.ul}>
-                  <ListItem
-                    key={x}
-                    button
-                    selected={selectedIndex === index}
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      props.func(x, null);
-                    }}
-                  >
-                    <ListItemText
-                      style={{ backgroundColor: color, color: 'black' }}
-                      inset
-                      primary={
-                        x.charAt(0).toUpperCase() +
-                        x.slice(1).replace(/-/g, ' ')
-                      }
-                    />
-                    {selectedIndex === index && props.stop ? (
-                      <Tooltip title="Stop VM">
-                        <IconButton
-                          style={{ color: 'red' }}
-                          button="true"
-                          onClick={e => {
-                            props.stop();
-                            setSelectedIndex(-1);
-                            e.stopPropagation(); // avoid triggering onClick on ListItem
-                          }}
-                        >
-                          <CancelOutlinedIcon fontSize="large" />
-                        </IconButton>
-                      </Tooltip>
-                    ) : null}
-                    {selectedIndex === index && status === 1 ? (
-                      <Tooltip title="Connect VM">
-                        <IconButton
-                          style={{ color: 'black' }}
-                          button="true"
-                          onClick={e => {
-                            props.connect();
-                            setSelectedIndex(-1);
-                            e.stopPropagation(); // avoid triggering onClick on ListItem
-                          }}
-                        >
-                          <OpenInBrowserIcon fontSize="large" />
-                        </IconButton>
-                      </Tooltip>
-                    ) : null}
-                    {status === 0 ? (
-                      <Tooltip title="Loading VM">
-                        <IconButton style={{ color: 'orange' }}>
-                          <HourglassEmptyIcon
-                            className={classes.rotating}
-                            fontSize="large"
-                          />
-                        </IconButton>
-                      </Tooltip>
-                    ) : null}
-                  </ListItem>
-                </ul>
-              </li>
+              <ListItem
+                key={labName}
+                button
+                selected={selectedIndex === i}
+                onClick={() => {
+                  setSelectedIndex(i);
+                  props.func(labName, null);
+                }}
+              >
+                <ListItemText
+                  style={{ backgroundColor: color, color: 'black' }}
+                  inset
+                  primary={
+                    labName.charAt(0).toUpperCase() +
+                    labName.slice(1).replace(/-/g, ' ')
+                  }
+                />
+                {selectedIndex === i && props.stop ? (
+                  <Tooltip title="Stop VM">
+                    <IconButton
+                      style={{ color: 'red' }}
+                      button="true"
+                      onClick={e => {
+                        props.stop();
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick on ListItem
+                      }}
+                    >
+                      <CancelOutlinedIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+                {selectedIndex === i && status === 1 ? (
+                  <Tooltip title="Connect VM">
+                    <IconButton
+                      style={{ color: 'black' }}
+                      button="true"
+                      onClick={e => {
+                        props.connect();
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick on ListItem
+                      }}
+                    >
+                      <OpenInBrowserIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+                {status === 0 ? (
+                  <Tooltip title="Loading VM">
+                    <IconButton style={{ color: 'orange' }}>
+                      <HourglassEmptyIcon
+                        className={classes.rotating}
+                        fontSize="large"
+                      />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </ListItem>
             );
           })}
         </List>
