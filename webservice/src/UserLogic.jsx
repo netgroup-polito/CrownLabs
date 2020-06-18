@@ -302,7 +302,10 @@ export default class UserLogic extends React.Component {
       return;
     }
     this.apiManager
-      .deleteCRDinstance(selectedInstance)
+      .deleteCRDinstance(
+        selectedInstance,
+        instanceLabsAdmin.get(selectedInstance).studNamespace
+      )
       .then(() => {
         Toastr.success(`Successfully stopped \`${selectedInstance}\``);
       })
@@ -477,20 +480,32 @@ export default class UserLogic extends React.Component {
       const newMap = instanceLabsAdmin;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
-        newMap.set(object.metadata.name, { url: null, status: -1 });
+        newMap.set(object.metadata.name, {
+          url: null,
+          status: -1,
+          studNamespace: object.metadata.namespace
+        });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
         (type === 'ADDED' || type === 'MODIFIED')
       ) {
         /* Object creation succeeded */
-        newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
+        newMap.set(object.metadata.name, {
+          url: object.status.url,
+          status: 1,
+          studNamespace: object.metadata.namespace
+        });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
       } else if (
         (type === 'ADDED' || type === 'MODIFIED') &&
         !newMap.has(object.metadata.name)
       ) {
-        newMap.set(object.metadata.name, { url: null, status: 0 });
+        newMap.set(object.metadata.name, {
+          url: null,
+          status: 0,
+          studNamespace: object.metadata.namespace
+        });
       }
       this.setState({
         instanceLabsAdmin: newMap
