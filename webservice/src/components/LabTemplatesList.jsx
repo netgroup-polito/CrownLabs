@@ -13,7 +13,15 @@ import DeleteIcon from '@material-ui/icons/Delete';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
-  root: {
+  paper: {
+    flex: 1,
+    minWidth: 450,
+    maxWidth: 600,
+    padding: 10,
+    margin: 10,
+    maxHeight: 350
+  },
+  list: {
     width: '100%',
     height: '100%',
     backgroundColor: theme.palette.background.paper,
@@ -41,99 +49,86 @@ const useStyles = makeStyles(theme => ({
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
-  const { labs } = props;
+  const { labs, start, isAdmin, deleteLabTemplate, selectTemplate } = props;
+
+  const courseNames = Array.from(labs.keys());
+  const labList = courseNames.reduce(
+    (acc, courseName) => [
+      ...acc,
+      ...labs.get(courseName).map(labName => ({ labName, courseName }))
+    ],
+    []
+  );
 
   return (
-    <Paper
-      elevation={6}
-      style={{
-        flex: 1,
-        minWidth: 450,
-        maxWidth: 600,
-        padding: 10,
-        margin: 10,
-        maxHeight: 350
-      }}
-    >
+    <Paper elevation={6} className={classes.paper}>
       <ClickAwayListener
         onClickAway={() => {
           setSelectedIndex(-1);
         }}
       >
         <List
-          className={classes.root}
+          className={classes.list}
           subheader={
             <ListSubheader style={{ fontSize: '30px' }}>
               Available Laboratories
             </ListSubheader>
           }
         >
-          {Array.from(labs.keys()).map((courseName, index) => {
-            const offset = index * (props.labs.get(courseName).length + 1);
-            return (
-              <li key={courseName} className={classes.listSection}>
-                <ul className={classes.ul}>
-                  {props.labs.get(courseName).map((courseLab, index2) => {
-                    const finalIndex = offset + index2;
-                    return (
-                      <ListItem
-                        key={courseLab}
-                        button
-                        selected={selectedIndex === finalIndex}
-                        disableRipple={props.isAdmin}
-                        onClick={() => {
-                          setSelectedIndex(finalIndex);
-                          props.func(courseLab, courseName);
-                        }}
-                      >
-                        <Tooltip title="Select it">
-                          <ListItemText
-                            inset
-                            primary={
-                              courseLab.charAt(0).toUpperCase() +
-                              courseLab.slice(1).replace(/-/g, ' ')
-                            }
-                          />
-                        </Tooltip>
-                        {selectedIndex === finalIndex && props.delete ? (
-                          <Tooltip title="Delete template">
-                            <IconButton
-                              style={{ color: 'red' }}
-                              button="true"
-                              onClick={e => {
-                                props.delete();
-                                setSelectedIndex(-1);
-                                e.stopPropagation(); // avoid triggering onClick on ListItem
-                              }}
-                            >
-                              <DeleteIcon fontSize="large" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : null}
-                        {selectedIndex === finalIndex && props.start ? (
-                          <Tooltip title="Create VM">
-                            <IconButton
-                              key={courseLab}
-                              variant="dark"
-                              style={{ color: 'green' }}
-                              button="true"
-                              onClick={e => {
-                                props.start();
-                                setSelectedIndex(-1);
-                                e.stopPropagation(); // avoid triggering onClick of ListIstem
-                              }}
-                            >
-                              <PlayCircleOutlineIcon fontSize="large" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : null}
-                      </ListItem>
-                    );
-                  })}
-                </ul>
-              </li>
-            );
-          })}
+          {labList.map(({ labName, courseName }, i) => (
+            <ListItem
+              key={labName}
+              button
+              selected={selectedIndex === i}
+              disableRipple={isAdmin}
+              onClick={() => {
+                setSelectedIndex(i);
+                selectTemplate(labName, courseName);
+              }}
+            >
+              <Tooltip title="Select it">
+                <ListItemText
+                  inset
+                  primary={
+                    labName.charAt(0).toUpperCase() +
+                    labName.slice(1).replace(/-/g, ' ')
+                  }
+                />
+              </Tooltip>
+              {selectedIndex === i && deleteLabTemplate ? (
+                <Tooltip title="Delete template">
+                  <IconButton
+                    style={{ color: 'red' }}
+                    button="true"
+                    onClick={e => {
+                      deleteLabTemplate();
+                      setSelectedIndex(-1);
+                      e.stopPropagation(); // avoid triggering onClick on ListItem
+                    }}
+                  >
+                    <DeleteIcon fontSize="large" />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+              {selectedIndex === i && start ? (
+                <Tooltip title="Create VM">
+                  <IconButton
+                    key={labName}
+                    variant="dark"
+                    style={{ color: 'green' }}
+                    button="true"
+                    onClick={e => {
+                      start();
+                      setSelectedIndex(-1);
+                      e.stopPropagation(); // avoid triggering onClick of ListIstem
+                    }}
+                  >
+                    <PlayCircleOutlineIcon fontSize="large" />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+            </ListItem>
+          ))}
         </List>
       </ClickAwayListener>
     </Paper>

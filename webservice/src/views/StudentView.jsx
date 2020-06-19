@@ -18,30 +18,29 @@ export default function StudentView(props) {
   const classes = useStyles();
   const {
     templateLabs,
-    funcTemplate,
+    selectTemplate,
     start,
     instanceLabs,
-    funcInstance,
+    selectInstance,
     connect,
     stop,
     showStatus
   } = props;
+
   return (
-    <>
-      <div className={classes.labPapers}>
-        <LabTemplatesList
-          labs={templateLabs}
-          func={funcTemplate}
-          start={start}
-        />
-        <LabInstancesList
-          runningLabs={instanceLabs}
-          func={funcInstance}
-          connect={connect}
-          stop={stop}
-          showStatus={showStatus}
-        />
-      </div>
-    </>
+    <div className={classes.labPapers}>
+      <LabTemplatesList
+        labs={templateLabs}
+        selectTemplate={selectTemplate}
+        start={start}
+      />
+      <LabInstancesList
+        runningLabs={instanceLabs}
+        selectInstance={selectInstance}
+        connect={connect}
+        stop={stop}
+        showStatus={showStatus}
+      />
+    </div>
   );
 }
