@@ -24,10 +24,10 @@ export default function ProfessorView(props) {
   const {
     deleteLabTemplate,
     templateLabs,
-    funcTemplate,
+    selectTemplate,
     start,
     instanceLabs,
-    funcInstance,
+    selectInstance,
     connect,
     stop,
     showStatus,
@@ -94,15 +94,15 @@ export default function ProfessorView(props) {
     <>
       <TableRow style={labPapersStyle}>
         <LabTemplatesList
-          delete={deleteLabTemplate}
+          deleteLabTemplate={deleteLabTemplate}
           labs={templateLabs}
-          func={funcTemplate}
+          selectTemplate={selectTemplate}
           start={start}
           isAdmin
         />
         <LabInstancesList
           runningLabs={instanceLabs}
-          func={funcInstance}
+          selectInstance={selectInstance}
           connect={connect}
           stop={stop}
           showStatus={showStatus}

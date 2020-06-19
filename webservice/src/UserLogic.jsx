@@ -624,8 +624,8 @@ export default class UserLogic extends React.Component {
           templateLabs={templateLabs}
           funcNewTemplate={this.createCRDtemplate}
           instanceLabs={instanceLabs}
-          funcTemplate={this.changeSelectedCRDtemplate}
-          funcInstance={this.changeSelectedCRDinstance}
+          selectTemplate={this.changeSelectedCRDtemplate}
+          selectInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
           deleteLabTemplate={this.deleteCRDtemplate}
           connect={this.connect}

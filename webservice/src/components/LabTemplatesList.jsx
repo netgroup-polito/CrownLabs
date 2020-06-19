@@ -13,7 +13,15 @@ import DeleteIcon from '@material-ui/icons/Delete';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
-  root: {
+  paper: {
+    flex: 1,
+    minWidth: 450,
+    maxWidth: 600,
+    padding: 10,
+    margin: 10,
+    maxHeight: 350
+  },
+  list: {
     width: '100%',
     height: '100%',
     backgroundColor: theme.palette.background.paper,
@@ -41,7 +49,7 @@ const useStyles = makeStyles(theme => ({
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
-  const { labs } = props;
+  const { labs, start, isAdmin, deleteLabTemplate, selectTemplate } = props;
 
   const courseNames = Array.from(labs.keys());
   const labList = courseNames.reduce(
@@ -53,24 +61,14 @@ export default function LabTemplatesList(props) {
   );
 
   return (
-    <Paper
-      elevation={6}
-      style={{
-        flex: 1,
-        minWidth: 450,
-        maxWidth: 600,
-        padding: 10,
-        margin: 10,
-        maxHeight: 350
-      }}
-    >
+    <Paper elevation={6} className={classes.paper}>
       <ClickAwayListener
         onClickAway={() => {
           setSelectedIndex(-1);
         }}
       >
         <List
-          className={classes.root}
+          className={classes.list}
           subheader={
             <ListSubheader style={{ fontSize: '30px' }}>
               Available Laboratories
@@ -82,10 +80,10 @@ export default function LabTemplatesList(props) {
               key={labName}
               button
               selected={selectedIndex === i}
-              disableRipple={props.isAdmin}
+              disableRipple={isAdmin}
               onClick={() => {
                 setSelectedIndex(i);
-                props.func(labName, courseName);
+                selectTemplate(labName, courseName);
               }}
             >
               <Tooltip title="Select it">
@@ -97,13 +95,13 @@ export default function LabTemplatesList(props) {
                   }
                 />
               </Tooltip>
-              {selectedIndex === i && props.delete ? (
+              {selectedIndex === i && deleteLabTemplate ? (
                 <Tooltip title="Delete template">
                   <IconButton
                     style={{ color: 'red' }}
                     button="true"
                     onClick={e => {
-                      props.delete();
+                      deleteLabTemplate();
                       setSelectedIndex(-1);
                       e.stopPropagation(); // avoid triggering onClick on ListItem
                     }}
@@ -112,7 +110,7 @@ export default function LabTemplatesList(props) {
                   </IconButton>
                 </Tooltip>
               ) : null}
-              {selectedIndex === i && props.start ? (
+              {selectedIndex === i && start ? (
                 <Tooltip title="Create VM">
                   <IconButton
                     key={labName}
@@ -120,7 +118,7 @@ export default function LabTemplatesList(props) {
                     style={{ color: 'green' }}
                     button="true"
                     onClick={e => {
-                      props.start();
+                      start();
                       setSelectedIndex(-1);
                       e.stopPropagation(); // avoid triggering onClick of ListIstem
                     }}

@@ -89,23 +89,27 @@ export default function TemplateForm(props) {
     labid,
     image,
     imageList,
-    version
+    version,
+    setVersion,
+    setLabid,
+    setImage,
+    setNamespace
   } = props;
 
   const handleChangeVersion = event => {
-    props.setVersion(event.target.value);
+    setVersion(event.target.value);
   };
   const handleChangeLabid = event => {
-    props.setLabid(event.target.value);
+    setLabid(event.target.value);
   };
   const handleChangeNamespace = event => {
-    props.setNamespace(event.target.value);
+    setNamespace(event.target.value);
   };
   const handleChangeImage = event => {
-    props.setImage(event.target.value);
-    const len = props.imageList.get(event.target.value).length;
-    const array = props.imageList.get(event.target.value);
-    props.setVersion(array[len - 1]);
+    setImage(event.target.value);
+    const len = imageList.get(event.target.value).length;
+    const array = imageList.get(event.target.value);
+    setVersion(array[len - 1]);
   };
   return (
     <Grid

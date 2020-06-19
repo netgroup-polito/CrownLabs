@@ -47,7 +47,7 @@ export default function LabInstancesList(props) {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
 
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
-  const { runningLabs } = props;
+  const { runningLabs, selectInstance, stop, connect } = props;
 
   const runningLabNames = Array.from(runningLabs.keys());
   const runningLabList = runningLabNames.map(labName => ({
@@ -90,7 +90,7 @@ export default function LabInstancesList(props) {
                 selected={selectedIndex === i}
                 onClick={() => {
                   setSelectedIndex(i);
-                  props.func(labName, null);
+                  selectInstance(labName, null);
                 }}
               >
                 <ListItemText
@@ -101,13 +101,13 @@ export default function LabInstancesList(props) {
                     labName.slice(1).replace(/-/g, ' ')
                   }
                 />
-                {selectedIndex === i && props.stop ? (
+                {selectedIndex === i && stop ? (
                   <Tooltip title="Stop VM">
                     <IconButton
                       style={{ color: 'red' }}
                       button="true"
                       onClick={e => {
-                        props.stop();
+                        stop();
                         setSelectedIndex(-1);
                         e.stopPropagation(); // avoid triggering onClick on ListItem
                       }}
@@ -122,7 +122,7 @@ export default function LabInstancesList(props) {
                       style={{ color: 'black' }}
                       button="true"
                       onClick={e => {
-                        props.connect();
+                        connect();
                         setSelectedIndex(-1);
                         e.stopPropagation(); // avoid triggering onClick on ListItem
                       }}
