@@ -1,5 +1,10 @@
 name: Check linting in webservice
-on: [push]
+on:
+  push:
+    branches-ignore:
+      - master
+    tags-ignore:
+      - '**'
 jobs:
   webservice_lint_check:
     runs-on: ubuntu-latest
