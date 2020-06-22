@@ -13,15 +13,21 @@ on:
   pull_request_review:
     types:
       - submitted
+  check_suite:
+    types:
+      - completed
   status: {}
 jobs:
   automerge:
     runs-on: ubuntu-latest
     steps:
       - name: automerge
-        uses: "pascalgn/automerge-action@ecb16453ce68e85b1e23596c8caa7e7499698a84"
+        uses: "pascalgn/automerge-action@4536e8847eb62fe2f0ee52c8fa92d17aa97f932f"
         env:
           GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
-          MERGE_LABELS: ""
+          MERGE_LABELS: "automerge,!hold"
+          MERGE_REMOVE_LABELS: "automerge"
           MERGE_METHOD: "merge"
-          MERGE_RETRY_SLEEP: 200 
+          MERGE_RETRY_SLEEP: "5000"  # 5 seconds
+          UPDATE_LABELS: "automerge,!hold"
+          UPDATE_METHOD: "rebase"
