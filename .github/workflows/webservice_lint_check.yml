@@ -4,7 +4,7 @@ on:
     branches-ignore:
       - master
     tags-ignore:
-      - '**'
+      - "**"
 jobs:
   webservice_lint_check:
     runs-on: ubuntu-latest
@@ -12,7 +12,7 @@ jobs:
       - name: checkout code in action environment
         uses: actions/checkout@v2
       - name: collect data about changes in path
-        uses: dorny/paths-filter@v2.0.0
+        uses: dorny/paths-filter@v2.2.0
         id: filter
         with:
           filters: |
