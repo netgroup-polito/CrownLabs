@@ -1,4 +1,4 @@
-## Crown Lab web service
+## CrownLabs web service
 
 Component to provide a full web service which embeds in the resulting website many API for users to directly interact with a Kubernetes cluster.
 
@@ -6,7 +6,7 @@ This component is the result of many frameworks integrated:
 
 - UserInterface: [ReactJS](https://reactjs.org/)
 - Web-server and API exporting : [WebPack](https://webpack.js.org/)
-- Kubernetes Javascript library: [kubernetes-client-javascript](https://github.com/scality/kubernetes-client-javascript/tree/browser), a patched version of the [official one](https://github.com/kubernetes-client/javascript)
+- Kubernetes Javascript library: [kubernetes-client-javascript](https://github.com/LiqoTech/kubernetes-client-javascript), our fork of the [patched version](https://github.com/scality/kubernetes-client-javascript/tree/browser) of the [official one](https://github.com/kubernetes-client/javascript)
 
 ## Variable exporting
 
@@ -36,13 +36,7 @@ Requirements:
 
 - Node.js
 
-Unfortunately, the patched library we are currently using cannot be directly accessed by NodeJS, since still has not been
-merged in their main project's branch. As a result we need to compile it on our own.
-
-From the directory [CrownLabs/webservice/k8s_library/](./k8s_library) launch `npm install` to install the patched Kubernetes Javascript library.
-Once completed this step, we go back to the [webservice](.) directory.
-
-From there, type `npm install` to install the actual webservice.
+From the [webservice](.) directory, type `npm install` to install the actual webservice.
 This command install all the dependencies and builds the service which now can be run from this directory.
 
 Export now the 5 variables as described [before](#variable-exporting):

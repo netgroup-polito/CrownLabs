@@ -1,36 +1,45 @@
 # Dockerfile to build and deploy in production mode the web service
 
-# builder image for the k8s_library js
-FROM node:alpine as builder_k8s
-WORKDIR /k8s_library
-ADD ./k8s_library ./
-RUN npm install --silent --unsafe-perm
+# Builder image for the webservice
+FROM node:14-alpine as builder
 
-# builder image for the webservice
-FROM node:alpine as builder_webservice
-WORKDIR /webservice
-ADD . ./
-COPY --from=builder_k8s /k8s_library ./k8s_library
-RUN npm install --silent --unsafe-perm
+## Download git to fetch the kubernetes repo
+RUN apk add --no-cache --update git openssh
+
+## Switch to an unprivileged user (avoids problems with npm)
+USER node
+
+## Set the working directory and copy the source code
+RUN mkdir --parent /tmp/webservice
+COPY --chown=node:node . /tmp/webservice
+WORKDIR /tmp/webservice
+
+## Install the dependencies and build
+RUN npm install
 RUN npm run build
 
-### image to export the service
-FROM nginx
-COPY --chown=101:101 --from=builder_webservice /webservice/dist /usr/share/nginx/html
-COPY --chown=101:101 docker-entrypoint.sh /
-COPY --chown=101:101 generate_config_js.sh /
-COPY --chown=101:101 nginx_conf/default.conf /etc/nginx/conf.d/default.conf
-RUN chown -R 101:101 /usr/share/nginx/html
-## add permissions for nginx user
-RUN chown -R 101:101 /var/cache/nginx && \
-        chown -R 101:101 /var/log/nginx && \
-        chown -R 101:101 /etc/nginx/conf.d
+
+# Final image to export the service
+FROM nginx:1.19
+
+## Copy the different files
+COPY --chown=nginx:nginx --from=builder /tmp/webservice/dist /usr/share/nginx/html
+COPY --chown=nginx:nginx docker-entrypoint.sh /
+COPY --chown=nginx:nginx generate_config_js.sh /
+COPY --chown=nginx:nginx nginx_conf/default.conf /etc/nginx/conf.d/default.conf
+
+## Add permissions for the nginx user
+RUN chown -R nginx:nginx /usr/share/nginx/html
+RUN chown -R nginx:nginx /var/cache/nginx && \
+        chown -R nginx:nginx /var/log/nginx && \
+        chown -R nginx:nginx /etc/nginx/conf.d
 RUN touch /var/run/nginx.pid && \
-        chown -R 101:101 /var/run/nginx.pid
+        chown -R nginx:nginx /var/run/nginx.pid
 
-
-RUN chmod +x docker-entrypoint.sh generate_config_js.sh
+## Allow nginx to bind to privileged ports even if the user is unprivileged
 RUN apt update && apt install -y libcap2-bin
 RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/sbin/nginx
+
+RUN chmod +x docker-entrypoint.sh generate_config_js.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
