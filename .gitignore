@@ -30,6 +30,3 @@ webservice/yarn.lock
 webservice/dist
 webservice/node_modules
 webservice/package-lock.json
-webservice/k8s_library/node_modules
-webservice/k8s_library/package-lock.json
-webservice/k8s_library/dist
