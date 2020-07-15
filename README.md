@@ -14,7 +14,7 @@ In addition, each student can share his remote desktop with his groupmates, enab
 
 Finally, CrownLabs supports also instructors, who can connect to the remote desktop of the student and play directly with his environment, e.g., in case some help is required.
 
-For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
+For more information, visit the CrownLabs website ([https://crownlabs.polito.it](https://crownlabs.polito.it)) and download our [scientific paper](https://ieeexplore.ieee.org/document/9136697) published in IEEE Access.
 
 
 ## Architecture
@@ -47,7 +47,7 @@ This would require a non-trivial knowledge of how Kubernetes (and the wonderful 
 No magic install procedure is unfortunately available (yet).
 
 In a nutshell, you have to install all the components with your own custom configuration files, which may largely depend upon your physical install.
-A huge degree of customization is possible in this respect: pure data-link vs. BGP-based load balancing, the number (and capabilities) of your servers, the desired degree of high availability, integration with external authentication servers, creation of admin/user credentials, your own secrets to protect the internal communication among the components. 
+A huge degree of customization is possible in this respect: pure data-link vs. BGP-based load balancing, the number (and capabilities) of your servers, the desired degree of high availability, integration with external authentication servers, creation of admin/user credentials, your own secrets to protect the internal communication among the components.
 
 Do not expect to complete this task in a few hours; likely, you may need several days, or even more.
 Help is available on our Slack channels.
@@ -55,7 +55,7 @@ For more information, visit the CrownLabs website: [https://crownlabs.polito.it]
 
 ## Pre-Requirements
 
-Crownlabs has been specifically designed for bare-metal clusters and this assumption will be adopted across the documentation. To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster where at least a subset of nodes supports Hardware Virtualization. 
+Crownlabs has been specifically designed for bare-metal clusters and this assumption will be adopted across the documentation. To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster where at least a subset of nodes supports Hardware Virtualization.
 In [infrastructure](infrastructure/), we present all the services which should be installed on the cluster, with an example of configuration. We strongly suggest to set up on your cluster the same components that we used, in order to avoid feature mismatch.
 
 ## Laboratory Operator
@@ -76,4 +76,3 @@ Students work is normally organized in course with several professors. CrownLabs
 All the permissions are handled by the Kubernetes RBAC and the mapping to user and groups is done via Keycloak.
 
 Further details about this logic are available [here](provisioning/courses/).
-
