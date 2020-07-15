@@ -7,7 +7,7 @@ In order to get a certificate from Let's Encrypt, it is necessary to prove the c
 * HTTP-01 challenge: requires to put a specific value in a file on the web server at a specific path;
 * DNS-01 challenge: requires to put a specific value in a TXT record under that domain name.
 
-In the following, both types of challenges are configured and made available. Indeed, the former is easier to use but it requires port 80 to be open and reachable. The latter, on the other hand, does not suffer from this limitation and allows to issue wildcard certificates, but it can be used only for the DNS names under our control.
+In the following, both types of challenges are configured and made available. Indeed, the former is easier to use but it requires a public IP and port 80 to be open and reachable. The latter, on the other hand, does not suffer from this limitation and allows to issue wildcard certificates, but it can be used only for the DNS names under our control.
 
 ## Configure bind9
 
@@ -18,16 +18,24 @@ In the following, both types of challenges are configured and made available. In
     include "/etc/bind/named.conf.local";
     ...
     ```
-2. Create a new TSIG key to authenticate external-dns updates and transfers:
+2. Create the new TSIG keys to authenticate cert-manager record updates (one for each zone):
     ```sh
-    # tsig-keygen -a hmac-sha512 k8s-ladispe-cert-manager | tee --append /etc/bind/named.conf.keys
+    # tsig-keygen -a hmac-sha512 crownlabs-certmanager | tee --append /etc/bind/named.conf.keys
+    # tsig-keygen -a hmac-sha512 crownlabs-internal-certmanager | tee --append /etc/bind/named.conf.keys
     ```
-3. Edit `/etc/bind/named.conf.local`, and authorize the `k8s-ladispe-cert-manager` key to insert TXT records for the zone of interest (e.g. `crown-labs.ipv6.polito.it`):
+3. Edit `/etc/bind/named.conf.local`, and authorize the keys to insert TXT records for the zones of interest:
     ```
-    zone "ipv6.polito.it" {
+    zone "crownlabs.polito.it" {
         ...
         update-policy {
-            grant k8s-ladispe-cert-manager wildcard *.crown-labs.ipv6.polito.it. txt;
+            grant crownlabs-certmanager zonesub txt;
+        };
+    };
+    ...
+    zone "internal.crownlabs.polito.it" {
+        ...
+        update-policy {
+            grant crownlabs-internal-certmanager zonesub txt;
         };
     };
     ```
@@ -41,7 +49,7 @@ In the following, both types of challenges are configured and made available. In
 
 1. Install the `CustomResourceDefinitions` and `cert-manager` itself:
     ```sh
-    $ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.14.1/cert-manager.yaml
+    $ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.yaml
     ```
 2. Create the `ServiceMonitor` resource, to make Prometheus aware of the metrics exposed by `cert-manager` (Grafana dashboard with ID 11001):
     ```sh
@@ -53,9 +61,10 @@ In the following, both types of challenges are configured and made available. In
     $ kubectl create -f lets-encrypt-issuer-production.yaml
     ```
     *Note:* in case a different DNS server is used, it is necessary to edit the `yaml` files with the correct configuration. Additionally, it is also possible to configure the email address that will be associated with the digital certificates issued by Let's Encrypt.
-4. Create a new `Secret` resource storing the TSIG key previously generated to interact with the DNS server:
+4. Create the new `Secret` resources storing the TSIG keys previously generated to interact with the DNS server:
     ```sh
-    $ kubectl -n cert-manager create secret generic cert-manager-tsig-secret --from-literal=cert-manager-tsig-secret-key=$(base64 <TSIG-key>)
+    $ kubectl -n cert-manager create secret generic crownlabs-certmanager-tsig --from-literal=crownlabs-certmanager-tsig-key=<TSIG-key>
+    $ kubectl -n cert-manager create secret generic crownlabs-internal-certmanager-tsig --from-literal=crownlabs-internal-certmanager-tsig-key=<TSIG-key>
     ```
 5. Verify that the `ClusterIssuer` resources are in Ready state:
     ```sh
@@ -93,12 +102,12 @@ Kubed can be easily installed with helm [[5]](https://appscode.com/products/kube
 ```bash
 $ helm repo add appscode https://charts.appscode.com/stable/
 $ helm repo update
-$ helm search repo appscode/kubed --version v0.12.0-rc.2
+$ helm search repo appscode/kubed --version v0.12.0
 
 $ kubectl create namespace kubed
 $ helm install kubed appscode/kubed \
-  --version v0.12.0-rc.2 \
-  --namespace kube-system \
+  --version v0.12.0 \
+  --namespace kubed \
   --set enableAnalytics=false \
   --set config.clusterName="crownlabs"
 ```

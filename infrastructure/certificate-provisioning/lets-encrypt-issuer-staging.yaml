@@ -19,11 +19,26 @@ spec:
     - dns01:
         rfc2136:
           nameserver: 130.192.225.79
-          tsigKeyName: k8s-ladispe-cert-manager
+          tsigKeyName: crownlabs-certmanager
           tsigAlgorithm: HMACSHA512
           tsigSecretSecretRef:
-            name: cert-manager-tsig-secret
-            key: cert-manager-tsig-secret-key
+            name: crownlabs-certmanager-tsig
+            key: crownlabs-certmanager-tsig-key
       selector:
+        dnsZones:
+        - crownlabs.polito.it
+        matchLabels:
+          use-dns01-solver: "true"
+    - dns01:
+        rfc2136:
+          nameserver: 130.192.225.79
+          tsigKeyName: crownlabs-internal-certmanager
+          tsigAlgorithm: HMACSHA512
+          tsigSecretSecretRef:
+            name: crownlabs-internal-certmanager-tsig
+            key: crownlabs-internal-certmanager-tsig-key
+      selector:
+        dnsZones:
+          - internal.crownlabs.polito.it
         matchLabels:
           use-dns01-solver: "true"
