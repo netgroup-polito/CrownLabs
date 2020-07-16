@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: monitoring-oauth2-proxy
-        image: crownlabs/oauth2_proxy:v5.1.0-crown
+        image: crownlabs/oauth2-proxy:v6.0.0-crown
         imagePullPolicy: Always
         ports:
         - containerPort: 4180
@@ -28,8 +28,9 @@ spec:
         - --reverse-proxy=true
         # Cookie configurations
         - --cookie-secret=<cookie-secret>
-        - --cookie-expire=1h
-        - --cookie-refresh=45m
+        - --cookie-expire=3h
+        # Omitting, since it does not work with the keycloak provider and conflicts with --sesion-cookie-minimal
+        # - --cookie-refresh=2h
         # Use Keycloak as provider
         - --provider=keycloak
         # Client configuration in Keycloak (ID and Secret)
@@ -42,6 +43,7 @@ spec:
         # Restrictions
         - --keycloak-group=/monitoring
         - --email-domain=*
+        - --session-cookie-minimal=true
         resources:
           requests:
             cpu: "10m"

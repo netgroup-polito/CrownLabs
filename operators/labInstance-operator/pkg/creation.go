@@ -188,14 +188,13 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string, clien
 					Containers: []corev1.Container{
 						{
 							Name:  name,
-							Image: "crownlabs/oauth2_proxy:v5.1.0-crown",
+							Image: "crownlabs/oauth2-proxy:v6.0.0-crown",
 							Args: []string{
 								"--http-address=0.0.0.0:4180",
 								"--reverse-proxy=true",
 								"--skip-provider-button=true",
 								"--cookie-secret=" + cookieSecret,
 								"--cookie-expire=24h",
-								"--cookie-refresh=23h",
 								"--cookie-name=_oauth2_cookie_" + string([]rune(cookieUUID)[:6]),
 								"--provider=keycloak",
 								"--client-id=k8s",
@@ -206,6 +205,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string, clien
 								"--proxy-prefix=/" + urlUUID + "/oauth2",
 								"--cookie-path=/" + urlUUID,
 								"--email-domain=*",
+								"--session-cookie-minimal=true",
 							},
 							Ports: []corev1.ContainerPort{
 								{
