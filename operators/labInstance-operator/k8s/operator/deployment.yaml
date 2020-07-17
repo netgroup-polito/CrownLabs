@@ -55,8 +55,12 @@ spec:
           - "$(WEBSITE_BASE_URL)"
           - "--nextcloud-base-url"
           - "$(NEXTCLOUD_BASE_URL)"
+          - "--oauth2-proxy-image"
+          - "$(OAUTH2_PROXY_IMAGE)"
           - "--oidc-client-secret"
           - "$(OIDC_CLIENT_SECRET)"
+          - "--oidc-provider-url"
+          - "$(OIDC_PROVIDER_URL)"
         env:
         - name: WHITE_LIST_LABELS
           valueFrom:
@@ -78,8 +82,18 @@ spec:
            configMapKeyRef:
             name: operator-config
             key: webdavSecretName
+        - name: OAUTH2_PROXY_IMAGE
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: oauth2ProxyImage
         - name: OIDC_CLIENT_SECRET
           valueFrom:
             configMapKeyRef:
               name: operator-config
               key: oidcClientSecret
+        - name: OIDC_PROVIDER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: operator-config
+              key: oidcProviderUrl

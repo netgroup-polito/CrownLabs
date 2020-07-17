@@ -18,6 +18,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
@@ -30,11 +34,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
 )
 
 // LabInstanceReconciler reconciles a LabInstance object
@@ -47,7 +48,9 @@ type LabInstanceReconciler struct {
 	WebsiteBaseUrl     string
 	NextcloudBaseUrl   string
 	WebdavSecretName   string
-	OidcClientSecret string
+	Oauth2ProxyImage   string
+	OidcClientSecret   string
+	OidcProviderUrl    string
 }
 
 // +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
@@ -69,14 +72,14 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 	ns := v1.Namespace{}
 	namespaceName := types.NamespacedName{
-		Name: labInstance.Namespace,
+		Name:      labInstance.Namespace,
 		Namespace: "",
 	}
 
 	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
 	// by checking the existence of keys in labInstance namespace
 	if err := r.Get(ctx, namespaceName, &ns); err == nil {
-		if !pkg.CheckLabels(ns,r.NamespaceWhitelist.MatchLabels) {
+		if !pkg.CheckLabels(ns, r.NamespaceWhitelist.MatchLabels) {
 			log.Info("Namespace " + req.Namespace + " does not meet " +
 				"the selector labels")
 			return ctrl.Result{}, nil
@@ -106,11 +109,10 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 	labInstance.Labels = map[string]string{
-		"course-name": strings.ReplaceAll(strings.ToLower(labTemplate.Spec.CourseName), " ", "-"),
-		"template-name": labTemplate.Name,
+		"course-name":        strings.ReplaceAll(strings.ToLower(labTemplate.Spec.CourseName), " ", "-"),
+		"template-name":      labTemplate.Name,
 		"template-namespace": labTemplate.Namespace,
 	}
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
@@ -192,7 +194,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// 6: create Deployment for oauth2
-	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID, r.OidcClientSecret)
+	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
@@ -242,7 +244,7 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	name string, service v1.Service, ingress v1beta1.Ingress,
-	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance,startTimeVM time.Time) {
+	labInstance *instancev1.LabInstance, vmi virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
 	// iterate until the vm is running
