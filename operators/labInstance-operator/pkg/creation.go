@@ -163,7 +163,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 	return ingress
 }
 
-func CreateOauth2Deployment(name string, namespace string, urlUUID string, clientSecret string) appsv1.Deployment {
+func CreateOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerUrl string) appsv1.Deployment {
 
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
@@ -188,7 +188,7 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string, clien
 					Containers: []corev1.Container{
 						{
 							Name:  name,
-							Image: "crownlabs/oauth2-proxy:v6.0.0-crown",
+							Image: image,
 							Args: []string{
 								"--http-address=0.0.0.0:4180",
 								"--reverse-proxy=true",
@@ -199,9 +199,9 @@ func CreateOauth2Deployment(name string, namespace string, urlUUID string, clien
 								"--provider=keycloak",
 								"--client-id=k8s",
 								"--client-secret=" + clientSecret,
-								"--login-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth",
-								"--redeem-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/token",
-								"--validate-url=https://auth.crown-labs.ipv6.polito.it/auth/realms/crownlabs/protocol/openid-connect/userinfo",
+								"--login-url=" + providerUrl + "/protocol/openid-connect/auth",
+								"--redeem-url=" + providerUrl + "/protocol/openid-connect/token",
+								"--validate-url=" + providerUrl + "/protocol/openid-connect/userinfo",
 								"--proxy-prefix=/" + urlUUID + "/oauth2",
 								"--cookie-path=/" + urlUUID,
 								"--email-domain=*",

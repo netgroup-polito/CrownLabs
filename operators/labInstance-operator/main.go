@@ -17,12 +17,13 @@ package main
 
 import (
 	"flag"
+	"os"
+	"strings"
+
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	"github.com/prometheus/common/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"strings"
 
 	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/controllers"
@@ -58,7 +59,9 @@ func main() {
 	var webdavSecret string
 	var websiteBaseUrl string
 	var nextcloudBaseUrl string
+	var oauth2ProxyImage string
 	var oidcClientSecret string
+	var oidcProviderUrl string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -67,9 +70,11 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 	flag.StringVar(&websiteBaseUrl, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&nextcloudBaseUrl, "nextcloud-base-url", "nextcloud.crown-labs.ipv6.polito.it", "Base URL of NextCloud website to use")
+	flag.StringVar(&nextcloudBaseUrl, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
-	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret")
+	flag.StringVar(&oauth2ProxyImage, "oauth2-proxy-image", "", "The docker image used for the oauth2-proxy deployment")
+	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret used by oauth2-proxy")
+	flag.StringVar(&oidcProviderUrl, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(func(o *zap.Options) {
@@ -77,10 +82,10 @@ func main() {
 	}))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		Port:               9443,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         enableLeaderElection,
+		Port:                   9443,
 		HealthProbeBindAddress: ":8081",
 		LivenessEndpointName:   "/healthz",
 		ReadinessEndpointName:  "/ready",
@@ -100,7 +105,9 @@ func main() {
 		NextcloudBaseUrl:   nextcloudBaseUrl,
 		WebsiteBaseUrl:     websiteBaseUrl,
 		WebdavSecretName:   webdavSecret,
-		OidcClientSecret:       oidcClientSecret,
+		Oauth2ProxyImage:   oauth2ProxyImage,
+		OidcClientSecret:   oidcClientSecret,
+		OidcProviderUrl:    oidcProviderUrl,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LabInstance")
 		os.Exit(1)

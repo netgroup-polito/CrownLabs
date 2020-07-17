@@ -8,7 +8,7 @@
 # See the README file for more details.
 
 # Configure the URL of the CrownLabs segistry
-CROWNLABS_REGISTRY="registry.crown-labs.ipv6.polito.it"
+CROWNLABS_REGISTRY="registry.crownlabs.polito.it"
 CROWNLABS_REGISTRY_USERNAME= # Configure to avoid the interactive prompt
 CROWNLABS_REGISTRY_PASSWORD= # Configure to avoid the interactive prompt
 CROWNLABS_REGISTRY_FOLDER="netgroup" # Must contain only lowercase letters, numbers, dashes

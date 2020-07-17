@@ -1,4 +1,4 @@
- 
+
 apiVersion: template.crown.team.com/v1
 kind: LabTemplate
 metadata:
@@ -43,7 +43,7 @@ spec:
       volumes:
         - name: containerdisk
           containerDisk:
-            image: registry.internal.crown-labs.ipv6.polito.it/netgroup/lab2-test:latest
+            image: registry.internal.crownlabs.polito.it/netgroup/lab2-test:latest
             imagePullSecret: dockercreds
         - name: cloudinitdisk
           cloudInitNoCloud:

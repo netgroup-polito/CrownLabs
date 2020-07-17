@@ -33,7 +33,7 @@ Hence, if the VM is rebooted during the local configuration, it may be necessary
 
 ### Conversion of existing VMs
 
-The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base-crownlabs` playbook (i.e. executing `./setup-crown-labs-vm <vm-name> configure ansible/xubuntu-base-crownlabs-playbook.yml`). Then, it is possible to proceed exporting the VM as in the standard procedure.
+The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base-crownlabs` playbook (i.e. executing `./setup-crownlabs-vm <vm-name> configure ansible/xubuntu-base-crownlabs-playbook.yml`). Then, it is possible to proceed exporting the VM as in the standard procedure.
 
 **Warning**: depending on your configuration (e.g. virtualization platform and guest OS), the script may require some additional amount of tuning to work. Additionally, verify in advance that the packages automatically removed are of no use to you.
 

@@ -10,7 +10,7 @@ metadata:
   namespace: monitoring
 spec:
   rules:
-  - host: prometheus.crown-labs.ipv6.polito.it
+  - host: prometheus.crownlabs.polito.it
     http:
       paths:
       - backend:
@@ -19,5 +19,5 @@ spec:
         path: /
   tls:
   - hosts:
-    - prometheus.crown-labs.ipv6.polito.it
+    - prometheus.crownlabs.polito.it
     secretName: prometheus-cert

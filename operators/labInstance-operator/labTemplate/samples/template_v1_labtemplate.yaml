@@ -42,7 +42,7 @@ spec:
       volumes:
         - name: containerdisk
           containerDisk:
-            image: registry.crown-labs.ipv6.polito.it/netgroup/lab2-test:latest
+            image: registry.crownlabs.polito.it/netgroup/lab2-test:latest
             imagePullSecret: dockercreds
             imagePullPolicy: IfNotPresent
         - name: cloudinitdisk

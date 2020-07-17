@@ -12,7 +12,7 @@ metadata:
   namespace: monitoring
 spec:
   rules:
-  - host: grafana.crown-labs.ipv6.polito.it
+  - host: grafana.crownlabs.polito.it
     http:
       paths:
       - backend:
@@ -21,5 +21,5 @@ spec:
         path: /
   tls:
   - hosts:
-    - grafana.crown-labs.ipv6.polito.it
+    - grafana.crownlabs.polito.it
     secretName: grafana-cert

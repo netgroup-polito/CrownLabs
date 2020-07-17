@@ -29,13 +29,13 @@ ingress:
   enabled: true
   path: /
   hosts:
-  - registry.crown-labs.ipv6.polito.it
+  - registry.crownlabs.polito.it
   annotations:
   - cert-manager.io/cluster-issuer: letsencrypt-production
   labels: {}
   tls:
   - hosts:
-    - registry.crown-labs.ipv6.polito.it
+    - registry.crownlabs.polito.it
 resources:
 # We usually recommend not to specify default resources and to leave this as a conscious
 # choice for the user. This also increases chances charts run on environments with little

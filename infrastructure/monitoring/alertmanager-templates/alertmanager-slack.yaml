@@ -6,7 +6,7 @@ route:
   # When a new group of alerts is created by an incoming alert, wait at
   # least 'group_wait' to send the initial notification.
   # This way ensures that you get multiple alerts for the same group that start
-  # firing shortly after another are batched together on the first 
+  # firing shortly after another are batched together on the first
   # notification.
   #group_wait: 30s
   # When the first notification was sent, wait 'group_interval' to send a batch
@@ -28,7 +28,7 @@ receivers:
   - channel: 'alerts-critical'
     send_resolved: true
     api_url: 'https://hooks.slack.com/services/XXXXX'
-    #title_link: 'https://alertmanager.crown-labs.ipv6.polito.it'
+    #title_link: 'https://alertmanager.crownlabs.polito.it'
     title: '{{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status
       | toUpper }}] {{ .CommonAnnotations.summary }}'
     text: "{{ range .Alerts }}*Priority*: `{{ .Labels.severity | toUpper }}`\n*AlertName*:
@@ -38,7 +38,7 @@ receivers:
   - channel: 'alerts-warning'
     send_resolved: true
     api_url: 'https://hooks.slack.com/services/XXXXY'
-    #title_link: 'https://alertmanager.crown-labs.ipv6.polito.it'
+    #title_link: 'https://alertmanager.crownlabs.polito.it'
     title: '{{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status
       | toUpper }}] {{ .CommonAnnotations.summary }}'
     text: "{{ range .Alerts }}*Priority*: `{{ .Labels.severity | toUpper }}`\n*AlertName*:
@@ -48,14 +48,14 @@ receivers:
   - channel: 'alerts-watchdog'
     send_resolved: true
     api_url: 'https://hooks.slack.com/services/XXXXZ'
-    #title_link: 'https://alertmanager.crown-labs.ipv6.polito.it'
+    #title_link: 'https://alertmanager.crownlabs.polito.it'
     title: '{{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status
       | toUpper }}] {{ .CommonAnnotations.summary }}'
     text: "{{ range .Alerts }}*Priority*: `{{ .Labels.severity | toUpper }}`\n*AlertName*:
       {{ .Labels.alertname }}\n{{ .Annotations.summary }}\n{{ end }}"
 # Inhibition rules allow to mute a set of alerts given that another alert is
 # firing.
-# We use this to mute any warning-level notifications if the same alert is 
+# We use this to mute any warning-level notifications if the same alert is
 # already critical.
 inhibit_rules:
 - equal:
