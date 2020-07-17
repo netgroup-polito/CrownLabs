@@ -8,7 +8,7 @@ spec:
   duration: 2160h # 90d
   renewBefore: 360h # 15d
   dnsNames:
-  - auth.crown-labs.ipv6.polito.it
+  - auth.crownlabs.polito.it
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer

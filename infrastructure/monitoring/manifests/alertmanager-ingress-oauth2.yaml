@@ -7,7 +7,7 @@ metadata:
   namespace: monitoring
 spec:
   rules:
-  - host: alertmanager.crown-labs.ipv6.polito.it
+  - host: alertmanager.crownlabs.polito.it
     http:
       paths:
       - backend:
@@ -16,5 +16,5 @@ spec:
         path: /oauth2
   tls:
   - hosts:
-    - alertmanager.crown-labs.ipv6.polito.it
+    - alertmanager.crownlabs.polito.it
     secretName: alertmanager-cert

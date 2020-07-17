@@ -19,7 +19,7 @@ metadata:
     use-dns01-solver: "true"
 spec:
   rules:
-  - host: apiserver.crown-labs.ipv6.polito.it
+  - host: apiserver.crownlabs.polito.it
     http:
       paths:
       - backend:
@@ -28,5 +28,5 @@ spec:
         path: /
   tls:
   - hosts:
-    - apiserver.crown-labs.ipv6.polito.it
+    - apiserver.crownlabs.polito.it
     secretName: apiserver-ingress-cert

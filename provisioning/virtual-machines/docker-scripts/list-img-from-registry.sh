@@ -5,7 +5,7 @@
 # Print on screen all the executed commands
 set -x
 
-# Registry, e.g., 'registry.crown-labs.ipv6.polito.it:443'
+# Registry, e.g., 'registry.crownlabs.polito.it'
 registry='<registry host>'
 
 # Username and password; not needed if you are already logged in

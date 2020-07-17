@@ -76,7 +76,7 @@ service:
 ingress:
   enabled: true
   hosts:
-  - blackbox-exporter.crown-labs.ipv6.polito.it
+  - blackbox-exporter.crownlabs.polito.it
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
     # kubernetes.io/ingress.class: nginx
@@ -84,7 +84,7 @@ ingress:
   tls:
   - hosts: # - secretName: chart-example-tls
     # Secrets must be manually created in the namespace.
-    - blackbox-exporter.crown-labs.ipv6.polito.it
+    - blackbox-exporter.crownlabs.polito.it
     secretName: blackbox-cert
 podAnnotations: {}
 extraArgs: []
@@ -104,19 +104,19 @@ serviceMonitor:
     module: http_2xx
   targets:
   - name: prometheus # Human readable URL that will appear in Prometheus / AlertManager
-    url: https://prometheus.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
+    url: https://prometheus.crownlabs.polito.it # The URL that blackbox will scrape
     #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
     #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
     #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
     #      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
   - name: grafana # Human readable URL that will appear in Prometheus / AlertManager
-    url: https://grafana.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
+    url: https://grafana.crownlabs.polito.it # The URL that blackbox will scrape
     #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
     #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
     #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`
     #      module: http_2xx                 # Module used for scraping. Overrides value set in `defaults`
   - name: alertmanager # Human readable URL that will appear in Prometheus / AlertManager
-    url: https://alertmanager.crown-labs.ipv6.polito.it # The URL that blackbox will scrape
+    url: https://alertmanager.crownlabs.polito.it # The URL that blackbox will scrape
 #      labels: {}                       # List of labels for ServiceMonitor. Overrides value set in `defaults`
 #      interval: 60s                    # Scraping interval. Overrides value set in `defaults`
 #      scrapeTimeout: 60s               # Scrape timeout. Overrides value set in `defaults`

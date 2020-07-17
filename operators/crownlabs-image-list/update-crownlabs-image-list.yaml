@@ -81,7 +81,7 @@ spec:
         image: crownlabs/update-crownlabs-image-list:v0.1-crown
         imagePullPolicy: Always
         args:
-        - --advertised-registry-name=registry.internal.crown-labs.ipv6.polito.it
+        - --advertised-registry-name=registry.internal.crownlabs.polito.it
         - --image-list-name=crownlabs-virtual-machine-images
         - --registry-url=http://docker-registry.docker-registry:5000
         - --update-interval=60

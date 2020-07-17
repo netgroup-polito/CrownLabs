@@ -14,7 +14,7 @@ metadata:
     use-dns01-solver: "true"
 spec:
   rules:
-  - host: registry.internal.crown-labs.ipv6.polito.it
+  - host: registry.internal.crownlabs.polito.it
     http:
       paths:
       - backend:
@@ -23,5 +23,5 @@ spec:
         path: /
   tls:
   - hosts:
-    - registry.internal.crown-labs.ipv6.polito.it
+    - registry.internal.crownlabs.polito.it
     secretName: certificate-registry-internal

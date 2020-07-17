@@ -23,7 +23,7 @@ class KeycloakHandler:
 
     def __init__(self, admin_user, admin_pass, client_id):
         self.keycloak_admin = kc.KeycloakAdmin(
-            server_url="https://auth.crown-labs.ipv6.polito.it/auth/",
+            server_url="https://auth.crownlabs.polito.it/auth/",
             username=admin_user,
             password=admin_pass,
             user_realm_name="master",

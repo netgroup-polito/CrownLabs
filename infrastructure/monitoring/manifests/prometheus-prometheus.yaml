@@ -29,7 +29,7 @@ spec:
     fsGroup: 2000
     runAsNonRoot: true
     runAsUser: 1000
-  externalUrl: "https://prometheus-ladispe.ipv6.polito.it"
+  externalUrl: "https://prometheus.crownlabs.polito.it"
   serviceAccountName: prometheus-k8s
   serviceMonitorNamespaceSelector: {}
   serviceMonitorSelector: {}
