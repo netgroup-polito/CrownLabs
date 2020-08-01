@@ -49,7 +49,7 @@ In the following, both types of challenges are configured and made available. In
 
 1. Install the `CustomResourceDefinitions` and `cert-manager` itself:
     ```sh
-    $ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.15.2/cert-manager.yaml
+    $ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v0.16.1/cert-manager.yaml
     ```
 2. Create the `ServiceMonitor` resource, to make Prometheus aware of the metrics exposed by `cert-manager` (Grafana dashboard with ID 11001):
     ```sh

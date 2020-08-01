@@ -5,7 +5,7 @@ MetalLB is a load-balancer implementation for bare metal Kubernetes clusters, us
 Run the following command to install MetalLB:
 
 ```bash
-$ kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.8.3/manifests/metallb.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.9.3/manifests/metallb.yaml
 ```
 
 After this command, MetalLB remains in pending state waiting for a ConfigMap (see next step).
