@@ -1,4 +1,4 @@
-# Setup CrownLabs VMs
+# Create and configure CrownLabs VMs
 
 This folder contains different scripts that automate the creation and configuration of the VMs used in *CrownLabs*.
 
