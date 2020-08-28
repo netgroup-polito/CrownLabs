@@ -2,20 +2,20 @@
 
 ## Create and upload custom VMs to the cluster
 
-The suggested approach to create and upload new VMs in CrownLabs involves the usage of the [setup-crownlabs-vm.sh](setup-crownlabs-vm/setup-crownlabs-vm.sh) script, which takes care of:
+The suggested approach to create and upload new VMs in CrownLabs involves the usage of the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script, which takes care of:
 - Creating a new VirtualBox VMs and installing the guest OS (`xubuntu`, which represents a good compromise between the necessity to have a friendly, GUI-based guest OS and the resources consumed by the graphical interface);
 - Installing additional software (e.g., application software packages) and the background tools required by CrownLabs with Ansible (e.g., VNC server);
 - Converting the resulting virtual HDD to the correct format and upload it to a Docker Registry.
 
-Look at the [VM setup](setup-crownlabs-vm/README.md) documentation page for detailed instructions for running and customizing the above script.
+Look at the [VM setup](README-VM-create.md) documentation page for detailed instructions for running and customizing the above script.
 
 Once the VM image has been correctly uploaded to the registry, a new laboratory can be configured in the CrownLab live environment, as explained [in the Course/Lab setup](../courses) documentation section.
 
 
 ## Create your own VM manually
-We strongly suggest **not to create your own VM manually**, relying instead on the [setup-crownlabs-vm.sh](setup-crownlabs-vm/setup-crownlabs-vm.sh) script.
+We strongly suggest **not to create your own VM manually**, relying instead on the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script.
 
-In case you are a very experienced user and you want to proceed manually, we suggest to (1) read how the `setup-crownlabs-vms.sh` script works (look at the [VM setup](setup-crownlabs-vm/README.md) documentation), then continue with this guide.
+In case you are a very experienced user and you want to proceed manually, we suggest to (1) read how the `setup-crownlabs-vms.sh` script works (look at the [VM setup](README-VM-create.md) documentation), then continue with this guide.
 
 
 ### Conversion of existing VMs
