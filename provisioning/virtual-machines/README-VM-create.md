@@ -29,14 +29,14 @@ newgrp docker
 
 The `setup-crownlabs-vms.sh` script makes use of Ansible Playbooks to install additional software packages in the VM (e.g., applications that you need to run in the guest OS).
 For instance, each course may have its own playbook that installs the software packages required by the students of that course.
-The [ansible](setup-crownlabs-vm/ansible) folder includes some playbooks for courses active at Politecnico di Torino; as an example, the [xubuntu-netlab-playbook](ansible/xubuntu-netlab-playbook.yml) targets a computer network course and installs `Wireshark`, `Docker`, `polycube` and `GNS3`.
+The [ansible](ansible) folder includes some playbooks for courses active at Politecnico di Torino; as an example, the [xubuntu-netlab-playbook](ansible/xubuntu-netlab-playbook.yml) targets a computer network course and installs `Wireshark`, `Docker`, `polycube` and `GNS3`.
 
 In case you want to install different software, you can simply create a new ansible playbook and start the `setup-crownlabs-vms.sh` script with the optional Ansible playbook that has to be executed for your VM.
 Given the modularity of Ansible, you can define new playbooks that refer to already existing playbooks, hence leveraging the install procedure defined in other playbooks to (partially) configure your VM as well.
 
 Alternatively, you can create a basic VM (i.e. with the `xubuntu-base-crownlabs` playbook) and proceed with the manual installation of custom software.
 
-Playbooks named `*-crownlabs-playbook.yaml` available in the [ansible](setup-crownlabs-vm/ansible) folder are used to install all the tools required by CrownLabs to work (e.g., the software required to enable the remote access to the VM through an HTTPS session), therefore should be included in any other playbook.
+Playbooks named `*-crownlabs-playbook.yaml` available in the [ansible](ansible) folder are used to install all the tools required by CrownLabs to work (e.g., the software required to enable the remote access to the VM through an HTTPS session), therefore should be included in any other playbook.
 
 In case you want to *add/remove* new tasks, you can simply create a new ansible script, and optionally new ansible roles, as in [xubuntu-netlab-playbook.yml](ansible/xubuntu-netlab-playbook.yml).
 In particular, the first task (`xubuntu-pre`) is rather generic and aims at cleaning up the system and removing unnecessary packages, shrinking the size of the VM disk to a smaller size.

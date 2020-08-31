@@ -24,7 +24,8 @@ _OIDC_PROVIDER_URL_, _OIDC_CLIENT_ID_, _OIDC_CLIENT_SECRET_ and _OIDC_REDIRECT_U
 More in detail, the provider URL is the IdentityProvider you are going to contact (in our case our keycloak).
 The client id is the client id that your IdentityProvider is going to accept using your client secret. The redirect URI is the URL you are going to be
 redirected after you complete the login. Please **NOTE** that if you are going to run the webservice locally, this will be
-something like http://localhost:8000 , while in production this will correspond to our website URL https://crownlabs.polito.it .
+something like http://localhost:8000, <!-- markdown-link-check-disable-line -->
+while in production this will correspond to our website URL https://crownlabs.polito.it .
 
 _API_SERVER_URL_ is the url to the API server to whom our Kubernetes library interact with. In our case, this is our Kubernetes address.
 
@@ -51,6 +52,7 @@ export APISERVER_URL=https://1.1.1.1:3333
 
 To run the service, type `npm start`.
 
+<!-- markdown-link-check-disable-next-line -->
 Visit http://localhost:8000 or wherever you decided to host your website (also according to the OIDC_REDIRECT_URI you have set).
 
 ## Docker installation
@@ -85,6 +87,7 @@ server {
 
 Then add the command `COPY nginx.conf /etc/nginx/conf.d/default.conf` to the dockerfile.
 
+<!-- markdown-link-check-disable-next-line -->
 If you are going to run it locally, please set OIDC_REDIRECT_URI=http://localhost:8000, while all the other variable are platform-independent.
 
 To build, type `docker build -t <tag> .` from this directory.
@@ -93,6 +96,7 @@ Run the image. If running locally, map the port 8000 of your host to the port 80
 
 `docker run -p 8000:80 --rm <image_tag>`
 
+<!-- markdown-link-check-disable-next-line -->
 Visit http://localhost:8000 or https://crownlabs.polito.it .
 
 ## How it works
