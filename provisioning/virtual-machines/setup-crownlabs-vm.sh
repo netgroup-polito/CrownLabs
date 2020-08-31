@@ -17,7 +17,7 @@ CROWNLABS_REGISTRY_IMAGE_VERSION="$(date '+%Y%m%d')"
 # Configure the Ubuntu distribution and version
 # Warning: changing the distribution may break the subsequent configuration
 UBUNTU_DISTRO=xubuntu
-UBUNTU_VERSION=19.10
+UBUNTU_VERSION=20.04
 
 # Configure the credentials of the VM user
 USERNAME=netlab
@@ -160,11 +160,22 @@ DOWNLOAD_PATH="${BASEDIR}/downloads"
 mkdir --parents "${DOWNLOAD_PATH}" || \
     { echo "Failed to create '${DOWNLOAD_PATH}'. Abort"; exit ${EXIT_FAILURE}; }
 
-echo "Downloading ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
-UBUNTU_URL=http://cdimages.ubuntu.com/${UBUNTU_DISTRO}/releases/${UBUNTU_VERSION}/release/${UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso
+echo "Downloading the ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
+UBUNTU_IMAGE_URL=https://cdimages.ubuntu.com/${UBUNTU_DISTRO}/releases/${UBUNTU_VERSION}/release/${UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso
+UBUNTU_SHA256SUMS_URL=https://cdimages.ubuntu.com/${UBUNTU_DISTRO}/releases/${UBUNTU_VERSION}/release/SHA256SUMS
 INSTALL_ISO="${DOWNLOAD_PATH}/${UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso"
-curl --continue-at - --output "${INSTALL_ISO}" ${UBUNTU_URL} || \
-    { echo "Failed to download the Ubuntu image from '${UBUNTU_URL}'. Abort"; exit ${EXIT_FAILURE}; }
+INSTALL_ISO_SHA256SUMS="${UBUNTU_DISTRO}-${UBUNTU_VERSION}.SHA256SUMS"
+
+curl --continue-at - --progress-bar --output "${INSTALL_ISO}" ${UBUNTU_IMAGE_URL} || \
+    { echo "Failed to download the Ubuntu image from '${UBUNTU_IMAGE_URL}'. Abort"; exit ${EXIT_FAILURE}; }
+
+echo "Verifying the checksum of the ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
+curl --fail --silent --output "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}" ${UBUNTU_SHA256SUMS_URL} || \
+    { echo "Failed to download the Ubuntu image checksum from '${UBUNTU_SHA256SUMS_URL}'. Abort"; exit ${EXIT_FAILURE}; }
+( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${INSTALL_ISO_SHA256SUMS}"; ) &&
+    { echo "Checksum verification correctly completed"; } || \
+    { echo "Failed to verify the checksum. The downloaded Ubuntu image appears to be corrupted. Abort"; exit ${EXIT_FAILURE}; }
+
 
 # Install guest additions?
 GA_INSTALL=$([[ "--no-guest-additions" == "$GA_FLAG" ]] && echo 0 || echo 1)
@@ -172,12 +183,22 @@ GA_INSTALL=$([[ "--no-guest-additions" == "$GA_FLAG" ]] && echo 0 || echo 1)
 if [[ $GA_INSTALL -eq 1 ]]
 then
     echo
-    echo "Downloading Guest Additions ISO..."
+    echo "Downloading the Guest Additions ISO..."
     GA_BASE_URL=https://download.virtualbox.org/virtualbox/
     GA_URL=${GA_BASE_URL}/${VBOXVERSION}/VBoxGuestAdditions_${VBOXVERSION}.iso
+    GA_URL_SHA256SUMS=${GA_BASE_URL}/${VBOXVERSION}/SHA256SUMS
     GA_ISO="${DOWNLOAD_PATH}/VBoxGuestAdditions_${VBOXVERSION}.iso"
-    curl --continue-at - --output "${GA_ISO}" ${GA_URL} || \
+    GA_ISO_SHA256SUMS="VBoxGuestAdditions_${VBOXVERSION}.SHA256SUMS"
+
+    curl --continue-at - --progress-bar --output "${GA_ISO}" ${GA_URL} || \
         { echo "Failed to download the Guest Additions image from '${GA_URL}'. Abort"; exit ${EXIT_FAILURE}; }
+
+    echo "Verifying the checksum of the Guest Additions image..."
+    curl --fail --silent --output "${DOWNLOAD_PATH}/${GA_ISO_SHA256SUMS}" ${GA_URL_SHA256SUMS} || \
+        { echo "Failed to download the Guest Additions image checksum from '${GA_URL_SHA256SUMS}'. Abort"; exit ${EXIT_FAILURE}; }
+    ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${GA_ISO_SHA256SUMS}"; ) &&
+        { echo "Checksum verification correctly completed"; } || \
+        { echo "Failed to verify the checksum. The downloaded Guest Additions image appears to be corrupted. Abort"; exit ${EXIT_FAILURE}; }
 fi
 
 ##########################################
