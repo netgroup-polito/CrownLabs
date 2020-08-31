@@ -98,7 +98,6 @@ check_available "docker"
 check_docker_privileges
 check_available "ssh"
 check_available "sshpass"
-check_available "ssh-keygen"
 check_available "virt-sparsify"
 echo
 
@@ -319,9 +318,6 @@ then
         { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
 fi
 
-# Remove the SSH association if already present
-ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$SSHREM" > /dev/null 2> /dev/null
-
 # Create the inventory file
 INVENTORY_FILE="${BASEDIR}/${VMNAME}-inventory.yml"
 cat <<EOF > "${INVENTORY_FILE}"
@@ -334,7 +330,7 @@ all:
       ansible_user: $USERNAME
       ansible_ssh_pass: $PASSWORD
       ansible_become_pass: $PASSWORD
-      ansible_ssh_extra_args: '-o StrictHostKeyChecking=no'
+      ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
       ansible_python_interpreter: auto
 EOF
 
