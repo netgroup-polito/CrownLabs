@@ -39,7 +39,7 @@ Prometheus's main features are:
 - multiple modes of graphing and dashboarding support
 
 ### Grafana
-From [Grafana](https://grafana.com/docs/grafana/latest/guides/what-is-grafana/) official documentation.
+From [Grafana](https://grafana.com/docs/grafana/latest/getting-started/what-is-grafana/) official documentation.
 Grafana is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics no matter where they are stored. We can also say that Grafana is the tool for beautiful monitoring and metric analytics & dashboards for Graphite, InfluxDB & Prometheus & More.
 
 ### Alertmanager
@@ -84,7 +84,7 @@ Running cluster monitoring with persistent storage means that your metrics are s
 #### How?
 We need to modify two manifests (for Grafana and Prometheus) to have persistent storage.
 
-1. [Grafana](https://github.com/netgroup-polito/CrownLabs/blob/kube-prometheus/cluster_config/kube-prometheus/manifests/grafana-deployment.yaml) manifest.
+1. [Grafana](manifests/grafana-deployment.yaml) manifest.
 ```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -107,7 +107,7 @@ spec:
         persistentVolumeClaim:
           claimName: pv-claim-grafana
 ```
-2. [Prometheus](https://github.com/netgroup-polito/CrownLabs/blob/kube-prometheus/cluster_config/kube-prometheus/manifests/prometheus-prometheus.yaml) manifest.
+2. [Prometheus](manifests/prometheus-prometheus.yaml) manifest.
 ```yaml
 retention: 15d
   resources:
@@ -193,7 +193,7 @@ In the following, we will setup Alertmanager, Grafana and Prometheus to use Keyc
 1. Create a new client for `monitoring`;
 2. Configure the Client Protocol to be `openid-connect`;
 3. Set Access Type to `confidential`;
-4. Configure the Valid Redirect URIs to the alertmanager, grafana and prometheus URLs (e.g. https://alertmanager.example.com/*, https://grafana.example.com/*, https://prometheus.example.com/*);
+4. Configure the Valid Redirect URIs to the alertmanager, grafana and prometheus URLs (e.g. https://alertmanager.example.com/*, https://grafana.example.com/*, https://prometheus.example.com/*); <!-- markdown-link-check-disable-line -->
 5. From the Credentials tab, copy the Client Secret that has been generated;
 6. From the Mappers tab, add a new `Group Membership` mapper with Token Claim Name equal to `groups`.
 
@@ -308,4 +308,3 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 
 ### Other information
 For more information, look at the Github page of [kube-prometheus](https://github.com/coreos/kube-prometheus).
-

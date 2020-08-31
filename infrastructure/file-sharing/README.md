@@ -32,7 +32,7 @@ Proceed installing the Postgres cluster, by applying the [nextcloud-postgres-clu
 # create a Postgres cluster
 kubectl create -f nextcloud-postgres-cluster-manifest.yaml
 ```
-For more information about the Postgres Operator please refer to this [README.md](../Keycloak/README.md)
+For more information about the Postgres Operator please refer to this [README.md](../identity-provider/README.md)
 
 ## CEPHfs for the PVC
 The Ceph File System, or CephFS, is a POSIX-compliant file system built on top of Ceph’s distributed object store, RADOS. CephFS endeavors to provide a state-of-the-art, multi-use, highly available,

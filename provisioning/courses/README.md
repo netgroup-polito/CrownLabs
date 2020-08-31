@@ -13,8 +13,8 @@ Upon the creation of a new tenant account, the system automatically sends a welc
 
 The script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results. Additionally, the modifications are incremental, e.g. it is possible to introduce new laboratories or allow tenants to access additional courses even after the initial creation.
 
-The script depends upon a series of Kubernetes resource templates stored within the [templates](templates) folder. Before executing the script, it is necessary to customize the following files:
-- [registrycredentials_template.yaml](templates/registrycredentials.yaml.tmpl): to specify the credentials to access the docker registry where the laboratory images are made available for download;
+The script depends upon a series of Kubernetes resource templates stored within the [templates](templates) folder.
+Before executing the script, it is possible to customize the following files:
 - [setup-courses.py](setup-courses.py): optional, to configure the URL of a different OICD server (`server_url` field).
 
 ## Dependencies
