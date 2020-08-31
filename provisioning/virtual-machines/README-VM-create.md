@@ -11,7 +11,6 @@ All the functionalities can be triggered executing the `setup-crownlabs-vms.sh` 
 - **curl**: used to download the guest operating system installer (e.g., the ISO image of the guest operating system).
 - **ssh**: required by ansible to interact with the VMs and configure the additional software required in the guest environment (e.g., additional applications).
 - **sshpass**: required by ansible to (silently) authenticate with the VM when establishing the SSH connection (to configure additional software packages).
-- **ssh-keygen**: used to remove any existing SSH associations and prevent the "Host key verification failed" message.
 - **virt-sparsify**: used to export the resulting VM images into the format required by CrownLabs, compacting the resulting disk image in order to save space (and decrease the boot time).
 - **docker**: used to export the resulting VM images into the format required by CrownLabs
 
@@ -70,7 +69,7 @@ The tools that are required by CrownLabs to work and are automatically installed
 3. Once the installation terminates and the OS completes the reboot, issue `./setup-crownlabs-vm.sh <vm-name> configure <ansible-playbook.yml>`, where the _playbook_ contains the instructions to configure and install the additional software packages you need to run in the VM.
 The script connects to the VM via SSH and runs the specified ansible playbook.
 For more detailed instructions about creating and customizing Ansible playbook, look at the [dedicated subsection](#ansible).
-  
+
 4. Log-in the VM and complete the remaining manual tasks as explained in the [README](ansible/xubuntu-post/files/README) file (copied to the Desktop).
 
 5. Shutdown the VM and issue `./setup-crownlabs-vm.sh <vm-name> export [ova|crownlabs]` to export the VM to an `.ova` file or make it available for the *CrownLabs*.
