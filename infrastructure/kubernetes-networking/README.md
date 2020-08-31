@@ -1,22 +1,17 @@
-## Kubernetes Networking - CNI Setup
+# Kubernetes Networking - CNI Setup
 
-In order to correctly setup the cluster, the [calico.yaml](calico.yaml) configuration file of the CNI have been slightly modified. In particular the pod network CIDR has been configured as shown in the following snippet:
+As for it concerns Kubernetes networking, we selected [Project Calico](https://www.projectcalico.org/), since it is one of the most popular CNI plugins.
+In short, it limits the overhead by requiring no overlay and supports advanced features such as the definition of network policies to isolate the traffic between different containers.
 
-```yaml
-...
-- name: CALICO_IPV4POOL_CIDR
-  value: "172.16.0.0/16"
-...
+## Calico Installation
+In order to install Calico, you can perform the following operations, which will download the default configuration from the official webpage and apply it customizing the pod network CIDR according to the selected cluster setup:
+
+```bash
+$ export CALICO_VERSION=v3.16
+$ curl https://docs.projectcalico.org/${CALICO_VERSION}/manifests/calico.yaml -o calico.yaml
+$ kubectl apply -k .
 ```
 
-Now, apply the [calico.yaml](calico.yaml) file:
-
-```sh
-$ kubectl apply -f calico.yaml
-```
-
-This will setup Calico with the following networking configuration of the cluster:
- - IP addresses of pods: 172.16.0.0/16
- - IP addresses of services: 10.96.0.0/12
-
-IP addresses of the worker nodes are outside CALICO configuration.
+## Selected cluster networking configuration
+- IP addresses of pods: 172.16.0.0/16
+- IP addresses of services: 10.96.0.0/12
