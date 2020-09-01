@@ -60,29 +60,30 @@ EXIT_FAILURE=1
 function check_available {
     CMDPATH="$1"
     CMDNAME=$(basename "$1")
-    command -v "${CMDPATH}" >/dev/null 2>&1 && {
+    if command -v "${CMDPATH}" >/dev/null 2>&1
+    then
         echo "* '${CMDNAME}' found!"
-    } || {
+    else
         echo "'${CMDNAME}' required but not found. Abort"
         exit ${EXIT_FAILURE}
-    }
+    fi
 }
 
 # Checks if the version of ansible is greater than the required one
 function check_ansible_version {
     REQUIRED_VERSION="$1"
     ANSIBLE_VERSION=$(ansible-playbook --version | head --lines 1 | cut --delimiter ' ' --field 2)
-    printf '%s\n%s\n' "${REQUIRED_VERSION}" "${ANSIBLE_VERSION}" | sort --version-sort --check=quiet && {
+    if printf '%s\n%s\n' "${REQUIRED_VERSION}" "${ANSIBLE_VERSION}" | sort --version-sort --check=quiet
+    then
         echo "* 'ansible-playbook' Version: ${ANSIBLE_VERSION} - OK!"
-    } || {
+    else
         echo "* 'ansible-playbook' Version: ${ANSIBLE_VERSION} - Required: ${REQUIRED_VERSION}. Abort!"
         exit ${EXIT_FAILURE}
-    }
+    fi
 }
 
 function check_docker_privileges {
-    docker ps >/dev/null 2>/dev/null
-    [[ "$?" -eq 0 ]] || {
+    docker ps >/dev/null 2>/dev/null || {
         echo "* 'docker': It appears you do not have enough privileges. Warning: do *NOT* run this script with sudo"
         exit ${EXIT_FAILURE}
     }
@@ -135,7 +136,7 @@ echo
 
 echo "Checking VirtualBox paths..."
 
-BASEDIR=$(dirname $0)
+BASEDIR=$(dirname "$0")
 VBPATH=$("${VBOXMANAGE}" list systemproperties | sed -n 's/Default machine folder: *//p' | tr -d '\r')
 VMPATH="${VBPATH}/${VMNAME}"
 HDDPATH="${VMPATH}/${VMNAME}.vdi"
@@ -172,10 +173,14 @@ curl --continue-at - --progress-bar --output "${INSTALL_ISO}" ${UBUNTU_IMAGE_URL
 echo "Verifying the checksum of the ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
 curl --fail --silent --output "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}" ${UBUNTU_SHA256SUMS_URL} || \
     { echo "Failed to download the Ubuntu image checksum from '${UBUNTU_SHA256SUMS_URL}'. Abort"; exit ${EXIT_FAILURE}; }
-( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${INSTALL_ISO_SHA256SUMS}"; ) &&
-    { echo "Checksum verification correctly completed"; } || \
-    { echo "Failed to verify the checksum. The downloaded Ubuntu image appears to be corrupted. Abort"; exit ${EXIT_FAILURE}; }
 
+if ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${INSTALL_ISO_SHA256SUMS}"; )
+then
+    echo "Checksum verification correctly completed";
+else
+    echo "Failed to verify the checksum. The downloaded Ubuntu image appears to be corrupted. Abort"
+    exit ${EXIT_FAILURE};
+fi
 
 # Install guest additions?
 GA_INSTALL=$([[ "--no-guest-additions" == "$GA_FLAG" ]] && echo 0 || echo 1)
@@ -190,15 +195,20 @@ then
     GA_ISO="${DOWNLOAD_PATH}/VBoxGuestAdditions_${VBOXVERSION}.iso"
     GA_ISO_SHA256SUMS="VBoxGuestAdditions_${VBOXVERSION}.SHA256SUMS"
 
-    curl --continue-at - --progress-bar --output "${GA_ISO}" ${GA_URL} || \
+    curl --continue-at - --progress-bar --output "${GA_ISO}" "${GA_URL}" || \
         { echo "Failed to download the Guest Additions image from '${GA_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 
     echo "Verifying the checksum of the Guest Additions image..."
-    curl --fail --silent --output "${DOWNLOAD_PATH}/${GA_ISO_SHA256SUMS}" ${GA_URL_SHA256SUMS} || \
+    curl --fail --silent --output "${DOWNLOAD_PATH}/${GA_ISO_SHA256SUMS}" "${GA_URL_SHA256SUMS}" || \
         { echo "Failed to download the Guest Additions image checksum from '${GA_URL_SHA256SUMS}'. Abort"; exit ${EXIT_FAILURE}; }
-    ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${GA_ISO_SHA256SUMS}"; ) &&
-        { echo "Checksum verification correctly completed"; } || \
-        { echo "Failed to verify the checksum. The downloaded Guest Additions image appears to be corrupted. Abort"; exit ${EXIT_FAILURE}; }
+
+    if ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${GA_ISO_SHA256SUMS}"; )
+    then
+        echo "Checksum verification correctly completed"
+    else
+        echo "Failed to verify the checksum. The downloaded Guest Additions image appears to be corrupted. Abort";
+        exit ${EXIT_FAILURE};
+    fi
 fi
 
 ##########################################
@@ -207,7 +217,7 @@ echo
 echo "Creating '${VMNAME}' virtual machine..."
 
 # Abort if the VM already exists
-if [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
+if "${VBOXMANAGE}" list vms | grep --quiet "\"${VMNAME}\""
 then
     echo "A VM with the same name already exists. Abort."
     exit ${EXIT_FAILURE};
@@ -248,14 +258,14 @@ printf '%s\n%s\n' "${VBOXVERSION}" "6.1.0" | sort --check=quiet --version-sort \
 SCRIPT_TEMPLATE="${BASEDIR}/unattended-install-scripts/ubuntu_preseed.cfg"
 POSTINST_SCRIPT="${BASEDIR}/unattended-install-scripts/ubuntu_postinstall.sh"
 
-GA_INSTALL_FLAGS="--no-install-additions"
+GA_INSTALL_FLAGS=("--no-install-additions")
 if [[ ${GA_INSTALL} -eq 1 ]]
 then
-    GA_INSTALL_FLAGS="--install-additions --additions-iso=${GA_ISO}"
+    GA_INSTALL_FLAGS=("--install-additions" "--additions-iso=${GA_ISO}")
 fi
 
 # Setup unattended OS installation
-"${VBOXMANAGE}" unattended install "${VMNAME}" ${GA_INSTALL_FLAGS} \
+"${VBOXMANAGE}" unattended install "${VMNAME}" "${GA_INSTALL_FLAGS[@]}" \
     --iso="${INSTALL_ISO}" --hostname="${VMNAME}.local" \
     --full-user-name="${FULL_USERNAME}" \
     --user=${USERNAME} --password=${PASSWORD} \
@@ -298,14 +308,14 @@ else
 fi
 
 # Abort if the VM does not exists
-if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
+if ! "${VBOXMANAGE}" list vms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' does not exist. Abort."
     exit ${EXIT_FAILURE};
 fi
 
 # Abort if the VM is not running
-if ! [[ $("${VBOXMANAGE}" list runningvms | grep "\"${VMNAME}\"") ]]
+if ! "${VBOXMANAGE}" list runningvms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' is currently not running, please start it. Abort."
     exit ${EXIT_FAILURE};
@@ -313,10 +323,10 @@ fi
 
 # Get the mode associated to the network interface in VirtualBox
 VMNETSTR=$("${VBOXMANAGE}" showvminfo "${VMNAME}" | sed -n 's/NIC 1: *//p' | tr -d '\r')
-if [[ $(echo $VMNETSTR | grep -i nat) ]]
+if echo "${VMNETSTR}" | grep --ignore-case --quiet nat
 then
     VMNET=nat
-elif [[ $(echo $VMNETSTR | grep -i bridged) ]]
+elif echo "${VMNETSTR}" | grep --ignore-case --quiet bridged
 then
     VMNET=bridged
 else
@@ -335,14 +345,12 @@ fi
 
 SSHIP=$VMIP
 SSHPORT=22
-SSHREM=$SSHIP
 
 # Add port forwording to allow SSH access
 if [[ "$VMNET" == "nat" ]]
 then
     SSHIP=127.0.0.1
     SSHPORT=2222
-    SSHREM="[$SSHIP]:$SSHPORT"
     "${VBOXMANAGE}" controlvm "${VMNAME}" natpf1 "SSH,tcp,$SSHIP,$SSHPORT,$VMIP,22" || \
         { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
 fi
@@ -365,7 +373,7 @@ all:
 EOF
 
 echo "Configuring VM with Ansible playbook '${PLAYBOOK_PATH}' (crownlabs-mode: ${CROWNLABS_MODE})"
-ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" ${ANSIBLE_PLAYBOOK_ARGS}
+ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" "${ANSIBLE_PLAYBOOK_ARGS[@]}"
 
 # Remove the port forwarding rule
 if [[ "$VMNET" == "nat" ]]
@@ -375,7 +383,7 @@ then
 fi
 
 # Remove the inventory file
-rm --force ${INVENTORY_FILE}
+rm --force "${INVENTORY_FILE}"
 
 exit ${EXIT_SUCCESS}
 ;;
@@ -389,7 +397,7 @@ exit ${EXIT_SUCCESS}
 "configure-nic")
 
 # Abort if the VM does not exists
-if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
+if ! "${VBOXMANAGE}" list vms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' does not exist. Abort."
     exit ${EXIT_FAILURE};
@@ -446,14 +454,14 @@ exit ${EXIT_SUCCESS}
 "export")
 
 # Abort if the VM does not exists
-if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
+if ! "${VBOXMANAGE}" list vms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' does not exist. Abort."
     exit ${EXIT_FAILURE};
 fi
 
 # Abort if the VM is running
-if [[ $("${VBOXMANAGE}" list runningvms | grep "\"${VMNAME}\"") ]]
+if "${VBOXMANAGE}" list runningvms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' is currently running, please stop it. Abort."
     exit ${EXIT_FAILURE};
@@ -506,15 +514,15 @@ cleanup() {
 
     # Remove the exported HDD
     echo "* Removing the exported HDD"
-    [[ -z ${EXPHDDPATH} ]] || rm -f ${EXPHDDPATH}
+    [[ -z ${EXPHDDPATH} ]] || rm -f "${EXPHDDPATH}"
 
     # Remove the docker image
     echo "* Removing the docker image"
-    [[ -z ${IMAGE_TAG} ]] || docker image rm "${IMAGE_TAG}" 2>&1 2>/dev/null
+    [[ -z ${IMAGE_TAG} ]] || docker image rm "${IMAGE_TAG}" >/dev/null 2>&1
 
     # Logout from the repository
     echo "* Logging out from the crownlabs registry"
-    docker logout "${CROWNLABS_REGISTRY}" 2>&1 >/dev/null
+    docker logout "${CROWNLABS_REGISTRY}" >/dev/null 2>&1
 }
 
 # Trigger the cleanup function before exiting
@@ -541,6 +549,9 @@ echo
 echo "Logging in to the crownlabs registry"
 USERNAME_ARG=$([[ -z "${CROWNLABS_REGISTRY_USERNAME}" ]] && echo "" || echo "--username ${CROWNLABS_REGISTRY_USERNAME}")
 PASSWORD_ARG=$([[ -z "${CROWNLABS_REGISTRY_PASSWORD}" ]] && echo "" || echo "--password ${CROWNLABS_REGISTRY_PASSWORD}")
+
+# shellcheck disable=SC2086
+# USERNAME_ARG and PASSWORD_ARG need to be unquoted to allow for empty values
 docker login "${CROWNLABS_REGISTRY}" ${USERNAME_ARG} ${PASSWORD_ARG} 2>/dev/null ||
     { echo "Login Failed. Abort"; exit ${EXIT_FAILURE}; }
 
@@ -555,9 +566,9 @@ EXPHDDPATH="${BUILDDIR}/${VMNAME}.qcow2"
 IMAGE_TAG="${CROWNLABS_REGISTRY}/${CROWNLABS_REGISTRY_FOLDER}/${VMNAME}:${CROWNLABS_REGISTRY_IMAGE_VERSION}"
 
 # Create the Dockerfile
-cat <<EOF > "$DOCKERFILEPATH"
+cat <<EOF > "${DOCKERFILEPATH}"
 FROM scratch
-ADD $(basename $EXPHDDPATH) /disk/
+ADD $(basename "${EXPHDDPATH}") /disk/
 EOF
 
 # Export the VM's HDD to the qcow2 format
@@ -597,14 +608,14 @@ exit ${EXIT_SUCCESS}
 "delete")
 
 # Abort if the VM does not exists
-if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
+if ! "${VBOXMANAGE}" list vms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' does not exist. Abort."
     exit ${EXIT_FAILURE};
 fi
 
 # Abort if the VM is running
-if [[ $("${VBOXMANAGE}" list runningvms | grep "\"${VMNAME}\"") ]]
+if "${VBOXMANAGE}" list runningvms | grep --quiet "\"${VMNAME}\""
 then
     echo "The VM '${VMNAME}' is currently running, please stop it. Abort."
     exit ${EXIT_FAILURE};
