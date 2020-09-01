@@ -89,17 +89,15 @@ function check_docker_privileges {
     }
 }
 
-# Verify if all commands required are available
+# Verify if all commands required are available. The check for the commands required to export the VM to CrownLabs
+# are located in the corresponding section, to avoid introducing undesired dependencies in the other cases.
 echo "Checking dependencies..."
 check_available "${VBOXMANAGE}"
 check_available "ansible-playbook"
 check_ansible_version "2.8"
 check_available "curl"
-check_available "docker"
-check_docker_privileges
 check_available "ssh"
 check_available "sshpass"
-check_available "virt-sparsify"
 echo
 
 ##########################################
@@ -527,6 +525,12 @@ cleanup() {
 
 # Trigger the cleanup function before exiting
 trap cleanup 0
+
+# Check for the additional dependencies required to export the VM to CrownLabs
+echo "Checking additional dependencies..."
+check_available "docker"
+check_docker_privileges
+check_available "virt-sparsify"
 
 # Check the correctness of the registry folder name
 CROWNLABS_REGISTRY_FOLDER_REGEX='^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$'
