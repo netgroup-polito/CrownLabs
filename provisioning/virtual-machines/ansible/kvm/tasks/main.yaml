@@ -1,0 +1,13 @@
+---
+- name: Install libvirt
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - cloud-image-utils
+    - qemu
+    - qemu-utils
+    - qemu-kvm
+    - virt-manager
+    - bridge-utils
