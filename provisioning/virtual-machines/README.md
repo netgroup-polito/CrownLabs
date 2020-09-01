@@ -20,7 +20,7 @@ In case you are a very experienced user and you want to proceed manually, we sug
 
 ### Conversion of existing VMs
 
-The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base-crownlabs` playbook (i.e. executing `./setup-crownlabs-vm <vm-name> configure ansible/xubuntu-base-crownlabs-playbook.yml`). Then, you can export the VM as documented in the `setup-crownlabs-vms.sh` script.
+The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base` playbook (i.e. executing `./setup-crownlabs-vm <vm-name> configure ansible/xubuntu-base-playbook.yml`). Then, you can export the VM as documented in the `setup-crownlabs-vms.sh` script.
 
 **Warning**: depending on your configuration (e.g. virtualization platform and guest OS), the script may require some additional amount of tuning to work. Additionally, verify in advance that the packages automatically removed are of no use to you.
 

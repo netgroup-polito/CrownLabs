@@ -6,4 +6,5 @@
   - role: xubuntu-pre
   - role: crownlabs
     when: crownlabs_mode == True
+  - role: eclipse
   - role: xubuntu-post

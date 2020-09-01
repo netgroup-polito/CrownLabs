@@ -107,7 +107,7 @@ echo
 usage() {
     echo "Usage: $0 <vm-name> [create|configure|configure-nic|export|delete|help]"
     echo "* create (--no-guest-additions): Create the VM and install the OS"
-    echo "* configure <ansible-playbook.yml>: Configures the VM's OS using ansible"
+    echo "* configure <ansible-playbook.yml> (--vbox-only): Configures the VM's OS using ansible"
     echo "* configure-nic [nat|bridged]: Configures the NIC in nat or bridged mode"
     echo "* export [ova|crownlabs]: Exports the VM in OVA format, or pushes it to the CrownLabs registry"
     echo "* delete: Deletes the VM"
@@ -283,11 +283,19 @@ exit ${EXIT_SUCCESS}
 PLAYBOOK_PATH=$3
 if [[ ! -f "${PLAYBOOK_PATH}" ]]
 then
-    echo "Usage: $0 <vm-name> configure <ansible-playbook.yml>"
+    echo "Usage: $0 <vm-name> configure <ansible-playbook.yml> (--vbox-only)"
     exit ${EXIT_SUCCESS};
 fi
 
-ANSIBLE_PLAYBOOK_ARGS="$4"
+VBOX_ONLY_FLAG=$4
+if [[ "--vbox-only" == "$VBOX_ONLY_FLAG" ]]
+then
+    CROWNLABS_MODE="False"
+    ANSIBLE_PLAYBOOK_ARGS=("${@:5}")
+else
+    CROWNLABS_MODE="True"
+    ANSIBLE_PLAYBOOK_ARGS=("${@:4}")
+fi
 
 # Abort if the VM does not exists
 if ! [[ $("${VBOXMANAGE}" list vms | grep "\"${VMNAME}\"") ]]
@@ -353,8 +361,10 @@ all:
       ansible_become_pass: $PASSWORD
       ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
       ansible_python_interpreter: auto
+      crownlabs_mode: ${CROWNLABS_MODE}
 EOF
 
+echo "Configuring VM with Ansible playbook '${PLAYBOOK_PATH}' (crownlabs-mode: ${CROWNLABS_MODE})"
 ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" ${ANSIBLE_PLAYBOOK_ARGS}
 
 # Remove the port forwarding rule
