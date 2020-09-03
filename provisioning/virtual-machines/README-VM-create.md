@@ -34,9 +34,9 @@ The [ansible](ansible) folder includes some playbooks for courses active at Poli
 In case you want to install different software, you can simply create a new ansible playbook and start the `setup-crownlabs-vms.sh` script with the optional Ansible playbook that has to be executed for your VM.
 Given the modularity of Ansible, you can define new playbooks that refer to already existing playbooks, hence leveraging the install procedure defined in other playbooks to (partially) configure your VM as well.
 
-Alternatively, you can create a basic VM (i.e. with the `xubuntu-base-crownlabs` playbook) and proceed with the manual installation of custom software.
+Alternatively, you can create a basic VM (i.e. with the `xubuntu-base` playbook) and proceed with the manual installation of custom software.
 
-Playbooks named `*-crownlabs-playbook.yaml` available in the [ansible](ansible) folder are used to install all the tools required by CrownLabs to work (e.g., the software required to enable the remote access to the VM through an HTTPS session), therefore should be included in any other playbook.
+All the playbooks available in the [ansible](ansible) folder can be used both to configure a vanilla VM (i.e. to be used directly in VirtualBox and exported in the *.ova* format) or a CrownLabs VM. In the latter case, they install also all the tools required by CrownLabs to work (e.g., the software required to enable the remote access to the VM through an HTTPS session) through the `crownlabs` role, which should be included in any other playbook. The selection between the two operating modes can be performed through a flag of the `setup-crownlabs-vms.sh` script (see the guide below).
 
 In case you want to *add/remove* new tasks, you can simply create a new ansible script, and optionally new ansible roles, as in [xubuntu-netlab-playbook.yml](ansible/xubuntu-netlab-playbook.yml).
 In particular, the first task (`xubuntu-pre`) is rather generic and aims at cleaning up the system and removing unnecessary packages, shrinking the size of the VM disk to a smaller size.
@@ -66,9 +66,11 @@ The tools that are required by CrownLabs to work and are automatically installed
 
    **NOTE-2**: the current VM creation process requires the VM to boot and perform an _unattended OS install_ (i.e., the user is not required to interact with the new VM). However, this requires the host machine to have a GUI running, as this process is done in a Virtualbox window that is automatically started by the `./setup-crownlabs-vm.sh` script.
 
-3. Once the installation terminates and the OS completes the reboot, issue `./setup-crownlabs-vm.sh <vm-name> configure <ansible-playbook.yml>`, where the _playbook_ contains the instructions to configure and install the additional software packages you need to run in the VM.
+3. Once the installation terminates and the OS completes the reboot, issue `./setup-crownlabs-vm.sh <vm-name> configure <ansible-playbook.yml> (--vbox-only)`, where the _playbook_ contains the instructions to configure and install the additional software packages you need to run in the VM.
 The script connects to the VM via SSH and runs the specified ansible playbook.
 For more detailed instructions about creating and customizing Ansible playbook, look at the [dedicated subsection](#ansible).
+
+   **NOTE-1**: if the command is executed with no additional parameters, the scripts assumes that the VM is going to be used in CrownLabs and proceeds with the installation of the tools required for its operations. Appending the `--vbox-only` flag, it is possible to opt out this configuration and prepare vanilla VMs meant to be used directly in VirtualBox, as well as exported in the *.ova* format.
 
 4. Log-in the VM and complete the remaining manual tasks as explained in the [README](ansible/xubuntu-post/files/README) file (copied to the Desktop).
 
