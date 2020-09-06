@@ -7,8 +7,9 @@
     state: present
   vars:
     to_install:
-    - iftop
     - htop
+    - iftop
+    - iotop
     - nano
     - vim
 

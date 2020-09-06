@@ -7,20 +7,21 @@
     state: present
   vars:
     to_install:
-    - htop
-    - iftop
-    - iotop
     - iperf3
     - nginx
 
-# tasks for codeblocks
-# original instructions here: http://ubuntuhandbook.org/index.php/2020/03/install-codeblocks-20-03-ubuntu-18-04/
-# Not sure it works, though. An alternative setup procedure is available here (it worked on Ubuntu 19.04):
-#   https://www.linuxbabe.com/ubuntu/install-code-blocks-ubuntu-16-04-17-04
+- name: Install the build-essential tools
+  apt:
+    name: "build-essential"
+    state: present
 
+# tasks for codeblocks
+# adds the ppa repository, since the packets available in the default repositories of ubuntu < 20.04 are outdated
+# original instructions here: http://ubuntuhandbook.org/index.php/2020/03/install-codeblocks-20-03-ubuntu-18-04/
 - name: Add codeblocks APT repository
   apt_repository:
-    repo: ppa:codeblocks-devs/release
+    repo: deb http://ppa.launchpad.net/codeblocks-devs/release/ubuntu {{ansible_distribution_release}} main
+  when: ansible_distribution_major_version < '20'
 
 - name: Install the codeblocks packages
   apt:
@@ -33,7 +34,7 @@
 
 # installs an offline help for programming (you can launch with 'devhelp')
 # installs the C and C++ documentation for devhelp
-- name: Install the packages required for programming labs
+- name: Install the documentation packages
   apt:
     name: "{{ to_install }}"
     state: present
@@ -42,10 +43,21 @@
     - devhelp
     - cppreference-doc-en-html
 
-- name: Copy the README file
+# creates the Desktop launchers
+- name: Create the CodeBlocks desktop file
   copy:
-    src: files/README_TTPU_OS.txt
+    src: /usr/share/applications/codeblocks.desktop
     dest: /home/{{ ansible_user }}/Desktop
+    remote_src: true
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-    mode: '0644'
+    mode: '0755'
+
+- name: Create the Devhelp desktop file
+  copy:
+    src: /usr/share/applications/org.gnome.Devhelp.desktop
+    dest: /home/{{ ansible_user }}/Desktop
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
