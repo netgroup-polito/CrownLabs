@@ -6,5 +6,6 @@
   - role: xubuntu-pre
   - role: crownlabs
     when: crownlabs_mode == True
+  - role: codeblocks
   - role: ttpu-os
   - role: xubuntu-post
