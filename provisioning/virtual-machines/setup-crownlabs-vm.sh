@@ -541,10 +541,11 @@ then
 fi
 
 # Check for the readability of the executable containing the Linux kernel (required by virt-sparsify)
-if [[ ! -r "/boot/vmlinuz-$(uname -r)" ]]
+KERNEL_IMAGE=$(find /boot -maxdepth 1 -iname 'vmlinuz-*' | tail -n 1)
+if [[ ! -r "${KERNEL_IMAGE}" ]]
 then
     echo "Unfortunately it seems you strumbled into this Ubuntu \"bug\" [https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725]"
-    echo "Please run 'sudo dpkg-statoverride --add --update root root 0644 /boot/vmlinuz-$(uname -r)' and then rerun this script."
+    echo "Please run 'sudo dpkg-statoverride --add --update root root 0644 ${KERNEL_IMAGE} and then rerun this script."
     exit ${EXIT_FAILURE}
 fi
 
