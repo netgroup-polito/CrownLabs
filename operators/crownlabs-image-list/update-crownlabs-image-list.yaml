@@ -78,7 +78,7 @@ spec:
       serviceAccountName: update-crownlabs-image-list
       containers:
       - name: update-crownlabs-image-list
-        image: crownlabs/update-crownlabs-image-list:v0.1-crown
+        image: crownlabs/update-crownlabs-image-list:v0.1.1-crown
         imagePullPolicy: Always
         args:
         - --advertised-registry-name=registry.internal.crownlabs.polito.it
