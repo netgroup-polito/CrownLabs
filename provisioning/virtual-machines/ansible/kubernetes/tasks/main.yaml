@@ -40,8 +40,7 @@
 
 - name: Set kubernetes version
   set_fact:
-    k8s_pkg_version: 1.19.0-00
-    k8s_img_version: v1.19.0
+    k8s_version: 1.19.0-00
     
 - name: Install kubernetes
   apt:
@@ -49,20 +48,13 @@
     state: present
   vars:
     kubernetes_packages: 
-    - "kubelet={{ k8s_pkg_version }}"
-    - "kubeadm={{ k8s_pkg_version }}"
-    - "kubectl={{ k8s_pkg_version }}"
+    - "kubelet={{ k8s_version }}"
+    - "kubeadm={{ k8s_version }}"
+    - "kubectl={{ k8s_version }}"
     
-- name: pull {{ item }} image
-  docker_image:
-    name: "{{ item }}"
-    source: pull
-  loop:
-     - k8s.gcr.io/kube-scheduler:{{ k8s_img_version }}
-     - k8s.gcr.io/kube-proxy:{{ k8s_img_version }}
-     - k8s.gcr.io/kube-controller-manager:{{ k8s_img_version }}
-     - k8s.gcr.io/kube-apiserver:{{ k8s_img_version }}
-
+- name: pull kubernetes image
+  command: kubeadm config images pull 
+  
 - name: Turn swap off (1/2)
   command: swapoff -a
   
