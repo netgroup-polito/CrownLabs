@@ -1,7 +1,7 @@
 ---
 # tasks file for ttpu-os
 
-- name: Install generic utility packages
+- name: Install additional software used in lab
   apt:
     name: "{{ to_install }}"
     state: present
