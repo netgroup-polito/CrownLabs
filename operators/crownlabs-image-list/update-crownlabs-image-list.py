@@ -75,7 +75,7 @@ class ImageListUpdater:
 
         logger.debug(f"Executing '{action.__name__}': next scheduled in {interval} seconds")
 
-        # Schedule the next executen
+        # Schedule the next execution
         self.scheduler.enter(
             delay=interval, priority=1, action=self._run_periodically,
             argument=(interval, action), kwargs=kwargs)
@@ -96,17 +96,20 @@ class ImageListUpdater:
 
         for image in images:
 
-            # Remove the "latest" tags
+            # Get the available tags
+            versions = image.get("tags") or []
+
+            # Remove the "latest" tag
             try:
-                image.get("tags", []).remove("latest")
+                versions.remove("latest")
             except ValueError:
                 pass
 
             # Are there still any tags?
-            if image.get("tags", []):
+            if versions:
                 converted_images.append({
                     "name": image.get("name"),
-                    "versions": image.get("tags"),
+                    "versions": versions,
                 })
 
         return converted_images
