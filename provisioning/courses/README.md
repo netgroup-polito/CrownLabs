@@ -30,6 +30,8 @@ To install those dependencies you can run the following command:
  pip3 install -r requirements.txt
 ````
 
+Additionally, this script requires `kubectl` to be available, and configured with the correct `kubeconfig` (bound to the `cluster-admin` role) to interact with the Kubernetes cluster hosting CrownLabs.
+
 ## Usage
 
 ```

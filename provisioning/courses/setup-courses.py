@@ -193,6 +193,15 @@ class NextcloudHandler:
 
 
 class KubernetesHandler:
+    class FatalError(Exception):
+        pass
+
+    @staticmethod
+    def check_kubectl_cluster_admin():
+        if os.system("kubectl auth can-i '*' '*' -A | grep --quiet 'yes'") != 0:
+            raise KubernetesHandler.FatalError("Kubectl not found or not enough privileges to interact with the cluster")
+
+
     @staticmethod
     def add_resource_label(resource_type, resource_name, label_key, label_value):
         os.system(("kubectl label --overwrite {0} {1} {2}={3} | "
@@ -449,6 +458,14 @@ if __name__ == "__main__":
     except KeycloakHandler.ClientIDNotFound as _ex:
         sys.stderr.write("An error has occurred: {}. Abort\n".format(_ex))
         sys.exit(1)
+
+    # Check kubectl availability and privileges
+    try:
+        KubernetesHandler.check_kubectl_cluster_admin()
+    except KubernetesHandler.FatalError as _ex:
+        sys.stderr.write("{}. Abort\n".format(_ex))
+        sys.exit(1)
+
 
     # Prepare the templates for the resources to create in Kubernetes
     try:
