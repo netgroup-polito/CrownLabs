@@ -51,10 +51,12 @@
     - "kubelet={{ k8s_version }}"
     - "kubeadm={{ k8s_version }}"
     - "kubectl={{ k8s_version }}"
-    
+
+# Pre-fetch docker images in order to reduce the pressure on the network
+# (and avoiding to download all images) when students are asked to install k8s in their VM
 - name: pull kubernetes image
-  command: kubeadm config images pull 
-  
+  command: kubeadm config images pull
+
 - name: Turn swap off (1/2)
   command: swapoff -a
   
