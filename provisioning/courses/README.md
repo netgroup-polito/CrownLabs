@@ -1,21 +1,29 @@
-# Creating Courses, Labs and student accounts
-This Python script allows the automatic creation of *CrownLabs* courses, including the different laboratories and the tenant (i.e. student and professor) accounts. In particular, tenants are characterized both by the actual accounts in the OIDC server (i.e. Keycloak), as well as their companion set of resources in Kubernetes.
+# Creating Courses, Labs and Student/Professor accounts
+This Python script allows the automatic **creation** of *CrownLabs* **courses**, including the different **laboratories** and the accounts for **students and professors**.
+In particular, the script takes care of creating the proper accounts in the OIDC server (i.e. Keycloak) as well as the companion set of resources in Kubernetes (e.g., namespaces).
+
+This script can be used also to **update** an existing configuration (more details below).
 
 ## Overview
-This script processes different CSV files to obtain the information regarding the resources characteristics of the resources to be created. The files must be compliant with the templates provided in the [csv-examples](csv-examples) folder:
+This script processes different CSV files to obtain the information about the resources that have to be created.
+Files must be compliant with the templates provided in the [csv-examples](csv-examples) folder:
 
-* [courses.csv](csv-examples/courses.csv): enumerates the list of courses to be created by the script;
-* [laboratories.csv](csv-examples/laboratories.csv): enumerates the list of laboratories to be created by the script;
+* [courses.csv](csv-examples/courses.csv): enumerates the list of courses (e.g., "Computer Networks") to be created by the script;
+* [laboratories.csv](csv-examples/laboratories.csv): enumerates the list of laboratories (e.g., "Lab1 - Traffic analysis", "Lab 2 - Routing"), to be created by the script;
 * [students.csv](csv-examples/students.csv): enumerates the list of student accounts to be created by the script;
 * [teachers.csv](csv-examples/teachers.csv): enumerates the list of professor accounts (i.e. with additional privileges) to be created by the script.
 
-Upon the creation of a new tenant account, the system automatically sends a welcome email to the tenant. In particular, the email contains a confirmation link that needs to be accessed to complete the registration and setup a new password for the account.
-
-The script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results. Additionally, the modifications are incremental, e.g. it is possible to introduce new laboratories or allow tenants to access additional courses even after the initial creation.
+The script can either create **all the resources at once** (courses, lab, users), or a **single type of resources** (e.g., users).
+The second option is particularly useful when some data has to be updated, such as adding some new students to the current list of enrolled students. 
+In fact, the script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results.
+Additionally, modifications are incremental, e.g. it is possible to introduce new laboratories, allow tenants to access additional courses, or add new students to an existing course, at any time.
+Existing information is kept, while new information is added to the database.
 
 The script depends upon a series of Kubernetes resource templates stored within the [templates](templates) folder.
-Before executing the script, it is possible to customize the following files:
-- [setup-courses.py](setup-courses.py): optional, to configure the URL of a different OICD server (`server_url` field).
+Before executing the script, it is possible to customize the URL of the OICD server (`server_url` field in [setup-courses.py](setup-courses.py)).
+
+Upon the creation of a new tenant account, the system automatically sends a welcome email to the tenant. In particular, the email contains a confirmation link that needs to be accessed to complete the registration and setup a new password for the account.
+
 
 ## Dependencies
 The following libraries must be present in order for this script to work:
@@ -30,7 +38,10 @@ To install those dependencies you can run the following command:
  pip3 install -r requirements.txt
 ````
 
-Additionally, this script requires `kubectl` to be available, and configured with the correct `kubeconfig` (bound to the `cluster-admin` role) to interact with the Kubernetes cluster hosting CrownLabs.
+## Requirements
+This script needs to interact with your Kubernetes setup.
+Hence, it requires `kubectl` to be available, and configured with the correct `kubeconfig` (bound to the `cluster-admin` role) to interact with the Kubernetes cluster hosting CrownLabs.
+This privileged access to your Kubernetes cluster can usually be achieved if you log-in in the master machine of your Kubernetes domain.
 
 ## Usage
 
