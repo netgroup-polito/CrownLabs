@@ -2,20 +2,20 @@
 
 ## Create and upload custom VMs to the cluster
 
-The suggested approach to create and upload new VMs in CrownLabs involves the usage of the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script, which takes care of:
-- Creating a new VirtualBox VMs and installing the guest OS (`xubuntu`, which represents a good compromise between the necessity to have a friendly, GUI-based guest OS and the resources consumed by the graphical interface);
-- Installing additional software (e.g., application software packages) and the background tools required by CrownLabs with Ansible (e.g., VNC server);
-- Converting the resulting virtual HDD to the correct format and upload it to a Docker Registry.
+The suggested approach to create and upload new VMs in CrownLabs involves the usage of the `setup-crownlabs-vms.sh` script, which takes care of:
+- **Creating** a new VirtualBox VMs and installing the guest OS (`xubuntu`, which represents a good compromise between the necessity to have a friendly, GUI-based guest OS and the resources consumed by the graphical interface);
+- **Installing** additional software (e.g., application software packages) and the background tools required by CrownLabs with Ansible (e.g., VNC server);
+- **Converting** the resulting virtual HDD to the correct format and upload it to the proper Docker Registry.
 
-Look at the [VM setup](README-VM-create.md) documentation page for detailed instructions for running and customizing the above script.
+Jump to the [Create and configure CrownLabs VMs guide](README-VM-create.md) for creating and uploading VMs in CrownLabs; the above guide contains also detailed instructions for running and customizing the `setup-crownlabs-vms.sh` script.
 
 Once the VM image has been correctly uploaded to the registry, a new laboratory can be configured in the CrownLab live environment, as explained [in the Course/Lab setup](../courses) documentation section.
 
 
 ## Create your own VM manually
-We strongly suggest **not to create your own VM manually**, relying instead on the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script.
+We strongly suggest **not to create your own VM manually**, relying instead on the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script and the [Create and configure CrownLabs VMs guide](README-VM-create.md).
 
-In case you are a very experienced user and you want to proceed manually, we suggest to (1) read how the `setup-crownlabs-vms.sh` script works (look at the [VM setup](README-VM-create.md) documentation), then continue with this guide.
+In case you are a very experienced user and you want to proceed manually, we suggest to (1) read how the `setup-crownlabs-vms.sh` script works (look at the [VM setup documentation](README-VM-create.md)), then (2) continue with this guide.
 
 
 ### Conversion of existing VMs
@@ -24,7 +24,7 @@ The configuration of an existing VM for the execution in CrownLabs can be perfor
 
 **Warning**: depending on your configuration (e.g. virtualization platform and guest OS), the script may require some additional amount of tuning to work. Additionally, verify in advance that the packages automatically removed are of no use to you.
 
-**Warning**: the only desktop environment officially supported by the playbooks and suggested for usage in CrownLabs is XFCE. The adoption of different desktop environments will probably require the customization of the ansible playbooks and it is not guaranteed to achieve acceptable results in terms of performance.
+**Warning**: currently Crownlabs supports only VMs running the XFCE desktop environment. The adoption of a different desktop environments will probably require the customization of the ansible playbooks and it is not guaranteed to achieve acceptable results in terms of performance. In fact, given the amount of resources consumed in a cloud environment by the GUI subsystem of the VM, we strongly suggest not to use a full fledged graphical environment (e.g., Ubuntu), but to privilege more resource-saving ones, such as XFCE (e.g., Xubuntu).
 
 
 ### Conversion of existing VMs with the legacy scripts
