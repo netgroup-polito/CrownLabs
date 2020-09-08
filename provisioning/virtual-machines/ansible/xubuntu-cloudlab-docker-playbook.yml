@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: yes
+  
+  roles:
+  - role: xubuntu-pre
+  - role: crownlabs
+    when: crownlabs_mode == True
+  - role: docker
+  - role: xubuntu-post

@@ -1,0 +1,8 @@
+---
+- name: Install ansible
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+    - ansible
