@@ -1,4 +1,4 @@
-# Creating Courses, Labs and Student/Professor accounts
+# Creating Courses, Labs and User accounts
 This Python script allows the automatic **creation** of *CrownLabs* **courses**, including the different **laboratories** and the accounts for **students and professors**.
 In particular, the script takes care of creating the proper accounts in the OIDC server (i.e. Keycloak) as well as the companion set of resources in Kubernetes (e.g., namespaces).
 
@@ -46,9 +46,9 @@ This privileged access to your Kubernetes cluster can usually be achieved if you
 ## Usage
 
 ```
-usage: setup-courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
-                        [-t <teachers.csv>] [-s <students.csv>]
-                        keycloak_user keycloak_pass nextcloud_user nextcloud_pass
+usage: python3 setup-courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
+                                [-t <teachers.csv>] [-s <students.csv>]
+                                keycloak_user keycloak_pass nextcloud_user nextcloud_pass
 ```
 
 #### Positional arguments:
