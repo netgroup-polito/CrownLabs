@@ -1,4 +1,4 @@
-# Creating Courses, Labs and Student/Professor accounts
+# Creating Courses, Labs and User accounts
 This Python script allows the automatic **creation** of *CrownLabs* **courses**, including the different **laboratories** and the accounts for **students and professors**.
 In particular, the script takes care of creating the proper accounts in the OIDC server (i.e. Keycloak) as well as the companion set of resources in Kubernetes (e.g., namespaces).
 
