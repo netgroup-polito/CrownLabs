@@ -46,9 +46,9 @@ This privileged access to your Kubernetes cluster can usually be achieved if you
 ## Usage
 
 ```
-usage: setup-courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
-                        [-t <teachers.csv>] [-s <students.csv>]
-                        keycloak_user keycloak_pass nextcloud_user nextcloud_pass
+usage: python3 setup-courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
+                                [-t <teachers.csv>] [-s <students.csv>]
+                                keycloak_user keycloak_pass nextcloud_user nextcloud_pass
 ```
 
 #### Positional arguments:
