@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: labtemplates.template.crown.team.com
 spec:
@@ -45,7 +45,11 @@ spec:
             labName:
               type: string
             labNum:
-              type: string
+              anyOf:
+              - type: integer
+              - type: string
+              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+              x-kubernetes-int-or-string: true
             vm:
               description: VirtualMachineInstance is *the* VirtualMachineInstance
                 Definition. It represents a virtual machine in the runtime environment
@@ -1469,12 +1473,16 @@ spec:
                           description: Memory allow specifying the VMI memory features.
                           properties:
                             guest:
+                              anyOf:
+                              - type: integer
+                              - type: string
                               description: Guest allows to specifying the amount of
                                 memory which is visible inside the Guest OS. The Guest
                                 must lie between Requests and Limits from the resources
                                 section. Defaults to the requested memory in the resources
                                 section if not specified.
-                              type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
                             hugepages:
                               description: Hugepages allow to use hugepages for the
                                 VirtualMachineInstance instead of regular memory.
@@ -1492,7 +1500,11 @@ spec:
                           properties:
                             limits:
                               additionalProperties:
-                                type: string
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
                               description: Limits describes the maximum amount of
                                 compute resources allowed. Valid resource keys are
                                 "memory" and "cpu".
@@ -1506,7 +1518,11 @@ spec:
                               type: boolean
                             requests:
                               additionalProperties:
-                                type: string
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
                               description: Requests is a description of the initial
                                 vmi resources. Valid resource keys are "memory" and
                                 "cpu".
@@ -1995,8 +2011,12 @@ spec:
                               shares the vmis lifecycle. More info: https://kubevirt.gitbooks.io/user-guide/disks-and-volumes.html'
                             properties:
                               capacity:
+                                anyOf:
+                                - type: integer
+                                - type: string
                                 description: Capacity of the sparse disk.
-                                type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
                             required:
                             - capacity
                             type: object
@@ -2029,8 +2049,12 @@ spec:
                               cluster level
                             properties:
                               capacity:
+                                anyOf:
+                                - type: integer
+                                - type: string
                                 description: Capacity of the sparse disk
-                                type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
                               path:
                                 description: The path to HostDisk image located on
                                   the cluster

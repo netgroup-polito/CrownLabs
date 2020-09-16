@@ -20,5 +20,5 @@ var (
 
 func init() {
 	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(bootTimes,elaborationTimes)
+	metrics.Registry.MustRegister(bootTimes, elaborationTimes)
 }

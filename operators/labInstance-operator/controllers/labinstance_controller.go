@@ -135,82 +135,83 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		},
 	}
 
-	// 1: create secret referenced by VirtualMachineInstance (Cloudinit)
+	// create secret referenced by VirtualMachineInstance (Cloudinit)
 	// To be extracted in a configuration flag
 
 	var user, password string
 	err := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace, &user, &password)
 	if err != nil {
 		log.Error(err, "unable to get Webdav Credentials")
+	} else {
+		log.Info("Webdav secrets obtained. Building cloud-init script." + labInstance.Name)
 	}
-	log.Info("Webdav secrets obtained. Building cloud-init script." + labInstance.Name)
 	secret := pkg.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
 	secret.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "", "")
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "", "")
 	}
 
-	// 3: create Service to expose the vm
+	// create Service to expose the vm
 	service := pkg.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", &labInstance, "", "")
 	}
 
 	urlUUID := uuid.New().String()
-	// 4: create Ingress to manage the service
+	// create Ingress to manage the service
 	ingress := pkg.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
 	ingress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", &labInstance, "", "")
 	}
 
-	// 5: create Service for oauth2
+	// create Service for oauth2
 	oauthService := pkg.CreateOauth2Service(name, namespace)
 	oauthService.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Service "+oauthService.Name+" correctly created in namespace "+oauthService.Namespace, "Normal", "Oauth2ServiceCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Service "+oauthService.Name+" correctly created in namespace "+oauthService.Namespace, "Normal", "Oauth2ServiceCreated", &labInstance, "", "")
 	}
 
-	// 6: create Ingress to manage the oauth2 service
+	// create Ingress to manage the oauth2 service
 	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService, urlUUID)
 	oauthIngress.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Ingress "+oauthIngress.Name+" correctly created in namespace "+oauthIngress.Namespace, "Normal", "Oauth2IngressCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Ingress "+oauthIngress.Name+" correctly created in namespace "+oauthIngress.Namespace, "Normal", "Oauth2IngressCreated", &labInstance, "", "")
 	}
 
-	// 6: create Deployment for oauth2
+	// create Deployment for oauth2
 	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "Deployment "+oauthDeploy.Name+" correctly created in namespace "+oauthDeploy.Namespace, "Normal", "Oauth2DeployCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Deployment "+oauthDeploy.Name+" correctly created in namespace "+oauthDeploy.Namespace, "Normal", "Oauth2DeployCreated", &labInstance, "", "")
 	}
 
-	// 7: create VirtualMachineInstance
+	// create VirtualMachineInstance
 	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, labInstance.Name, secret.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
-		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
-		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", &labInstance, "")
+		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", &labInstance, "", "")
 	}
 	VmElaborationTimestamp := time.Now()
 	VMElaborationDuration := VmElaborationTimestamp.Sub(VMstart)
@@ -228,12 +229,13 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	msg string, eventType string, eventReason string,
-	labInstance *instancev1.LabInstance, url string) {
+	labInstance *instancev1.LabInstance, ip, url string) {
 
 	log.Info(msg)
 	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
 
 	labInstance.Status.Phase = eventReason
+	labInstance.Status.IP = ip
 	labInstance.Status.Url = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	if err := r.Status().Update(ctx, labInstance); err != nil {
@@ -257,9 +259,13 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 			if vmStatus != vmi.Status.Phase {
 				vmStatus = vmi.Status.Phase
 				if vmStatus != virtv1.Running {
-					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "")
+					if vmStatus == virtv1.Failed {
+						setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
+						return
+					}
+					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "", "")
 				} else {
-					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "")
+					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "", "")
 					break
 				}
 			}
@@ -272,14 +278,14 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 	urlProbe := "http://" + service.Name + "." + service.Namespace + ".svc.cluster.local:" + fmt.Sprintf("%d", service.Spec.Ports[0].Port)
 	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
-
+	ip := vmi.Status.Interfaces[0].IP
 	for {
 		resp, err := http.Get(urlProbe)
 		if err != nil || resp == nil {
 			log.Info("unable to perform get on " + urlProbe)
 		} else {
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady", "Normal", "VmiReady", labInstance, url)
+				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady. IP is "+ip+" and url is "+url, "Normal", "VmiReady", labInstance, ip, url)
 				resp.Body.Close()
 				readyTime := time.Now()
 				bootTime := readyTime.Sub(startTimeVM)
