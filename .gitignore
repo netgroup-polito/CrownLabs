@@ -30,3 +30,6 @@ webservice/yarn.lock
 webservice/dist
 webservice/node_modules
 webservice/package-lock.json
+
+# vs code related
+.history/

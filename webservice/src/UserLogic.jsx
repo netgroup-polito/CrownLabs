@@ -126,11 +126,6 @@ export default class UserLogic extends React.Component {
             labelSelector: `template-namespace in (${adminGroups.join()})`
           });
         }
-
-        /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
-                        this.retrieveCRDinstanceStatus();
-                        setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
-                        */
       });
   }
 
@@ -389,40 +384,6 @@ export default class UserLogic extends React.Component {
     }
 
     this.changeSelectedCRDinstance(null);
-  }
-
-  /**
-   * * @@@@ UNUSED (since watcher has been patched and works)
-   *
-   * Function to retrieve all CRD instances status
-   */
-  retrieveCRDinstanceStatus() {
-    const { instanceLabs, events } = this.state;
-    const keys = Array.from(instanceLabs.keys());
-    keys.forEach(lab => {
-      this.apiManager
-        .getCRDstatus(lab)
-        .then(response => {
-          if (response.body.status && response.body.status.phase) {
-            const msg = `[${response.body.metadata.creationTimestamp}] ${lab} => ${response.body.status.phase}`;
-            const newMap = instanceLabs;
-            if (response.body.status.phase.match(/Fail|Not/g)) {
-              /* Object creation failed */
-              newMap.set(lab, { url: null, status: -1 });
-            } else if (response.body.status.phase.match(/VmiReady/g)) {
-              /* Object creation succeeded */
-              newMap.set(lab, { url: response.body.status.url, status: 1 });
-            }
-            this.setState({
-              instanceLabs: newMap,
-              events: `${msg}\n${events}`
-            });
-          }
-        })
-        .catch(error => {
-          this.handleErrors(error);
-        });
-    });
   }
 
   /**
