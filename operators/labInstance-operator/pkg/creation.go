@@ -258,7 +258,7 @@ func CreateOauth2Service(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string) v1beta1.Ingress {
+func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string) v1beta1.Ingress {
 
 	ingress := v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
@@ -276,13 +276,13 @@ func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlU
 		Spec: v1beta1.IngressSpec{
 			TLS: []v1beta1.IngressTLS{
 				{
-					Hosts:      []string{"crownlabs.polito.it"},
+					Hosts:      []string{websiteBaseUrl},
 					SecretName: "crownlabs-labinstances-secret",
 				},
 			},
 			Rules: []v1beta1.IngressRule{
 				{
-					Host: "crownlabs.polito.it",
+					Host: websiteBaseUrl,
 					IngressRuleValue: v1beta1.IngressRuleValue{
 						HTTP: &v1beta1.HTTPIngressRuleValue{
 							Paths: []v1beta1.HTTPIngressPath{
