@@ -14,7 +14,7 @@ Files must be compliant with the templates provided in the [csv-examples](csv-ex
 * [teachers.csv](csv-examples/teachers.csv): enumerates the list of professor accounts (i.e. with additional privileges) to be created by the script.
 
 The script can either create **all the resources at once** (courses, lab, users), or a **single type of resources** (e.g., users).
-The second option is particularly useful when some data has to be updated, such as adding some new students to the current list of enrolled students. 
+The second option is particularly useful when some data has to be updated, such as adding some new students to the current list of enrolled students.
 In fact, the script is designed to be idempodent, i.e. it can be executed multiple times with the same inputs and it will always produce the same results.
 Additionally, modifications are incremental, e.g. it is possible to introduce new laboratories, allow tenants to access additional courses, or add new students to an existing course, at any time.
 Existing information is kept, while new information is added to the database.
@@ -67,3 +67,16 @@ usage: python3 setup-courses.py [-h] [-c <courses.csv>] [-l <laboratories.csv>]
 * `-s <students.csv>, --students <students.csv>`: The CSV file containing the student accounts to be created;
 
 **Note:** the optional arguments specifying the input files can be provided both all together or during multiple runs of the script. The only constraint relates to the courses: courses must be either already present before creating the other resources or the `--courses <courses.csv>` parameter needs to be specified.
+
+
+## How to manually send a new registration link
+
+In case the registration link of one user expires, it is possible to manually send a new invitation through the administration console of Keycloak:
+
+1. Log-in to Keycloak;
+2. Select the *realm* containing the CrownLabs users;
+3. Select the *users* tab (on the left) and search for the desired user;
+4. Select the desired user and go the *Credentials* tab;
+5. Specify both *UPDATE_PASSWORD* and *VERIFY_EMAIL* as reset actions;
+6. Configure the *Expires In* value as desired;
+7. Click on *Send email*.

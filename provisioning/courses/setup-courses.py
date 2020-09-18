@@ -115,7 +115,7 @@ class KeycloakHandler:
 
     @staticmethod
     def __get_email_lifespan():
-        return 3600 * 24 * 7  # 7 days
+        return 3600 * 24 * 30  # 30 days
 
 
 class NextcloudHandler:
