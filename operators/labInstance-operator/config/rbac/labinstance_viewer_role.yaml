@@ -5,7 +5,7 @@ metadata:
   name: labinstance-viewer-role
 rules:
 - apiGroups:
-  - instance.crown.team.com
+  - instance.crownlabs.polito.it
   resources:
   - labinstances
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - instance.crown.team.com
+  - instance.crownlabs.polito.it
   resources:
   - labinstances/status
   verbs:

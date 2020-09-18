@@ -53,8 +53,8 @@ type LabInstanceReconciler struct {
 	OidcProviderUrl    string
 }
 
-// +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=instance.crown.team.com,resources=labinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=instance.crownlabs.polito.it,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=instance.crownlabs.polito.it,resources=labinstances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
