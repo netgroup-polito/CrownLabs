@@ -1,5 +1,5 @@
  
-apiVersion: instance.crown.team.com/v1
+apiVersion: instance.crownlabs.polito.it/v1
 kind: LabInstance
 metadata:
   name: cloud-computing-lab3-123456

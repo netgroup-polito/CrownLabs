@@ -11,10 +11,10 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: test
+all: generate fmt vet manifests
 
 # Run tests
-test: generate fmt vet manifests
+test: all
 	go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -39,7 +39,7 @@ deploy: manifests
 	kubectl kustomize config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
+manifests: controller-gen lab-template
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=config/crd/bases
 
 lab-template: controller-gen

@@ -1,4 +1,4 @@
-domain: crown.team.com
+domain: crownlabs.polito.it
 repo: github.com/netgroup-polito/CrownLabs/labInstance-operator
 resources:
 - group: instance
