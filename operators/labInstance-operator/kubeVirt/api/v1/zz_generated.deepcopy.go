@@ -20,7 +20,7 @@ limitations under the License.
 package v1
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

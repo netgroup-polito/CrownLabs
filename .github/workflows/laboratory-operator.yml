@@ -17,7 +17,7 @@ jobs:
     - name: Test
       working-directory: operators/labInstance-operator/
       run: |
-         go test ./pkg/
+         go test ./pkg/...
    build:
     name: Build
     runs-on: ubuntu-latest

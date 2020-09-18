@@ -21,8 +21,8 @@ export default class ApiManager {
 
     this.kc = new Config(window.APISERVER_URL, token, type);
     this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
-    this.templateGroup = 'template.crownlabs.polito.it';
-    this.instanceGroup = 'instance.crownlabs.polito.it';
+    this.templateGroup = 'crownlabs.polito.it';
+    this.instanceGroup = 'crownlabs.polito.it';
     this.version = 'v1';
     this.templatePlural = 'labtemplates';
     this.instancePlural = 'labinstances';

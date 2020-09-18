@@ -1,4 +1,4 @@
-package pkg
+package instanceCreation
 
 import (
 	"github.com/stretchr/testify/assert"

@@ -5,7 +5,7 @@ metadata:
   name: labinstance-editor-role
 rules:
 - apiGroups:
-  - instance.crownlabs.polito.it
+  - crownlabs.polito.it
   resources:
   - labinstances
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - instance.crownlabs.polito.it
+  - crownlabs.polito.it
   resources:
   - labinstances/status
   verbs:

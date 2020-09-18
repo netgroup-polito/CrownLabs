@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: labtemplates.template.crownlabs.polito.it
+  name: labtemplates.crownlabs.polito.it
 spec:
-  group: template.crownlabs.polito.it
+  group: crownlabs.polito.it
   names:
     kind: LabTemplate
     listKind: LabTemplateList
@@ -2301,9 +2301,9 @@ spec:
           description: LabTemplateStatus defines the observed state of LabTemplate
           type: object
       type: object
-  version: v1
+  version: v1alpha1
   versions:
-  - name: v1
+  - name: v1alpha1
     served: true
     storage: true
 status:

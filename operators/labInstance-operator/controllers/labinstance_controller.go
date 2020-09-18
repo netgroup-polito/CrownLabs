@@ -18,16 +18,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg/instanceCreation"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
-	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
+	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1alpha1"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
-	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/pkg"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +53,8 @@ type LabInstanceReconciler struct {
 	OidcProviderUrl    string
 }
 
-// +kubebuilder:rbac:groups=instance.crownlabs.polito.it,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=instance.crownlabs.polito.it,resources=labinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=labinstances/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
@@ -79,7 +79,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// It performs reconciliation only if the LabInstance belongs to whitelisted namespaces
 	// by checking the existence of keys in labInstance namespace
 	if err := r.Get(ctx, namespaceName, &ns); err == nil {
-		if !pkg.CheckLabels(ns, r.NamespaceWhitelist.MatchLabels) {
+		if !instanceCreation.CheckLabels(ns, r.NamespaceWhitelist.MatchLabels) {
 			log.Info("Namespace " + req.Namespace + " does not meet " +
 				"the selector labels")
 			return ctrl.Result{}, nil
@@ -139,24 +139,24 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// To be extracted in a configuration flag
 
 	var user, password string
-	err := pkg.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace, &user, &password)
+	err := instanceCreation.GetWebdavCredentials(r.Client, ctx, log, r.WebdavSecretName, labInstance.Namespace, &user, &password)
 	if err != nil {
 		log.Error(err, "unable to get Webdav Credentials")
 	} else {
 		log.Info("Webdav secrets obtained. Building cloud-init script." + labInstance.Name)
 	}
-	secret := pkg.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
+	secret := instanceCreation.CreateSecret(name, namespace, user, password, r.NextcloudBaseUrl)
 	secret.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", &labInstance, "", "")
 	} else {
 		setLabInstanceStatus(r, ctx, log, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", &labInstance, "", "")
 	}
 
 	// create Service to expose the vm
-	service := pkg.CreateService(name, namespace)
+	service := instanceCreation.CreateService(name, namespace)
 	service.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
@@ -165,9 +165,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	urlUUID := uuid.New().String()
 	// create Ingress to manage the service
-	ingress := pkg.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
+	ingress := instanceCreation.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
 	ingress.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
@@ -175,9 +175,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// create Service for oauth2
-	oauthService := pkg.CreateOauth2Service(name, namespace)
+	oauthService := instanceCreation.CreateOauth2Service(name, namespace)
 	oauthService.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
@@ -185,9 +185,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// create Ingress to manage the oauth2 service
-	oauthIngress := pkg.CreateOauth2Ingress(name, namespace, oauthService, urlUUID, r.WebsiteBaseUrl)
+	oauthIngress := instanceCreation.CreateOauth2Ingress(name, namespace, oauthService, urlUUID, r.WebsiteBaseUrl)
 	oauthIngress.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
@@ -195,9 +195,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// create Deployment for oauth2
-	oauthDeploy := pkg.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl)
+	oauthDeploy := instanceCreation.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl)
 	oauthDeploy.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
@@ -205,9 +205,9 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// create VirtualMachineInstance
-	vmi := pkg.CreateVirtualMachineInstance(name, namespace, labTemplate, labInstance.Name, secret.Name)
+	vmi := instanceCreation.CreateVirtualMachineInstance(name, namespace, labTemplate, labInstance.Name, secret.Name)
 	vmi.SetOwnerReferences(labiOwnerRef)
-	if err := pkg.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
+	if err := instanceCreation.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", &labInstance, "", "")
 		return ctrl.Result{}, err
 	} else {
