@@ -2289,6 +2289,13 @@ spec:
               required:
               - spec
               type: object
+            vmType:
+              enum:
+              - GUI
+              - CLI
+              type: string
+          required:
+          - vm
           type: object
         status:
           description: LabTemplateStatus defines the observed state of LabTemplate

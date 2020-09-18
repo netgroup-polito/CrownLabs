@@ -52,3 +52,4 @@ spec:
         - name: pvcdisk
           persistentVolumeClaim:
             claimName: xxx
+  vmType: "GUI"

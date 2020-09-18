@@ -21,13 +21,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type VmType string
+
+const (
+	TypeGUI VmType = "GUI"
+	TypeCLI VmType = "CLI"
+)
+
 // LabTemplateSpec defines the desired state of LabTemplate
 type LabTemplateSpec struct {
 	CourseName  string                        `json:"courseName,omitempty"`
 	LabName     string                        `json:"labName,omitempty"`
 	LabNum      resource.Quantity             `json:"labNum,omitempty"`
 	Description string                        `json:"description,omitempty"`
-	Vm          virtv1.VirtualMachineInstance `json:"vm,omitempty"`
+	Vm          virtv1.VirtualMachineInstance `json:"vm"`
+	// +kubebuilder:validation:Enum="GUI";"CLI"
+	VmType `json:"vmType,omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate
