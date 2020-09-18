@@ -1,4 +1,4 @@
-apiVersion: template.crownlabs.polito.it/v1
+apiVersion: crownlabs.polito.it/v1alpha1
 kind: LabTemplate
 metadata:
   name: cloud-computing-lab3

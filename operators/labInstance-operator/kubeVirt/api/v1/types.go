@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 
-	cdiv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/v1alpha1"
+	cdiv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1alpha1"
 )
 
 const DefaultGracePeriodSeconds int64 = 30

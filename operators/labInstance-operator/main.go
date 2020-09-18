@@ -25,9 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1"
+	instancev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/controllers"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1"
+	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

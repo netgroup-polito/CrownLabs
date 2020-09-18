@@ -4,7 +4,7 @@ metadata:
   name: labtemplate-consumer-operator
 rules:
   - apiGroups:
-      - template.crownlabs.polito.it
+      - crownlabs.polito.it
     resources:
       - labtemplates
     verbs:
@@ -18,7 +18,7 @@ metadata:
   name: labinstance-consumer-operator
 rules:
   - apiGroups:
-      - instance.crownlabs.polito.it
+      - crownlabs.polito.it
     resources:
       - labinstances
     verbs:

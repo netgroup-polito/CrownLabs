@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: labinstances.instance.crownlabs.polito.it
+  name: labinstances.crownlabs.polito.it
 spec:
-  group: instance.crownlabs.polito.it
+  group: crownlabs.polito.it
   names:
     kind: LabInstance
     listKind: LabInstanceList
@@ -59,9 +59,9 @@ spec:
               type: string
           type: object
       type: object
-  version: v1
+  version: v1alpha1
   versions:
-  - name: v1
+  - name: v1alpha1
     served: true
     storage: true
 status:
