@@ -5,45 +5,7 @@ import Header from './components/Header';
 import ApiManager from './services/ApiManager';
 import 'toastr/build/toastr.min.css';
 import Body from './components/Body';
-
-/**
- * Function to parse a JWT token
- * @param token the token received by keycloak
- * @returns {any} the decrypted token as a JSON object
- */
-function parseJWTtoken(token) {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(
-    decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(c => {
-          return `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`;
-        })
-        .join('')
-    )
-  );
-}
-
-/**
- * Function to check the token, but encoded and decoded
- * @param parsed the decoded one
- * @return {boolean} true or false whether the token satisfies the constraints
- */
-function checkToken(parsed) {
-  if (!parsed.groups || !parsed.groups.length) {
-    Toastr.error('You do not belong to any namespace to see laboratories');
-    return false;
-  }
-  if (!parsed.namespace || !parsed.namespace[0]) {
-    Toastr.error(
-      'You do not have your own namespace where to run laboratories'
-    );
-    return false;
-  }
-  return true;
-}
-
+import { parseJWTtoken, checkToken } from './helpers';
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
@@ -53,8 +15,6 @@ export default class UserLogic extends React.Component {
    * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
    * - all ADMIN lab templates as a Map: (course_group => Array of available templates for that course)
    * - all ADMIN lab instances as a Map: (instance_name => URL if running, null otherwise)
-   * - all namespaced events as a string
-   * - all ADMIN namespaced events as a string
    * - boolean variable whether to show the status info area
    * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
    * */
@@ -100,7 +60,6 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      events: '',
       statusHidden: true,
       adminHidden: true
     };
@@ -347,16 +306,14 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
-    const { instanceLabs, events } = this.state;
+    const { instanceLabs } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
       this.apiManager.startWatching(this.notifyEvent);
-      this.setState({ events: '' });
       return;
     }
     if (object && object.status) {
-      const msg = `[${object.metadata.creationTimestamp}] ${object.metadata.name} {type: ${type}, status: ${object.status.phase}}`;
       const newMap = instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
@@ -376,8 +333,7 @@ export default class UserLogic extends React.Component {
         newMap.delete(object.metadata.name);
       }
       this.setState({
-        instanceLabs: newMap,
-        events: `${msg}\n${events}`
+        instanceLabs: newMap
       });
     }
   }
@@ -508,7 +464,6 @@ export default class UserLogic extends React.Component {
       instanceLabsAdmin,
       templateLabs,
       instanceLabs,
-      events,
       statusHidden
     } = this.state;
     return (
@@ -536,7 +491,6 @@ export default class UserLogic extends React.Component {
           connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
           stopAdmin={this.stopCRDinstanceAdmin}
-          events={events}
           showStatus={() => this.setState({ statusHidden: !statusHidden })}
           hidden={statusHidden}
           adminHidden={adminHidden}

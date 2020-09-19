@@ -46,7 +46,6 @@ export default function Body(props) {
     adminGroups,
     templateLabsAdmin,
     instanceLabsAdmin,
-    events,
     connectAdmin,
     showStatus,
     hidden,
@@ -76,7 +75,6 @@ export default function Body(props) {
             adminGroups={adminGroups}
             templateLabs={templateLabsAdmin}
             instanceLabs={instanceLabsAdmin}
-            events={events}
             connect={connectAdmin}
             showStatus={showStatus}
             hidden={hidden}
@@ -92,7 +90,6 @@ export default function Body(props) {
             start={start}
             connect={connect}
             stop={stop}
-            events={events}
             showStatus={showStatus}
             hidden={hidden}
           />
