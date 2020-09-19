@@ -7,7 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
-	templatev1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1alpha1"
+	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template templatev1alpha1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
