@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { labs, start, isAdmin, deleteLabTemplate, selectTemplate } = props;
+  const { labs, start, isAdmin, deleteLabTemplate } = props;
 
   const courseNames = Array.from(labs.keys());
   const labList = courseNames.reduce(
@@ -83,7 +83,6 @@ export default function LabTemplatesList(props) {
               disableRipple={isAdmin}
               onClick={() => {
                 setSelectedIndex(i);
-                selectTemplate(labName, courseName);
               }}
             >
               <Tooltip title="Select it">
@@ -101,7 +100,7 @@ export default function LabTemplatesList(props) {
                     style={{ color: 'red' }}
                     button="true"
                     onClick={e => {
-                      deleteLabTemplate();
+                      deleteLabTemplate(labName, courseName);
                       setSelectedIndex(-1);
                       e.stopPropagation(); // avoid triggering onClick on ListItem
                     }}
@@ -118,7 +117,7 @@ export default function LabTemplatesList(props) {
                     style={{ color: 'green' }}
                     button="true"
                     onClick={e => {
-                      start();
+                      start(labName, courseName);
                       setSelectedIndex(-1);
                       e.stopPropagation(); // avoid triggering onClick of ListIstem
                     }}

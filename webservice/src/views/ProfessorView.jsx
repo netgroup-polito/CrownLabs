@@ -24,16 +24,14 @@ export default function ProfessorView(props) {
   const {
     deleteLabTemplate,
     templateLabs,
-    selectTemplate,
     start,
     instanceLabs,
-    selectInstance,
     connect,
     stop,
     showStatus,
     registryName,
     imageList,
-    funcNewTemplate,
+    createNewTemplate,
     adminGroups
   } = props;
 
@@ -65,7 +63,7 @@ export default function ProfessorView(props) {
       return;
     }
 
-    funcNewTemplate(
+    createNewTemplate(
       namespace,
       labid,
       `namespace: ${namespace} laboratory number: ${labid}`,
@@ -96,13 +94,11 @@ export default function ProfessorView(props) {
         <LabTemplatesList
           deleteLabTemplate={deleteLabTemplate}
           labs={templateLabs}
-          selectTemplate={selectTemplate}
           start={start}
           isAdmin
         />
         <LabInstancesList
           runningLabs={instanceLabs}
-          selectInstance={selectInstance}
           connect={connect}
           stop={stop}
           showStatus={showStatus}
@@ -170,12 +166,6 @@ export default function ProfessorView(props) {
               </DialogActions>
             </Dialog>
           </Grid>
-          {/* <NewTemplateWrapper
-            registryName={registryName}
-            imageList={imageList}
-            funcNewTemplate={funcNewTemplate}
-            adminGroups={adminGroups}
-          /> */}
         </Grid>
       </TableRow>
     </>

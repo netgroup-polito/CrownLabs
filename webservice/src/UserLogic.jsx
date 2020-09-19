@@ -53,8 +53,6 @@ export default class UserLogic extends React.Component {
    * - all lab instances as a Map: (instance_name => URL if running, null otherwise)
    * - all ADMIN lab templates as a Map: (course_group => Array of available templates for that course)
    * - all ADMIN lab instances as a Map: (instance_name => URL if running, null otherwise)
-   * - current selected CRD template as an object (name, namespace).
-   * - current selected CRD instance
    * - all namespaced events as a string
    * - all ADMIN namespaced events as a string
    * - boolean variable whether to show the status info area
@@ -66,8 +64,6 @@ export default class UserLogic extends React.Component {
     const { idToken, tokenType } = props;
     this.connect = this.connect.bind(this);
     this.retriveImageList = this.retriveImageList.bind(this);
-    this.changeSelectedCRDtemplate = this.changeSelectedCRDtemplate.bind(this);
-    this.changeSelectedCRDinstance = this.changeSelectedCRDinstance.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
     this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
@@ -104,8 +100,6 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      selectedTemplate: { name: null, namespace: null },
-      selectedInstance: null,
       events: '',
       statusHidden: true,
       adminHidden: true
@@ -176,31 +170,24 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to start and create a CRD instance using the actual selected one
+   * Function to start and create a CRD instance
    */
-  startCRDinstance() {
-    const { selectedTemplate, instanceLabs } = this.state;
-    if (!selectedTemplate.name) {
-      Toastr.info('Please select a lab before starting it');
-      return;
-    }
-    if (instanceLabs.has(selectedTemplate.name)) {
-      Toastr.info(`The \`${selectedTemplate.name}\` lab is already running`);
+  startCRDinstance(templateName, course) {
+    const { instanceLabs } = this.state;
+    if (instanceLabs.has(templateName)) {
+      Toastr.info(`The \`${templateName}\` lab is already running`);
       return;
     }
     this.apiManager
-      .createCRDinstance(selectedTemplate.name, selectedTemplate.namespace)
+      .createCRDinstance(templateName, course)
       .then(response => {
-        Toastr.success(`Successfully started lab \`${selectedTemplate.name}\``);
+        Toastr.success(`Successfully started lab \`${templateName}\``);
         const newMap = instanceLabs;
         newMap.set(response.body.metadata.name, { status: 0, url: null });
         this.setState({ instanceLabs: newMap });
       })
       .catch(error => {
         this.handleErrors(error);
-      })
-      .finally(() => {
-        this.changeSelectedCRDtemplate(null, null);
       });
   }
 
@@ -227,51 +214,40 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to stop and delete the current selected CRD instance
+   * Function to stop and delete an instance
    */
-  stopCRDinstance() {
-    const { selectedInstance, instanceLabs } = this.state;
-    if (!selectedInstance) {
-      Toastr.info('No lab to stop has been selected');
-      return;
-    }
-    if (!instanceLabs.has(selectedInstance)) {
-      Toastr.info(`The \`${selectedInstance}\` lab is not running`);
+  stopCRDinstance(instanceName) {
+    const { instanceLabs } = this.state;
+    if (!instanceLabs.has(instanceName)) {
+      Toastr.info(`The \`${instanceName}\` lab is not running`);
       return;
     }
     this.apiManager
-      .deleteCRDinstance(selectedInstance)
+      .deleteCRDinstance(instanceName)
       .then(() => {
-        Toastr.success(`Successfully stopped \`${selectedInstance}\``);
+        Toastr.success(`Successfully stopped \`${instanceName}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
         const newMap = instanceLabs;
-        newMap.delete(selectedInstance);
+        newMap.delete(instanceName);
         this.setState({ instanceLabs: newMap });
-        this.changeSelectedCRDinstance(null);
       });
   }
 
-  deleteCRDtemplate() {
-    const { selectedTemplate, templateLabsAdmin, templateLabs } = this.state;
-    if (!selectedTemplate) {
-      Toastr.info('No template to delete has been selected');
-      return;
-    }
-    if (!templateLabsAdmin.has(selectedTemplate.namespace)) {
-      Toastr.info(
-        `The \`${selectedTemplate.name} template is not managed by you`
-      );
+  deleteCRDtemplate(templateName, course) {
+    const { templateLabsAdmin, templateLabs } = this.state;
+    if (!templateLabsAdmin.has(course)) {
+      Toastr.info(`The \`${templateName} template is not managed by you`);
       return;
     }
 
     this.apiManager
-      .deleteCRDtemplate(selectedTemplate.namespace, selectedTemplate.name)
+      .deleteCRDtemplate(course, templateName)
       .then(() => {
-        Toastr.success(`Successfully deleted \`${selectedTemplate.name}\``);
+        Toastr.success(`Successfully deleted \`${templateName}\``);
       })
       .catch(error => {
         this.handleErrors(error);
@@ -284,34 +260,29 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to stop and delete the current selected CRD instance
+   * Function to stop and delete an instance
    */
-  stopCRDinstanceAdmin() {
-    const { selectedInstance, instanceLabsAdmin } = this.state;
-    if (!selectedInstance) {
-      Toastr.info('No lab to stop has been selected');
-      return;
-    }
-    if (!instanceLabsAdmin.has(selectedInstance)) {
-      Toastr.info(`The \`${selectedInstance}\` lab is not running`);
+  stopCRDinstanceAdmin(instanceName) {
+    const { instanceLabsAdmin } = this.state;
+    if (!instanceLabsAdmin.has(instanceName)) {
+      Toastr.info(`The \`${instanceName}\` lab is not running`);
       return;
     }
     this.apiManager
       .deleteCRDinstance(
-        selectedInstance,
-        instanceLabsAdmin.get(selectedInstance).studNamespace
+        instanceName,
+        instanceLabsAdmin.get(instanceName).studNamespace
       )
       .then(() => {
-        Toastr.success(`Successfully stopped \`${selectedInstance}\``);
+        Toastr.success(`Successfully stopped \`${instanceName}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
         const newMap = instanceLabsAdmin;
-        newMap.delete(selectedInstance);
+        newMap.delete(instanceName);
         this.setState({ instanceLabsAdmin: newMap });
-        this.changeSelectedCRDinstance(null);
       });
   }
 
@@ -327,63 +298,47 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to connect to the VM of the actual user selected CRD instance
+   * Function to connect to the VM of
    */
-  connect() {
-    const { selectedInstance, instanceLabs } = this.state;
-    if (!selectedInstance) {
-      Toastr.info('No running lab selected to connect to');
+  connect(instanceName) {
+    const { instanceLabs } = this.state;
+    if (!instanceLabs.has(instanceName)) {
+      Toastr.info(`The lab \`${instanceName}\` is not running`);
       return;
     }
-    if (!instanceLabs.has(selectedInstance)) {
-      Toastr.info(`The lab \`${selectedInstance}\` is not running`);
-      return;
-    }
-    switch (instanceLabs.get(selectedInstance).status) {
+    switch (instanceLabs.get(instanceName).status) {
       case 1:
-        window.open(instanceLabs.get(selectedInstance).url);
+        window.open(instanceLabs.get(instanceName).url);
         break;
       case 0:
-        Toastr.info(`The lab \`${selectedInstance}\` is still starting`);
+        Toastr.info(`The lab \`${instanceName}\` is still starting`);
         break;
       default:
-        Toastr.info(
-          `An error has occurred with the lab \`${selectedInstance}\``
-        );
+        Toastr.info(`An error has occurred with the lab \`${instanceName}\``);
         break;
     }
-
-    this.changeSelectedCRDinstance(null);
   }
 
   /**
-   * Function to connect to the VM of the actual admin selected CRD instance
+   * Function to connect to the VM of admin
    */
-  connectAdmin() {
-    const { selectedInstance, instanceLabsAdmin } = this.state;
-    if (!selectedInstance) {
-      Toastr.info('No running lab selected to connect to');
+  connectAdmin(instanceName) {
+    const { instanceLabsAdmin } = this.state;
+    if (!instanceLabsAdmin.has(instanceName)) {
+      Toastr.info(`The lab \`${instanceName}\` is not running`);
       return;
     }
-    if (!instanceLabsAdmin.has(selectedInstance)) {
-      Toastr.info(`The lab \`${selectedInstance}\` is not running`);
-      return;
-    }
-    switch (instanceLabsAdmin.get(selectedInstance).status) {
+    switch (instanceLabsAdmin.get(instanceName).status) {
       case 1:
-        window.open(instanceLabsAdmin.get(selectedInstance).url);
+        window.open(instanceLabsAdmin.get(instanceName).url);
         break;
       case 0:
-        Toastr.info(`The lab \`${selectedInstance}\` is still starting`);
+        Toastr.info(`The lab \`${instanceName}\` is still starting`);
         break;
       default:
-        Toastr.info(
-          `An error has occurred with the lab \`${selectedInstance}\``
-        );
+        Toastr.info(`An error has occurred with the lab \`${instanceName}\``);
         break;
     }
-
-    this.changeSelectedCRDinstance(null);
   }
 
   /**
@@ -484,25 +439,6 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * Function to change the user selected CRD template
-   * @param name the name/label of the new one
-   * @param namespace the namespace in which the template should be retrieved
-   */
-  changeSelectedCRDtemplate(name, namespace) {
-    this.setState({
-      selectedTemplate: { name, namespace }
-    });
-  }
-
-  /**
-   * Function to change the user selected CRD instance
-   * @param name the name/label of the new one
-   */
-  changeSelectedCRDinstance(name) {
-    this.setState({ selectedInstance: name });
-  }
-
-  /**
    * Function to handle all errors
    * @param error the error message received
    */
@@ -592,10 +528,8 @@ export default class UserLogic extends React.Component {
           templateLabsAdmin={templateLabsAdmin}
           instanceLabsAdmin={instanceLabsAdmin}
           templateLabs={templateLabs}
-          funcNewTemplate={this.createCRDtemplate}
+          createNewTemplate={this.createCRDtemplate}
           instanceLabs={instanceLabs}
-          selectTemplate={this.changeSelectedCRDtemplate}
-          selectInstance={this.changeSelectedCRDinstance}
           start={this.startCRDinstance}
           deleteLabTemplate={this.deleteCRDtemplate}
           connect={this.connect}

@@ -11,7 +11,7 @@ import RunningLabList from './RunningLabList';
  */
 export default function LabInstancesList(props) {
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
-  const { runningLabs, selectInstance, stop, connect } = props;
+  const { runningLabs, stop, connect } = props;
 
   const runningLabNames = Array.from(runningLabs.keys());
   const runningLabList = runningLabNames.map(labName => ({
@@ -33,7 +33,6 @@ export default function LabInstancesList(props) {
     >
       <RunningLabList
         labList={runningLabList}
-        selectInstance={selectInstance}
         stop={stop}
         connect={connect}
         title="Running labs"

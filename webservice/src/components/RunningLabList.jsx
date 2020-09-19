@@ -72,14 +72,15 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
+const selectors = [
+  { text: 'Name', icon: <SortByAlphaIcon />, value: 'az' },
+  { text: 'Created', icon: <AccessTimeIcon />, value: 'time' }
+];
+
 const RunningLabList = props => {
-  const { labList, selectInstance, stop, connect, title } = props;
+  const { labList, stop, connect, title } = props;
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const selectors = [
-    { text: 'Name', icon: <SortByAlphaIcon />, value: 'az' },
-    { text: 'Created', icon: <AccessTimeIcon />, value: 'time' }
-  ];
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(localStorage.getItem('orderData'));
     return prevOrderData || { isDirUp: true, order: 'az' };
@@ -132,7 +133,6 @@ const RunningLabList = props => {
                 selected={selectedIndex === i}
                 onClick={() => {
                   setSelectedIndex(i);
-                  selectInstance(labName, null);
                 }}
               >
                 <div className={`${classes.labColorTag} ${statusClassName}`}>
@@ -165,7 +165,7 @@ const RunningLabList = props => {
                       className={classes.stopIcon}
                       button="true"
                       onClick={e => {
-                        stop();
+                        stop(labName);
                         setSelectedIndex(-1);
                         e.stopPropagation(); // avoid triggering onClick on ListItem
                       }}
@@ -180,7 +180,7 @@ const RunningLabList = props => {
                       className={classes.launchIcon}
                       button="true"
                       onClick={e => {
-                        connect();
+                        connect(labName);
                         setSelectedIndex(-1);
                         e.stopPropagation(); // avoid triggering onClick on ListItem
                       }}

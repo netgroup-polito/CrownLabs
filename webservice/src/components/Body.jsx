@@ -47,12 +47,10 @@ export default function Body(props) {
     templateLabsAdmin,
     instanceLabsAdmin,
     events,
-    selectTemplate,
-    selectInstance,
     connectAdmin,
     showStatus,
     hidden,
-    funcNewTemplate,
+    createNewTemplate,
     start,
     stopAdmin,
     deleteLabTemplate,
@@ -79,12 +77,10 @@ export default function Body(props) {
             templateLabs={templateLabsAdmin}
             instanceLabs={instanceLabsAdmin}
             events={events}
-            selectTemplate={selectTemplate}
-            selectInstance={selectInstance}
             connect={connectAdmin}
             showStatus={showStatus}
             hidden={hidden}
-            funcNewTemplate={funcNewTemplate}
+            createNewTemplate={createNewTemplate}
             start={start}
             stop={stopAdmin}
             deleteLabTemplate={deleteLabTemplate}
@@ -93,8 +89,6 @@ export default function Body(props) {
           <StudentView
             templateLabs={templateLabs}
             instanceLabs={instanceLabs}
-            selectTemplate={selectTemplate}
-            selectInstance={selectInstance}
             start={start}
             connect={connect}
             stop={stop}
