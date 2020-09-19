@@ -33,10 +33,11 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
-    "@kubernetes/client-node": "git+https://github.com/LiqoTech/kubernetes-client-javascript#browser",
+    "@kubernetes/client-node": "git+https://github.com/LiqoTech/kubernetes-client-javascript.git#browser",
     "@material-ui/core": "^4.9.7",
     "@material-ui/icons": "^4.9.1",
     "html-webpack-plugin": "^3.2.0",
+    "moment": "^2.28.0",
     "oidc-client": "^1.10.1",
     "react": "^16.13.0",
     "react-dom": "^16.13.0",

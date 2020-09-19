@@ -126,11 +126,6 @@ export default class UserLogic extends React.Component {
             labelSelector: `template-namespace in (${adminGroups.join()})`
           });
         }
-
-        /* @@@@@@@@@@@ TO BE USED ONLY IF WATCHER IS BROKEN
-                        this.retrieveCRDinstanceStatus();
-                        setInterval(() => {this.retrieveCRDinstanceStatus()}, 10000);
-                        */
       });
   }
 
@@ -392,40 +387,6 @@ export default class UserLogic extends React.Component {
   }
 
   /**
-   * * @@@@ UNUSED (since watcher has been patched and works)
-   *
-   * Function to retrieve all CRD instances status
-   */
-  retrieveCRDinstanceStatus() {
-    const { instanceLabs, events } = this.state;
-    const keys = Array.from(instanceLabs.keys());
-    keys.forEach(lab => {
-      this.apiManager
-        .getCRDstatus(lab)
-        .then(response => {
-          if (response.body.status && response.body.status.phase) {
-            const msg = `[${response.body.metadata.creationTimestamp}] ${lab} => ${response.body.status.phase}`;
-            const newMap = instanceLabs;
-            if (response.body.status.phase.match(/Fail|Not/g)) {
-              /* Object creation failed */
-              newMap.set(lab, { url: null, status: -1 });
-            } else if (response.body.status.phase.match(/VmiReady/g)) {
-              /* Object creation succeeded */
-              newMap.set(lab, { url: response.body.status.url, status: 1 });
-            }
-            this.setState({
-              instanceLabs: newMap,
-              events: `${msg}\n${events}`
-            });
-          }
-        })
-        .catch(error => {
-          this.handleErrors(error);
-        });
-    });
-  }
-
-  /**
    *Function to notify a Kubernetes Event related to your user resources
    * @param type the type of the event
    * @param object the object of the event
@@ -444,13 +405,18 @@ export default class UserLogic extends React.Component {
       const newMap = instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
-        newMap.set(object.metadata.name, { url: null, status: -1 });
+        newMap.set(object.metadata.name, { url: null, status: -1, ip: null });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
         (type === 'ADDED' || type === 'MODIFIED')
       ) {
         /* Object creation succeeded */
-        newMap.set(object.metadata.name, { url: object.status.url, status: 1 });
+        newMap.set(object.metadata.name, {
+          url: object.status.url,
+          status: 1,
+          ip: object.status.ip,
+          creationTime: object.metadata.creationTimestamp
+        });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
       }
@@ -483,7 +449,8 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: null,
           status: -1,
-          studNamespace: object.metadata.namespace
+          studNamespace: object.metadata.namespace,
+          ip: null
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -493,7 +460,9 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: object.status.url,
           status: 1,
-          studNamespace: object.metadata.namespace
+          studNamespace: object.metadata.namespace,
+          ip: object.status.ip,
+          creationTime: object.metadata.creationTimestamp
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -504,7 +473,8 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: null,
           status: 0,
-          studNamespace: object.metadata.namespace
+          studNamespace: object.metadata.namespace,
+          ip: null
         });
       }
       this.setState({
