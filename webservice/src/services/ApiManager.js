@@ -23,7 +23,7 @@ export default class ApiManager {
     this.apiCRD = this.kc.makeApiClient(CustomObjectsApi);
     this.templateGroup = 'crownlabs.polito.it';
     this.instanceGroup = 'crownlabs.polito.it';
-    this.version = 'v1';
+    this.version = 'v1alpha1';
     this.templatePlural = 'labtemplates';
     this.instancePlural = 'labinstances';
     this.studentID = studentID;
