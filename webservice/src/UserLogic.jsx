@@ -60,26 +60,19 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      statusHidden: true,
       adminHidden: true
     };
     this.retriveImageList();
     this.retrieveCRDtemplates();
-    this.retrieveCRDinstances()
-      .catch(error => {
-        this.handleErrors(error);
-      })
-      .finally(() => {
-        /* Start watching for namespaced events */
-        this.apiManager.startWatching(this.notifyEvent);
+    /* Start watching for namespaced events */
+    this.apiManager.startWatching(this.notifyEvent);
 
-        /* Start watching for admin namespaces events if any */
-        if (adminGroups.length > 0) {
-          this.apiManager.startWatching(this.notifyEventAdmin, {
-            labelSelector: `template-namespace in (${adminGroups.join()})`
-          });
-        }
+    /* Start watching for admin namespaces events if any */
+    if (adminGroups.length > 0) {
+      this.apiManager.startWatching(this.notifyEventAdmin, {
+        labelSelector: `template-namespace in (${adminGroups.join()})`
       });
+    }
   }
 
   /**
@@ -100,28 +93,6 @@ export default class UserLogic extends React.Component {
           }
         });
         this.setState({ templateLabs: newMap, templateLabsAdmin: newMapAdmin });
-      })
-      .catch(error => {
-        this.handleErrors(error);
-      });
-  }
-
-  /**
-   * Private function to retrieve all CRD instances running
-   */
-  retrieveCRDinstances() {
-    const { instanceLabs } = this.state;
-    return this.apiManager
-      .getCRDinstances()
-      .then(nodesResponse => {
-        const nodes = nodesResponse.body.items;
-        const newMap = instanceLabs;
-        nodes.forEach(x => {
-          if (!newMap.has(x.metadata.name)) {
-            newMap.set(x.metadata.name, { status: 0, url: null });
-          }
-        });
-        this.setState({ instanceLabs: newMap });
       })
       .catch(error => {
         this.handleErrors(error);
@@ -331,6 +302,15 @@ export default class UserLogic extends React.Component {
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
+      } else if (
+        (type === 'ADDED' || type === 'MODIFIED') &&
+        !newMap.has(object.metadata.name)
+      ) {
+        newMap.set(object.metadata.name, {
+          url: null,
+          status: 0,
+          ip: null
+        });
       }
       this.setState({
         instanceLabs: newMap
@@ -360,8 +340,8 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: null,
           status: -1,
-          studNamespace: object.metadata.namespace,
-          ip: null
+          ip: null,
+          studNamespace: object.metadata.namespace
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -371,9 +351,9 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: object.status.url,
           status: 1,
-          studNamespace: object.metadata.namespace,
           ip: object.status.ip,
-          creationTime: object.metadata.creationTimestamp
+          creationTime: object.metadata.creationTimestamp,
+          studNamespace: object.metadata.namespace
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -463,8 +443,7 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin,
       instanceLabsAdmin,
       templateLabs,
-      instanceLabs,
-      statusHidden
+      instanceLabs
     } = this.state;
     return (
       <div id="body" style={{ height: '100%', background: '#fafafa' }}>
@@ -491,8 +470,6 @@ export default class UserLogic extends React.Component {
           connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
           stopAdmin={this.stopCRDinstanceAdmin}
-          showStatus={() => this.setState({ statusHidden: !statusHidden })}
-          hidden={statusHidden}
           adminHidden={adminHidden}
         />
         <Footer />

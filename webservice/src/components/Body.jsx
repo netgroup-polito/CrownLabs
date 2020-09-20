@@ -48,7 +48,6 @@ export default function Body(props) {
     instanceLabsAdmin,
     connectAdmin,
     showStatus,
-    hidden,
     createNewTemplate,
     start,
     stopAdmin,
@@ -77,7 +76,6 @@ export default function Body(props) {
             instanceLabs={instanceLabsAdmin}
             connect={connectAdmin}
             showStatus={showStatus}
-            hidden={hidden}
             createNewTemplate={createNewTemplate}
             start={start}
             stop={stopAdmin}
@@ -91,7 +89,6 @@ export default function Body(props) {
             connect={connect}
             stop={stop}
             showStatus={showStatus}
-            hidden={hidden}
           />
         )}
       </div>

@@ -84,20 +84,6 @@ export default class ApiManager {
   }
 
   /**
-   * Function to retrieve all lab instances in your namespace
-   *
-   * @returns the promise handling the request
-   */
-  getCRDinstances() {
-    return this.apiCRD.listNamespacedCustomObject(
-      this.instanceGroup,
-      this.version,
-      this.instanceNamespace,
-      this.instancePlural
-    );
-  }
-
-  /**
    * Function to create a lab instance
    *
    * @param labTemplateName the name of the lab template
