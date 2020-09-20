@@ -40,7 +40,7 @@ export default function Body(props) {
     }
   };
   const {
-    adminHidden,
+    isStudentView,
     registryName,
     retriveImageList,
     adminGroups,
@@ -67,7 +67,16 @@ export default function Body(props) {
           overflow: 'auto'
         }}
       >
-        {!adminHidden ? (
+        {isStudentView ? (
+          <StudentView
+            templateLabs={templateLabs}
+            instanceLabs={instanceLabs}
+            start={start}
+            connect={connect}
+            stop={stop}
+            showStatus={showStatus}
+          />
+        ) : (
           <ProfessorView
             registryName={registryName}
             imageList={retriveImageList}
@@ -80,15 +89,6 @@ export default function Body(props) {
             start={start}
             stop={stopAdmin}
             deleteLabTemplate={deleteLabTemplate}
-          />
-        ) : (
-          <StudentView
-            templateLabs={templateLabs}
-            instanceLabs={instanceLabs}
-            start={start}
-            connect={connect}
-            stop={stop}
-            showStatus={showStatus}
           />
         )}
       </div>

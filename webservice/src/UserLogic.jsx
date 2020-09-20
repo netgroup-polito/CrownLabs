@@ -16,7 +16,7 @@ export default class UserLogic extends React.Component {
    * - all ADMIN lab templates as a Map: (course_group => Array of available templates for that course)
    * - all ADMIN lab instances as a Map: (instance_name => URL if running, null otherwise)
    * - boolean variable whether to show the status info area
-   * - adminHidden whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
+   * - isStudentView whether to render or not the admin page (changed by the button in the StudentView IF adminGroups is not false)
    * */
 
   constructor(props) {
@@ -60,7 +60,7 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      adminHidden: true
+      isStudentView: true
     };
     this.retriveImageList();
     this.retrieveCRDtemplates();
@@ -436,7 +436,7 @@ export default class UserLogic extends React.Component {
     const { logout } = this.props;
     const {
       name,
-      adminHidden,
+      isStudentView,
       adminGroups,
       registryName,
       imageList,
@@ -451,9 +451,11 @@ export default class UserLogic extends React.Component {
           logged
           logout={logout}
           name={name}
-          adminHidden={adminHidden}
+          isStudentView={isStudentView}
           renderAdminBtn={adminGroups.length > 0}
-          switchAdminView={() => this.setState({ adminHidden: !adminHidden })}
+          switchAdminView={() => {
+            this.setState({ isStudentView: !isStudentView });
+          }}
         />
         <Body
           registryName={registryName}
@@ -470,7 +472,7 @@ export default class UserLogic extends React.Component {
           connectAdmin={this.connectAdmin}
           stop={this.stopCRDinstance}
           stopAdmin={this.stopCRDinstanceAdmin}
-          adminHidden={adminHidden}
+          isStudentView={isStudentView}
         />
         <Footer />
       </div>
