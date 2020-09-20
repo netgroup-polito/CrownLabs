@@ -20,11 +20,11 @@ In case you are a very experienced user and you want to proceed manually, we sug
 
 ### Conversion of existing VMs
 
-The configuration of an existing VM for the execution in CrownLabs can be performed using the `xubuntu-base` playbook (i.e. executing `./setup-crownlabs-vm <vm-name> configure ansible/xubuntu-base-playbook.yml`). Then, you can export the VM as documented in the `setup-crownlabs-vms.sh` script.
+The configuration of an existing VM for the execution in CrownLabs can be performed using the `ubuntu-base` playbook (i.e. executing `./setup-crownlabs-vm <vm-name> configure ansible/playbooks/ubuntu-base.yml`). Then, you can export the VM as documented in the `setup-crownlabs-vms.sh` script.
 
 **Warning**: depending on your configuration (e.g. virtualization platform and guest OS), the script may require some additional amount of tuning to work. Additionally, verify in advance that the packages automatically removed are of no use to you.
 
-**Warning**: currently Crownlabs supports only VMs running the XFCE desktop environment. The adoption of a different desktop environments will probably require the customization of the ansible playbooks and it is not guaranteed to achieve acceptable results in terms of performance. In fact, given the amount of resources consumed in a cloud environment by the GUI subsystem of the VM, we strongly suggest not to use a full fledged graphical environment (e.g., Ubuntu), but to privilege more resource-saving ones, such as XFCE (e.g., Xubuntu).
+**Warning**: currently CrownLabs supports only VMs running the XFCE desktop environment. The adoption of a different desktop environments will probably require the customization of the ansible playbooks and it is not guaranteed to achieve acceptable results in terms of performance. In fact, given the amount of resources consumed in a cloud environment by the GUI subsystem of the VM, we strongly suggest not to use a full fledged graphical environment (e.g., Ubuntu), but to privilege more resource-saving ones, such as XFCE (e.g., Xubuntu).
 
 
 ### Conversion of existing VMs with the legacy scripts
