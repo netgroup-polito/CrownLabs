@@ -30,11 +30,14 @@ export default function OrderSelector(props) {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   return (
     <div>
-      <IconButton color="primary" onClick={handleClick}>
-        {selectors.find(sel => sel.value === order).icon}
-      </IconButton>
+      {selectors.length > 1 && (
+        <IconButton color="primary" onClick={handleClick}>
+          {selectors.find(sel => sel.value === order).icon}
+        </IconButton>
+      )}
       <Menu
         anchorEl={anchorEl}
         keepMounted

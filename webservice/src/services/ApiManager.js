@@ -60,7 +60,7 @@ export default class ApiManager {
       )
       .then(nodesResponse => {
         return nodesResponse.body.items.map(x => {
-          return x.metadata.name;
+          return { name: x.metadata.name, description: x.spec.description };
         });
       })
       .catch(error => {

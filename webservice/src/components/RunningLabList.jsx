@@ -14,6 +14,7 @@ import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import { utc } from 'moment';
 import OrderSelector from './OrderSelector';
+import TextSelector from './TextSelector';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -69,6 +70,11 @@ const useStyles = makeStyles(theme => ({
   },
   listTitle: {
     fontSize: 30
+  },
+  titleActions: {
+    display: 'flex',
+    justifyContent: 'end',
+    alignItems: 'center'
   }
 }));
 
@@ -77,17 +83,22 @@ const selectors = [
   { text: 'Created', icon: <AccessTimeIcon />, value: 'time' }
 ];
 
+const getLabCodeFromName = name => name.slice(name.length - 4);
+
 const RunningLabList = props => {
   const { labList, stop, connect, title } = props;
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [textMatch, setTextMatch] = useState('');
   const [orderData, setOrderData] = useState(() => {
-    const prevOrderData = JSON.parse(localStorage.getItem('orderData'));
+    const prevOrderData = JSON.parse(
+      localStorage.getItem(`orderData-${title}`)
+    );
     return prevOrderData || { isDirUp: true, order: 'az' };
   });
 
   useEffect(() => {
-    localStorage.setItem('orderData', JSON.stringify(orderData));
+    localStorage.setItem(`orderData-${title}`, JSON.stringify(orderData));
   }, [orderData]);
 
   return (
@@ -101,24 +112,49 @@ const RunningLabList = props => {
         subheader={
           <ListSubheader className={classes.titlebar}>
             {title}
-            <OrderSelector
-              selectors={selectors}
-              setOrderData={setOrderData}
-              orderData={orderData}
-            />
+            <div className={classes.titleActions}>
+              <TextSelector value={textMatch} setValue={setTextMatch} />
+              <OrderSelector
+                selectors={selectors}
+                setOrderData={setOrderData}
+                orderData={orderData}
+              />
+            </div>
           </ListSubheader>
         }
       >
         {labList
+          .filter(({ labName, ip, description }) => {
+            if (textMatch !== '') {
+              const labCode = getLabCodeFromName(labName);
+              // not using regex but lowercase and include since it sohuld be faster, could be changed easily
+              return (
+                (description &&
+                  description
+                    .toLowerCase()
+                    .includes(textMatch.toLowerCase())) ||
+                labCode.includes(textMatch) ||
+                labName.toLowerCase().includes(textMatch.toLowerCase()) ||
+                ip.includes(textMatch)
+              );
+            }
+            return true;
+          })
           .sort((a, b) => {
             let sortResult;
             const { order, isDirUp } = orderData;
             if (order === 'time') {
               sortResult = utc(b.creationTime).diff(a.creationTime, 's');
-            } else sortResult = a.labName.localeCompare(b.labName);
+            } else
+              sortResult =
+                a.description && b.description
+                  ? a.description.localeCompare(b.description)
+                  : a.labName.localeCompare(b.labName);
+
             return isDirUp ? sortResult : -sortResult;
           })
           .map(({ labName, status, ip, creationTime, description }, i) => {
+            const labCode = getLabCodeFromName(labName);
             const statusClassName =
               status === 0
                 ? classes.loadingLab
@@ -141,7 +177,7 @@ const RunningLabList = props => {
                 <ListItemText
                   color="primary"
                   primary={
-                    description ||
+                    `${description} - ${labCode}` ||
                     `${labName.charAt(0).toUpperCase()}${labName
                       .slice(1)
                       .replace(/-/g, ' ')}`

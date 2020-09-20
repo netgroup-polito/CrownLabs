@@ -60,39 +60,66 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      isStudentView: true
+      isStudentView: true,
+      descriptions: {}
     };
     this.retriveImageList();
-    this.retrieveCRDtemplates();
-    /* Start watching for namespaced events */
-    this.apiManager.startWatching(this.notifyEvent);
+    this.retrieveCRDtemplates().then(() => {
+      /* Start watching for namespaced events */
+      this.apiManager.startWatching(this.notifyEvent);
 
-    /* Start watching for admin namespaces events if any */
-    if (adminGroups.length > 0) {
-      this.apiManager.startWatching(this.notifyEventAdmin, {
-        labelSelector: `template-namespace in (${adminGroups.join()})`
-      });
-    }
+      /* Start watching for admin namespaces events if any */
+      if (adminGroups.length > 0) {
+        this.apiManager.startWatching(this.notifyEventAdmin, {
+          labelSelector: `template-namespace in (${adminGroups.join()})`
+        });
+      }
+    });
   }
 
   /**
    * Private function to retrieve all CRD templates available
    */
   retrieveCRDtemplates() {
-    const { templateLabs, templateLabsAdmin, adminGroups } = this.state;
-    this.apiManager
+    const {
+      templateLabs,
+      templateLabsAdmin,
+      adminGroups,
+      descriptions
+    } = this.state;
+    return this.apiManager
       .getCRDtemplates()
       .then(res => {
         const newMap = templateLabs;
         const newMapAdmin = templateLabsAdmin;
+        const newDescriptions = { ...descriptions };
         res.forEach(x => {
           if (x) {
-            newMap.set(x.course, x.labs);
+            newMap.set(
+              x.course,
+              x.labs.map(lab => ({
+                labName: lab.name,
+                description: lab.description
+              }))
+            );
             if (adminGroups.includes(x.course))
-              newMapAdmin.set(x.course, x.labs);
+              newMapAdmin.set(
+                x.course,
+                x.labs.map(lab => ({
+                  labName: lab.name,
+                  description: lab.description
+                }))
+              );
+            x.labs.forEach(lab => {
+              newDescriptions[lab.name] = lab.description;
+            });
           }
         });
-        this.setState({ templateLabs: newMap, templateLabsAdmin: newMapAdmin });
+        this.setState({
+          templateLabs: newMap,
+          templateLabsAdmin: newMapAdmin,
+          descriptions: newDescriptions
+        });
       })
       .catch(error => {
         this.handleErrors(error);
@@ -103,7 +130,7 @@ export default class UserLogic extends React.Component {
    * Function to start and create a CRD instance
    */
   startCRDinstance(templateName, course) {
-    const { instanceLabs } = this.state;
+    const { instanceLabs, descriptions } = this.state;
     if (instanceLabs.has(templateName)) {
       Toastr.info(`The \`${templateName}\` lab is already running`);
       return;
@@ -113,7 +140,13 @@ export default class UserLogic extends React.Component {
       .then(response => {
         Toastr.success(`Successfully started lab \`${templateName}\``);
         const newMap = instanceLabs;
-        newMap.set(response.body.metadata.name, { status: 0, url: null });
+        newMap.set(response.body.metadata.name, {
+          status: 0,
+          url: null,
+          ip: '',
+          creationTime: undefined,
+          description: descriptions[templateName]
+        });
         this.setState({ instanceLabs: newMap });
       })
       .catch(error => {
@@ -277,7 +310,7 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
-    const { instanceLabs } = this.state;
+    const { instanceLabs, descriptions } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -288,7 +321,12 @@ export default class UserLogic extends React.Component {
       const newMap = instanceLabs;
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
-        newMap.set(object.metadata.name, { url: null, status: -1, ip: null });
+        newMap.set(object.metadata.name, {
+          url: null,
+          status: -1,
+          ip: null,
+          description: descriptions[object.spec.labTemplateName]
+        });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
         (type === 'ADDED' || type === 'MODIFIED')
@@ -298,7 +336,8 @@ export default class UserLogic extends React.Component {
           url: object.status.url,
           status: 1,
           ip: object.status.ip,
-          creationTime: object.metadata.creationTimestamp
+          creationTime: object.metadata.creationTimestamp,
+          description: descriptions[object.spec.labTemplateName]
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -309,7 +348,8 @@ export default class UserLogic extends React.Component {
         newMap.set(object.metadata.name, {
           url: null,
           status: 0,
-          ip: null
+          ip: null,
+          description: descriptions[object.spec.labTemplateName]
         });
       }
       this.setState({
@@ -324,7 +364,7 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEventAdmin(type, object) {
-    const { adminGroups, instanceLabsAdmin } = this.state;
+    const { adminGroups, instanceLabsAdmin, descriptions } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -334,14 +374,15 @@ export default class UserLogic extends React.Component {
       return;
     }
     if (object && object.status) {
-      const newMap = instanceLabsAdmin;
+      const newMap = new Map(instanceLabsAdmin);
       if (object.status.phase.match(/Fail|Not/g)) {
         /* Object creation failed */
         newMap.set(object.metadata.name, {
           url: null,
           status: -1,
           ip: null,
-          studNamespace: object.metadata.namespace
+          studNamespace: object.metadata.namespace,
+          description: descriptions[object.spec.labTemplateName]
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -353,7 +394,8 @@ export default class UserLogic extends React.Component {
           status: 1,
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
-          studNamespace: object.metadata.namespace
+          studNamespace: object.metadata.namespace,
+          description: descriptions[object.spec.labTemplateName]
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -365,7 +407,8 @@ export default class UserLogic extends React.Component {
           url: null,
           status: 0,
           studNamespace: object.metadata.namespace,
-          ip: null
+          ip: null,
+          description: descriptions[object.spec.labTemplateName]
         });
       }
       this.setState({
