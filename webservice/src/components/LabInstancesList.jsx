@@ -11,7 +11,7 @@ import RunningLabList from './RunningLabList';
  */
 export default function LabInstancesList(props) {
   /* Parsing the instances array and draw for each one a list item with the right coloration, according to its status */
-  const { runningLabs, stop, connect } = props;
+  const { runningLabs, stop, connect, isStudentView } = props;
 
   const runningLabNames = Array.from(runningLabs.keys());
   const runningLabList = runningLabNames.map(labName => ({
@@ -36,6 +36,7 @@ export default function LabInstancesList(props) {
         stop={stop}
         connect={connect}
         title="Running labs"
+        isStudentView={isStudentView}
       />
     </Paper>
   );

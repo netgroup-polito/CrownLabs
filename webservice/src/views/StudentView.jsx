@@ -33,6 +33,7 @@ export default function StudentView(props) {
         connect={connect}
         stop={stop}
         showStatus={showStatus}
+        isStudentView
       />
     </div>
   );

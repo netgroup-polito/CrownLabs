@@ -95,14 +95,12 @@ export default function ProfessorView(props) {
           deleteLabTemplate={deleteLabTemplate}
           labs={templateLabs}
           start={start}
-          isAdmin
         />
         <LabInstancesList
           runningLabs={instanceLabs}
           connect={connect}
           stop={stop}
           showStatus={showStatus}
-          isAdmin
         />
       </TableRow>
       <TableRow style={labPapersStyle}>

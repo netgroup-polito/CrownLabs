@@ -117,10 +117,11 @@ export default function LabTemplatesList(props) {
           {labList
             .filter(({ labName, description }) => {
               if (textMatch !== '') {
+                const textMatchLower = textMatch.toLowerCase();
                 return (
-                  labName.toLowerCase().includes(textMatch.toLowerCase()) ||
+                  labName.toLowerCase().includes(textMatchLower) ||
                   (description &&
-                    description.toLowerCase().includes(textMatch.toLowerCase()))
+                    description.toLowerCase().includes(textMatchLower))
                 );
               }
               return true;

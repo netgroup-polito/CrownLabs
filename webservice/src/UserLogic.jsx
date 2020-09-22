@@ -382,7 +382,8 @@ export default class UserLogic extends React.Component {
           status: -1,
           ip: null,
           studNamespace: object.metadata.namespace,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          studentId: object.spec.studentId
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -395,7 +396,8 @@ export default class UserLogic extends React.Component {
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
           studNamespace: object.metadata.namespace,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          studentId: object.spec.studentId
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -408,7 +410,8 @@ export default class UserLogic extends React.Component {
           status: 0,
           studNamespace: object.metadata.namespace,
           ip: null,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          studentId: object.spec.studentId
         });
       }
       this.setState({
