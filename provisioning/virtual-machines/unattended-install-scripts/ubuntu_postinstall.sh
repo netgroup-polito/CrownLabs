@@ -19,6 +19,7 @@
 # hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
 #
 
+set -x
 
 #
 # Globals.
@@ -182,18 +183,8 @@ if [ "${MY_DEBUG}" = "yes" ]; then
     log_command mount
     log_command_in_target df
     log_command_in_target mount
-    #log_command find /
     MY_EXITCODE=0
 fi
-
-
-#
-# Packages needed for GAs.
-#
-echo "--------------------------------------------------" >> "${MY_LOGFILE}"
-echo '** Installing packages for building kernel modules...' | tee -a "${MY_LOGFILE}"
-log_command_in_target apt-get -y install build-essential
-log_command_in_target apt-get -y install linux-headers-$(uname -r)
 
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
 echo '** Installing openssh-server...' | tee -a "${MY_LOGFILE}"
@@ -203,6 +194,11 @@ log_command_in_target apt-get -y install openssh-server
 # GAs
 #
 @@VBOX_COND_IS_INSTALLING_ADDITIONS@@
+echo "--------------------------------------------------" >> "${MY_LOGFILE}"
+echo '** Installing packages for building kernel modules...' | tee -a "${MY_LOGFILE}"
+log_command_in_target apt-get -y install build-essential
+log_command_in_target apt-get -y install linux-headers-$(uname -r)
+
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
 echo '** Installing VirtualBox Guest Additions...' | tee -a "${MY_LOGFILE}"
 MY_IGNORE_EXITCODE=2  # returned if modules already loaded and reboot required.

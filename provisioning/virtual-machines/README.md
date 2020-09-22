@@ -3,7 +3,7 @@
 ## Create and upload custom VMs to the cluster
 
 The suggested approach to create and upload new VMs in CrownLabs involves the usage of the `setup-crownlabs-vms.sh` script, which takes care of:
-- **Creating** a new VirtualBox VMs and installing the guest OS (`xubuntu`, which represents a good compromise between the necessity to have a friendly, GUI-based guest OS and the resources consumed by the graphical interface);
+- **Creating** a new VirtualBox VMs and installing the guest OS (either `xubuntu`, which represents a good compromise between the necessity to have a friendly, GUI-based guest OS and the resources consumed by the graphical interface, or `ubuntu-server`, if no GUI is required);
 - **Installing** additional software (e.g., application software packages) and the background tools required by CrownLabs with Ansible (e.g., VNC server);
 - **Converting** the resulting virtual HDD to the correct format and upload it to the proper Docker Registry.
 

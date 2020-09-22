@@ -61,7 +61,7 @@ The tools that are required by CrownLabs to work and are automatically installed
 
 1. Customize the basic information at the beginning of the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script (e.g. username and password, address of the docker registry).
 
-2. Execute `./setup-crownlabs-vm.sh <vm-name> create (--no-guest-additions)` to automatically create a new VM, install the Xubuntu OS and (optionally) the Virtualbox Guest Additions.
+2. Execute `./setup-crownlabs-vm.sh <vm-name> create [desktop|server] <ubuntu-version> (--install-guest-additions)` to automatically create a new VM, install the Ubuntu OS and (optionally) the Virtualbox Guest Additions. It is necessary to select a distribution between *Ubuntu Desktop* (i.e. `xubuntu`) and *Ubuntu Server*, as well as specify the Ubuntu version to be installed (e.g. 20.04)
 
    **NOTE-1**: *Guest additions* are useful if you want to use the created VM on Virtuabox, on your desktop computer. Vice versa, these are useless when the VM runs in Crownlabs. Therefore, we suggest to install the guest additions when you want to test your VM on your computer, while omitting this software package when creating the final version of your VM and uploading in CrownLabs.
 

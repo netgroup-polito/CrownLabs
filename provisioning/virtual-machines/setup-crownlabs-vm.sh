@@ -3,21 +3,23 @@
 # This script provides multiple commands to create a new virtual machine using
 # VirtualBox and install the operating system, automatize most of the required
 # configuration (using ansible) and finally export the VM for CrownLabs.
-# You can customize the variables below to change the installed OS distribution
-# and version, the VM name and the login credentials.
 # See the README file for more details.
 
-# Configure the URL of the CrownLabs segistry
-CROWNLABS_REGISTRY="registry.crownlabs.polito.it"
-CROWNLABS_REGISTRY_USERNAME= # Configure to avoid the interactive prompt
-CROWNLABS_REGISTRY_PASSWORD= # Configure to avoid the interactive prompt
-CROWNLABS_REGISTRY_FOLDER="netgroup" # Must contain only lowercase letters, numbers, dashes
-CROWNLABS_REGISTRY_IMAGE_VERSION="$(date '+%Y%m%d')"
+# The following variables refer to the parameters required to push the resulting
+# VM to the CrownLabs registry. They define a default for the different variables,
+# which can be overridden exporting each variable before executing this script.
+# In particular, it is possible to configure the username and password of the
+# registry to avoid the interactive prompt.
+CROWNLABS_REGISTRY=${CROWNLABS_REGISTRY:-"registry.crownlabs.polito.it"} # The URL of the CrownLabs registry
+CROWNLABS_REGISTRY_FOLDER=${CROWNLABS_REGISTRY_FOLDER:-"netgroup"} # Must contain only lowercase letters, numbers, dashes
+CROWNLABS_REGISTRY_IMAGE_VERSION=${CROWNLABS_REGISTRY_IMAGE_VERSION:-"$(date '+%Y%m%d')"} # The image tag
+# Export these variables or uncomment and configure them directly in this script to avoid the interactive prompt
+# CROWNLABS_REGISTRY_USERNAME=
+# CROWNLABS_REGISTRY_PASSWORD=
 
-# Configure the Ubuntu distribution and version
+# Configure the Ubuntu distribution selected for desktop installations
 # Warning: changing the distribution may break the subsequent configuration
-UBUNTU_DISTRO=xubuntu
-UBUNTU_VERSION=20.04
+DESKTOP_UBUNTU_DISTRO=xubuntu
 
 # Configure the credentials of the VM user
 USERNAME=netlab
@@ -105,7 +107,7 @@ echo
 # Print the usage message
 usage() {
     echo "Usage: $0 <vm-name> [create|configure|configure-nic|export|delete|help]"
-    echo "* create (--no-guest-additions): Create the VM and install the OS"
+    echo "* create [desktop|server] <ubuntu-version> (--install-guest-additions): Create the VM and install the OS"
     echo "* configure <ansible-playbook.yml> (--vbox-only): Configures the VM's OS using ansible"
     echo "* configure-nic [nat|bridged]: Configures the NIC in nat or bridged mode"
     echo "* export [ova|crownlabs]: Exports the VM in OVA format, or pushes it to the CrownLabs registry"
@@ -152,36 +154,68 @@ case ${COMMAND} in
 ### Begin Create VM ###
 "create")
 
-GA_FLAG=$3
+UBUNTU_DISTRO=$3
+UBUNTU_VERSION=$4
+GA_FLAG=$5
+
+# Check the correctness of the input parameters
+[[ "${UBUNTU_DISTRO}" =~ ^(desktop|server)$ &&
+   "${UBUNTU_VERSION}" =~ ^[0-9][0-9]\.[0-9][0-9](\.[0-9])?$ &&
+   ( -z ${GA_FLAG} || ${GA_FLAG} != "--install-guest-additions") ]] || {
+    echo "Usage: $0 <vm-name> create [desktop|server] <ubuntu-version> (--install-guest-additions)"
+    exit ${EXIT_FAILURE};
+}
+
 VBOXVERSION=$(${VBOXMANAGE} --version | cut --delimiter '_' --field 1)
 
 DOWNLOAD_PATH="${BASEDIR}/downloads"
 mkdir --parents "${DOWNLOAD_PATH}" || \
     { echo "Failed to create '${DOWNLOAD_PATH}'. Abort"; exit ${EXIT_FAILURE}; }
 
-echo "Downloading the ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
-UBUNTU_IMAGE_URL=https://cdimages.ubuntu.com/${UBUNTU_DISTRO}/releases/${UBUNTU_VERSION}/release/${UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso
-UBUNTU_SHA256SUMS_URL=https://cdimages.ubuntu.com/${UBUNTU_DISTRO}/releases/${UBUNTU_VERSION}/release/SHA256SUMS
-INSTALL_ISO="${DOWNLOAD_PATH}/${UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso"
-INSTALL_ISO_SHA256SUMS="${UBUNTU_DISTRO}-${UBUNTU_VERSION}.SHA256SUMS"
+if [[ "${UBUNTU_DISTRO}" == "desktop" ]]
+then
+    UBUNTU_DISTRO_NAME="${DESKTOP_UBUNTU_DISTRO}"
+    UBUNTU_URL_FOLDER="${DESKTOP_UBUNTU_DISTRO}"
+    UBUNTU_IMAGE_NAME="${DESKTOP_UBUNTU_DISTRO}-${UBUNTU_VERSION}-desktop-amd64.iso"
+else
+    # The legacy term refers to the version of the installer, since the new one appears not to support the preseed configuration
+    UBUNTU_DISTRO_NAME="ubuntu-server"
+    UBUNTU_URL_FOLDER="ubuntu-legacy-server"
+    UBUNTU_IMAGE_NAME="ubuntu-${UBUNTU_VERSION}-legacy-server-amd64.iso"
+fi
 
-curl --continue-at - --progress-bar --output "${INSTALL_ISO}" ${UBUNTU_IMAGE_URL} || \
+echo "Downloading the ${UBUNTU_DISTRO_NAME} (${UBUNTU_VERSION}) image..."
+UBUNTU_IMAGE_URL=https://cdimages.ubuntu.com/${UBUNTU_URL_FOLDER}/releases/${UBUNTU_VERSION}/release/${UBUNTU_IMAGE_NAME}
+UBUNTU_SHA256SUMS_URL=https://cdimages.ubuntu.com/${UBUNTU_URL_FOLDER}/releases/${UBUNTU_VERSION}/release/SHA256SUMS
+INSTALL_ISO="${DOWNLOAD_PATH}/${UBUNTU_IMAGE_NAME}"
+INSTALL_ISO_SHA256SUMS="${UBUNTU_DISTRO_NAME}-${UBUNTU_VERSION}.SHA256SUMS"
+
+# Pre-check whether the URL is valid, since the actual download does not fail in this case (due to the --continue-at flag)
+curl --head --silent --fail --output /dev/null "${UBUNTU_IMAGE_URL}" || {
+        echo "Failed to download the Ubuntu image from '${UBUNTU_IMAGE_URL}'.";
+        echo "Is the ubuntu version correct? Abort";
+        exit ${EXIT_FAILURE};
+}
+
+curl --continue-at - --progress-bar --output "${INSTALL_ISO}" "${UBUNTU_IMAGE_URL}" || \
     { echo "Failed to download the Ubuntu image from '${UBUNTU_IMAGE_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 
-echo "Verifying the checksum of the ${UBUNTU_DISTRO} (${UBUNTU_VERSION}) image..."
-curl --fail --silent --output "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}" ${UBUNTU_SHA256SUMS_URL} || \
+echo "Verifying the checksum of the ${UBUNTU_DISTRO_NAME} (${UBUNTU_VERSION}) image..."
+curl --fail --silent --output "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}" "${UBUNTU_SHA256SUMS_URL}" || \
     { echo "Failed to download the Ubuntu image checksum from '${UBUNTU_SHA256SUMS_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 
 if ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${INSTALL_ISO_SHA256SUMS}"; )
 then
     echo "Checksum verification correctly completed";
+    rm --force "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}"
 else
     echo "Failed to verify the checksum. The downloaded Ubuntu image appears to be corrupted. Abort"
+    rm --force "${DOWNLOAD_PATH}/${INSTALL_ISO_SHA256SUMS}"
     exit ${EXIT_FAILURE};
 fi
 
 # Install guest additions?
-GA_INSTALL=$([[ "--no-guest-additions" == "$GA_FLAG" ]] && echo 0 || echo 1)
+GA_INSTALL=$([[ "--install-guest-additions" == "$GA_FLAG" ]] && echo 1 || echo 0)
 
 if [[ $GA_INSTALL -eq 1 ]]
 then
@@ -193,6 +227,10 @@ then
     GA_ISO="${DOWNLOAD_PATH}/VBoxGuestAdditions_${VBOXVERSION}.iso"
     GA_ISO_SHA256SUMS="VBoxGuestAdditions_${VBOXVERSION}.SHA256SUMS"
 
+    # Pre-check whether the URL is valid, since the actual download does not fail in this case (due to the --continue-at flag)
+    curl --head --silent --fail --output /dev/null "${GA_URL}" || \
+        { echo "Failed to download the Guest Additions image from '${GA_URL}'. Abort"; exit ${EXIT_FAILURE}; }
+
     curl --continue-at - --progress-bar --output "${GA_ISO}" "${GA_URL}" || \
         { echo "Failed to download the Guest Additions image from '${GA_URL}'. Abort"; exit ${EXIT_FAILURE}; }
 
@@ -203,8 +241,10 @@ then
     if ( cd "${DOWNLOAD_PATH}"; sha256sum --strict --ignore-missing --status --check "${GA_ISO_SHA256SUMS}"; )
     then
         echo "Checksum verification correctly completed"
+        rm --force "${DOWNLOAD_PATH}/${GA_ISO_SHA256SUMS}"
     else
         echo "Failed to verify the checksum. The downloaded Guest Additions image appears to be corrupted. Abort";
+        rm --force "${DOWNLOAD_PATH}/${GA_ISO_SHA256SUMS}"
         exit ${EXIT_FAILURE};
     fi
 fi
@@ -288,11 +328,24 @@ exit ${EXIT_SUCCESS}
 ### Begin Configure VM ###
 "configure")
 
+configure_cleanup() {
+    # Remove the port forwarding rule
+    if [[ "$VMNET" == "nat" ]]
+    then
+        "${VBOXMANAGE}" controlvm "${VMNAME}" natpf1 delete "SSH" || \
+            { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
+    fi
+
+    # Remove the inventory file
+    rm --force "${INVENTORY_FILE}"
+}
+
 PLAYBOOK_PATH=$3
 if [[ ! -f "${PLAYBOOK_PATH}" ]]
 then
     echo "Usage: $0 <vm-name> configure <ansible-playbook.yml> (--vbox-only)"
-    exit ${EXIT_SUCCESS};
+    echo "Error: the Ansible playbook '${PLAYBOOK_PATH}' does not exist"
+    exit ${EXIT_FAILURE};
 fi
 
 VBOX_ONLY_FLAG=$4
@@ -319,7 +372,7 @@ then
     exit ${EXIT_FAILURE};
 fi
 
-# Get the mode associated to the network interface in VirtualBox
+# Get the mode associated with the network interface in VirtualBox
 VMNETSTR=$("${VBOXMANAGE}" showvminfo "${VMNAME}" | sed -n 's/NIC 1: *//p' | tr -d '\r')
 if echo "${VMNETSTR}" | grep --ignore-case --quiet nat
 then
@@ -343,6 +396,9 @@ fi
 
 SSHIP=$VMIP
 SSHPORT=22
+
+# Ensure the port forwarding is removed even in case the execution is interrupted
+trap configure_cleanup 0
 
 # Add port forwording to allow SSH access
 if [[ "$VMNET" == "nat" ]]
@@ -372,16 +428,6 @@ EOF
 
 echo "Configuring VM with Ansible playbook '${PLAYBOOK_PATH}' (crownlabs-mode: ${CROWNLABS_MODE})"
 ansible-playbook --inventory "${INVENTORY_FILE}" "${PLAYBOOK_PATH}" "${ANSIBLE_PLAYBOOK_ARGS[@]}"
-
-# Remove the port forwarding rule
-if [[ "$VMNET" == "nat" ]]
-then
-    "${VBOXMANAGE}" controlvm "${VMNAME}" natpf1 delete "SSH" || \
-        { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
-fi
-
-# Remove the inventory file
-rm --force "${INVENTORY_FILE}"
 
 exit ${EXIT_SUCCESS}
 ;;
@@ -505,8 +551,7 @@ exit ${EXIT_SUCCESS}
 # Export the Virtual Machine to the CrownLabs registry
 "crownlabs")
 
-cleanup() {
-
+export_crownlabs_cleanup() {
     echo
     echo "Cleaning up..."
 
@@ -524,7 +569,7 @@ cleanup() {
 }
 
 # Trigger the cleanup function before exiting
-trap cleanup 0
+trap export_crownlabs_cleanup 0
 
 # Check for the additional dependencies required to export the VM to CrownLabs
 echo "Checking additional dependencies..."
@@ -541,11 +586,11 @@ then
 fi
 
 # Check for the readability of the executable containing the Linux kernel (required by virt-sparsify)
-KERNEL_IMAGE=$(find /boot -maxdepth 1 -iname 'vmlinuz-*' | tail -n 1)
+KERNEL_IMAGE=$(find /boot -maxdepth 1 -iname 'vmlinuz-*' | sort | tail -n 1)
 if [[ ! -r "${KERNEL_IMAGE}" ]]
 then
     echo "Unfortunately it seems you strumbled into this Ubuntu \"bug\" [https://bugs.launchpad.net/ubuntu/+source/linux/+bug/759725]"
-    echo "Please run 'sudo dpkg-statoverride --add --update root root 0644 ${KERNEL_IMAGE} and then rerun this script."
+    echo "Please run 'sudo dpkg-statoverride --add --update root root 0644 ${KERNEL_IMAGE}' and then rerun this script."
     exit ${EXIT_FAILURE}
 fi
 
