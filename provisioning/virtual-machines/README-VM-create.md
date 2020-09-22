@@ -29,19 +29,19 @@ newgrp docker
 
 The `setup-crownlabs-vms.sh` script makes use of Ansible Playbooks to install additional software packages in the VM (e.g., applications that you need to run in the guest OS).
 For instance, each course may have its own playbook that installs the software packages required by the students of that course.
-The [ansible](ansible) folder includes some playbooks for courses active at Politecnico di Torino; as an example, the [xubuntu-netlab-playbook](ansible/xubuntu-netlab-playbook.yml) has been defined for a computer network course and installs `Wireshark`, `Docker`, `polycube` and `GNS3`.
+The [ansible/playbooks](ansible/playbooks) folder includes some playbooks for courses active at Politecnico di Torino; as an example, the [ubuntu-netlab playbook](ansible/playbooks/ubuntu-netlab.yml) has been defined for a computer network course and installs `Wireshark`, `Docker`, `polycube` and `GNS3`.
 
-In case you want to install different software, i.e., *add/remove* new tasks, you can simply create a new ansible script, and optionally new ansible roles, as in [xubuntu-netlab-playbook.yml](ansible/xubuntu-netlab-playbook.yml).
+In case you want to install different software, i.e., *add/remove* new tasks, you can simply create a new ansible script, and optionally new ansible roles, as in [ubuntu-netlab.yml](ansible/playbooks/ubuntu-netlab.yml).
 Then, you have to start the `setup-crownlabs-vms.sh` script with the Ansible playbook that contains the instructions to build and customize your VM.
 Given the modularity of Ansible, you can define new playbooks that refer to already existing Ansible tasks, hence leveraging the install procedure defined in other playbooks to (partially) configure your VM as well.
 
-Among the existing tasks, the first one (`xubuntu-pre`) is rather generic and aims at cleaning up the system and removing unnecessary packages, shrinking the size of the VM disk to a smaller size.
-However, in case you want to export the VM in *.ova* format, disk shrinking can take place only by manually executing  the post-install tasks listed in [ansible/xubuntu-post/files/README](ansible/xubuntu-post/files/README).
+Among the existing tasks, the first one (`ubuntu-pre`) is rather generic and aims at cleaning up the system and removing unnecessary packages, shrinking the size of the VM disk to a smaller size.
+However, in case you want to export the VM in *.ova* format, disk shrinking can take place only by manually executing the post-install tasks listed in [ansible/roles/ubuntu-post/files/README](ansible/roles/ubuntu-post/files/README).
 
-All the playbooks available in the [ansible](ansible) folder can be used both to configure a vanilla VM (i.e. to be used directly in VirtualBox and exported in the *.ova* format) or a CrownLabs VM.
+All the playbooks available in the [ansible/playbooks](ansible/playbooks) folder can be used both to configure a vanilla VM (i.e. to be used directly in VirtualBox and exported in the *.ova* format) or a CrownLabs VM.
 In the latter case, they install also all the tools required by CrownLabs to work (e.g., the software required to enable the remote access to the VM through an HTTPS session) through the `crownlabs` role, which should be included in any other playbook. The selection between the two operating modes can be performed through a flag of the `setup-crownlabs-vms.sh` script (more details in the guide below).
 
-Alternatively, you can create a basic VM (i.e. with the `xubuntu-base` playbooks) and proceed with the manual installation of custom software.
+Alternatively, you can create a basic VM (i.e. with the `ubuntu-base` playbooks) and proceed with the manual installation of custom software.
 
 **Warning**: Crownlabs ansible playbooks remove many programs present in a default installation of `xubuntu` and disable different standard services in order to reduce the size of the final VM image and speedup the boot process.
 In particular, they disable the automatic startup of the graphical interface, since the remote desktop is accessed through a dedicated VNC session.
@@ -61,7 +61,7 @@ The tools that are required by CrownLabs to work and are automatically installed
 
 1. Customize the basic information at the beginning of the [setup-crownlabs-vm.sh](setup-crownlabs-vm.sh) script (e.g. username and password, address of the docker registry).
 
-2. Execute `./setup-crownlabs-vm.sh <vm-name> create (--no-guest-additions)` to automatically create a new VM, install the Xubuntu OS and (optionally) the Virtualbox Guest Additions.
+2. Execute `./setup-crownlabs-vm.sh <vm-name> create [desktop|server] <ubuntu-version> (--install-guest-additions)` to automatically create a new VM, install the Ubuntu OS and (optionally) the Virtualbox Guest Additions. You need to choose between *Ubuntu Desktop* (i.e. `xubuntu`) and *Ubuntu Server*, as well as specify the Ubuntu version to be installed (e.g. 20.04). In case you select the _server_ version, by default no desktop environment will be installed.
 
    **NOTE-1**: *Guest additions* are useful if you want to use the created VM on Virtuabox, on your desktop computer. Vice versa, these are useless when the VM runs in Crownlabs. Therefore, we suggest to install the guest additions when you want to test your VM on your computer, while omitting this software package when creating the final version of your VM and uploading in CrownLabs.
 
@@ -75,7 +75,7 @@ For more detailed instructions about creating and customizing Ansible playbook, 
 
    **NOTE**: if the command is executed with no additional parameters, the scripts assumes that the VM is going to be used in CrownLabs and proceeds with the installation of the tools required for its operations. The `--vbox-only` flag tells the script to opt out this configuration and prepares vanilla VMs meant to be used directly in VirtualBox, as well as exported in the *.ova* format.
 
-4. In some cases, some manual configuration steps are required (e.g., in case the VM is going to be prepared to be executed locally on Virtualbox). In this case, log-in the VM and complete the remaining manual tasks as explained in the [README](ansible/xubuntu-post/files/README) file that is copied to the Desktop.
+4. In some cases, some manual configuration steps are required (e.g., in case the VM is going to be prepared to be executed locally on Virtualbox). In this case, log-in the VM and complete the remaining manual tasks as explained in the [README](ansible/roles/ubuntu-post/files/README) file that is copied to the Desktop.
 
 5. Shutdown the VM and issue `./setup-crownlabs-vm.sh <vm-name> export [ova|crownlabs]` to export the VM to an `.ova` file or make it available in your *CrownLabs* cluster. In case you export the VM to Crownlabs, the script will upload the (shrinked) VM image on the Docker registry used in your Crownlabs cluster.
 This requires the administrative username/password of your Docker registry (the script will ask for this information interactively) and it may take some time to upload the image, particulatly in case your local machine does not have a fast connection to the Internet.

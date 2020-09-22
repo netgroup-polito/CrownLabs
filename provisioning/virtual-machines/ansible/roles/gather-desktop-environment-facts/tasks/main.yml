@@ -1,0 +1,23 @@
+---
+# tasks file for gather-desktop-environment-facts
+
+- name: Check whether a Desktop Environment is installed
+  shell: command -v startx || true
+  register: startx_presence_check
+  changed_when: False
+
+- name: Check whether XFCE is installed
+  shell: command -v startxfce4 || true
+  register: xfce_presence_check
+  changed_when: False
+
+- name: Set facts
+  set_fact:
+    desktop_environment_detected: "{{ startx_presence_check.stdout != '' }}"
+    xfce_detected: "{{ xfce_presence_check.stdout != '' }}"
+
+- name: Report whether a Desktop Environment has been detected
+  debug:
+    msg:
+    - "Desktop Environment detected: {{ desktop_environment_detected }}"
+    - "XFCE detected: {{ xfce_detected }}"
