@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -10,6 +10,9 @@ import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import DeleteIcon from '@material-ui/icons/Delete';
+import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
+import OrderSelector from './OrderSelector';
+import TextSelector from './TextSelector';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
@@ -38,8 +41,21 @@ const useStyles = makeStyles(theme => ({
   ul: {
     backgroundColor: 'inherit',
     padding: 0
+  },
+  titlebar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '30px'
+  },
+  titleActions: {
+    display: 'flex',
+    justifyContent: 'end',
+    alignItems: 'center'
   }
 }));
+
+const selectors = [{ text: 'Name', icon: <SortByAlphaIcon />, value: 'az' }];
 
 /**
  * Function to draw a list of available lab templates
@@ -49,16 +65,31 @@ const useStyles = makeStyles(theme => ({
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { labs, start, isAdmin, deleteLabTemplate, selectTemplate } = props;
-
+  const { labs, start, isAdmin, deleteLabTemplate } = props;
   const courseNames = Array.from(labs.keys());
   const labList = courseNames.reduce(
     (acc, courseName) => [
       ...acc,
-      ...labs.get(courseName).map(labName => ({ labName, courseName }))
+      ...labs.get(courseName).map(({ labName, description }) => ({
+        labName,
+        courseName,
+        description
+      }))
     ],
     []
   );
+  const title = 'Available Laboratories';
+  const [textMatch, setTextMatch] = useState('');
+  const [orderData, setOrderData] = useState(() => {
+    const prevOrderData = JSON.parse(
+      localStorage.getItem(`orderData-${title}`)
+    );
+    return prevOrderData || { isDirUp: true, order: 'az' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`orderData-${title}`, JSON.stringify(orderData));
+  }, [orderData]);
 
   return (
     <Paper elevation={6} className={classes.paper}>
@@ -70,65 +101,93 @@ export default function LabTemplatesList(props) {
         <List
           className={classes.list}
           subheader={
-            <ListSubheader style={{ fontSize: '30px' }}>
-              Available Laboratories
+            <ListSubheader className={classes.titlebar}>
+              {title}
+              <div className={classes.titleActions}>
+                <TextSelector value={textMatch} setValue={setTextMatch} />
+                <OrderSelector
+                  selectors={selectors}
+                  setOrderData={setOrderData}
+                  orderData={orderData}
+                />
+              </div>
             </ListSubheader>
           }
         >
-          {labList.map(({ labName, courseName }, i) => (
-            <ListItem
-              key={labName}
-              button
-              selected={selectedIndex === i}
-              disableRipple={isAdmin}
-              onClick={() => {
-                setSelectedIndex(i);
-                selectTemplate(labName, courseName);
-              }}
-            >
-              <Tooltip title="Select it">
-                <ListItemText
-                  inset
-                  primary={
-                    labName.charAt(0).toUpperCase() +
-                    labName.slice(1).replace(/-/g, ' ')
-                  }
-                />
-              </Tooltip>
-              {selectedIndex === i && deleteLabTemplate ? (
-                <Tooltip title="Delete template">
-                  <IconButton
-                    style={{ color: 'red' }}
-                    button="true"
-                    onClick={e => {
-                      deleteLabTemplate();
-                      setSelectedIndex(-1);
-                      e.stopPropagation(); // avoid triggering onClick on ListItem
-                    }}
-                  >
-                    <DeleteIcon fontSize="large" />
-                  </IconButton>
+          {labList
+            .filter(({ labName, description }) => {
+              if (textMatch !== '') {
+                const textMatchLower = textMatch.toLowerCase();
+                return (
+                  labName.toLowerCase().includes(textMatchLower) ||
+                  (description &&
+                    description.toLowerCase().includes(textMatchLower))
+                );
+              }
+              return true;
+            })
+            .sort((a, b) => {
+              const { isDirUp } = orderData;
+              const sortResult =
+                a.description && b.description
+                  ? a.description.localeCompare(b.description)
+                  : a.labName.localeCompare(b.labName);
+              return isDirUp ? sortResult : -sortResult;
+            })
+            .map(({ labName, courseName, description }, i) => (
+              <ListItem
+                key={labName}
+                button
+                selected={selectedIndex === i}
+                disableRipple={isAdmin}
+                onClick={() => {
+                  setSelectedIndex(i);
+                }}
+              >
+                <Tooltip title="Select it">
+                  <ListItemText
+                    inset
+                    primary={
+                      description ||
+                      labName.charAt(0).toUpperCase() +
+                        labName.slice(1).replace(/-/g, ' ')
+                    }
+                  />
                 </Tooltip>
-              ) : null}
-              {selectedIndex === i && start ? (
-                <Tooltip title="Create VM">
-                  <IconButton
-                    key={labName}
-                    variant="dark"
-                    style={{ color: 'green' }}
-                    button="true"
-                    onClick={e => {
-                      start();
-                      setSelectedIndex(-1);
-                      e.stopPropagation(); // avoid triggering onClick of ListIstem
-                    }}
-                  >
-                    <PlayCircleOutlineIcon fontSize="large" />
-                  </IconButton>
-                </Tooltip>
-              ) : null}
-            </ListItem>
-          ))}
+                {selectedIndex === i && deleteLabTemplate ? (
+                  <Tooltip title="Delete template">
+                    <IconButton
+                      style={{ color: 'red' }}
+                      button="true"
+                      onClick={e => {
+                        deleteLabTemplate(labName, courseName);
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick on ListItem
+                      }}
+                    >
+                      <DeleteIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+                {selectedIndex === i && start ? (
+                  <Tooltip title="Create VM">
+                    <IconButton
+                      key={labName}
+                      variant="dark"
+                      style={{ color: 'green' }}
+                      button="true"
+                      onClick={e => {
+                        start(labName, courseName);
+                        setSelectedIndex(-1);
+                        e.stopPropagation(); // avoid triggering onClick of ListIstem
+                      }}
+                    >
+                      <PlayCircleOutlineIcon fontSize="large" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
+              </ListItem>
+            ))}
         </List>
       </ClickAwayListener>
     </Paper>

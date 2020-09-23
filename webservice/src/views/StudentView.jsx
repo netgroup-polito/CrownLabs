@@ -18,10 +18,8 @@ export default function StudentView(props) {
   const classes = useStyles();
   const {
     templateLabs,
-    selectTemplate,
     start,
     instanceLabs,
-    selectInstance,
     connect,
     stop,
     showStatus
@@ -29,17 +27,13 @@ export default function StudentView(props) {
 
   return (
     <div className={classes.labPapers}>
-      <LabTemplatesList
-        labs={templateLabs}
-        selectTemplate={selectTemplate}
-        start={start}
-      />
+      <LabTemplatesList labs={templateLabs} start={start} />
       <LabInstancesList
         runningLabs={instanceLabs}
-        selectInstance={selectInstance}
         connect={connect}
         stop={stop}
         showStatus={showStatus}
+        isStudentView
       />
     </div>
   );

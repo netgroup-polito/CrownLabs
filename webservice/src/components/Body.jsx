@@ -40,19 +40,15 @@ export default function Body(props) {
     }
   };
   const {
-    adminHidden,
+    isStudentView,
     registryName,
     retriveImageList,
     adminGroups,
     templateLabsAdmin,
     instanceLabsAdmin,
-    events,
-    selectTemplate,
-    selectInstance,
     connectAdmin,
     showStatus,
-    hidden,
-    funcNewTemplate,
+    createNewTemplate,
     start,
     stopAdmin,
     deleteLabTemplate,
@@ -71,36 +67,28 @@ export default function Body(props) {
           overflow: 'auto'
         }}
       >
-        {!adminHidden ? (
+        {isStudentView ? (
+          <StudentView
+            templateLabs={templateLabs}
+            instanceLabs={instanceLabs}
+            start={start}
+            connect={connect}
+            stop={stop}
+            showStatus={showStatus}
+          />
+        ) : (
           <ProfessorView
             registryName={registryName}
             imageList={retriveImageList}
             adminGroups={adminGroups}
             templateLabs={templateLabsAdmin}
             instanceLabs={instanceLabsAdmin}
-            events={events}
-            selectTemplate={selectTemplate}
-            selectInstance={selectInstance}
             connect={connectAdmin}
             showStatus={showStatus}
-            hidden={hidden}
-            funcNewTemplate={funcNewTemplate}
+            createNewTemplate={createNewTemplate}
             start={start}
             stop={stopAdmin}
             deleteLabTemplate={deleteLabTemplate}
-          />
-        ) : (
-          <StudentView
-            templateLabs={templateLabs}
-            instanceLabs={instanceLabs}
-            selectTemplate={selectTemplate}
-            selectInstance={selectInstance}
-            start={start}
-            connect={connect}
-            stop={stop}
-            events={events}
-            showStatus={showStatus}
-            hidden={hidden}
           />
         )}
       </div>

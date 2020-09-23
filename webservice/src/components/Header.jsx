@@ -41,7 +41,7 @@ export default function Header(props) {
   const {
     renderAdminBtn,
     switchAdminView,
-    adminHidden,
+    isStudentView,
     logged,
     name,
     logout
@@ -85,7 +85,7 @@ export default function Header(props) {
           {renderAdminBtn ? (
             <Tooltip title="Switch professor/student view">
               <IconButton onClick={switchAdminView}>
-                {adminHidden ? (
+                {isStudentView ? (
                   <ProfIcon style={{ color: iconColor }} />
                 ) : (
                   <HomeIcon style={{ color: iconColor }} />

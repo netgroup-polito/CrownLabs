@@ -60,7 +60,7 @@ export default class ApiManager {
       )
       .then(nodesResponse => {
         return nodesResponse.body.items.map(x => {
-          return x.metadata.name;
+          return { name: x.metadata.name, description: x.spec.description };
         });
       })
       .catch(error => {
@@ -80,20 +80,6 @@ export default class ApiManager {
   async getCRDtemplates() {
     return Promise.all(
       this.templateNamespace.map(async x => this.retrieveSingleCRDtemplate(x))
-    );
-  }
-
-  /**
-   * Function to retrieve all lab instances in your namespace
-   *
-   * @returns the promise handling the request
-   */
-  getCRDinstances() {
-    return this.apiCRD.listNamespacedCustomObject(
-      this.instanceGroup,
-      this.version,
-      this.instanceNamespace,
-      this.instancePlural
     );
   }
 
