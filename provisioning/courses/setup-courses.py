@@ -399,6 +399,7 @@ class Laboratory:
         self.memory = record['Memory']
         self.description = record['Description']
         self.namespace = Course.get_namespace_name(self.course_code)
+        self.vm_type = 'GUI' if record.get('Needs GUI', True) else 'CLI'
 
         sys.stdout.write("Processing laboratory {} - course {}\n"
                          .format(self.number, self.course_code))
@@ -410,7 +411,7 @@ class Laboratory:
 
         k8s_templates["labtemplate"].apply_template(
             namespace_name=self.namespace, course_code=self.course_code, lab_number=self.number,
-            description=self.description, image=self.image,
+            description=self.description, image=self.image, vm_type=self.vm_type,
             cpu=self.cpu, memory=self.memory)
 
 

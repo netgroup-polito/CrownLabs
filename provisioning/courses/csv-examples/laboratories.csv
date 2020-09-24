@@ -1,3 +1,3 @@
-Course (code),Lab number,Image,Cpu,Memory,Description
-swnet,1,registry.internal.crownlabs.polito.it/repo/image1:v1.1,2,4.5,The first laboratory
-swnet,2,registry.internal.crownlabs.polito.it/repo/image2:v0.1,5,8,The second laboratory
+Course (code),Lab number,Image,Cpu,Memory,Needs GUI,Description
+swnet,1,registry.internal.crownlabs.polito.it/repo/image1:v1.1,2,4.5,True,The first laboratory
+swnet,2,registry.internal.crownlabs.polito.it/repo/image2:v0.1,5,8,False,The second laboratory
