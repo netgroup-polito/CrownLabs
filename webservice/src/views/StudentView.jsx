@@ -16,15 +16,7 @@ const useStyles = makeStyles(() => ({
 
 export default function StudentView(props) {
   const classes = useStyles();
-  const {
-    templateLabs,
-    start,
-    instanceLabs,
-    connect,
-    stop,
-    showStatus
-  } = props;
-
+  const { templateLabs, start, instanceLabs, connect, stop } = props;
   return (
     <div className={classes.labPapers}>
       <LabTemplatesList labs={templateLabs} start={start} />
@@ -32,7 +24,6 @@ export default function StudentView(props) {
         runningLabs={instanceLabs}
         connect={connect}
         stop={stop}
-        showStatus={showStatus}
         isStudentView
       />
     </div>

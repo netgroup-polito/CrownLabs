@@ -1,11 +1,9 @@
 import React from 'react';
 import Toastr from 'toastr';
-import Footer from './components/Footer';
-import Header from './components/Header';
 import ApiManager from './services/ApiManager';
 import 'toastr/build/toastr.min.css';
-import Body from './components/Body';
 import { parseJWTtoken, checkToken } from './helpers';
+import Main from './components/Main';
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
@@ -32,6 +30,8 @@ export default class UserLogic extends React.Component {
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
+    this.changeAdminView = this.changeAdminView.bind(this);
+
     const parsedToken = parseJWTtoken(idToken);
     this.theme = false;
     if (!checkToken(parsedToken)) {
@@ -51,6 +51,8 @@ export default class UserLogic extends React.Component {
       userGroups,
       parsedToken.namespace[0]
     );
+    let prevIsStudentView = JSON.parse(localStorage.getItem('isStudentView'));
+    if (prevIsStudentView === null) prevIsStudentView = true;
     this.state = {
       name: parsedToken.name,
       registryName: '',
@@ -60,7 +62,7 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      isStudentView: true,
+      isStudentView: prevIsStudentView,
       descriptions: {}
     };
     this.retriveImageList();
@@ -478,6 +480,13 @@ export default class UserLogic extends React.Component {
    * It automatically updates every new change in the state variable
    * @returns the component to be drawn
    */
+
+  changeAdminView() {
+    const { isStudentView } = this.state;
+    localStorage.setItem('isStudentView', JSON.stringify(!isStudentView));
+    this.setState({ isStudentView: !isStudentView });
+  }
+
   render() {
     const { logout } = this.props;
     const {
@@ -492,36 +501,31 @@ export default class UserLogic extends React.Component {
       instanceLabs
     } = this.state;
     return (
-      <div id="body" style={{ height: '100%', background: '#fafafa' }}>
-        <Header
-          logged
-          logout={logout}
-          name={name}
-          isStudentView={isStudentView}
-          renderAdminBtn={adminGroups.length > 0}
-          switchAdminView={() => {
-            this.setState({ isStudentView: !isStudentView });
-          }}
-        />
-        <Body
-          registryName={registryName}
-          retriveImageList={imageList}
-          adminGroups={adminGroups}
-          templateLabsAdmin={templateLabsAdmin}
-          instanceLabsAdmin={instanceLabsAdmin}
-          templateLabs={templateLabs}
-          createNewTemplate={this.createCRDtemplate}
-          instanceLabs={instanceLabs}
-          start={this.startCRDinstance}
-          deleteLabTemplate={this.deleteCRDtemplate}
-          connect={this.connect}
-          connectAdmin={this.connectAdmin}
-          stop={this.stopCRDinstance}
-          stopAdmin={this.stopCRDinstanceAdmin}
-          isStudentView={isStudentView}
-        />
-        <Footer />
-      </div>
+      <Main
+        name={name}
+        logout={logout}
+        registryName={registryName}
+        imageList={imageList}
+        adminGroups={adminGroups}
+        templateLabsAdmin={templateLabsAdmin}
+        instanceLabsAdmin={instanceLabsAdmin}
+        templateLabs={templateLabs}
+        createTemplate={this.createCRDtemplate}
+        instanceLabs={instanceLabs}
+        start={this.startCRDinstance}
+        deleteLabTemplate={this.deleteCRDtemplate}
+        connect={this.connect}
+        connectAdmin={this.connectAdmin}
+        stop={this.stopCRDinstance}
+        stopAdmin={this.stopCRDinstanceAdmin}
+        isStudentView={isStudentView}
+        changeAdminView={this.changeAdminView}
+        createCRDtemplate={this.createCRDtemplate}
+        startCRDinstance={this.startCRDinstance}
+        deleteCRDtemplate={this.deleteCRDtemplate}
+        stopCRDinstance={this.stopCRDinstance}
+        stopCRDinstanceAdmin={this.stopCRDinstanceAdmin}
+      />
     );
   }
 }

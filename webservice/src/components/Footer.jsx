@@ -1,24 +1,23 @@
 import React from 'react';
+import makeStyles from '@material-ui/core/styles/makeStyles';
 import GitHubButton from 'react-github-btn';
 
-/**
- * Function to draw the document footer
- * @return the object to be drawn
- */
+const useStyles = makeStyles(theme => ({
+  footer: {
+    height: '70px',
+    backgroundColor: theme.palette.primary.main,
+    fontSize: '1.2rem',
+    color: theme.palette.getContrastText(theme.palette.primary.main),
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }
+}));
+
 export default function Footer() {
+  const classes = useStyles();
   return (
-    <div
-      id="footer"
-      style={{
-        height: '70px',
-        background: '#032364',
-        fontSize: '1.2rem',
-        color: 'white',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-    >
+    <div className={classes.footer}>
       <p>
         This software has been proudly developed at Politecnico di Torino
         &nbsp;&nbsp;&nbsp;

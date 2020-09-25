@@ -25,6 +25,7 @@ export default function TextSelector(props) {
     <div className={classes.root}>
       <TextField
         label="Filters"
+        color="secondary"
         value={value}
         className={classes.textField}
         onChange={e => {
