@@ -2,14 +2,16 @@
 # tasks file for gather-desktop-environment-facts
 
 - name: Check whether a Desktop Environment is installed
-  shell: command -v startx || true
+  shell: command -v startx
   register: startx_presence_check
   changed_when: False
+  failed_when: False
 
 - name: Check whether XFCE is installed
-  shell: command -v startxfce4 || true
+  shell: command -v startxfce4
   register: xfce_presence_check
   changed_when: False
+  failed_when: False
 
 - name: Set facts
   set_fact:

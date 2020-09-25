@@ -32,10 +32,10 @@ spec:
           guest: "{{ memory }}G"
         resources:
           limits:
-            cpu: "{{ cpu + 1 }}"
+            cpu: "{{ cpu + 0.5 }}"
             memory: "{{ memory + 0.5 }}G"
           requests:
-            cpu: "{{ cpu + 0.5 }}"
+            cpu: "{{ cpu * 0.5 }}"
             memory: "{{ memory }}G"
       terminationGracePeriodSeconds: 30
       volumes:
@@ -47,3 +47,4 @@ spec:
           secretRef:
             name: {{ course_code }}-lab{{ lab_name }}
         name: cloudinitdisk
+  vmType: {{ vm_type }}
