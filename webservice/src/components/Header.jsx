@@ -86,7 +86,7 @@ export default function Header(props) {
                 setIsLightTheme(!isLightTheme);
               }}
             >
-              {isLightTheme ? <Light /> : <Dark />}
+              {isLightTheme ? <Dark /> : <Light />}
             </IconButton>
           </Tooltip>
           <Tooltip title="Logout">

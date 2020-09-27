@@ -9,10 +9,10 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogActions from '@material-ui/core/DialogActions';
 import DeleteIcon from '@material-ui/icons/Cancel';
-import TemplateForm from '../components/NewTemplateForm';
+import TemplateForm from './NewTemplateForm';
 import { labPapersStyle } from './StudentView';
-import LabInstancesList from '../components/LabInstancesList';
-import LabTemplatesList from '../components/LabTemplatesList';
+import LabInstancesList from './LabInstancesList';
+import LabTemplatesList from './LabTemplatesList';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;

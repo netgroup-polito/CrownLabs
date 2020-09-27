@@ -1,6 +1,6 @@
 import React from 'react';
-import ProfessorView from '../views/ProfessorView';
-import StudentView from '../views/StudentView';
+import ProfessorView from './ProfessorView';
+import StudentView from './StudentView';
 
 export default function Body(props) {
   const {

@@ -1,9 +1,9 @@
 import React from 'react';
 import Toastr from 'toastr';
-import ApiManager from './services/ApiManager';
+import ApiManager from '../services/ApiManager';
 import 'toastr/build/toastr.min.css';
-import { parseJWTtoken, checkToken } from './helpers';
-import Main from './components/Main';
+import { parseJWTtoken, checkToken } from '../helpers';
+import Main from './Main';
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
@@ -446,9 +446,11 @@ export default class UserLogic extends React.Component {
         msg += 'The resource is already present';
         break;
       default:
-        // next eslint-disable is because the k8s_library uses the dash in their implementation
-        // eslint-disable-next-line no-underscore-dangle
-        msg += `An error occurred(${error.response._fetchResponse.status}), please login again`;
+        msg += `An error occurred(${
+          // next eslint-disable is because the k8s_library uses the dash in their implementation
+          // eslint-disable-next-line no-underscore-dangle
+          error && error.response._fetchResponse.status
+        }), please login again`;
         this.logoutInterval();
     }
     Toastr.error(msg);

@@ -5,7 +5,7 @@ import {
   Route,
   Switch
 } from 'react-router-dom';
-import UserLogic from './UserLogic';
+import UserLogic from './components/UserLogic';
 import './App.css';
 import Authenticator from './services/Authenticator';
 import CallBackHandler from './components/CallBackHandler';

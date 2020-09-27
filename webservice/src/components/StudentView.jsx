@@ -1,7 +1,7 @@
 import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
-import LabTemplatesList from '../components/LabTemplatesList';
-import LabInstancesList from '../components/LabInstancesList';
+import LabTemplatesList from './LabTemplatesList';
+import LabInstancesList from './LabInstancesList';
 
 export const labPapersStyle = {
   display: 'flex',
