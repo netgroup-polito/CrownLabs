@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import FolderSharedIcon from '@material-ui/icons/FolderShared';
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import AppBar from '@material-ui/core/AppBar';
@@ -19,42 +19,37 @@ import * as CrownLogo from '../assets/crown.png';
  */
 
 const useStyles = makeStyles(theme => ({
-  root: {
+  header: {
     flexGrow: 1
   },
   menuButton: {
     marginRight: theme.spacing(2)
   },
   title: {
-    fontWeight: 'bold',
-    fontSize: '24px',
-    color: 'white',
-    marginTop: '10px',
+    fontWeight: 600,
+    fontSize: '1.5rem',
     flexGrow: 1
   }
 }));
 
 export default function Header(props) {
   const classes = useStyles();
-  const [theme] = useState('light');
-  const iconColor = '#FFFFFF';
   const {
-    renderAdminBtn,
     switchAdminView,
     isStudentView,
-    logged,
     name,
-    logout
+    logout,
+    setIsLightTheme,
+    isLightTheme
   } = props;
-
   return (
-    <div className={classes.root}>
-      <AppBar id="toolbar" position="static" style={{ background: '#032364' }}>
+    <div className={classes.header}>
+      <AppBar position="static" color="primary">
         <Toolbar>
           <img
             src={CrownLogo}
             style={{ marginRight: '20px', height: '40px' }}
-            alt=""
+            alt="Crownlabs"
           />
           <Typography variant="h6" className={classes.title}>
             Crownlabs
@@ -62,57 +57,43 @@ export default function Header(props) {
           <Typography
             style={{
               textAlign: 'right',
-              color: '#FFFFFF',
               marginRight: '20px',
               fontStyle: 'italic'
             }}
           >
-            {logged && name ? ` Welcome back, ${name}!` : ''}
+            {name && ` Welcome back ${name.substring(0, name.indexOf(' '))}!`}
           </Typography>
-          {logged ? (
-            <a
-              href="https://crownlabs.polito.it/cloud"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Tooltip title="MyDrive">
-                <IconButton aria-label="MyDrive">
-                  <FolderSharedIcon style={{ color: iconColor }} />
-                </IconButton>
-              </Tooltip>
-            </a>
-          ) : null}
-          {renderAdminBtn ? (
-            <Tooltip title="Switch professor/student view">
-              <IconButton onClick={switchAdminView}>
-                {isStudentView ? (
-                  <ProfIcon style={{ color: iconColor }} />
-                ) : (
-                  <HomeIcon style={{ color: iconColor }} />
-                )}
+          <a
+            href="https://crownlabs.polito.it/cloud"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Tooltip title="MyDrive">
+              <IconButton color="secondary">
+                <FolderSharedIcon />
               </IconButton>
             </Tooltip>
-          ) : null}
-          <Tooltip title="Toggle light/dark theme">
-            <IconButton
-              onClick={() => {
-                document.getElementById('themeSwitch').click();
-              }}
-            >
-              {theme !== 'light' ? (
-                <Light style={{ color: iconColor }} t />
-              ) : (
-                <Dark style={{ color: iconColor }} />
-              )}
+          </a>
+          <Tooltip title="Switch professor/student view">
+            <IconButton onClick={switchAdminView} color="secondary">
+              {isStudentView ? <ProfIcon /> : <HomeIcon />}
             </IconButton>
           </Tooltip>
-          {logged && (
-            <Tooltip title="Logout">
-              <IconButton onClick={logout}>
-                <LogoutIcon style={{ color: iconColor }} />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Tooltip title="Toggle light/dark theme">
+            <IconButton
+              color="secondary"
+              onClick={() => {
+                setIsLightTheme(!isLightTheme);
+              }}
+            >
+              {isLightTheme ? <Dark /> : <Light />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Logout">
+            <IconButton onClick={logout} color="secondary">
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
     </div>

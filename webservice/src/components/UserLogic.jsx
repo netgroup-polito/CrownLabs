@@ -1,11 +1,9 @@
 import React from 'react';
 import Toastr from 'toastr';
-import Footer from './components/Footer';
-import Header from './components/Header';
-import ApiManager from './services/ApiManager';
+import ApiManager from '../services/ApiManager';
 import 'toastr/build/toastr.min.css';
-import Body from './components/Body';
-import { parseJWTtoken, checkToken } from './helpers';
+import { parseJWTtoken, checkToken } from '../helpers';
+import Main from './Main';
 /**
  * Main window class, by now rendering only the unprivileged user view
  */
@@ -23,7 +21,7 @@ export default class UserLogic extends React.Component {
     super(props);
     const { idToken, tokenType } = props;
     this.connect = this.connect.bind(this);
-    this.retriveImageList = this.retriveImageList.bind(this);
+    this.retrieveImageList = this.retrieveImageList.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
     this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
@@ -32,6 +30,8 @@ export default class UserLogic extends React.Component {
     this.notifyEvent = this.notifyEvent.bind(this);
     this.connectAdmin = this.connectAdmin.bind(this);
     this.notifyEventAdmin = this.notifyEventAdmin.bind(this);
+    this.changeAdminView = this.changeAdminView.bind(this);
+
     const parsedToken = parseJWTtoken(idToken);
     this.theme = false;
     if (!checkToken(parsedToken)) {
@@ -51,6 +51,8 @@ export default class UserLogic extends React.Component {
       userGroups,
       parsedToken.namespace[0]
     );
+    let prevIsStudentView = JSON.parse(localStorage.getItem('isStudentView'));
+    if (prevIsStudentView === null) prevIsStudentView = true;
     this.state = {
       name: parsedToken.name,
       registryName: '',
@@ -60,10 +62,10 @@ export default class UserLogic extends React.Component {
       templateLabsAdmin: new Map(),
       instanceLabsAdmin: new Map(),
       adminGroups,
-      isStudentView: true,
+      isStudentView: prevIsStudentView,
       descriptions: {}
     };
-    this.retriveImageList();
+    this.retrieveImageList();
     this.retrieveCRDtemplates().then(() => {
       /* Start watching for namespaced events */
       this.apiManager.startWatching(this.notifyEvent);
@@ -444,9 +446,11 @@ export default class UserLogic extends React.Component {
         msg += 'The resource is already present';
         break;
       default:
-        // next eslint-disable is because the k8s_library uses the dash in their implementation
-        // eslint-disable-next-line no-underscore-dangle
-        msg += `An error occurred(${error.response._fetchResponse.status}), please login again`;
+        msg += `An error occurred(${
+          // next eslint-disable is because the k8s_library uses the dash in their implementation
+          // eslint-disable-next-line no-underscore-dangle
+          error && error.response._fetchResponse.status
+        }), please login again`;
         this.logoutInterval();
     }
     Toastr.error(msg);
@@ -455,7 +459,7 @@ export default class UserLogic extends React.Component {
   /**
    * Private function to retrieve all CRD instances running
    */
-  retriveImageList() {
+  retrieveImageList() {
     const { imageList } = this.state;
     this.apiManager
       .retrieveImageList()
@@ -478,6 +482,13 @@ export default class UserLogic extends React.Component {
    * It automatically updates every new change in the state variable
    * @returns the component to be drawn
    */
+
+  changeAdminView() {
+    const { isStudentView } = this.state;
+    localStorage.setItem('isStudentView', JSON.stringify(!isStudentView));
+    this.setState({ isStudentView: !isStudentView });
+  }
+
   render() {
     const { logout } = this.props;
     const {
@@ -492,36 +503,31 @@ export default class UserLogic extends React.Component {
       instanceLabs
     } = this.state;
     return (
-      <div id="body" style={{ height: '100%', background: '#fafafa' }}>
-        <Header
-          logged
-          logout={logout}
-          name={name}
-          isStudentView={isStudentView}
-          renderAdminBtn={adminGroups.length > 0}
-          switchAdminView={() => {
-            this.setState({ isStudentView: !isStudentView });
-          }}
-        />
-        <Body
-          registryName={registryName}
-          retriveImageList={imageList}
-          adminGroups={adminGroups}
-          templateLabsAdmin={templateLabsAdmin}
-          instanceLabsAdmin={instanceLabsAdmin}
-          templateLabs={templateLabs}
-          createNewTemplate={this.createCRDtemplate}
-          instanceLabs={instanceLabs}
-          start={this.startCRDinstance}
-          deleteLabTemplate={this.deleteCRDtemplate}
-          connect={this.connect}
-          connectAdmin={this.connectAdmin}
-          stop={this.stopCRDinstance}
-          stopAdmin={this.stopCRDinstanceAdmin}
-          isStudentView={isStudentView}
-        />
-        <Footer />
-      </div>
+      <Main
+        name={name}
+        logout={logout}
+        registryName={registryName}
+        imageList={imageList}
+        adminGroups={adminGroups}
+        templateLabsAdmin={templateLabsAdmin}
+        instanceLabsAdmin={instanceLabsAdmin}
+        templateLabs={templateLabs}
+        createTemplate={this.createCRDtemplate}
+        instanceLabs={instanceLabs}
+        start={this.startCRDinstance}
+        deleteLabTemplate={this.deleteCRDtemplate}
+        connect={this.connect}
+        connectAdmin={this.connectAdmin}
+        stop={this.stopCRDinstance}
+        stopAdmin={this.stopCRDinstanceAdmin}
+        isStudentView={isStudentView}
+        changeAdminView={this.changeAdminView}
+        createCRDtemplate={this.createCRDtemplate}
+        startCRDinstance={this.startCRDinstance}
+        deleteCRDtemplate={this.deleteCRDtemplate}
+        stopCRDinstance={this.stopCRDinstance}
+        stopCRDinstanceAdmin={this.stopCRDinstanceAdmin}
+      />
     );
   }
 }

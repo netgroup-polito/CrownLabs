@@ -1,12 +1,11 @@
 import React from 'react';
-import CssBaseline from '@material-ui/core/CssBaseline';
 import {
   BrowserRouter as Router,
   Redirect,
   Route,
   Switch
 } from 'react-router-dom';
-import UserLogic from './UserLogic';
+import UserLogic from './components/UserLogic';
 import './App.css';
 import Authenticator from './services/Authenticator';
 import CallBackHandler from './components/CallBackHandler';
@@ -57,50 +56,47 @@ export default class App extends React.Component {
 
   render() {
     return (
-      <>
-        <CssBaseline />
-        <Router>
-          <Switch>
-            <Route
-              exact
-              path="/login"
-              render={() => {
-                this.authManager.login();
-              }}
-            />
-            <Route
-              path="/userview"
-              render={() => {
-                const { logged, idToken, tokenType } = this.state;
-                return logged ? (
-                  <UserLogic
-                    key={this.childKey}
-                    idToken={idToken}
-                    tokenType={tokenType}
-                    logout={this.authManager.logout}
-                  />
-                ) : (
-                  <Redirect to="/login" />
-                );
-              }}
-            />
-            <Route
-              path="/callback"
-              render={() => {
-                const { logged } = this.state;
-                return logged ? (
-                  <Redirect to="/userview" />
-                ) : (
-                  <CallBackHandler func={this.authManager.completeLogin} />
-                );
-              }}
-            />
-            <Route path="*">
-              <Redirect to="/login" />
-            </Route>
-          </Switch>
-        </Router>
-      </>
+      <Router>
+        <Switch>
+          <Route
+            exact
+            path="/login"
+            render={() => {
+              this.authManager.login();
+            }}
+          />
+          <Route
+            path="/userview"
+            render={() => {
+              const { logged, idToken, tokenType } = this.state;
+              return logged ? (
+                <UserLogic
+                  key={this.childKey}
+                  idToken={idToken}
+                  tokenType={tokenType}
+                  logout={this.authManager.logout}
+                />
+              ) : (
+                <Redirect to="/login" />
+              );
+            }}
+          />
+          <Route
+            path="/callback"
+            render={() => {
+              const { logged } = this.state;
+              return logged ? (
+                <Redirect to="/userview" />
+              ) : (
+                <CallBackHandler func={this.authManager.completeLogin} />
+              );
+            }}
+          />
+          <Route path="*">
+            <Redirect to="/login" />
+          </Route>
+        </Switch>
+      </Router>
     );
   }
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import TableRow from '@material-ui/core/TableRow';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Button from '@material-ui/core/Button';
@@ -9,10 +8,10 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogActions from '@material-ui/core/DialogActions';
 import DeleteIcon from '@material-ui/icons/Cancel';
-import TemplateForm from '../components/NewTemplateForm';
+import TemplateForm from './NewTemplateForm';
 import { labPapersStyle } from './StudentView';
-import LabInstancesList from '../components/LabInstancesList';
-import LabTemplatesList from '../components/LabTemplatesList';
+import LabInstancesList from './LabInstancesList';
+import LabTemplatesList from './LabTemplatesList';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -90,7 +89,7 @@ export default function ProfessorView(props) {
   };
   return (
     <>
-      <TableRow style={labPapersStyle}>
+      <div style={labPapersStyle}>
         <LabTemplatesList
           deleteLabTemplate={deleteLabTemplate}
           labs={templateLabs}
@@ -102,8 +101,8 @@ export default function ProfessorView(props) {
           stop={stop}
           showStatus={showStatus}
         />
-      </TableRow>
-      <TableRow style={labPapersStyle}>
+      </div>
+      <div style={labPapersStyle}>
         <Grid
           container
           spacing={0}
@@ -116,7 +115,7 @@ export default function ProfessorView(props) {
           <Grid item>
             <Button
               variant="contained"
-              color="primary"
+              color="secondary"
               onClick={handleClickOpen}
               startIcon={<AddCircleIcon />}
               style={{ margin: '10px' }}
@@ -145,6 +144,14 @@ export default function ProfessorView(props) {
               <DialogActions>
                 <Button
                   variant="contained"
+                  color="secondary"
+                  onClick={handleAbort}
+                  startIcon={<DeleteIcon />}
+                >
+                  Abort
+                </Button>
+                <Button
+                  variant="contained"
                   color="primary"
                   startIcon={<AddCircleIcon />}
                   onClick={handleClose}
@@ -152,20 +159,11 @@ export default function ProfessorView(props) {
                 >
                   Create
                 </Button>
-
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={handleAbort}
-                  startIcon={<DeleteIcon />}
-                >
-                  Abort
-                </Button>
               </DialogActions>
             </Dialog>
           </Grid>
         </Grid>
-      </TableRow>
+      </div>
     </>
   );
 }

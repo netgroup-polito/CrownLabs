@@ -34,7 +34,7 @@ export default function OrderSelector(props) {
   return (
     <div>
       {selectors.length > 1 && (
-        <IconButton color="primary" onClick={handleClick}>
+        <IconButton color="secondary" onClick={handleClick}>
           {selectors.find(sel => sel.value === order).icon}
         </IconButton>
       )}
@@ -58,7 +58,7 @@ export default function OrderSelector(props) {
         ))}
       </Menu>
       <IconButton
-        color="primary"
+        color="secondary"
         onClick={() => setOrderData({ ...orderData, isDirUp: !isDirUp })}
         className={`${classes.flipOrderBtn} ${
           isDirUp ? classes.rotate180 : classes.rotate0

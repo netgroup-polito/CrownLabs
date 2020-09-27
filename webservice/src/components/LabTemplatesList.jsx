@@ -52,6 +52,12 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
+  },
+  startIcon: {
+    color: theme.palette.success.main
+  },
+  deleteIcon: {
+    color: theme.palette.error.main
   }
 }));
 
@@ -78,7 +84,7 @@ export default function LabTemplatesList(props) {
     ],
     []
   );
-  const title = 'Available Laboratories';
+  const title = 'Available Labs';
   const [textMatch, setTextMatch] = useState('');
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(
@@ -157,8 +163,7 @@ export default function LabTemplatesList(props) {
                 {selectedIndex === i && deleteLabTemplate ? (
                   <Tooltip title="Delete template">
                     <IconButton
-                      style={{ color: 'red' }}
-                      button="true"
+                      className={classes.deleteIcon}
                       onClick={e => {
                         deleteLabTemplate(labName, courseName);
                         setSelectedIndex(-1);
@@ -172,10 +177,9 @@ export default function LabTemplatesList(props) {
                 {selectedIndex === i && start ? (
                   <Tooltip title="Create VM">
                     <IconButton
+                      className={classes.startIcon}
                       key={labName}
                       variant="dark"
-                      style={{ color: 'green' }}
-                      button="true"
                       onClick={e => {
                         start(labName, courseName);
                         setSelectedIndex(-1);

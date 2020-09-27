@@ -64,7 +64,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.error.main
   },
   launchIcon: {
-    color: theme.palette.success.dark
+    color: theme.palette.info.main
   },
   loadIcon: {
     color: theme.palette.warning.light
@@ -195,7 +195,6 @@ const RunningLabList = props => {
                     &nbsp;
                   </div>
                   <ListItemText
-                    color="primary"
                     primary={
                       description
                         ? `${description} - ${labCode}`
@@ -206,19 +205,22 @@ const RunningLabList = props => {
                     secondary={
                       <>
                         {studentId && (
-                          <div>
+                          <>
                             <b>User: </b>
                             {studentId}
-                          </div>
+                            <br />
+                          </>
                         )}
-                        <div>
+                        <>
                           <b>Created: </b>
                           {utc(creationTime).format('DD/MM/YY HH:MM')}
-                        </div>
-                        <div>
+                          <br />
+                        </>
+                        <>
                           <b>IP: </b>
                           {ip}
-                        </div>
+                          <br />
+                        </>
                       </>
                     }
                   />
