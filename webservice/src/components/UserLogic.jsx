@@ -21,7 +21,7 @@ export default class UserLogic extends React.Component {
     super(props);
     const { idToken, tokenType } = props;
     this.connect = this.connect.bind(this);
-    this.retriveImageList = this.retriveImageList.bind(this);
+    this.retrieveImageList = this.retrieveImageList.bind(this);
     this.startCRDinstance = this.startCRDinstance.bind(this);
     this.stopCRDinstance = this.stopCRDinstance.bind(this);
     this.deleteCRDtemplate = this.deleteCRDtemplate.bind(this);
@@ -65,7 +65,7 @@ export default class UserLogic extends React.Component {
       isStudentView: prevIsStudentView,
       descriptions: {}
     };
-    this.retriveImageList();
+    this.retrieveImageList();
     this.retrieveCRDtemplates().then(() => {
       /* Start watching for namespaced events */
       this.apiManager.startWatching(this.notifyEvent);
@@ -459,7 +459,7 @@ export default class UserLogic extends React.Component {
   /**
    * Private function to retrieve all CRD instances running
    */
-  retriveImageList() {
+  retrieveImageList() {
     const { imageList } = this.state;
     this.apiManager
       .retrieveImageList()

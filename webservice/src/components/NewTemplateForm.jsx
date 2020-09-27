@@ -126,7 +126,7 @@ export default function TemplateForm(props) {
         name="courseCode"
         select
         label="Course Code"
-        value={namespace}
+        value={namespace || ''}
         onChange={handleChangeNamespace}
         variant="outlined"
         helperText={errorcode === 1 ? 'Select a courseCode' : ' '}
@@ -146,7 +146,7 @@ export default function TemplateForm(props) {
         label="Lab ID"
         name="labid"
         variant="outlined"
-        value={labid}
+        value={labid || ''}
         onChange={handleChangeLabid}
         helperText={errorcode === 2 ? 'Insert a valid labID!' : ' '}
       />
@@ -158,14 +158,14 @@ export default function TemplateForm(props) {
         id="outlined-basic"
         label="Image name"
         name="image"
-        value={image}
+        value={image || ''}
         onChange={handleChangeImage}
         variant="outlined"
         helperText={errorcode === 3 ? 'Select a valid Image!' : ' '}
       >
-        {Array.from(imageList.keys()).map(x => (
-          <MenuItem key={x} value={x}>
-            {x}
+        {Array.from(imageList.keys()).map(imageName => (
+          <MenuItem key={imageName} value={imageName}>
+            {imageName}
           </MenuItem>
         ))}
       </TextField>
@@ -179,15 +179,16 @@ export default function TemplateForm(props) {
         id="outlined-basic"
         label="Image Version"
         name="image"
-        value={version}
+        disabled={!image || imageList.get(image).length === 1}
+        value={version || ''}
         onChange={handleChangeVersion}
         variant="outlined"
         helperText={errorcode === 4 ? 'Select a valid Version!' : ' '}
       >
         {image !== null
-          ? imageList.get(image).map(imageName => (
-              <MenuItem key={imageName} value={imageName}>
-                {imageName}
+          ? imageList.get(image).map(imageVersion => (
+              <MenuItem key={imageVersion} value={imageVersion}>
+                {imageVersion}
               </MenuItem>
             ))
           : []}

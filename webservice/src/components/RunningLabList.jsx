@@ -205,19 +205,22 @@ const RunningLabList = props => {
                     secondary={
                       <>
                         {studentId && (
-                          <div>
+                          <>
                             <b>User: </b>
                             {studentId}
-                          </div>
+                            <br />
+                          </>
                         )}
-                        <div>
+                        <>
                           <b>Created: </b>
                           {utc(creationTime).format('DD/MM/YY HH:MM')}
-                        </div>
-                        <div>
+                          <br />
+                        </>
+                        <>
                           <b>IP: </b>
                           {ip}
-                        </div>
+                          <br />
+                        </>
                       </>
                     }
                   />

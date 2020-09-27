@@ -64,7 +64,7 @@ const Themer = props => {
         />
         <Body
           registryName={registryName}
-          retriveImageList={imageList}
+          retrieveImageList={imageList}
           adminGroups={adminGroups}
           templateLabsAdmin={templateLabsAdmin}
           instanceLabsAdmin={instanceLabsAdmin}

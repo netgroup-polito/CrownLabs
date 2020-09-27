@@ -6,7 +6,7 @@ export default function Body(props) {
   const {
     isStudentView,
     registryName,
-    retriveImageList,
+    retrieveImageList,
     adminGroups,
     templateLabsAdmin,
     instanceLabsAdmin,
@@ -42,7 +42,7 @@ export default function Body(props) {
       ) : (
         <ProfessorView
           registryName={registryName}
-          imageList={retriveImageList}
+          imageList={retrieveImageList}
           adminGroups={adminGroups}
           templateLabs={templateLabsAdmin}
           instanceLabs={instanceLabsAdmin}
