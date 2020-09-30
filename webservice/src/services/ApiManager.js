@@ -258,21 +258,4 @@ export default class ApiManager {
       }
     );
   }
-
-  /**
-   * @@@@ UNUSED (since watcher has been patched and works)
-   * Function to get a specific lab instance status
-   *
-   * @param name the name of the lab instance
-   * @returns the promise handling the request
-   */
-  getCRDstatus(name) {
-    return this.apiCRD.getNamespacedCustomObjectStatus(
-      this.instanceGroup,
-      this.version,
-      this.instanceNamespace,
-      this.instancePlural,
-      name
-    );
-  }
 }

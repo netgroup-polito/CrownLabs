@@ -175,7 +175,6 @@ export default class UserLogic extends React.Component {
     image,
     type
   ) {
-    const { templateLabs, templateLabsAdmin } = this.state;
     this.apiManager
       .createCRDtemplate(
         namespace,
@@ -186,17 +185,13 @@ export default class UserLogic extends React.Component {
         image,
         type
       )
-      .then(response => {
-        Toastr.success(`Successfully create template \`${description}\``);
-        const newMap = templateLabs;
-        newMap.set(response.body.metadata.name, { status: 0, url: null });
+      .then(() => {
+        Toastr.success(`Successfully created template \`${description}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        templateLabs.clear();
-        templateLabsAdmin.clear();
         this.retrieveCRDtemplates();
       });
   }
@@ -464,28 +459,39 @@ export default class UserLogic extends React.Component {
     let msg = '';
     // next eslint-disable is because the k8s_library uses the dash in their implementation
     // eslint-disable-next-line no-underscore-dangle
-    switch (error.response._fetchResponse.status) {
-      case 401:
-        msg += 'Forbidden, something in the ticket renewal failed';
-        this.logoutInterval();
-        break;
-      case 403:
-        msg +=
-          'It seems you do not have the right permissions to perform this operation';
-        break;
-      case 404:
-        msg += 'Resource not found, probably you have already destroyed it';
-        break;
-      case 409:
-        msg += 'The resource is already present';
-        break;
-      default:
-        msg += `An error occurred(${
-          // next eslint-disable is because the k8s_library uses the dash in their implementation
-          // eslint-disable-next-line no-underscore-dangle
-          error && error.response._fetchResponse.status
-        }), please login again`;
-        this.logoutInterval();
+    if (error.response && error._fetchResponse)
+      // eslint-disable-next-line no-underscore-dangle
+      switch (error.response._fetchResponse.status) {
+        case 401:
+          msg += 'Forbidden, something in the ticket renewal failed';
+          this.logoutInterval();
+          break;
+        case 403:
+          msg +=
+            'It seems you do not have the right permissions to perform this operation';
+          break;
+        case 404:
+          msg += 'Resource not found, probably you have already destroyed it';
+          break;
+        case 409:
+          msg += 'The resource is already present';
+          break;
+        default:
+          msg += `An error occurred(${
+            // next eslint-disable is because the k8s_library uses the dash in their implementation
+            // eslint-disable-next-line no-underscore-dangle
+            error && error.response._fetchResponse.status
+          }), please login again`;
+          this.logoutInterval();
+      }
+    else {
+      console.error(error);
+      msg += `An error occurred(${
+        // next eslint-disable is because the k8s_library uses the dash in their implementation
+        // eslint-disable-next-line no-underscore-dangle
+        error
+      }), please login again`;
+      this.logoutInterval();
     }
     Toastr.error(msg);
   }
