@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Grid from '@material-ui/core/Grid';
 import Slide from '@material-ui/core/Slide';
 import Button from '@material-ui/core/Button';
@@ -12,6 +12,7 @@ import TemplateForm from './NewTemplateForm';
 import { labPapersStyle } from './StudentView';
 import LabInstancesList from './LabInstancesList';
 import LabTemplatesList from './LabTemplatesList';
+import { vmTypes } from '../services/ApiManager';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -34,22 +35,24 @@ export default function ProfessorView(props) {
     adminGroups
   } = props;
 
-  const [open, setOpen] = React.useState(false);
-  const [image, setImage] = React.useState(null);
-  const [version, setVersion] = React.useState(null);
-  const [labid, setLabid] = React.useState(null);
-  const [namespace, setNamespace] = React.useState(null);
-  const [errorcode, setErrorcode] = React.useState(0);
+  const [open, setOpen] = useState(false);
+  const [image, setImage] = useState(null);
+  const [version, setVersion] = useState(null);
+  const [labId, setLabid] = useState(null);
+  const [namespace, setNamespace] = useState(null);
+  const [errorcode, setErrorcode] = useState(0);
+  const [description, setDescription] = useState(null);
+  const [type, setType] = useState(null);
 
   const handleClickOpen = () => {
     setOpen(true);
   };
-  const handleClose = () => {
+  const handleSubmit = () => {
     if (!adminGroups.includes(namespace)) {
       setErrorcode(1);
       return;
     }
-    if (labid === null || !labid.length) {
+    if (labId === null || !labId.length) {
       setErrorcode(2);
       return;
     }
@@ -64,11 +67,12 @@ export default function ProfessorView(props) {
 
     createNewTemplate(
       namespace,
-      labid,
-      `namespace: ${namespace} laboratory number: ${labid}`,
+      labId,
+      description,
       Number(document.getElementsByName('cpu')[0].value),
       Number(document.getElementsByName('memory')[0].value),
-      `${registryName}/${image}:${version}`
+      `${registryName}/${image}:${version}`,
+      type || vmTypes.GUI
     );
 
     setErrorcode(0);
@@ -76,6 +80,8 @@ export default function ProfessorView(props) {
     if (image !== null) setVersion([]);
     setImage(null);
     setLabid(null);
+    setDescription(null);
+    setType(null);
     setOpen(false);
   };
 
@@ -85,6 +91,8 @@ export default function ProfessorView(props) {
     if (image !== null) setVersion([]);
     setImage(null);
     setLabid(null);
+    setDescription(null);
+    setType(null);
     setOpen(false);
   };
   return (
@@ -128,7 +136,7 @@ export default function ProfessorView(props) {
               </DialogTitle>
               <DialogContent>
                 <TemplateForm
-                  labid={labid}
+                  labId={labId}
                   image={image}
                   version={version}
                   namespace={namespace}
@@ -136,9 +144,13 @@ export default function ProfessorView(props) {
                   setImage={setImage}
                   setVersion={setVersion}
                   setNamespace={setNamespace}
+                  setDescription={setDescription}
+                  setType={setType}
                   imageList={imageList}
                   adminGroups={adminGroups}
                   errorcode={errorcode}
+                  description={description}
+                  type={type}
                 />
               </DialogContent>
               <DialogActions>
@@ -154,8 +166,17 @@ export default function ProfessorView(props) {
                   variant="contained"
                   color="primary"
                   startIcon={<AddCircleIcon />}
-                  onClick={handleClose}
+                  onClick={handleSubmit}
                   type="submit"
+                  disabled={
+                    !description ||
+                    description === '' ||
+                    !type ||
+                    !labId ||
+                    !image ||
+                    !version ||
+                    !namespace
+                  }
                 >
                   Create
                 </Button>

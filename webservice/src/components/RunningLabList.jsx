@@ -13,9 +13,14 @@ import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import UserIcon from '@material-ui/icons/Person';
+import DesktopIcon from '@material-ui/icons/DesktopWindows';
+import TerminalIcon from '@material-ui/icons/ClearAll';
+import AllIcon from '@material-ui/icons/GroupWork';
 import { utc } from 'moment';
 import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
+import Selector from './Selector';
+import { vmTypes } from '../services/ApiManager';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -29,15 +34,16 @@ const useStyles = makeStyles(theme => ({
       margin: theme.spacing(2)
     }
   },
-  titlebar: {
+  listSubHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontSize: '30px'
+    fontSize: '30px',
+    padding: theme.spacing(0, 1)
   },
   buttonGroup: {
     width: '100%',
-    padding: '10px',
+    padding: theme.spacing(1),
     position: 'fixed',
     bottom: '0%',
     left: '10%'
@@ -46,7 +52,7 @@ const useStyles = makeStyles(theme => ({
     width: 40,
     height: '100%',
     borderRadius: 5,
-    margin: '0 10px'
+    margin: '5px 10px'
   },
   activeLab: {
     backgroundColor: theme.palette.success.main
@@ -76,6 +82,12 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
+  },
+  instanceInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    color: theme.palette.info.main
   }
 }));
 
@@ -92,6 +104,13 @@ const adminSelectors = [
   }
 ];
 
+const ALL_VM_TYPES = '';
+export const vmTypeSelectors = [
+  { text: 'All', icon: <AllIcon />, value: ALL_VM_TYPES },
+  { text: 'GUI enabled', icon: <DesktopIcon />, value: vmTypes.GUI },
+  { text: 'CLI only', icon: <TerminalIcon />, value: vmTypes.CLI }
+];
+
 const getLabCodeFromName = name => name.slice(name.length - 4);
 
 const RunningLabList = props => {
@@ -100,6 +119,11 @@ const RunningLabList = props => {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [textMatch, setTextMatch] = useState('');
+  const [vmType, setVmType] = useState(() => {
+    const prevVmType = JSON.parse(localStorage.getItem(`vmType`));
+    return prevVmType || ALL_VM_TYPES;
+  });
+
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(
       localStorage.getItem(`orderData-${title}-${isStudentView}`)
@@ -111,6 +135,10 @@ const RunningLabList = props => {
     localStorage.setItem(`orderData-${title}`, JSON.stringify(orderData));
   }, [orderData]);
 
+  useEffect(() => {
+    localStorage.setItem(`vmType`, JSON.stringify(vmType));
+  }, [vmType]);
+
   return (
     <ClickAwayListener
       onClickAway={() => {
@@ -120,20 +148,29 @@ const RunningLabList = props => {
       <List
         className={classes.root}
         subheader={
-          <ListSubheader className={classes.titlebar}>
-            {title}
+          <ListSubheader className={classes.listSubHeader}>
+            <div>{title}</div>
             <div className={classes.titleActions}>
-              <TextSelector value={textMatch} setValue={setTextMatch} />
+              <Selector
+                selectors={vmTypeSelectors}
+                value={vmType}
+                setValue={setVmType}
+              />
               <OrderSelector
                 selectors={isStudentView ? studentSelectors : adminSelectors}
                 setOrderData={setOrderData}
                 orderData={orderData}
               />
+              <TextSelector value={textMatch} setValue={setTextMatch} />
             </div>
           </ListSubheader>
         }
       >
         {labList
+          .filter(({ type }) => {
+            if (vmType === ALL_VM_TYPES) return true;
+            return type === vmType;
+          })
           .filter(({ labName, ip, description, studentId }) => {
             if (textMatch !== '') {
               const labCode = getLabCodeFromName(labName);
@@ -171,7 +208,15 @@ const RunningLabList = props => {
           })
           .map(
             (
-              { labName, status, ip, creationTime, description, studentId },
+              {
+                labName,
+                status,
+                ip,
+                creationTime,
+                description,
+                studentId,
+                type
+              },
               i
             ) => {
               const labCode = getLabCodeFromName(labName);
@@ -191,8 +236,17 @@ const RunningLabList = props => {
                     setSelectedIndex(i);
                   }}
                 >
-                  <div className={`${classes.labColorTag} ${statusClassName}`}>
-                    &nbsp;
+                  <div className={classes.instanceInfo}>
+                    <div
+                      className={`${classes.labColorTag} ${statusClassName}`}
+                    >
+                      &nbsp;
+                    </div>
+                    {vmType === ALL_VM_TYPES && type && (
+                      <>
+                        {vmTypeSelectors.find(sel => sel.value === type).icon}
+                      </>
+                    )}
                   </div>
                   <ListItemText
                     primary={
@@ -239,7 +293,9 @@ const RunningLabList = props => {
                       </IconButton>
                     </Tooltip>
                   ) : null}
-                  {selectedIndex === i && status === 1 ? (
+                  {type === vmTypes.GUI &&
+                  selectedIndex === i &&
+                  status === 1 ? (
                     <Tooltip title="Connect VM">
                       <IconButton
                         className={classes.launchIcon}

@@ -63,13 +63,13 @@ export default class UserLogic extends React.Component {
       instanceLabsAdmin: new Map(),
       adminGroups,
       isStudentView: prevIsStudentView,
-      descriptions: {}
+      descriptions: {},
+      instanceTypes: {}
     };
     this.retrieveImageList();
     this.retrieveCRDtemplates().then(() => {
       /* Start watching for namespaced events */
       this.apiManager.startWatching(this.notifyEvent);
-
       /* Start watching for admin namespaces events if any */
       if (adminGroups.length > 0) {
         this.apiManager.startWatching(this.notifyEventAdmin, {
@@ -87,7 +87,8 @@ export default class UserLogic extends React.Component {
       templateLabs,
       templateLabsAdmin,
       adminGroups,
-      descriptions
+      descriptions,
+      instanceTypes
     } = this.state;
     return this.apiManager
       .getCRDtemplates()
@@ -95,32 +96,37 @@ export default class UserLogic extends React.Component {
         const newMap = templateLabs;
         const newMapAdmin = templateLabsAdmin;
         const newDescriptions = { ...descriptions };
+        const newInstanceTypes = { ...instanceTypes };
         res.forEach(x => {
           if (x) {
             newMap.set(
               x.course,
-              x.labs.map(lab => ({
-                labName: lab.name,
-                description: lab.description
+              x.labs.map(({ name, description, type }) => ({
+                labName: name,
+                description,
+                type
               }))
             );
             if (adminGroups.includes(x.course))
               newMapAdmin.set(
                 x.course,
-                x.labs.map(lab => ({
-                  labName: lab.name,
-                  description: lab.description
+                x.labs.map(({ name, description, type }) => ({
+                  labName: name,
+                  description,
+                  type
                 }))
               );
-            x.labs.forEach(lab => {
-              newDescriptions[lab.name] = lab.description;
+            x.labs.forEach(({ name, description, type }) => {
+              newDescriptions[name] = description;
+              newInstanceTypes[name] = type;
             });
           }
         });
         this.setState({
           templateLabs: newMap,
           templateLabsAdmin: newMapAdmin,
-          descriptions: newDescriptions
+          descriptions: newDescriptions,
+          instanceTypes: newInstanceTypes
         });
       })
       .catch(error => {
@@ -132,7 +138,7 @@ export default class UserLogic extends React.Component {
    * Function to start and create a CRD instance
    */
   startCRDinstance(templateName, course) {
-    const { instanceLabs, descriptions } = this.state;
+    const { instanceLabs, descriptions, instanceTypes } = this.state;
     if (instanceLabs.has(templateName)) {
       Toastr.info(`The \`${templateName}\` lab is already running`);
       return;
@@ -147,7 +153,8 @@ export default class UserLogic extends React.Component {
           url: null,
           ip: '',
           creationTime: undefined,
-          description: descriptions[templateName]
+          description: descriptions[templateName],
+          type: instanceTypes[templateName]
         });
         this.setState({ instanceLabs: newMap });
       })
@@ -159,10 +166,26 @@ export default class UserLogic extends React.Component {
   /**
    * Function to start and create a CRD template
    */
-  createCRDtemplate(namespace, labNumber, description, cpu, memory, image) {
+  createCRDtemplate(
+    namespace,
+    labNumber,
+    description,
+    cpu,
+    memory,
+    image,
+    type
+  ) {
     const { templateLabs, templateLabsAdmin } = this.state;
     this.apiManager
-      .createCRDtemplate(namespace, labNumber, description, cpu, memory, image)
+      .createCRDtemplate(
+        namespace,
+        labNumber,
+        description,
+        cpu,
+        memory,
+        image,
+        type
+      )
       .then(response => {
         Toastr.success(`Successfully create template \`${description}\``);
         const newMap = templateLabs;
@@ -312,7 +335,7 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
-    const { instanceLabs, descriptions } = this.state;
+    const { instanceLabs, descriptions, instanceTypes } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -327,7 +350,8 @@ export default class UserLogic extends React.Component {
           url: null,
           status: -1,
           ip: null,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -339,7 +363,8 @@ export default class UserLogic extends React.Component {
           status: 1,
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -351,7 +376,8 @@ export default class UserLogic extends React.Component {
           url: null,
           status: 0,
           ip: null,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       }
       this.setState({
@@ -366,7 +392,12 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEventAdmin(type, object) {
-    const { adminGroups, instanceLabsAdmin, descriptions } = this.state;
+    const {
+      adminGroups,
+      instanceLabsAdmin,
+      descriptions,
+      instanceTypes
+    } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -385,6 +416,7 @@ export default class UserLogic extends React.Component {
           ip: null,
           studNamespace: object.metadata.namespace,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       } else if (
@@ -399,6 +431,7 @@ export default class UserLogic extends React.Component {
           creationTime: object.metadata.creationTimestamp,
           studNamespace: object.metadata.namespace,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       } else if (type === 'DELETED') {
@@ -413,6 +446,7 @@ export default class UserLogic extends React.Component {
           studNamespace: object.metadata.namespace,
           ip: null,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       }

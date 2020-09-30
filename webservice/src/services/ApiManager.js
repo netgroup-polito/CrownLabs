@@ -1,5 +1,10 @@
 import { Config, CustomObjectsApi, watch } from '@kubernetes/client-node';
 
+export const vmTypes = {
+  CLI: 'CLI',
+  GUI: 'GUI'
+};
+
 /**
  * Class to manage all the interaction with the cluster
  *
@@ -58,11 +63,13 @@ export default class ApiManager {
         course,
         this.templatePlural
       )
-      .then(nodesResponse => {
-        return nodesResponse.body.items.map(x => {
-          return { name: x.metadata.name, description: x.spec.description };
-        });
-      })
+      .then(nodesResponse =>
+        nodesResponse.body.items.map(x => ({
+          name: x.metadata.name,
+          description: x.spec.description,
+          type: x.spec.vmType
+        }))
+      )
       .catch(error => {
         Promise.reject(error);
       });
@@ -151,7 +158,15 @@ export default class ApiManager {
    * @param memory
    * @param image
    */
-  createCRDtemplate(namespace, labNumber, description, cpu, memory, image) {
+  createCRDtemplate(
+    namespace,
+    labNumber,
+    description,
+    cpu,
+    memory,
+    image,
+    type
+  ) {
     const courseName = namespace.split('course-')[1];
 
     return this.apiCRD.createNamespacedCustomObject(
@@ -171,6 +186,7 @@ export default class ApiManager {
           description,
           labName: `${courseName}-lab${labNumber}`,
           labNum: labNumber,
+          vmType: type,
           vm: {
             apiVersion: 'kubevirt.io/v1alpha3',
             kind: 'VirtualMachineInstance',
