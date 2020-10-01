@@ -101,19 +101,21 @@ export default class UserLogic extends React.Component {
           if (x) {
             newMap.set(
               x.course,
-              x.labs.map(({ name, description, type }) => ({
+              x.labs.map(({ name, description, type, labNum }) => ({
                 labName: name,
                 description,
-                type
+                type,
+                labNum
               }))
             );
             if (adminGroups.includes(x.course))
               newMapAdmin.set(
                 x.course,
-                x.labs.map(({ name, description, type }) => ({
+                x.labs.map(({ name, description, type, labNum }) => ({
                   labName: name,
                   description,
-                  type
+                  type,
+                  labNum
                 }))
               );
             x.labs.forEach(({ name, description, type }) => {
@@ -166,19 +168,18 @@ export default class UserLogic extends React.Component {
   /**
    * Function to start and create a CRD template
    */
-  createCRDtemplate(
-    namespace,
-    labNumber,
-    description,
-    cpu,
-    memory,
-    image,
-    type
-  ) {
+  createCRDtemplate(namespace, description, cpu, memory, image, type) {
+    const { templateLabsAdmin } = this.state;
+    const currentLabNums = templateLabsAdmin
+      .get(namespace)
+      .map(({ labNum }) => Number(labNum));
+    let newLabNum = 1;
+    // create a new unique labNum based on the current ones
+    while (currentLabNums.includes(newLabNum)) newLabNum += 1;
     this.apiManager
       .createCRDtemplate(
         namespace,
-        labNumber,
+        newLabNum,
         description,
         cpu,
         memory,

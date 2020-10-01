@@ -38,7 +38,6 @@ export default function ProfessorView(props) {
   const [open, setOpen] = useState(false);
   const [image, setImage] = useState(null);
   const [version, setVersion] = useState(null);
-  const [labId, setLabid] = useState(null);
   const [namespace, setNamespace] = useState(null);
   const [errorcode, setErrorcode] = useState(0);
   const [description, setDescription] = useState(null);
@@ -52,10 +51,6 @@ export default function ProfessorView(props) {
       setErrorcode(1);
       return;
     }
-    if (labId === null || !labId.length) {
-      setErrorcode(2);
-      return;
-    }
     if (!imageList.has(image)) {
       setErrorcode(3);
       return;
@@ -67,7 +62,6 @@ export default function ProfessorView(props) {
 
     createNewTemplate(
       namespace,
-      labId,
       description,
       Number(document.getElementsByName('cpu')[0].value),
       Number(document.getElementsByName('memory')[0].value),
@@ -77,9 +71,8 @@ export default function ProfessorView(props) {
 
     setErrorcode(0);
     setNamespace(null);
-    if (image !== null) setVersion([]);
+    setVersion(null);
     setImage(null);
-    setLabid(null);
     setDescription(null);
     setType(null);
     setOpen(false);
@@ -88,9 +81,8 @@ export default function ProfessorView(props) {
   const handleAbort = () => {
     setErrorcode(0);
     setNamespace(null);
-    if (image !== null) setVersion([]);
+    setVersion(null);
     setImage(null);
-    setLabid(null);
     setDescription(null);
     setType(null);
     setOpen(false);
@@ -136,11 +128,9 @@ export default function ProfessorView(props) {
               </DialogTitle>
               <DialogContent>
                 <TemplateForm
-                  labId={labId}
                   image={image}
                   version={version}
                   namespace={namespace}
-                  setLabid={setLabid}
                   setImage={setImage}
                   setVersion={setVersion}
                   setNamespace={setNamespace}
@@ -172,7 +162,6 @@ export default function ProfessorView(props) {
                     !description ||
                     description === '' ||
                     !type ||
-                    !labId ||
                     !image ||
                     !version ||
                     !namespace

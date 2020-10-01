@@ -67,7 +67,8 @@ export default class ApiManager {
         nodesResponse.body.items.map(x => ({
           name: x.metadata.name,
           description: x.spec.description,
-          type: x.spec.vmType
+          type: x.spec.vmType,
+          labNum: x.spec.labNum
         }))
       )
       .catch(error => {

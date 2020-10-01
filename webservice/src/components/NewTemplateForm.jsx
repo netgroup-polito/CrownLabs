@@ -87,14 +87,12 @@ export default function TemplateForm(props) {
     namespace,
     errorcode,
     adminGroups,
-    labId,
     image,
     imageList,
     description,
     type,
     version,
     setVersion,
-    setLabid,
     setImage,
     setNamespace,
     setType,
@@ -110,9 +108,7 @@ export default function TemplateForm(props) {
   const handleChangeType = event => {
     setType(event.target.value);
   };
-  const handleChangeLabid = event => {
-    setLabid(event.target.value);
-  };
+
   const handleChangeNamespace = event => {
     setNamespace(event.target.value);
   };
@@ -133,7 +129,7 @@ export default function TemplateForm(props) {
       autoComplete="off"
     >
       <TextField
-        style={{ margin: 10, width: '40%' }}
+        style={{ margin: 10, width: '84%' }}
         name="courseCode"
         select
         label="Course Code"
@@ -148,19 +144,6 @@ export default function TemplateForm(props) {
           </MenuItem>
         ))}
       </TextField>
-      <TextField
-        required
-        type="number"
-        placeholder="insert lab id"
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-basic-image"
-        label="Lab ID"
-        name="labId"
-        variant="outlined"
-        value={labId || ''}
-        onChange={handleChangeLabid}
-        helperText={errorcode === 2 ? 'Insert a valid labID!' : ' '}
-      />
       <TextField
         required
         select
@@ -189,7 +172,7 @@ export default function TemplateForm(props) {
         style={{ margin: 10, width: '40%' }}
         id="outlined-basic"
         label="Image Version"
-        name="image"
+        name="version"
         disabled={!image || imageList.get(image).length === 1}
         value={version || ''}
         onChange={handleChangeVersion}
@@ -225,14 +208,13 @@ export default function TemplateForm(props) {
         required
         select
         InputLabelProps={{ shrink: true }}
-        placeholder="insert image Version"
         style={{
           margin: 10,
           width: '20%'
         }}
         id="outlined-basic"
         label="VM type"
-        name="image"
+        name="type"
         value={type || ''}
         onChange={handleChangeType}
         variant="outlined"
