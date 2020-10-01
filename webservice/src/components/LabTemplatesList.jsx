@@ -170,6 +170,13 @@ export default function LabTemplatesList(props) {
                         labName.charAt(0).toUpperCase() +
                           labName.slice(1).replace(/-/g, ' ')
                       }
+                      secondary={
+                        <>
+                          <b>ID: </b>
+                          {labName}
+                          <br />
+                        </>
+                      }
                     />
                   </>
                 </Tooltip>

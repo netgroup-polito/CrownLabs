@@ -168,13 +168,13 @@ export default class UserLogic extends React.Component {
   /**
    * Function to start and create a CRD template
    */
-  createCRDtemplate(namespace, description, cpu, memory, image, type) {
-    const { templateLabsAdmin } = this.state;
+  createCRDtemplate(namespace, description, cpu, memory, image, version, type) {
+    const { templateLabsAdmin, registryName } = this.state;
     const currentLabNums = templateLabsAdmin
       .get(namespace)
       .map(({ labNum }) => Number(labNum));
-    let newLabNum = 1;
     // create a new unique labNum based on the current ones
+    let newLabNum = 1;
     while (currentLabNums.includes(newLabNum)) newLabNum += 1;
     this.apiManager
       .createCRDtemplate(
@@ -183,7 +183,7 @@ export default class UserLogic extends React.Component {
         description,
         cpu,
         memory,
-        image,
+        `${registryName}/${image}:${version}`,
         type
       )
       .then(() => {
@@ -536,7 +536,6 @@ export default class UserLogic extends React.Component {
       name,
       isStudentView,
       adminGroups,
-      registryName,
       imageList,
       templateLabsAdmin,
       instanceLabsAdmin,
@@ -547,7 +546,6 @@ export default class UserLogic extends React.Component {
       <Main
         name={name}
         logout={logout}
-        registryName={registryName}
         imageList={imageList}
         adminGroups={adminGroups}
         templateLabsAdmin={templateLabsAdmin}

@@ -29,7 +29,6 @@ export default function ProfessorView(props) {
     connect,
     stop,
     showStatus,
-    registryName,
     imageList,
     createNewTemplate,
     adminGroups
@@ -65,7 +64,8 @@ export default function ProfessorView(props) {
       description,
       Number(document.getElementsByName('cpu')[0].value),
       Number(document.getElementsByName('memory')[0].value),
-      `${registryName}/${image}:${version}`,
+      image,
+      version,
       type || vmTypes.GUI
     );
 

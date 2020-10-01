@@ -209,8 +209,8 @@ export default class ApiManager {
                 },
                 memory: { guest: `${memory}G` },
                 resources: {
-                  limits: { cpu: `${cpu + 1}`, memory: `${memory + 1}G` },
-                  requests: { cpu: `${cpu}`, memory: `${memory}G` }
+                  limits: { cpu: `${cpu + 0.5}`, memory: `${memory + 0.5}G` },
+                  requests: { cpu: `${cpu * 0.5}`, memory: `${memory}G` }
                 }
               },
               volumes: [

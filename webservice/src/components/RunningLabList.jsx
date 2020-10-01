@@ -111,7 +111,7 @@ export const vmTypeSelectors = [
   { text: 'CLI only', icon: <TerminalIcon />, value: vmTypes.CLI }
 ];
 
-const getLabCodeFromName = name => name.slice(name.length - 4);
+const getLabCodeFromName = name => /-([0-9]{1,4})$/.exec(name)[1];
 
 const RunningLabList = props => {
   const { labList, stop, connect, title, isStudentView } = props;
@@ -189,7 +189,7 @@ const RunningLabList = props => {
             return true;
           })
           .sort((a, b) => {
-            let sortResult;
+            let sortResult = 1;
             const { order, isDirUp } = orderData;
             if (order === 'time')
               sortResult = utc(b.creationTime).diff(a.creationTime, 's');
@@ -267,7 +267,9 @@ const RunningLabList = props => {
                         )}
                         <>
                           <b>Created: </b>
-                          {utc(creationTime).format('DD/MM/YY HH:MM')}
+                          {utc(creationTime)
+                            .local()
+                            .format('DD/MM/YY HH:mm:ss')}
                           <br />
                         </>
                         <>
