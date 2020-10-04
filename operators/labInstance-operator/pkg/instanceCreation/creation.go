@@ -81,7 +81,7 @@ func CreateService(name string, namespace string) corev1.Service {
 					Name:       "ssh",
 					Protocol:   corev1.ProtocolTCP,
 					Port:       22,
-					TargetPort: intstr.IntOrString{IntVal: 6081},
+					TargetPort: intstr.IntOrString{IntVal: 22},
 				},
 			},
 			Selector:  map[string]string{"name": name},
