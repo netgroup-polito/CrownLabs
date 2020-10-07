@@ -18,7 +18,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"net"
 	"strings"
 	"time"
 
@@ -88,8 +88,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		log.Error(err, "unable to get LabInstance namespace")
 	}
-	log.Info("Namespace" + req.Namespace + " met " +
-		"the selector labels")
+	log.Info("Namespace" + req.Namespace + " met the selector labels")
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
 	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
@@ -110,6 +109,11 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
+	vmType := labTemplate.Spec.VmType
+	if vmType != templatev1alpha1.TypeCLI {
+		vmType = templatev1alpha1.TypeGUI
+	}
+
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
 	labInstance.Labels = map[string]string{
 		"course-name":        strings.ReplaceAll(strings.ToLower(labTemplate.Spec.CourseName), " ", "-"),
@@ -122,7 +126,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// prepare variables common to all resources
-	name := "l-" + labTemplate.Name + "-" + fmt.Sprintf("%.8s", uuid.New().String())
+	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(labInstance.Name, ".", "-"), uuid.New().String())
 	namespace := labInstance.Namespace
 	// this is added so that all resources created for this LabInstance are destroyed when the LabInstance is deleted
 	b := true
@@ -217,7 +221,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	VmElaborationTimestamp := time.Now()
 	VMElaborationDuration := VmElaborationTimestamp.Sub(VMstart)
 	elaborationTimes.Observe(VMElaborationDuration.Seconds())
-	go getVmiStatus(r, ctx, log, name, service, ingress, &labInstance, vmi, VMstart)
+	go getVmiStatus(r, ctx, log, name, vmType, service, ingress, &labInstance, vmi, VMstart)
 
 	return ctrl.Result{}, nil
 }
@@ -246,10 +250,14 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 }
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
-	name string, service v1.Service, ingress v1beta1.Ingress,
+	name string, vmType templatev1alpha1.VmType, service v1.Service, ingress v1beta1.Ingress,
 	labInstance *instancev1alpha1.LabInstance, vmi virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
+
+	var ip string
+	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
+
 	// iterate until the vm is running
 	for {
 		err := r.Client.Get(ctx, types.NamespacedName{
@@ -259,14 +267,18 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 		if err == nil {
 			if vmStatus != vmi.Status.Phase {
 				vmStatus = vmi.Status.Phase
-				if vmStatus != virtv1.Running {
-					if vmStatus == virtv1.Failed {
-						setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
-						return
-					}
-					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "", "")
-				} else {
-					setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to "+string(vmStatus), "Normal", "Vmi"+string(vmStatus), labInstance, "", "")
+				if len(vmi.Status.Interfaces) > 0 {
+					ip = vmi.Status.Interfaces[0].IP
+				}
+
+				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
+				if vmStatus == virtv1.Failed {
+					setLabInstanceStatus(r, ctx, log, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
+					return
+				}
+
+				setLabInstanceStatus(r, ctx, log, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
+				if vmStatus == virtv1.Running {
 					break
 				}
 			}
@@ -275,27 +287,40 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	}
 
 	// when the vm status is Running, it is still not available for some seconds
-	// curl the url until the vm is ready
+	// hence, wait until it starts responding
+	host := service.Name + "." + service.Namespace
+	port := "6080" // VNC
+	if vmType == templatev1alpha1.TypeCLI {
+		port = "22" // SSH
+	}
 
-	urlProbe := "http://" + service.Name + "." + service.Namespace + ".svc.cluster.local:" + fmt.Sprintf("%d", service.Spec.Ports[0].Port)
-	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
-	ip := vmi.Status.Interfaces[0].IP
-	for {
-		resp, err := http.Get(urlProbe)
-		if err != nil || resp == nil {
-			log.Info("unable to perform get on " + urlProbe)
-		} else {
-			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-				setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" in namespace "+vmi.Namespace+" status update to VmiReady. IP is "+ip+" and url is "+url, "Normal", "VmiReady", labInstance, ip, url)
-				resp.Body.Close()
-				readyTime := time.Now()
-				bootTime := readyTime.Sub(startTimeVM)
-				bootTimes.Observe(bootTime.Seconds())
-				break
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
+	err := waitForConnection(log, host, port)
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Unable to check whether %v:%v is reachable", host, port))
+	} else {
+		msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to VmiReady."
+		setLabInstanceStatus(r, ctx, log, msg, "Normal", "VmiReady", labInstance, ip, url)
+		readyTime := time.Now()
+		bootTime := readyTime.Sub(startTimeVM)
+		bootTimes.Observe(bootTime.Seconds())
 	}
 
 	return
+}
+
+func waitForConnection(log logr.Logger, host, port string) error {
+	for retries := 0; retries < 120; retries++ {
+		timeout := time.Second
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
+		if err != nil {
+			log.Info(fmt.Sprintf("Unable to check whether %v:%v is reachable: %v", host, port, err))
+			time.Sleep(time.Second)
+		} else {
+			// The connection succeeded, hence the VM is ready
+			defer conn.Close()
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Timeout while checking whether %v:%v is reachable", host, port)
 }
