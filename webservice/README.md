@@ -42,6 +42,8 @@ This command install all the dependencies and builds the service which now can b
 
 Export now the 5 variables as described [before](#variable-exporting):
 
+<!-- markdown-link-check-disable -->
+
 ```bash
 export OIDC_PROVIDER_URL=https://2.2.2.2:4444
 export OIDC_CLIENT_ID=xxxxxxx
@@ -49,6 +51,8 @@ export OIDC_CLIENT_SECRET="xxxxxxxxxxxxx"
 export OIDC_REDIRECT_URI=http://localhost:8000
 export APISERVER_URL=https://1.1.1.1:3333
 ```
+
+ <!-- markdown-link-check-enable-->
 
 To run the service, type `npm start`.
 
