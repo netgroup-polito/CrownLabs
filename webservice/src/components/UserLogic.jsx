@@ -63,13 +63,13 @@ export default class UserLogic extends React.Component {
       instanceLabsAdmin: new Map(),
       adminGroups,
       isStudentView: prevIsStudentView,
-      descriptions: {}
+      descriptions: {},
+      instanceTypes: {}
     };
     this.retrieveImageList();
     this.retrieveCRDtemplates().then(() => {
       /* Start watching for namespaced events */
       this.apiManager.startWatching(this.notifyEvent);
-
       /* Start watching for admin namespaces events if any */
       if (adminGroups.length > 0) {
         this.apiManager.startWatching(this.notifyEventAdmin, {
@@ -87,7 +87,8 @@ export default class UserLogic extends React.Component {
       templateLabs,
       templateLabsAdmin,
       adminGroups,
-      descriptions
+      descriptions,
+      instanceTypes
     } = this.state;
     return this.apiManager
       .getCRDtemplates()
@@ -95,32 +96,39 @@ export default class UserLogic extends React.Component {
         const newMap = templateLabs;
         const newMapAdmin = templateLabsAdmin;
         const newDescriptions = { ...descriptions };
+        const newInstanceTypes = { ...instanceTypes };
         res.forEach(x => {
           if (x) {
             newMap.set(
               x.course,
-              x.labs.map(lab => ({
-                labName: lab.name,
-                description: lab.description
+              x.labs.map(({ name, description, type, labNum }) => ({
+                labName: name,
+                description,
+                type,
+                labNum
               }))
             );
             if (adminGroups.includes(x.course))
               newMapAdmin.set(
                 x.course,
-                x.labs.map(lab => ({
-                  labName: lab.name,
-                  description: lab.description
+                x.labs.map(({ name, description, type, labNum }) => ({
+                  labName: name,
+                  description,
+                  type,
+                  labNum
                 }))
               );
-            x.labs.forEach(lab => {
-              newDescriptions[lab.name] = lab.description;
+            x.labs.forEach(({ name, description, type }) => {
+              newDescriptions[name] = description;
+              newInstanceTypes[name] = type;
             });
           }
         });
         this.setState({
           templateLabs: newMap,
           templateLabsAdmin: newMapAdmin,
-          descriptions: newDescriptions
+          descriptions: newDescriptions,
+          instanceTypes: newInstanceTypes
         });
       })
       .catch(error => {
@@ -132,7 +140,7 @@ export default class UserLogic extends React.Component {
    * Function to start and create a CRD instance
    */
   startCRDinstance(templateName, course) {
-    const { instanceLabs, descriptions } = this.state;
+    const { instanceLabs, descriptions, instanceTypes } = this.state;
     if (instanceLabs.has(templateName)) {
       Toastr.info(`The \`${templateName}\` lab is already running`);
       return;
@@ -147,7 +155,8 @@ export default class UserLogic extends React.Component {
           url: null,
           ip: '',
           creationTime: undefined,
-          description: descriptions[templateName]
+          description: descriptions[templateName],
+          type: instanceTypes[templateName]
         });
         this.setState({ instanceLabs: newMap });
       })
@@ -159,21 +168,31 @@ export default class UserLogic extends React.Component {
   /**
    * Function to start and create a CRD template
    */
-  createCRDtemplate(namespace, labNumber, description, cpu, memory, image) {
-    const { templateLabs, templateLabsAdmin } = this.state;
+  createCRDtemplate(namespace, description, cpu, memory, image, version, type) {
+    const { templateLabsAdmin, registryName } = this.state;
+    const currentLabNums = templateLabsAdmin
+      .get(namespace)
+      .map(({ labNum }) => Number(labNum));
+    // create a new unique labNum based on the current ones
+    let newLabNum = 1;
+    while (currentLabNums.includes(newLabNum)) newLabNum += 1;
     this.apiManager
-      .createCRDtemplate(namespace, labNumber, description, cpu, memory, image)
-      .then(response => {
-        Toastr.success(`Successfully create template \`${description}\``);
-        const newMap = templateLabs;
-        newMap.set(response.body.metadata.name, { status: 0, url: null });
+      .createCRDtemplate(
+        namespace,
+        newLabNum,
+        description,
+        cpu,
+        memory,
+        `${registryName}/${image}:${version}`,
+        type
+      )
+      .then(() => {
+        Toastr.success(`Successfully created template \`${description}\``);
       })
       .catch(error => {
         this.handleErrors(error);
       })
       .finally(() => {
-        templateLabs.clear();
-        templateLabsAdmin.clear();
         this.retrieveCRDtemplates();
       });
   }
@@ -312,7 +331,7 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEvent(type, object) {
-    const { instanceLabs, descriptions } = this.state;
+    const { instanceLabs, descriptions, instanceTypes } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -327,7 +346,8 @@ export default class UserLogic extends React.Component {
           url: null,
           status: -1,
           ip: null,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       } else if (
         object.status.phase.match(/VmiReady/g) &&
@@ -339,7 +359,8 @@ export default class UserLogic extends React.Component {
           status: 1,
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       } else if (type === 'DELETED') {
         newMap.delete(object.metadata.name);
@@ -351,7 +372,8 @@ export default class UserLogic extends React.Component {
           url: null,
           status: 0,
           ip: null,
-          description: descriptions[object.spec.labTemplateName]
+          description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName]
         });
       }
       this.setState({
@@ -366,7 +388,12 @@ export default class UserLogic extends React.Component {
    * @param object the object of the event
    */
   notifyEventAdmin(type, object) {
-    const { adminGroups, instanceLabsAdmin, descriptions } = this.state;
+    const {
+      adminGroups,
+      instanceLabsAdmin,
+      descriptions,
+      instanceTypes
+    } = this.state;
     /* TODO: intercept 403 and redirect to logout */
     if (!type) {
       /* Watch session ended, restart it */
@@ -385,6 +412,7 @@ export default class UserLogic extends React.Component {
           ip: null,
           studNamespace: object.metadata.namespace,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       } else if (
@@ -399,6 +427,7 @@ export default class UserLogic extends React.Component {
           creationTime: object.metadata.creationTimestamp,
           studNamespace: object.metadata.namespace,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       } else if (type === 'DELETED') {
@@ -413,6 +442,7 @@ export default class UserLogic extends React.Component {
           studNamespace: object.metadata.namespace,
           ip: null,
           description: descriptions[object.spec.labTemplateName],
+          type: instanceTypes[object.spec.labTemplateName],
           studentId: object.spec.studentId
         });
       }
@@ -430,28 +460,39 @@ export default class UserLogic extends React.Component {
     let msg = '';
     // next eslint-disable is because the k8s_library uses the dash in their implementation
     // eslint-disable-next-line no-underscore-dangle
-    switch (error.response._fetchResponse.status) {
-      case 401:
-        msg += 'Forbidden, something in the ticket renewal failed';
-        this.logoutInterval();
-        break;
-      case 403:
-        msg +=
-          'It seems you do not have the right permissions to perform this operation';
-        break;
-      case 404:
-        msg += 'Resource not found, probably you have already destroyed it';
-        break;
-      case 409:
-        msg += 'The resource is already present';
-        break;
-      default:
-        msg += `An error occurred(${
-          // next eslint-disable is because the k8s_library uses the dash in their implementation
-          // eslint-disable-next-line no-underscore-dangle
-          error && error.response._fetchResponse.status
-        }), please login again`;
-        this.logoutInterval();
+    if (error.response && error._fetchResponse)
+      // eslint-disable-next-line no-underscore-dangle
+      switch (error.response._fetchResponse.status) {
+        case 401:
+          msg += 'Forbidden, something in the ticket renewal failed';
+          this.logoutInterval();
+          break;
+        case 403:
+          msg +=
+            'It seems you do not have the right permissions to perform this operation';
+          break;
+        case 404:
+          msg += 'Resource not found, probably you have already destroyed it';
+          break;
+        case 409:
+          msg += 'The resource is already present';
+          break;
+        default:
+          msg += `An error occurred(${
+            // next eslint-disable is because the k8s_library uses the dash in their implementation
+            // eslint-disable-next-line no-underscore-dangle
+            error && error.response._fetchResponse.status
+          }), please login again`;
+          this.logoutInterval();
+      }
+    else {
+      console.error(error);
+      msg += `An error occurred(${
+        // next eslint-disable is because the k8s_library uses the dash in their implementation
+        // eslint-disable-next-line no-underscore-dangle
+        error
+      }), please login again`;
+      this.logoutInterval();
     }
     Toastr.error(msg);
   }
@@ -495,7 +536,6 @@ export default class UserLogic extends React.Component {
       name,
       isStudentView,
       adminGroups,
-      registryName,
       imageList,
       templateLabsAdmin,
       instanceLabsAdmin,
@@ -506,7 +546,6 @@ export default class UserLogic extends React.Component {
       <Main
         name={name}
         logout={logout}
-        registryName={registryName}
         imageList={imageList}
         adminGroups={adminGroups}
         templateLabsAdmin={templateLabsAdmin}

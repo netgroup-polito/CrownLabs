@@ -5,6 +5,7 @@ import Typography from '@material-ui/core/Typography';
 import React from 'react';
 import withStyles from '@material-ui/core/styles/withStyles';
 import Slider from '@material-ui/core/Slider';
+import { vmTypes } from '../services/ApiManager';
 
 const iOSBoxShadow =
   '0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.13),0 0 0 1px rgba(0,0,0,0.02)';
@@ -86,22 +87,28 @@ export default function TemplateForm(props) {
     namespace,
     errorcode,
     adminGroups,
-    labid,
     image,
     imageList,
+    description,
+    type,
     version,
     setVersion,
-    setLabid,
     setImage,
-    setNamespace
+    setNamespace,
+    setType,
+    setDescription
   } = props;
 
   const handleChangeVersion = event => {
     setVersion(event.target.value);
   };
-  const handleChangeLabid = event => {
-    setLabid(event.target.value);
+  const handleChangeDescription = event => {
+    setDescription(event.target.value);
   };
+  const handleChangeType = event => {
+    setType(event.target.value);
+  };
+
   const handleChangeNamespace = event => {
     setNamespace(event.target.value);
   };
@@ -122,7 +129,7 @@ export default function TemplateForm(props) {
       autoComplete="off"
     >
       <TextField
-        style={{ margin: 10, width: '40%' }}
+        style={{ margin: 10, width: '84%' }}
         name="courseCode"
         select
         label="Course Code"
@@ -137,19 +144,6 @@ export default function TemplateForm(props) {
           </MenuItem>
         ))}
       </TextField>
-      <TextField
-        required
-        type="number"
-        placeholder="insert lab id"
-        style={{ margin: 10, width: '40%' }}
-        id="outlined-basic-image"
-        label="Lab ID"
-        name="labid"
-        variant="outlined"
-        value={labid || ''}
-        onChange={handleChangeLabid}
-        helperText={errorcode === 2 ? 'Insert a valid labID!' : ' '}
-      />
       <TextField
         required
         select
@@ -178,7 +172,7 @@ export default function TemplateForm(props) {
         style={{ margin: 10, width: '40%' }}
         id="outlined-basic"
         label="Image Version"
-        name="image"
+        name="version"
         disabled={!image || imageList.get(image).length === 1}
         value={version || ''}
         onChange={handleChangeVersion}
@@ -192,6 +186,45 @@ export default function TemplateForm(props) {
               </MenuItem>
             ))
           : []}
+      </TextField>
+      <TextField
+        required
+        type="text"
+        InputLabelProps={{ shrink: true }}
+        placeholder=""
+        style={{
+          margin: 10,
+          width: '60%'
+        }}
+        id="outlined-basic"
+        label="VM description"
+        name="description"
+        value={description || ''}
+        onChange={handleChangeDescription}
+        variant="outlined"
+        helperText={errorcode === 4 ? 'Select a valid Version!' : ' '}
+      />
+      <TextField
+        required
+        select
+        InputLabelProps={{ shrink: true }}
+        style={{
+          margin: 10,
+          width: '20%'
+        }}
+        id="outlined-basic"
+        label="VM type"
+        name="type"
+        value={type || ''}
+        onChange={handleChangeType}
+        variant="outlined"
+        helperText={errorcode === 4 ? 'Select a valid Version!' : ' '}
+      >
+        {Object.values(vmTypes).map(vmType => (
+          <MenuItem key={vmType} value={vmType}>
+            {vmType}
+          </MenuItem>
+        ))}
       </TextField>
 
       <Typography

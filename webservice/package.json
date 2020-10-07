@@ -103,6 +103,14 @@
       "react/jsx-pascal-case": "error",
       "react/prop-types": "off",
       "no-nested-ternary": "off",
+      "no-console": [
+        "warn",
+        {
+          "allow": [
+            "error"
+          ]
+        }
+      ],
       "react/jsx-indent": "off",
       "react/jsx-wrap-multilines": [
         "error",

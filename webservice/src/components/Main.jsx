@@ -18,13 +18,12 @@ darkThemeConfig.palette.type = 'dark';
 const lightTheme = createMuiTheme(lightThemeConfig);
 const darkTheme = createMuiTheme(darkThemeConfig);
 
-const Themer = props => {
+const Main = props => {
   const {
     logout,
     name,
     isStudentView,
     adminGroups,
-    registryName,
     imageList,
     templateLabsAdmin,
     instanceLabsAdmin,
@@ -42,13 +41,17 @@ const Themer = props => {
 
   const [isLightTheme, setIsLightTheme] = useState(() => {
     const prevIsLightTheme = JSON.parse(localStorage.getItem('isLightTheme'));
-    if (prevIsLightTheme === null) return false;
+    if (prevIsLightTheme === null) {
+      const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)')
+        .matches;
+      return !prefersDarkMode;
+    }
     return prevIsLightTheme;
   });
+
   useEffect(() => {
     localStorage.setItem('isLightTheme', JSON.stringify(isLightTheme));
   }, [isLightTheme]);
-
   return (
     <ThemeProvider theme={isLightTheme ? lightTheme : darkTheme}>
       <CssBaseline />
@@ -63,7 +66,6 @@ const Themer = props => {
           setIsLightTheme={setIsLightTheme}
         />
         <Body
-          registryName={registryName}
           retrieveImageList={imageList}
           adminGroups={adminGroups}
           templateLabsAdmin={templateLabsAdmin}
@@ -85,4 +87,4 @@ const Themer = props => {
   );
 };
 
-export default Themer;
+export default Main;

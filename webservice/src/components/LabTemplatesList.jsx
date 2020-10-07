@@ -13,7 +13,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
 import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
-
+import { vmTypeSelectors } from './RunningLabList';
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -42,11 +42,12 @@ const useStyles = makeStyles(theme => ({
     backgroundColor: 'inherit',
     padding: 0
   },
-  titlebar: {
+  listSubHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontSize: '30px'
+    fontSize: '30px',
+    padding: theme.spacing(0, 1)
   },
   titleActions: {
     display: 'flex',
@@ -58,6 +59,13 @@ const useStyles = makeStyles(theme => ({
   },
   deleteIcon: {
     color: theme.palette.error.main
+  },
+  templateType: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    color: theme.palette.info.main,
+    width: theme.spacing(7)
   }
 }));
 
@@ -76,10 +84,11 @@ export default function LabTemplatesList(props) {
   const labList = courseNames.reduce(
     (acc, courseName) => [
       ...acc,
-      ...labs.get(courseName).map(({ labName, description }) => ({
+      ...labs.get(courseName).map(({ labName, description, type }) => ({
         labName,
         courseName,
-        description
+        description,
+        type
       }))
     ],
     []
@@ -107,15 +116,15 @@ export default function LabTemplatesList(props) {
         <List
           className={classes.list}
           subheader={
-            <ListSubheader className={classes.titlebar}>
-              {title}
+            <ListSubheader className={classes.listSubHeader}>
+              <div>{title}</div>
               <div className={classes.titleActions}>
-                <TextSelector value={textMatch} setValue={setTextMatch} />
                 <OrderSelector
                   selectors={selectors}
                   setOrderData={setOrderData}
                   orderData={orderData}
                 />
+                <TextSelector value={textMatch} setValue={setTextMatch} />
               </div>
             </ListSubheader>
           }
@@ -140,7 +149,7 @@ export default function LabTemplatesList(props) {
                   : a.labName.localeCompare(b.labName);
               return isDirUp ? sortResult : -sortResult;
             })
-            .map(({ labName, courseName, description }, i) => (
+            .map(({ labName, courseName, description, type }, i) => (
               <ListItem
                 key={labName}
                 button
@@ -151,14 +160,25 @@ export default function LabTemplatesList(props) {
                 }}
               >
                 <Tooltip title="Select it">
-                  <ListItemText
-                    inset
-                    primary={
-                      description ||
-                      labName.charAt(0).toUpperCase() +
-                        labName.slice(1).replace(/-/g, ' ')
-                    }
-                  />
+                  <>
+                    <div className={classes.templateType}>
+                      {vmTypeSelectors.find(sel => sel.value === type).icon}
+                    </div>
+                    <ListItemText
+                      primary={
+                        description ||
+                        labName.charAt(0).toUpperCase() +
+                          labName.slice(1).replace(/-/g, ' ')
+                      }
+                      secondary={
+                        <>
+                          <b>ID: </b>
+                          {labName}
+                          <br />
+                        </>
+                      }
+                    />
+                  </>
                 </Tooltip>
                 {selectedIndex === i && deleteLabTemplate ? (
                   <Tooltip title="Delete template">
