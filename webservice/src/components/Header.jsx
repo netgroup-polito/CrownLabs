@@ -40,8 +40,10 @@ export default function Header(props) {
     name,
     logout,
     setIsLightTheme,
-    isLightTheme
+    isLightTheme,
+    isAlsoAdmin
   } = props;
+
   return (
     <div className={classes.header}>
       <AppBar position="static" color="primary">
@@ -74,11 +76,19 @@ export default function Header(props) {
               </IconButton>
             </Tooltip>
           </a>
-          <Tooltip title="Switch professor/student view">
-            <IconButton onClick={switchAdminView} color="secondary">
-              {isStudentView ? <ProfIcon /> : <HomeIcon />}
-            </IconButton>
-          </Tooltip>
+          {isAlsoAdmin && (
+            <Tooltip
+              title={
+                isStudentView
+                  ? 'Switch to professor view'
+                  : 'Switch to student view'
+              }
+            >
+              <IconButton onClick={switchAdminView} color="secondary">
+                {isStudentView ? <ProfIcon /> : <HomeIcon />}
+              </IconButton>
+            </Tooltip>
+          )}
           <Tooltip title="Toggle light/dark theme">
             <IconButton
               color="secondary"
