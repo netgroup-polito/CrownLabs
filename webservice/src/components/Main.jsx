@@ -64,6 +64,7 @@ const Main = props => {
           switchAdminView={changeAdminView}
           isLightTheme={isLightTheme}
           setIsLightTheme={setIsLightTheme}
+          isAlsoAdmin={adminGroups.length > 0}
         />
         <Body
           retrieveImageList={imageList}
