@@ -7,10 +7,13 @@ data:
   # Configure the DNS name associated with Grafana
   GF_SERVER_DOMAIN: grafana.crownlabs.polito.it
   GF_SERVER_ROOT_URL: https://grafana.crownlabs.polito.it
+  # Disable the user/password authentication
+  GF_AUTH_DISABLE_LOGIN_FORM: "true"
   # Enable OAuth authentication (i.e. with Keycloak)
   GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
-  # Allow access via OAuth only to already existing accounts
-  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "false"
+  GF_AUTH_OAUTH_AUTO_LOGIN: "true"
+  # Allow access via OAuth even if the account does not yet exist
+  GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
   # Client configuration in Keycloak (ID and Secret)
   GF_AUTH_GENERIC_OAUTH_CLIENT_ID: monitoring
   GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: <monitoring-secret>
