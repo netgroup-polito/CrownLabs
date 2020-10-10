@@ -425,7 +425,7 @@ func GetWebdavCredentials(c client.Client, ctx context.Context, log logr.Logger,
 }
 
 func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
-	for key, _ := range matchLabels {
+	for key := range matchLabels {
 		if _, ok := ns.Labels[key]; !ok {
 			return false
 		}

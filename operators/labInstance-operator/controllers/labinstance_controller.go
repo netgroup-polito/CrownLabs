@@ -246,7 +246,6 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 	if err := r.Status().Update(ctx, labInstance); err != nil {
 		log.Error(err, "unable to update LabInstance status")
 	}
-	return
 }
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
@@ -304,8 +303,6 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 		bootTime := readyTime.Sub(startTimeVM)
 		bootTimes.Observe(bootTime.Seconds())
 	}
-
-	return
 }
 
 func waitForConnection(log logr.Logger, host, port string) error {
