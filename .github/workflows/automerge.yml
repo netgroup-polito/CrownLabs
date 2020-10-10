@@ -1,6 +1,6 @@
-name: automerge
+name: Automerge
 on:
-  pull_request:
+  pull_request_target:
     types:
       - labeled
       - unlabeled
@@ -17,17 +17,20 @@ on:
     types:
       - completed
   status: {}
+
 jobs:
   automerge:
+    name: Automerge
     runs-on: ubuntu-latest
+
     steps:
-      - name: automerge
-        uses: "pascalgn/automerge-action@4536e8847eb62fe2f0ee52c8fa92d17aa97f932f"
+      - name: Automerge
+        uses: pascalgn/automerge-action@v0.12.0
         env:
           GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
           MERGE_LABELS: "automerge,!hold"
           MERGE_REMOVE_LABELS: "automerge"
           MERGE_METHOD: "merge"
-          MERGE_RETRY_SLEEP: "5000"  # 5 seconds
+          MERGE_RETRY_SLEEP: "10000"  # 10 seconds
           UPDATE_LABELS: "automerge,!hold"
           UPDATE_METHOD: "rebase"

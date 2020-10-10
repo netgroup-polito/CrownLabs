@@ -1,0 +1,79 @@
+name: Check linting
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  golang-lint:
+    name: Lint golang files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Laboratory Operator - Check linting
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.31
+          working-directory: operators/labInstance-operator
+          args: --timeout=600s --enable gosec,prealloc,gofmt,govet --skip-files "zz_generated.*.go" --skip-dirs "kubeVirt"
+
+
+  frontend-lint:
+    name: Lint the frontend files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Setup nodeJS
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+
+      - name: Install the packages necessary for lint checking
+        working-directory: ./webservice
+        run: npm run lint-setup
+
+      - name: Check linting
+        working-directory: ./webservice
+        run: npm run lint-check
+
+
+  markdown-lint:
+    name: Lint markdown files (check links validity)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Check the validity of the links in the documentation
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+
+
+  shell-lint:
+    name: Lint shell files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Run shellcheck
+        uses: azohra/shell-linter@v0.4.0
