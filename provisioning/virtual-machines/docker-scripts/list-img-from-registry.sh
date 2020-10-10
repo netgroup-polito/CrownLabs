@@ -14,4 +14,4 @@ auth='-u <username>:<password>'
 # Print on screen all the executed commands
 set -x
 
-curl $auth -ssL -k "https://${registry}/v2/_catalog"
+curl "$auth" -ssL -k "https://${registry}/v2/_catalog"

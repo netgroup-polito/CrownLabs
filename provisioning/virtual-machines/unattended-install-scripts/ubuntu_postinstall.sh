@@ -18,6 +18,7 @@
 # VirtualBox OSE distribution. VirtualBox OSE is distributed in the
 # hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
 #
+# shellcheck disable=SC2129
 
 set -x
 
@@ -42,14 +43,14 @@ if [ "$1" = "--need-target-bash" ]; then
         LD_LIBRARY_PATH="${MY_TARGET}/lib"
     fi
     for x in \
-        ${MY_TARGET}/lib \
-        ${MY_TARGET}/usr/lib \
-        ${MY_TARGET}/lib/*linux-gnu/ \
-        ${MY_TARGET}/lib32/ \
-        ${MY_TARGET}/lib64/ \
-        ${MY_TARGET}/usr/lib/*linux-gnu/ \
-        ${MY_TARGET}/usr/lib32/ \
-        ${MY_TARGET}/usr/lib64/ \
+        "${MY_TARGET}"/lib \
+        "${MY_TARGET}"/usr/lib \
+        "${MY_TARGET}"/lib/*linux-gnu/ \
+        "${MY_TARGET}"/lib32/ \
+        "${MY_TARGET}"/lib64/ \
+        "${MY_TARGET}"/usr/lib/*linux-gnu/ \
+        "${MY_TARGET}"/usr/lib32/ \
+        "${MY_TARGET}"/usr/lib64/ \
         ;
     do
         if [ -e "$x" ]; then LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${x}"; fi;
@@ -78,7 +79,7 @@ fi
 log_command()
 {
     echo "--------------------------------------------------" >> "${MY_LOGFILE}"
-    echo "** Date:      `date -R`" >> "${MY_LOGFILE}"
+    echo "** Date:      $(date -R)" >> "${MY_LOGFILE}"
     echo "** Executing: $*" >> "${MY_LOGFILE}"
     "$@" 2>&1 | tee -a "${MY_LOGFILE}"
     MY_TMP_EXITCODE="${PIPESTATUS[0]}"
@@ -124,7 +125,7 @@ chroot_which()
 #
 echo "******************************************************************************" >> "${MY_LOGFILE}"
 echo "** VirtualBox Unattended Guest Installation - Late installation actions" >> "${MY_LOGFILE}"
-echo "** Date:    `date -R`" >> "${MY_LOGFILE}"
+echo "** Date:    $(date -R)" >> "${MY_LOGFILE}"
 echo "** Started: $0 $*" >> "${MY_LOGFILE}"
 
 
@@ -133,6 +134,7 @@ echo "** Started: $0 $*" >> "${MY_LOGFILE}"
 #
 if [ -f /lib/chroot-setup.sh ]; then
     MY_HAVE_CHROOT_SETUP="yes"
+    # shellcheck disable=SC1091
     . /lib/chroot-setup.sh
     if chroot_setup; then
         echo "** chroot_setup: done" | tee -a "${MY_LOGFILE}"
@@ -197,7 +199,7 @@ log_command_in_target apt-get -y install openssh-server
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
 echo '** Installing packages for building kernel modules...' | tee -a "${MY_LOGFILE}"
 log_command_in_target apt-get -y install build-essential
-log_command_in_target apt-get -y install linux-headers-$(uname -r)
+log_command_in_target apt-get -y install "linux-headers-$(uname -r)"
 
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
 echo '** Installing VirtualBox Guest Additions...' | tee -a "${MY_LOGFILE}"
@@ -218,7 +220,7 @@ log_command_in_target test "${MY_CHROOT_CDROM}/vboxvalidationkit/linux/@@VBOX_IN
 log_command mkdir -p "${MY_TARGET}/opt/validationkit" "${MY_TARGET}/media/cdrom"
 log_command cp -R ${MY_CDROM_NOCHROOT}/vboxvalidationkit/* "${MY_TARGET}/opt/validationkit/"
 log_command chmod -R u+rw,a+xr "${MY_TARGET}/opt/validationkit/"
-if [ -e "${MY_TARGET}/usr/bin/chcon" -o -e "${MY_TARGET}/bin/chcon" -o -e "${MY_TARGET}/usr/sbin/chcon" -o -e "${MY_TARGET}/sbin/chcon" ]; then
+if [ -e "${MY_TARGET}/usr/bin/chcon" ] || [ -e "${MY_TARGET}/bin/chcon" ] || [ -e "${MY_TARGET}/usr/sbin/chcon" ] || [ -e "${MY_TARGET}/sbin/chcon" ]; then
     MY_IGNORE_EXITCODE=1
     log_command_in_target chcon -R -t usr_t "/opt/validationkit/"
     MY_IGNORE_EXITCODE=
@@ -304,7 +306,7 @@ fi
 # Log footer.
 #
 echo "******************************************************************************" >> "${MY_LOGFILE}"
-echo "** Date:            `date -R`" >> "${MY_LOGFILE}"
+echo "** Date:            $(date -R)" >> "${MY_LOGFILE}"
 echo "** Final exit code: ${MY_EXITCODE}" >> "${MY_LOGFILE}"
 echo "******************************************************************************" >> "${MY_LOGFILE}"
 

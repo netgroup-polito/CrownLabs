@@ -18,8 +18,8 @@ auth='-u <username>:<password>'
 # Tag of the image, e.g., 'latest'
 tag='<tag>'
 
-curl $auth -X DELETE -sI -k "https://${registry}/v2/${name}/manifests/$(
-  curl $auth -sI -k \
+curl "$auth" -X DELETE -sI -k "https://${registry}/v2/${name}/manifests/$(
+  curl "$auth" -sI -k \
     -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
     "https://${registry}/v2/${name}/manifests/${tag}" \
     | tr -d '\r' | sed -En 's/^Docker-Content-Digest: (.*)/\1/pi'
