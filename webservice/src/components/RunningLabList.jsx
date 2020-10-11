@@ -104,7 +104,7 @@ const adminSelectors = [
   }
 ];
 
-const ALL_VM_TYPES = '';
+export const ALL_VM_TYPES = '';
 export const vmTypeSelectors = [
   { text: 'All', icon: <AllIcon />, value: ALL_VM_TYPES },
   { text: 'GUI enabled', icon: <DesktopIcon />, value: vmTypes.GUI },
@@ -132,7 +132,10 @@ const RunningLabList = props => {
   });
 
   useEffect(() => {
-    localStorage.setItem(`orderData-${title}`, JSON.stringify(orderData));
+    localStorage.setItem(
+      `orderData-${title}-${isStudentView}`,
+      JSON.stringify(orderData)
+    );
   }, [orderData]);
 
   useEffect(() => {
@@ -151,17 +154,17 @@ const RunningLabList = props => {
           <ListSubheader className={classes.listSubHeader}>
             <div>{title}</div>
             <div className={classes.titleActions}>
-              <Selector
-                selectors={vmTypeSelectors}
-                value={vmType}
-                setValue={setVmType}
-              />
               <OrderSelector
                 selectors={isStudentView ? studentSelectors : adminSelectors}
                 setOrderData={setOrderData}
                 orderData={orderData}
               />
               <TextSelector value={textMatch} setValue={setTextMatch} />
+              <Selector
+                selectors={vmTypeSelectors}
+                value={vmType}
+                setValue={setVmType}
+              />
             </div>
           </ListSubheader>
         }
@@ -232,6 +235,7 @@ const RunningLabList = props => {
                   key={labName}
                   button
                   selected={selectedIndex === i}
+                  disableRipple
                   onClick={() => {
                     setSelectedIndex(i);
                   }}
