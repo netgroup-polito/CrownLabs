@@ -38,17 +38,30 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Frontend
+      - name: Load the example configuration
+        run: |
+          cat webservice/k8s-manifest-example.env >> $GITHUB_ENV
+
+      - name: Generate the Frontend manifest
+        uses: danielr1996/envsubst-action@1.0.0
+        with:
+          input: ./webservice/k8s-manifest.yaml.tmpl
+          output: ./webservice/k8s-manifest.yaml
+
+      - name: KubeScore - Frontend
         run: |
           docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
               --ignore-test=pod-networkpolicy,container-security-context \
-            /CrownLabs/webservice/kubernetes/deployment.yaml \
-            /CrownLabs/webservice/kubernetes/svc.yaml \
-            /CrownLabs/webservice/kubernetes/ingress-callback.yaml \
-            /CrownLabs/webservice/kubernetes/ingress-content.yaml
+            /CrownLabs/webservice/k8s-manifest.yaml
 
-      - name: Laboratory Operator
+      - name: Generate the Laboratory Operator manifest
+        uses: danielr1996/envsubst-action@1.0.0
+        with:
+          input: ./operators/labInstance-operator/k8s-manifest.yaml.tmpl
+          output: ./operators/labInstance-operator/k8s-manifest.yaml
+
+      - name: KubeScore - Laboratory Operator
         run: |
           docker run -v  ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
               --ignore-test=pod-networkpolicy \
-            /CrownLabs/operators/labInstance-operator/k8s/operator/deployment.yaml
+            /CrownLabs/operators/labInstance-operator/k8s-manifest.yaml

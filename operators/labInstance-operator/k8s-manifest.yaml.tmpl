@@ -1,12 +1,34 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE_LABOPERATOR}
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: operator-config
+  namespace: ${NAMESPACE_LABOPERATOR}
+data:
+  nextcloudBaseUrl: ${CM_NEXTCLOUD_URL}
+  oauth2ProxyImage: ${CM_OAUTH_PROXY_IMAGE}
+  oidcClientSecret: ${CM_OIDC_CLIENT_SECRET}
+  oidcProviderUrl: ${CM_OIDC_PROVIDER_URL}
+  webdavSecretName: ${CM_WEBDAV_SECRET}
+  websiteBaseUrl: ${HOST_NAME}
+  whitelistLabels: ${CM_WHITELIST_LABELS}
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     run: laboratory-operator
   name: laboratory-operator
+  namespace: ${NAMESPACE_LABOPERATOR}
 spec:
-  replicas: 1
+  replicas: ${REPLICAS_LABOPERATOR}
   selector:
     matchLabels:
       run: laboratory-operator
@@ -17,7 +39,7 @@ spec:
     spec:
       serviceAccountName: lab-operator
       containers:
-      - image: crownlabs/laboratory-operator:stable
+      - image: crownlabs/laboratory-operator:${IMAGE_TAG}
         imagePullPolicy: Always
         name: laboratory-operator
         command: ["/usr/bin/controller"]
