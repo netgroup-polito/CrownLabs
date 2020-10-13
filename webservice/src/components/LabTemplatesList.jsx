@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { makeStyles } from '@material-ui/core/styles';
+import makeStyles from '@material-ui/core/styles/makeStyles';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
@@ -15,6 +14,7 @@ import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
 import Selector from './Selector';
 import { vmTypeSelectors, ALL_VM_TYPES } from './RunningLabList';
+import ListItemIcons from './ListItemIcons';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
@@ -55,12 +55,6 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
-  },
-  startIcon: {
-    color: theme.palette.success.main
-  },
-  deleteIcon: {
-    color: theme.palette.error.main
   },
   templateType: {
     display: 'flex',
@@ -172,69 +166,67 @@ export default function LabTemplatesList(props) {
                   : a.labName.localeCompare(b.labName);
               return isDirUp ? sortResult : -sortResult;
             })
-            .map(({ labName, courseName, description, type }, i) => (
-              <ListItem
-                key={labName}
-                button
-                selected={selectedIndex === i}
-                disableRipple
-                onClick={() => {
-                  setSelectedIndex(i);
-                }}
-              >
-                <Tooltip title="Select it">
-                  <>
-                    <div className={classes.templateType}>
-                      {vmTypeSelectors.find(sel => sel.value === type).icon}
-                    </div>
-                    <ListItemText
-                      primary={
-                        description ||
-                        labName.charAt(0).toUpperCase() +
-                          labName.slice(1).replace(/-/g, ' ')
-                      }
-                      secondary={
-                        <>
-                          <b>ID: </b>
-                          {labName}
-                          <br />
-                        </>
-                      }
-                    />
-                  </>
-                </Tooltip>
-                {selectedIndex === i && deleteLabTemplate ? (
-                  <Tooltip title="Delete template">
-                    <IconButton
-                      className={classes.deleteIcon}
-                      onClick={e => {
-                        deleteLabTemplate(labName, courseName);
-                        setSelectedIndex(-1);
-                        e.stopPropagation(); // avoid triggering onClick on ListItem
-                      }}
-                    >
-                      <DeleteIcon fontSize="large" />
-                    </IconButton>
+            .map(({ labName, courseName, description, type }, i) => {
+              const templateIcons = [
+                {
+                  color: 'error',
+                  condition: selectedIndex === i && deleteLabTemplate,
+                  onClick: e => {
+                    deleteLabTemplate(labName, courseName);
+                    setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
+                  },
+                  title: 'Delete template',
+                  icon: DeleteIcon
+                },
+                {
+                  condition: selectedIndex === i,
+                  title: 'Start template',
+                  color: 'success',
+                  onClick: e => {
+                    start(labName, courseName);
+                    setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick of ListIstem
+                  },
+                  icon: PlayCircleOutlineIcon
+                }
+              ];
+
+              return (
+                <ListItem
+                  key={labName}
+                  button
+                  selected={selectedIndex === i}
+                  disableRipple
+                  onClick={() => {
+                    setSelectedIndex(i);
+                  }}
+                >
+                  <Tooltip title="Select it">
+                    <>
+                      <div className={classes.templateType}>
+                        {vmTypeSelectors.find(sel => sel.value === type).icon}
+                      </div>
+                      <ListItemText
+                        primary={
+                          description ||
+                          labName.charAt(0).toUpperCase() +
+                            labName.slice(1).replace(/-/g, ' ')
+                        }
+                        secondary={
+                          <>
+                            <b>ID: </b>
+                            {labName}
+                            <br />
+                          </>
+                        }
+                      />
+                    </>
                   </Tooltip>
-                ) : null}
-                {selectedIndex === i && start ? (
-                  <Tooltip title="Create VM">
-                    <IconButton
-                      className={classes.startIcon}
-                      key={labName}
-                      variant="dark"
-                      onClick={e => {
-                        start(labName, courseName);
-                        setSelectedIndex(-1);
-                        e.stopPropagation(); // avoid triggering onClick of ListIstem
-                      }}
-                    >
-                      <PlayCircleOutlineIcon fontSize="large" />
-                    </IconButton>
-                  </Tooltip>
-                ) : null}
-              </ListItem>
-            ))}
+                  <ListItemIcons icons={templateIcons} />
+                </ListItem>
+              );
+            })}
         </List>
       </ClickAwayListener>
     </Paper>
