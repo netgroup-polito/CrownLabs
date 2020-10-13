@@ -20,6 +20,7 @@ import TextSelector from './TextSelector';
 import Selector from './Selector';
 import { vmTypes } from '../services/ApiManager';
 import ListItemIcons from './ListItemIcons';
+import ListItemFields from './ListItemFields';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -220,6 +221,12 @@ const RunningLabList = props => {
                   ? classes.activeLab
                   : classes.errorLab;
 
+              const instanceFields = {
+                User: studentId,
+                Created: utc(creationTime).local().format('DD/MM/YY HH:mm:ss'),
+                IP: ip
+              };
+
               const instanceIcons = [
                 {
                   color: 'error',
@@ -284,29 +291,7 @@ const RunningLabList = props => {
                             .slice(1)
                             .replace(/-/g, ' ')}`
                     }
-                    secondary={
-                      <>
-                        {studentId && (
-                          <>
-                            <b>User: </b>
-                            {studentId}
-                            <br />
-                          </>
-                        )}
-                        <>
-                          <b>Created: </b>
-                          {utc(creationTime)
-                            .local()
-                            .format('DD/MM/YY HH:mm:ss')}
-                          <br />
-                        </>
-                        <>
-                          <b>IP: </b>
-                          {ip}
-                          <br />
-                        </>
-                      </>
-                    }
+                    secondary={<ListItemFields fields={instanceFields} />}
                   />
                   <ListItemIcons icons={instanceIcons} />
                 </ListItem>

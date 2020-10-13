@@ -15,6 +15,7 @@ import TextSelector from './TextSelector';
 import Selector from './Selector';
 import { vmTypeSelectors, ALL_VM_TYPES } from './RunningLabList';
 import ListItemIcons from './ListItemIcons';
+import ListItemFields from './ListItemFields';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
@@ -167,6 +168,10 @@ export default function LabTemplatesList(props) {
               return isDirUp ? sortResult : -sortResult;
             })
             .map(({ labName, courseName, description, type }, i) => {
+              const templateFields = {
+                ID: labName
+              };
+
               const templateIcons = [
                 {
                   color: 'error',
@@ -213,13 +218,7 @@ export default function LabTemplatesList(props) {
                           labName.charAt(0).toUpperCase() +
                             labName.slice(1).replace(/-/g, ' ')
                         }
-                        secondary={
-                          <>
-                            <b>ID: </b>
-                            {labName}
-                            <br />
-                          </>
-                        }
+                        secondary={<ListItemFields fields={templateFields} />}
                       />
                     </>
                   </Tooltip>
