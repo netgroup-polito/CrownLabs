@@ -13,7 +13,9 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
 import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
-import { vmTypeSelectors } from './RunningLabList';
+import Selector from './Selector';
+import { vmTypeSelectors, ALL_VM_TYPES } from './RunningLabList';
+
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -79,7 +81,7 @@ const selectors = [{ text: 'Name', icon: <SortByAlphaIcon />, value: 'az' }];
 export default function LabTemplatesList(props) {
   const classes = useStyles();
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const { labs, start, isAdmin, deleteLabTemplate } = props;
+  const { labs, start, isStudentView, deleteLabTemplate } = props;
   const courseNames = Array.from(labs.keys());
   const labList = courseNames.reduce(
     (acc, courseName) => [
@@ -97,14 +99,26 @@ export default function LabTemplatesList(props) {
   const [textMatch, setTextMatch] = useState('');
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(
-      localStorage.getItem(`orderData-${title}`)
+      localStorage.getItem(`orderData-${title}-${isStudentView}`)
     );
     return prevOrderData || { isDirUp: true, order: 'az' };
   });
 
   useEffect(() => {
-    localStorage.setItem(`orderData-${title}`, JSON.stringify(orderData));
+    localStorage.setItem(
+      `orderData-${title}-${isStudentView}`,
+      JSON.stringify(orderData)
+    );
   }, [orderData]);
+
+  const [vmType, setVmType] = useState(() => {
+    const prevVmType = JSON.parse(localStorage.getItem(`vmType`));
+    return prevVmType || ALL_VM_TYPES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`vmType`, JSON.stringify(vmType));
+  }, [vmType]);
 
   return (
     <Paper elevation={6} className={classes.paper}>
@@ -125,11 +139,20 @@ export default function LabTemplatesList(props) {
                   orderData={orderData}
                 />
                 <TextSelector value={textMatch} setValue={setTextMatch} />
+                <Selector
+                  selectors={vmTypeSelectors}
+                  value={vmType}
+                  setValue={setVmType}
+                />
               </div>
             </ListSubheader>
           }
         >
           {labList
+            .filter(({ type }) => {
+              if (vmType === ALL_VM_TYPES) return true;
+              return type === vmType;
+            })
             .filter(({ labName, description }) => {
               if (textMatch !== '') {
                 const textMatchLower = textMatch.toLowerCase();
@@ -154,7 +177,7 @@ export default function LabTemplatesList(props) {
                 key={labName}
                 button
                 selected={selectedIndex === i}
-                disableRipple={isAdmin}
+                disableRipple
                 onClick={() => {
                   setSelectedIndex(i);
                 }}

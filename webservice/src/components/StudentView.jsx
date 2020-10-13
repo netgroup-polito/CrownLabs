@@ -19,7 +19,7 @@ export default function StudentView(props) {
   const { templateLabs, start, instanceLabs, connect, stop } = props;
   return (
     <div className={classes.labPapers}>
-      <LabTemplatesList labs={templateLabs} start={start} />
+      <LabTemplatesList labs={templateLabs} start={start} isStudentView />
       <LabInstancesList
         runningLabs={instanceLabs}
         connect={connect}
