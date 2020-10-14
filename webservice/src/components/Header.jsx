@@ -5,6 +5,7 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
+import EqualizerIcon from '@material-ui/icons/Equalizer';
 import Light from '@material-ui/icons/Brightness7';
 import Dark from '@material-ui/icons/Brightness4';
 import ProfIcon from '@material-ui/icons/School';
@@ -73,6 +74,17 @@ export default function Header(props) {
             <Tooltip title="MyDrive">
               <IconButton color="secondary">
                 <FolderSharedIcon />
+              </IconButton>
+            </Tooltip>
+          </a>
+          <a
+            href="https://grafana.crownlabs.polito.it"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Tooltip title="Grafana">
+              <IconButton color="secondary">
+                <EqualizerIcon />
               </IconButton>
             </Tooltip>
           </a>
