@@ -42,6 +42,8 @@ This command install all the dependencies and builds the service which now can b
 
 Export now the 5 variables as described [before](#variable-exporting):
 
+<!-- markdown-link-check-disable -->
+
 ```bash
 export OIDC_PROVIDER_URL=https://2.2.2.2:4444
 export OIDC_CLIENT_ID=xxxxxxx
@@ -50,9 +52,12 @@ export OIDC_REDIRECT_URI=http://localhost:8000
 export APISERVER_URL=https://1.1.1.1:3333
 ```
 
+ <!-- markdown-link-check-enable-->
+
 To run the service, type `npm start`.
 
 <!-- markdown-link-check-disable-next-line -->
+
 Visit http://localhost:8000 or wherever you decided to host your website (also according to the OIDC_REDIRECT_URI you have set).
 
 ## Docker installation
@@ -88,6 +93,7 @@ server {
 Then add the command `COPY nginx.conf /etc/nginx/conf.d/default.conf` to the dockerfile.
 
 <!-- markdown-link-check-disable-next-line -->
+
 If you are going to run it locally, please set OIDC_REDIRECT_URI=http://localhost:8000, while all the other variable are platform-independent.
 
 To build, type `docker build -t <tag> .` from this directory.
@@ -97,6 +103,7 @@ Run the image. If running locally, map the port 8000 of your host to the port 80
 `docker run -p 8000:80 --rm <image_tag>`
 
 <!-- markdown-link-check-disable-next-line -->
+
 Visit http://localhost:8000 or https://crownlabs.polito.it .
 
 ## How it works
@@ -170,4 +177,7 @@ If you want to extend or improve the provided docker, you should refer to the [D
 
 #### Webpack
 
-The configuration file used by WebPack is [here](./webpack.config.js);
+The configuration file used by WebPack are:
+
+- [Docker](./webpack_docker.config.js)
+- [Local](./webpack_local.config.js) - same as `Docker` but with environment variables injection
