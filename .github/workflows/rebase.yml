@@ -1,16 +1,13 @@
 name: Rebase
 on:
-  issue_comment:
+  repository_dispatch:
     types:
-      - created
+      - rebase-command
 
 jobs:
   rebase:
     name: Rebase
     runs-on: ubuntu-latest
-    if: |
-      github.event.issue.pull_request != '' &&
-      contains(github.event.comment.body, '/rebase')
 
     steps:
       - name: Checkout
@@ -31,19 +28,10 @@ jobs:
             echo ::set-output name=reaction::confused
         if: always()
 
-      - name: Report status as comment
+      - name: Report status as reaction
         uses: peter-evans/create-or-update-comment@v1
         with:
           token: ${{ secrets.CI_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            Rebase status: ${{ job.status }}!
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
           reactions: '${{ steps.rebase_reaction.outputs.reaction }}'
         if: always()
-
-  always_job:
-    name: Always run job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Always run
-        run: echo "This job is used to prevent the workflow to fail when all other jobs are skipped."
