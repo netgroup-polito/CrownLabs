@@ -1,0 +1,145 @@
+name: Build and publish the docker images
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  configure:
+    name: Preliminary configuration
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.configure.outputs.ref }}
+      repo-suffix: ${{ steps.configure.outputs.repo-suffix }}
+      repo-push: ${{ steps.configure.outputs.repo-push }}
+
+    steps:
+      - name: Configure
+        id: configure
+        run: |
+          # The ref of the commit to checkout (do not use the merge commit if pull request)
+          [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]] && \
+            echo "::set-output name=ref::${{ github.event.pull_request.head.sha }}" || \
+            echo "::set-output name=ref::${{ github.sha }}"
+
+          # The suffix to append to the repository name
+          [[ "${{ github.ref }}" == 'refs/heads/master' ]] && \
+            echo "::set-output name=repo-suffix::" || \
+            echo "::set-output name=repo-suffix::-dev"
+
+          # Whether to push the resulting image to DockerHub
+          [[ "${{ github.event.repository.full_name }}" == 'netgroup-polito/CrownLabs' ]] && \
+            echo "::set-output name=repo-push::true" || \
+            echo "::set-output name=repo-push::false"
+
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    needs: configure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.configure.outputs.ref }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: needs.configure.outputs.repo-push == 'true'
+
+      - name: Set the Docker repository name
+        id: repo-name
+        run: |
+          echo "::set-output name=repo-name::website${{ needs.configure.outputs.repo-suffix }}"
+
+      - name: Build and Push the Frontend image
+        uses: docker/build-push-action@v2
+        with:
+          tags: |
+            crownlabs/${{ steps.repo-name.outputs.repo-name }}:latest
+            crownlabs/${{ steps.repo-name.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+          push: ${{ needs.configure.outputs.repo-push }}
+          file: ./webservice/Dockerfile
+          context: ./webservice
+
+
+  laboratory-operator:
+    name: Laboratory Operator
+    runs-on: ubuntu-latest
+    needs: configure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.configure.outputs.ref }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: needs.configure.outputs.repo-push == 'true'
+
+      - name: Set the Docker repository name
+        id: repo-name
+        run: |
+          echo "::set-output name=repo-name::laboratory-operator${{ needs.configure.outputs.repo-suffix }}"
+
+      - name: Build and Push the Laboratory operator image
+        uses: docker/build-push-action@v2
+        with:
+          tags: |
+            crownlabs/${{ steps.repo-name.outputs.repo-name }}:latest
+            crownlabs/${{ steps.repo-name.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+          push: ${{ needs.configure.outputs.repo-push }}
+          file: ./operators/labInstance-operator/Dockerfile
+          context: ./operators/labInstance-operator/
+
+
+  trigger-events:
+    name: Trigger events upon successful push to master
+    runs-on: ubuntu-latest
+    needs:
+      - configure
+      - frontend
+      - laboratory-operator
+    if: |
+      github.event.repository.full_name == 'netgroup-polito/CrownLabs' &&
+      github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Send the Slack notification
+        uses: 8398a7/action-slack@v3.8.0
+        with:
+          status: ${{ job.status }}
+          author_name: CrownLabs CI
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+
+      - name: Notify Event to CrownOps
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          repository: netgroup-polito/CrownOps
+          event-type: preprod-event
+          client_payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'

@@ -1,7 +1,4 @@
-#!/bin/sh
-
-# Vars
-NOVNC_PORT=6080
+#!/bin/bash
 
 # Paths
 VNC_PATH="/home/${USER}/.vnc"
@@ -17,7 +14,7 @@ PNE_SERVICE="prometheus_node_exporter.service"
 if ! test -f /usr/share/xsessions/xfce.desktop; then
     echo "It looks like you don't have xfce installed. To proceed you need to install it."
     while true; do
-        read -p "Do you want to install it now? (y/n) " yn
+        read -p -r "Do you want to install it now? (y/n) " yn
         case $yn in
             [Yy]* ) sudo apt-get install -y xfce4; break;;
             [Nn]* ) exit 0;;
@@ -38,7 +35,7 @@ sudo apt-get install -y openssh-server cloud-init python-numpy
 # Install tigervnc
 # TigerVNC is the vncserver of choice
 wget -qO- https://dl.bintray.com/tigervnc/stable/tigervnc-1.10.1.x86_64.tar.gz | sudo tar xz --strip 1 -C /
-mkdir -p $VNC_PATH
+mkdir -p "$VNC_PATH"
 
 # Set vnc password
 # @featureremoved
@@ -76,10 +73,10 @@ WantedBy=multi-user.target
 EOT
 
 # Install NoVNC
-sudo mkdir -p $NOVNC_PATH/utils/websockify
+sudo mkdir -p "$NOVNC_PATH/utils/websockify"
 
-wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.3-crown.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH
-wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C $NOVNC_PATH/utils/websockify
+wget -qO- https://github.com/netgroup-polito/noVNC/archive/v1.1.3-crown.tar.gz | sudo tar xz --strip 1 -C "$NOVNC_PATH"
+wget -qO- https://github.com/novnc/websockify/archive/v0.9.0.tar.gz | sudo tar xz --strip 1 -C "$NOVNC_PATH/utils/websockify"
 
 # Create the service for NoVNC
 sudo tee "${SYSTEMD_PATH}/${NOVNC_SERVICE}" > /dev/null <<EOT
@@ -100,7 +97,7 @@ WantedBy=multi-user.target
 EOT
 
 # Link to NoVNC landing page for easy url access
-sudo ln -s $NOVNC_PATH/vnc.html $NOVNC_PATH/index.html
+sudo ln -s "$NOVNC_PATH/vnc.html" "$NOVNC_PATH/index.html"
 
 # Install prometheus node exporter
 # This package allows to export the node information using the 9100 TCP port
@@ -129,7 +126,7 @@ EOT
 sudo apt-get install -y debconf
 echo 'davfs2 davfs2/suid_file boolean true' | sudo debconf-set-selections
 sudo apt-get install -y davfs2
-sudo adduser $USER davfs2
+sudo adduser "$USER" davfs2
 
 # Enable services
 sudo systemctl daemon-reload

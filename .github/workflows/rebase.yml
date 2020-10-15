@@ -1,18 +1,22 @@
 name: Rebase
 on:
   issue_comment:
-    types: [created]
+    types:
+      - created
+
 jobs:
   rebase:
     name: Rebase
-    if: github.event.issue.pull_request != '' && contains(github.event.comment.body, '/rebase')
     runs-on: ubuntu-latest
+    if: |
+      github.event.issue.pull_request != '' &&
+      contains(github.event.comment.body, '/rebase')
 
     steps:
-      - uses: actions/checkout@master
+      - name: Checkout
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
-          token: ${{ secrets.CI_TOKEN }}
 
       - name: Automatic rebase
         uses: cirrus-actions/rebase@1.3

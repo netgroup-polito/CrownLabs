@@ -1,0 +1,67 @@
+name: Code testing
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  laboratory-operator:
+    name: Laboratory Operator
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.15
+
+      - name: Perform the tests
+        working-directory: operators/labInstance-operator/
+        run: |
+          go test ./pkg/...
+
+
+  kubernetes-manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Load the example configuration
+        run: |
+          cat webservice/k8s-manifest-example.env >> $GITHUB_ENV
+
+      - name: Generate the Frontend manifest
+        uses: danielr1996/envsubst-action@1.0.0
+        with:
+          input: ./webservice/k8s-manifest.yaml.tmpl
+          output: ./webservice/k8s-manifest.yaml
+
+      - name: KubeScore - Frontend
+        run: |
+          docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
+              --ignore-test=pod-networkpolicy,container-security-context \
+            /CrownLabs/webservice/k8s-manifest.yaml
+
+      - name: Generate the Laboratory Operator manifest
+        uses: danielr1996/envsubst-action@1.0.0
+        with:
+          input: ./operators/labInstance-operator/k8s-manifest.yaml.tmpl
+          output: ./operators/labInstance-operator/k8s-manifest.yaml
+
+      - name: KubeScore - Laboratory Operator
+        run: |
+          docker run -v  ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
+              --ignore-test=pod-networkpolicy \
+            /CrownLabs/operators/labInstance-operator/k8s-manifest.yaml
