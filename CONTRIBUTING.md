@@ -22,4 +22,6 @@ When creating PRs and issues follow the repo's guidelines. Use meaningful messag
 
 ## PR merging guidelines
 
-An important note on our PR management. We use a bot to perform merges into master so there is no need to do it yourself. Once a PR with the *automerge* label (added by default to every PR) has 2 approving reviews and all check are successful, it will be automatically merged into master. In case this behavior is not desired, just remove the *automerge* label or override it with the *hold* label. If your PR is behind master and it fails to merge, **don't** use the GitHub button to merge the current master in your PR. Instead, perform a rebase on your local machine or add a `/rebase` line to your PR description or in a follow-up comment, this will force the bot to do the rebase for you (if no conflicts are present).
+Before a PR can be merged to the master branch, two approving reviews and all successful checks are required. Then, once a PR is ready to be merged, this action can be performed by any contributor with write access to the repository, either manually or issuing a `/merge` comment to the PR itself.
+
+If your PR is behind master and it fails to merge, **don't** use the GitHub button to merge the current master in your PR. Instead, perform a rebase on your local machine or issue a `/rebase` comment to the PR itself. This will force the bot to do the rebase for you (if no conflicts are present).
