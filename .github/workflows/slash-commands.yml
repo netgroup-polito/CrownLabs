@@ -25,5 +25,13 @@ jobs:
               {
                 "command": "rebase",
                 "permission": "none"
+              },
+              {
+                "command": "deploy-staging",
+                "permission": "write"
+              },
+              {
+                "command": "undeploy-staging",
+                "permission": "write"
               }
             ]

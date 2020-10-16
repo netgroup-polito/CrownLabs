@@ -8,6 +8,9 @@ on:
       - opened
       - reopened
       - synchronize
+  repository_dispatch:
+    types:
+      - deploy-staging-command
 
 jobs:
   configure:
@@ -24,8 +27,11 @@ jobs:
         run: |
           # The ref of the commit to checkout (do not use the merge commit if pull request)
           [[ "${{ github.event_name }}" == "pull_request" ]] && \
-            echo "::set-output name=ref::${{ github.event.pull_request.head.sha }}" || \
-            echo "::set-output name=ref::${{ github.sha }}"
+            echo "::set-output name=ref::${{ github.event.pull_request.head.sha }}" || { \
+            [[ "${{ github.event_name }}" == "repository_dispatch" ]] && \
+              echo "::set-output name=ref::${{ github.event.client_payload.pull_request.head.sha }}" || \
+              echo "::set-output name=ref::${{ github.sha }}"
+            }
 
           # The suffix to append to the repository name
           [[ "${{ github.ref }}" == "refs/heads/master" ]] && \
@@ -115,7 +121,7 @@ jobs:
           context: ./operators/labInstance-operator/
 
 
-  trigger-events:
+  trigger-events-master:
     name: Trigger events upon successful push to master
     runs-on: ubuntu-latest
     needs:
@@ -145,3 +151,33 @@ jobs:
           repository: netgroup-polito/CrownOps
           event-type: preprod-event
           client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
+
+  trigger-events-deploy-staging:
+    name: Trigger events upon /deploy-staging comment
+    runs-on: ubuntu-latest
+    needs:
+      - configure
+      - frontend
+      - laboratory-operator
+    if: github.event_name == 'repository_dispatch'
+
+    steps:
+      - name: Notify Event to CrownOps
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          repository: netgroup-polito/CrownOps
+          event-type: deploy-staging-event
+          client-payload: |
+            {
+              "repository": "${{ github.repository }}",
+              "pr-number": "${{ github.event.client_payload.github.payload.issue.number }}",
+              "tag": "${{ needs.configure.outputs.ref }}"
+            }
+
+      - name: Report status as reaction
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          reactions: 'hooray'

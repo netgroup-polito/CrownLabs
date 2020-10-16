@@ -20,9 +20,32 @@ data:
   whitelistLabels: ${CM_WHITELIST_LABELS}
 
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lab-operator
+  namespace: ${NAMESPACE_LABOPERATOR}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ${LABOPERATOR_CRB_NAME}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crownlabs-lab-operator
+subjects:
+  - kind: ServiceAccount
+    name: lab-operator
+    namespace: ${NAMESPACE_LABOPERATOR}
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
   labels:
     run: laboratory-operator
   name: laboratory-operator
@@ -39,7 +62,7 @@ spec:
     spec:
       serviceAccountName: lab-operator
       containers:
-      - image: crownlabs/laboratory-operator:${IMAGE_TAG}
+      - image: crownlabs/laboratory-operator${IMAGE_SUFFIX}:${IMAGE_TAG}
         imagePullPolicy: Always
         name: laboratory-operator
         command: ["/usr/bin/controller"]

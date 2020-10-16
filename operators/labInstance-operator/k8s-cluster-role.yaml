@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-lab-operator
+rules:
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["labinstances","labinstances/status"]
+  verbs: ["get","list","watch","create","update","patch","delete"]
+
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["labtemplates"]
+  verbs: ["get","list","watch"]
+
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get","list","watch"]
+
+- apiGroups: [""]
+  resources: ["secrets","services","events"]
+  verbs: ["get","list","watch","create"]
+
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get","list","watch","create"]
+
+- apiGroups: ["networking.k8s.io","extensions"]
+  resources: ["ingresses"]
+  verbs: ["get","list","watch","create"]
+
+- apiGroups: ["kubevirt.io"]
+  resources: ["virtualmachineinstances"]
+  verbs: ["get","list","watch","create"]

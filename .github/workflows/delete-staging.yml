@@ -1,0 +1,41 @@
+name: Delete the staging environment
+on:
+  pull_request_target:
+    types:
+      - closed
+  repository_dispatch:
+    types:
+      - undeploy-staging-command
+
+jobs:
+  dispatch-deletion-request:
+    name: Dispatch the deletion request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the PR number
+        id: pr-number
+        run: |
+          [[ "${{ github.event_name }}" == "pull_request_target" ]] && \
+            echo "::set-output name=number::${{ github.event.pull_request.number }}" || \
+            echo "::set-output name=number::${{ github.event.client_payload.github.payload.issue.number }}"
+
+      - name: Notify Event to CrownOps
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          repository: netgroup-polito/CrownOps
+          event-type: undeploy-staging-event
+          client-payload: |
+            {
+              "repository": "${{ github.repository }}",
+              "pr-number": "${{ steps.pr-number.outputs.number }}"
+            }
+
+      - name: Report status as reaction
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
+          reactions: 'hooray'
+        if: github.event_name == 'repository_dispatch'

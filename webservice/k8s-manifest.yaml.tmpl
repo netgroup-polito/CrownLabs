@@ -21,6 +21,8 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
   labels:
     app: frontend
   name: frontend
@@ -36,7 +38,7 @@ spec:
         app: frontend
     spec:
       containers:
-        - image: crownlabs/frontend:${IMAGE_TAG}
+        - image: crownlabs/frontend${IMAGE_SUFFIX}:${IMAGE_TAG}
           imagePullPolicy: Always
           name: frontend
           securityContext:
