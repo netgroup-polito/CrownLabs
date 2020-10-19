@@ -23,17 +23,18 @@ jobs:
         id: configure
         run: |
           # The ref of the commit to checkout (do not use the merge commit if pull request)
-          [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]] && \
+          [[ "${{ github.event_name }}" == "pull_request" ]] && \
             echo "::set-output name=ref::${{ github.event.pull_request.head.sha }}" || \
             echo "::set-output name=ref::${{ github.sha }}"
 
           # The suffix to append to the repository name
-          [[ "${{ github.ref }}" == 'refs/heads/master' ]] && \
+          [[ "${{ github.ref }}" == "refs/heads/master" ]] && \
             echo "::set-output name=repo-suffix::" || \
             echo "::set-output name=repo-suffix::-dev"
 
-          # Whether to push the resulting image to DockerHub
-          [[ "${{ github.event.repository.full_name }}" == 'netgroup-polito/CrownLabs' ]] && \
+          # Do not push the resulting images to DockerHub if the pull request is from a fork
+          [[ "${{ github.event_name }}" != "pull_request" || \
+             "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]] && \
             echo "::set-output name=repo-push::true" || \
             echo "::set-output name=repo-push::false"
 
@@ -63,7 +64,7 @@ jobs:
       - name: Set the Docker repository name
         id: repo-name
         run: |
-          echo "::set-output name=repo-name::website${{ needs.configure.outputs.repo-suffix }}"
+          echo "::set-output name=repo-name::frontend${{ needs.configure.outputs.repo-suffix }}"
 
       - name: Build and Push the Frontend image
         uses: docker/build-push-action@v2
@@ -122,7 +123,8 @@ jobs:
       - frontend
       - laboratory-operator
     if: |
-      github.event.repository.full_name == 'netgroup-polito/CrownLabs' &&
+      github.event_name == 'push' &&
+      github.event.repository.full_name == github.repository &&
       github.ref == 'refs/heads/master'
 
     steps:
@@ -142,4 +144,4 @@ jobs:
           token: ${{ secrets.CI_TOKEN }}
           repository: netgroup-polito/CrownOps
           event-type: preprod-event
-          client_payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
+          client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'

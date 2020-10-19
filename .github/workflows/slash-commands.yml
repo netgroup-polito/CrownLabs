@@ -1,0 +1,22 @@
+name: Dispatch Slash Commands
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  dispatch:
+    name: Dispatch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dispatch Slash Commands
+        uses: peter-evans/slash-command-dispatch@v2
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          reaction-token: ${{ secrets.CI_TOKEN }}
+          issue-type: pull-request
+          permission: write
+          commands: |
+            merge
+            rebase

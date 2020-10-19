@@ -85,4 +85,5 @@ jobs:
           token: ${{ secrets.CI_TOKEN }}
           repository: netgroup-polito/CrownOps
           event-type: release-event
-          client_payload: '{"version": "${{ steps.version.outputs.version }}"}'
+          client-payload: '{"version": "${{ steps.version.outputs.version }}"}'
+
