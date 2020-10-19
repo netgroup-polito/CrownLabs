@@ -1,0 +1,8 @@
+{
+  "changelog": {
+    "repo": "netgroup-polito/CrownLabs",
+    "ignoreCommitters": [
+      "kingmakerbot"
+    ]
+  }
+}
