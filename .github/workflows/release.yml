@@ -40,9 +40,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           tags: |
-            crownlabs/website:latest
-            crownlabs/website:stable
-            crownlabs/website:${{ steps.version.outputs.version }}
+            crownlabs/frontend:latest
+            crownlabs/frontend:stable
+            crownlabs/frontend:${{ steps.version.outputs.version }}
           push: true
           file: ./webservice/Dockerfile
           context: ./webservice
