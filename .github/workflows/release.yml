@@ -13,6 +13,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          # The changelog generation requires the entire history
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Get the CrownLabs version to be released
@@ -86,4 +88,3 @@ jobs:
           repository: netgroup-polito/CrownOps
           event-type: release-event
           client-payload: '{"version": "${{ steps.version.outputs.version }}"}'
-
