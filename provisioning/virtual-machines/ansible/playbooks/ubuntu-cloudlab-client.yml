@@ -7,5 +7,5 @@
   - role: ../roles/ubuntu-pre
   - role: ../roles/crownlabs
     when: crownlabs_mode
-  - role: ../roles/ansible
+  - role: ../roles/cloudlab-client
   - role: ../roles/ubuntu-post
