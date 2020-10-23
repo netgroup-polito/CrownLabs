@@ -95,7 +95,7 @@ export default function LabTemplatesList(props) {
     ],
     []
   );
-  const title = 'Available Labs';
+  const title = 'Available images';
   const [textMatch, setTextMatch] = useState('');
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(
