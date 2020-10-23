@@ -35,7 +35,7 @@ export default function LabInstancesList(props) {
         labList={runningLabList}
         stop={stop}
         connect={connect}
-        title="Running labs"
+        title="Running images"
         isStudentView={isStudentView}
       />
     </Paper>
