@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
@@ -19,8 +17,7 @@ import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
 import Selector from './Selector';
 import { vmTypes } from '../services/ApiManager';
-import ListItemIcons from './ListItemIcons';
-import ListItemFields from './ListItemFields';
+import ListItem from './ListItem/ListItem';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -41,13 +38,6 @@ const useStyles = makeStyles(theme => ({
     fontSize: '30px',
     padding: theme.spacing(0, 1)
   },
-  buttonGroup: {
-    width: '100%',
-    padding: theme.spacing(1),
-    position: 'fixed',
-    bottom: '0%',
-    left: '10%'
-  },
   labColorTag: {
     width: 40,
     height: '100%',
@@ -66,19 +56,10 @@ const useStyles = makeStyles(theme => ({
   rotating: {
     animation: 'rotate 1.5s ease-in-out infinite'
   },
-  listTitle: {
-    fontSize: 30
-  },
   titleActions: {
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
-  },
-  instanceInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    color: theme.palette.info.main
   }
 }));
 
@@ -264,37 +245,30 @@ const RunningLabList = props => {
               return (
                 <ListItem
                   key={labName}
-                  button
-                  selected={selectedIndex === i}
-                  disableRipple
+                  primary={
+                    description
+                      ? `${description} - ${labCode}`
+                      : `${labName.charAt(0).toUpperCase()}${labName
+                          .slice(1)
+                          .replace(/-/g, ' ')}`
+                  }
+                  fields={instanceFields}
+                  icons={instanceIcons}
                   onClick={() => {
                     setSelectedIndex(i);
                   }}
-                >
-                  <div className={classes.instanceInfo}>
+                  type={type}
+                  isSelected={selectedIndex === i}
+                  showType={vmType === ALL_VM_TYPES}
+                  vmTypeSelectors={vmTypeSelectors}
+                  customInfo={
                     <div
                       className={`${classes.labColorTag} ${statusClassName}`}
                     >
                       &nbsp;
                     </div>
-                    {vmType === ALL_VM_TYPES && type && (
-                      <>
-                        {vmTypeSelectors.find(sel => sel.value === type).icon}
-                      </>
-                    )}
-                  </div>
-                  <ListItemText
-                    primary={
-                      description
-                        ? `${description} - ${labCode}`
-                        : `${labName.charAt(0).toUpperCase()}${labName
-                            .slice(1)
-                            .replace(/-/g, ' ')}`
-                    }
-                    secondary={<ListItemFields fields={instanceFields} />}
-                  />
-                  <ListItemIcons icons={instanceIcons} />
-                </ListItem>
+                  }
+                />
               );
             }
           )}

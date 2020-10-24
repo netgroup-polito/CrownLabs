@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import makeStyles from '@material-ui/core/styles/makeStyles';
 import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import Tooltip from '@material-ui/core/Tooltip';
 import Paper from '@material-ui/core/Paper';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -14,8 +11,7 @@ import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
 import Selector from './Selector';
 import { vmTypeSelectors, ALL_VM_TYPES } from './RunningLabList';
-import ListItemIcons from './ListItemIcons';
-import ListItemFields from './ListItemFields';
+import ListItem from './ListItem/ListItem';
 
 /* The style for the ListItem */
 const useStyles = makeStyles(theme => ({
@@ -38,13 +34,6 @@ const useStyles = makeStyles(theme => ({
       margin: theme.spacing(2)
     }
   },
-  listSection: {
-    backgroundColor: 'inherit'
-  },
-  ul: {
-    backgroundColor: 'inherit',
-    padding: 0
-  },
   listSubHeader: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -56,13 +45,6 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
-  },
-  templateType: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    color: theme.palette.info.main,
-    width: theme.spacing(7)
   }
 }));
 
@@ -206,24 +188,18 @@ export default function LabTemplatesList(props) {
                   onClick={() => {
                     setSelectedIndex(i);
                   }}
-                >
-                  <Tooltip title="Select it">
-                    <>
-                      <div className={classes.templateType}>
-                        {vmTypeSelectors.find(sel => sel.value === type).icon}
-                      </div>
-                      <ListItemText
-                        primary={
-                          description ||
-                          labName.charAt(0).toUpperCase() +
-                            labName.slice(1).replace(/-/g, ' ')
-                        }
-                        secondary={<ListItemFields fields={templateFields} />}
-                      />
-                    </>
-                  </Tooltip>
-                  <ListItemIcons icons={templateIcons} />
-                </ListItem>
+                  primary={
+                    description ||
+                    labName.charAt(0).toUpperCase() +
+                      labName.slice(1).replace(/-/g, ' ')
+                  }
+                  fields={templateFields}
+                  icons={templateIcons}
+                  type={type}
+                  isSelected={selectedIndex === i}
+                  showType={vmType === ALL_VM_TYPES}
+                  vmTypeSelectors={vmTypeSelectors}
+                />
               );
             })}
         </List>
