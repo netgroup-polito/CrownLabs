@@ -16,3 +16,9 @@
   apt:
     name: virt-manager
     state: latest
+
+# Allow typing the password when using virt-manager to connect to the remote server
+- name: Install ssh-askpass
+  apt:
+    name: ssh-askpass
+    state: latest
