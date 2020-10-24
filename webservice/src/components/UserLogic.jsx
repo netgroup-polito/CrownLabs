@@ -1,6 +1,6 @@
 import React from 'react';
 import Toastr from 'toastr';
-import ApiManager from '../services/ApiManager';
+import ApiManager, { VM_STATUS } from '../services/ApiManager';
 import 'toastr/build/toastr.min.css';
 import { parseJWTtoken, checkToken } from '../helpers';
 import Main from './Main';
@@ -151,7 +151,7 @@ export default class UserLogic extends React.Component {
         Toastr.success(`Successfully started lab \`${templateName}\``);
         const newMap = instanceLabs;
         newMap.set(response.body.metadata.name, {
-          status: 0,
+          status: VM_STATUS.LOADING,
           url: null,
           ip: '',
           creationTime: undefined,
@@ -344,7 +344,7 @@ export default class UserLogic extends React.Component {
         /* Object creation failed */
         newMap.set(object.metadata.name, {
           url: null,
-          status: -1,
+          status: VM_STATUS.ERROR,
           ip: null,
           description: descriptions[object.spec.labTemplateName],
           type: instanceTypes[object.spec.labTemplateName]
@@ -356,7 +356,7 @@ export default class UserLogic extends React.Component {
         /* Object creation succeeded */
         newMap.set(object.metadata.name, {
           url: object.status.url,
-          status: 1,
+          status: VM_STATUS.READY,
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
           description: descriptions[object.spec.labTemplateName],
@@ -370,7 +370,7 @@ export default class UserLogic extends React.Component {
       ) {
         newMap.set(object.metadata.name, {
           url: null,
-          status: 0,
+          status: VM_STATUS.LOADING,
           ip: null,
           description: descriptions[object.spec.labTemplateName],
           type: instanceTypes[object.spec.labTemplateName]
@@ -408,7 +408,7 @@ export default class UserLogic extends React.Component {
         /* Object creation failed */
         newMap.set(object.metadata.name, {
           url: null,
-          status: -1,
+          status: VM_STATUS.ERROR,
           ip: null,
           studNamespace: object.metadata.namespace,
           description: descriptions[object.spec.labTemplateName],
@@ -422,7 +422,7 @@ export default class UserLogic extends React.Component {
         /* Object creation succeeded */
         newMap.set(object.metadata.name, {
           url: object.status.url,
-          status: 1,
+          status: VM_STATUS.READY,
           ip: object.status.ip,
           creationTime: object.metadata.creationTimestamp,
           studNamespace: object.metadata.namespace,
@@ -438,7 +438,7 @@ export default class UserLogic extends React.Component {
       ) {
         newMap.set(object.metadata.name, {
           url: null,
-          status: 0,
+          status: VM_STATUS.LOADING,
           studNamespace: object.metadata.namespace,
           ip: null,
           description: descriptions[object.spec.labTemplateName],

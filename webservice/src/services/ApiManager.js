@@ -1,8 +1,14 @@
 import { Config, CustomObjectsApi, watch } from '@kubernetes/client-node';
 
-export const vmTypes = {
+export const VM_TYPES = {
   CLI: 'CLI',
   GUI: 'GUI'
+};
+
+export const VM_STATUS = {
+  READY: 1,
+  LOADING: 0,
+  ERROR: -1
 };
 
 /**

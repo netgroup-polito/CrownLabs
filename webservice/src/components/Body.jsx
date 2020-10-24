@@ -10,7 +10,6 @@ export default function Body(props) {
     templateLabsAdmin,
     instanceLabsAdmin,
     connectAdmin,
-    showStatus,
     createNewTemplate,
     start,
     stopAdmin,
@@ -36,7 +35,6 @@ export default function Body(props) {
           start={start}
           connect={connect}
           stop={stop}
-          showStatus={showStatus}
         />
       ) : (
         <ProfessorView
@@ -45,7 +43,6 @@ export default function Body(props) {
           templateLabs={templateLabsAdmin}
           instanceLabs={instanceLabsAdmin}
           connect={connectAdmin}
-          showStatus={showStatus}
           createNewTemplate={createNewTemplate}
           start={start}
           stop={stopAdmin}

@@ -16,7 +16,7 @@ import { utc } from 'moment';
 import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
 import Selector from './Selector';
-import { vmTypes } from '../services/ApiManager';
+import { VM_TYPES, VM_STATUS } from '../services/ApiManager';
 import ListItem from './ListItem/ListItem';
 
 const useStyles = makeStyles(theme => ({
@@ -79,8 +79,8 @@ const adminSelectors = [
 export const ALL_VM_TYPES = '';
 export const vmTypeSelectors = [
   { text: 'All', icon: <AllIcon />, value: ALL_VM_TYPES },
-  { text: 'GUI enabled', icon: <DesktopIcon />, value: vmTypes.GUI },
-  { text: 'CLI only', icon: <TerminalIcon />, value: vmTypes.CLI }
+  { text: 'GUI enabled', icon: <DesktopIcon />, value: VM_TYPES.GUI },
+  { text: 'CLI only', icon: <TerminalIcon />, value: VM_TYPES.CLI }
 ];
 
 const getLabCodeFromName = name => /-([0-9]{1,4})$/.exec(name)[1];
@@ -196,9 +196,9 @@ const RunningLabList = props => {
             ) => {
               const labCode = getLabCodeFromName(labName);
               const statusClassName =
-                status === 0
+                status === VM_STATUS.LOADING
                   ? classes.loadingLab
-                  : status === 1
+                  : status === VM_STATUS.READY
                   ? classes.activeLab
                   : classes.errorLab;
 
@@ -222,7 +222,9 @@ const RunningLabList = props => {
                 },
                 {
                   condition:
-                    type === vmTypes.GUI && selectedIndex === i && status === 1,
+                    type === VM_TYPES.GUI &&
+                    selectedIndex === i &&
+                    status === 1,
                   title: 'Connect VM',
                   color: 'info',
                   onClick: e => {

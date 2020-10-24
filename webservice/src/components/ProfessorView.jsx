@@ -12,7 +12,7 @@ import TemplateForm from './NewTemplateForm';
 import { labPapersStyle } from './StudentView';
 import LabInstancesList from './LabInstancesList';
 import LabTemplatesList from './LabTemplatesList';
-import { vmTypes } from '../services/ApiManager';
+import { VM_TYPES } from '../services/ApiManager';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -28,7 +28,6 @@ export default function ProfessorView(props) {
     instanceLabs,
     connect,
     stop,
-    showStatus,
     imageList,
     createNewTemplate,
     adminGroups
@@ -66,7 +65,7 @@ export default function ProfessorView(props) {
       Number(document.getElementsByName('memory')[0].value),
       image,
       version,
-      type || vmTypes.GUI
+      type || VM_TYPES.GUI
     );
 
     setErrorcode(0);
@@ -99,7 +98,6 @@ export default function ProfessorView(props) {
           runningLabs={instanceLabs}
           connect={connect}
           stop={stop}
-          showStatus={showStatus}
         />
       </div>
       <div style={labPapersStyle}>
