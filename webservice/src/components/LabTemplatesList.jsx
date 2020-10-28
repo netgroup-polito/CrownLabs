@@ -20,8 +20,8 @@ import { vmTypeSelectors, ALL_VM_TYPES } from './RunningLabList';
 const useStyles = makeStyles(theme => ({
   paper: {
     flex: 1,
-    minWidth: 450,
-    maxWidth: 600,
+    minWidth: 575,
+    maxWidth: 650,
     padding: 10,
     margin: 10,
     maxHeight: 350
@@ -95,7 +95,7 @@ export default function LabTemplatesList(props) {
     ],
     []
   );
-  const title = 'Available Labs';
+  const title = 'Available images';
   const [textMatch, setTextMatch] = useState('');
   const [orderData, setOrderData] = useState(() => {
     const prevOrderData = JSON.parse(
