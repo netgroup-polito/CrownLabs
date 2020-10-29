@@ -11,3 +11,4 @@
     - qemu-kvm
     - virt-manager
     - bridge-utils
+    - dnsmasq-base
