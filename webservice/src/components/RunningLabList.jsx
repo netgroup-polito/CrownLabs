@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import CancelOutlinedIcon from '@material-ui/icons/CancelOutlined';
 import OpenInBrowserIcon from '@material-ui/icons/OpenInBrowser';
-import IconButton from '@material-ui/core/IconButton';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
-import Tooltip from '@material-ui/core/Tooltip';
-import { makeStyles } from '@material-ui/core/styles';
+import makeStyles from '@material-ui/core/styles/makeStyles';
 import ClickAwayListener from '@material-ui/core/ClickAwayListener';
 import SortByAlphaIcon from '@material-ui/icons/SortByAlpha';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
@@ -20,7 +16,8 @@ import { utc } from 'moment';
 import OrderSelector from './OrderSelector';
 import TextSelector from './TextSelector';
 import Selector from './Selector';
-import { vmTypes } from '../services/ApiManager';
+import { VM_TYPES, VM_STATUS } from '../services/ApiManager';
+import ListItem from './ListItem/ListItem';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -41,13 +38,6 @@ const useStyles = makeStyles(theme => ({
     fontSize: '30px',
     padding: theme.spacing(0, 1)
   },
-  buttonGroup: {
-    width: '100%',
-    padding: theme.spacing(1),
-    position: 'fixed',
-    bottom: '0%',
-    left: '10%'
-  },
   labColorTag: {
     width: 40,
     height: '100%',
@@ -66,28 +56,10 @@ const useStyles = makeStyles(theme => ({
   rotating: {
     animation: 'rotate 1.5s ease-in-out infinite'
   },
-  stopIcon: {
-    color: theme.palette.error.main
-  },
-  launchIcon: {
-    color: theme.palette.info.main
-  },
-  loadIcon: {
-    color: theme.palette.warning.light
-  },
-  listTitle: {
-    fontSize: 30
-  },
   titleActions: {
     display: 'flex',
     justifyContent: 'end',
     alignItems: 'center'
-  },
-  instanceInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    color: theme.palette.info.main
   }
 }));
 
@@ -107,8 +79,8 @@ const adminSelectors = [
 export const ALL_VM_TYPES = '';
 export const vmTypeSelectors = [
   { text: 'All', icon: <AllIcon />, value: ALL_VM_TYPES },
-  { text: 'GUI enabled', icon: <DesktopIcon />, value: vmTypes.GUI },
-  { text: 'CLI only', icon: <TerminalIcon />, value: vmTypes.CLI }
+  { text: 'GUI enabled', icon: <DesktopIcon />, value: VM_TYPES.GUI },
+  { text: 'CLI only', icon: <TerminalIcon />, value: VM_TYPES.CLI }
 ];
 
 const getLabCodeFromName = name => /-([0-9]{1,4})$/.exec(name)[1];
@@ -224,109 +196,81 @@ const RunningLabList = props => {
             ) => {
               const labCode = getLabCodeFromName(labName);
               const statusClassName =
-                status === 0
+                status === VM_STATUS.LOADING
                   ? classes.loadingLab
-                  : status === 1
+                  : status === VM_STATUS.READY
                   ? classes.activeLab
                   : classes.errorLab;
+
+              const instanceFields = {
+                User: studentId,
+                Created: utc(creationTime).local().format('DD/MM/YY HH:mm:ss'),
+                IP: ip
+              };
+
+              const instanceIcons = [
+                {
+                  color: 'error',
+                  condition: selectedIndex === i && stop,
+                  onClick: e => {
+                    stop(labName);
+                    setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
+                  },
+                  title: 'Stop VM',
+                  icon: CancelOutlinedIcon
+                },
+                {
+                  condition:
+                    type === VM_TYPES.GUI &&
+                    selectedIndex === i &&
+                    status === 1,
+                  title: 'Connect VM',
+                  color: 'info',
+                  onClick: e => {
+                    connect(labName);
+                    setSelectedIndex(-1);
+                    e.stopPropagation(); // avoid triggering onClick on ListItem
+                  },
+                  icon: OpenInBrowserIcon
+                },
+                {
+                  condition: status === 0,
+                  title: 'Loading VM',
+                  color: 'warning',
+                  icon: HourglassEmptyIcon,
+                  onClick: () => {},
+                  iconClassName: classes.rotating
+                }
+              ];
 
               return (
                 <ListItem
                   key={labName}
-                  button
-                  selected={selectedIndex === i}
-                  disableRipple
+                  primary={
+                    description
+                      ? `${description} - ${labCode}`
+                      : `${labName.charAt(0).toUpperCase()}${labName
+                          .slice(1)
+                          .replace(/-/g, ' ')}`
+                  }
+                  fields={instanceFields}
+                  icons={instanceIcons}
                   onClick={() => {
                     setSelectedIndex(i);
                   }}
-                >
-                  <div className={classes.instanceInfo}>
+                  type={type}
+                  isSelected={selectedIndex === i}
+                  showType={vmType === ALL_VM_TYPES}
+                  vmTypeSelectors={vmTypeSelectors}
+                  customInfo={
                     <div
                       className={`${classes.labColorTag} ${statusClassName}`}
                     >
                       &nbsp;
                     </div>
-                    {vmType === ALL_VM_TYPES && type && (
-                      <>
-                        {vmTypeSelectors.find(sel => sel.value === type).icon}
-                      </>
-                    )}
-                  </div>
-                  <ListItemText
-                    primary={
-                      description
-                        ? `${description} - ${labCode}`
-                        : `${labName.charAt(0).toUpperCase()}${labName
-                            .slice(1)
-                            .replace(/-/g, ' ')}`
-                    }
-                    secondary={
-                      <>
-                        {studentId && (
-                          <>
-                            <b>User: </b>
-                            {studentId}
-                            <br />
-                          </>
-                        )}
-                        <>
-                          <b>Created: </b>
-                          {utc(creationTime)
-                            .local()
-                            .format('DD/MM/YY HH:mm:ss')}
-                          <br />
-                        </>
-                        <>
-                          <b>IP: </b>
-                          {ip}
-                          <br />
-                        </>
-                      </>
-                    }
-                  />
-                  {selectedIndex === i && stop ? (
-                    <Tooltip title="Stop VM">
-                      <IconButton
-                        className={classes.stopIcon}
-                        button="true"
-                        onClick={e => {
-                          stop(labName);
-                          setSelectedIndex(-1);
-                          e.stopPropagation(); // avoid triggering onClick on ListItem
-                        }}
-                      >
-                        <CancelOutlinedIcon fontSize="large" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                  {type === vmTypes.GUI &&
-                  selectedIndex === i &&
-                  status === 1 ? (
-                    <Tooltip title="Connect VM">
-                      <IconButton
-                        className={classes.launchIcon}
-                        button="true"
-                        onClick={e => {
-                          connect(labName);
-                          setSelectedIndex(-1);
-                          e.stopPropagation(); // avoid triggering onClick on ListItem
-                        }}
-                      >
-                        <OpenInBrowserIcon fontSize="large" />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                  {status === 0 ? (
-                    <Tooltip title="Loading VM">
-                      <IconButton className={classes.loadIcon}>
-                        <HourglassEmptyIcon
-                          className={classes.rotating}
-                          fontSize="large"
-                        />
-                      </IconButton>
-                    </Tooltip>
-                  ) : null}
-                </ListItem>
+                  }
+                />
               );
             }
           )}

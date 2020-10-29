@@ -5,7 +5,7 @@ import Typography from '@material-ui/core/Typography';
 import React from 'react';
 import withStyles from '@material-ui/core/styles/withStyles';
 import Slider from '@material-ui/core/Slider';
-import { vmTypes } from '../services/ApiManager';
+import { VM_TYPES } from '../services/ApiManager';
 
 const iOSBoxShadow =
   '0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.13),0 0 0 1px rgba(0,0,0,0.02)';
@@ -220,7 +220,7 @@ export default function TemplateForm(props) {
         variant="outlined"
         helperText={errorcode === 4 ? 'Select a valid Version!' : ' '}
       >
-        {Object.values(vmTypes).map(vmType => (
+        {Object.values(VM_TYPES).map(vmType => (
           <MenuItem key={vmType} value={vmType}>
             {vmType}
           </MenuItem>
