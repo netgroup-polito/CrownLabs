@@ -16,7 +16,14 @@ jobs:
           token: ${{ secrets.CI_TOKEN }}
           reaction-token: ${{ secrets.CI_TOKEN }}
           issue-type: pull-request
-          permission: write
-          commands: |
-            merge
-            rebase
+          config: >
+            [
+              {
+                "command": "merge",
+                "permission": "write"
+              },
+              {
+                "command": "rebase",
+                "permission": "none"
+              }
+            ]
