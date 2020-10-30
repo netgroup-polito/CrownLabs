@@ -1,6 +1,6 @@
 
 - name: Add Virtualbox GPG key
-  apt_key: url=https://download.docker.com/linux/{{ansible_distribution|lower}}/gpg
+  apt_key: url=https://www.virtualbox.org/download/oracle_vbox_2016.asc
 
 - name: Add Virtualbox APT repository
   apt_repository:
@@ -12,7 +12,7 @@
     state: present
   vars:
     virtualbox_packages:
-      - virtualbox
+      - virtualbox-6.1
 
 - name: Change directory permission
   file:
@@ -20,29 +20,21 @@
     owner: "root"
     group: "root"
   loop:
-    - "{{ system_paths }}"
-  vars:
-    system_paths:
-      - "/usr"
-      - "/usr/lib"
+    - "/usr"
+    - "/usr/lib"
 
-- name: Change directory permission
-  file:
-    path:  "{{ item }}"
-    owner: "root"
-    group: "root"
-  loop:
-    - "{{ system_paths }}"
-  vars:
-    system_paths:
-      - "/usr"
-      - "/usr/lib"
+- name: Check if java is installed on environment
+  shell: "VBoxManage list extpacks | grep 'Extension Packs: 0'"
+  ignore_errors: yes
+  register: install_extpack
 
 - name: Download Oracle VM Extension Pack
   get_url:
     url: "https://download.virtualbox.org/virtualbox/6.1.16/Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack"
     dest: ./Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack
     mode: '0440'
+  when: install_extpack.stdout != ""
 
-- name: Download Oracle VM Extension Pack
-  command: "VBoxManage extpack install ./Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack"
+- name: Install Oracle VM Extension Pack
+  shell: "echo 'y' | sudo VBoxManage extpack install Oracle_VM_VirtualBox_Extension_Pack-5.2.0.vbox-extpack"
+  when: install_extpack.stdout != ""

@@ -11,3 +11,9 @@
     - qemu-kvm
     - virt-manager
     - bridge-utils
+
+- name: Download Ubuntu 20.04 Cloud Image
+  get_url:
+    url: "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+    dest: "./focal-server-cloudimg-amd64.img"
+    mode: '0440'

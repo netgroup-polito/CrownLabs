@@ -1,6 +1,6 @@
 - name: Make sure the Virtualbox VMs directory does exist (if a DE is present)
   file:
-    path: "/home/{{ ansible_user }}/Virtualbox VMs"
+    path: "/home/{{ ansible_user }}/VirtualBox VMs"
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
