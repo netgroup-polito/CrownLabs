@@ -1,0 +1,9 @@
+- name: Download omnetpp
+  unarchive:
+    remote_src: yes
+    src:  http://www.ladispe.polito.it/corsi/reticalc/Reti_di_Calcolatori-ESERCITAZIONE_v1.0.7z
+    dest: "/home/netlab/VirtualBox VMs"
+    extra_opts:
+      - --strip-components=1
+  become: no
+

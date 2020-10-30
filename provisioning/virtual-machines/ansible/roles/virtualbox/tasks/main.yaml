@@ -1,0 +1,48 @@
+
+- name: Add Virtualbox GPG key
+  apt_key: url=https://download.docker.com/linux/{{ansible_distribution|lower}}/gpg
+
+- name: Add Virtualbox APT repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.virtualbox.org/virtualbox/debian {{ansible_distribution_release}} contrib
+
+- name: Install Virtualbox packages
+  apt:
+    name: "{{ virtualbox_packages }}"
+    state: present
+  vars:
+    virtualbox_packages:
+      - virtualbox
+
+- name: Change directory permission
+  file:
+    path:  "{{ item }}"
+    owner: "root"
+    group: "root"
+  loop:
+    - "{{ system_paths }}"
+  vars:
+    system_paths:
+      - "/usr"
+      - "/usr/lib"
+
+- name: Change directory permission
+  file:
+    path:  "{{ item }}"
+    owner: "root"
+    group: "root"
+  loop:
+    - "{{ system_paths }}"
+  vars:
+    system_paths:
+      - "/usr"
+      - "/usr/lib"
+
+- name: Download Oracle VM Extension Pack
+  get_url:
+    url: "https://download.virtualbox.org/virtualbox/6.1.16/Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack"
+    dest: ./Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack
+    mode: '0440'
+
+- name: Download Oracle VM Extension Pack
+  command: "VBoxManage extpack install ./Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack"
