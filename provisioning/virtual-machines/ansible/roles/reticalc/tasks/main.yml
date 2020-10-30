@@ -1,0 +1,17 @@
+- name: Make sure the Virtualbox VMs directory does exist (if a DE is present)
+  file:
+    path: "/home/{{ ansible_user }}/Virtualbox VMs"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+
+- name: Download Reti di Calcolatori VMs
+  unarchive:
+    remote_src: yes
+    src:  http://www.ladispe.polito.it/corsi/reticalc/Reti_di_Calcolatori-ESERCITAZIONE_v1.0.7z
+    dest: "/home/{{ ansible_user }}//VirtualBox VMs"
+    extra_opts:
+      - --strip-components=1
+  become: no
+
