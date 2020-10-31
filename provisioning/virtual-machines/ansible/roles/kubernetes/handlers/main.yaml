@@ -3,3 +3,12 @@
   systemd:
     name: docker
     state: restarted
+
+- name: Hold the kubernetes version
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  with_items:
+    - "kubelet"
+    - "kubeadm"
+    - "kubectl"

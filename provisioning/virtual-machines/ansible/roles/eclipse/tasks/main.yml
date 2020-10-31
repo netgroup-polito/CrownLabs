@@ -37,6 +37,8 @@
     src: https://mirrors.dotsrc.org/eclipse//technology/epp/downloads/release/{{ eclipse_version }}/R/eclipse-cpp-{{ eclipse_version }}-R-incubation-linux-gtk-x86_64.tar.gz
     dest: "{{ eclipse_path }}"
     creates: "{{ eclipse_path }}/eclipse"
+    owner: root
+    group: root
     extra_opts:
     - --strip-components=1
 

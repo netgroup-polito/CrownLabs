@@ -60,6 +60,13 @@
     purge: yes
   when: kernel_packages.stdout_lines
 
+# If the previous step removed any old kernel packages to save space,
+# it is better to reboot now and avoid running an uninstalled kernel:
+# problems may arise since some modules are no longer available.
+- name: Reboot the system if required (e.g. kernel upgrade)
+  reboot:
+  when: kernel_packages.stdout_lines
+
 - name: Make sure the Desktop directory does exist (if a DE is present)
   file:
     path: /home/{{ ansible_user }}/Desktop
