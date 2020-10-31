@@ -45,6 +45,7 @@
 - name: Check the davfs2 version
   command: dpkg-query --show --showformat='${Version}' davfs2
   register: davfs2_version
+  changed_when: false
 
 - name: Disable umount.davfs
   command:
@@ -66,6 +67,8 @@
     remote_src: yes
     src: https://dl.bintray.com/tigervnc/stable/tigervnc-{{ tigervnc_version }}.x86_64.tar.gz
     dest: /
+    owner: root
+    group: root
     extra_opts:
     - --strip-components=1
   when: desktop_environment_detected
@@ -150,6 +153,8 @@
     remote_src: yes
     src: https://github.com/netgroup-polito/noVNC/archive/{{ novnc_version }}.tar.gz
     dest: "{{ novnc_path }}"
+    owner: root
+    group: root
     extra_opts:
     - --strip-components=1
   when: desktop_environment_detected
@@ -166,6 +171,8 @@
     remote_src: yes
     src: https://github.com/novnc/websockify/archive/{{ novnc_websockify_version }}.tar.gz
     dest: "{{ novnc_websockify_path }}"
+    owner: root
+    group: root
     extra_opts:
     - --strip-components=1
   when: desktop_environment_detected
@@ -199,6 +206,8 @@
     remote_src: yes
     src: https://github.com/prometheus/node_exporter/releases/download/v{{ nodeexporter_version }}/node_exporter-{{ nodeexporter_version }}.linux-amd64.tar.gz
     dest: "{{ nodeexporter_path }}"
+    owner: root
+    group: root
     exclude:
     - LICENSE
     - NOTICE

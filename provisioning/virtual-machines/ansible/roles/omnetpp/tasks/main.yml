@@ -59,6 +59,8 @@
     src: https://github.com/omnetpp/omnetpp/releases/download/omnetpp-{{ omnetpp_version }}/omnetpp-{{ omnetpp_version }}-src-linux.tgz
     dest: "{{ omnetpp_path }}"
     creates: "{{ omnetpp_path }}/README"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     extra_opts:
     - --strip-components=1
   become: no
