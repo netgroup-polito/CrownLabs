@@ -6,16 +6,32 @@ on:
 
 jobs:
   automerge:
-    name: Automerge
+    name: Merge
     runs-on: ubuntu-latest
 
     steps:
+      - name: Add the merge-requested label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: "${{ secrets.CI_TOKEN }}"
+          number: ${{ github.event.client_payload.github.payload.issue.number }}
+          labels: merge-requested
+
       - name: Automerge
         uses: pascalgn/automerge-action@v0.12.0
         env:
           GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
-          MERGE_LABELS: "!hold"
+          MERGE_LABELS: "merge-requested,!hold"
           MERGE_METHOD: "merge"
           MERGE_RETRY_SLEEP: "30000"  # 30 seconds
-          UPDATE_LABELS: "!hold"
+          # Use a fake UPDATE_LABEL, to prevent rebase from being triggered
+          # https://github.com/pascalgn/automerge-action/issues/86
+          UPDATE_LABELS: "never-perform-rebase,!hold"
           UPDATE_METHOD: "rebase"
+
+      - name: Remove the merge-requested label
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          github_token: "${{ secrets.CI_TOKEN }}"
+          number: ${{ github.event.client_payload.github.payload.issue.number }}
+          labels: merge-requested
