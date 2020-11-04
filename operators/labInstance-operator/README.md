@@ -23,14 +23,15 @@ Both LabTemplates and LabInstances are **namespaced**.
 
 ### Pre-requirements
 
-The only LabOperator requirement is to have Kubevirt 0.27 deployed.
+The only LabOperator requirement is to have Kubevirt deployed.
 This can be done with the following commands, as reported by the official website:
 
 ```bash
 # On other OS you might need to define it like
-export KUBEVIRT_VERSION="v0.27.0"
+export KUBEVIRT_VERSION="v0.34.0"
 
-kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml 
+# Deploy the KubeVirt operator
+kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
 # Only if HW Virtualization is not available
 kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
 # Deploy Kubevirt
@@ -56,13 +57,18 @@ kubectl kustomize config/crd | kubectl delete -f -
 ### Deployment
 To deploy the LabOperator in your cluster, you have to do the following steps.
 
-First, set the desired values in `operators/labInstance-operator/k8s/operator/configmap.yaml`.
+First, set the desired values in `operators/labInstance-operator/k8s-manifest-example.env` .
 
-After the values have been correctly set for your environment. You can deploy the labOperator using:
+Then export the environment variables and generate the manifest from the template using:
+```
+export $(xargs < k8s-manifest-example.env)
+envsubst < k8s-manifest.yaml.tmpl > k8s-manifest.yaml
+```
+
+After the manifest have been correctly generated. You can deploy the labOperator using:
 
 ```
-kubectl create ns lab-operator
-kubectl apply -f operators/labInstance-operator/k8s
+kubectl apply -f k8s-manifest.yaml
 ```
 
 ## Development
