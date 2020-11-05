@@ -40,10 +40,10 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen lab-template
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./api/v1alpha1" output:crd:artifacts:config=config/crd/bases
 
 lab-template: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./labTemplate/api/v1" output:crd:artifacts:config=labTemplate/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./labTemplate/api/v1alpha1" output:crd:artifacts:config=labTemplate/crd/bases
 
 # Install CRDs into a cluster
 install-lab-template: lab-template
