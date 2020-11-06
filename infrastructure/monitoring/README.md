@@ -186,7 +186,7 @@ $ kubectl edit secrets -n <alertmanager namespace> <alertmanager secret name> -o
 ```
 
 ### OAuth2 Authentication
-In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2_proxy](https://github.com/pusher/oauth2_proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../identity-provider/README.md) for more information.
+In the following, we will setup Alertmanager, Grafana and Prometheus to use Keycloak as identity provider for the authentication. Grafana can natively use Keycloak as identity provider, while the authentication for the other two services is managed through the ingress controller and [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy). *Note*: this guide assumes Keycloak to be already deployed and available. Please refer to the [keycloak deployment guide](../identity-provider/README.md) for more information.
 
 #### Keycloak configuration
 
@@ -227,7 +227,7 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 #### Additional references
 
 1. [ingress-nginx - External OAUTH authentication](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth)
-2. [oauth2_proxy - Configuration](https://oauth2-proxy.github.io/oauth2-proxy/configuration)
+2. [oauth2-proxy - Configuration](https://oauth2-proxy.github.io/oauth2-proxy/docs/configuration/overview)
 
 ### Monitor the Bind DNS Server
 
