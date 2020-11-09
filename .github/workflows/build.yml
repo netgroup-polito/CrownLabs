@@ -33,16 +33,15 @@ jobs:
               echo "::set-output name=ref::${{ github.sha }}"
             }
 
-          # The suffix to append to the repository name
-          [[ "${{ github.ref }}" == "refs/heads/master" ]] && \
+          # The suffix to append to the repository name if not triggered by a push to master
+          [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/master" ]] && \
             echo "::set-output name=repo-suffix::" || \
             echo "::set-output name=repo-suffix::-dev"
 
-          # Do not push the resulting images to DockerHub if the pull request is from a fork
-          [[ "${{ github.event_name }}" != "pull_request" || \
-             "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]] && \
-            echo "::set-output name=repo-push::true" || \
-            echo "::set-output name=repo-push::false"
+          # Do not push the resulting images to DockerHub if triggered by a pull request
+          [[ "${{ github.event_name }}" == "pull_request" ]] && \
+            echo "::set-output name=repo-push::false" || \
+            echo "::set-output name=repo-push::true"
 
 
   frontend:
