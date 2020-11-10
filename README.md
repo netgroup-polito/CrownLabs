@@ -60,7 +60,7 @@ In [infrastructure](infrastructure/), we present all the services which should b
 
 ## Laboratory Operator
 
-The Laboratory Operator (LabOperator) implements the backend logic necessary to spawn new laboratories starting from a predefined template. The instruction to install and configure the LabOperator are detailed [here](operators/labInstance-operator/).
+The Laboratory Operator (LabOperator) implements the backend logic necessary to spawn new laboratories starting from a predefined template. The instruction to install and configure the LabOperator are detailed [here](operators).
 
 ## Frontend
 

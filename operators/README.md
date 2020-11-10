@@ -1,53 +1,100 @@
-# CrownLabs operators
+# Laboratory Instance Operator (LabOperator)
 
-## LabInstance
-LabInstance is a K8s operator that  handles the lifecycle of a single lab instance, e.g., a Virtual Machine running in the K8s infrastructure.
-A LabInstance requires the presence of a "template" lab, e.g., a ready-to-go VM with the proper installed software, which can be instantiated multiple times.
-Each LabInstance (e.g., VM) will accept a VNC (or equivalent) connection from its associated user (e.g., student).
+Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), the operator implements the backend logic of Crownlabs
 
-The commands below are written assuming your working directory is `labInstance-operator`.
+# Basic Functioning
 
-### LabTemplate
-For a LabInstance to exist the corresponding LabTemplate must be already present in the cluster.
-The steps necessary to modify and install a LabTemplate resource are the same of LabInstance.
+## CRDs
 
-To modify the LabTemplate CRD you need to
-1. open the file _labTemplate/api/v1/labtemplate_types.go_. Here you have all the `struct` types related to the LabTemplate CRD
-2. add/modify/delete the fields of `LabTemplateSpec` and/or `LabTemplateStatus`
-3. run `make lab-template`; this will regenerate the code for the new version of LabTemplate
-4. you can find the CRD generated in _labTemplate/crd/bases_
+The Laboratory Operator (LabOperator) implements the backend logic necessary to spawn new laboratories starting from a predefined template. LabOperator relies on two Kubernetes Custom Resource
+Definitions (CRDs) which implement the basic APIs:
+* **Laboratory Template (LabTemplate)** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by professors and read by students, while creating new instances.
+* **Laboratory Instance (LabInstance)** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in LabOperator, which creates/destroy associated resources (e.g.; Virtual Machines).
 
-To install the LabTemplate CRD on your cluster
-1. run `make install-lab-template`. This will install the CRD LabTemplate on your cluster.
-2. in _labTemplate/samples_ you have an example of LabTemplate object. If you want to create it run `kubectl apply -f labTemplate/samples/template_v1_labtemplate.yaml`
+A *LabInstance* resource triggers the creation of the following components:
+* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
+* An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
 
-If you want to delete the CRD run `make uninstall-lab-template`.
+All those resources are binded to the LabInstance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
-### CRD generation
-To modify the LabInstance CRD you need to
-1. open the file _labInstance-operator/api/v1/labinstance_types.go_. Here you have all the `struct` types related to the LabInstance CRD
-2. add/modify/delete the fields of `LabInstanceSpec` and/or `LabInstanceStatus`
-3. run `make`; this will regenerate the code for the new version of LabInstance
-4. you can find the CRD generate in _config/crd/bases_
+Both LabTemplates and LabInstances are **namespaced**. 
 
-### Installation
-1. run `make install`. This will install the CRD LabInstance on your cluster.
-2. in _config/samples_ you have an example of LabInstance object. If you want to create it run `kubectl apply -f config/samples/instance_v1_labinstance.yaml`
-3. you can get the list of CRD installed on your cluster by running `kubectl get crd`.
-4. To get the list of LabInstance resources run `kubectl get labi`.
+## Installation
 
-If you want to delete the CRD run `make uninstall`.
+### Pre-requirements
 
-### Controller logic
-The logic of the controller should be put under _controllers/labinstance_controller.go_, in the `Reconcile` method.
-When a LabInstance resource is created, the `Reconcile` method is triggered. 
-It is checked if a LabTemplate resource with the associated name exists, and in this case all the resources necessary to launch the Lab are created,
-in particular the `VirtualMachineInstance` CR managed by KubeVirt. 
+The only LabOperator requirement is to have Kubevirt deployed.
+This can be done with the following commands, as reported by the official website:
 
-### Run instructions
-To run the application
+```bash
+# On other OS you might need to define it like
+export KUBEVIRT_VERSION="v0.34.0"
 
-- **outside** a cluster: run 'make run'
-- **inside** a cluster: create a Pod with `container.image: crownlabs/laboratory-operator`
+# Deploy the KubeVirt operator
+kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
+# Only if HW Virtualization is not available
+kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
+# Deploy Kubevirt
+kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml
+```
 
-If you want to run the operator only on some namespaces, specify the namespace prefix with the `--namespace-prefix <string>` option.
+### Install the CRDs
+
+Before the deploying the operator, we have to add the LabInstance and LabTemplate CRDs. This can be done via the Kubebuilder-provided Makefile:
+
+```bash
+make install
+make install-lab-template
+```
+
+or directly via the commands:
+
+```bash
+kubectl kustomize config/crd | kubectl apply -f -
+kubectl kustomize config/crd | kubectl delete -f -
+```
+
+### Deployment
+To deploy the LabOperator in your cluster, you have to do the following steps.
+
+First, set the desired values in `operators/labInstance-operator/k8s-manifest-example.env` .
+
+Then export the environment variables and generate the manifest from the template using:
+```
+export $(xargs < k8s-manifest-example.env)
+envsubst < k8s-manifest.yaml.tmpl > k8s-manifest.yaml
+```
+
+After the manifest have been correctly generated. You can deploy the labOperator using:
+
+```
+kubectl apply -f k8s-manifest.yaml
+```
+
+## Development
+
+### Build from source
+
+LabOperator requires Golang 1.13 and make. To build the operator:
+
+```bash
+cd operators/labInstance-operator
+go build
+```
+
+### Testing
+
+After having installed Kubevirt in your testing cluster, you have to deploy the Custom Resource Definitions (CRDs) on the target cluster:
+
+```bash
+make install
+make install-lab-template
+```
+
+Then, you can launch locally your operator:
+
+```bash
+make run
+```
+
+N.B. So far, the readiness check for VirtualMachines is performed by assuming that the operator is running on the same cluster of the Virtual Machines. This prevents the possibility to have *ready* VMs when testing the operator outside the cluster. 
