@@ -16,9 +16,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/pkg/kubeVirt/api/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	virtv1 "kubevirt.io/client-go/api/v1"
 )
 
 type VmType string

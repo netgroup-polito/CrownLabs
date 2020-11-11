@@ -20,14 +20,14 @@ import (
 	"os"
 	"strings"
 
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/pkg/kubeVirt/api/v1"
 	"github.com/prometheus/common/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	instancev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers"
-	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/pkg/labTemplate/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
