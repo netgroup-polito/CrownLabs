@@ -61,7 +61,7 @@ func TestCreateUserData(t *testing.T) {
 	assert.Equal(t, err, nil, "Yaml parser should return nil error.")
 
 	// check if header comment is present
-	hc := strings.HasPrefix(rawConfig["userdata"], "#cloud-init\n")
+	hc := strings.HasPrefix(rawConfig["userdata"], "#cloud-config\n")
 
 	var (
 		expectedmount       = []string{nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}

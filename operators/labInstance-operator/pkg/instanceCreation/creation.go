@@ -68,14 +68,13 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 	Userdata.WriteFiles = []writeFile{{
 		Content:     "/media/MyDrive " + nextUsername + " " + nextPassword,
 		Path:        "/etc/davfs2/secrets",
-		Permissions: "0600",
-	},
-	// New mounts should be added here as []string
+		Permissions: "0600"},
+	// New write_files should be added here as []writeFile
 	}
 
 	out, _ := yaml.Marshal(Userdata)
 
-	headerComment := "#cloud-init\n"
+	headerComment := "#cloud-config\n"
 
 	return map[string]string{"userdata": headerComment + string(out)}
 }
