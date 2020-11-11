@@ -3,11 +3,10 @@ package instanceCreation
 import (
 	"context"
 	"encoding/base64"
+	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/pkg/kubeVirt/api/v1"
-	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/pkg/labTemplate/api/v1alpha1"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
+	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -27,8 +27,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	instancev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	virtv1 "github.com/netgroup-polito/CrownLabs/operators/pkg/kubeVirt/api/v1"
-	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/pkg/labTemplate/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,7 +99,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		Namespace: labInstance.Spec.LabTemplateNamespace,
 		Name:      labInstance.Spec.LabTemplateName,
 	}
-	var labTemplate templatev1alpha1.LabTemplate
+	var labTemplate instancev1alpha1.LabTemplate
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
 		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
@@ -111,8 +109,8 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	vmType := labTemplate.Spec.VmType
-	if vmType != templatev1alpha1.TypeCLI {
-		vmType = templatev1alpha1.TypeGUI
+	if vmType != instancev1alpha1.TypeCLI {
+		vmType = instancev1alpha1.TypeGUI
 	}
 
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
@@ -250,7 +248,7 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 }
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
-	name string, vmType templatev1alpha1.VmType, service v1.Service, ingress v1beta1.Ingress,
+	name string, vmType instancev1alpha1.VmType, service v1.Service, ingress v1beta1.Ingress,
 	labInstance *instancev1alpha1.LabInstance, vmi virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
@@ -290,7 +288,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	// hence, wait until it starts responding
 	host := service.Name + "." + service.Namespace
 	port := "6080" // VNC
-	if vmType == templatev1alpha1.TypeCLI {
+	if vmType == instancev1alpha1.TypeCLI {
 		port = "22" // SSH
 	}
 
