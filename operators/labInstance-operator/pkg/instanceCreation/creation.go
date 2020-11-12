@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	virtv1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/kubeVirt/api/v1"
 	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/labInstance-operator/labTemplate/api/v1alpha1"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -35,6 +36,49 @@ func CreateVirtualMachineInstance(name string, namespace string, template templa
 	return vm
 }
 
+type writeFile struct {
+	Content     string `yaml:"content"`
+	Path        string `yaml:"path"`
+	Permissions string `yaml:"permissions"`
+}
+type cloudInitConfig struct {
+	Network struct {
+		Version int         `yaml:"version"`
+		ID0     interface{} `yaml:"id0"`
+		Dhcp4   bool        `yaml:"dhcp4"`
+	} `yaml:"network"`
+	Mounts     [][]string  `yaml:"mounts"`
+	WriteFiles []writeFile `yaml:"write_files"`
+}
+
+func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl string) map[string]string {
+	var Userdata cloudInitConfig
+
+	Userdata.Network.Version = 2
+	Userdata.Network.Dhcp4 = true
+	Userdata.Mounts = [][]string{{
+		nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername,
+		"/media/MyDrive",
+		"davfs",
+		"_netdev,auto,user,rw,uid=1000,gid=1000",
+		"0",
+		"0"},
+	// New mounts should be added here as []string
+	}
+	Userdata.WriteFiles = []writeFile{{
+		Content:     "/media/MyDrive " + nextUsername + " " + nextPassword,
+		Path:        "/etc/davfs2/secrets",
+		Permissions: "0600"},
+	// New write_files should be added here as []writeFile
+	}
+
+	out, _ := yaml.Marshal(Userdata)
+
+	headerComment := "#cloud-config\n"
+
+	return map[string]string{"userdata": headerComment + string(out)}
+}
+
 func CreateSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string) corev1.Secret {
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,20 +86,10 @@ func CreateSecret(name string, namespace string, nextUsername string, nextPasswo
 			Namespace: namespace,
 		},
 		Data: nil,
-		StringData: map[string]string{"userdata": `
-#cloud-config
-network:
-  version: 2
-  id0:
-    dhcp4: true
-mounts:
-  - [ "` + nextCloudBaseUrl + `/remote.php/dav/files/` + nextUsername + `", "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000","0","0" ]
-write_files:
-  - content: |
-      /media/MyDrive ` + nextUsername + " " + nextPassword + `
-    path: /etc/davfs2/secrets
-    permissions: '0600'
-`},
+		StringData: createUserdata(
+			nextUsername,
+			nextPassword,
+			nextCloudBaseUrl),
 		Type: corev1.SecretTypeOpaque,
 	}
 
