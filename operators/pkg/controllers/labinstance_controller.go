@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,7 +64,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	log := r.Log.WithValues("labinstance", req.NamespacedName)
 
 	// get labInstance
-	var labInstance instancev1alpha1.LabInstance
+	var labInstance crownlabsalpha1.LabInstance
 	if err := r.Get(ctx, req.NamespacedName, &labInstance); err != nil {
 		// reconcile was triggered by a delete request
 		log.Info("LabInstance " + req.Name + " deleted")
@@ -99,7 +99,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		Namespace: labInstance.Spec.LabTemplateNamespace,
 		Name:      labInstance.Spec.LabTemplateName,
 	}
-	var labTemplate instancev1alpha1.LabTemplate
+	var labTemplate crownlabsalpha1.LabTemplate
 	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
 		// no LabTemplate related exists
 		log.Info("LabTemplate " + templateName.Name + " doesn't exist. Deleting LabInstance " + labInstance.Name)
@@ -109,8 +109,8 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	vmType := labTemplate.Spec.VmType
-	if vmType != instancev1alpha1.TypeCLI {
-		vmType = instancev1alpha1.TypeGUI
+	if vmType != crownlabsalpha1.TypeCLI {
+		vmType = crownlabsalpha1.TypeGUI
 	}
 
 	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "LabTemplate "+templateName.Name+" found in namespace "+labTemplate.Namespace)
@@ -227,13 +227,13 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&instancev1alpha1.LabInstance{}).
+		For(&crownlabsalpha1.LabInstance{}).
 		Complete(r)
 }
 
 func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
 	msg string, eventType string, eventReason string,
-	labInstance *instancev1alpha1.LabInstance, ip, url string) {
+	labInstance *crownlabsalpha1.LabInstance, ip, url string) {
 
 	log.Info(msg)
 	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
@@ -248,8 +248,8 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 }
 
 func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
-	name string, vmType instancev1alpha1.VmType, service v1.Service, ingress v1beta1.Ingress,
-	labInstance *instancev1alpha1.LabInstance, vmi virtv1.VirtualMachineInstance, startTimeVM time.Time) {
+	name string, vmType crownlabsalpha1.VmType, service v1.Service, ingress v1beta1.Ingress,
+	labInstance *crownlabsalpha1.LabInstance, vmi virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 
 	var vmStatus virtv1.VirtualMachineInstancePhase
 
@@ -288,7 +288,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 	// hence, wait until it starts responding
 	host := service.Name + "." + service.Namespace
 	port := "6080" // VNC
-	if vmType == instancev1alpha1.TypeCLI {
+	if vmType == crownlabsalpha1.TypeCLI {
 		port = "22" // SSH
 	}
 

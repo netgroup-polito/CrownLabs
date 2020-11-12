@@ -25,8 +25,7 @@ import (
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	instancev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -44,9 +43,9 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = instancev1alpha1.AddToScheme(scheme)
+	_ = crownlabsv1alpha1.AddToScheme(scheme)
 
-	_ = templatev1alpha1.AddToScheme(scheme)
+	_ = crownlabsv1alpha1.AddToScheme(scheme)
 
 	_ = virtv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme

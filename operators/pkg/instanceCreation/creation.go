@@ -3,7 +3,7 @@ package instanceCreation
 import (
 	"context"
 	"encoding/base64"
-	templatev1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func CreateVirtualMachineInstance(name string, namespace string, template templatev1alpha1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
+func CreateVirtualMachineInstance(name string, namespace string, template crownlabsv1alpha1.LabTemplate, instanceName string, secretName string) virtv1.VirtualMachineInstance {
 	vm := template.Spec.Vm
 	vm.Name = name + "-vmi"
 	vm.Namespace = namespace
