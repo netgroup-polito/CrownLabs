@@ -4,5 +4,6 @@
     "log-opts": {
       "max-size": "100m"
     },
+    "mtu": 1440,
     "storage-driver": "overlay2"
 }
