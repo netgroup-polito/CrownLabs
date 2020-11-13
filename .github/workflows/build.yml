@@ -74,6 +74,9 @@ jobs:
           - component: crownlabs-image-list
             context: ./operators
             dockerfile: ./operators/build/crownlabs-image-list/Dockerfile
+          - component: delete-stale-instances
+            context: ./operators
+            dockerfile: ./operators/build/delete-stale-instances/Dockerfile
 
           # Frontend
           - component: frontend
