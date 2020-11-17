@@ -22,10 +22,18 @@ jobs:
         with:
           go-version: 1.15
 
-      - name: Perform the tests
-        working-directory: operators/labInstance-operator/
+      - name: Install Kubebuilder
         run: |
-          go test ./pkg/...
+          version=2.3.1 # latest stable version
+          arch=amd64
+          curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_${version}_linux_${arch}.tar.gz"
+          tar -zxvf kubebuilder_${version}_linux_${arch}.tar.gz
+          mv kubebuilder_${version}_linux_${arch} kubebuilder && sudo mv kubebuilder /usr/local/
+  
+      - name: Perform the tests
+        working-directory: operators/
+        run: |
+          make test
 
 
   kubernetes-manifests:
@@ -57,11 +65,11 @@ jobs:
       - name: Generate the Laboratory Operator manifest
         uses: danielr1996/envsubst-action@1.0.0
         with:
-          input: ./operators/labInstance-operator/k8s-manifest.yaml.tmpl
-          output: ./operators/labInstance-operator/k8s-manifest.yaml
+          input: ./operators/deploy/laboratory-operator/k8s-manifest.yaml.tmpl
+          output: ./operators/deploy/laboratory-operator/k8s-manifest.yaml
 
       - name: KubeScore - Laboratory Operator
         run: |
           docker run -v  ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
               --ignore-test=pod-networkpolicy \
-            /CrownLabs/operators/labInstance-operator/k8s-manifest.yaml
+            /CrownLabs/operators/deploy/laboratory-operator/k8s-manifest.yaml

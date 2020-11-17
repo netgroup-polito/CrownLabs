@@ -116,8 +116,8 @@ jobs:
             crownlabs/${{ steps.repo-name.outputs.repo-name }}:latest
             crownlabs/${{ steps.repo-name.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
           push: ${{ needs.configure.outputs.repo-push }}
-          file: ./operators/labInstance-operator/Dockerfile
-          context: ./operators/labInstance-operator/
+          file: ./operators/build/laboratory-operator/Dockerfile
+          context: ./operators/
 
 
   trigger-events-master:

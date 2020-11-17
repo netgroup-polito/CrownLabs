@@ -21,7 +21,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.31
-          working-directory: operators/labInstance-operator
+          working-directory: operators
           args: --timeout=600s --enable gosec,prealloc,gofmt,govet --skip-files "zz_generated.*.go" --skip-dirs "kubeVirt"
 
 
