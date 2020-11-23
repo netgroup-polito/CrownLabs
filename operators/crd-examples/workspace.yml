@@ -1,0 +1,6 @@
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: swnet
+spec:
+  prettyName: Software Networking

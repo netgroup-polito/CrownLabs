@@ -1,0 +1,17 @@
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Tenant
+metadata:
+  name: mariorossi
+spec:
+  name: mario
+  surname: rossi
+  ID: id12345678
+  email: mario.rossi@email.com
+  workspaces:
+    - workspaceURL: LANDC
+      role: Basic
+      groupNumber: 12
+  publicKeys:
+    - key1
+    - key2
+    - key3
