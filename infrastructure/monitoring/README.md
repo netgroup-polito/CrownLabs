@@ -39,7 +39,7 @@ Prometheus's main features are:
 - multiple modes of graphing and dashboarding support
 
 ### Grafana
-From [Grafana](https://grafana.com/docs/grafana/latest/getting-started/what-is-grafana/) official documentation.
+From [Grafana](https://grafana.com/docs/grafana/latest/getting-started/#what-is-grafana) official documentation.
 Grafana is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics no matter where they are stored. We can also say that Grafana is the tool for beautiful monitoring and metric analytics & dashboards for Graphite, InfluxDB & Prometheus & More.
 
 ### Alertmanager
