@@ -9,7 +9,7 @@ Definitions (CRDs) which implement the basic APIs:
 
 
 
-Both LabTemplates and LabInstances are **namespaced**. 
+Both LabTemplates and LabInstances are **namespaced**.
 
 #### Add CRDs to the cluster
 
@@ -83,4 +83,41 @@ After having installed Kubevirt in your testing cluster, you have to deploy the 
 make install
 ```
 
-N.B. So far, the readiness check for VirtualMachines is performed by assuming that the operator is running on the same cluster of the Virtual Machines. This prevents the possibility to have *ready* VMs when testing the operator outside the cluster. 
+N.B. So far, the readiness check for VirtualMachines is performed by assuming that the operator is running on the same cluster of the Virtual Machines. This prevents the possibility to have *ready* VMs when testing the operator outside the cluster.
+
+## CrownLabs Image List
+
+The CrownLabs Image List script allows to to gather the list of available images from a Docker Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
+
+### Usage
+
+```
+usage: update-crownlabs-image-list.py [-h]
+    --advertised-registry-name ADVERTISED_REGISTRY_NAME
+    --image-list-name IMAGE_LIST_NAME
+    --registry-url REGISTRY_URL
+    [--registry-username REGISTRY_USERNAME]
+    [--registry-password REGISTRY_PASSWORD]
+    --update-interval UPDATE_INTERVAL
+
+Periodically requests the list of images from a Docker registry and stores it as a Kubernetes CR
+
+Arguments:
+  -h, --help            show this help message and exit
+  --advertised-registry-name ADVERTISED_REGISTRY_NAME
+                        the host name of the Docker registry where the images can be retrieved
+  --image-list-name IMAGE_LIST_NAME
+                        the name assigned to the resulting ImageList object
+  --registry-url REGISTRY_URL
+                        the URL used to contact the Docker registry
+  --registry-username REGISTRY_USERNAME
+                        the username used to access the Docker registry
+  --registry-password REGISTRY_PASSWORD
+                        the password used to access the Docker registry
+  --update-interval UPDATE_INTERVAL
+                        the interval (in seconds) between one update and the following
+```
+
+### Deployment
+
+A sample configuration required for a deployment in a Kubernetes cluster is available in the [deploy folder](deploy/crownlabs-image-list).
