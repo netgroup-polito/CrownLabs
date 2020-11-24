@@ -1,6 +1,14 @@
 ---
 # tasks file for crownlabs
 
+# The default time server is blocked by the firewall
+- name: Configure timesyncd
+  replace:
+    path: /etc/systemd/timesyncd.conf
+    regexp: '^(^#NTP=)$'
+    replace: 'NTP=time.polito.it'
+  notify: Restart the timesyncd service
+
 # Cloud Init Configuration
 - name: Install cloud-init
   apt:
@@ -102,6 +110,18 @@
     enabled: yes
     daemon_reload: yes
   when: desktop_environment_detected
+
+- name: Allow to start graphical applications as root
+  lineinfile:
+    path: "/home/{{ ansible_user }}/.bashrc"
+    line: export XAUTHORITY=~/.Xauthority
+    state: present
+
+- name: Prevent the appearance of an authorization popup due to vnc and polkit
+  replace:
+    path: /usr/share/polkit-1/actions/org.freedesktop.color.policy
+    regexp: '<allow_any>auth_admin<\/allow_any>'
+    replace: '<allow_any>yes</allow_any>'
 
 
 # NoVNC Configuration

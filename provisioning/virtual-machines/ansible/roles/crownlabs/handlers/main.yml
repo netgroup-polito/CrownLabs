@@ -1,2 +1,7 @@
 - name: Run update-grub
   command: update-grub
+
+- name: Restart the timesyncd service
+  systemd:
+    name: systemd-timesyncd
+    state: restarted
