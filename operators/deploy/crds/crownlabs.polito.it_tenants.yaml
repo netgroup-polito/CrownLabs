@@ -35,10 +35,12 @@ spec:
         description: Tenant is the Schema for the tenants API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: APIVersion defines the versioned schema of this representation
+              of an object.
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: Kind is a string value representing the REST resource this
+              object represents.
             type: string
           metadata:
             type: object
@@ -48,7 +50,8 @@ spec:
               ID:
                 type: string
               createSandbox:
-                description: should the resource create the sandbox namespace for k8s practice environment
+                description: should the resource create the sandbox namespace for
+                  k8s practice environment
                 type: boolean
               email:
                 pattern: ^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$
@@ -65,12 +68,14 @@ spec:
               workspaces:
                 description: list of workspaces the user is in
                 items:
-                  description: UserWorkspaceData contains the info of the workspaces related to a user
+                  description: UserWorkspaceData contains the info of the workspaces
+                    related to a user
                   properties:
                     groupNumber:
                       type: integer
                     role:
-                      description: WorkspaceUserRole is an enum for the role of a user in a workspace
+                      description: WorkspaceUserRole is an enum for the role of a
+                        user in a workspace
                       enum:
                       - Admin
                       - Basic
@@ -114,7 +119,8 @@ spec:
                 type: object
               subscription:
                 additionalProperties:
-                  description: SubscriptionStatus is an enum for the status of a subscription to a service
+                  description: SubscriptionStatus is an enum for the status of a subscription
+                    to a service
                   enum:
                   - Ok
                   - Pending
