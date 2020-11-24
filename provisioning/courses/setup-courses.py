@@ -62,8 +62,6 @@ class KeycloakHandler:
         return _user_data
 
     def add_namespace_attribute(self, user, namespace):
-        _username = user.get("username")
-
         _attributes = user.get('attributes', {})
         _namespace = _attributes.get("namespace")
 
@@ -87,7 +85,7 @@ class KeycloakHandler:
                                                roles=self.get_client_role(group_name))
 
     def get_group(self, group_name):
-        if not group_name in self.groups:
+        if group_name not in self.groups:
             _output = self.keycloak_admin.get_group_by_path("/{}".format(group_name))
             self.groups[group_name] = None if _output is None else _output["id"]
 
@@ -100,7 +98,7 @@ class KeycloakHandler:
         self.keycloak_admin.create_group(payload={'name': group_name}, skip_exists=True)
 
     def get_client_role(self, role_name):
-        if not role_name in self.client_roles:
+        if role_name not in self.client_roles:
             self.client_roles[role_name] = self.keycloak_admin.get_client_role(self.client_id, role_name)
 
         if self.client_roles[role_name] is None:
@@ -109,7 +107,7 @@ class KeycloakHandler:
         return self.client_roles[role_name]
 
     def create_client_role(self, role_name):
-        _output = self.keycloak_admin.create_client_role(
+        self.keycloak_admin.create_client_role(
             client_role_id=self.client_id, skip_exists=True,
             payload={'name': role_name, 'clientRole': True})
 
@@ -140,8 +138,8 @@ class NextcloudHandler:
 
         _response = requests.post(url=_url, headers=_headers, data=_user_data)
         return NextcloudHandler.__process_response(_response, {
-            100: lambda : (True, (_user_data["userid"], _user_data["password"])),
-            102: lambda : (False, None),
+            100: lambda: (True, (_user_data["userid"], _user_data["password"])),
+            102: lambda: (False, None),
         })
 
     # https://docs.nextcloud.com/server/15/admin_manual/configuration_user/instruction_set_for_users.html#edit-data-of-a-single-user
@@ -156,7 +154,7 @@ class NextcloudHandler:
 
         _response = requests.put(url=_url, headers=_headers, data=_user_data)
         return NextcloudHandler.__process_response(_response, {
-            100: lambda : (_userid, _user_data["value"]),
+            100: lambda: (_userid, _user_data["value"]),
         })
 
     def _build_nextcloud_url(self, path):
@@ -182,7 +180,6 @@ class NextcloudHandler:
 
         raise NextcloudHandler.UserCreationFailed("HTTP Status Code: {}".format(response.status_code))
 
-
     @staticmethod
     def __get_nextcloud_username(course_code):
         return "keycloak-{}".format(course_code)
@@ -200,7 +197,6 @@ class KubernetesHandler:
     def check_kubectl_cluster_admin():
         if os.system("kubectl auth can-i '*' '*' -A | grep --quiet 'yes'") != 0:
             raise KubernetesHandler.FatalError("Kubectl not found or not enough privileges to interact with the cluster")
-
 
     @staticmethod
     def add_resource_label(resource_type, resource_name, label_key, label_value):
@@ -312,7 +308,7 @@ class Tenant:
 
         sys.stdout.write("* Storing the credentials in Kubernetes\n")
         _username, _password = map(
-            lambda str : base64.b64encode(str.encode("ascii")).decode("ascii"),
+            lambda str: base64.b64encode(str.encode("ascii")).decode("ascii"),
             _credentials)
         k8s_templates["nextcloudcredentials"].apply_template(
             namespace_name=self.namespace,
@@ -340,10 +336,9 @@ class Tenant:
         k8s_templates["resourcequota"].apply_template(
             namespace_name=self.namespace)
 
-        ## Network Policies
+        # Network Policies
         k8s_templates["ingress-netpol"].apply_template(
             namespace_name=self.namespace)
-
 
     def _create_user(self, keycloak_handler):
         if self.user is None:
@@ -428,6 +423,7 @@ def _parse_csv_file(path):
         sys.stderr.write("Impossible to parse CSV file ('{}'). Abort\n".format(path))
         sys.exit(1)
 
+
 if __name__ == "__main__":
     # Parse the command line arguments
     _parser = argparse.ArgumentParser(description="Automatic creation of CrownLabs courses, laboratory and tenants")
@@ -436,9 +432,12 @@ if __name__ == "__main__":
     _parser.add_argument("nextcloud_user", help="The admin username for Nextcloud server")
     _parser.add_argument("nextcloud_pass", help="The admin password for Nextcloud server")
     _parser.add_argument("-c", "--courses", metavar="<courses.csv>", help="The CSV file containing the courses to be created")
-    _parser.add_argument("-l", "--laboratories", metavar="<laboratories.csv>", help="The CSV file containing the list of laboratories to be created")
-    _parser.add_argument("-t", "--teachers", metavar="<teachers.csv>", help="The CSV file containing the professor accounts to be created")
-    _parser.add_argument("-s", "--students", metavar="<students.csv>", help="The CSV file containing the student accounts to be created")
+    _parser.add_argument("-l", "--laboratories", metavar="<laboratories.csv>",
+                         help="The CSV file containing the list of laboratories to be created")
+    _parser.add_argument("-t", "--teachers", metavar="<teachers.csv>",
+                         help="The CSV file containing the professor accounts to be created")
+    _parser.add_argument("-s", "--students", metavar="<students.csv>",
+                         help="The CSV file containing the student accounts to be created")
 
     _args = _parser.parse_args()
 
@@ -467,12 +466,12 @@ if __name__ == "__main__":
         sys.stderr.write("{}. Abort\n".format(_ex))
         sys.exit(1)
 
-
     # Prepare the templates for the resources to create in Kubernetes
     try:
         _k8s_templates = {
             "namespace": KubernetesTemplateHandler("namespace.yaml.tmpl", "templates/"),
-            "clusterrolebinding-courseadmin": KubernetesTemplateHandler("clusterrolebinding-courseadmin.yaml.tmpl", "templates/"),
+            "clusterrolebinding-courseadmin": KubernetesTemplateHandler(
+                "clusterrolebinding-courseadmin.yaml.tmpl", "templates/"),
             "rolebinding-tenant": KubernetesTemplateHandler("rolebindingtenant.yaml.tmpl", "templates/"),
             "rolebinding-course": KubernetesTemplateHandler("rolebindingcourse.yaml.tmpl", "templates/"),
             "rolebinding-courseadmin": KubernetesTemplateHandler("rolebindingcourseadmin.yaml.tmpl", "templates/"),

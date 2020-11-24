@@ -17,12 +17,29 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Laboratory Operator - Check linting
+      - name: Check linting
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.31
           working-directory: operators
-          args: --timeout=600s --enable gosec,prealloc,gofmt,govet --skip-files "zz_generated.*.go" --skip-dirs "kubeVirt"
+          args: --timeout=600s --enable gosec,prealloc,gofmt,govet --skip-files "zz_generated.*.go"
+
+
+  python-lint:
+    name: Lint python files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Check linting
+        uses: grantmcconnaughey/lintly-flake8-github-action@v1.0
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          failIf: any
 
 
   frontend-lint:

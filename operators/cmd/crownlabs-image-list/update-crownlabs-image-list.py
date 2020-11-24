@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
 import logging
 import sched
 import time
@@ -293,6 +292,7 @@ class ImageListSaver:
 # Initialize the logger object
 logger = logging.getLogger("update-crownlabs-image-list")
 
+
 def configure_logger():
     """
     Configures the logger object with the required configuration
@@ -316,8 +316,8 @@ if __name__ == "__main__":
     configure_logger()
 
     # Parse the command line arguments
-    parser = argparse.ArgumentParser(description=\
-        "Periodically requests the list of images from a Docker registry and stores it as a Kubernetes CR")
+    parser = argparse.ArgumentParser(
+        description="Periodically requests the list of images from a Docker registry and stores it as a Kubernetes CR")
 
     parser.add_argument("--advertised-registry-name", required=True,
                         help="the host name of the Docker registry where the images can be retrieved")
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     # Create the object periodically perforing the update process
     image_list_updater = ImageListUpdater(image_list_requestor, image_list_saver, args.advertised_registry_name)
 
-    logger.info(f"Starting the update process")
+    logger.info("Starting the update process")
     try:
         image_list_updater.run_update_process(args.update_interval)
     except KeyboardInterrupt:
