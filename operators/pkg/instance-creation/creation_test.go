@@ -53,8 +53,9 @@ func TestCreateUserData(t *testing.T) {
 		nextPassword     = "passtest"
 		nextCloudBaseUrl = "nextcloud.url"
 	)
+	publicKeys := []string{"key1", "key2", "key3"}
 
-	rawConfig := createUserdata(nextUsername, nextPassword, nextCloudBaseUrl)
+	rawConfig := createUserdata(nextUsername, nextPassword, nextCloudBaseUrl, publicKeys)
 
 	var config cloudInitConfig
 
@@ -79,6 +80,10 @@ func TestCreateUserData(t *testing.T) {
 	assert.Equal(t, config.WriteFiles[0].Content, expectedcontent, "Nextcloud secret should be se to "+expectedcontent+" .")
 	assert.Equal(t, config.WriteFiles[0].Path, expectedpath, "Nextcloud secret path should be set to "+expectedpath+".")
 	assert.Equal(t, config.WriteFiles[0].Permissions, expectedpermissions, "Nextcloud secret permissions should be set to "+expectedpermissions+" .")
+	assert.Equal(t, config.SSHAuthorizedKeys[0], publicKeys[0], "Public key should be set to"+publicKeys[0]+" .")
+	assert.Equal(t, config.SSHAuthorizedKeys[1], publicKeys[1], "Public key should be set to"+publicKeys[1]+" .")
+	assert.Equal(t, config.SSHAuthorizedKeys[2], publicKeys[2], "Public key should be set to"+publicKeys[2]+" .")
+
 }
 
 func TestCreateVirtualMachineInstance(t *testing.T) {

@@ -1,0 +1,108 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE_SSH_BASTION}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bastion-operator
+  namespace: ${NAMESPACE_SSH_BASTION}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ${SSH_BASTION_CRB_NAME}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crownlabs-bastion-operator
+subjects:
+  - kind: ServiceAccount
+    name: bastion-operator
+    namespace: ${NAMESPACE_SSH_BASTION}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-bastion
+  namespace: ${NAMESPACE_SSH_BASTION}
+spec:
+  progressDeadlineSeconds: 600
+  replicas: ${REPLICAS_SSH_BASTION}
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: ssh-bastion
+  strategy:
+    rollingUpdate:
+      maxSurge: ${MAX_SURGE_SSH_BASTION}
+      maxUnavailable: ${MAX_UNAVAILABLE_SSH_BASTION}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: ssh-bastion
+    spec:
+      serviceAccountName: bastion-operator
+      containers:
+      - name: sidecar
+        image: crownlabs/bastion-operator${IMAGE_SUFFIX}:${IMAGE_TAG}
+        imagePullPolicy: Always
+        command: ["/usr/bin/controller"]
+        resources: {}
+        volumeMounts:
+          - name: authorized-keys
+            mountPath: /auth-keys-vol
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsUser: 20000
+          runAsGroup: 20000
+          privileged: false
+      - name: bastion
+        args: ["-D", "-e", "-f","/etc/ssh/sshd_config_custom"]
+        command: ["/usr/sbin/sshd"]
+        image: crownlabs/ssh-bastion${IMAGE_SUFFIX}:${SSH_BASTION_IMAGE_TAG}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 2222
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /home/bastion/.ssh
+          name: authorized-keys
+        - mountPath: /host-keys
+          name : host-keys
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: authorized-keys
+          emptyDir: {}
+        - name: host-keys
+          secret:
+            secretName: ssh-bastion-host-keys
+            defaultMode: 0400
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-bastion
+  namespace: ${NAMESPACE_SSH_BASTION}
+spec:
+  ports:
+    - port: ${SERVICE_PORT_SSH_BASTION}
+      targetPort: 2222
+      name: ssh
+  selector:
+    app: ssh-bastion
+  type: LoadBalancer
