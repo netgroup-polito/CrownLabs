@@ -26,10 +26,12 @@ spec:
         description: Workspace is the Schema for the workspaces API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: APIVersion defines the versioned schema of this representation
+              of an object.
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: Kind is a string value representing the REST resource this
+              object represents.
             type: string
           metadata:
             type: object
@@ -56,7 +58,8 @@ spec:
                 type: object
               subscription:
                 additionalProperties:
-                  description: SubscriptionStatus is an enum for the status of a subscription to a service
+                  description: SubscriptionStatus is an enum for the status of a subscription
+                    to a service
                   enum:
                   - Ok
                   - Pending

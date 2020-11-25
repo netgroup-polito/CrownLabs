@@ -1,6 +1,6 @@
 module github.com/netgroup-polito/CrownLabs/operators
 
-go 1.13
+go 1.15
 
 require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
