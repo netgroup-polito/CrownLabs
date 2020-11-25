@@ -1,6 +1,6 @@
 name: Greeting
 on:
-  pull_request:
+  pull_request_target:
     types:
       - opened
 
@@ -26,9 +26,9 @@ jobs:
             * `/deploy-staging`:    Deploy a staging environment to test this PR
             * `/undeploy-staging`:  Manually undeploy the staging environment
 
-            Make sure this PR appears in the **${{ github.repository }} changelog**, adding one of the following **labels**:
+            Make sure this PR appears in the **${{ github.event.repository.name }} changelog**, adding one of the following **labels**:
             * `kind/breaking`:      :boom: Breaking Change
             * `kind/feature`:       :rocket: New Feature
-            * `kind/bug-fix`:       :bug: Bug Fix
+            * `kind/bug`:           :bug: Bug Fix
             * `kind/cleanup`:       :broom: Code Refactoring
-            * `kind/documentation`: :memo: Documentation
+            * `kind/docs`:          :memo: Documentation
