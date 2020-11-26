@@ -1,0 +1,119 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: templates.crownlabs.polito.it
+spec:
+  group: crownlabs.polito.it
+  names:
+    kind: Template
+    listKind: TemplateList
+    plural: templates
+    shortNames:
+    - tmpl
+    singular: template
+  scope: Namespaced
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: Template is the Schema for the labtemplates API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TemplateSpec defines the desired state of Template
+            properties:
+              deleteAfter:
+                default: 7d
+                pattern: ^[0-9]+[mhd]$
+                type: string
+              description:
+                type: string
+              environmentList:
+                items:
+                  properties:
+                    environmentType:
+                      enum:
+                      - VirtualMachine
+                      - Container
+                      type: string
+                    image:
+                      type: string
+                    labType:
+                      default: 7d
+                      type: boolean
+                    name:
+                      type: string
+                    persistent:
+                      type: boolean
+                    resources:
+                      properties:
+                        cpu:
+                          format: int32
+                          maximum: 8
+                          minimum: 1
+                          type: integer
+                        memory:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        reservedCPUPercentage:
+                          format: int32
+                          maximum: 100
+                          minimum: 1
+                          type: integer
+                      required:
+                      - cpu
+                      - memory
+                      - reservedCPUPercentage
+                      type: object
+                  required:
+                  - environmentType
+                  - image
+                  - persistent
+                  - resources
+                  type: object
+                type: array
+              prettyName:
+                type: string
+              workspace.crownlabs.polito.it/WorkspaceRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - description
+            - environmentList
+            - prettyName
+            type: object
+          status:
+            description: TemplateStatus defines the observed state of Template
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

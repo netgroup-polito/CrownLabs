@@ -4,11 +4,11 @@ metadata:
   name: crownlabs-lab-operator
 rules:
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["labinstances","labinstances/status"]
+  resources: ["labinstances","labinstances/status", "instances", "instances/status"]
   verbs: ["get","list","watch","create","update","patch","delete"]
 
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["labtemplates"]
+  resources: ["labtemplates", "templates"]
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]

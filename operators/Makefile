@@ -21,7 +21,7 @@ uninstall: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 
 manifests: controller-gen
-	$(CONTROLLER_GEN) crd:maxDescLen=127 paths="./api/..." output:crd:artifacts:config=deploy/crds
+	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=deploy/crds
 # Run go fmt against code
 fmt:
 	go fmt ./...
@@ -37,11 +37,7 @@ controller-gen:
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 }
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
