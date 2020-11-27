@@ -44,6 +44,9 @@ jobs:
         with:
           token: ${{ secrets.CI_TOKEN }}
           failIf: any
+        env:
+          LINTLY_PR: ${{ github.event.pull_request.number }}
+          LINTLY_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
 
 
   frontend-lint:
