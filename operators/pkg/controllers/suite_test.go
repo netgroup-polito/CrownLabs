@@ -16,7 +16,7 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"path/filepath"
 	"testing"
 
@@ -61,7 +61,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = v1alpha1.AddToScheme(scheme.Scheme)
+	err = v1alpha2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

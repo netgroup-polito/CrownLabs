@@ -6,22 +6,22 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: labinstances.crownlabs.polito.it
+  name: instances.crownlabs.polito.it
 spec:
   group: crownlabs.polito.it
   names:
-    kind: LabInstance
-    listKind: LabInstanceList
-    plural: labinstances
+    kind: Instance
+    listKind: InstanceList
+    plural: instances
     shortNames:
-    - labi
-    singular: labinstance
+    - inst
+    singular: instance
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: LabInstance is the Schema for the labinstances API
+        description: Instance is the Schema for the labinstances API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -32,17 +32,32 @@ spec:
           metadata:
             type: object
           spec:
-            description: LabInstanceSpec defines the desired state of LabInstance
+            description: InstanceSpec defines the desired state of Instance
             properties:
-              labTemplateName:
-                type: string
-              labTemplateNamespace:
-                type: string
-              studentId:
-                type: string
+              template.crownlabs.polito.it/TemplateRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+              tenant.crownlabs.polito.it/TenantRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - template.crownlabs.polito.it/TemplateRef
+            - tenant.crownlabs.polito.it/TenantRef
             type: object
           status:
-            description: LabInstanceStatus defines the observed state of LabInstance
+            description: InstanceStatus defines the observed state of Instance
             properties:
               ip:
                 type: string
