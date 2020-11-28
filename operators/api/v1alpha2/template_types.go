@@ -45,8 +45,8 @@ type TemplateStatus struct {
 
 type Environment struct {
 	Name string `json:"name,omitempty"`
-	// +kubebuilder:default="7d"
-	GuiEnabled bool                 `json:"labType,omitempty"`
+	// +kubebuilder:default=true
+	GuiEnabled bool                 `json:"guiEnabled,omitempty"`
 	Resources  EnvironmentResources `json:"resources"`
 	// +kubebuilder:validation:Enum="VirtualMachine";"Container"
 	EnvironmentType EnvironmentType `json:"environmentType"`
