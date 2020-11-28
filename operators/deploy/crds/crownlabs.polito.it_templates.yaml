@@ -48,11 +48,11 @@ spec:
                       - VirtualMachine
                       - Container
                       type: string
+                    guiEnabled:
+                      default: true
+                      type: boolean
                     image:
                       type: string
-                    labType:
-                      default: 7d
-                      type: boolean
                     name:
                       type: string
                     persistent:
