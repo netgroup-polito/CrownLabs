@@ -6,6 +6,7 @@ After=syslog.target network-online.target
 Type=forking
 User={{ ansible_user }}
 Group={{ ansible_user }}
+PAMName=login
 WorkingDirectory=/home/{{ ansible_user }}
 ExecStartPre=/bin/sh -c '/usr/bin/vncserver -kill %i > /dev/null 2>&1 || :'
 ExecStart=/usr/bin/vncserver %i -SecurityTypes None -localhost
