@@ -11,6 +11,13 @@ export const VM_STATUS = {
   ERROR: -1
 };
 
+function getRandomInt(min, max) {
+  const ceiledMin = Math.ceil(min);
+  const flooredMax = Math.floor(max);
+  // min is included, max is excluded
+  return Math.floor(Math.random() * (flooredMax - ceiledMin)) + ceiledMin;
+}
+
 /**
  * Class to manage all the interaction with the cluster
  *
@@ -114,9 +121,9 @@ export default class ApiManager {
         apiVersion: `${this.instanceGroup}/${this.version}`,
         kind: 'LabInstance',
         metadata: {
-          name: `${labTemplateName}-${this.studentID}-${
-            Math.floor(Math.random() * 10000) + 1
-          }`,
+          name: `${labTemplateName}-${this.studentID}-${Math.floor(
+            getRandomInt(1000, 10000)
+          )}`,
           namespace: this.instanceNamespace
         },
         spec: {
