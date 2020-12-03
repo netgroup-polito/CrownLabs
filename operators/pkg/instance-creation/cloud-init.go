@@ -49,15 +49,16 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 	return map[string]string{"userdata": headerComment + string(out)}
 }
 
-func CreateCloudInitSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string) v1.Secret {
+func CreateCloudInitSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string, references []metav1.OwnerReference) v1.Secret {
 	secret := v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-secret",
-			Namespace: namespace,
+			Name:            name + "-secret",
+			Namespace:       namespace,
+			OwnerReferences: references,
 		},
 		Data: nil,
 		StringData: createUserdata(

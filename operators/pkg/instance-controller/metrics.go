@@ -1,4 +1,4 @@
-package controllers
+package instance_controller
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

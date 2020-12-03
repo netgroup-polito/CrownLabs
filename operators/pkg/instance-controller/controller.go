@@ -13,27 +13,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package instance_controller
 
 import (
 	"context"
 	"fmt"
-	networkingv1 "k8s.io/api/networking/v1"
-	"net"
+	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 
 	"github.com/go-logr/logr"
-	"github.com/google/uuid"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	virtv1 "kubevirt.io/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -52,11 +50,6 @@ type LabInstanceReconciler struct {
 	OidcClientSecret   string
 	OidcProviderUrl    string
 }
-
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=labinstances,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=labinstances/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=events/status,verbs=get
 
 func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	VMstart := time.Now()
@@ -117,11 +110,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Error(err, "unable to update Instance labels")
 	}
 
-	// prepare variables common to all resources
-	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(labInstance.Name, ".", "-"), uuid.New().String())
-	namespace := labInstance.Namespace
-	if err := r.CreateEnvironment(&labInstance, &labTemplate, namespace, name, VMstart); err != nil {
-		log.Error(err, "unable to Create Laboratory Environment")
+	if _, err := r.generateEnvironments(labTemplate, labInstance, VMstart); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -131,6 +120,23 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	VMElaborationDuration := VmElaborationTimestamp.Sub(VMstart)
 	elaborationTimes.Observe(VMElaborationDuration.Seconds())
 
+	return ctrl.Result{}, nil
+}
+
+func (r *LabInstanceReconciler) generateEnvironments(template crownlabsv1alpha2.Template, instance crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
+	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(instance.Name, ".", "-"), uuid.New().String())
+	namespace := instance.Namespace
+	for i := range template.Spec.EnvironmentList {
+		// prepare variables common to all resources
+		switch template.Spec.EnvironmentList[i].EnvironmentType {
+		case crownlabsv1alpha2.ClassVM:
+			if err := r.CreateVMEnvironment(&instance, &template.Spec.EnvironmentList[i], namespace, name, vmstart); err != nil {
+				return ctrl.Result{}, err
+			}
+		case crownlabsv1alpha2.ClassContainer:
+			return ctrl.Result{}, errors.NewBadRequest("Container Environments are not implemented")
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -154,78 +160,4 @@ func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context, log log
 	if err := r.Status().Update(ctx, labInstance); err != nil {
 		log.Error(err, "unable to update Instance status")
 	}
-}
-
-func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
-	guiEnabled bool, service v1.Service, ingress networkingv1.Ingress,
-	labInstance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
-
-	var vmStatus virtv1.VirtualMachineInstancePhase
-
-	var ip string
-	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
-
-	// iterate until the vm is running
-	for {
-		err := r.Client.Get(ctx, types.NamespacedName{
-			Namespace: vmi.Namespace,
-			Name:      vmi.Name,
-		}, vmi)
-		if err == nil {
-			if vmStatus != vmi.Status.Phase {
-				vmStatus = vmi.Status.Phase
-				if len(vmi.Status.Interfaces) > 0 {
-					ip = vmi.Status.Interfaces[0].IP
-				}
-
-				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
-				if vmStatus == virtv1.Failed {
-					setLabInstanceStatus(r, ctx, log, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
-					return
-				}
-
-				setLabInstanceStatus(r, ctx, log, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
-				if vmStatus == virtv1.Running {
-					break
-				}
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	// when the vm status is Running, it is still not available for some seconds
-	// hence, wait until it starts responding
-	host := service.Name + "." + service.Namespace
-	port := "6080" // VNC
-	if !guiEnabled {
-		port = "22" // SSH
-	}
-
-	err := waitForConnection(log, host, port)
-	if err != nil {
-		log.Error(err, fmt.Sprintf("Unable to check whether %v:%v is reachable", host, port))
-	} else {
-		msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to VmiReady."
-		setLabInstanceStatus(r, ctx, log, msg, "Normal", "VmiReady", labInstance, ip, url)
-		readyTime := time.Now()
-		bootTime := readyTime.Sub(startTimeVM)
-		bootTimes.Observe(bootTime.Seconds())
-	}
-}
-
-func waitForConnection(log logr.Logger, host, port string) error {
-	for retries := 0; retries < 120; retries++ {
-		timeout := time.Second
-		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
-		if err != nil {
-			log.Info(fmt.Sprintf("Unable to check whether %v:%v is reachable: %v", host, port, err))
-			time.Sleep(time.Second)
-		} else {
-			// The connection succeeded, hence the VM is ready
-			defer conn.Close()
-			return nil
-		}
-	}
-
-	return fmt.Errorf("Timeout while checking whether %v:%v is reachable", host, port)
 }

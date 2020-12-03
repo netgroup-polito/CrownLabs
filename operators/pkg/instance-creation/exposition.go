@@ -12,12 +12,13 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func CreateService(name string, namespace string) corev1.Service {
+func CreateService(name string, namespace string, references []metav1.OwnerReference) corev1.Service {
 
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-svc",
-			Namespace: namespace,
+			Name:            name + "-svc",
+			Namespace:       namespace,
+			OwnerReferences: references,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -43,7 +44,7 @@ func CreateService(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string) networkingv1.Ingress {
+func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	url := websiteBaseUrl + "/" + urlUUID
 
@@ -61,6 +62,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 				"crownlabs.polito.it/probe-url":                     "https://" + url,
 				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + urlUUID + `/index.html">';`,
 			},
+			OwnerReferences: references,
 		},
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{
@@ -98,7 +100,7 @@ func CreateIngress(name string, namespace string, svc corev1.Service, urlUUID st
 	return ingress
 }
 
-func CreateOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerUrl string) appsv1.Deployment {
+func CreateOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerUrl string, references []metav1.OwnerReference) appsv1.Deployment {
 
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
@@ -106,9 +108,10 @@ func CreateOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provi
 
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-oauth2-deploy",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": name},
+			Name:            name + "-oauth2-deploy",
+			Namespace:       namespace,
+			OwnerReferences: references,
+			Labels:          map[string]string{"app": name},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32Ptr(1),
@@ -168,14 +171,15 @@ func CreateOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provi
 	return deploy
 }
 
-func CreateOauth2Service(name string, namespace string) corev1.Service {
+func CreateOauth2Service(name string, namespace string, references []metav1.OwnerReference) corev1.Service {
 
 	service := corev1.Service{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-oauth2-svc",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": name},
+			Name:            name + "-oauth2-svc",
+			Namespace:       namespace,
+			OwnerReferences: references,
+			Labels:          map[string]string{"app": name},
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -193,13 +197,14 @@ func CreateOauth2Service(name string, namespace string) corev1.Service {
 	return service
 }
 
-func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string) networkingv1.Ingress {
+func CreateOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-oauth2-ingress",
-			Namespace: namespace,
+			Name:            name + "-oauth2-ingress",
+			Namespace:       namespace,
+			OwnerReferences: references,
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
 				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",

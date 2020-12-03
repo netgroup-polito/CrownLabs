@@ -21,7 +21,7 @@ var terminationGracePeriod int64 = 30
 var CPUhypervisorReserved float32 = 0.5
 var memoryHypervisorReserved string = "500M"
 
-func CreateVirtualMachineInstance(name string, namespace string, template crownlabsv1alpha2.Environment, instanceName string, secretName string) (*virtv1.VirtualMachineInstance, error) {
+func CreateVirtualMachineInstance(name string, namespace string, template *crownlabsv1alpha2.Environment, instanceName string, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
 	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
 	vm := virtv1.VirtualMachineInstance{
 		TypeMeta: metav1.TypeMeta{
@@ -29,9 +29,10 @@ func CreateVirtualMachineInstance(name string, namespace string, template crownl
 			APIVersion: "kubevirt.io/v1alpha3",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-vmi",
-			Namespace: namespace,
-			Labels:    map[string]string{"name": name, "template-name": template.Name, "instance-name": instanceName},
+			Name:            name + "-vmi",
+			Namespace:       namespace,
+			OwnerReferences: references,
+			Labels:          map[string]string{"name": name, "template-name": template.Name, "instance-name": instanceName},
 		},
 		Spec: virtv1.VirtualMachineInstanceSpec{
 			TerminationGracePeriodSeconds: &terminationGracePeriod,
