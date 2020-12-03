@@ -25,3 +25,4 @@ labInstance-operator/.idea
 *.swp
 *.swo
 *~
+.history
