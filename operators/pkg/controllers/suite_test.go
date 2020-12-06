@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	gocloak "github.com/Nerzal/gocloak/v7"
+	// "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -30,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers/mocks"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -39,6 +42,20 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+
+const kcAccessToken = "keycloak-token"
+const kcTargetRealm = "targetRealm"
+const kcTargetClientID = "targetClientId"
+
+//  keycloak variables
+var mKcClient *mocks.MockGoCloak
+var mToken *gocloak.JWT = &gocloak.JWT{AccessToken: kcAccessToken}
+var kcA = KcActor{
+	Client:         mKcClient,
+	Token:          mToken,
+	TargetRealm:    kcTargetRealm,
+	TargetClientID: kcTargetClientID,
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -50,7 +67,6 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds")},
@@ -74,6 +90,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&WorkspaceReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
+		KcA:    &kcA,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
