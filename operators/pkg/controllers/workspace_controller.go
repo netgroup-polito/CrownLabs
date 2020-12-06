@@ -60,13 +60,13 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.SetControllerReference(&ws, &ns, r.Scheme)
 	})
 	if err != nil {
-		klog.Error(err, "Unable to create or update namespace")
+		klog.Error("Unable to create or update namespace", err)
 		// update status of workspace with failed namespace creation
 		ws.Status.Namespace.Created = false
 		ws.Status.Namespace.Name = ""
 		// return anyway the error to allow new reconcile, independently of outcome of status update
 		if err := r.Status().Update(ctx, &ws); err != nil {
-			klog.Error(err, "Unable to update status")
+			klog.Error("Unable to update status", err)
 		}
 		return ctrl.Result{}, err
 	}
@@ -77,7 +77,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ws.Status.Namespace.Name = nsName
 	if err := r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
-		klog.Error(err, "Unable to update status")
+		klog.Error("Unable to update status", err)
 		return ctrl.Result{}, err
 	}
 

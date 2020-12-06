@@ -50,5 +50,8 @@ endif
 run-tenant: generate fmt vet manifests
 	go run cmd/tenant-operator/main.go
 
+install-tenant: manifests
+	kubectl apply -f deploy/crds/crownlabs.polito.it_tenants.yaml -f deploy/crds/crownlabs.polito.it_workspaces.yaml
+
 python-dependencies:
 	pip3 install -r ./build/delete-stale-instances/requirements.txt

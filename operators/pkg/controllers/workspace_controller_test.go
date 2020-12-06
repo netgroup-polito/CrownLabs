@@ -1,9 +1,4 @@
 /*
-Ideally, we should have one `<kind>_conroller_test.go` for each controller scaffolded and called in the `test_suite.go`.
-So, let's write our example test for the CronJob controller (`cronjob_controller_test.go.`)
-*/
-
-/*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -13,11 +8,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
-// +kubebuilder:docs-gen:collapse=Apache License
-
-/*
-As usual, we start with the necessary imports. We also define some utility variables.
 */
 package controllers
 
@@ -36,24 +26,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// +kubebuilder:docs-gen:collapse=Imports
-
-/*
-The first step to writing a simple integration test is to actually create an instance of CronJob you can run tests against.
-Note that to create a CronJob, you’ll need to create a stub CronJob struct that contains your CronJob’s specifications.
-Note that when we create a stub CronJob, the CronJob also needs stubs of its required downstream objects.
-Without the stubbed Job template spec and the Pod template spec below, the Kubernetes API will not be able to
-create the CronJob.
-*/
 var _ = Describe("Workspace controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		WSName       = "test-workspace"
-		WSNamespace  = ""
-		WSPrettyName = "Workspace for testing"
-		NSName       = "workspace-test-workspace"
-		NSNamespace  = ""
+		wsName       = "test-ws"
+		wsNamespace  = ""
+		wsPrettyName = "Workspace for testing"
+		nsName       = "workspace-test-ws"
+		nsNamespace  = ""
 
 		timeout  = time.Second * 10
 		interval = time.Millisecond * 250
@@ -69,46 +50,57 @@ var _ = Describe("Workspace controller", func() {
 					Kind:       "Workspace",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      WSName,
-					Namespace: WSNamespace,
+					Name:      wsName,
+					Namespace: wsNamespace,
 				},
 				Spec: crownlabsv1alpha1.WorkspaceSpec{
-					PrettyName: WSPrettyName,
+					PrettyName: wsPrettyName,
 				},
 			}
 			Expect(k8sClient.Create(ctx, ws)).Should(Succeed())
 
-			By("By checking the workspace has been created")
+			By("By checking that the workspace has been created")
 
-			wsLookupKey := types.NamespacedName{Name: WSName, Namespace: WSNamespace}
-			createdWS := &crownlabsv1alpha1.Workspace{}
+			wsLookupKey := types.NamespacedName{Name: wsName, Namespace: wsNamespace}
+			createdWs := &crownlabsv1alpha1.Workspace{}
 
-			doesEventuallyExists(ctx, wsLookupKey, createdWS, BeTrue(), timeout, interval)
+			doesEventuallyExists(ctx, wsLookupKey, createdWs, BeTrue(), timeout, interval)
 
-			By("By checking the workspace has the correct name")
-			Expect(createdWS.Spec.PrettyName).Should(Equal(WSPrettyName))
+			By("By checking that the workspace has the correct name")
+			Expect(createdWs.Spec.PrettyName).Should(Equal(wsPrettyName))
 
-			By("By checking the corresponding namespace has been created")
+			By("By checking that the corresponding namespace has been created")
 
-			nsLookupKey := types.NamespacedName{Name: NSName, Namespace: NSNamespace}
-			createdNS := &v1.Namespace{}
+			nsLookupKey := types.NamespacedName{Name: nsName, Namespace: nsNamespace}
+			createdNs := &v1.Namespace{}
 
-			doesEventuallyExists(ctx, nsLookupKey, createdNS, BeTrue(), timeout, interval)
+			doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
 
-			By("By checking the corresponding namespace has a controller reference pointing to the workspace")
+			By("By checking that the corresponding namespace has a controller reference pointing to the workspace")
 
-			Expect(createdNS.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(WSName)})))
-			Expect(createdNS.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "workspace"))
+			Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(wsName)})))
+			Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "workspace"))
+
+			By("By checking that the status of the workspace has been updated accordingly")
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, wsLookupKey, ws)
+				if err != nil {
+					return false
+				}
+				if !ws.Status.Namespace.Created || ws.Status.Namespace.Name != nsName {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
 
 		})
 	})
-
 })
 
-func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdNS runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
+func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
 	Eventually(func() bool {
-		err := k8sClient.Get(ctx, nsLookupKey, createdNS)
+		err := k8sClient.Get(ctx, objLookupKey, targetObj)
 		return err == nil
 	}, timeout, interval).Should(expectedStatus)
-
 }

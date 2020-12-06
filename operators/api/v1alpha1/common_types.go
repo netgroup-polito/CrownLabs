@@ -11,10 +11,10 @@ type NameCreated struct {
 type SubscriptionStatus string
 
 const (
-	// Ok -> the subscription was successful
-	Ok SubscriptionStatus = "Ok"
-	// Pending -> the subscription is in process
-	Pending SubscriptionStatus = "Pending"
-	// Failed -> the subscription has failed
-	Failed SubscriptionStatus = "Failed"
+	// SubscrOk -> the subscription was successful
+	SubscrOk SubscriptionStatus = "Ok"
+	// SubscrPending -> the subscription is in process
+	SubscrPending SubscriptionStatus = "Pending"
+	// SubscrFailed -> the subscription has failed
+	SubscrFailed SubscriptionStatus = "Failed"
 )
