@@ -86,6 +86,8 @@ jobs:
             context: ./provisioning/containers/gui-common/tigervnc
           - component: websockify
             context: ./provisioning/containers/gui-common/websockify
+          - component: pycharm
+            context: ./provisioning/containers/pycharm
 
     steps:
       - name: Checkout
