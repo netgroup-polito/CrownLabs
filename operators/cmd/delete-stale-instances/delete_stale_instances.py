@@ -30,7 +30,7 @@ class InstanceExpiredDeleter:
             # Configuration loaded from within a pod
             config.load_incluster_config()
 
-    def _get_instance_list(self):
+    def get_instance_list(self):
         """
         Gets the current list of instances.
         :returns: the list of instances or None
@@ -40,13 +40,14 @@ class InstanceExpiredDeleter:
         try:
             instances = api_instance.list_cluster_custom_object(group=self.group, version=self.version,
                                                                 plural=self.plural_instance, pretty='pretty')
-            logger.debug("Intances list retrieved successfully")
+            logger.debug(f"Instances list retrieved successfully ({len(instances.get('items'))} items)")
         except ApiException as e:
-            logger.error(f"Exception when calling CustomObjectsApi->list_cluster_custom_object: '{e}'")
-            # return None
+            logger.error(f"Failed retrieving the list of instances: '{e}'")
+            return None
         return instances
 
-    def instance_is_expired(self, time, timecreation):
+    @staticmethod
+    def instance_is_expired(time, timecreation):
         """
         Compares creation timestamp with current timestamp to decide if instance is expired.
         :returns: True if expired or False if it is not
@@ -59,7 +60,8 @@ class InstanceExpiredDeleter:
         total_time = deltatime.total_seconds()
         return (total_time > time)
 
-    def convert_to_time(self, delete_after):
+    @staticmethod
+    def convert_to_time(delete_after):
         """
         Converts the delete_after string to the corresponding value in seconds.
         :returns: delete_after paramenter converted to seconds.
@@ -83,10 +85,10 @@ class InstanceExpiredDeleter:
             logger.error(f"DeleteAfter field has a wrong time unit: '{delete_after_vector[1]}'")
             return None
         time = int(delete_after_vector[0]) * multiplier
-        logger.debug("Time converted successfully")
+        logger.debug(f"Time converted successfully: {delete_after} = {time} seconds")
         return time
 
-    def _get_life_span(self, template_name, template_ns):
+    def get_life_span(self, template_name, template_ns):
         """
         Retrieves deleteAfter field of template specified.
         :returns: life span in seconds or None
@@ -99,17 +101,18 @@ class InstanceExpiredDeleter:
                                                                  namespace=template_ns, plural=self.plural_template,
                                                                  name=template_name)
         except ApiException as e:
-            logger.error(f"Exception when calling CustomObjectsApi->get_namespaced_custom_object: '{e}'")
-            # return None
+            logger.error(f"Failed retrieving template {template_ns}/{template_name}: '{e}'")
+            return None
+
         delete_after = template.get("spec").get("deleteAfter")
-        time = self.convert_to_time(delete_after)
-        logger.debug(f"Retrieved template: '{template_name}' -in Namespace: '{template_ns}' \
-                     with maximum lifetime: '{delete_after}'")
+        time = InstanceExpiredDeleter.convert_to_time(delete_after)
+        logger.debug(f"Retrieved template: '{template_name}' in Namespace: '{template_ns}' "
+                     f"with maximum lifetime: '{delete_after}' seconds")
         return time
 
-    def _delete_instance_expired(self, instances):
+    def delete_instance_expired(self, instances):
         """
-        Deletes from current list of instances the exiperd ones.
+        Deletes from current list of instances the expired ones.
         :returns: None
         :instances: current instance list in crowlabs
         """
@@ -124,31 +127,30 @@ class InstanceExpiredDeleter:
             # retrieve template name
             template_name = instance.get("spec").get("template.crownlabs.polito.it/TemplateRef").get("name")
             # retrieve template namespace
-            template_ns = instance.get("spec").get("template.crownlabs.polito.it/TemplateRef").get("namespace")
-            if template_ns is None:
-                template_ns = 'default'
+            template_ns = instance.get("spec").get("template.crownlabs.polito.it/TemplateRef").get("namespace", "default")
+
             # retrieve instance life span
-            logger.debug(f"Processing instance: '{name}' -in Namespace: '{namespace}' -Created at: '{creation_timestamp}'")
-            time = self._get_life_span(template_name, template_ns)
+            logger.debug(f"Processing instance: '{name}' in Namespace: '{namespace}' Created at: '{creation_timestamp}'")
+            time = self.get_life_span(template_name, template_ns)
             if time is None:
-                logger.error(f"Template: '{template_name}' -in Namespace: '{template_ns}'\
-                             has a wrong delete_after field format")
+                logger.error(f"Template: '{template_name}' in Namespace: '{template_ns}' "
+                             "has a wrong delete_after field format")
             else:
-                # verify labinstance expiration status
-                if(self.instance_is_expired(time, creation_timestamp)):
+                # verify instance expiration status
+                if(InstanceExpiredDeleter.instance_is_expired(time, creation_timestamp)):
                     try:
-                        # delete expired labinstance
+                        # delete expired instance
                         api_instance.delete_namespaced_custom_object(group=self.group, version=self.version,
                                                                      namespace=namespace, plural=self.plural_instance,
                                                                      name=name, dry_run=self.dry_run)
-                        logger.debug(f"Deleted instance: '{name}' -in Namespace: '{namespace}'")
+                        logger.debug(f"Deleted instance: '{name}' in Namespace: '{namespace}'")
                     except ApiException as e:
-                        # exception occured while deleting labinstance
-                        logger.error(f"Exception when calling CustomObjectsApi->delete_namespaced_custom_object: '{e}'")
+                        # exception occurred while deleting instance
+                        logger.error(f"Failed to delete instance {namespace}/{name}: '{e}'")
 
 
 # Initialize the logger object
-logger = logging.getLogger("Delete crowlab instances expired")
+logger = logging.getLogger("Delete stale CrownLabs instances")
 
 
 def configure_logger():
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     instance_expired_deleter = InstanceExpiredDeleter(args.dry_run)
     logger.info("Starting the delete process")
     try:
-        instances = instance_expired_deleter._get_instance_list()
-        instance_expired_deleter._delete_instance_expired(instances)
+        instances = instance_expired_deleter.get_instance_list()
+        instance_expired_deleter.delete_instance_expired(instances)
     except KeyboardInterrupt:
         logger.info("Received stop signal. Exiting")

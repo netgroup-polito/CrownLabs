@@ -11,6 +11,9 @@ gen: generate fmt vet manifests
 test:
 	go test ./... -coverprofile coverage.out
 
+test-python: python-dependencies
+	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
+
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f deploy/crds
@@ -46,4 +49,6 @@ endif
 
 run-tenant: generate fmt vet manifests
 	go run cmd/tenant-operator/main.go
-	
+
+python-dependencies:
+	pip3 install -r ./build/delete-stale-instances/requirements.txt

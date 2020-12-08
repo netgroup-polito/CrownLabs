@@ -1,8 +1,7 @@
 import unittest
-import deleteCron as delCron
+from delete_stale_instances import InstanceExpiredDeleter
 from datetime import datetime
 from datetime import timedelta
-delete_instace = delCron.InstanceExpiredDeleter()
 
 
 class TestDeleteCron(unittest.TestCase):
@@ -24,10 +23,11 @@ class TestDeleteCron(unittest.TestCase):
         # define not expired time to test not expired case
         notexpired_time = now
         # do the tests
-        result_expired = delete_instace.instance_is_expired(threshold, expired_time.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        result_expired = InstanceExpiredDeleter.instance_is_expired(threshold, expired_time.strftime('%Y-%m-%dT%H:%M:%SZ'))
         # case expired so result should be True
         self.assertEqual(result_expired, True)
-        result_notexpired = delete_instace.instance_is_expired(threshold, notexpired_time.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        result_notexpired = InstanceExpiredDeleter.instance_is_expired(
+            threshold, notexpired_time.strftime('%Y-%m-%dT%H:%M:%SZ'))
         # case not Expired so result should be False
         self.assertEqual(result_notexpired, False)
 
@@ -45,15 +45,15 @@ class TestDeleteCron(unittest.TestCase):
         wrong_format1_string = "m10"
         wrong_format2_string = "25l"
         expected_wrong = None
-        minutes = delete_instace.convert_to_time(minutes_string)
+        minutes = InstanceExpiredDeleter.convert_to_time(minutes_string)
         self.assertEqual(minutes, expected_minutes)
-        hours = delete_instace.convert_to_time(hours_string)
+        hours = InstanceExpiredDeleter.convert_to_time(hours_string)
         self.assertEqual(hours, expected_hours)
-        days = delete_instace.convert_to_time(days_string)
+        days = InstanceExpiredDeleter.convert_to_time(days_string)
         self.assertEqual(days, expected_days)
-        wrong_format1 = delete_instace.convert_to_time(wrong_format1_string)
+        wrong_format1 = InstanceExpiredDeleter.convert_to_time(wrong_format1_string)
         self.assertEqual(wrong_format1, expected_wrong)
-        wrong_format2 = delete_instace.convert_to_time(wrong_format2_string)
+        wrong_format2 = InstanceExpiredDeleter.convert_to_time(wrong_format2_string)
         self.assertEqual(wrong_format2, expected_wrong)
 
 
