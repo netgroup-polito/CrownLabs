@@ -5,31 +5,7 @@
 *.so
 *.dylib
 
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-
-# operators
-operators/labTemplate-operator/bin
-operators/labInstance-operator/bin
-operators/labTemplate-operator/.idea
-operators/labInstance-operator/.idea
+# IDEs
+.history
 .idea
-operators/labInstance-operator/labInstance-operator
-
-# webservice
-CrownLabs.iml
-webservice/yarn.lock
-webservice/dist
-webservice/node_modules
-webservice/package-lock.json
-
-# vs code related
-.history/
+.vscode

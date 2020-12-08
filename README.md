@@ -1,7 +1,3 @@
-![Go](https://github.com/netgroup-polito/CrownLabs/workflows/Frontend/badge.svg)
-![Go](https://github.com/netgroup-polito/CrownLabs/workflows/Laboratory%20Operator/badge.svg)
-
-
 # CrownLabs
 
 CrownLabs is a set of services that can deliver **remote computing labs** through a **per-user virtual machine**.
