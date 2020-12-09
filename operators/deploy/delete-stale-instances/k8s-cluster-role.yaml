@@ -1,0 +1,12 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-delete-stale-instances-role
+rules:
+  - apiGroups: ["crownlabs.polito.it"]
+    resources: ["instances"]
+    verbs: ["get", "watch", "list", "delete"]
+  - apiGroups: ["crownlabs.polito.it"]
+    resources: ["templates"]
+    verbs: ["get", "watch", "list"]

@@ -24,6 +24,10 @@ jobs:
         with:
           go-version: 1.15
 
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
       - name: Install Kubebuilder
         run: |
           version=2.3.1 # latest stable version
@@ -36,6 +40,7 @@ jobs:
         working-directory: operators/
         run: |
           make test
+          make test-python
 
 
   operators-generated:
