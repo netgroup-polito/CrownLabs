@@ -4,7 +4,7 @@ on:
     branches:
       - master
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     types:
       - opened
@@ -71,6 +71,7 @@ jobs:
           - laboratory-operator
           - crownlabs-image-list
           - delete-stale-instances
+          - tenant-operator
 
           # Frontend
           - frontend
@@ -92,6 +93,9 @@ jobs:
           - component: delete-stale-instances
             context: ./operators
             dockerfile: ./operators/build/delete-stale-instances/Dockerfile
+          - component: tenant-operator
+            context: ./operators
+            dockerfile: ./operators/build/tenant-operator/Dockerfile
 
           # Frontend
           - component: frontend
@@ -142,7 +146,6 @@ jobs:
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
-
 
   trigger-events-master:
     name: Trigger events upon successful push to master
@@ -201,8 +204,7 @@ jobs:
         with:
           token: ${{ secrets.CI_TOKEN }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: 'hooray'
-
+          reactions: "hooray"
 
   release:
     name: Create a new CrownLabs release
