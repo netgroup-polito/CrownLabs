@@ -66,6 +66,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        component:
+          # Operators
+          - laboratory-operator
+          - crownlabs-image-list
+          - delete-stale-instances
+
+          # Frontend
+          - frontend
+
+          # Laboratory environments
+          - novnc
+          - tigervnc
+          - websockify
+          - pycharm
+
         include:
           # Operators
           - component: laboratory-operator
