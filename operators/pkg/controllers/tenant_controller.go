@@ -36,7 +36,7 @@ type TenantReconciler struct {
 // Reconcile reconciles the state of a tenant resource
 func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
-	klog.Infof("Reconcilin tenant %s", req.Name)
+	klog.Infof("Reconciling tenant %s", req.Name)
 
 	return ctrl.Result{}, nil
 }

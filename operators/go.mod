@@ -3,9 +3,13 @@ module github.com/netgroup-polito/CrownLabs/operators
 go 1.15
 
 require (
+	github.com/Nerzal/gocloak/v7 v7.10.0
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/go-logr/logr v0.3.0
 	github.com/go-logr/zapr v0.3.0 // indirect
+	github.com/go-resty/resty/v2 v2.3.0
+	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.5.3 // indirect
 	github.com/onsi/ginkgo v1.12.1
