@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -95,7 +95,7 @@ func main() {
 	}
 	whiteListMap := parseMap(namespaceWhiteList)
 	log.Info("Reconciling only namespaces with the following labels: ")
-	if err = (&controllers.LabInstanceReconciler{
+	if err = (&instance_controller.LabInstanceReconciler{
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
 		Scheme:             mgr.GetScheme(),

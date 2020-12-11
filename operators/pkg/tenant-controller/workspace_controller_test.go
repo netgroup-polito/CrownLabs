@@ -9,7 +9,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package controllers
+package tenant_controller
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 	gocloak "github.com/Nerzal/gocloak/v7"
 	"github.com/golang/mock/gomock"
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers/mocks"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"

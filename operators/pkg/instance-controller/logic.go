@@ -1,4 +1,4 @@
-package controllers
+package instance_controller
 
 import (
 	"context"
@@ -6,14 +6,15 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"time"
 )
 
-func (r *LabInstanceReconciler) CreateEnvironment(labInstance *crownlabsv1alpha2.Instance, labTemplate *crownlabsv1alpha2.Template, namespace string, name string, VMstart time.Time) error {
+func (r *LabInstanceReconciler) CreateVMEnvironment(labInstance *crownlabsv1alpha2.Instance, environment *crownlabsv1alpha2.Environment, namespace string, name string, vmStart time.Time) error {
 	var user, password string
 	// this is added so that all resources created for this Instance are destroyed when the Instance is deleted
 	b := true
-	labiOwnerRef := []metav1.OwnerReference{
+	globalOwnerReference := []metav1.OwnerReference{
 		{
 			APIVersion:         labInstance.APIVersion,
 			Kind:               labInstance.Kind,
@@ -30,8 +31,7 @@ func (r *LabInstanceReconciler) CreateEnvironment(labInstance *crownlabsv1alpha2
 	} else {
 		log.Info("Webdav secrets obtained. Building cloud-init script." + labInstance.Name)
 	}
-	secret := instance_creation.CreateCloudInitSecret(name, namespace, user, password, r.NextcloudBaseUrl)
-	secret.SetOwnerReferences(labiOwnerRef)
+	secret := instance_creation.CreateCloudInitSecret(name, namespace, user, password, r.NextcloudBaseUrl, globalOwnerReference)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, secret); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", labInstance, "", "")
 	} else {
@@ -39,8 +39,7 @@ func (r *LabInstanceReconciler) CreateEnvironment(labInstance *crownlabsv1alpha2
 	}
 
 	// create Service to expose the vm
-	service := instance_creation.CreateService(name, namespace)
-	service.SetOwnerReferences(labiOwnerRef)
+	service := instance_creation.CreateService(name, namespace, globalOwnerReference)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, service); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", labInstance, "", "")
 		return err
@@ -50,8 +49,7 @@ func (r *LabInstanceReconciler) CreateEnvironment(labInstance *crownlabsv1alpha2
 
 	urlUUID := uuid.New().String()
 	// create Ingress to manage the service
-	ingress := instance_creation.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl)
-	ingress.SetOwnerReferences(labiOwnerRef)
+	ingress := instance_creation.CreateIngress(name, namespace, service, urlUUID, r.WebsiteBaseUrl, globalOwnerReference)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, ingress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", labInstance, "", "")
 		return err
@@ -59,32 +57,31 @@ func (r *LabInstanceReconciler) CreateEnvironment(labInstance *crownlabsv1alpha2
 		setLabInstanceStatus(r, ctx, log, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", labInstance, "", "")
 	}
 
-	if err := r.createOAUTHLogic(name, labInstance, namespace, labiOwnerRef, urlUUID); err != nil {
+	if err := r.createOAUTHLogic(name, labInstance, namespace, globalOwnerReference, urlUUID); err != nil {
 		return err
 	}
 
 	// create VirtualMachineInstance
-	vmi, err := instance_creation.CreateVirtualMachineInstance(name, namespace, labTemplate.Spec.EnvironmentList[0], labInstance.Name, secret.Name)
+	vmi, err := instance_creation.CreateVirtualMachineInstance(name, namespace, environment, labInstance.Name, secret.Name, globalOwnerReference)
 	if err != nil {
 		return err
 	}
-	vmi.SetOwnerReferences(labiOwnerRef)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", labInstance, "", "")
 		return err
 	} else {
 		setLabInstanceStatus(r, ctx, log, "VirtualMachineInstance "+vmi.Name+" correctly created in namespace "+vmi.Namespace, "Normal", "VmiCreated", labInstance, "", "")
 	}
-	go getVmiStatus(r, ctx, log, labTemplate.Spec.EnvironmentList[0].GuiEnabled, service, ingress, labInstance, vmi, VMstart)
+	go getVmiStatus(r, ctx, log, environment.GuiEnabled, service, ingress, labInstance, vmi, vmStart)
 	return nil
 }
 
 func (r *LabInstanceReconciler) createOAUTHLogic(name string, labInstance *crownlabsv1alpha2.Instance, namespace string, labiOwnerRef []metav1.OwnerReference, urlUUID string) error {
 	ctx := context.TODO()
 	log := r.Log
+
 	// create Service for oauth2
-	oauthService := instance_creation.CreateOauth2Service(name, namespace)
-	oauthService.SetOwnerReferences(labiOwnerRef)
+	oauthService := instance_creation.CreateOauth2Service(name, namespace, labiOwnerRef)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, oauthService); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", labInstance, "", "")
 		return err
@@ -93,8 +90,12 @@ func (r *LabInstanceReconciler) createOAUTHLogic(name string, labInstance *crown
 	}
 
 	// create Ingress to manage the oauth2 service
-	oauthIngress := instance_creation.CreateOauth2Ingress(name, namespace, oauthService, urlUUID, r.WebsiteBaseUrl)
-	oauthIngress.SetOwnerReferences(labiOwnerRef)
+	oauthIngress := instance_creation.CreateOauth2Ingress(name, namespace, oauthService, urlUUID, r.WebsiteBaseUrl, labiOwnerRef)
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &oauthIngress, func() error {
+		return ctrl.SetControllerReference(labInstance, &oauthIngress, r.Scheme)
+	}); err != nil {
+		return err
+	}
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, oauthIngress); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", labInstance, "", "")
 		return err
@@ -103,8 +104,7 @@ func (r *LabInstanceReconciler) createOAUTHLogic(name string, labInstance *crown
 	}
 
 	// create Deployment for oauth2
-	oauthDeploy := instance_creation.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl)
-	oauthDeploy.SetOwnerReferences(labiOwnerRef)
+	oauthDeploy := instance_creation.CreateOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderUrl, labiOwnerRef)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, oauthDeploy); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", labInstance, "", "")
 		return err

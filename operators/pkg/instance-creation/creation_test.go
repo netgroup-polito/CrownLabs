@@ -82,7 +82,7 @@ func TestCreateUserData(t *testing.T) {
 }
 
 func TestCreateVirtualMachineInstance(t *testing.T) {
-	tc1 := v1alpha2.Environment{
+	tc1 := &v1alpha2.Environment{
 		Name:       "Test1",
 		GuiEnabled: true,
 		Resources: v1alpha2.EnvironmentResources{
@@ -94,7 +94,13 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 		Persistent:      false,
 		Image:           "test/image",
 	}
-	vm, err := CreateVirtualMachineInstance("name", "namespace", tc1, "instance-name", "secret-name")
+	ownerRef := []metav1.OwnerReference{{
+		APIVersion: "crownlabs.polito.it/v1alpha2",
+		Kind:       "Instance",
+		Name:       "Test1",
+	},
+	}
+	vm, err := CreateVirtualMachineInstance("name", "namespace", tc1, "instance-name", "secret-name", ownerRef)
 	assert.Equal(t, err, nil, "Errors while generating the VMI")
 	assert.Equal(t, vm.Name, "name-vmi", "The VMI has not the expected name")
 	assert.Equal(t, vm.Namespace, "namespace", "The VMI is not created in the expected namespace")

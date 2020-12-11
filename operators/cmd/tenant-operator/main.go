@@ -23,7 +23,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v7"
 	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers"
+	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

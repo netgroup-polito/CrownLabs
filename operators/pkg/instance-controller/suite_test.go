@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package instance_controller
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"testing"
 
-	gocloak "github.com/Nerzal/gocloak/v7"
-	// "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -30,9 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controllers/mocks"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -42,20 +42,6 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-
-const kcAccessToken = "keycloak-token"
-const kcTargetRealm = "targetRealm"
-const kcTargetClientID = "targetClientId"
-
-//  keycloak variables
-var mKcClient *mocks.MockGoCloak
-var mToken *gocloak.JWT = &gocloak.JWT{AccessToken: kcAccessToken}
-var kcA = KcActor{
-	Client:         mKcClient,
-	Token:          mToken,
-	TargetRealm:    kcTargetRealm,
-	TargetClientID: kcTargetClientID,
-}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -67,6 +53,8 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
+	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds")},
@@ -77,20 +65,35 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = crownlabsv1alpha1.AddToScheme(scheme.Scheme)
+	err = crownlabsv1alpha2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
+	ctrl.SetLogger(zap.New(func(o *zap.Options) {
+		o.Development = true
+	}))
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&WorkspaceReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-		KcA:    &kcA,
+	whiteListMap := map[string]string{
+		"production": "true",
+	}
+
+	err = (&LabInstanceReconciler{
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
+		EventsRecorder:     k8sManager.GetEventRecorderFor("LabInstanceOperator"),
+		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		NextcloudBaseUrl:   "",
+		WebsiteBaseUrl:     "",
+		WebdavSecretName:   "",
+		Oauth2ProxyImage:   "",
+		OidcClientSecret:   "",
+		OidcProviderUrl:    "",
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
