@@ -29,6 +29,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -71,11 +72,14 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "f547a6ba.crownlabs.polito.it",
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		Port:                   9443,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "f547a6ba.crownlabs.polito.it",
+		HealthProbeBindAddress: ":8081",
+		LivenessEndpointName:   "/healthz",
+		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
 		klog.Fatal("Unable to start manager", err)
@@ -102,7 +106,17 @@ func main() {
 		klog.Fatal("Unable to create controller for Workspace", err)
 	}
 	// +kubebuilder:scaffold:builder
+	// Add readiness probe
+	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
+	if err != nil {
+		klog.Fatal("unable add a readiness check", err)
+	}
 
+	// Add liveness probe
+	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
+	if err != nil {
+		klog.Fatal("unable add a health check", err)
+	}
 	klog.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatal("Problem running manager", err)
