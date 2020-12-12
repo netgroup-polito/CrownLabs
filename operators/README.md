@@ -85,6 +85,63 @@ make install
 
 N.B. So far, the readiness check for VirtualMachines is performed by assuming that the operator is running on the same cluster of the Virtual Machines. This prevents the possibility to have *ready* VMs when testing the operator outside the cluster.
 
+## SSH bastion
+
+The SSH bastion is composed of a two basic blocks:
+1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
+2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://linux.die.net/man/8/sshd)
+
+### Installation
+
+#### Pre-requirements
+
+The only pre-requirement needed in order to deploy the SSH bastion is `ssh-keygen` and it is needed only in case you don't already have the host keys that sshd will use.
+You can check if you already have `ssh-keygen` install running:
+```bash
+ssh-keygen --help
+```
+To install it (i.e. on Ubuntu) run:
+```bash
+apt install openssh-client
+```
+
+#### Deployment
+
+To deploy the SSH bastion in your cluster, you have to do the following steps.
+
+First, generate the host keys needed to run sshd using:
+```bash
+# Generate the keys in this folder (they will be ignored by git) or in a folder outside the project
+ssh-keygen -f ssh_host_key_ecdsa -N "" -t ecdsa
+ssh-keygen -f ssh_host_key_ed25519 -N "" -t ed25519
+ssh-keygen -f ssh_host_key_rsa -N "" -t rsa
+```
+
+Now create the secret holding the keys. If the bastion is going to run on a namespace different than default add the `--namespace=<namespace>` option.
+```bash
+kubectl create secret generic ssh-bastion-host-keys \
+  --from-file=./ssh_host_key_ecdsa \
+  --from-file=./ssh_host_key_ed25519 \
+  --from-file=./ssh_host_key_rsa
+```
+
+Then set the desired values in `operators/deploy/bastion-operator/k8s-manifest-example.env` .
+
+Export the environment variables and generate the manifest from the template using:
+
+```bash
+cd operators/deploy/bastion-operator
+export $(xargs < k8s-manifest-example.env)
+envsubst < k8s-manifest.yaml.tmpl > k8s-manifest.yaml
+```
+
+After the manifest have been correctly generated you can install the cluster role and deploy the SSH bastion using:
+
+```bash
+kubectl apply -f k8s-cluster-role.yaml
+kubectl apply -f k8s-manifest.yaml
+```
+
 ## CrownLabs Image List
 
 The CrownLabs Image List script allows to to gather the list of available images from a Docker Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
