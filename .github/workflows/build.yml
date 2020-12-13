@@ -72,9 +72,13 @@ jobs:
           - crownlabs-image-list
           - delete-stale-instances
           - tenant-operator
+          - bastion-operator
 
           # Frontend
           - frontend
+
+          # SSH bastion
+          - ssh-bastion
 
           # Laboratory environments
           - novnc
@@ -96,6 +100,9 @@ jobs:
           - component: tenant-operator
             context: ./operators
             dockerfile: ./operators/build/tenant-operator/Dockerfile
+          - component: bastion-operator
+            context: ./operators
+            dockerfile: ./operators/build/bastion-operator/Dockerfile
 
           # Frontend
           - component: frontend
@@ -110,6 +117,10 @@ jobs:
             context: ./provisioning/containers/gui-common/websockify
           - component: pycharm
             context: ./provisioning/containers/pycharm
+
+          # SSH bastion
+          - component: ssh-bastion
+            context: ./operators/build/ssh-bastion
 
     steps:
       - name: Checkout

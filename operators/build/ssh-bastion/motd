@@ -1,0 +1,8 @@
+**********  Welcome to CrownLabs! 👑 **********
+
+If you landed here you probably forgot to jump to one of your remote environments.
+You can get the ip of your environments in your personal dashboard.
+Then on your local machine try running:
+
+ssh -J bastion@crownlabs.polito.it username@<vm_ip>
+

@@ -17,11 +17,12 @@ type cloudInitConfig struct {
 		ID0     interface{} `yaml:"id0"`
 		Dhcp4   bool        `yaml:"dhcp4"`
 	} `yaml:"network"`
-	Mounts     [][]string  `yaml:"mounts"`
-	WriteFiles []writeFile `yaml:"write_files"`
+	Mounts            [][]string  `yaml:"mounts"`
+	WriteFiles        []writeFile `yaml:"write_files"`
+	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys"`
 }
 
-func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl string) map[string]string {
+func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl string, publicKeys []string) map[string]string {
 	var Userdata cloudInitConfig
 
 	Userdata.Network.Version = 2
@@ -41,6 +42,7 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 		Permissions: "0600"},
 	// New write_files should be added here as []writeFile
 	}
+	Userdata.SSHAuthorizedKeys = publicKeys
 
 	out, _ := yaml.Marshal(Userdata)
 
@@ -49,7 +51,7 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 	return map[string]string{"userdata": headerComment + string(out)}
 }
 
-func CreateCloudInitSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string, references []metav1.OwnerReference) v1.Secret {
+func CreateCloudInitSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string, publicKeys []string, references []metav1.OwnerReference) v1.Secret {
 	secret := v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
@@ -64,7 +66,8 @@ func CreateCloudInitSecret(name string, namespace string, nextUsername string, n
 		StringData: createUserdata(
 			nextUsername,
 			nextPassword,
-			nextCloudBaseUrl),
+			nextCloudBaseUrl,
+			publicKeys),
 		Type: v1.SecretTypeOpaque,
 	}
 
