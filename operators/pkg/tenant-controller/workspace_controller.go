@@ -55,14 +55,13 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	var retrigErr error = nil
 	if ws.Status.Subscriptions == nil {
 		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
 	}
-	// inizialize keycloak subscription to pending
-	ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrPending
-	/*
-	 */
 	klog.Infof("Reconciling workspace %s", req.Name)
+
 	nsName := fmt.Sprintf("workspace-%s", ws.Name)
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
@@ -73,39 +72,30 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		klog.Errorf("Unable to create or update namespace of workspace %s", ws.Name)
 		klog.Error(err)
-		// update status of workspace with failed namespace creation
 		ws.Status.Namespace.Created = false
 		ws.Status.Namespace.Name = ""
-		// return anyway the error to allow new reconcile, independently of outcome of status update
-		if err := r.Status().Update(ctx, &ws); err != nil {
-			klog.Error("Unable to update status after namespace creation failed", err)
-		}
-		return ctrl.Result{}, err
+		retrigErr = err
+	} else {
+		klog.Infof("Namespace %s for workspace %s %s", nsName, req.Name, nsOpRes)
+		ws.Status.Namespace.Created = true
+		ws.Status.Namespace.Name = nsName
 	}
-	klog.Infof("Namespace %s for workspace %s %s", nsName, req.Name, nsOpRes)
-
-	// update status of workspace with info about namespace, success
-	ws.Status.Namespace.Created = true
-	ws.Status.Namespace.Name = nsName
 
 	if err := createKcRoles(ctx, r.KcA, genWorkspaceRoleNames(ws.Name)); err != nil {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
-		if err := r.Status().Update(ctx, &ws); err != nil {
-			// if status update fails, still try to reconcile later
-			klog.Error("Unable to update status with failed keycloak", err)
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, err
+		retrigErr = err
+	} else {
+		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 	}
-	ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 
 	// everything should went ok, update status before exiting reconcile
 	if err := r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update status before exiting reconciler", err)
-		return ctrl.Result{}, err
+		retrigErr = err
 	}
-	return ctrl.Result{}, nil
+
+	return ctrl.Result{}, retrigErr
 }
 
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
