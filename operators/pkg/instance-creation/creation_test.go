@@ -1,10 +1,11 @@
 package instance_creation
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 	"testing"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
@@ -113,6 +114,49 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
 	assert.Equal(t, vm.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
 	assert.Equal(t, vm.Spec.Volumes[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Volumes[1].Name, "cloudinitdisk")
+	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "secret-name")
+	assert.Equal(t, vm.Kind, "VirtualMachineInstance")
+	assert.Equal(t, vm.APIVersion, "kubevirt.io/v1alpha3")
+}
+
+func TestCreatePeristentVirtualMachineInstance(t *testing.T) {
+	tc1 := &v1alpha2.Environment{
+		Name:       "Test1",
+		GuiEnabled: true,
+		Resources: v1alpha2.EnvironmentResources{
+			CPU:                   1,
+			ReservedCPUPercentage: 25,
+			Memory:                resource.MustParse("1024M"),
+		},
+		EnvironmentType: v1alpha2.ClassVM,
+		Persistent:      true,
+		Image:           "test/image",
+	}
+	ownerRef := []metav1.OwnerReference{{
+		APIVersion: "crownlabs.polito.it/v1alpha2",
+		Kind:       "Instance",
+		Name:       "Test1",
+	},
+	}
+	pvc, err := CreatePVC("name", "namespace", tc1.Image, ownerRef)
+	assert.Equal(t, err, nil, "Errors while generating the PVC")
+	assert.Equal(t, pvc.Name, "name-vmi-pvc", "The PVC has not the expected name")
+	assert.Equal(t, pvc.Namespace, "namespace", "The PVC is not created in the expected namespace")
+	vm, err := CreatePersistentVirtualMachineInstance("name", "namespace", tc1, "instance-name", "secret-name", ownerRef)
+	assert.Equal(t, err, nil, "Errors while generating the VMI")
+	assert.Equal(t, vm.Name, "name-vmi", "The VMI has not the expected name")
+	assert.Equal(t, vm.Namespace, "namespace", "The VMI is not created in the expected namespace")
+	assert.Equal(t, len(vm.Spec.Volumes), 2, "The VMI has a number of volume different from expected")
+	assert.Equal(t, len(vm.Spec.Domain.Devices.Disks), 2, "The VMI has a number of devices different from the expected")
+	assert.Equal(t, vm.Spec.Domain.Devices.Disks[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Domain.Devices.Disks[1].Name, "cloudinitdisk")
+	assert.Equal(t, vm.Spec.Domain.CPU.Cores, uint32(1))
+	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Memory().String(), "1524M")
+	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
+	assert.Equal(t, vm.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
+	assert.Equal(t, vm.Spec.Volumes[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Volumes[0].PersistentVolumeClaim.ClaimName, pvc.Name)
 	assert.Equal(t, vm.Spec.Volumes[1].Name, "cloudinitdisk")
 	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "secret-name")
 	assert.Equal(t, vm.Kind, "VirtualMachineInstance")

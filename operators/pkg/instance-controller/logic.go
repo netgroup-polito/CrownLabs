@@ -2,12 +2,14 @@ package instance_controller
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
+	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "kubevirt.io/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"time"
 )
 
 func (r *LabInstanceReconciler) CreateVMEnvironment(labInstance *crownlabsv1alpha2.Instance, environment *crownlabsv1alpha2.Environment, namespace string, name string, vmStart time.Time) error {
@@ -61,11 +63,35 @@ func (r *LabInstanceReconciler) CreateVMEnvironment(labInstance *crownlabsv1alph
 		return err
 	}
 
-	// create VirtualMachineInstance
-	vmi, err := instance_creation.CreateVirtualMachineInstance(name, namespace, environment, labInstance.Name, secret.Name, globalOwnerReference)
-	if err != nil {
-		return err
+	//check if the machine is persistent
+	var vmi *v1.VirtualMachineInstance
+
+	if environment.Persistent {
+
+		pvc, err := instance_creation.CreatePVC(name+"-vmi", namespace, environment.Image, globalOwnerReference)
+		if err != nil {
+			return err
+		}
+		if err = instance_creation.CreateOrUpdate(r.Client, ctx, log, pvc); err != nil {
+			setLabInstanceStatus(r, ctx, log, "could not create pvc "+pvc.Name, "warning", "PVCNotCreated", labInstance, "", "")
+			return err
+		} else {
+			setLabInstanceStatus(r, ctx, log, "PVC "+pvc.Name+"correctly created", "normal", "PVCCreated", labInstance, "", "")
+		}
+
+		//if yes create PersistentVirtualMachineInstance
+		vmi, err = instance_creation.CreatePersistentVirtualMachineInstance(name, namespace, environment, labInstance.Name, secret.Name, globalOwnerReference)
+		if err != nil {
+			return err
+		}
+	} else {
+		// if not create VirtualMachineInstance
+		vmi, err = instance_creation.CreateVirtualMachineInstance(name, namespace, environment, labInstance.Name, secret.Name, globalOwnerReference)
+		if err != nil {
+			return err
+		}
 	}
+
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, log, vmi); err != nil {
 		setLabInstanceStatus(r, ctx, log, "Could not create vmi "+vmi.Name+" in namespace "+vmi.Namespace, "Warning", "VmiNotCreated", labInstance, "", "")
 		return err

@@ -3,6 +3,7 @@ package instance_creation
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
@@ -96,6 +97,108 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 		},
 	}
 	return &vm, nil
+}
+
+func CreatePersistentVirtualMachineInstance(name string, namespace string, template *crownlabsv1alpha2.Environment, instanceName string, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
+	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
+
+	vm := virtv1.VirtualMachineInstance{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VirtualMachineInstance",
+			APIVersion: "kubevirt.io/v1alpha3",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-vmi",
+			Namespace: namespace,
+			Labels:    map[string]string{"name": name, "template-name": template.Name, "instance-name": instanceName},
+		},
+		Spec: virtv1.VirtualMachineInstanceSpec{
+			TerminationGracePeriodSeconds: &terminationGracePeriod,
+			Domain: virtv1.DomainSpec{
+				Resources: virtv1.ResourceRequirements{
+					Requests: v1.ResourceList{
+						"cpu":    resource.MustParse(ComputeCPURequests(template.Resources.CPU, template.Resources.ReservedCPUPercentage)),
+						"memory": template.Resources.Memory,
+					},
+					Limits: v1.ResourceList{
+						"cpu":    resource.MustParse(ComputeCPULimits(template.Resources.CPU, CPUhypervisorReserved)),
+						"memory": template.Resources.Memory,
+					},
+				},
+				CPU: &virtv1.CPU{
+					Cores: template.Resources.CPU,
+				},
+				Memory: &virtv1.Memory{
+					Guest: &template.Resources.Memory,
+				},
+				Machine: virtv1.Machine{},
+				Devices: virtv1.Devices{
+					Disks: []virtv1.Disk{
+						{
+							Name: "containerdisk",
+							DiskDevice: virtv1.DiskDevice{
+								Disk: &virtv1.DiskTarget{
+									Bus: "virtio",
+								},
+							},
+						},
+						{
+							Name: "cloudinitdisk",
+							DiskDevice: virtv1.DiskDevice{
+								Disk: &virtv1.DiskTarget{
+									Bus: "virtio",
+								},
+							},
+						},
+					},
+				},
+			},
+			Volumes: []virtv1.Volume{
+				{
+					Name: "containerdisk",
+					VolumeSource: virtv1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: name + "-vmi-pvc",
+						},
+					},
+				},
+				{
+					Name: "cloudinitdisk",
+					VolumeSource: virtv1.VolumeSource{
+						CloudInitNoCloud: &virtv1.CloudInitNoCloudSource{
+							UserDataSecretRef: &corev1.LocalObjectReference{Name: secretName},
+						},
+					},
+				},
+			},
+		},
+	}
+	return &vm, nil
+}
+
+func CreatePVC(name string, namespace string, image string, references []metav1.OwnerReference) (*corev1.PersistentVolumeClaim, error) {
+	pvc := corev1.PersistentVolumeClaim{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PersistenVolumeClaim",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name + "-vmi-pvc",
+			Namespace:       namespace,
+			Labels:          map[string]string{"app": "containerized-data-import"},
+			Annotations:     map[string]string{"cdi.kubecirt.io/storage.import.endpoint": image},
+			OwnerReferences: references,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+			Resources: corev1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceName(v1.ResourceStorage): resource.MustParse("6Gi"),
+				},
+			},
+		},
+	}
+	return &pvc, nil
 }
 
 func ComputeCPULimits(CPU uint32, HypervisorCoefficient float32) string {
