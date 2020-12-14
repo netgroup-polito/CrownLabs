@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/netgroup-polito/CrownLabs/badge.svg)](https://coveralls.io/github/netgroup-polito/CrownLabs)
+
 # CrownLabs
 
 CrownLabs is a set of services that can deliver **remote computing labs** through a **per-user virtual machine**.

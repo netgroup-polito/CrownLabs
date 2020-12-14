@@ -9,7 +9,7 @@ gen: generate fmt vet manifests
 
 #run all tests
 test:
-	go test ./... -p 1 -coverprofile coverage.out
+	go test ./... -p 1 -coverprofile coverage.out -covermode=count
 
 test-python: python-dependencies
 	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
