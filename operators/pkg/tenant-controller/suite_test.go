@@ -17,13 +17,18 @@ limitations under the License.
 package tenant_controller
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
 	// "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	gomegaTypes "github.com/onsi/gomega/types"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -94,6 +99,12 @@ var _ = BeforeSuite(func(done Done) {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&TenantReconciler{
+		Client: k8sManager.GetClient(),
+		Scheme: k8sManager.GetScheme(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	go func() {
 		err = k8sManager.Start(ctrl.SetupSignalHandler())
 		Expect(err).ToNot(HaveOccurred())
@@ -110,3 +121,10 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
+	Eventually(func() bool {
+		err := k8sClient.Get(ctx, objLookupKey, targetObj)
+		return err == nil
+	}, timeout, interval).Should(expectedStatus)
+}

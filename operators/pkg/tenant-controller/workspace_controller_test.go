@@ -23,10 +23,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	gomegaTypes "github.com/onsi/gomega/types"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -155,10 +153,3 @@ var _ = Describe("Workspace controller", func() {
 
 	})
 })
-
-func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
-	Eventually(func() bool {
-		err := k8sClient.Get(ctx, objLookupKey, targetObj)
-		return err == nil
-	}, timeout, interval).Should(expectedStatus)
-}

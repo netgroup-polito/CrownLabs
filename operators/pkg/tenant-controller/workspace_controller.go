@@ -66,7 +66,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		updateNamespace(ws, &ns, nsName)
+		updateNamespace(&ns)
 		return ctrl.SetControllerReference(&ws, &ns, r.Scheme)
 	})
 	if err != nil {
@@ -104,7 +104,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func updateNamespace(ws crownlabsv1alpha1.Workspace, ns *v1.Namespace, wsnsName string) {
+func updateNamespace(ns *v1.Namespace) {
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
 	}

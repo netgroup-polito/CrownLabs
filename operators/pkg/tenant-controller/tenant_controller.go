@@ -17,7 +17,12 @@ limitations under the License.
 package tenant_controller
 
 import (
+	"context"
+	"fmt"
+
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,14 +40,62 @@ type TenantReconciler struct {
 
 // Reconcile reconciles the state of a tenant resource
 func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	var tn crownlabsv1alpha1.Tenant
+
+	if err := r.Get(ctx, req.NamespacedName, &tn); err != nil {
+		// reconcile was triggered by a delete request
+		klog.Infof("Tenant %s deleted", req.Name)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	var retrigErr error = nil
+	if tn.Status.Subscriptions == nil {
+		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
+	}
 
 	klog.Infof("Reconciling tenant %s", req.Name)
 
-	return ctrl.Result{}, nil
+	nsName := fmt.Sprintf("tenant-%s", tn.Name)
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+
+	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+		updateTnNamespace(&ns, tn.Name)
+		return ctrl.SetControllerReference(&tn, &ns, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update namespace of tenant %s", tn.Name)
+		klog.Error(err)
+		tn.Status.PersonalNamespace.Created = false
+		tn.Status.PersonalNamespace.Name = ""
+		retrigErr = err
+	} else {
+		klog.Infof("Namespace %s for tenant %s %s", nsName, req.Name, nsOpRes)
+		tn.Status.PersonalNamespace.Created = true
+		tn.Status.PersonalNamespace.Name = nsName
+	}
+
+	// everything should went ok, update status before exiting reconcile
+	if err := r.Status().Update(ctx, &tn); err != nil {
+		// if status update fails, still try to reconcile later
+		klog.Error("Unable to update status before exiting reconciler", err)
+		retrigErr = err
+	}
+
+	return ctrl.Result{}, retrigErr
 }
 
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
 		Complete(r)
+}
+
+// updateTnNamespace updates the tenant namespace
+func updateTnNamespace(ns *v1.Namespace, tnName string) {
+	if ns.Labels == nil {
+		ns.Labels = make(map[string]string)
+	}
+	ns.Labels["crownlabs.polito.it/type"] = "tenant"
+	ns.Labels["crownlabs.polito.it/name"] = tnName
 }
