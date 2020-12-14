@@ -22,7 +22,6 @@ var _ = Describe("Bastion controller", func() {
 		NamespaceTenant1     = ""
 		FirstNameTenant1     = "Mario"
 		LastNameTenant1      = "Rossi"
-		IDTenant1            = "s11111"
 		EmailTenant1         = "mario.rossi@fakemail.com"
 		CreateSandboxTenant1 = true
 
@@ -30,7 +29,6 @@ var _ = Describe("Bastion controller", func() {
 		NamespaceTenant2     = ""
 		FirstNameTenant2     = "Fabio"
 		LastNameTenant2      = "Bianchi"
-		IDTenant2            = "s22222"
 		EmailTenant2         = "fabio.bianchi@fakemail.com"
 		CreateSandboxTenant2 = true
 
@@ -64,9 +62,8 @@ var _ = Describe("Bastion controller", func() {
 					Namespace: NamespaceTenant1,
 				},
 				Spec: crownlabsalpha1.TenantSpec{
-					Name:          FirstNameTenant1,
-					Surname:       LastNameTenant1,
-					ID:            IDTenant1,
+					FirstName:     FirstNameTenant1,
+					LastName:      LastNameTenant1,
 					Email:         EmailTenant1,
 					Workspaces:    WorkspacesTenants,
 					PublicKeys:    PublicKeysTenant1,
@@ -140,9 +137,8 @@ var _ = Describe("Bastion controller", func() {
 					Namespace: NamespaceTenant2,
 				},
 				Spec: crownlabsalpha1.TenantSpec{
-					Name:          FirstNameTenant2,
-					Surname:       LastNameTenant2,
-					ID:            IDTenant2,
+					FirstName:     FirstNameTenant2,
+					LastName:      LastNameTenant2,
 					Email:         EmailTenant2,
 					Workspaces:    WorkspacesTenants,
 					PublicKeys:    PublicKeysTenant2,

@@ -36,8 +36,8 @@ const (
 
 // UserWorkspaceData contains the info of the workspaces related to a user
 type UserWorkspaceData struct {
-	WorkspaceURL string            `json:"workspaceURL"`
-	GroupNumber  int               `json:"groupNumber"`
+	WorkspaceRef GenericRef        `json:"workspaceRef"`
+	GroupNumber  uint              `json:"groupNumber,omitempty"`
 	Role         WorkspaceUserRole `json:"role"`
 }
 
@@ -46,11 +46,9 @@ type TenantSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name string `json:"name"`
+	FirstName string `json:"firstName"`
 
-	Surname string `json:"surname"`
-
-	ID string `json:"ID"`
+	LastName string `json:"lastName"`
 
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 	Email string `json:"email"`
@@ -80,10 +78,9 @@ type TenantStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:printcolumn:name="Name",type=string,JSONPath=`.spec.name`
-// +kubebuilder:printcolumn:name="Surname",type=string,JSONPath=`.spec.surname`
+// +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
+// +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
 // +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
-// +kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.spec.ID`
 
 // Tenant is the Schema for the tenants API
 type Tenant struct {
