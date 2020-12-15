@@ -1,0 +1,88 @@
+package bastion_controller
+
+import (
+	"errors"
+	"os"
+	"strings"
+
+	"github.com/go-logr/logr"
+)
+
+func closeFile(f *os.File, log logr.Logger) {
+	err := f.Close()
+	if err != nil {
+		log.Error(err, "unable to close the file authorized_keys")
+	}
+}
+
+func removeKey(s []string, i int) []string {
+	if i >= len(s) {
+		return s
+	}
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
+
+type AuthorizedKeysEntry struct {
+	Algo, Key, ID string
+}
+
+func Decompose(entry string) (AuthorizedKeysEntry, error) {
+	entryComponents := strings.Split(entry, string(" "))
+	if len(entryComponents) == 3 {
+		return AuthorizedKeysEntry{
+			Algo: entryComponents[0],
+			Key:  entryComponents[1],
+			ID:   entryComponents[2],
+		}, nil
+	} else {
+		return AuthorizedKeysEntry{}, errors.New("Invalid entry")
+	}
+}
+
+func Create(entry string, ID string) (AuthorizedKeysEntry, error) {
+	entryComponents := strings.Split(entry, string(" "))
+	if len(entryComponents) == 3 || len(entryComponents) == 2 {
+		return AuthorizedKeysEntry{
+			Algo: entryComponents[0],
+			Key:  entryComponents[1],
+			ID:   ID,
+		}, nil
+	} else {
+		return AuthorizedKeysEntry{}, errors.New("Invalid entry")
+	}
+}
+
+func (e *AuthorizedKeysEntry) Compose() string {
+	return e.Algo + " " + e.Key + " " + e.ID
+}
+
+func decomposeAndPurgeEntries(keys []string, tenantID string) []string {
+	indexesList := []int{}
+	for i, key := range keys {
+		entry, err := Decompose(key)
+		if err != nil {
+			continue
+		}
+		if entry.ID == tenantID {
+			indexesList = append(indexesList, i)
+		}
+	}
+
+	// we have to iterate in reverse order, otherwise the last indexes could become out of range
+	for k := len(indexesList) - 1; k >= 0; k-- {
+		keys = removeKey(keys, indexesList[k])
+	}
+	return keys
+}
+
+func composeAndMarkEntries(keys []string, tenantKeys []string, tenantID string) []string {
+	for i := range tenantKeys {
+		entry, err := Create(tenantKeys[i], tenantID)
+		if err != nil {
+			continue
+		}
+		keys = append(keys, entry.Compose())
+	}
+	return keys
+}
