@@ -23,6 +23,8 @@ jobs:
             Currently, I understand the following commands:
             * `/rebase`:            Rebase this PR onto the master branch
             * `/merge`:             Merge this PR into the master branch
+            * `/hold`:              Adds hold label to prevent merging with /merge
+            * `/unhold`:            Removes the hold label to allow merging with /merge
             * `/deploy-staging`:    Deploy a staging environment to test this PR
             * `/undeploy-staging`:  Manually undeploy the staging environment
 
