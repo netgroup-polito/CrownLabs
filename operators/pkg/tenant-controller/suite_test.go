@@ -55,11 +55,16 @@ const kcTargetClientID = "targetClientId"
 //  keycloak variables
 var mKcClient *mocks.MockGoCloak
 var mToken *gocloak.JWT = &gocloak.JWT{AccessToken: kcAccessToken}
+var reqActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
+var emailActionLifespan = 60 * 60 * 24 * 30
+
 var kcA = KcActor{
-	Client:         mKcClient,
-	Token:          mToken,
-	TargetRealm:    kcTargetRealm,
-	TargetClientID: kcTargetClientID,
+	Client:                mKcClient,
+	Token:                 mToken,
+	TargetRealm:           kcTargetRealm,
+	TargetClientID:        kcTargetClientID,
+	UserRequiredActions:   reqActions,
+	EmailActionsLifeSpanS: emailActionLifespan,
 }
 
 func TestAPIs(t *testing.T) {
@@ -102,6 +107,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&TenantReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
+		KcA:    &kcA,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

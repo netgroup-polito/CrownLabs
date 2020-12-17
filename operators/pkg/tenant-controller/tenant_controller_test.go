@@ -13,11 +13,14 @@ package tenant_controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	gocloak "github.com/Nerzal/gocloak/v7"
+	"github.com/golang/mock/gomock"
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 	. "github.com/onsi/ginkgo"
+
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
@@ -27,22 +30,67 @@ import (
 
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
-	const (
-		tnNamespace = ""
+	var (
+		tnName      = "mariorossi"
 		tnFirstName = "mario"
 		tnLastName  = "rossi"
 		tnEmail     = "mario.rossi@email.com"
+		userID      = "userID"
+		tr          = true
+		fa          = false
+	)
+
+	const (
+		tnNamespace = ""
 		nsNamespace = ""
 		timeout     = time.Second * 10
 		interval    = time.Millisecond * 250
-	)
-	var (
-		// make tenant name time-sensitive to make test more independent since using external resources like a real keycloak instance
-		tnName = fmt.Sprintf("test-%d", time.Now().Unix())
-		nsName = fmt.Sprintf("tenant-%s", tnName)
+		nsName      = "tenant-mariorossi"
 	)
 
+	BeforeEach(func() {
+
+		mockCtrl := gomock.NewController(GinkgoT())
+		mKcClient = nil
+		mKcClient = mocks.NewMockGoCloak(mockCtrl)
+		kcA.Client = mKcClient
+
+		// the user did not exist
+		mKcClient.EXPECT().GetUsers(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(gocloak.GetUsersParams{Username: &tnName}),
+		).Return([]*gocloak.User{}, nil).MinTimes(1).MaxTimes(2)
+
+		mKcClient.EXPECT().CreateUser(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(
+				gocloak.User{
+					Username:      &tnName,
+					FirstName:     &tnFirstName,
+					LastName:      &tnLastName,
+					Email:         &tnEmail,
+					Enabled:       &tr,
+					EmailVerified: &fa,
+				}),
+		).Return(userID, nil).MinTimes(1).MaxTimes(2)
+
+		mKcClient.EXPECT().ExecuteActionsEmail(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(gocloak.ExecuteActionsEmail{
+				UserID:   &userID,
+				Lifespan: &emailActionLifespan,
+				Actions:  &reqActions,
+			})).Return(nil).MinTimes(1).MaxTimes(2)
+	})
+
 	It("Should create the related resources when creating a tenant", func() {
+
 		By("By creating a tenant")
 		ctx := context.Background()
 		tn := &crownlabsv1alpha1.Tenant{
@@ -68,9 +116,6 @@ var _ = Describe("Tenant controller", func() {
 
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
-		// By("By checking that the tenant has the correct name")
-		// Expect(createdWs.Spec.PrettyName).Should(Equal(wsPrettyName))
-
 		By("By checking that the corresponding namespace has been created")
 
 		nsLookupKey := types.NamespacedName{Name: nsName, Namespace: nsNamespace}
@@ -95,6 +140,6 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-
 	})
+
 })

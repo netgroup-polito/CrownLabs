@@ -33,6 +33,7 @@ import (
 type TenantReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	KcA    *KcActor
 }
 
 // +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -42,10 +43,22 @@ type TenantReconciler struct {
 func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var tn crownlabsv1alpha1.Tenant
-
+	var userID *string
 	if err := r.Get(ctx, req.NamespacedName, &tn); err != nil {
 		// reconcile was triggered by a delete request
-		klog.Infof("Tenant %s deleted", req.Name)
+		if userID, _, err = r.KcA.getUserInfo(ctx, req.Name); err != nil {
+			klog.Errorf("Error when checking if user %s existed for deletion", req.Name)
+			klog.Error(err)
+			return ctrl.Result{}, err
+		} else if userID != nil {
+			// userID != nil means user already existed when tenant was deleted, so need to delete user in keycloak
+			if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
+				klog.Errorf("Error when deleting user %s", req.Name)
+				klog.Error(err)
+				return ctrl.Result{}, err
+			}
+		}
+		klog.Infof("Tenant %s resources deleted", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -56,6 +69,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	klog.Infof("Reconciling tenant %s", req.Name)
 
+	// namespace creation
 	nsName := fmt.Sprintf("tenant-%s", tn.Name)
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
@@ -75,7 +89,28 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.PersonalNamespace.Name = nsName
 	}
 
-	// everything should went ok, update status before exiting reconcile
+	// keycloak resources creation
+	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
+	if err != nil {
+		klog.Errorf("Error when checking if user %s existed for creation/update", tn.Name)
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
+		retrigErr = err
+	} else {
+		if userID == nil {
+			userID, err = r.KcA.createKcUser(ctx, tn.Name, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email)
+		} else {
+			err = r.KcA.updateKcUser(ctx, *userID, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email, *currentUserEmail != tn.Spec.Email)
+		}
+		if err != nil {
+			klog.Errorf("Error when creating or updating user %s", tn.Name)
+			klog.Error(err)
+			retrigErr = err
+			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
+		} else {
+			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
+		}
+	}
+
 	if err := r.Status().Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update status before exiting reconciler", err)
