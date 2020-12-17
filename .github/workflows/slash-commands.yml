@@ -33,5 +33,13 @@ jobs:
               {
                 "command": "undeploy-staging",
                 "permission": "write"
+              },
+              {
+                "command": "hold",
+                "permission": "none"
+              },
+              {
+                "command": "unhold",
+                "permission": "none"
               }
             ]
