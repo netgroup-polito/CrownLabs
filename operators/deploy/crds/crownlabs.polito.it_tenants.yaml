@@ -67,8 +67,8 @@ spec:
                     role:
                       description: WorkspaceUserRole is an enum for the role of a user in a workspace
                       enum:
-                      - Admin
-                      - Basic
+                      - admin
+                      - user
                       type: string
                     workspaceRef:
                       description: GenericRef stores generric data to point to a kubernetes resource

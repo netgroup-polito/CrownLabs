@@ -79,10 +79,8 @@ func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID *s
 		return nil, nil, err
 	} else if len(usersFound) == 0 {
 		// no existing users found, create a new one
-		klog.Infof("User %s did not exists", username)
 		return nil, nil, nil
 	} else if len(usersFound) == 1 {
-		klog.Infof("User %s already existed", username)
 		return usersFound[0].ID, usersFound[0].Email, nil
 	} else if len(usersFound) > 1 {
 		klog.Info("Found too many users")
@@ -155,4 +153,63 @@ func (kcA *KcActor) updateKcUser(ctx context.Context, userID string, firstName s
 		klog.Infof("Sent user confirmation to user %s %s cause email has been updated", firstName, lastName)
 	}
 	return nil
+}
+
+func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, userID string) error {
+	rolesToAdd := make([]gocloak.Role, len(roleNames))
+	// convert workspaces to actual keyloak role
+	for i, roleName := range roleNames {
+		// check if role exists and get roleID to use with gocloak
+		gotRole, err := kcA.Client.GetClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleName)
+		if err != nil {
+			klog.Errorf("Error when getting info on client role %s", roleName)
+			klog.Error(err)
+			return err
+		}
+		rolesToAdd[i].ID = gotRole.ID
+		rolesToAdd[i].Name = gotRole.Name
+	}
+	// get current roles of user
+	userCurrentRoles, err := kcA.Client.GetClientRolesByUserID(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID)
+	if err != nil {
+		klog.Errorf("Error when getting roles of user with ID %s", userID)
+		klog.Error(err)
+		return err
+	}
+	rolesToDelete := subtractRoles(userCurrentRoles, rolesToAdd)
+
+	// this is idempotent
+	err = kcA.Client.DeleteClientRoleFromUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID, rolesToDelete)
+	if err != nil {
+		klog.Errorf("Error when removing user roles to user with ID %s", userID)
+		klog.Error(err)
+		return err
+	}
+	// this is idempotent
+	err = kcA.Client.AddClientRoleToUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID, rolesToAdd)
+	if err != nil {
+		klog.Errorf("Error when adding user roles to user with ID %s", userID)
+		klog.Error(err)
+		return err
+	}
+	return nil
+}
+
+func subtractRoles(a []*gocloak.Role, b []gocloak.Role) []gocloak.Role {
+
+	var res []gocloak.Role
+	// temporary map to hold values of b for faster subtraction in sacrifice of memory
+	tempMap := make(map[string]bool)
+
+	for _, role := range b {
+		tempMap[*role.Name] = true
+	}
+
+	for _, role := range a {
+		if _, ok := tempMap[*role.Name]; !ok {
+			res = append(res, *role)
+		}
+	}
+
+	return res
 }

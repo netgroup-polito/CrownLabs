@@ -24,14 +24,14 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // WorkspaceUserRole is an enum for the role of a user in a workspace
-// +kubebuilder:validation:Enum=Admin;Basic
+// +kubebuilder:validation:Enum=admin;user
 type WorkspaceUserRole string
 
 const (
 	// Admin allows to interact with all VMs of a workspace
-	Admin WorkspaceUserRole = "Admin"
-	// Basic allows to interact with owned vms
-	Basic WorkspaceUserRole = "Basic"
+	Admin WorkspaceUserRole = "admin"
+	// User allows to interact with owned vms
+	User WorkspaceUserRole = "user"
 )
 
 // UserWorkspaceData contains the info of the workspaces related to a user

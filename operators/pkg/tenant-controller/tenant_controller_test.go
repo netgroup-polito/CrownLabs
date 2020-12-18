@@ -31,13 +31,20 @@ import (
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	var (
-		tnName      = "mariorossi"
-		tnFirstName = "mario"
-		tnLastName  = "rossi"
-		tnEmail     = "mario.rossi@email.com"
-		userID      = "userID"
-		tr          = true
-		fa          = false
+		tnName          = "mariorossi"
+		tnFirstName     = "mario"
+		tnLastName      = "rossi"
+		tnWorkspaces    = []crownlabsv1alpha1.UserWorkspaceData{{WorkspaceRef: crownlabsv1alpha1.GenericRef{Name: "ws1"}, Role: crownlabsv1alpha1.User}}
+		tnEmail         = "mario.rossi@email.com"
+		userID          = "userID"
+		tr              = true
+		fa              = false
+		userRoleName    = "workspace-ws1:user"
+		testUserRoleID  = "role1"
+		testUserRole    = gocloak.Role{ID: &testUserRoleID, Name: &userRoleName}
+		beforeUserRoles = []*gocloak.Role{}
+		rolesToDelete   = []gocloak.Role{}
+		rolesToAdd      = []gocloak.Role{{ID: &testUserRoleID, Name: &userRoleName}}
 	)
 
 	const (
@@ -87,6 +94,41 @@ var _ = Describe("Tenant controller", func() {
 				Lifespan: &emailActionLifespan,
 				Actions:  &reqActions,
 			})).Return(nil).MinTimes(1).MaxTimes(2)
+
+		mKcClient.EXPECT().GetClientRole(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(userRoleName),
+		).Return(&testUserRole, nil).AnyTimes()
+
+		mKcClient.EXPECT().GetClientRolesByUserID(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(userID),
+		).Return(beforeUserRoles, nil).AnyTimes()
+
+		mKcClient.EXPECT().DeleteClientRoleFromUser(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(userID),
+			gomock.AssignableToTypeOf(rolesToDelete),
+		).Return(nil).AnyTimes()
+
+		mKcClient.EXPECT().AddClientRoleToUser(
+			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(userID),
+			gomock.AssignableToTypeOf(rolesToAdd),
+		).Return(nil).AnyTimes()
+
 	})
 
 	It("Should create the related resources when creating a tenant", func() {
@@ -103,9 +145,10 @@ var _ = Describe("Tenant controller", func() {
 				Namespace: tnNamespace,
 			},
 			Spec: crownlabsv1alpha1.TenantSpec{
-				FirstName: tnFirstName,
-				LastName:  tnLastName,
-				Email:     tnEmail,
+				FirstName:  tnFirstName,
+				LastName:   tnLastName,
+				Email:      tnEmail,
+				Workspaces: tnWorkspaces,
 			},
 		}
 		Expect(k8sClient.Create(ctx, tn)).Should(Succeed())

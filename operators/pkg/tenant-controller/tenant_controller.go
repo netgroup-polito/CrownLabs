@@ -106,7 +106,13 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Error(err)
 			retrigErr = err
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
+		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tn.Spec.Workspaces), *userID); err != nil {
+			klog.Errorf("Error when updating user roles of user %s", tn.Name)
+			klog.Error(err)
+			retrigErr = err
+			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		} else {
+			klog.Infof("Keycloak resources of user %s updated", tn.Name)
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 		}
 	}
@@ -133,4 +139,18 @@ func updateTnNamespace(ns *v1.Namespace, tnName string) {
 	}
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
+}
+
+// genUserRoles maps the workspaces of a tenant to the need roles in keycloak
+func genUserRoles(workspaces []crownlabsv1alpha1.UserWorkspaceData) []string {
+	userRoles := make([]string, len(workspaces))
+	// convert workspaces to actual keyloak role
+	for i, ws := range workspaces {
+		if ws.Role == crownlabsv1alpha1.User {
+			userRoles[i] = fmt.Sprintf("workspace-%s:user", ws.WorkspaceRef.Name)
+		} else if ws.Role == crownlabsv1alpha1.Admin {
+			userRoles[i] = fmt.Sprintf("workspace-%s:admin", ws.WorkspaceRef.Name)
+		}
+	}
+	return userRoles
 }
