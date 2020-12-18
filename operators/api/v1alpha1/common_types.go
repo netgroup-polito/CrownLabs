@@ -7,14 +7,12 @@ type NameCreated struct {
 }
 
 // SubscriptionStatus is an enum for the status of a subscription to a service
-// +kubebuilder:validation:Enum=Ok;Pending;Failed
+// +kubebuilder:validation:Enum=Ok;Failed
 type SubscriptionStatus string
 
 const (
 	// SubscrOk -> the subscription was successful
 	SubscrOk SubscriptionStatus = "Ok"
-	// SubscrPending -> the subscription is in process
-	SubscrPending SubscriptionStatus = "Pending"
 	// SubscrFailed -> the subscription has failed
 	SubscrFailed SubscriptionStatus = "Failed"
 )

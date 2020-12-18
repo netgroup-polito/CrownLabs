@@ -2,6 +2,7 @@ package tenant_controller
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
@@ -41,13 +42,15 @@ func createKcRole(ctx context.Context, kcA *KcActor, newRoleName string) error {
 		}
 		klog.Infof("Role created %s", createdRoleName)
 		return nil
+	} else if err != nil {
+		klog.Error("Error when getting user role", err)
+		return err
 	} else if *role.Name == newRoleName {
 		klog.Infof("Role already existed %s", newRoleName)
 		return nil
-	} else {
-		klog.Error("Error when getting user role", err)
-		return err
 	}
+	klog.Errorf("Error when getting role %s", newRoleName)
+	return errors.New("Something went wrong when getting a role")
 }
 
 func deleteKcRoles(ctx context.Context, kcA *KcActor, rolesToDelete []string) error {

@@ -1,8 +1,15 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE_TENANT_OPERATOR}
+
+---
 kind: ConfigMap
 apiVersion: v1
 metadata:
   name: tenant-operator-config
+  namespace: ${NAMESPACE_TENANT_OPERATOR}
 data:
   keycloakURL: ${KEYCLOAK_URL}
   keycloakLoginRealm: ${KEYCLOAK_LOGIN_REALM}
@@ -14,6 +21,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: tenant-operator-secret
+  namespace: ${NAMESPACE_TENANT_OPERATOR}
 type: Opaque
 stringData:
   keycloakTenantOperatorUser: ${KEYCLOAK_TENANT_OPERATOR_USER}
@@ -24,12 +32,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tenant-operator
+  namespace: ${NAMESPACE_TENANT_OPERATOR}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: crowlabs-tenant-operator
+  name: crownlabs-tenant-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -37,6 +46,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: tenant-operator
+    namespace: ${NAMESPACE_TENANT_OPERATOR}
 
 ---
 apiVersion: apps/v1
@@ -47,6 +57,7 @@ metadata:
   labels:
     run: tenant-operator
   name: tenant-operator
+  namespace: ${NAMESPACE_TENANT_OPERATOR}
 spec:
   replicas: 1
   selector:
@@ -101,6 +112,11 @@ spec:
             configMapKeyRef:
               name: tenant-operator-config
               key: keycloakURL
+        - name: KEYCLOAK_LOGIN_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: tenant-operator-config
+              key: keycloakLoginRealm
         - name: KEYCLOAK_TARGET_REALM
           valueFrom:
             configMapKeyRef:
