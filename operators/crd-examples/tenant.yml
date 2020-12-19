@@ -9,6 +9,10 @@ spec:
   workspaces:
     - workspaceRef:
         name: landc
+      role: user
+      groupNumber: 12
+    - workspaceRef:
+        name: swnet
       role: admin
       groupNumber: 12
   publicKeys:

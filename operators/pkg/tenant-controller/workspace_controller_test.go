@@ -50,25 +50,7 @@ var _ = Describe("Workspace controller", func() {
 			mKcClient = nil
 			mKcClient = mocks.NewMockGoCloak(mockCtrl)
 			kcA.Client = mKcClient
-			userKcRole := fmt.Sprintf("workspace-%s:user", wsName)
-			adminKcRole := fmt.Sprintf("workspace-%s:admin", wsName)
-
-			mKcClient.EXPECT().GetClientRole(
-				gomock.AssignableToTypeOf(context.Background()),
-				gomock.Eq(kcAccessToken),
-				gomock.Eq(kcTargetRealm),
-				gomock.Eq(kcTargetClientID),
-				gomock.Eq(userKcRole),
-			).Return(&gocloak.Role{Name: &userKcRole}, nil).MinTimes(1).MaxTimes(2)
-
-			mKcClient.EXPECT().GetClientRole(
-				gomock.AssignableToTypeOf(context.Background()),
-				gomock.Eq(kcAccessToken),
-				gomock.Eq(kcTargetRealm),
-				gomock.Eq(kcTargetClientID),
-				gomock.Eq(adminKcRole),
-			).Return(&gocloak.Role{Name: &adminKcRole}, nil).MinTimes(1).MaxTimes(2)
-
+			setupMocksForWorkspaceCreation(mKcClient, kcAccessToken, kcA.TargetRealm, kcTargetClientID, wsName)
 		})
 
 	It("Should create the related resources when creating a workspace", func() {
@@ -141,3 +123,23 @@ var _ = Describe("Workspace controller", func() {
 	})
 
 })
+
+func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessToken string, kcTargetRealm string, kcTargetClientID string, wsName string) {
+	userKcRole := fmt.Sprintf("workspace-%s:user", wsName)
+	adminKcRole := fmt.Sprintf("workspace-%s:admin", wsName)
+	mockKcCLient.EXPECT().GetClientRole(
+		gomock.AssignableToTypeOf(context.Background()),
+		gomock.Eq(kcAccessToken),
+		gomock.Eq(kcTargetRealm),
+		gomock.Eq(kcTargetClientID),
+		gomock.Eq(userKcRole),
+	).Return(&gocloak.Role{Name: &userKcRole}, nil).MinTimes(1).MaxTimes(2)
+
+	mockKcCLient.EXPECT().GetClientRole(
+		gomock.AssignableToTypeOf(context.Background()),
+		gomock.Eq(kcAccessToken),
+		gomock.Eq(kcTargetRealm),
+		gomock.Eq(kcTargetClientID),
+		gomock.Eq(adminKcRole),
+	).Return(&gocloak.Role{Name: &adminKcRole}, nil).MinTimes(1).MaxTimes(2)
+}

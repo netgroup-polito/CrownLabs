@@ -31,6 +31,10 @@ import (
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	var (
+		wsName       = "ws1"
+		wsNamespace  = ""
+		wsPrettyName = "workspace 1"
+
 		tnName          = "mariorossi"
 		tnFirstName     = "mario"
 		tnLastName      = "rossi"
@@ -61,6 +65,8 @@ var _ = Describe("Tenant controller", func() {
 		mKcClient = nil
 		mKcClient = mocks.NewMockGoCloak(mockCtrl)
 		kcA.Client = mKcClient
+
+		setupMocksForWorkspaceCreation(mKcClient, kcAccessToken, kcTargetRealm, kcTargetClientID, wsName)
 
 		// the user did not exist
 		mKcClient.EXPECT().GetUsers(
@@ -132,9 +138,25 @@ var _ = Describe("Tenant controller", func() {
 	})
 
 	It("Should create the related resources when creating a tenant", func() {
+		ctx := context.Background()
+
+		By("By creating a workspace")
+		ws := &crownlabsv1alpha1.Workspace{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "crownlabs.polito.it/v1alpha1",
+				Kind:       "Workspace",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      wsName,
+				Namespace: wsNamespace,
+			},
+			Spec: crownlabsv1alpha1.WorkspaceSpec{
+				PrettyName: wsPrettyName,
+			},
+		}
+		Expect(k8sClient.Create(ctx, ws)).Should(Succeed())
 
 		By("By creating a tenant")
-		ctx := context.Background()
 		tn := &crownlabsv1alpha1.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",

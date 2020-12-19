@@ -69,10 +69,11 @@ type TenantStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	PersonalNamespace NameCreated `json:"personalNamespace,omitempty"`
-	SandboxNamespace  NameCreated `json:"sandboxNamespace,omitempty"`
-
-	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
+	PersonalNamespace NameCreated                   `json:"personalNamespace,omitempty"`
+	SandboxNamespace  NameCreated                   `json:"sandboxNamespace,omitempty"`
+	FailingWorkspaces []string                      `json:"failingWorkspaces,omitempty"`
+	Subscriptions     map[string]SubscriptionStatus `json:"subscriptions,omitempty"`
+	Ready             bool                          `json:"ready,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -81,6 +82,7 @@ type TenantStatus struct {
 // +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
 // +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
 // +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Tenant is the Schema for the tenants API
 type Tenant struct {

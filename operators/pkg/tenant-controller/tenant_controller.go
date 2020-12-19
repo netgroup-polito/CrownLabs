@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,6 +90,23 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.PersonalNamespace.Name = nsName
 	}
 
+	// check validity of workspaces in tenant
+	tenantExistingWorkspaces := []crownlabsv1alpha1.UserWorkspaceData{}
+	tn.Status.FailingWorkspaces = []string{}
+	for _, tnWs := range tn.Spec.Workspaces {
+		wsLookupKey := types.NamespacedName{Name: tnWs.WorkspaceRef.Name, Namespace: ""}
+		var ws crownlabsv1alpha1.Workspace
+
+		if err := r.Get(ctx, wsLookupKey, &ws); err != nil {
+			klog.Errorf("Error when checking if workspace %s exists in tenant %s", tnWs.WorkspaceRef.Name, tn.Name)
+			klog.Error(err)
+			retrigErr = err
+			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.WorkspaceRef.Name)
+		} else {
+			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
+		}
+	}
+
 	// keycloak resources creation
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
@@ -106,7 +124,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Error(err)
 			retrigErr = err
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
-		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tn.Spec.Workspaces), *userID); err != nil {
+		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tenantExistingWorkspaces), *userID); err != nil {
 			klog.Errorf("Error when updating user roles of user %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -116,6 +134,9 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 		}
 	}
+
+	// place status value to ready if everything is fine, in other words, no need to reconcile
+	tn.Status.Ready = retrigErr == nil
 
 	if err := r.Status().Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
