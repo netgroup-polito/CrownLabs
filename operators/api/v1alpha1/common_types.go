@@ -22,3 +22,6 @@ type GenericRef struct {
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
+
+// WorkspaceLabelPrefix is the prefix of a label assigned to a tenant indicating it is subscribed to a workspace
+const WorkspaceLabelPrefix = "crownlabs.polito.it/workspace-"

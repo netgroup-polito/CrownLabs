@@ -19,6 +19,7 @@ package tenant_controller
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -90,6 +91,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.PersonalNamespace.Name = nsName
 	}
 
+	tnWorkspaceLabels := make(map[string]string)
 	// check validity of workspaces in tenant
 	tenantExistingWorkspaces := []crownlabsv1alpha1.UserWorkspaceData{}
 	tn.Status.FailingWorkspaces = []string{}
@@ -103,6 +105,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			retrigErr = err
 			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.WorkspaceRef.Name)
 		} else {
+			wsLabelKey := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, tnWs.WorkspaceRef.Name)
+			tnWorkspaceLabels[wsLabelKey] = string(tnWs.Role)
 			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
 		}
 	}
@@ -143,7 +147,21 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
 	}
-
+	if tn.Labels == nil {
+		tn.Labels = make(map[string]string)
+	} else {
+		// need to do this after updating status cause the update will erase non-status changes
+		cleanWorkspaceLabels(&tn.Labels)
+	}
+	for k, v := range tnWorkspaceLabels {
+		tn.Labels[k] = v
+	}
+	// need to update resource to apply labels
+	if err := r.Update(ctx, &tn); err != nil {
+		// if status update fails, still try to reconcile later
+		klog.Error("Unable to update resource before exiting reconciler", err)
+		retrigErr = err
+	}
 	return ctrl.Result{}, retrigErr
 }
 
@@ -174,4 +192,13 @@ func genUserRoles(workspaces []crownlabsv1alpha1.UserWorkspaceData) []string {
 		}
 	}
 	return userRoles
+}
+
+// cleanWorkspaceLabels removes all the labels of a workspace from a tenant
+func cleanWorkspaceLabels(labels *map[string]string) {
+	for k := range *labels {
+		if strings.HasPrefix(k, crownlabsv1alpha1.WorkspaceLabelPrefix) {
+			delete(*labels, k)
+		}
+	}
 }

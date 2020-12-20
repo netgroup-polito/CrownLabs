@@ -1,6 +1,6 @@
 apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
 metadata:
-  name: landc
+  name: swnet
 spec:
   prettyName: Software Networking

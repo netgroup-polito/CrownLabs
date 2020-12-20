@@ -53,6 +53,22 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Error(err)
 			return ctrl.Result{}, err
 		}
+
+		// unsubscribe tenants from workspace to delete
+		var tenantsToUpdate crownlabsv1alpha1.TenantList
+		targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, req.Name)
+		if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); err != nil {
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+		for i, tn := range tenantsToUpdate.Items {
+			deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, req.Name)
+			if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
+				klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tn.Name, req.Name)
+				klog.Error(err)
+				return ctrl.Result{}, err
+			}
+		}
+
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -113,4 +129,17 @@ func updateNamespace(ns *v1.Namespace) {
 
 func genWorkspaceRoleNames(wsName string) []string {
 	return []string{fmt.Sprintf("workspace-%s:user", wsName), fmt.Sprintf("workspace-%s:admin", wsName)}
+}
+
+func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
+	idxToRemove := -1
+	for i, wsData := range *workspaces {
+		if wsData.WorkspaceRef.Name == wsToRemove {
+			idxToRemove = i
+		}
+	}
+	if idxToRemove != -1 {
+		*workspaces = append((*workspaces)[:idxToRemove], (*workspaces)[idxToRemove+1:]...) // Truncate slice.
+	}
+
 }
