@@ -30,14 +30,14 @@ func (r *LabInstanceReconciler) CreateVMEnvironment(labInstance *crownlabsv1alph
 		klog.Error("unable to get Webdav Credentials")
 		klog.Error(err)
 	} else {
-		klog.Info("Webdav secrets obtained. Getting public keys." + labInstance.Name)
+		klog.Info("Webdav secrets obtained. Getting public keys. " + labInstance.Name)
 	}
 	var publicKeys []string
-	if err := instance_creation.GetPublicKeys(r.Client, ctx, labInstance.Spec.Tenant.Name, labInstance.Spec.Tenant.Namespace, &publicKeys); err != nil {
+	if err := instance_creation.GetPublicKeys(r.Client, ctx, labInstance.Spec.Tenant, labInstance.Spec.Template, &publicKeys); err != nil {
 		klog.Error("unable to get public keys")
 		klog.Error(err)
 	} else {
-		klog.Info("Public keys obtained. Building cloud-init script." + labInstance.Name)
+		klog.Info("Public keys obtained. Building cloud-init script. " + labInstance.Name)
 	}
 	secret := instance_creation.CreateCloudInitSecret(name, namespace, user, password, r.NextcloudBaseUrl, publicKeys, globalOwnerReference)
 	if err := instance_creation.CreateOrUpdate(r.Client, ctx, secret); err != nil {
