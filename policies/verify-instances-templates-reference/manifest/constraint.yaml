@@ -1,0 +1,13 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: CrownlabsInstanceTemplateReference
+metadata:
+  name: crownlabsinstancetemplatereference
+  labels:
+    policy: verify-instance-template-reference
+spec:
+  match:
+    kinds:
+    - apiGroups:
+      - crownlabs.polito.it
+      kinds:
+      - Instance
