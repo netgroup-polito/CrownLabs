@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "cp -r views dashboard/src",
+    "start": "cd dashboard && npm start",
+    "test": "cd dashboard && npm test"
+  }
+}
