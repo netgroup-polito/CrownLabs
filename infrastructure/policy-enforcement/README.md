@@ -42,4 +42,3 @@ To retrieve the cached resources in the rego rules you can do as follow:
     -   Example referencing the Gatekeeper namespace:  `data.inventory.cluster["v1"].Namespace["gatekeeper"]`
 -   For namespace-scoped objects:  `data.inventory.namespace[<namespace>][groupVersion][<kind>][<name>]`
     -   Example referencing the Gatekeeper pod:  `data.inventory.namespace["gatekeeper"]["v1"]["Pod"]["gatekeeper-controller-manager-d4c98b788-j7d92"]`
-
