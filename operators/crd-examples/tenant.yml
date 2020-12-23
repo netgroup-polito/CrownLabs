@@ -3,13 +3,13 @@ kind: Tenant
 metadata:
   name: mariorossi
 spec:
-  name: mario
-  surname: rossi
-  ID: id12345678
+  firstName: mario
+  lastName: rossi
   email: mario.rossi@email.com
   workspaces:
-    - workspaceURL: LANDC
-      role: Basic
+    - workspaceRef:
+        name: landc
+      role: admin
       groupNumber: 12
   publicKeys:
     - key1

@@ -48,7 +48,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// reconcile was triggered by a delete request
 		klog.Infof("Workspace %s deleted", req.Name)
 		rolesToDelete := genWorkspaceRoleNames(req.Name)
-		if err := deleteKcRoles(ctx, r.KcA, rolesToDelete); err != nil {
+		if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
 			klog.Errorf("Error when deleting roles of workspace %s", req.NamespacedName)
 			klog.Error(err)
 			return ctrl.Result{}, err
@@ -66,7 +66,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		updateNamespace(ws, &ns, nsName)
+		updateNamespace(&ns)
 		return ctrl.SetControllerReference(&ws, &ns, r.Scheme)
 	})
 	if err != nil {
@@ -81,7 +81,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ws.Status.Namespace.Name = nsName
 	}
 
-	if err := createKcRoles(ctx, r.KcA, genWorkspaceRoleNames(ws.Name)); err != nil {
+	if err := r.KcA.createKcRoles(ctx, genWorkspaceRoleNames(ws.Name)); err != nil {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
 	} else {
@@ -104,7 +104,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func updateNamespace(ws crownlabsv1alpha1.Workspace, ns *v1.Namespace, wsnsName string) {
+func updateNamespace(ns *v1.Namespace) {
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
 	}

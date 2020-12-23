@@ -16,3 +16,9 @@ const (
 	// SubscrFailed -> the subscription has failed
 	SubscrFailed SubscriptionStatus = "Failed"
 )
+
+// GenericRef stores generric data to point to a kubernetes resource
+type GenericRef struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}

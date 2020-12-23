@@ -95,6 +95,7 @@ func main() {
 	if err = (&controllers.TenantReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		KcA:    kcA,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create controller for Tenant", err)
 	}
@@ -139,10 +140,12 @@ func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm 
 		return nil, err
 	}
 	return &controllers.KcActor{
-		Client:         kcClient,
-		Token:          token,
-		TargetClientID: kcTargetClientID,
-		TargetRealm:    targetRealmName,
+		Client:                kcClient,
+		Token:                 token,
+		TargetClientID:        kcTargetClientID,
+		TargetRealm:           targetRealmName,
+		UserRequiredActions:   []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"},
+		EmailActionsLifeSpanS: 60 * 60 * 24 * 30, // 30 Days
 	}, nil
 }
 
