@@ -18,10 +18,12 @@ package bastion_controller
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,13 +39,6 @@ type BastionReconciler struct {
 	AuthorizedKeysPath string
 }
 
-func closeFile(f *os.File, log logr.Logger) {
-	err := f.Close()
-	if err != nil {
-		log.Error(err, "unable to close the file authorized_keys")
-	}
-}
-
 // +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=list
 
 func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -51,21 +46,35 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("tenant", req.NamespacedName)
 	log.Info("reconciling bastion")
 
-	// Get tenants resources
-	var tenants crownlabsalpha1.TenantList
-	if err := r.List(ctx, &tenants); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	tenant := &crownlabsalpha1.Tenant{}
+	deleted := false
+
+	if err := r.Get(ctx, req.NamespacedName, tenant); apierrors.IsNotFound(err) {
+		deleted = true
+	} else if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// Collect public keys of tenants
-	keys := make([]string, 0, len(tenants.Items))
-	for _, tenant := range tenants.Items {
-		keys = append(keys, tenant.Spec.PublicKeys...)
+	var keys []string
+
+	if _, err := os.Stat(r.AuthorizedKeysPath); err == nil {
+
+		// if the file exists, read the whole file in a []byte
+		data, err := ioutil.ReadFile(r.AuthorizedKeysPath)
+		if err != nil {
+			log.Error(err, "unable to read the file authorized_keys")
+			return ctrl.Result{}, err
+		}
+
+		if len(data) > 0 {
+			keys = decomposeAndPurgeEntries(strings.Split(string(data), string("\n")), req.NamespacedName.Name)
+		}
 	}
 
-	authorizedKeys := strings.Join(keys[:], "\n")
-
-	log.Info(r.AuthorizedKeysPath)
+	if !deleted {
+		// if the event was NOT a deletion, add the tenant's keys. Otherwise nothing to do.
+		keys = composeAndMarkEntries(keys, tenant.Spec.PublicKeys, req.NamespacedName.Name)
+	}
 
 	f, err := os.Create(r.AuthorizedKeysPath)
 	if err != nil {
@@ -75,13 +84,16 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	defer closeFile(f, log)
 
-	_, err = f.WriteString(authorizedKeys)
-	if err != nil {
-		log.Error(err, "unable to write to authorized_keys")
-		return ctrl.Result{}, nil
+	if len(keys) > 0 {
+		_, err = f.Write([]byte(strings.Join(keys, string("\n"))))
+		if err != nil {
+			log.Error(err, "unable to write to authorized_keys")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	return ctrl.Result{}, nil
+
 }
 
 func (r *BastionReconciler) SetupWithManager(mgr ctrl.Manager) error {

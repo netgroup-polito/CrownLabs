@@ -19,7 +19,7 @@ type cloudInitConfig struct {
 	} `yaml:"network"`
 	Mounts            [][]string  `yaml:"mounts"`
 	WriteFiles        []writeFile `yaml:"write_files"`
-	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys"`
+	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys,omitempty"`
 }
 
 func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl string, publicKeys []string) map[string]string {

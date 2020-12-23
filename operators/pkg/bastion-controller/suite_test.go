@@ -17,6 +17,7 @@ limitations under the License.
 package bastion_controller
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -94,6 +95,9 @@ var _ = BeforeSuite(func(done Done) {
 }, 60)
 
 var _ = AfterSuite(func() {
+	By("Deleting the file used to test")
+	Expect(os.Remove("./authorized_keys_test")).Should(Succeed())
+
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())

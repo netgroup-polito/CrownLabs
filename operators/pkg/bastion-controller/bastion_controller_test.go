@@ -15,43 +15,71 @@ import (
 	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-var _ = Describe("Bastion controller", func() {
+var _ = Describe("Bastion controller - creating two tenants", func() {
 
 	const (
-		NameTenant1          = "s11111"
-		NamespaceTenant1     = ""
-		FirstNameTenant1     = "Mario"
-		LastNameTenant1      = "Rossi"
-		EmailTenant1         = "mario.rossi@fakemail.com"
-		CreateSandboxTenant1 = true
-
-		NameTenant2          = "s22222"
-		NamespaceTenant2     = ""
-		FirstNameTenant2     = "Fabio"
-		LastNameTenant2      = "Bianchi"
-		EmailTenant2         = "fabio.bianchi@fakemail.com"
-		CreateSandboxTenant2 = true
+		NameTenant1 = "s11111"
+		NameTenant2 = "s22222"
 
 		testFile = "./authorized_keys_test"
 		timeout  = time.Second * 10
 		interval = time.Millisecond * 250
 	)
 
-	PublicKeysTenant1 := []string{
-		"ssh-ed25519 publicKeyString_1 comment_1",
-		"ssh-rsa publicKeyString_2 comment_2",
-	}
-	PublicKeysTenant2 := []string{
-		"ssh-rsa abcdefghi fabio_comment",
+	var (
+		PubKeysToBeChecked = map[string][]string{}
+		PublicKeysTenant1  []string
+		PublicKeysTenant2  []string
+	)
+
+	ctx := context.Background()
+
+	// this function checks if the keys are properly placed in the file.
+	checkFile := func() (bool, error) {
+
+		data, err := ioutil.ReadFile(testFile)
+		if err != nil {
+			return false, err
+		}
+
+		for id, t := range PubKeysToBeChecked {
+
+			for i := range t {
+				entry, err := Create(t[i], id)
+				if err != nil {
+					continue
+				}
+
+				if !bytes.Contains(data, []byte(entry.Compose())) {
+					return false, nil
+				}
+			}
+
+		}
+		return true, nil
+
 	}
 
-	var PubKeysToBeChecked []string
-	WorkspacesTenants := []crownlabsalpha1.UserWorkspaceData{}
+	BeforeEach(func() {
+		PubKeysToBeChecked = make(map[string][]string)
 
-	Context("When updating a Tenant resource", func() {
-		It("Should create the authorized_keys file if not already existing and insert tenant's pub keys", func() {
-			By("By creating a new Tenant")
-			ctx := context.Background()
+		PublicKeysTenant1 = []string{
+			"ssh-ed25519 publicKeyString_1 comment_1",
+			"ssh-rsa publicKeyString_2",
+			"invalid_entry",
+		}
+		PublicKeysTenant2 = []string{
+			"ssh-rsa abcdefghi comment",
+		}
+
+		tenant1 := &crownlabsalpha1.Tenant{}
+		tenant2 := &crownlabsalpha1.Tenant{}
+		tenant1LookupKey := types.NamespacedName{Name: NameTenant1, Namespace: ""}
+		tenant2LookupKey := types.NamespacedName{Name: NameTenant2, Namespace: ""}
+
+		// create or update tenant in order to reset the specs
+
+		if err1 := k8sClient.Get(context.Background(), tenant1LookupKey, tenant1); err1 != nil {
 			tenant1 := &crownlabsalpha1.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -59,60 +87,110 @@ var _ = Describe("Bastion controller", func() {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      NameTenant1,
-					Namespace: NamespaceTenant1,
+					Namespace: "",
 				},
 				Spec: crownlabsalpha1.TenantSpec{
-					FirstName:     FirstNameTenant1,
-					LastName:      LastNameTenant1,
-					Email:         EmailTenant1,
-					Workspaces:    WorkspacesTenants,
-					PublicKeys:    PublicKeysTenant1,
-					CreateSandbox: CreateSandboxTenant1,
+					FirstName:  "Mario",
+					LastName:   "Rossi",
+					Email:      "mario.rossi@fakemail.com",
+					Workspaces: []crownlabsalpha1.UserWorkspaceData{},
+					PublicKeys: PublicKeysTenant1,
 				},
 			}
 			Expect(k8sClient.Create(ctx, tenant1)).Should(Succeed())
+		} else {
+			tenant1.Spec.PublicKeys = PublicKeysTenant1
+			Expect(k8sClient.Update(ctx, tenant1)).Should(Succeed())
+		}
 
-			tenantLookupKey := types.NamespacedName{Name: NameTenant1, Namespace: ""}
+		updatedTenant1 := &crownlabsalpha1.Tenant{}
+
+		Eventually(func() []string {
+			err := k8sClient.Get(ctx, tenant1LookupKey, updatedTenant1)
+			if err != nil {
+				return nil
+			}
+			return updatedTenant1.Spec.PublicKeys
+		}, timeout, interval).Should(Equal(PublicKeysTenant1))
+
+		if err2 := k8sClient.Get(context.Background(), tenant2LookupKey, tenant2); err2 != nil {
+			tenant2 := &crownlabsalpha1.Tenant{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "crownlabs.polito.it/v1alpha1",
+					Kind:       "Tenant",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      NameTenant2,
+					Namespace: "",
+				},
+				Spec: crownlabsalpha1.TenantSpec{
+					FirstName:  "Fabio",
+					LastName:   "Bianchi",
+					Email:      "fabio.bianchi@fakemail.com",
+					Workspaces: []crownlabsalpha1.UserWorkspaceData{},
+					PublicKeys: PublicKeysTenant2,
+				},
+			}
+			Expect(k8sClient.Create(ctx, tenant2)).Should(Succeed())
+		} else {
+			tenant2.Spec.PublicKeys = PublicKeysTenant2
+			Expect(k8sClient.Update(ctx, tenant2)).Should(Succeed())
+		}
+
+		updatedTenant2 := &crownlabsalpha1.Tenant{}
+
+		Eventually(func() []string {
+			err := k8sClient.Get(ctx, tenant2LookupKey, updatedTenant2)
+			if err != nil {
+				return nil
+			}
+			return updatedTenant2.Spec.PublicKeys
+		}, timeout, interval).Should(Equal(PublicKeysTenant2))
+
+	})
+
+	Context("When creating two tenants", func() {
+		It("Should create the file authorized_keys and write the tenant's public keys into it.", func() {
+
+			By("Checking if the file exists.")
+			Eventually(func() bool {
+				if _, err := os.Stat(testFile); err == nil {
+					return true
+				}
+				return false
+			}).Should(BeTrue())
+
+			By("Checking the file for both tenants' pub keys")
+			PubKeysToBeChecked[NameTenant2] = PublicKeysTenant1
+			PubKeysToBeChecked[NameTenant2] = PublicKeysTenant2
+			Eventually(checkFile, timeout, interval).Should(BeTrue())
+
+		})
+	})
+
+	Context("When updating the keys of the one tenant", func() {
+		BeforeEach(func() {
+
 			createdTenant := &crownlabsalpha1.Tenant{}
 
 			Eventually(func() []string {
-				err := k8sClient.Get(ctx, tenantLookupKey, createdTenant)
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: "s11111", Namespace: ""}, createdTenant)
 				if err != nil {
 					return nil
 				}
 				return createdTenant.Spec.PublicKeys
 			}, timeout, interval).Should(Equal(PublicKeysTenant1))
 
-			checkFile := func() (bool, error) {
-
-				data, err := ioutil.ReadFile(testFile)
-				if err != nil {
-					return false, err
-				}
-
-				for i := range PubKeysToBeChecked {
-					if !bytes.Contains(data, []byte(PubKeysToBeChecked[i])) {
-						return false, nil
-					}
-				}
-				return true, nil
-
-			}
-
-			By("Checking the file after creation")
-			PubKeysToBeChecked = PublicKeysTenant1
-			Eventually(checkFile, timeout, interval).Should(BeTrue())
-
-			By("Updating the keys on an already existing tenant resource")
-
 			PublicKeysTenant1[0] = "ecdsa-sha2-nistp256 yet_another_public_key comment_3"
 
 			createdTenant.Spec.PublicKeys = PublicKeysTenant1
+
 			Eventually(func() bool {
 				err := k8sClient.Update(ctx, createdTenant)
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
+			tenantLookupKey := types.NamespacedName{Name: NameTenant1, Namespace: ""}
 			updatedTenant := &crownlabsalpha1.Tenant{}
 
 			Eventually(func() []string {
@@ -122,68 +200,45 @@ var _ = Describe("Bastion controller", func() {
 				}
 				return updatedTenant.Spec.PublicKeys
 			}, timeout, interval).Should(Equal(createdTenant.Spec.PublicKeys))
+		})
+
+		It("Should update the keys in the file", func() {
 
 			By("Checking the file after updating")
+			PubKeysToBeChecked[NameTenant1] = PublicKeysTenant1
 			Eventually(checkFile, timeout, interval).Should(BeTrue())
 
-			By("Adding another tenant")
-			tenant2 := &crownlabsalpha1.Tenant{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "crownlabs.polito.it/v1alpha1",
-					Kind:       "Tenant",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      NameTenant2,
-					Namespace: NamespaceTenant2,
-				},
-				Spec: crownlabsalpha1.TenantSpec{
-					FirstName:     FirstNameTenant2,
-					LastName:      LastNameTenant2,
-					Email:         EmailTenant2,
-					Workspaces:    WorkspacesTenants,
-					PublicKeys:    PublicKeysTenant2,
-					CreateSandbox: CreateSandboxTenant2,
-				},
-			}
-			Expect(k8sClient.Create(ctx, tenant2)).Should(Succeed())
+		})
+	})
 
-			newTenantLookupKey := types.NamespacedName{Name: NameTenant2, Namespace: ""}
-			newTenantGet := &crownlabsalpha1.Tenant{}
+	Context("When deleting a Tenant", func() {
+		BeforeEach(func() {
 
-			Eventually(func() []string {
-				err := k8sClient.Get(ctx, newTenantLookupKey, newTenantGet)
-				if err != nil {
-					return nil
-				}
-				return newTenantGet.Spec.PublicKeys
-			}, timeout, interval).Should(Equal(PublicKeysTenant2))
-
-			By("Checking the file both tenants' pub keys")
-			PubKeysToBeChecked = append(PubKeysToBeChecked, PublicKeysTenant2...)
-			Eventually(checkFile, timeout, interval).Should(BeTrue())
-
-			By("Deleting the first tenant")
 			Eventually(func() bool {
 				err := k8sClient.Delete(ctx, &crownlabsalpha1.Tenant{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      NameTenant1,
-						Namespace: NamespaceTenant1,
+						Namespace: "",
 					},
 				})
 				return err == nil
 			}, timeout, interval).Should(BeTrue())
 
+		})
+
+		It("Should contain only the keys of the remaining tenant", func() {
+
+			PubKeysToBeChecked[NameTenant1] = PublicKeysTenant1
+			PubKeysToBeChecked[NameTenant2] = PublicKeysTenant2
 			By("Checking the file for first tenant's keys after deleting it")
-			PubKeysToBeChecked = PublicKeysTenant1
 			Eventually(checkFile, timeout, interval).Should(BeFalse())
 
 			By("Checking the file for second tenant's keys after the deletion of the first")
-			PubKeysToBeChecked = PublicKeysTenant2
+			delete(PubKeysToBeChecked, NameTenant1)
 			Eventually(checkFile, timeout, interval).Should(BeTrue())
 
-			// remove the file
-			Expect(os.Remove(testFile)).Should(Succeed())
 		})
+
 	})
 
 })
