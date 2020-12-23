@@ -68,9 +68,13 @@ jobs:
         run: |
           version=2.3.1 # latest stable version
           arch=amd64
+          kubernetes_version=1.19.2
           curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_${version}_linux_${arch}.tar.gz"
           tar -zxvf kubebuilder_${version}_linux_${arch}.tar.gz
-          mv kubebuilder_${version}_linux_${arch} kubebuilder && sudo mv kubebuilder /usr/local/
+          mv kubebuilder_${version}_linux_${arch} kubebuilder
+          curl -L -O "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${kubernetes_version}-linux-${arch}.tar.gz"
+          tar -zxvf kubebuilder-tools-${kubernetes_version}-linux-${arch}.tar.gz kubebuilder/bin/kube-apiserver --overwrite -C kubebuilder/bin
+          sudo mv kubebuilder /usr/local/
 
       - name: Perform the tests
         working-directory: operators/

@@ -20,7 +20,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/prometheus/common/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -30,14 +29,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -76,10 +74,6 @@ func main() {
 	flag.StringVar(&oidcProviderUrl, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(func(o *zap.Options) {
-		o.Development = true
-	}))
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -90,16 +84,14 @@ func main() {
 		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		klog.Fatal(err, "unable to start manager")
 	}
 	whiteListMap := parseMap(namespaceWhiteList)
-	log.Info("Reconciling only namespaces with the following labels: ")
+	klog.Info("Reconciling only namespaces with the following labels: ")
 	if err = (&instance_controller.LabInstanceReconciler{
 		Client:             mgr.GetClient(),
-		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
 		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor("LabInstanceOperator"),
+		EventsRecorder:     mgr.GetEventRecorderFor("InstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		NextcloudBaseUrl:   nextcloudBaseUrl,
 		WebsiteBaseUrl:     websiteBaseUrl,
@@ -108,28 +100,25 @@ func main() {
 		OidcClientSecret:   oidcClientSecret,
 		OidcProviderUrl:    oidcProviderUrl,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Instance")
-		os.Exit(1)
+		klog.Fatal(err, "unable to create controller", "controller", "Instance")
 	}
 
 	// +kubebuilder:scaffold:builder
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {
-		log.Error(err, "unable add a readiness check")
+		klog.Error("Unable to add a readiness check")
 		os.Exit(1)
 	}
 
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
 	if err != nil {
-		log.Error(err, "unable add a health check")
-		os.Exit(1)
+		klog.Fatal("Unable add an health check")
 	}
-	setupLog.Info("starting manager")
+	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		klog.Fatal("Unable to start manager")
 	}
 }
 

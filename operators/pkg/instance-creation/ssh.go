@@ -3,13 +3,12 @@ package instance_creation
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetPublicKeys(c client.Client, ctx context.Context, log logr.Logger, name string, namespace string, publicKeys *[]string) error {
+func GetPublicKeys(c client.Client, ctx context.Context, name string, namespace string, publicKeys *[]string) error {
 	tenant := crownlabsv1alpha1.Tenant{}
 	nsdName := types.NamespacedName{
 		Namespace: namespace,
