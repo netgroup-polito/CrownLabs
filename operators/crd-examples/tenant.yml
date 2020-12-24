@@ -13,7 +13,7 @@ spec:
       groupNumber: 12
     - workspaceRef:
         name: swnet
-      role: admin
+      role: manager
       groupNumber: 12
   publicKeys:
     - key1

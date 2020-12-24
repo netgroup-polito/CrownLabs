@@ -198,11 +198,7 @@ func genUserRoles(workspaces []crownlabsv1alpha1.UserWorkspaceData) []string {
 	userRoles := make([]string, len(workspaces))
 	// convert workspaces to actual keyloak role
 	for i, ws := range workspaces {
-		if ws.Role == crownlabsv1alpha1.User {
-			userRoles[i] = fmt.Sprintf("workspace-%s:user", ws.WorkspaceRef.Name)
-		} else if ws.Role == crownlabsv1alpha1.Admin {
-			userRoles[i] = fmt.Sprintf("workspace-%s:admin", ws.WorkspaceRef.Name)
-		}
+		userRoles[i] = fmt.Sprintf("workspace-%s:%s", ws.WorkspaceRef.Name, ws.Role)
 	}
 	return userRoles
 }

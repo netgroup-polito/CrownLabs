@@ -70,7 +70,7 @@ spec:
                     role:
                       description: WorkspaceUserRole is an enum for the role of a user in a workspace
                       enum:
-                      - admin
+                      - manager
                       - user
                       type: string
                     workspaceRef:

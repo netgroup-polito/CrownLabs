@@ -126,7 +126,7 @@ var _ = Describe("Workspace controller", func() {
 
 func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessToken string, kcTargetRealm string, kcTargetClientID string, wsName string) {
 	userKcRole := fmt.Sprintf("workspace-%s:user", wsName)
-	adminKcRole := fmt.Sprintf("workspace-%s:admin", wsName)
+	managerKcRole := fmt.Sprintf("workspace-%s:manager", wsName)
 	mockKcCLient.EXPECT().GetClientRole(
 		gomock.AssignableToTypeOf(context.Background()),
 		gomock.Eq(kcAccessToken),
@@ -140,6 +140,6 @@ func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessTok
 		gomock.Eq(kcAccessToken),
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
-		gomock.Eq(adminKcRole),
-	).Return(&gocloak.Role{Name: &adminKcRole}, nil).MinTimes(1).MaxTimes(2)
+		gomock.Eq(managerKcRole),
+	).Return(&gocloak.Role{Name: &managerKcRole}, nil).MinTimes(1).MaxTimes(2)
 }

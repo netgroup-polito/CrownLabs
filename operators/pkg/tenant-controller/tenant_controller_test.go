@@ -31,12 +31,12 @@ import (
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	var (
-		wsName       = "ws1"
-		wsNamespace  = ""
-		wsPrettyName = "workspace 1"
-		wsLabelKey   = "crownlabs.polito.it/workspace-ws1"
-		wsUserRole   = "workspace-ws1:user"
-		wsAdminRole  = "workspace-ws1:admin"
+		wsName        = "ws1"
+		wsNamespace   = ""
+		wsPrettyName  = "workspace 1"
+		wsLabelKey    = "crownlabs.polito.it/workspace-ws1"
+		wsUserRole    = "workspace-ws1:user"
+		wsManagerRole = "workspace-ws1:manager"
 
 		tnName          = "mariorossi"
 		tnFirstName     = "mario"
@@ -152,7 +152,7 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
-			gomock.Eq(wsAdminRole),
+			gomock.Eq(wsManagerRole),
 		).Return(nil).MinTimes(1).MaxTimes(2)
 
 	})
