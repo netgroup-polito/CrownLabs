@@ -69,7 +69,7 @@ var _ = Describe("Tenant controller", func() {
 		mKcClient = mocks.NewMockGoCloak(mockCtrl)
 		kcA.Client = mKcClient
 
-		setupMocksForWorkspaceCreation(mKcClient, kcAccessToken, kcTargetRealm, kcTargetClientID, wsName)
+		setupMocksForWorkspaceCreationExistingRoles(mKcClient, kcAccessToken, kcTargetRealm, kcTargetClientID, wsName, wsPrettyName)
 
 		// the user did not exist
 		mKcClient.EXPECT().GetUsers(

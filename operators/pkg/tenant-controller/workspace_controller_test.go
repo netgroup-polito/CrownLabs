@@ -32,13 +32,13 @@ var _ = Describe("Workspace controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		wsNamespace  = ""
-		wsPrettyName = "Workspace for testing"
-		nsNamespace  = ""
-		timeout      = time.Second * 10
-		interval     = time.Millisecond * 250
+		nsNamespace = ""
+		timeout     = time.Second * 10
+		interval    = time.Millisecond * 250
 	)
 	var (
+		wsNamespace  = ""
+		wsPrettyName = "Workspace for testing"
 		// make workspace name time-sensitive to make test more independent since using external resources like a real keycloak instance
 		wsName = fmt.Sprintf("test-%d", time.Now().Unix())
 		nsName = fmt.Sprintf("workspace-%s", wsName)
@@ -50,7 +50,7 @@ var _ = Describe("Workspace controller", func() {
 			mKcClient = nil
 			mKcClient = mocks.NewMockGoCloak(mockCtrl)
 			kcA.Client = mKcClient
-			setupMocksForWorkspaceCreation(mKcClient, kcAccessToken, kcA.TargetRealm, kcTargetClientID, wsName)
+			setupMocksForWorkspaceCreationExistingRoles(mKcClient, kcAccessToken, kcA.TargetRealm, kcTargetClientID, wsName, wsPrettyName)
 		})
 
 	It("Should create the related resources when creating a workspace", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Workspace controller", func() {
 
 })
 
-func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessToken string, kcTargetRealm string, kcTargetClientID string, wsName string) {
+func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak, kcAccessToken string, kcTargetRealm string, kcTargetClientID string, wsName string, wsPrettyName string) {
 	userKcRole := fmt.Sprintf("workspace-%s:user", wsName)
 	managerKcRole := fmt.Sprintf("workspace-%s:manager", wsName)
 	mockKcCLient.EXPECT().GetClientRole(
@@ -133,7 +133,7 @@ func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessTok
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.Eq(userKcRole),
-	).Return(&gocloak.Role{Name: &userKcRole}, nil).MinTimes(1).MaxTimes(2)
+	).Return(&gocloak.Role{Name: &userKcRole, Description: &wsPrettyName}, nil).MinTimes(1).MaxTimes(2)
 
 	mockKcCLient.EXPECT().GetClientRole(
 		gomock.AssignableToTypeOf(context.Background()),
@@ -141,5 +141,21 @@ func setupMocksForWorkspaceCreation(mockKcCLient *mocks.MockGoCloak, kcAccessTok
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.Eq(managerKcRole),
-	).Return(&gocloak.Role{Name: &managerKcRole}, nil).MinTimes(1).MaxTimes(2)
+	).Return(&gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}, nil).MinTimes(1).MaxTimes(2)
+
+	mockKcCLient.EXPECT().UpdateRole(
+		gomock.AssignableToTypeOf(context.Background()),
+		gomock.Eq(kcAccessToken),
+		gomock.Eq(kcTargetRealm),
+		gomock.Eq(kcTargetClientID),
+		gomock.AssignableToTypeOf(gocloak.Role{Name: &userKcRole, Description: &wsPrettyName}),
+	).Return(nil).MinTimes(1).MaxTimes(2)
+
+	mockKcCLient.EXPECT().UpdateRole(
+		gomock.AssignableToTypeOf(context.Background()),
+		gomock.Eq(kcAccessToken),
+		gomock.Eq(kcTargetRealm),
+		gomock.Eq(kcTargetClientID),
+		gomock.AssignableToTypeOf(gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}),
+	).Return(nil).MinTimes(1).MaxTimes(2)
 }

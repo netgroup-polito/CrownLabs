@@ -48,7 +48,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err := r.Get(ctx, req.NamespacedName, &ws); err != nil {
 		// reconcile was triggered by a delete request
 		klog.Infof("Workspace %s deleted", req.Name)
-		rolesToDelete := genWorkspaceRoleNames(req.Name)
+		rolesToDelete := genWorkspaceRolesData(req.Name, ws.Spec.PrettyName)
 		if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
 			klog.Errorf("Error when deleting roles of workspace %s", req.NamespacedName)
 			klog.Error(err)
@@ -105,7 +105,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	if err := r.KcA.createKcRoles(ctx, genWorkspaceRoleNames(ws.Name)); err != nil {
+	if err := r.KcA.createKcRoles(ctx, genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
 	} else {
@@ -138,8 +138,12 @@ func updateNamespace(ns *v1.Namespace) {
 	ns.Labels["crownlabs.polito.it/type"] = "workspace"
 }
 
-func genWorkspaceRoleNames(wsName string) []string {
-	return []string{fmt.Sprintf("workspace-%s:%s", wsName, crownlabsv1alpha1.Manager), fmt.Sprintf("workspace-%s:%s", wsName, crownlabsv1alpha1.User)}
+func genWorkspaceRolesData(wsName, wsPrettyName string) map[string]string {
+	return map[string]string{genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager): wsPrettyName, genWorkspaceRoleName(wsName, crownlabsv1alpha1.User): wsPrettyName}
+}
+
+func genWorkspaceRoleName(wsName string, role crownlabsv1alpha1.WorkspaceUserRole) string {
+	return fmt.Sprintf("workspace-%s:%s", wsName, role)
 }
 
 func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
@@ -200,15 +204,15 @@ func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconcile
 
 func updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName string) {
 	crb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
-	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.Manager), APIGroup: "rbac.authorization.k8s.io"}}
+	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-view-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.User), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.User)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.Manager), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }

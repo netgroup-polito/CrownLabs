@@ -20,9 +20,10 @@ type KcActor struct {
 	EmailActionsLifeSpanS int
 }
 
-func (kcA *KcActor) createKcRoles(ctx context.Context, rolesToCreate []string) error {
-	for _, newRoleName := range rolesToCreate {
-		if err := kcA.createKcRole(ctx, newRoleName); err != nil {
+// createKcRoles takes as argument a map with each pair with the roleName as the key and its description as value
+func (kcA *KcActor) createKcRoles(ctx context.Context, rolesToCreate map[string]string) error {
+	for newRoleName, newRoleDescr := range rolesToCreate {
+		if err := kcA.createKcRole(ctx, newRoleName, newRoleDescr); err != nil {
 			klog.Error("Could not create user role", newRoleName)
 			return err
 		}
@@ -30,16 +31,17 @@ func (kcA *KcActor) createKcRoles(ctx context.Context, rolesToCreate []string) e
 	return nil
 }
 
-func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName string) error {
-	// check if keycloak role already esists
+func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName, newRoleDescr string) error {
+	tr := true
+	roleAfter := gocloak.Role{Name: &newRoleName, Description: &newRoleDescr, ClientRole: &tr}
 
+	// check if keycloak role already esists
 	role, err := kcA.Client.GetClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, newRoleName)
 	if err != nil && strings.Contains(err.Error(), "Could not find role") {
 		// role didn't exist
 		// need to create new role
 		klog.Infof("Role didn't exist %s", newRoleName)
-		tr := true
-		createdRoleName, err := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, gocloak.Role{Name: &newRoleName, ClientRole: &tr})
+		createdRoleName, err := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
 		if err != nil {
 			klog.Error("Error when creating role", err)
 			return err
@@ -51,15 +53,20 @@ func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName string) error 
 		return err
 	} else if *role.Name == newRoleName {
 		klog.Infof("Role already existed %s", newRoleName)
+		err := kcA.Client.UpdateRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
+		if err != nil {
+			klog.Error("Error when creating role", err)
+			return err
+		}
 		return nil
 	}
 	klog.Errorf("Error when getting role %s", newRoleName)
 	return errors.New("Something went wrong when getting a role")
 }
 
-func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete []string) error {
+func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete map[string]string) error {
 
-	for _, role := range rolesToDelete {
+	for role := range rolesToDelete {
 		if err := kcA.Client.DeleteClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, role); err != nil {
 			if !strings.Contains(err.Error(), "404") {
 				klog.Error("Could not delete user role", role)
