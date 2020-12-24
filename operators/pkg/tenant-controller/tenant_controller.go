@@ -23,10 +23,14 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+
+	netv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -89,10 +93,17 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for tenant %s %s", nsName, req.Name, nsOpRes)
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
+		if err := createOrUpdateTnClusterResources(ctx, r, tn.Name, nsName); err != nil {
+			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
+			klog.Error(err)
+			retrigErr = err
+		} else {
+			klog.Infof("Cluster resources for tenant %s have been correctly handled", tn.Name)
+		}
 	}
 
-	tnWorkspaceLabels := make(map[string]string)
 	// check validity of workspaces in tenant
+	tnWorkspaceLabels := make(map[string]string)
 	tenantExistingWorkspaces := []crownlabsv1alpha1.UserWorkspaceData{}
 	tn.Status.FailingWorkspaces = []string{}
 	for _, tnWs := range tn.Spec.Workspaces {
@@ -162,6 +173,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update resource before exiting reconciler", err)
 		retrigErr = err
 	}
+	klog.Infof("Tenant %s reconciled", tn.Name)
 	return ctrl.Result{}, retrigErr
 }
 
@@ -178,6 +190,7 @@ func updateTnNamespace(ns *v1.Namespace, tnName string) {
 	}
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
+	ns.Labels["crownlabs.polito.it/operator-selector"] = "production"
 }
 
 // genUserRoles maps the workspaces of a tenant to the need roles in keycloak
@@ -201,4 +214,90 @@ func cleanWorkspaceLabels(labels *map[string]string) {
 			delete(*labels, k)
 		}
 	}
+}
+
+func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, tnName, nsName string) error {
+	// handle resource quota
+	rq := v1.ResourceQuota{
+		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
+	}
+	rqOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rq, func() error {
+		updateTnResQuota(&rq)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update resource quota for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Resource quota for tenant %s %s", tnName, rqOpRes)
+
+	// handle roleBinding
+	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-instances", Namespace: nsName}}
+	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
+		updateTnRb(&rb, tnName)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update role binding for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Role binding for tenant %s %s", tnName, rbOpRes)
+
+	netPolDeny := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-deny-ingress-traffic", Namespace: nsName}}
+	npDOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolDeny, func() error {
+		updateTnNetPolDeny(&netPolDeny)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update deny network policy for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Deny network policy for tenant %s %s", tnName, npDOpRes)
+
+	netPolAllow := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-allow-trusted-ingress-traffic", Namespace: nsName}}
+	npAOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolAllow, func() error {
+		updateTnNetPolAllow(&netPolAllow)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update allow network policy for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Allow network policy for tenant %s %s", tnName, npAOpRes)
+	return nil
+}
+
+// updateTnResQuota updates the tenant resource quota
+func updateTnResQuota(rq *v1.ResourceQuota) {
+
+	resourceList := make(v1.ResourceList)
+
+	resourceList["limits.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
+	resourceList["limits.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
+	resourceList["requests.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
+	resourceList["requests.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
+	resourceList["count/instances.crownlabs.polito.it"] = *resource.NewQuantity(5, resource.DecimalSI)
+
+	rq.Spec.Hard = resourceList
+}
+
+func updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func updateTnNetPolDeny(np *netv1.NetworkPolicy) {
+	np.Spec.PodSelector.MatchLabels = make(map[string]string)
+	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
+}
+
+func updateTnNetPolAllow(np *netv1.NetworkPolicy) {
+	np.Spec.PodSelector.MatchLabels = make(map[string]string)
+	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
+		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
+	}}}}}
 }

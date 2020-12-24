@@ -22,6 +22,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
@@ -95,6 +96,13 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for workspace %s %s", nsName, req.Name, nsOpRes)
 		ws.Status.Namespace.Created = true
 		ws.Status.Namespace.Name = nsName
+		if err := createOrUpdateWsClusterResources(ctx, r, &ws, nsName); err != nil {
+			klog.Errorf("Error creating k8s resources for workspace %s", ws.Name)
+			klog.Error(err)
+			retrigErr = err
+		} else {
+			klog.Infof("Cluster resources for workspace %s have been correctly handled", ws.Name)
+		}
 	}
 
 	if err := r.KcA.createKcRoles(ctx, genWorkspaceRoleNames(ws.Name)); err != nil {
@@ -104,13 +112,16 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 	}
 
-	// everything should went ok, update status before exiting reconcile
+	ws.Status.Ready = retrigErr == nil
+
+	// update status before exiting reconcile
 	if err := r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
 	}
 
+	klog.Infof("Workspace %s reconciled", ws.Name)
 	return ctrl.Result{}, retrigErr
 }
 
@@ -142,4 +153,62 @@ func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemo
 		*workspaces = append((*workspaces)[:idxToRemove], (*workspaces)[idxToRemove+1:]...) // Truncate slice.
 	}
 
+}
+
+func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconciler, ws *crownlabsv1alpha1.Workspace, nsName string) error {
+	// handle clusterRoleBinding
+	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("crownlabs-manage-instances-%s", ws.Name)}}
+	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
+		updateWsCrb(&crb, ws.Name)
+		return ctrl.SetControllerReference(ws, &crb, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update cluster role binding for workspace %s", ws.Name)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Cluster role binding for workspace %s %s", ws.Name, crbOpRes)
+
+	// handle roleBinding
+	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-view-templates", Namespace: nsName}}
+	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
+		updateWsRb(&rb, ws.Name)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update role binding for workspace %s", ws.Name)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Role binding for workspace %s %s", ws.Name, rbOpRes)
+
+	// handle admin roleBinding
+	adminRb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-templates", Namespace: nsName}}
+	adminOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &adminRb, func() error {
+		updateWsRbAdmin(&adminRb, ws.Name)
+		return nil
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update admin role binding for workspace %s", ws.Name)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Admin role binding for workspace %s %s", ws.Name, adminOpRes)
+
+	return nil
+}
+
+func updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName string) {
+	crb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
+	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.Admin), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-view-templates", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.User), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func updateWsRbAdmin(rb *rbacv1.RoleBinding, wsName string) {
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:workspace-%s:%s", wsName, crownlabsv1alpha1.Admin), APIGroup: "rbac.authorization.k8s.io"}}
 }

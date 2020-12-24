@@ -39,12 +39,15 @@ type WorkspaceStatus struct {
 	Namespace NameCreated `json:"namespace,omitempty"`
 
 	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
+
+	Ready bool `json:"ready,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Workspace is the Schema for the workspaces API
 type Workspace struct {
