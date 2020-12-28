@@ -51,7 +51,7 @@ var _ = Describe("Tenant controller", func() {
 		testUserRole    = gocloak.Role{ID: &testUserRoleID, Name: &userRoleName}
 		beforeUserRoles = []*gocloak.Role{}
 		rolesToDelete   = []gocloak.Role{}
-		rolesToAdd      = []gocloak.Role{{ID: &testUserRoleID, Name: &userRoleName}}
+		rolesToSet      = []gocloak.Role{{ID: &testUserRoleID, Name: &userRoleName}}
 	)
 
 	const (
@@ -138,7 +138,7 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(userID),
-			gomock.AssignableToTypeOf(rolesToAdd),
+			gomock.AssignableToTypeOf(rolesToSet),
 		).Return(nil).AnyTimes()
 
 		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),

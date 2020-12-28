@@ -143,7 +143,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Error(err)
 			retrigErr = err
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
-		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tenantExistingWorkspaces), *userID); err != nil {
+		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tenantExistingWorkspaces), *userID, "workspace-"); err != nil {
 			klog.Errorf("Error when updating user roles of user %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
