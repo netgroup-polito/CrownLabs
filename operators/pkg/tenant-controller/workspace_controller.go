@@ -45,7 +45,11 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var ws crownlabsv1alpha1.Workspace
 
-	if err := r.Get(ctx, req.NamespacedName, &ws); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
+		klog.Errorf("Error getting workspace %s on deletion", req.Name)
+		klog.Error(err)
+		return ctrl.Result{}, err
+	} else if err != nil {
 		// reconcile was triggered by a delete request
 		klog.Infof("Workspace %s deleted", req.Name)
 		rolesToDelete := genWorkspaceRolesData(req.Name, ws.Spec.PrettyName)

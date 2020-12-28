@@ -50,7 +50,11 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var tn crownlabsv1alpha1.Tenant
 	var userID *string
-	if err := r.Get(ctx, req.NamespacedName, &tn); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
+		klog.Errorf("Error getting tenant %s on deletion", req.Name)
+		klog.Error(err)
+		return ctrl.Result{}, err
+	} else if err != nil {
 		// reconcile was triggered by a delete request
 		if userID, _, err = r.KcA.getUserInfo(ctx, req.Name); err != nil {
 			klog.Errorf("Error when checking if user %s existed for deletion", req.Name)
