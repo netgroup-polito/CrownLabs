@@ -20,6 +20,9 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
+    - jsonPath: .status.namespace.name
+      name: Namespace
+      type: string
     - jsonPath: .status.ready
       name: Ready
       type: string

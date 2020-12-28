@@ -47,6 +47,7 @@ type WorkspaceStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
+// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.namespace.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Workspace is the Schema for the workspaces API

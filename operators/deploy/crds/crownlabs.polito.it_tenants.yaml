@@ -26,6 +26,9 @@ spec:
     - jsonPath: .spec.email
       name: Email
       type: string
+    - jsonPath: .status.personalNamespace.name
+      name: Namespace
+      type: string
     - jsonPath: .status.ready
       name: Ready
       type: string

@@ -18,7 +18,10 @@ package tenant_controller
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
+	"time"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -125,8 +128,13 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		retrigErr = err
 	}
 
-	klog.Infof("Workspace %s reconciled", ws.Name)
-	return ctrl.Result{}, retrigErr
+	if retrigErr != nil {
+		klog.Infof("Workspace %s reconciled successfully", ws.Name)
+	} else {
+		klog.Errorf("Workspace %s failed to reconcile", ws.Name)
+	}
+	klog.Info(randomRange(60, 120))
+	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
 }
 
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -207,16 +215,39 @@ func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconcile
 }
 
 func updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName string) {
+	if crb.Labels == nil {
+		crb.Labels = make(map[string]string, 1)
+	}
+	crb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	crb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
 	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string, 1)
+	}
+	rb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-view-templates", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.User)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string, 1)
+	}
+	rb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func randomRange(min, max int) int {
+	bg := big.NewInt(int64(max - min))
+
+	n, err := rand.Int(rand.Reader, bg)
+	if err != nil {
+		panic(err)
+	}
+
+	return int(n.Int64()) + min
 }

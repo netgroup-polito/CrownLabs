@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
@@ -80,7 +81,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	klog.Infof("Reconciling tenant %s", req.Name)
 
 	// namespace creation
-	nsName := fmt.Sprintf("tenant-%s", tn.Name)
+	nsName := fmt.Sprintf("tenant-%s", strings.Replace(tn.Name, ".", "-", -1))
+
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
@@ -177,8 +179,12 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update resource before exiting reconciler", err)
 		retrigErr = err
 	}
-	klog.Infof("Tenant %s reconciled", tn.Name)
-	return ctrl.Result{}, retrigErr
+	if retrigErr != nil {
+		klog.Infof("Tenant %s reconciled successfully", tn.Name)
+	} else {
+		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
+	}
+	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
 }
 
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -273,6 +279,10 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 
 // updateTnResQuota updates the tenant resource quota
 func updateTnResQuota(rq *v1.ResourceQuota) {
+	if rq.Labels == nil {
+		rq.Labels = make(map[string]string, 1)
+	}
+	rq.Labels["crownlabs.polito.it/managed-by"] = "tenant"
 
 	resourceList := make(v1.ResourceList)
 
@@ -286,16 +296,28 @@ func updateTnResQuota(rq *v1.ResourceQuota) {
 }
 
 func updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string, 1)
+	}
+	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateTnNetPolDeny(np *netv1.NetworkPolicy) {
+	if np.Labels == nil {
+		np.Labels = make(map[string]string, 1)
+	}
+	np.Labels["crownlabs.polito.it/managed-by"] = "tenant"
 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
 }
 
 func updateTnNetPolAllow(np *netv1.NetworkPolicy) {
+	if np.Labels == nil {
+		np.Labels = make(map[string]string, 1)
+	}
+	np.Labels["crownlabs.polito.it/managed-by"] = "tenant"
 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
 		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
