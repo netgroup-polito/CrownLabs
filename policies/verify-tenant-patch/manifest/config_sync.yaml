@@ -1,0 +1,13 @@
+apiVersion: config.gatekeeper.sh/v1alpha1
+kind: Config
+metadata:
+  name: crownlabstenantpatch
+  namespace: "gatekeeper-system"
+  labels:
+     policy: verify-tenant-patch
+spec:
+  sync:
+    syncOnly:
+      - group: "crownlabs.polito.it"
+        version: "v1alpha1"
+        kind: "Tenant"
