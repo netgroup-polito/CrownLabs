@@ -78,7 +78,7 @@ func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete map[string]
 }
 
 func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID *string, email *string, err error) {
-
+	// using Exact in the GetUsersParams deosn't work cause keycloak doesn't offer the field in the API
 	usersFound, err := kcA.Client.GetUsers(ctx, kcA.Token.AccessToken, kcA.TargetRealm, gocloak.GetUsersParams{Username: &username})
 	if err != nil {
 		klog.Errorf("Error when trying to find user %s", username)
@@ -90,7 +90,19 @@ func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID *s
 	} else if len(usersFound) == 1 {
 		return usersFound[0].ID, usersFound[0].Email, nil
 	} else if len(usersFound) > 1 {
-		klog.Info("Found too many users")
+		exactMatches := 0
+		exactID := ""
+		exactEmail := ""
+		for _, v := range usersFound {
+			if *v.Username == username {
+				exactMatches++
+				exactID = *v.ID
+				exactEmail = *v.Email
+			}
+		}
+		if exactMatches == 1 {
+			return &exactID, &exactEmail, nil
+		}
 		return nil, nil, errors.New("Found too many users")
 	}
 	return nil, nil, fmt.Errorf("Error when getting user %s", username)

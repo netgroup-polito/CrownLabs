@@ -18,9 +18,8 @@ package tenant_controller
 
 import (
 	"context"
-	"crypto/rand"
+
 	"fmt"
-	"math/big"
 	"time"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -128,12 +127,20 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		retrigErr = err
 	}
 
-	if retrigErr == nil {
-		klog.Infof("Workspace %s reconciled successfully", ws.Name)
-	} else {
+	if retrigErr != nil {
 		klog.Errorf("Workspace %s failed to reconcile", ws.Name)
+		return ctrl.Result{}, retrigErr
 	}
-	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
+
+	// no retrigErr, need to normal reconcile later, so need to create random number and exit
+	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resultion to the second
+	if err != nil {
+		klog.Error("Error when generating random number for reque", err)
+		return ctrl.Result{}, err
+	}
+	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
+	klog.Infof("Workspace %s reconciled successfully, next in %s", ws.Name, nextRequeDuration)
+	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
 }
 
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -238,15 +245,4 @@ func updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
 	rb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
-}
-
-func randomRange(min, max int) int {
-	bg := big.NewInt(int64(max - min))
-
-	n, err := rand.Int(rand.Reader, bg)
-	if err != nil {
-		panic(err)
-	}
-
-	return int(n.Int64()) + min
 }

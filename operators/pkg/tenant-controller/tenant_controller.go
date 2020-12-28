@@ -179,12 +179,21 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update resource before exiting reconciler", err)
 		retrigErr = err
 	}
-	if retrigErr == nil {
-		klog.Infof("Tenant %s reconciled successfully", tn.Name)
-	} else {
+
+	if retrigErr != nil {
 		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
+		return ctrl.Result{}, retrigErr
 	}
-	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
+
+	// no retrigErr, need to normal reconcile later, so need to create random number and exit
+	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resoultion to the second
+	if err != nil {
+		klog.Error("Error when generating random number for reque", err)
+		return ctrl.Result{}, err
+	}
+	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
+	klog.Infof("Tenant %s reconciled successfully, next in %s", tn.Name, nextRequeDuration)
+	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
 }
 
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
