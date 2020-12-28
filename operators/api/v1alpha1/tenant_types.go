@@ -82,6 +82,7 @@ type TenantStatus struct {
 // +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
 // +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
 // +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
+// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.personalNamespace.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Tenant is the Schema for the tenants API

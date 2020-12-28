@@ -4,24 +4,23 @@ metadata:
   name: crownlabs-tenant-operator
 rules:
   - apiGroups: ["crownlabs.polito.it"]
-    resources: ["workspaces", "workspaces/status", "tenants", "tenants/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
   - apiGroups: [""]
     resources: ["namespaces", "resourcequotas"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings", "clusterrolebindings"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
   - apiGroups: ["networking.k8s.io"]
     resources: ["networkpolicies"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
-
-    apiVersion: rbac.authorization.k8s.io/v1
+    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 ---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-view-instances
