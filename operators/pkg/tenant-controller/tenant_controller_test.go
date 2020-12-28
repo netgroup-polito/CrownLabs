@@ -31,6 +31,13 @@ import (
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	var (
+		wsName        = "ws1"
+		wsNamespace   = ""
+		wsPrettyName  = "workspace 1"
+		wsLabelKey    = "crownlabs.polito.it/workspace-ws1"
+		wsUserRole    = "workspace-ws1:user"
+		wsManagerRole = "workspace-ws1:manager"
+
 		tnName          = "mariorossi"
 		tnFirstName     = "mario"
 		tnLastName      = "rossi"
@@ -39,12 +46,12 @@ var _ = Describe("Tenant controller", func() {
 		userID          = "userID"
 		tr              = true
 		fa              = false
-		userRoleName    = "workspace-ws1:user"
+		userRoleName    = wsUserRole
 		testUserRoleID  = "role1"
 		testUserRole    = gocloak.Role{ID: &testUserRoleID, Name: &userRoleName}
 		beforeUserRoles = []*gocloak.Role{}
 		rolesToDelete   = []gocloak.Role{}
-		rolesToAdd      = []gocloak.Role{{ID: &testUserRoleID, Name: &userRoleName}}
+		rolesToSet      = []gocloak.Role{{ID: &testUserRoleID, Name: &userRoleName}}
 	)
 
 	const (
@@ -62,13 +69,16 @@ var _ = Describe("Tenant controller", func() {
 		mKcClient = mocks.NewMockGoCloak(mockCtrl)
 		kcA.Client = mKcClient
 
+		setupMocksForWorkspaceCreationExistingRoles(mKcClient, kcAccessToken, kcTargetRealm, kcTargetClientID, wsName, wsPrettyName)
+
 		// the user did not exist
 		mKcClient.EXPECT().GetUsers(
 			gomock.AssignableToTypeOf(context.Background()),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(gocloak.GetUsersParams{Username: &tnName}),
-		).Return([]*gocloak.User{}, nil).MinTimes(1).MaxTimes(2)
+		).Return([]*gocloak.User{}, nil).AnyTimes()
+		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().CreateUser(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -83,7 +93,8 @@ var _ = Describe("Tenant controller", func() {
 					Enabled:       &tr,
 					EmailVerified: &fa,
 				}),
-		).Return(userID, nil).MinTimes(1).MaxTimes(2)
+		).Return(userID, nil).AnyTimes()
+		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().ExecuteActionsEmail(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -93,7 +104,8 @@ var _ = Describe("Tenant controller", func() {
 				UserID:   &userID,
 				Lifespan: &emailActionLifespan,
 				Actions:  &reqActions,
-			})).Return(nil).MinTimes(1).MaxTimes(2)
+			})).Return(nil).AnyTimes()
+		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().GetClientRole(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -126,15 +138,45 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(userID),
-			gomock.AssignableToTypeOf(rolesToAdd),
+			gomock.AssignableToTypeOf(rolesToSet),
 		).Return(nil).AnyTimes()
+
+		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(wsUserRole),
+		).Return(nil).MinTimes(1).MaxTimes(2)
+
+		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
+			gomock.Eq(kcAccessToken),
+			gomock.Eq(kcTargetRealm),
+			gomock.Eq(kcTargetClientID),
+			gomock.Eq(wsManagerRole),
+		).Return(nil).MinTimes(1).MaxTimes(2)
 
 	})
 
 	It("Should create the related resources when creating a tenant", func() {
+		ctx := context.Background()
+
+		By("By creating a workspace")
+		ws := &crownlabsv1alpha1.Workspace{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "crownlabs.polito.it/v1alpha1",
+				Kind:       "Workspace",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      wsName,
+				Namespace: wsNamespace,
+			},
+			Spec: crownlabsv1alpha1.WorkspaceSpec{
+				PrettyName: wsPrettyName,
+			},
+		}
+		Expect(k8sClient.Create(ctx, ws)).Should(Succeed())
 
 		By("By creating a tenant")
-		ctx := context.Background()
 		tn := &crownlabsv1alpha1.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -171,14 +213,39 @@ var _ = Describe("Tenant controller", func() {
 		Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
 		Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
 
-		By("By checking that the status of the tenant has been updated accordingly")
+		By("By checking that the tenant has been updated accordingly")
 
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn)
 			if err != nil {
 				return false
 			}
+			// check if keycloak has been correctly updated
 			if !tn.Status.PersonalNamespace.Created || tn.Status.PersonalNamespace.Name != nsName {
+				return false
+			}
+			// check if workspace inconsistence has been correctly updated
+			if len(tn.Status.FailingWorkspaces) != 0 {
+				return false
+			}
+			// check if labels have been correctly updated
+			if tn.Labels[wsLabelKey] != string(crownlabsv1alpha1.User) {
+				return false
+			}
+			return true
+		}, timeout, interval).Should(BeTrue())
+
+		By("By deleting the workspace of the tenant")
+		Expect(k8sClient.Delete(ctx, ws)).Should(Succeed())
+
+		By("By checking that the tenant has been updated accordingly")
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, tnLookupKey, tn)
+			if err != nil {
+				return false
+			}
+			// check if labels have been correctly updated
+			if _, ok := tn.Labels[wsLabelKey]; ok {
 				return false
 			}
 			return true

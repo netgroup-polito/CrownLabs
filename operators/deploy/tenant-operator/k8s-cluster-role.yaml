@@ -8,5 +8,156 @@ rules:
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list", "watch", "create", "delete"]
+    resources: ["namespaces", "resourcequotas"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings", "clusterrolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+    apiVersion: rbac.authorization.k8s.io/v1
+
+---
+kind: ClusterRole
+metadata:
+  name: crownlabs-view-instances
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - instances
+      - instances/status
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-manage-instances
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - instances
+      - instances/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-view-templates
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - templates
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-manage-templates
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - templates
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-view-tenants
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - tenants
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-manage-tenants
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - tenants
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-view-workspaces
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - workspaces
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-manage-workspaces
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - workspaces
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection

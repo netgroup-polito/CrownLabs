@@ -438,6 +438,11 @@ func (in *TenantStatus) DeepCopyInto(out *TenantStatus) {
 	*out = *in
 	out.PersonalNamespace = in.PersonalNamespace
 	out.SandboxNamespace = in.SandboxNamespace
+	if in.FailingWorkspaces != nil {
+		in, out := &in.FailingWorkspaces, &out.FailingWorkspaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Subscriptions != nil {
 		in, out := &in.Subscriptions, &out.Subscriptions
 		*out = make(map[string]SubscriptionStatus, len(*in))

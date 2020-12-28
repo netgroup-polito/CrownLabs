@@ -24,12 +24,12 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // WorkspaceUserRole is an enum for the role of a user in a workspace
-// +kubebuilder:validation:Enum=admin;user
+// +kubebuilder:validation:Enum=manager;user
 type WorkspaceUserRole string
 
 const (
-	// Admin allows to interact with all VMs of a workspace
-	Admin WorkspaceUserRole = "admin"
+	// Manager allows to interact with all VMs of a workspace
+	Manager WorkspaceUserRole = "manager"
 	// User allows to interact with owned vms
 	User WorkspaceUserRole = "user"
 )
@@ -69,10 +69,11 @@ type TenantStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	PersonalNamespace NameCreated `json:"personalNamespace,omitempty"`
-	SandboxNamespace  NameCreated `json:"sandboxNamespace,omitempty"`
-
-	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
+	PersonalNamespace NameCreated                   `json:"personalNamespace,omitempty"`
+	SandboxNamespace  NameCreated                   `json:"sandboxNamespace,omitempty"`
+	FailingWorkspaces []string                      `json:"failingWorkspaces,omitempty"`
+	Subscriptions     map[string]SubscriptionStatus `json:"subscriptions,omitempty"`
+	Ready             bool                          `json:"ready,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -81,6 +82,7 @@ type TenantStatus struct {
 // +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
 // +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
 // +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Tenant is the Schema for the tenants API
 type Tenant struct {

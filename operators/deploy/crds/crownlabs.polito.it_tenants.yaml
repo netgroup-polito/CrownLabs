@@ -26,6 +26,9 @@ spec:
     - jsonPath: .spec.email
       name: Email
       type: string
+    - jsonPath: .status.ready
+      name: Ready
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -67,7 +70,7 @@ spec:
                     role:
                       description: WorkspaceUserRole is an enum for the role of a user in a workspace
                       enum:
-                      - admin
+                      - manager
                       - user
                       type: string
                     workspaceRef:
@@ -93,6 +96,10 @@ spec:
           status:
             description: TenantStatus defines the observed state of Tenant
             properties:
+              failingWorkspaces:
+                items:
+                  type: string
+                type: array
               personalNamespace:
                 description: NameCreated contains info about the status of a resource
                 properties:
@@ -103,6 +110,8 @@ spec:
                 required:
                 - created
                 type: object
+              ready:
+                type: boolean
               sandboxNamespace:
                 description: NameCreated contains info about the status of a resource
                 properties:
@@ -113,7 +122,7 @@ spec:
                 required:
                 - created
                 type: object
-              subscription:
+              subscriptions:
                 additionalProperties:
                   description: SubscriptionStatus is an enum for the status of a subscription to a service
                   enum:

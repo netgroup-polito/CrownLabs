@@ -20,6 +20,9 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
+    - jsonPath: .status.ready
+      name: Ready
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -54,6 +57,8 @@ spec:
                 required:
                 - created
                 type: object
+              ready:
+                type: boolean
               subscription:
                 additionalProperties:
                   description: SubscriptionStatus is an enum for the status of a subscription to a service
