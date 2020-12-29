@@ -1,0 +1,171 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE_FRONTEND}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-configuration
+  namespace: ${NAMESPACE_FRONTEND}
+data:
+  oidc_client_id: ${CM_OIDC_URL}
+  oidc_client_secret: ${CM_OIDC_CLIENT_SECRET}
+  oidc_provider_url: ${CM_OIDC_PROVIDER_URL}
+  oidc_redirect_uri: ${CM_OIDC_REDIRECT_URI}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: ${NAMESPACE_FRONTEND}
+spec:
+  replicas: ${REPLICAS_FRONTEND}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: OIDC_PROVIDER_URL
+          valueFrom:
+            configMapKeyRef:
+              key: oidc_provider_url
+              name: frontend-configuration
+        - name: OIDC_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              key: oidc_client_id
+              name: frontend-configuration
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+            configMapKeyRef:
+              key: oidc_client_secret
+              name: frontend-configuration
+        - name: OIDC_REDIRECT_URI
+          valueFrom:
+            configMapKeyRef:
+              key: oidc_redirect_uri
+              name: frontend-configuration
+        image: crownlabs/frontend${IMAGE_SUFFIX}:${IMAGE_TAG}
+        imagePullPolicy: Always
+        name: dashboard
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 25m
+            memory: 25Mi
+        securityContext:
+          privileged: false
+        volumeMounts:
+        - mountPath: /etc/nginx/ssl/
+          name: shared-data
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - args:
+        - req
+        - -x509
+        - -subj
+        - /C=IT/ST=Turin/O=CrownLabs
+        - -nodes
+        - -days
+        - "365"
+        - -newkey
+        - rsa:2048
+        - -keyout
+        - /etc/nginx/ssl/nginx.key
+        - -out
+        - /etc/nginx/ssl/nginx.cert
+        command:
+        - openssl
+        image: emberstack/openssl@sha256:1fad327428e28ac1138444fca06000c2bf04b5efb56e85440f5cbfb25e40a122
+        imagePullPolicy: IfNotPresent
+        name: generate-certificate
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        volumeMounts:
+        - mountPath: /etc/nginx/ssl/
+          name: shared-data
+      restartPolicy: Always
+      volumes:
+      - name: shared-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: ${NAMESPACE_FRONTEND}
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: https
+  selector:
+    app: frontend
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+  name: frontend
+  namespace: ${NAMESPACE_FRONTEND}
+spec:
+  rules:
+  - host: ${HOST_NAME}
+    http:
+      paths:
+      - backend:
+          service:
+            name: frontend
+            port:
+              name: https
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - ${HOST_NAME}
+    secretName: frontend-certificate
