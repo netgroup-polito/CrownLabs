@@ -13,6 +13,7 @@ package tenant_controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
@@ -24,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -234,6 +236,37 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
+
+		By("By checking that the cluster role of the tenant has been created")
+		crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+		crLookupKey := types.NamespacedName{Name: crName}
+		createdCr := &rbacv1.ClusterRole{}
+		doesEventuallyExists(ctx, crLookupKey, createdCr, BeTrue(), timeout, interval)
+
+		By("By checking that the cluster role of the tenant has a controller reference pointing to the tenant")
+		Expect(createdCr.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+		Expect(createdCr.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+		By("By checking that the cluster role has a correct spec")
+		Expect(createdCr.Rules).Should(HaveLen(1))
+		Expect(createdCr.Rules[0].APIGroups).Should(ContainElement(Equal("crownlabs.polito.it")))
+		Expect(createdCr.Rules[0].Resources).Should(ContainElement(Equal("tenants")))
+		Expect(createdCr.Rules[0].ResourceNames).Should(ContainElement(Equal(tnName)))
+		Expect(createdCr.Rules[0].Verbs).Should(Equal([]string{"get", "list", "watch"}))
+
+		By("By checking that the cluster role binding of the tenant has been created")
+		crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+		crbLookupKey := types.NamespacedName{Name: crbName}
+		createdCrb := &rbacv1.ClusterRoleBinding{}
+		doesEventuallyExists(ctx, crbLookupKey, createdCrb, BeTrue(), timeout, interval)
+
+		By("By checking that the cluster role binding of the tenant has a controller reference pointing to the tenant")
+		Expect(createdCrb.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+		Expect(createdCrb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+		By("By checking that the cluster role binding has a correct spec")
+		Expect(createdCrb.RoleRef.Name).Should(Equal(crName))
+		Expect(createdCrb.Subjects).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
 
 		By("By deleting the workspace of the tenant")
 		Expect(k8sClient.Delete(ctx, ws)).Should(Succeed())
