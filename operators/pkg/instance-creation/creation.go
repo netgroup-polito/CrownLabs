@@ -20,6 +20,7 @@ import (
 var terminationGracePeriod int64 = 30
 var CPUhypervisorReserved float32 = 0.5
 var memoryHypervisorReserved string = "500M"
+var registryCred string = "registry-credentials"
 
 func CreateVirtualMachineInstance(name string, namespace string, template *crownlabsv1alpha2.Environment, instanceName string, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
 	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
@@ -80,7 +81,9 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 					Name: "containerdisk",
 					VolumeSource: virtv1.VolumeSource{
 						ContainerDisk: &virtv1.ContainerDiskSource{
-							Image: template.Image,
+							Image:           template.Image,
+							ImagePullSecret: registryCred,
+							ImagePullPolicy: v1.PullIfNotPresent,
 						},
 					},
 				},
