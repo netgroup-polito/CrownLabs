@@ -49,6 +49,7 @@ spec:
             description: TenantSpec defines the desired state of Tenant
             properties:
               createSandbox:
+                default: false
                 description: should the resource create the sandbox namespace for k8s practice environment
                 type: boolean
               email:
@@ -59,12 +60,12 @@ spec:
               lastName:
                 type: string
               publicKeys:
-                description: public keys of user
+                description: public keys of tenant
                 items:
                   type: string
                 type: array
               workspaces:
-                description: list of workspaces the user is in
+                description: list of workspaces the user is subscribed to
                 items:
                   description: UserWorkspaceData contains the info of the workspaces related to a user
                   properties:
@@ -100,6 +101,7 @@ spec:
             description: TenantStatus defines the observed state of Tenant
             properties:
               failingWorkspaces:
+                description: list of workspace that are throwing errors during subscription
                 items:
                   type: string
                 type: array
@@ -132,7 +134,14 @@ spec:
                   - Ok
                   - Failed
                   type: string
+                description: list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
                 type: object
+            required:
+            - failingWorkspaces
+            - personalNamespace
+            - ready
+            - sandboxNamespace
+            - subscriptions
             type: object
         type: object
     served: true

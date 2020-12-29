@@ -38,6 +38,7 @@ type WorkspaceStatus struct {
 
 	Namespace NameCreated `json:"namespace,omitempty"`
 
+	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
 	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
 
 	Ready bool `json:"ready,omitempty"`

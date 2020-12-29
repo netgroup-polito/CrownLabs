@@ -53,14 +53,14 @@ type TenantSpec struct {
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 	Email string `json:"email"`
 
-	// list of workspaces the user is in
+	// list of workspaces the user is subscribed to
 	Workspaces []UserWorkspaceData `json:"workspaces,omitempty"`
 
-	// public keys of user
+	// public keys of tenant
 	PublicKeys []string `json:"publicKeys,omitempty"`
 
 	// should the resource create the sandbox namespace for k8s practice environment
-	// +kubebuilder:validation:Default=false
+	// +kubebuilder:default=false
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 }
 
@@ -69,11 +69,15 @@ type TenantStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	PersonalNamespace NameCreated                   `json:"personalNamespace,omitempty"`
-	SandboxNamespace  NameCreated                   `json:"sandboxNamespace,omitempty"`
-	FailingWorkspaces []string                      `json:"failingWorkspaces,omitempty"`
-	Subscriptions     map[string]SubscriptionStatus `json:"subscriptions,omitempty"`
-	Ready             bool                          `json:"ready,omitempty"`
+	PersonalNamespace NameCreated `json:"personalNamespace"`
+	SandboxNamespace  NameCreated `json:"sandboxNamespace"`
+
+	// list of workspace that are throwing errors during subscription
+	FailingWorkspaces []string `json:"failingWorkspaces"`
+
+	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
+	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
+	Ready         bool                          `json:"ready"`
 }
 
 // +kubebuilder:object:root=true

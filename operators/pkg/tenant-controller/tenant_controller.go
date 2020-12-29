@@ -19,6 +19,7 @@ package tenant_controller
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -164,15 +165,13 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
 	}
-	if tn.Labels == nil {
-		tn.Labels = make(map[string]string)
-	} else {
-		// need to do this after updating status cause the update will erase non-status changes
-		cleanWorkspaceLabels(&tn.Labels)
+
+	if err := updateTnLabels(&tn, tnWorkspaceLabels); err != nil {
+		klog.Errorf("Unable to update label of tenant %s", tn.Name)
+		klog.Error(err)
+		retrigErr = err
 	}
-	for k, v := range tnWorkspaceLabels {
-		tn.Labels[k] = v
-	}
+
 	// need to update resource to apply labels
 	if err := r.Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
@@ -200,6 +199,58 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
 		Complete(r)
+}
+
+func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tnWorkspaceLabels map[string]string) error {
+	if tn.Labels == nil {
+		tn.Labels = make(map[string]string)
+	} else {
+		// need to do this after updating status cause the update will erase non-status changes
+		cleanWorkspaceLabels(&tn.Labels)
+	}
+	for k, v := range tnWorkspaceLabels {
+		tn.Labels[k] = v
+	}
+
+	cleanedFirstName, err := cleanName(tn.Spec.FirstName)
+	if err != nil {
+		klog.Errorf("Error when cleaning first name of tenant %s", tn.Name)
+		return err
+	}
+	cleanedLastName, err := cleanName(tn.Spec.LastName)
+	if err != nil {
+		klog.Errorf("Error when cleaning last name of tenant %s", tn.Name)
+		return err
+	}
+	tn.Labels["crownlabs.polito.it/first-name"] = *cleanedFirstName
+	tn.Labels["crownlabs.polito.it/last-name"] = *cleanedLastName
+	return nil
+}
+
+func cleanName(name string) (*string, error) {
+	okRegex := "^[a-zA-Z0-9_]+$"
+	name = strings.ReplaceAll(name, " ", "_")
+	ok, err := regexp.MatchString(okRegex, name)
+	if err != nil {
+		klog.Errorf("Error when checking name %s", name)
+		klog.Error(err)
+		return nil, err
+	} else if !ok {
+		problemChars := make([]string, 0)
+		for _, c := range name {
+			if ok, err := regexp.MatchString(okRegex, string(c)); err != nil {
+				klog.Errorf("Error when cleaning name %s at char %s", name, string(c))
+				klog.Error(err)
+				return nil, err
+			} else if !ok {
+				problemChars = append(problemChars, string(c))
+			}
+		}
+		for _, v := range problemChars {
+			name = strings.Replace(name, v, "", 1)
+		}
+	}
+	return &name, nil
 }
 
 // updateTnNamespace updates the tenant namespace

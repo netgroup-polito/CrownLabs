@@ -41,8 +41,8 @@ var _ = Describe("Tenant controller", func() {
 		wsManagerRole = "workspace-ws1:manager"
 
 		tnName          = "mariorossi"
-		tnFirstName     = "mario"
-		tnLastName      = "rossi"
+		tnFirstName     = "marià"
+		tnLastName      = "ròssì"
 		tnWorkspaces    = []crownlabsv1alpha1.UserWorkspaceData{{WorkspaceRef: crownlabsv1alpha1.GenericRef{Name: "ws1"}, Role: crownlabsv1alpha1.User}}
 		tnEmail         = "mario.rossi@email.com"
 		userID          = "userID"
@@ -80,7 +80,6 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(gocloak.GetUsersParams{Username: &tnName}),
 		).Return([]*gocloak.User{}, nil).AnyTimes()
-		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().CreateUser(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -96,7 +95,6 @@ var _ = Describe("Tenant controller", func() {
 					EmailVerified: &fa,
 				}),
 		).Return(userID, nil).AnyTimes()
-		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().ExecuteActionsEmail(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -107,7 +105,6 @@ var _ = Describe("Tenant controller", func() {
 				Lifespan: &emailActionLifespan,
 				Actions:  &reqActions,
 			})).Return(nil).AnyTimes()
-		// .MinTimes(1).MaxTimes(2)
 
 		mKcClient.EXPECT().GetClientRole(
 			gomock.AssignableToTypeOf(context.Background()),
@@ -232,6 +229,12 @@ var _ = Describe("Tenant controller", func() {
 			}
 			// check if labels have been correctly updated
 			if tn.Labels[wsLabelKey] != string(crownlabsv1alpha1.User) {
+				return false
+			}
+			if tn.Labels["crownlabs.polito.it/first-name"] != "mari" {
+				return false
+			}
+			if tn.Labels["crownlabs.polito.it/last-name"] != "rss" {
 				return false
 			}
 			return true

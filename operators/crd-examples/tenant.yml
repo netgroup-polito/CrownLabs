@@ -8,11 +8,11 @@ spec:
   email: mario.rossi@email.com
   workspaces:
     - workspaceRef:
-        name: landc
+        name: tea
       role: user
       groupNumber: 12
     - workspaceRef:
-        name: swnet
+        name: coffee
       role: manager
       groupNumber: 12
   publicKeys:
