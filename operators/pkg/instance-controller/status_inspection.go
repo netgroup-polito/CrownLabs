@@ -3,17 +3,17 @@ package instance_controller
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"net"
 	"time"
 )
 
-func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger,
+func getVmiStatus(r *LabInstanceReconciler, ctx context.Context,
 	guiEnabled bool, service v1.Service, ingress networkingv1.Ingress,
 	labInstance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 
@@ -37,11 +37,11 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 
 				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
 				if vmStatus == virtv1.Failed {
-					setLabInstanceStatus(r, ctx, log, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
+					setLabInstanceStatus(r, ctx, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
 					return
 				}
 
-				setLabInstanceStatus(r, ctx, log, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
+				setLabInstanceStatus(r, ctx, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
 				if vmStatus == virtv1.Running {
 					break
 				}
@@ -58,24 +58,25 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context, log logr.Logger
 		port = "22" // SSH
 	}
 
-	err := waitForConnection(log, host, port)
+	err := waitForConnection(host, port)
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Unable to check whether %v:%v is reachable", host, port))
+		klog.Error(fmt.Sprintf("Unable to check whether %v:%v is reachable", host, port))
+		klog.Error(err)
 	} else {
 		msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to VmiReady."
-		setLabInstanceStatus(r, ctx, log, msg, "Normal", "VmiReady", labInstance, ip, url)
+		setLabInstanceStatus(r, ctx, msg, "Normal", "VmiReady", labInstance, ip, url)
 		readyTime := time.Now()
 		bootTime := readyTime.Sub(startTimeVM)
 		bootTimes.Observe(bootTime.Seconds())
 	}
 }
 
-func waitForConnection(log logr.Logger, host, port string) error {
+func waitForConnection(host, port string) error {
 	for retries := 0; retries < 120; retries++ {
 		timeout := time.Second
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
 		if err != nil {
-			log.Info(fmt.Sprintf("Unable to check whether %v:%v is reachable: %v", host, port, err))
+			klog.Info(fmt.Sprintf("Unable to check whether %v:%v is reachable: %v", host, port, err))
 			time.Sleep(time.Second)
 		} else {
 			// The connection succeeded, hence the VM is ready

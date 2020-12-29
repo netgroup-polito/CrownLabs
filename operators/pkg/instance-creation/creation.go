@@ -3,7 +3,6 @@ package instance_creation
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -107,7 +107,7 @@ func ComputeCPURequests(CPU uint32, percentage uint32) string {
 }
 
 // create a resource or update it if already exists
-func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, object interface{}) error {
+func CreateOrUpdate(c client.Client, ctx context.Context, object interface{}) error {
 
 	switch obj := object.(type) {
 	case corev1.Secret:
@@ -119,7 +119,8 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create secret "+obj.Name)
+				klog.Error("Unable to create secret " + obj.Name)
+				klog.Error(err)
 				return err
 			}
 		}
@@ -132,7 +133,8 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create pvc "+obj.Name)
+				klog.Error("Unable to create pvc " + obj.Name)
+				klog.Error(err)
 				return err
 			}
 		} else {
@@ -147,7 +149,8 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create service "+obj.Name)
+				klog.Error("Unable to create service " + obj.Name)
+				klog.Error(err)
 				return err
 			}
 		}
@@ -157,13 +160,18 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 			Namespace: obj.Namespace,
 			Name:      obj.Name,
 		}, &ing)
-		if err != nil {
+		if err != nil && errors.IsNotFound(err) {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create ingress "+obj.Name)
-				return err
+				klog.Error("Unable to create Ingress " + obj.Name)
+				klog.Error(err)
 			}
+		} else {
+			klog.Error("Unable to create an Ingress " + obj.Name)
+			klog.Error(err)
+			return err
 		}
+
 	case appsv1.Deployment:
 		var deploy appsv1.Deployment
 		err := c.Get(ctx, types.NamespacedName{
@@ -173,20 +181,23 @@ func CreateOrUpdate(c client.Client, ctx context.Context, log logr.Logger, objec
 		if err != nil {
 			err = c.Create(ctx, &obj, &client.CreateOptions{})
 			if err != nil && !errors.IsAlreadyExists(err) {
-				log.Error(err, "unable to create deployment "+obj.Name)
+				klog.Error("Unable to create deployment " + obj.Name)
+				klog.Error(err)
 				return err
 			}
 		} else {
 			err = c.Update(ctx, &obj, &client.UpdateOptions{})
 			if err != nil {
-				log.Error(err, "unable to update deployment "+obj.Name)
+				klog.Error("unable to update deployment " + obj.Name)
+				klog.Error(err)
 				return err
 			}
 		}
 	case *virtv1.VirtualMachineInstance:
 		err := c.Create(ctx, obj, &client.CreateOptions{})
 		if err != nil && !errors.IsAlreadyExists(err) {
-			log.Error(err, "unable to create virtual machine "+obj.Name)
+			klog.Error("Unable to create virtual machine " + obj.Name)
+			klog.Error(err)
 			return err
 		}
 	default:

@@ -17,6 +17,7 @@ limitations under the License.
 package instance_controller
 
 import (
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"testing"
@@ -57,7 +58,8 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
+			filepath.Join("..", "..", "tests", "crds")},
 	}
 
 	var err error
@@ -66,6 +68,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(cfg).ToNot(BeNil())
 
 	err = crownlabsv1alpha2.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = crownlabsv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -85,15 +89,14 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&LabInstanceReconciler{
 		Client:             k8sManager.GetClient(),
 		Scheme:             k8sManager.GetScheme(),
-		Log:                ctrl.Log.WithName("controllers").WithName("Instance"),
 		EventsRecorder:     k8sManager.GetEventRecorderFor("LabInstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		NextcloudBaseUrl:   "",
-		WebsiteBaseUrl:     "",
-		WebdavSecretName:   "",
-		Oauth2ProxyImage:   "",
-		OidcClientSecret:   "",
-		OidcProviderUrl:    "",
+		NextcloudBaseUrl:   "fake.com",
+		WebsiteBaseUrl:     "fakesite.com",
+		WebdavSecretName:   "webdav-secret",
+		Oauth2ProxyImage:   "test-image/test",
+		OidcClientSecret:   "sdad-csad-cdsw-asde",
+		OidcProviderUrl:    "provider-url.com",
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
