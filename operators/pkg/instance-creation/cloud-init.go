@@ -13,9 +13,10 @@ type writeFile struct {
 }
 type cloudInitConfig struct {
 	Network struct {
-		Version int         `yaml:"version"`
-		ID0     interface{} `yaml:"id0"`
-		Dhcp4   bool        `yaml:"dhcp4"`
+		Version int `yaml:"version"`
+		ID0     struct {
+			Dhcp4 bool `yaml:"dhcp4"`
+		} `yaml:"id0"`
 	} `yaml:"network"`
 	Mounts            [][]string  `yaml:"mounts"`
 	WriteFiles        []writeFile `yaml:"write_files"`
@@ -26,7 +27,7 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 	var Userdata cloudInitConfig
 
 	Userdata.Network.Version = 2
-	Userdata.Network.Dhcp4 = true
+	Userdata.Network.ID0.Dhcp4 = true
 	Userdata.Mounts = [][]string{{
 		nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername,
 		"/media/MyDrive",

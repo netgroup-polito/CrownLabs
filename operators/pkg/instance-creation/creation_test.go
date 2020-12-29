@@ -75,7 +75,7 @@ func TestCreateUserData(t *testing.T) {
 
 	assert.Equal(t, hc, true, "Cloud-init head comment should be present.")
 	assert.Equal(t, config.Network.Version, 2, "Network version should be set to 2.")
-	assert.Equal(t, config.Network.Dhcp4, true, "DHCPv4 should be set to true.")
+	assert.Equal(t, config.Network.ID0.Dhcp4, true, "DHCPv4 should be set to true.")
 	assert.Equal(t, config.Mounts[0], expectedmount, "Nextcloud mount should be set to "+strings.Join(expectedmount, ", ")+".")
 	assert.Equal(t, config.WriteFiles[0].Content, expectedcontent, "Nextcloud secret should be se to "+expectedcontent+" .")
 	assert.Equal(t, config.WriteFiles[0].Path, expectedpath, "Nextcloud secret path should be set to "+expectedpath+".")
@@ -118,6 +118,8 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
 	assert.Equal(t, vm.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
 	assert.Equal(t, vm.Spec.Volumes[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Volumes[0].ContainerDisk.ImagePullPolicy, v1.PullIfNotPresent)
+	assert.Equal(t, vm.Spec.Volumes[0].ContainerDisk.ImagePullSecret, registryCred)
 	assert.Equal(t, vm.Spec.Volumes[1].Name, "cloudinitdisk")
 	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "secret-name")
 	assert.Equal(t, vm.Kind, "VirtualMachineInstance")
