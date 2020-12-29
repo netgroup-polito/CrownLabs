@@ -128,12 +128,11 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		retrigErr = err
 	}
 
-	if retrigErr != nil {
+	if retrigErr == nil {
 		klog.Infof("Workspace %s reconciled successfully", ws.Name)
 	} else {
 		klog.Errorf("Workspace %s failed to reconcile", ws.Name)
 	}
-	klog.Info(randomRange(60, 120))
 	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
 }
 

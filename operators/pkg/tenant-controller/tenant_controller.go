@@ -99,7 +99,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for tenant %s %s", nsName, req.Name, nsOpRes)
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
-		if err := createOrUpdateTnClusterResources(ctx, r, tn.Name, nsName); err != nil {
+		if err := createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -179,7 +179,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update resource before exiting reconciler", err)
 		retrigErr = err
 	}
-	if retrigErr != nil {
+	if retrigErr == nil {
 		klog.Infof("Tenant %s reconciled successfully", tn.Name)
 	} else {
 		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
@@ -222,7 +222,9 @@ func cleanWorkspaceLabels(labels *map[string]string) {
 	}
 }
 
-func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, tnName, nsName string) error {
+func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, tn *crownlabsv1alpha1.Tenant, nsName string) error {
+	tnName := tn.Name
+
 	// handle resource quota
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
@@ -238,7 +240,7 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 	}
 	klog.Infof("Resource quota for tenant %s %s", tnName, rqOpRes)
 
-	// handle roleBinding
+	// handle roleBinding (instance management)
 	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-instances", Namespace: nsName}}
 	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
 		updateTnRb(&rb, tnName)
@@ -250,6 +252,34 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 		return err
 	}
 	klog.Infof("Role binding for tenant %s %s", tnName, rbOpRes)
+
+	// handle clusterRole (tenant access)
+	crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	cr := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: crName}}
+	crOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &cr, func() error {
+		updateTnCr(&cr, tnName)
+		return ctrl.SetControllerReference(tn, &cr, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update cluster role for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Cluster role for tenant %s %s", tnName, crOpRes)
+
+	// handle clusterRoleBinding (tenant access)
+	crbName := crName
+	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: crbName}}
+	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
+		updateTnCrb(&crb, tnName, crName)
+		return ctrl.SetControllerReference(tn, &crb, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update cluster role binding for tenant %s", tnName)
+		klog.Error(err)
+		return err
+	}
+	klog.Infof("Cluster role binding for tenant %s %s", tnName, crbOpRes)
 
 	netPolDeny := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-deny-ingress-traffic", Namespace: nsName}}
 	npDOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolDeny, func() error {
@@ -301,6 +331,28 @@ func updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
 	}
 	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string, 1)
+	}
+	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+	rb.Rules = []rbacv1.PolicyRule{{
+		APIGroups:     []string{"crownlabs.polito.it"},
+		Resources:     []string{"tenants"},
+		ResourceNames: []string{tnName},
+		Verbs:         []string{"get", "list", "watch"},
+	}}
+}
+
+func updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName string, crName string) {
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string, 1)
+	}
+	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: crName, APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 }
 
