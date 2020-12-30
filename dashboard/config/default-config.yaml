@@ -1,0 +1,58 @@
+apiVersion: dashboard.liqo.io/v1alpha1
+kind: DashboardConfig
+metadata:
+  name: default-config
+spec:
+  default: true
+  enabled: true
+  footer:
+    enabled: true
+    footerDescription: This software has been proudly developed at Politecnico di Torino
+    githubRef: true
+    link: https://github.com/netgroup-polito/CrownLabs
+  header:
+    alternativeLogo: https://crownlabs.polito.it/c0995264e0b7a6a048e3e8cdc92c4f7b.png
+    alternativeTitle: CrownLabs
+    menu:
+      - enabled: true
+        icon: FolderOutlined
+        itemDescription: MyDrive
+        link: https://crownlabs.polito.it/cloud
+      - enabled: true
+        icon: BarChartOutlined
+        itemDescription: Grafana
+        link: https://grafana.crownlabs.polito.it/
+      - enabled: true
+        icon: UserOutlined
+        itemDescription: Student View
+        link: /
+      - enabled: true
+        icon: CrownOutlined
+        itemDescription: Professor View
+        link: /professor
+    namespaceSelector: false
+    resourceSearch: false
+    themeModifier: false
+    themeSwitcher: true
+  plugin:
+    - URL: /
+      enabled: true
+      path: crownLabs/CrownLabsHome
+    - URL: /professor
+      enabled: true
+      path: crownLabs/CrownLabsHome
+  resources:
+    - favourite: true
+      icon: ControlOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+        tabs: []
+      resourceName: DashboardConfig
+      resourcePath: /apis/dashboard.liqo.io/v1alpha1/dashboardconfigs
+  role: {}
+  sidebar:
+    enabled: false

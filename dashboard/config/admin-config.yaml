@@ -1,0 +1,154 @@
+apiVersion: dashboard.liqo.io/v1alpha1
+kind: DashboardConfig
+metadata:
+  name: admin-config
+spec:
+  default: false
+  enabled: true
+  footer:
+    enabled: true
+    footerDescription: This software has been proudly developed at Politecnico di Torino
+    githubRef: true
+    link: https://github.com/netgroup-polito/CrownLabs
+  header:
+    menu:
+      - enabled: true
+        icon: FolderOutlined
+        itemDescription: MyDrive
+        link: https://crownlabs.polito.it/cloud
+      - enabled: true
+        icon: BarChartOutlined
+        itemDescription: Grafana
+        link: https://grafana.crownlabs.polito.it/
+      - enabled: true
+        icon: UserOutlined
+        itemDescription: Student View
+        link: /
+      - enabled: true
+        icon: CrownOutlined
+        itemDescription: Professor View
+        link: /professor
+    namespaceSelector: true
+    resourceSearch: true
+    themeModifier: true
+    themeSwitcher: true
+  plugin:
+    - URL: /
+      enabled: true
+      path: crownLabs/CrownLabsHome
+    - URL: /professor
+      enabled: true
+      path: crownLabs/CrownLabsHome
+  resources:
+    - render: {}
+    - favourite: true
+      icon: ControlOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.spec.enabled
+            columnTitle: Enabled
+          - columnContent: param.spec.footer.enabled
+            columnTitle: Footer
+          - columnContent: param.spec.sidebar.enabled
+            columnTitle: Sidebar
+        tabs: []
+      resourceName: DashboardConfig
+      resourcePath: /apis/dashboard.liqo.io/v1alpha1/dashboardconfigs
+    - favourite: false
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+        tabs: []
+      resourceName: Deployment
+      resourcePath: /apis/apps/v1/deployments
+    - favourite: true
+      icon: CodepenOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+          - columnContent: param.spec.labTemplateName
+            columnTitle: Lab Template Name
+          - columnContent: param.spec.labTemplateNamespace
+            columnTitle: Lab Template NS
+          - columnContent: param.status.ip
+            columnTitle: IP
+          - columnContent: param.status.phase
+            columnTitle: Phase
+        tabs: []
+      resourceName: LabInstance
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/labinstances
+    - favourite: true
+      icon: CreditCardOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.spec.courseName
+            columnTitle: Course
+          - columnContent: param.spec.vmType
+            columnTitle: VM Type
+        tabs: []
+      resourceName: LabTemplate
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/labtemplates
+    - favourite: true
+      icon: UnorderedListOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+        tabs: []
+      resourceName: ImageList
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/imagelists
+    - favourite: false
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+        tabs: []
+      resourceName: APIResourceList
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/undefined
+    - favourite: false
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+          - columnContent: param.status.podIP
+            columnTitle: Pod IP
+          - columnContent: param.status.containerStatuses.ready
+            columnTitle: Ready
+        tabs: []
+      resourceName: Pod
+      resourcePath: /api/v1/pods
+    - favourite: false
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.metadata.namespace
+            columnTitle: Namespace
+        tabs:
+          - tabContent: []
+            tabTitle: NewTab
+      resourceName: ConfigMap
+      resourcePath: /api/v1/configmaps
+  role:
+    roleName: admin
+    roleType: grafana_role
+  sidebar:
+    alternativeLogo: https://crownlabs.polito.it/c0995264e0b7a6a048e3e8cdc92c4f7b.png
+    alternativeTitle: CrownLabs
+    enabled: true
