@@ -1,29 +1,10 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: crownlabs-tenant-operator
-rules:
-  - apiGroups: ["crownlabs.polito.it"]
-    resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
-
-  - apiGroups: [""]
-    resources: ["namespaces", "resourcequotas"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
-
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["rolebindings", "clusterroles", "clusterrolebindings"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
-
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["networkpolicies"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
-
----
+{{- if .Values.createClusterRoles -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-view-instances
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -40,6 +21,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-manage-instances
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -61,6 +44,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-view-templates
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -76,6 +61,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-manage-templates
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -96,6 +83,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-view-tenants
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -111,6 +100,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-manage-tenants
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -131,6 +122,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-view-workspaces
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -146,6 +139,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: crownlabs-manage-workspaces
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - crownlabs.polito.it
@@ -160,3 +155,4 @@ rules:
       - patch
       - delete
       - deletecollection
+{{- end }}

@@ -1,0 +1,54 @@
+# Default values for crownlabs.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  version: ""
+
+createClusterRoles: true
+
+dashboard:
+  replicaCount: 1
+  image:
+    repository: crownlabs/frontend
+  ingress:
+    hostname: https://crownlabs.example.com
+  configurations:
+    oidc:
+      clientId: k8s
+      clientSecret: <client-secret>
+      providerUrl: https://auth.example.com/auth/realms/crownlabs
+
+
+instance-operator:
+  replicaCount: 1
+  image:
+    repository: crownlabs/laboratory-operator
+  rbacResourcesName: crownlabs-instance-operator
+  configurations:
+    generic:
+      oauth2ProxyImage: quay.io/oauth2-proxy/oauth2-proxy
+      whitelistLabels: crownlabs.polito.it/operator-selector=production
+      websiteBaseUri: crownlabs.example.com
+    nextcloud:
+      baseUrl: https://nextcloud.example.com
+      webdavSecretName: nextcloud-credentials
+    oidc:
+      clientId: k8s
+      clientSecret: <client-secret>
+      providerUrl: https://auth.example.com/auth/realms/crownlabs
+
+
+tenant-operator:
+  replicaCount: 1
+  image:
+    repository: crownlabs/tenant-operator
+  rbacResourcesName: crownlabs-tenant-operator
+  configurations:
+    keycloak:
+      url: "https://auth.crownlabs.example.com/"
+      loginRealm: master
+      targetRealm: crownlabs
+      targetClient: k8s
+      user: username
+      pass: password

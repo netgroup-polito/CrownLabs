@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tenant-operator.fullname" . }}
+  labels:
+    {{- include "tenant-operator.labels" . | nindent 4 }}
+data:
+  keycloak-url: {{ .Values.configurations.keycloak.url }}
+  keycloak-login-realm: {{ .Values.configurations.keycloak.loginRealm }}
+  keycloak-target-realm: {{ .Values.configurations.keycloak.targetRealm }}
+  keycloak-target-client: {{ .Values.configurations.keycloak.targetClient }}
