@@ -53,24 +53,11 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var tn crownlabsv1alpha1.Tenant
 	var userID *string
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error getting tenant %s on deletion", req.Name)
+		klog.Errorf("Error when getting tenant %s before starting reconcile", req.Name)
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		// reconcile was triggered by a delete request
-		if userID, _, err = r.KcA.getUserInfo(ctx, req.Name); err != nil {
-			klog.Errorf("Error when checking if user %s existed for deletion", req.Name)
-			klog.Error(err)
-			return ctrl.Result{}, err
-		} else if userID != nil {
-			// userID != nil means user already existed when tenant was deleted, so need to delete user in keycloak
-			if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
-				klog.Errorf("Error when deleting user %s", req.Name)
-				klog.Error(err)
-				return ctrl.Result{}, err
-			}
-		}
-		klog.Infof("Tenant %s resources deleted", req.Name)
+		klog.Infof("Tenant %s deleted", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -79,7 +66,49 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
 	}
 
+	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
+		klog.Infof("Processing deletion of tenant %s", tn.Name)
+		if containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+			// reconcile was triggered by a delete request
+			if userID, _, err := r.KcA.getUserInfo(ctx, tn.Name); err != nil {
+				klog.Errorf("Error when checking if user %s existed for deletion", tn.Name)
+				klog.Error(err)
+				retrigErr = err
+			} else if userID != nil {
+				// userID != nil means user exist in keycloak, so need to delete it
+				if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
+					klog.Errorf("Error when deleting user %s", tn.Name)
+					klog.Error(err)
+					retrigErr = err
+				}
+			}
+			// remove finalizer from the tenant
+			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+			if err := r.Update(context.Background(), &tn); err != nil {
+				klog.Errorf("Error when removing tenant operator finalizer from tenant %s", tn.Name)
+				klog.Error(err)
+				retrigErr = err
+			}
+		}
+		if retrigErr == nil {
+			klog.Infof("Tenant %s ready for deletion", tn.Name)
+		} else {
+			klog.Errorf("Error when preparing tenant %s for deletion, need to retry", tn.Name)
+		}
+		return ctrl.Result{}, retrigErr
+	}
+	// tenant is NOT being deleted
 	klog.Infof("Reconciling tenant %s", req.Name)
+
+	// add tenant operator finalizer to tenant
+	if !containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		tn.ObjectMeta.Finalizers = append(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+		if err := r.Update(context.Background(), &tn); err != nil {
+			klog.Errorf("Error when adding finalizer to tenant %s", tn.Name)
+			klog.Error(err)
+			retrigErr = err
+		}
+	}
 
 	// namespace creation
 	nsName := fmt.Sprintf("tenant-%s", strings.Replace(tn.Name, ".", "-", -1))

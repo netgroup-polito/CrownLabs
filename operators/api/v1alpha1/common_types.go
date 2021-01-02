@@ -25,3 +25,6 @@ type GenericRef struct {
 
 // WorkspaceLabelPrefix is the prefix of a label assigned to a tenant indicating it is subscribed to a workspace
 const WorkspaceLabelPrefix = "crownlabs.polito.it/workspace-"
+
+// TnOperatorFinalizerName is the name of the finalizer corresponding to the tenant operator
+const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"

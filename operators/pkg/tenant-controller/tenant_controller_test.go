@@ -237,6 +237,9 @@ var _ = Describe("Tenant controller", func() {
 			if tn.Labels["crownlabs.polito.it/last-name"] != "rss" {
 				return false
 			}
+			if !containsString(tn.Finalizers, "crownlabs.polito.it/tenant-operator") {
+				return false
+			}
 			return true
 		}, timeout, interval).Should(BeTrue())
 

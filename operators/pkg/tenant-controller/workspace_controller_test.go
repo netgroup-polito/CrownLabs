@@ -102,24 +102,14 @@ var _ = Describe("Workspace controller", func() {
 			if !ws.Status.Namespace.Created || ws.Status.Namespace.Name != nsName {
 				return false
 			}
-			return true
-		}, timeout, interval).Should(BeTrue())
-
-		By("By checking that the corresponding keycloak roles have been created")
-
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, wsLookupKey, ws)
-			if err != nil {
-				return false
-			}
 			if ws.Status.Subscriptions["keycloak"] != crownlabsv1alpha1.SubscrOk {
 				return false
 			}
-
+			if !containsString(ws.Finalizers, "crownlabs.polito.it/tenant-operator") {
+				return false
+			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		By("By checking that the keycloak deleteRole methods get called when a workspace is deleted")
-
 	})
 
 })

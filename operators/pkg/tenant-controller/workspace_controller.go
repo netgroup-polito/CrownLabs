@@ -48,42 +48,75 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var ws crownlabsv1alpha1.Workspace
 
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error getting workspace %s on deletion", req.Name)
+		klog.Errorf("Error when getting workspace %s before starting reconcile", ws.Name)
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		// reconcile was triggered by a delete request
 		klog.Infof("Workspace %s deleted", req.Name)
-		rolesToDelete := genWorkspaceRolesData(req.Name, ws.Spec.PrettyName)
-		if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
-			klog.Errorf("Error when deleting roles of workspace %s", req.NamespacedName)
-			klog.Error(err)
-			return ctrl.Result{}, err
-		}
-
-		// unsubscribe tenants from workspace to delete
-		var tenantsToUpdate crownlabsv1alpha1.TenantList
-		targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, req.Name)
-		if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); err != nil {
-			return ctrl.Result{}, client.IgnoreNotFound(err)
-		}
-		for i, tn := range tenantsToUpdate.Items {
-			deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, req.Name)
-			if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
-				klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tn.Name, req.Name)
-				klog.Error(err)
-				return ctrl.Result{}, err
-			}
-		}
-
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	var retrigErr error = nil
-	if ws.Status.Subscriptions == nil {
-		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
+	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
+		klog.Infof("Processing deletion of workspace %s", ws.Name)
+		// workspace is being deleted
+		if containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+			// our finalizer is present, so lets handle any external dependency
+			rolesToDelete := genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)
+			if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
+				klog.Errorf("Error when deleting roles of workspace %s", ws.Name)
+				klog.Error(err)
+				retrigErr = err
+			}
+
+			// unsubscribe tenants from workspace to delete
+			var tenantsToUpdate crownlabsv1alpha1.TenantList
+			targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, ws.Name)
+			if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); client.IgnoreNotFound(err) != nil {
+				klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion", ws.Name)
+				klog.Error(err)
+				retrigErr = err
+			} else if err != nil {
+				klog.Infof("No tenants subscribed to workspace %s", ws.Name)
+			} else {
+				for i, tn := range tenantsToUpdate.Items {
+					deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, ws.Name)
+					if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
+						klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tn.Name, ws.Name)
+						klog.Error(err)
+						retrigErr = err
+					}
+				}
+			}
+
+			// remove finalizer from the workspace
+			ws.ObjectMeta.Finalizers = removeString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+			if err := r.Update(context.Background(), &ws); err != nil {
+				klog.Errorf("Error when removing tenant operator finalizer from workspace %s", ws.Name)
+				klog.Error(err)
+				retrigErr = err
+			}
+		}
+		if retrigErr == nil {
+			klog.Infof("Workspace %s ready for deletion", ws.Name)
+		} else {
+			klog.Errorf("Error when preparing workspace %s for deletion, need to retry", ws.Name)
+		}
+		return ctrl.Result{}, retrigErr
 	}
-	klog.Infof("Reconciling workspace %s", req.Name)
+
+	// workspace is NOT being deleted
+	klog.Infof("Reconciling workspace %s", ws.Name)
+
+	// add tenant operator finalizer to workspace
+	if !containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		ws.ObjectMeta.Finalizers = append(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+		if err := r.Update(context.Background(), &ws); err != nil {
+			klog.Errorf("Error when adding finalizer to workspace %s", ws.Name)
+			klog.Error(err)
+			retrigErr = err
+		}
+	}
 
 	nsName := fmt.Sprintf("workspace-%s", ws.Name)
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
@@ -99,7 +132,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ws.Status.Namespace.Name = ""
 		retrigErr = err
 	} else {
-		klog.Infof("Namespace %s for workspace %s %s", nsName, req.Name, nsOpRes)
+		klog.Infof("Namespace %s for workspace %s %s", nsName, ws.Name, nsOpRes)
 		ws.Status.Namespace.Created = true
 		ws.Status.Namespace.Name = nsName
 		if err := createOrUpdateWsClusterResources(ctx, r, &ws, nsName); err != nil {
@@ -111,6 +144,9 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	if ws.Status.Subscriptions == nil {
+		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
+	}
 	if err := r.KcA.createKcRoles(ctx, genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
