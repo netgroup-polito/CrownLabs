@@ -25,14 +25,13 @@ ENV HOME=/home/$USER
 
 # Copy fluxbox config (ensuring auth) & vnc session tweaks
 COPY --chown=${USER}:${USER} fluxbox $HOME/.fluxbox
-COPY Xvnc-session /etc/X11/Xvnc-session
+# Copy vnc session startup
+COPY --chown=${USER}:${USER} Xvnc-session /etc/X11/Xvnc-session
 
 # Enforce non-root user
 USER ${USER}
 
-# - Start X server
-# - Authorize any connection from current host (pod)
-# - Start window manager (fluxbox)
-CMD vncserver $DISPLAY -SecurityTypes None -noxstartup &&\
-    xhost +local: &&\
-    fluxbox
+# - Clear X11-unix folder to start clean after crashes
+# - Start vnc X server & session (in foreground mode)
+CMD rm -rf /tmp/.X11-unix/* ;\
+    vncserver $DISPLAY -SecurityTypes None -fg -localhost no --I-KNOW-THIS-IS-INSECURE

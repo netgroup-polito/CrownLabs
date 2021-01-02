@@ -11,6 +11,8 @@ RUN wget -qO- https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz | \
 
 # Inject noVNC customizations (JS)
 RUN echo "window.addEventListener('load', () => {\
+let pathName = window.location.pathname.slice(1);\
+if (pathName) UI.forceSetting('path', pathName+'/websockify');\
 UI.forceSetting('resize', 'remote');\
 UI.forceSetting('show_dot', true);\
 UI.forceSetting('reconnect', true);\

@@ -21,8 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +38,14 @@ import (
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
+// ContainerEnvOpts contains images name and tag for container environment.
+type ContainerEnvOpts struct {
+	ImagesTag     string
+	VncImg        string
+	WebsockifyImg string
+	NovncImg      string
+}
+
 // InstanceReconciler reconciles a Instance object.
 type InstanceReconciler struct {
 	client.Client
@@ -51,6 +58,7 @@ type InstanceReconciler struct {
 	Oauth2ProxyImage   string
 	OidcClientSecret   string
 	OidcProviderURL    string
+	ContainerEnvOpts   ContainerEnvOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -143,7 +151,9 @@ func (r *InstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Te
 				return ctrl.Result{}, err
 			}
 		case crownlabsv1alpha2.ClassContainer:
-			return ctrl.Result{}, errors.NewBadRequest("Container Environments are not implemented")
+			if err := r.CreateContainerEnvironment(instance, &template.Spec.EnvironmentList[i], namespace, name, vmstart); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	return ctrl.Result{}, nil
@@ -154,6 +164,8 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	klog.Info("setup manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha2.Instance{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// Also Deployments are watched in order to better handle container environment.
+		Owns(&appsv1.Deployment{}).
 		Owns(&cdiv1.DataVolume{}, builder.WithPredicates(dataVolumePredicate())).
 		Complete(r)
 }

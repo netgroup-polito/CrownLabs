@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
@@ -57,30 +56,8 @@ func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Ins
 		r.setInstanceStatus(ctx, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", instance, "", "")
 	}
 
-	// create Service to expose the vm
-	service := instance_creation.ForgeService(name, namespace)
-	_, err = ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
-		return ctrl.SetControllerReference(instance, &service, r.Scheme)
-	})
+	service, ingress, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name)
 	if err != nil {
-		r.setInstanceStatus(ctx, "Could not create service "+service.Name+" in namespace "+service.Namespace, "Warning", "ServiceNotCreated", instance, "", "")
-		return err
-	}
-	r.setInstanceStatus(ctx, "Service "+service.Name+" correctly created in namespace "+service.Namespace, "Normal", "ServiceCreated", instance, "", "")
-
-	urlUUID := uuid.New().String()
-	// create Ingress to manage the service
-	ingress := instance_creation.ForgeIngress(name, namespace, &service, urlUUID, r.WebsiteBaseURL)
-	_, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingress, func() error {
-		return ctrl.SetControllerReference(instance, &ingress, r.Scheme)
-	})
-	if err != nil {
-		r.setInstanceStatus(ctx, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace, "Warning", "IngressNotCreated", instance, "", "")
-		return err
-	}
-	r.setInstanceStatus(ctx, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", instance, "", "")
-
-	if err = r.createOAUTHlogic(name, instance, namespace, urlUUID); err != nil {
 		return err
 	}
 

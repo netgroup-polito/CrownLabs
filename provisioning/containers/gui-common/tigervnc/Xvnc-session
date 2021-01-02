@@ -1,11 +1,15 @@
 #!/bin/sh
 
-#from the original Xvnc-session, just vncconfig has been removed
+#from the original Xvnc-session:
+# > remove vncconfig
+# > add xhost (to enable connections to the X server from external containers)
+# > start window manager (fluxbox)
 
 test x"$SHELL" = x"" && SHELL=/bin/bash
 test x"$1"     = x"" && set -- default
 
 "$SHELL" -l <<EOF
-exec /etc/X11/Xsession "$@"
+xhost +
+fluxbox
 EOF
 vncserver -kill "$DISPLAY"

@@ -5,13 +5,10 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,6 +16,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Instance Operator controller", func() {
@@ -150,16 +150,16 @@ var _ = Describe("Instance Operator controller", func() {
 		It("Setting up the Instance and Template namespaces", func() {
 			ctx = context.Background()
 			Expect(k8sClient.Create(ctx, &templateNs)).Should(Succeed())
-			doesEventuallyExists(ctx, types.NamespacedName{
+			doesEventuallyExist(ctx, types.NamespacedName{
 				Name: TemplateNamespace,
 			}, &ns1, BeTrue(), timeout, interval)
 			Expect(k8sClient.Create(ctx, &instanceNs)).Should(Succeed())
 			Expect(k8sClient.Create(ctx, &webdavSecret)).Should(Succeed())
-			doesEventuallyExists(ctx, types.NamespacedName{
+			doesEventuallyExist(ctx, types.NamespacedName{
 				Name: InstanceNamespace,
 			}, &ns1, BeTrue(), timeout, interval)
 			Expect(k8sClient.Create(ctx, &tenant)).Should(Succeed())
-			doesEventuallyExists(ctx, types.NamespacedName{
+			doesEventuallyExist(ctx, types.NamespacedName{
 				Name: TenantName,
 			}, &tenant, BeTrue(), timeout, interval)
 		})
@@ -176,7 +176,7 @@ var _ = Describe("Instance Operator controller", func() {
 					Status: crownlabsv1alpha2.TemplateStatus{},
 				}
 				Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
-				doesEventuallyExists(ctx, types.NamespacedName{
+				doesEventuallyExist(ctx, types.NamespacedName{
 					Name:      TemplateName,
 					Namespace: TemplateNamespace,
 				}, &tmp1, BeTrue(), timeout, interval)
@@ -187,7 +187,7 @@ var _ = Describe("Instance Operator controller", func() {
 
 				By("VirtualMachine Should Exists")
 				var VMI virtv1.VirtualMachineInstance
-				doesEventuallyExists(ctx, types.NamespacedName{
+				doesEventuallyExist(ctx, types.NamespacedName{
 					Name:      InstanceName,
 					Namespace: InstanceNamespace,
 				}, &VMI, BeTrue(), timeout, interval)
@@ -211,7 +211,7 @@ var _ = Describe("Instance Operator controller", func() {
 						Namespace: InstanceName,
 						Name:      InstanceName,
 					}, &instance)
-					if err != nil && errors2.IsNotFound(err) {
+					if err != nil && errors.IsNotFound(err) {
 						return true
 					}
 					return false
@@ -233,7 +233,7 @@ var _ = Describe("Instance Operator controller", func() {
 					Status: crownlabsv1alpha2.TemplateStatus{},
 				}
 				Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
-				doesEventuallyExists(ctx, types.NamespacedName{
+				doesEventuallyExist(ctx, types.NamespacedName{
 					Name:      TemplateName + "persistent",
 					Namespace: TemplateNamespace,
 				}, &tmp1, BeTrue(), timeout, interval)
@@ -242,7 +242,7 @@ var _ = Describe("Instance Operator controller", func() {
 				Expect(k8sClient.Create(ctx, &instance2)).Should(Succeed())
 
 				var datavol cdiv1.DataVolume
-				doesEventuallyExists(ctx, types.NamespacedName{
+				doesEventuallyExist(ctx, types.NamespacedName{
 					Name:      InstanceName + "persistent",
 					Namespace: InstanceNamespace,
 				}, &datavol, BeTrue(), timeout, interval)
@@ -265,7 +265,7 @@ var _ = Describe("Instance Operator controller", func() {
 
 				By("VirtualMachine Should Exists")
 				var VM virtv1.VirtualMachine
-				doesEventuallyExists(ctx, types.NamespacedName{
+				doesEventuallyExist(ctx, types.NamespacedName{
 					Name:      InstanceName + "persistent",
 					Namespace: InstanceNamespace,
 				}, &VM, BeTrue(), timeout, interval)
@@ -280,7 +280,7 @@ var _ = Describe("Instance Operator controller", func() {
 						Namespace: InstanceName + "persistent",
 						Name:      InstanceName,
 					}, &instance2)
-					if err != nil && errors2.IsNotFound(err) {
+					if err != nil && errors.IsNotFound(err) {
 						return true
 					}
 					return false
@@ -290,7 +290,7 @@ var _ = Describe("Instance Operator controller", func() {
 	})
 })
 
-func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdObject client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
+func doesEventuallyExist(ctx context.Context, nsLookupKey types.NamespacedName, createdObject client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
 	Eventually(func() bool {
 		err := k8sClient.Get(ctx, nsLookupKey, createdObject)
 		return err == nil

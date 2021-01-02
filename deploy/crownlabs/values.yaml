@@ -36,6 +36,11 @@ instance-operator:
       clientId: k8s
       clientSecret: <client-secret>
       providerUrl: https://auth.example.com/auth/realms/crownlabs
+    containerEnvironmentOptions:
+      tag: ""
+      vncImage: crownlabs/tigervnc
+      websockifyImage: crownlabs/websockify
+      novncImage: crownlabs/novnc
 
 tenant-operator:
   replicaCount: 1
