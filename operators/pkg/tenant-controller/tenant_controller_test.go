@@ -25,7 +25,9 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -58,7 +60,6 @@ var _ = Describe("Tenant controller", func() {
 
 	const (
 		tnNamespace = ""
-		nsNamespace = ""
 		timeout     = time.Second * 10
 		interval    = time.Millisecond * 250
 		nsName      = "tenant-mariorossi"
@@ -200,17 +201,8 @@ var _ = Describe("Tenant controller", func() {
 
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
-		By("By checking that the corresponding namespace has been created")
-
-		nsLookupKey := types.NamespacedName{Name: nsName, Namespace: nsNamespace}
-		createdNs := &v1.Namespace{}
-
-		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
-
-		By("By checking that the corresponding namespace has a controller reference pointing to the tenant")
-
-		Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
-		Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+		By("By checking that the needed cluster resources for the tenant have been updated accordingly")
+		checkTnClusterResourceCreation(ctx, tnName, nsName, timeout, interval)
 
 		By("By checking that the tenant has been updated accordingly")
 
@@ -243,37 +235,6 @@ var _ = Describe("Tenant controller", func() {
 			return true
 		}, timeout, interval).Should(BeTrue())
 
-		By("By checking that the cluster role of the tenant has been created")
-		crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
-		crLookupKey := types.NamespacedName{Name: crName}
-		createdCr := &rbacv1.ClusterRole{}
-		doesEventuallyExists(ctx, crLookupKey, createdCr, BeTrue(), timeout, interval)
-
-		By("By checking that the cluster role of the tenant has a controller reference pointing to the tenant")
-		Expect(createdCr.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
-		Expect(createdCr.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
-
-		By("By checking that the cluster role has a correct spec")
-		Expect(createdCr.Rules).Should(HaveLen(1))
-		Expect(createdCr.Rules[0].APIGroups).Should(ContainElement(Equal("crownlabs.polito.it")))
-		Expect(createdCr.Rules[0].Resources).Should(ContainElement(Equal("tenants")))
-		Expect(createdCr.Rules[0].ResourceNames).Should(ContainElement(Equal(tnName)))
-		Expect(createdCr.Rules[0].Verbs).Should(Equal([]string{"get", "list", "watch"}))
-
-		By("By checking that the cluster role binding of the tenant has been created")
-		crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
-		crbLookupKey := types.NamespacedName{Name: crbName}
-		createdCrb := &rbacv1.ClusterRoleBinding{}
-		doesEventuallyExists(ctx, crbLookupKey, createdCrb, BeTrue(), timeout, interval)
-
-		By("By checking that the cluster role binding of the tenant has a controller reference pointing to the tenant")
-		Expect(createdCrb.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
-		Expect(createdCrb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
-
-		By("By checking that the cluster role binding has a correct spec")
-		Expect(createdCrb.RoleRef.Name).Should(Equal(crName))
-		Expect(createdCrb.Subjects).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
-
 		By("By deleting the workspace of the tenant")
 		Expect(k8sClient.Delete(ctx, ws)).Should(Succeed())
 
@@ -292,3 +253,114 @@ var _ = Describe("Tenant controller", func() {
 	})
 
 })
+
+func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, timeout time.Duration, interval time.Duration) {
+
+	By("By checking that the corresponding namespace has been created")
+
+	nsLookupKey := types.NamespacedName{Name: nsName, Namespace: ""}
+	createdNs := &v1.Namespace{}
+
+	doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
+
+	By("By checking that the corresponding namespace has a controller reference pointing to the tenant")
+
+	Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+	Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+
+	By("By checking that the resource quota of the tenant has been created")
+	rqLookupKey := types.NamespacedName{Name: "crownlabs-resource-quota", Namespace: nsName}
+	createdRq := &v1.ResourceQuota{}
+	doesEventuallyExists(ctx, rqLookupKey, createdRq, BeTrue(), timeout, interval)
+
+	By("By checking that the resource quota has a label pointing to the tenant operator")
+	Expect(createdRq.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the resource quota has a correct spec")
+	limitCPU, _ := resource.ParseQuantity("15")
+	limitMem, _ := resource.ParseQuantity("25Gi")
+	reqCPU, _ := resource.ParseQuantity("10")
+	reqMem, _ := resource.ParseQuantity("25Gi")
+	instanceCount, _ := resource.ParseQuantity("5")
+	Expect(createdRq.Spec.Hard["limits.cpu"]).Should(Equal(limitCPU))
+	Expect(createdRq.Spec.Hard["limits.memory"]).Should(Equal(limitMem))
+	Expect(createdRq.Spec.Hard["requests.cpu"]).Should(Equal(reqCPU))
+	Expect(createdRq.Spec.Hard["requests.memory"]).Should(Equal(reqMem))
+	Expect(createdRq.Spec.Hard["count/instances.crownlabs.polito.it"]).Should(Equal(instanceCount))
+
+	By("By checking that the role binding of the tenant has been created")
+	rbLookupKey := types.NamespacedName{Name: "crownlabs-manage-instances", Namespace: nsName}
+	createdRb := &rbacv1.RoleBinding{}
+	doesEventuallyExists(ctx, rbLookupKey, createdRb, BeTrue(), timeout, interval)
+
+	By("By checking that the role binding of the tenant has a label pointing to the tenant operator")
+	Expect(createdRb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the role binding has a correct spec")
+	Expect(createdRb.RoleRef.Name).Should(Equal("crownlabs-manage-instances"))
+	Expect(createdRb.RoleRef.Kind).Should(Equal("ClusterRole"))
+	Expect(createdRb.Subjects).Should(HaveLen(1))
+	Expect(createdRb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName), "Kind": Equal("User")}))
+
+	By("By checking that the cluster role of the tenant has been created")
+	crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crLookupKey := types.NamespacedName{Name: crName}
+	createdCr := &rbacv1.ClusterRole{}
+	doesEventuallyExists(ctx, crLookupKey, createdCr, BeTrue(), timeout, interval)
+
+	By("By checking that the cluster role of the tenant has a controller reference pointing to the tenant")
+	Expect(createdCr.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+	Expect(createdCr.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the cluster role has a correct spec")
+	Expect(createdCr.Rules).Should(HaveLen(1))
+	Expect(createdCr.Rules[0].APIGroups).Should(ContainElement(Equal("crownlabs.polito.it")))
+	Expect(createdCr.Rules[0].Resources).Should(ContainElement(Equal("tenants")))
+	Expect(createdCr.Rules[0].ResourceNames).Should(ContainElement(Equal(tnName)))
+	Expect(createdCr.Rules[0].Verbs).Should(Equal([]string{"get", "list", "watch"}))
+
+	By("By checking that the cluster role binding of the tenant has been created")
+	crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crbLookupKey := types.NamespacedName{Name: crbName}
+	createdCrb := &rbacv1.ClusterRoleBinding{}
+	doesEventuallyExists(ctx, crbLookupKey, createdCrb, BeTrue(), timeout, interval)
+
+	By("By checking that the cluster role binding of the tenant has a controller reference pointing to the tenant")
+	Expect(createdCrb.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+	Expect(createdCrb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the cluster role binding has a correct spec")
+	Expect(createdCrb.RoleRef.Name).Should(Equal(crName))
+	Expect(createdCrb.RoleRef.Kind).Should(Equal("ClusterRole"))
+	Expect(createdCrb.Subjects).Should(HaveLen(1))
+	Expect(createdCrb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName), "Kind": Equal("User")}))
+
+	By("By checking that the deny network policy of the tenant has been created")
+	netPolDenyLookupKey := types.NamespacedName{Name: "crownlabs-deny-ingress-traffic", Namespace: nsName}
+	createdNetPolDeny := &netv1.NetworkPolicy{}
+	doesEventuallyExists(ctx, netPolDenyLookupKey, createdNetPolDeny, BeTrue(), timeout, interval)
+
+	By("By checking that the deny network policy of the tenant has a label pointing to the tenant operator")
+	Expect(createdNetPolDeny.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the deny network policy has a correct spec")
+	Expect(createdNetPolDeny.Spec.PodSelector.MatchLabels).Should(HaveLen(0))
+	Expect(createdNetPolDeny.Spec.Ingress).Should(HaveLen(1))
+	Expect(createdNetPolDeny.Spec.Ingress[0].From).Should(HaveLen(1))
+	Expect(createdNetPolDeny.Spec.Ingress[0].From[0].PodSelector.MatchLabels).Should(HaveLen(0))
+
+	By("By checking that the allow network policy of the tenant has been created")
+	netPolAllowLookupKey := types.NamespacedName{Name: "crownlabs-allow-trusted-ingress-traffic", Namespace: nsName}
+	createdNetPolAllow := &netv1.NetworkPolicy{}
+	doesEventuallyExists(ctx, netPolAllowLookupKey, createdNetPolAllow, BeTrue(), timeout, interval)
+
+	By("By checking that the allow network policy of the tenant has a label pointing to the tenant operator")
+	Expect(createdNetPolAllow.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the allow network policy has a correct spec")
+	Expect(createdNetPolAllow.Spec.PodSelector.MatchLabels).Should(HaveLen(0))
+	Expect(createdNetPolAllow.Spec.Ingress).Should(HaveLen(1))
+	Expect(createdNetPolAllow.Spec.Ingress[0].From).Should(HaveLen(1))
+	Expect(createdNetPolAllow.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["crownlabs.polito.it/allow-instance-access"]).Should(Equal("true"))
+
+}

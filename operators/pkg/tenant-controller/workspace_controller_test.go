@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -32,9 +33,8 @@ var _ = Describe("Workspace controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		nsNamespace = ""
-		timeout     = time.Second * 10
-		interval    = time.Millisecond * 250
+		timeout  = time.Second * 10
+		interval = time.Millisecond * 250
 	)
 	var (
 		wsNamespace  = ""
@@ -80,17 +80,8 @@ var _ = Describe("Workspace controller", func() {
 		By("By checking that the workspace has the correct name")
 		Expect(createdWs.Spec.PrettyName).Should(Equal(wsPrettyName))
 
-		By("By checking that the corresponding namespace has been created")
-
-		nsLookupKey := types.NamespacedName{Name: nsName, Namespace: nsNamespace}
-		createdNs := &v1.Namespace{}
-
-		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
-
-		By("By checking that the corresponding namespace has a controller reference pointing to the workspace")
-
-		Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(wsName)})))
-		Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "workspace"))
+		By("By checking that the needed cluster resources for the workspace have been updated accordingly")
+		checkWsClusterResourceCreation(ctx, wsName, nsName, timeout, interval)
 
 		By("By checking that the status of the workspace has been updated accordingly")
 
@@ -148,4 +139,66 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 		gomock.Eq(kcTargetClientID),
 		gomock.AssignableToTypeOf(gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}),
 	).Return(nil).MinTimes(1).MaxTimes(2)
+}
+
+func checkWsClusterResourceCreation(ctx context.Context, wsName, nsName string, timeout time.Duration, interval time.Duration) {
+	By("By checking that the corresponding namespace has been created")
+
+	nsLookupKey := types.NamespacedName{Name: nsName, Namespace: ""}
+	createdNs := &v1.Namespace{}
+
+	doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
+
+	By("By checking that the corresponding namespace has a controller reference pointing to the workspace")
+
+	Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(wsName)})))
+	Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "workspace"))
+
+	By("By checking that the cluster role binding of the workspace has been created")
+	crbName := fmt.Sprintf("crownlabs-manage-instances-%s", wsName)
+	crbLookupKey := types.NamespacedName{Name: crbName}
+	createdCrb := &rbacv1.ClusterRoleBinding{}
+	doesEventuallyExists(ctx, crbLookupKey, createdCrb, BeTrue(), timeout, interval)
+
+	By("By checking that the cluster role binding of the workspace has a controller reference pointing to the workspace")
+	Expect(createdCrb.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(wsName)})))
+	Expect(createdCrb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "workspace"))
+
+	By("By checking that the cluster role binding has a correct spec")
+	crGroupName := fmt.Sprintf("kubernetes:workspace-%s:manager", wsName)
+	Expect(createdCrb.RoleRef.Name).Should(Equal("crownlabs-manage-instances"))
+	Expect(createdCrb.RoleRef.Kind).Should(Equal("ClusterRole"))
+	Expect(createdCrb.Subjects).Should(HaveLen(1))
+	Expect(createdCrb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(crGroupName), "Kind": Equal("Group")}))
+
+	By("By checking that the role binding of the workspace has been created")
+	rbLookupKey := types.NamespacedName{Name: "crownlabs-view-templates", Namespace: nsName}
+	createdRb := &rbacv1.RoleBinding{}
+	doesEventuallyExists(ctx, rbLookupKey, createdRb, BeTrue(), timeout, interval)
+
+	By("By checking that the role binding of the workspace has a label pointing to the workspace")
+	Expect(createdRb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "workspace"))
+
+	By("By checking that the role binding has a correct spec")
+	rGroupName := fmt.Sprintf("kubernetes:workspace-%s:user", wsName)
+	Expect(createdRb.RoleRef.Name).Should(Equal("crownlabs-view-templates"))
+	Expect(createdRb.RoleRef.Kind).Should(Equal("ClusterRole"))
+	Expect(createdRb.Subjects).Should(HaveLen(1))
+	Expect(createdRb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(rGroupName), "Kind": Equal("Group")}))
+
+	By("By checking that the manager role binding of the workspace has been created")
+	mngRbLookupKey := types.NamespacedName{Name: "crownlabs-manage-templates", Namespace: nsName}
+	createdMngRb := &rbacv1.RoleBinding{}
+	doesEventuallyExists(ctx, mngRbLookupKey, createdMngRb, BeTrue(), timeout, interval)
+
+	By("By checking that the manager role binding of the workspace has a label pointing to the workspace")
+	Expect(createdMngRb.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "workspace"))
+
+	By("By checking that the role binding has a correct spec")
+	mngRGroupName := fmt.Sprintf("kubernetes:workspace-%s:manager", wsName)
+	Expect(createdMngRb.RoleRef.Name).Should(Equal("crownlabs-manage-templates"))
+	Expect(createdMngRb.RoleRef.Kind).Should(Equal("ClusterRole"))
+	Expect(createdMngRb.Subjects).Should(HaveLen(1))
+	Expect(createdMngRb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(mngRGroupName), "Kind": Equal("Group")}))
+
 }

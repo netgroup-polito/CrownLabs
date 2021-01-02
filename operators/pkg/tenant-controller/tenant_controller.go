@@ -405,7 +405,7 @@ func updateTnResQuota(rq *v1.ResourceQuota) {
 
 	resourceList := make(v1.ResourceList)
 
-	resourceList["limits.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
+	resourceList["limits.cpu"] = *resource.NewQuantity(15, resource.DecimalSI)
 	resourceList["limits.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
 	resourceList["requests.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
 	resourceList["requests.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
