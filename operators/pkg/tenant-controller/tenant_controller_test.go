@@ -205,15 +205,19 @@ var _ = Describe("Tenant controller", func() {
 		By("By checking that the needed cluster resources for the tenant have been updated accordingly")
 		checkTnClusterResourceCreation(ctx, tnName, nsName, timeout, interval)
 
-		By("By checking that the tenant has been updated accordingly")
+		By("By checking that the tenant has been updated accordingly after creation")
 
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn)
 			if err != nil {
 				return false
 			}
-			// check if keycloak has been correctly updated
+			// check if namespace status has been correctly updated
 			if !tn.Status.PersonalNamespace.Created || tn.Status.PersonalNamespace.Name != nsName {
+				return false
+			}
+			// check if external subscriptions has been correctly updated
+			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha1.SubscrOk || tn.Status.Subscriptions["nextcloud"] != crownlabsv1alpha1.SubscrOk {
 				return false
 			}
 			// check if workspace inconsistence has been correctly updated
@@ -239,7 +243,7 @@ var _ = Describe("Tenant controller", func() {
 		By("By deleting the workspace of the tenant")
 		Expect(k8sClient.Delete(ctx, ws)).Should(Succeed())
 
-		By("By checking that the tenant has been updated accordingly")
+		By("By checking that the tenant has been updated accordingly after workspace deletion")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn)
 			if err != nil {

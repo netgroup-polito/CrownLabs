@@ -18,6 +18,7 @@ package tenant_controller
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strings"
@@ -43,6 +44,7 @@ type TenantReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	KcA    *KcActor
+	NcA    NcHandler
 }
 
 // +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -52,7 +54,6 @@ type TenantReconciler struct {
 func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var tn crownlabsv1alpha1.Tenant
-	var userID *string
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting tenant %s before starting reconcile", req.Name)
 		klog.Error(err)
@@ -71,8 +72,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
 		if containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
 			// reconcile was triggered by a delete request
-			var err error
-			if userID, _, err = r.KcA.getUserInfo(ctx, tn.Name); err != nil {
+			// delete keycloak user
+			if userID, _, err := r.KcA.getUserInfo(ctx, tn.Name); err != nil {
 				klog.Errorf("Error when checking if user %s existed for deletion", tn.Name)
 				klog.Error(err)
 				retrigErr = err
@@ -83,6 +84,11 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 					klog.Error(err)
 					retrigErr = err
 				}
+			}
+			// delete nextcloud user
+			if err := r.NcA.DeleteUser(genNcUsername(tn.Name)); err != nil {
+				klog.Errorf("Error when deleting nextcloud user for tenant %s: %s", tn.Name, err)
+				retrigErr = err
 			}
 			// remove finalizer from the tenant
 			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
@@ -100,7 +106,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, retrigErr
 	}
 	// tenant is NOT being deleted
-	klog.Infof("Reconciling tenant %s", req.Name)
+	klog.Infof("Reconciling tenant %s", tn.Name)
 
 	// add tenant operator finalizer to tenant
 	if !containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
@@ -117,21 +123,21 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+	nsOpRes, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
 		updateTnNamespace(&ns, tn.Name)
 		return ctrl.SetControllerReference(&tn, &ns, r.Scheme)
 	})
-	if err != nil {
+	if nsErr != nil {
 		klog.Errorf("Unable to create or update namespace of tenant %s", tn.Name)
-		klog.Error(err)
+		klog.Error(nsErr)
 		tn.Status.PersonalNamespace.Created = false
 		tn.Status.PersonalNamespace.Name = ""
-		retrigErr = err
+		retrigErr = nsErr
 	} else {
-		klog.Infof("Namespace %s for tenant %s %s", nsName, req.Name, nsOpRes)
+		klog.Infof("Namespace %s for tenant %s %s", nsName, tn.Name, nsOpRes)
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
-		if err = createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
+		if err := createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -148,7 +154,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		wsLookupKey := types.NamespacedName{Name: tnWs.WorkspaceRef.Name, Namespace: ""}
 		var ws crownlabsv1alpha1.Workspace
 
-		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
+		if err := r.Get(ctx, wsLookupKey, &ws); err != nil {
 			klog.Errorf("Error when checking if workspace %s exists in tenant %s", tnWs.WorkspaceRef.Name, tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -186,6 +192,19 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Infof("Keycloak resources of user %s updated", tn.Name)
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 		}
+	}
+	if nsErr == nil {
+		if err = r.handleNextcloudSubscription(ctx, &tn, nsName); err != nil {
+			klog.Errorf("Error when updating nextcloud subscription for tenant %s: %s", tn.Name, err)
+			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
+			retrigErr = err
+		} else {
+			klog.Infof("Nextcloud subscription for tenant %s updated", tn.Name)
+			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrOk
+		}
+	} else {
+		klog.Errorf("Could not handle nextcloud subscription for tenant %s -> namespace update for secret gave error", tn.Name)
+		tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
 	}
 
 	// place status value to ready if everything is fine, in other words, no need to reconcile
@@ -229,6 +248,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
+		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
+		Owns(&v1.Secret{}).
 		Complete(r)
 }
 
@@ -465,4 +486,96 @@ func updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
 		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
 	}}}}}
+}
+
+func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) error {
+	// independently of the existence of the nexctloud secret for the nextcloud credentials of the user, need to know the displayname of the user, in order to update it if necessary
+	ncUsername := genNcUsername(tn.Name)
+	expectedDisplayname := genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)
+	ncSecret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "nextcloud-credentials", Namespace: nsName}}
+	ncUserFound, ncDisplayname, err := r.NcA.GetUser(ncUsername)
+	switch {
+	case err != nil:
+		klog.Errorf("Error when getting nextcloud user: %s", err)
+		return err
+	case ncUserFound:
+		if err = r.Get(ctx, types.NamespacedName{Name: ncSecret.Name, Namespace: ncSecret.Namespace}, &ncSecret); client.IgnoreNotFound(err) != nil {
+			klog.Errorf("Error when getting nextcloud secret for tenant %s: %s", tn.Name, err)
+			return err
+		} else if err != nil {
+			ncPsw, errToken := generateToken()
+			if errToken != nil {
+				klog.Errorf("Error when generating nextcloud password of tenant %s: %s", tn.Name, errToken)
+				return errToken
+			}
+			if errToken = r.NcA.UpdateUserData(ncUsername, "password", *ncPsw); errToken != nil {
+				klog.Errorf("Error when updating password of tenant %s: %s", tn.Name, errToken)
+				return errToken
+			}
+
+			// nextcloud secret not found, need to create it
+			ncSecOpRes, errCreateSec := ctrl.CreateOrUpdate(ctx, r.Client, &ncSecret, func() error {
+				updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
+				return ctrl.SetControllerReference(tn, &ncSecret, r.Scheme)
+			})
+			if errCreateSec != nil {
+				klog.Errorf("Unable to create or update nexcloud secret for tenant %s -> %s", tn.Name, errCreateSec)
+				return errCreateSec
+			}
+			klog.Infof("Nextcloud secret for tenant %s %s", tn.Name, ncSecOpRes)
+
+			return nil
+		}
+		if *ncDisplayname != expectedDisplayname {
+			if err = r.NcA.UpdateUserData(ncUsername, "displayname", expectedDisplayname); err != nil {
+				klog.Errorf("Error when updating displayname of tenant %s: %s", tn.Name, err)
+				return err
+			}
+		}
+		return nil
+	default:
+		klog.Infof("Nextcloud user for %s not found", tn.Name)
+		ncPsw, err := generateToken()
+		if err != nil {
+			klog.Errorf("Error when generating nextcloud password of tenant %s: %s", tn.Name, err)
+			return err
+		}
+		if err = r.NcA.CreateUser(ncUsername, *ncPsw, genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)); err != nil {
+			klog.Errorf("Error when creating nextcloud user for tenant %s: %s", tn.Name, err)
+			return err
+		}
+		ncSecretOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ncSecret, func() error {
+			updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
+			return ctrl.SetControllerReference(tn, &ncSecret, r.Scheme)
+		})
+		if err != nil {
+			klog.Errorf("Unable to create or update nextcloud secret of tenant %s: %s", tn.Name, err)
+			return err
+		}
+		klog.Infof("Nextcloud secret for tenant %s %s", tn.Name, ncSecretOpRes)
+		return nil
+	}
+}
+
+func genNcUsername(tnName string) string {
+	return fmt.Sprintf("keycloak-%s", tnName)
+}
+
+func genNcDisplayname(firstName, lastName string) string {
+	return fmt.Sprintf("%s %s", firstName, lastName)
+}
+
+func updateTnNcSecret(sec *v1.Secret, username, password string) {
+	if sec.Labels == nil {
+		sec.Labels = make(map[string]string, 1)
+	}
+	sec.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+
+	sec.Type = v1.SecretTypeOpaque
+
+	sec.Data = make(map[string][]byte, 2)
+	sec.Data["username"] = make([]byte, base64.StdEncoding.EncodedLen(len(username)))
+	sec.Data["password"] = make([]byte, base64.StdEncoding.EncodedLen(len(password)))
+	base64.StdEncoding.Encode(sec.Data["username"], []byte(username))
+	base64.StdEncoding.Encode(sec.Data["password"], []byte(password))
 }

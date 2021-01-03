@@ -36,12 +36,15 @@ spec:
           command:
             - /usr/bin/controller
           args:
-            - "-kc-URL=$(KEYCLOAK_URL)"
-            - "-kc-login-realm=$(KEYCLOAK_LOGIN_REALM)"
-            - "-kc-target-realm=$(KEYCLOAK_TARGET_REALM)"
-            - "-kc-target-client=$(KEYCLOAK_TARGET_CLIENT)"
-            - "-kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
-            - "-kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
+            - "--kc-URL=$(KEYCLOAK_URL)"
+            - "--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)"
+            - "--kc-target-realm=$(KEYCLOAK_TARGET_REALM)"
+            - "--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)"
+            - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
+            - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
+            - "--nc-url=$(NEXTCLOUD_URL)"
+            - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
+            - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
           ports:
             - name: metrics
               containerPort: 8080
@@ -94,6 +97,21 @@ spec:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: keycloak-pass
+            - name: NEXTCLOUD_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tenant-operator.fullname" . }}
+                  key: nextcloud-url
+            - name: NEXTCLOUD_TENANT_OPERATOR_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tenant-operator.fullname" . }}
+                  key: nextcloud-user
+            - name: NEXTCLOUD_TENANT_OPERATOR_PSW
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tenant-operator.fullname" . }}
+                  key: nextcloud-psw
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

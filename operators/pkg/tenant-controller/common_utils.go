@@ -2,7 +2,10 @@ package tenant_controller
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
+
+	"k8s.io/klog"
 )
 
 func randomRange(min, max int) (*int, error) {
@@ -34,4 +37,15 @@ func removeString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+func generateToken() (*string, error) {
+	// the size of b is equal to double the length of the generated token
+	b := make([]byte, 20)
+	if _, err := rand.Read(b); err != nil {
+		klog.Error("Error when generating random token")
+		return nil, err
+	}
+	token := fmt.Sprintf("%x", b)
+	return &token, nil
 }

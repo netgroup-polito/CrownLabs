@@ -23,7 +23,6 @@ import (
 	"time"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
-	// "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
@@ -57,7 +56,6 @@ var mKcClient *mocks.MockGoCloak
 var mToken *gocloak.JWT = &gocloak.JWT{AccessToken: kcAccessToken}
 var reqActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
 var emailActionLifespan = 60 * 60 * 24 * 30
-
 var kcA = KcActor{
 	Client:                mKcClient,
 	Token:                 mToken,
@@ -66,6 +64,9 @@ var kcA = KcActor{
 	UserRequiredActions:   reqActions,
 	EmailActionsLifeSpanS: emailActionLifespan,
 }
+
+//  nextcloud variables
+var mNcA *mocks.NcHandlerMock
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -107,6 +108,7 @@ var _ = BeforeSuite(func(done Done) {
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 		KcA:    &kcA,
+		NcA:    mNcA,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

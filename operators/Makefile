@@ -53,12 +53,15 @@ endif
 
 run-tenant: generate fmt vet manifests
 	go run  cmd/tenant-operator/main.go\
-				-kc-URL=$(KEYCLOAK_URL)\
-				-kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\
-				-kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)\
-				-kc-login-realm=$(KEYCLOAK_LOGIN_REALM)\
-				-kc-target-realm=$(KEYCLOAK_TARGET_REALM)\
-				-kc-target-client=$(KEYCLOAK_TARGET_CLIENT)
+				--kc-URL=$(KEYCLOAK_URL)\
+				--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\
+				--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)\
+				--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)\
+				--kc-target-realm=$(KEYCLOAK_TARGET_REALM)\
+				--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)\
+				--nc-URL=$(NEXTCLOUD_URL)\
+				--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)\
+				--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)
 
 install-tenant: manifests
 	kubectl apply -f deploy/crds/crownlabs.polito.it_tenants.yaml -f deploy/crds/crownlabs.polito.it_workspaces.yaml
