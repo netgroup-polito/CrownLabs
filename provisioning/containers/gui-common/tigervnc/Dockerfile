@@ -14,7 +14,8 @@ RUN apt-get update && \
         fluxbox \
         tigervnc-standalone-server && \
     apt-get --purge autoremove -y && \
-    apt-get autoclean -y
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*.*
 
 EXPOSE 5900
 
@@ -22,12 +23,16 @@ EXPOSE 5900
 RUN useradd -ms /bin/bash -u ${UID} ${USER}
 ENV HOME=/home/$USER
 
-# Copy fluxbox config & vnc session tweaks
+# Copy fluxbox config (ensuring auth) & vnc session tweaks
 COPY --chown=${USER}:${USER} fluxbox $HOME/.fluxbox
 COPY Xvnc-session /etc/X11/Xvnc-session
 
+# Enforce non-root user
 USER ${USER}
 
+# - Start X server
+# - Authorize any connection from current host (pod)
+# - Start window manager (fluxbox)
 CMD vncserver $DISPLAY -SecurityTypes None -noxstartup &&\
     xhost +local: &&\
     fluxbox
