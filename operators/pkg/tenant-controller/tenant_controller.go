@@ -137,7 +137,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for tenant %s %s", nsName, tn.Name, nsOpRes)
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
-		if err := createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
+		if err := r.createOrUpdateTnClusterResources(ctx, &tn, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -250,6 +250,12 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&crownlabsv1alpha1.Tenant{}).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
+		Owns(&v1.Namespace{}).
+		Owns(&v1.ResourceQuota{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&netv1.NetworkPolicy{}).
 		Complete(r)
 }
 
@@ -334,7 +340,7 @@ func cleanWorkspaceLabels(labels map[string]string) {
 	}
 }
 
-func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, tn *crownlabsv1alpha1.Tenant, nsName string) error {
+func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) error {
 	tnName := tn.Name
 
 	// handle resource quota
@@ -343,7 +349,7 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 	}
 	rqOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		updateTnResQuota(&rq)
-		return nil
+		return ctrl.SetControllerReference(tn, &rq, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update resource quota for tenant %s", tnName)
@@ -356,7 +362,7 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-instances", Namespace: nsName}}
 	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
 		updateTnRb(&rb, tnName)
-		return nil
+		return ctrl.SetControllerReference(tn, &rb, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update role binding for tenant %s", tnName)
@@ -396,7 +402,7 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 	netPolDeny := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-deny-ingress-traffic", Namespace: nsName}}
 	npDOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolDeny, func() error {
 		updateTnNetPolDeny(&netPolDeny)
-		return nil
+		return ctrl.SetControllerReference(tn, &netPolDeny, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update deny network policy for tenant %s", tnName)
@@ -408,7 +414,7 @@ func createOrUpdateTnClusterResources(ctx context.Context, r *TenantReconciler, 
 	netPolAllow := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-allow-trusted-ingress-traffic", Namespace: nsName}}
 	npAOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolAllow, func() error {
 		updateTnNetPolAllow(&netPolAllow)
-		return nil
+		return ctrl.SetControllerReference(tn, &netPolAllow, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update allow network policy for tenant %s", tnName)

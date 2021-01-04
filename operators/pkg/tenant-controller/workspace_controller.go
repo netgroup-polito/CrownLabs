@@ -137,7 +137,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for workspace %s %s", nsName, ws.Name, nsOpRes)
 		ws.Status.Namespace.Created = true
 		ws.Status.Namespace.Name = nsName
-		if err = createOrUpdateWsClusterResources(ctx, r, &ws, nsName); err != nil {
+		if err = r.createOrUpdateWsClusterResources(ctx, &ws, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for workspace %s", ws.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -184,6 +184,9 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Workspace{}).
+		Owns(&v1.Namespace{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Complete(r)
 }
 
@@ -214,7 +217,7 @@ func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemo
 	}
 }
 
-func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconciler, ws *crownlabsv1alpha1.Workspace, nsName string) error {
+func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Context, ws *crownlabsv1alpha1.Workspace, nsName string) error {
 	// handle clusterRoleBinding
 	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("crownlabs-manage-instances-%s", ws.Name)}}
 	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
@@ -232,7 +235,7 @@ func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconcile
 	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-view-templates", Namespace: nsName}}
 	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
 		updateWsRb(&rb, ws.Name)
-		return nil
+		return ctrl.SetControllerReference(ws, &rb, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update role binding for workspace %s", ws.Name)
@@ -245,7 +248,7 @@ func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconcile
 	managerRb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-templates", Namespace: nsName}}
 	mngRbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &managerRb, func() error {
 		updateWsRbMng(&managerRb, ws.Name)
-		return nil
+		return ctrl.SetControllerReference(ws, &managerRb, r.Scheme)
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update manager role binding for workspace %s", ws.Name)
