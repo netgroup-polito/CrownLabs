@@ -39,7 +39,7 @@ type BastionReconciler struct {
 	AuthorizedKeysPath string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=list
+// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;watch
 
 func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()

@@ -5,4 +5,4 @@ metadata:
 rules:
 - apiGroups: ["crownlabs.polito.it"]
   resources: ["tenants"]
-  verbs: ["list","watch"]
+  verbs: ["get","watch"]
