@@ -126,3 +126,40 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Kind, "VirtualMachineInstance")
 	assert.Equal(t, vm.APIVersion, "kubevirt.io/v1alpha3")
 }
+
+func TestCheckLabels(t *testing.T) {
+	labels := map[string]string{
+		"crownlabs.polito.it/operator-selector": "production",
+	}
+	ns := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/operator-selector": "production",
+			},
+		},
+	}
+	ns1 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/operator-selector": "preprod",
+			},
+		},
+	}
+	ns2 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/other": "production",
+			},
+		},
+	}
+	ns3 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{},
+		},
+	}
+	assert.Equal(t, CheckLabels(ns, labels), true)
+	assert.Equal(t, CheckLabels(ns1, labels), false)
+	assert.Equal(t, CheckLabels(ns2, labels), false)
+	assert.Equal(t, CheckLabels(ns3, labels), false)
+
+}

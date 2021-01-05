@@ -212,8 +212,8 @@ func CreateOrUpdate(c client.Client, ctx context.Context, object interface{}) er
 }
 
 func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
-	for key := range matchLabels {
-		if _, ok := ns.Labels[key]; !ok {
+	for key, value := range matchLabels {
+		if v1, ok := ns.Labels[key]; !ok || v1 != value {
 			return false
 		}
 	}
