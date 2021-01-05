@@ -115,6 +115,7 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Domain.Devices.Disks[1].Name, "cloudinitdisk")
 	assert.Equal(t, vm.Spec.Domain.CPU.Cores, uint32(1))
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Memory().String(), "1524M")
+	assert.Equal(t, vm.Spec.Domain.Memory.Guest.String(), "1024M")
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
 	assert.Equal(t, vm.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
 	assert.Equal(t, vm.Spec.Volumes[0].Name, "containerdisk")
