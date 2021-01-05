@@ -55,8 +55,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var tn crownlabsv1alpha1.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error when getting tenant %s before starting reconcile", req.Name)
-		klog.Error(err)
+		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
 		klog.Infof("Tenant %s deleted", req.Name)
@@ -74,34 +73,31 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// reconcile was triggered by a delete request
 			// delete keycloak user
 			if userID, _, err := r.KcA.getUserInfo(ctx, tn.Name); err != nil {
-				klog.Errorf("Error when checking if user %s existed for deletion", tn.Name)
-				klog.Error(err)
+				klog.Errorf("Error when checking if user %s existed for deletion -> %s", tn.Name, err)
 				retrigErr = err
 			} else if userID != nil {
 				// userID != nil means user exist in keycloak, so need to delete it
 				if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
-					klog.Errorf("Error when deleting user %s", tn.Name)
-					klog.Error(err)
+					klog.Errorf("Error when deleting user %s -> %s", tn.Name, err)
 					retrigErr = err
 				}
 			}
 			// delete nextcloud user
 			if err := r.NcA.DeleteUser(genNcUsername(tn.Name)); err != nil {
-				klog.Errorf("Error when deleting nextcloud user for tenant %s: %s", tn.Name, err)
+				klog.Errorf("Error when deleting nextcloud user for tenant %s -> %s", tn.Name, err)
 				retrigErr = err
 			}
 			// remove finalizer from the tenant
 			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 			if err := r.Update(context.Background(), &tn); err != nil {
-				klog.Errorf("Error when removing tenant operator finalizer from tenant %s", tn.Name)
-				klog.Error(err)
+				klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
 				retrigErr = err
 			}
 		}
 		if retrigErr == nil {
 			klog.Infof("Tenant %s ready for deletion", tn.Name)
 		} else {
-			klog.Errorf("Error when preparing tenant %s for deletion, need to retry", tn.Name)
+			klog.Errorf("Error when preparing tenant %s for deletion, need to retry  -> %s", tn.Name, retrigErr)
 		}
 		return ctrl.Result{}, retrigErr
 	}
@@ -112,8 +108,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
 		tn.ObjectMeta.Finalizers = append(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &tn); err != nil {
-			klog.Errorf("Error when adding finalizer to tenant %s", tn.Name)
-			klog.Error(err)
+			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
 			retrigErr = err
 		}
 	}
@@ -128,8 +123,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.SetControllerReference(&tn, &ns, r.Scheme)
 	})
 	if nsErr != nil {
-		klog.Errorf("Unable to create or update namespace of tenant %s", tn.Name)
-		klog.Error(nsErr)
+		klog.Errorf("Unable to create or update namespace of tenant %s -> %s", tn.Name, nsErr)
 		tn.Status.PersonalNamespace.Created = false
 		tn.Status.PersonalNamespace.Name = ""
 		retrigErr = nsErr
@@ -138,8 +132,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
 		if err := r.createOrUpdateTnClusterResources(ctx, &tn, nsName); err != nil {
-			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
-			klog.Error(err)
+			klog.Errorf("Error creating k8s resources for tenant %s -> %s", tn.Name, err)
 			retrigErr = err
 		} else {
 			klog.Infof("Cluster resources for tenant %s have been correctly handled", tn.Name)
@@ -155,8 +148,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		var ws crownlabsv1alpha1.Workspace
 
 		if err := r.Get(ctx, wsLookupKey, &ws); err != nil {
-			klog.Errorf("Error when checking if workspace %s exists in tenant %s", tnWs.WorkspaceRef.Name, tn.Name)
-			klog.Error(err)
+			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.WorkspaceRef.Name, tn.Name, err)
 			retrigErr = err
 			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.WorkspaceRef.Name)
 		} else {
@@ -169,7 +161,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// keycloak resources creation
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
-		klog.Errorf("Error when checking if user %s existed for creation/update", tn.Name)
+		klog.Errorf("Error when checking if user %s existed for creation/update -> %s", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
 	} else {
@@ -179,13 +171,11 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			err = r.KcA.updateKcUser(ctx, *userID, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email, *currentUserEmail != tn.Spec.Email)
 		}
 		if err != nil {
-			klog.Errorf("Error when creating or updating user %s", tn.Name)
-			klog.Error(err)
+			klog.Errorf("Error when creating or updating user %s -> %s", tn.Name, err)
 			retrigErr = err
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		} else if err = r.KcA.updateUserRoles(ctx, genUserRoles(tenantExistingWorkspaces), *userID, "workspace-"); err != nil {
-			klog.Errorf("Error when updating user roles of user %s", tn.Name)
-			klog.Error(err)
+			klog.Errorf("Error when updating user roles of user %s -> %s", tn.Name, err)
 			retrigErr = err
 			tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		} else {
@@ -195,7 +185,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	if nsErr == nil {
 		if err = r.handleNextcloudSubscription(ctx, &tn, nsName); err != nil {
-			klog.Errorf("Error when updating nextcloud subscription for tenant %s: %s", tn.Name, err)
+			klog.Errorf("Error when updating nextcloud subscription for tenant %s -> %s", tn.Name, err)
 			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
 			retrigErr = err
 		} else {
@@ -212,32 +202,31 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if err = r.Status().Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
-		klog.Error("Unable to update status before exiting reconciler", err)
+		klog.Errorf("Unable to update status of tenant %s before exiting reconciler -> %s", tn.Name, err)
 		retrigErr = err
 	}
 
 	if err = updateTnLabels(&tn, tnWorkspaceLabels); err != nil {
-		klog.Errorf("Unable to update label of tenant %s", tn.Name)
-		klog.Error(err)
+		klog.Errorf("Unable to update label of tenant %s -> %s", tn.Name, err)
 		retrigErr = err
 	}
 
 	// need to update resource to apply labels
 	if err = r.Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
-		klog.Error("Unable to update resource before exiting reconciler", err)
+		klog.Errorf("Unable to update tenant %s before exiting reconciler -> %s", tn.Name, err)
 		retrigErr = err
 	}
 
 	if retrigErr != nil {
-		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
+		klog.Errorf("Tenant %s failed to reconcile -> %s", tn.Name, retrigErr)
 		return ctrl.Result{}, retrigErr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
 	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resolution to the second
 	if err != nil {
-		klog.Error("Error when generating random number for reque", err)
+		klog.Errorf("Error when generating random number for reque -> %s", err)
 		return ctrl.Result{}, err
 	}
 	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
@@ -290,15 +279,13 @@ func cleanName(name string) (*string, error) {
 	name = strings.ReplaceAll(name, " ", "_")
 	ok, err := regexp.MatchString(okRegex, name)
 	if err != nil {
-		klog.Errorf("Error when checking name %s", name)
-		klog.Error(err)
+		klog.Errorf("Error when checking name %s for cleaning -> %s", name, err)
 		return nil, err
 	} else if !ok {
 		problemChars := make([]string, 0)
 		for _, c := range name {
 			if ok, err := regexp.MatchString(okRegex, string(c)); err != nil {
-				klog.Errorf("Error when cleaning name %s at char %s", name, string(c))
-				klog.Error(err)
+				klog.Errorf("Error when cleaning name %s at char %s -> %s", name, string(c), err)
 				return nil, err
 			} else if !ok {
 				problemChars = append(problemChars, string(c))
@@ -352,8 +339,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &rq, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update resource quota for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update resource quota for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Resource quota for tenant %s %s", tnName, rqOpRes)
@@ -365,8 +351,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &rb, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update role binding for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update role binding for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Role binding for tenant %s %s", tnName, rbOpRes)
@@ -379,8 +364,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &cr, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update cluster role for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update cluster role for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Cluster role for tenant %s %s", tnName, crOpRes)
@@ -393,8 +377,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &crb, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update cluster role binding for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update cluster role binding for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Cluster role binding for tenant %s %s", tnName, crbOpRes)
@@ -405,8 +388,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &netPolDeny, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update deny network policy for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update deny network policy for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Deny network policy for tenant %s %s", tnName, npDOpRes)
@@ -417,8 +399,7 @@ func (r *TenantReconciler) createOrUpdateTnClusterResources(ctx context.Context,
 		return ctrl.SetControllerReference(tn, &netPolAllow, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update allow network policy for tenant %s", tnName)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update allow network policy for tenant %s -> %s", tnName, err)
 		return err
 	}
 	klog.Infof("Allow network policy for tenant %s %s", tnName, npAOpRes)
@@ -502,20 +483,20 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 	ncUserFound, ncDisplayname, err := r.NcA.GetUser(ncUsername)
 	switch {
 	case err != nil:
-		klog.Errorf("Error when getting nextcloud user: %s", err)
+		klog.Errorf("Error when getting nextcloud user for tenant %s -> %s", tn.Name, err)
 		return err
 	case ncUserFound:
 		if err = r.Get(ctx, types.NamespacedName{Name: ncSecret.Name, Namespace: ncSecret.Namespace}, &ncSecret); client.IgnoreNotFound(err) != nil {
-			klog.Errorf("Error when getting nextcloud secret for tenant %s: %s", tn.Name, err)
+			klog.Errorf("Error when getting nextcloud secret for tenant %s -> %s", tn.Name, err)
 			return err
 		} else if err != nil {
 			ncPsw, errToken := generateToken()
 			if errToken != nil {
-				klog.Errorf("Error when generating nextcloud password of tenant %s: %s", tn.Name, errToken)
+				klog.Errorf("Error when generating nextcloud password of tenant %s -> %s", tn.Name, errToken)
 				return errToken
 			}
 			if errToken = r.NcA.UpdateUserData(ncUsername, "password", *ncPsw); errToken != nil {
-				klog.Errorf("Error when updating password of tenant %s: %s", tn.Name, errToken)
+				klog.Errorf("Error when updating password of tenant %s -> %s", tn.Name, errToken)
 				return errToken
 			}
 
@@ -534,7 +515,7 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 		}
 		if *ncDisplayname != expectedDisplayname {
 			if err = r.NcA.UpdateUserData(ncUsername, "displayname", expectedDisplayname); err != nil {
-				klog.Errorf("Error when updating displayname of tenant %s: %s", tn.Name, err)
+				klog.Errorf("Error when updating displayname of tenant %s -> %s", tn.Name, err)
 				return err
 			}
 		}
@@ -543,11 +524,11 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 		klog.Infof("Nextcloud user for %s not found", tn.Name)
 		ncPsw, err := generateToken()
 		if err != nil {
-			klog.Errorf("Error when generating nextcloud password of tenant %s: %s", tn.Name, err)
+			klog.Errorf("Error when generating nextcloud password of tenant %s -> %s", tn.Name, err)
 			return err
 		}
 		if err = r.NcA.CreateUser(ncUsername, *ncPsw, genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)); err != nil {
-			klog.Errorf("Error when creating nextcloud user for tenant %s: %s", tn.Name, err)
+			klog.Errorf("Error when creating nextcloud user for tenant %s -> %s", tn.Name, err)
 			return err
 		}
 		ncSecretOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ncSecret, func() error {
@@ -555,7 +536,7 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 			return ctrl.SetControllerReference(tn, &ncSecret, r.Scheme)
 		})
 		if err != nil {
-			klog.Errorf("Unable to create or update nextcloud secret of tenant %s: %s", tn.Name, err)
+			klog.Errorf("Unable to create or update nextcloud secret of tenant %s  -> %s", tn.Name, err)
 			return err
 		}
 		klog.Infof("Nextcloud secret for tenant %s %s", tn.Name, ncSecretOpRes)

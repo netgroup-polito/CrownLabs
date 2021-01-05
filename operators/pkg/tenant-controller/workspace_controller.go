@@ -49,8 +49,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var ws crownlabsv1alpha1.Workspace
 
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error when getting workspace %s before starting reconcile", ws.Name)
-		klog.Error(err)
+		klog.Errorf("Error when getting workspace %s before starting reconcile -> %s", ws.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
 		klog.Infof("Workspace %s deleted", req.Name)
@@ -65,8 +64,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// our finalizer is present, so lets handle any external dependency
 			rolesToDelete := genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)
 			if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
-				klog.Errorf("Error when deleting roles of workspace %s", ws.Name)
-				klog.Error(err)
+				klog.Errorf("Error when deleting roles of workspace %s -> %s", ws.Name, err)
 				retrigErr = err
 			}
 
@@ -75,8 +73,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, ws.Name)
 			switch err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); {
 			case client.IgnoreNotFound(err) != nil:
-				klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion", ws.Name)
-				klog.Error(err)
+				klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion -> %s", ws.Name, err)
 				retrigErr = err
 			case err != nil:
 				klog.Infof("No tenants subscribed to workspace %s", ws.Name)
@@ -84,8 +81,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				for i := range tenantsToUpdate.Items {
 					deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, ws.Name)
 					if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
-						klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tenantsToUpdate.Items[i].Name, ws.Name)
-						klog.Error(err)
+						klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tenantsToUpdate.Items[i].Name, ws.Name, err)
 						retrigErr = err
 					}
 				}
@@ -94,15 +90,14 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// remove finalizer from the workspace
 			ws.ObjectMeta.Finalizers = removeString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 			if err := r.Update(context.Background(), &ws); err != nil {
-				klog.Errorf("Error when removing tenant operator finalizer from workspace %s", ws.Name)
-				klog.Error(err)
+				klog.Errorf("Error when removing tenant operator finalizer from workspace %s -> %s", ws.Name, err)
 				retrigErr = err
 			}
 		}
 		if retrigErr == nil {
 			klog.Infof("Workspace %s ready for deletion", ws.Name)
 		} else {
-			klog.Errorf("Error when preparing workspace %s for deletion, need to retry", ws.Name)
+			klog.Errorf("Error when preparing workspace %s for deletion, need to retry -> %s", ws.Name, retrigErr)
 		}
 		return ctrl.Result{}, retrigErr
 	}
@@ -114,8 +109,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
 		ws.ObjectMeta.Finalizers = append(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &ws); err != nil {
-			klog.Errorf("Error when adding finalizer to workspace %s", ws.Name)
-			klog.Error(err)
+			klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
 			retrigErr = err
 		}
 	}
@@ -128,8 +122,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.SetControllerReference(&ws, &ns, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update namespace of workspace %s", ws.Name)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update namespace of workspace %s -> %s", ws.Name, err)
 		ws.Status.Namespace.Created = false
 		ws.Status.Namespace.Name = ""
 		retrigErr = err
@@ -138,8 +131,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ws.Status.Namespace.Created = true
 		ws.Status.Namespace.Name = nsName
 		if err = r.createOrUpdateWsClusterResources(ctx, &ws, nsName); err != nil {
-			klog.Errorf("Error creating k8s resources for workspace %s", ws.Name)
-			klog.Error(err)
+			klog.Errorf("Error creating k8s resources for workspace %s -> %s", ws.Name, err)
 			retrigErr = err
 		} else {
 			klog.Infof("Cluster resources for workspace %s have been correctly handled", ws.Name)
@@ -161,19 +153,19 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// update status before exiting reconcile
 	if err = r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
-		klog.Error("Unable to update status before exiting reconciler", err)
+		klog.Errorf("Unable to update status of workspace %s before exiting reconciler -> %s", ws.Name, err)
 		retrigErr = err
 	}
 
 	if retrigErr != nil {
-		klog.Errorf("Workspace %s failed to reconcile", ws.Name)
+		klog.Errorf("Workspace %s failed to reconcile -> %s", ws.Name, retrigErr)
 		return ctrl.Result{}, retrigErr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
 	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resultion to the second
 	if err != nil {
-		klog.Error("Error when generating random number for reque", err)
+		klog.Errorf("Error when generating random number for reque -> %s", err)
 		return ctrl.Result{}, err
 	}
 	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
@@ -225,8 +217,7 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 		return ctrl.SetControllerReference(ws, &crb, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update cluster role binding for workspace %s", ws.Name)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update cluster role binding for workspace %s -> %s", ws.Name, err)
 		return err
 	}
 	klog.Infof("Cluster role binding for workspace %s %s", ws.Name, crbOpRes)
@@ -238,8 +229,7 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 		return ctrl.SetControllerReference(ws, &rb, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update role binding for workspace %s", ws.Name)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update role binding for workspace %s -> %s", ws.Name, err)
 		return err
 	}
 	klog.Infof("Role binding for workspace %s %s", ws.Name, rbOpRes)
@@ -251,8 +241,7 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 		return ctrl.SetControllerReference(ws, &managerRb, r.Scheme)
 	})
 	if err != nil {
-		klog.Errorf("Unable to create or update manager role binding for workspace %s", ws.Name)
-		klog.Error(err)
+		klog.Errorf("Unable to create or update manager role binding for workspace %s -> %s", ws.Name, err)
 		return err
 	}
 	klog.Infof("Manager role binding for workspace %s %s", ws.Name, mngRbOpRes)

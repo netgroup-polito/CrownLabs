@@ -35,20 +35,20 @@ func (ncA *NcActor) GetUser(ncUsername string) (found bool, displayname *string,
 	userRes, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).Get(userEndpoint)
 
 	if err != nil {
-		klog.Errorf("Error during GET request when getting user %s in nextcloud: %s", ncUsername, err)
+		klog.Errorf("Error during GET request when getting user %s in nextcloud -> %s", ncUsername, err)
 		return false, nil, err
 	}
 
 	statusCode, message, err := parseOCSResponseMeta(userRes.Body())
 	switch {
 	case err != nil:
-		klog.Errorf("Error when parsing meta of nextcloud response of GET request to get user %s: %s", ncUsername, err)
+		klog.Errorf("Error when parsing meta of nextcloud response of GET request to get user %s -> %s", ncUsername, err)
 		return false, nil, err
 	case *statusCode == 100:
 		klog.Infof("Nextcloud user %s already existed", ncUsername)
 		displayname, err := parseOCSResponseData(userRes.Body())
 		if err != nil {
-			klog.Errorf("Error when parsing data of nextcloud response of GET request to get user %s: %s", ncUsername, err)
+			klog.Errorf("Error when parsing data of nextcloud response of GET request to get user %s -> %s", ncUsername, err)
 			return false, nil, err
 		}
 		return true, displayname, nil
@@ -56,7 +56,7 @@ func (ncA *NcActor) GetUser(ncUsername string) (found bool, displayname *string,
 		klog.Infof("Nextcloud user %s did not exist", ncUsername)
 		return false, nil, nil
 	default:
-		klog.Errorf("Error when getting user info of nextcloud user %s: statusCode: %d message: %s", ncUsername, *statusCode, *message)
+		klog.Errorf("Error when getting user info of nextcloud user %s -> statusCode: %d message: %s", ncUsername, *statusCode, *message)
 		return false, nil, errors.New(*message)
 	}
 }
@@ -68,19 +68,19 @@ func (ncA *NcActor) CreateUser(ncUsername, ncPsw, displayname string) error {
 
 	userRes, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).SetFormData(userData).Post(usersURL)
 	if err != nil {
-		klog.Errorf("Error during POST on /users when creating user %s in nextcloud: %s", ncUsername, err)
+		klog.Errorf("Error during POST on /users when creating user %s in nextcloud -> %s", ncUsername, err)
 		return err
 	}
 
 	statusCode, message, err := parseOCSResponseMeta(userRes.Body())
 	if err != nil {
-		klog.Errorf("Error when parsing nextcloud response when creating user %s: %s", ncUsername, err)
+		klog.Errorf("Error when parsing nextcloud response when creating user %s -> %s", ncUsername, err)
 		return err
 	}
 	if *statusCode == 100 {
 		klog.Infof("Nextcloud user for %s created", ncUsername)
 	} else {
-		klog.Errorf("Error when creating user in nextcloud: statusCode %d, message: %s", *statusCode, *message)
+		klog.Errorf("Error when creating user in nextcloud -> statusCode %d, message: %s", *statusCode, *message)
 		return errors.New(*message)
 	}
 	return nil
@@ -92,16 +92,16 @@ func (ncA *NcActor) UpdateUserData(username, param, value string) error {
 	data := map[string]string{"key": param, "value": value}
 	res, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).SetFormData(data).Put(userURL)
 	if err != nil {
-		klog.Errorf("Error when sending request for %s update in nextcloud for user %s: %s", param, username, err)
+		klog.Errorf("Error when sending request for %s update in nextcloud for user %s -> %s", param, username, err)
 		return err
 	}
 	statusCode, message, err := parseOCSResponseMeta(res.Body())
 	if err != nil {
-		klog.Errorf("Error when parsing response of %s update in nextcloud of user %s: %s", param, username, err)
+		klog.Errorf("Error when parsing response of %s update in nextcloud of user %s -> %s", param, username, err)
 		return err
 	}
 	if *statusCode != 100 {
-		klog.Errorf("Error when updating %s in nextcloud of user %s, statusCode: %d, message: %s", param, username, *statusCode, *message)
+		klog.Errorf("Error when updating %s in nextcloud of user %s -> statusCode: %d, message: %s", param, username, *statusCode, *message)
 		return errors.New(*message)
 	}
 	return nil
@@ -112,21 +112,21 @@ func (ncA *NcActor) DeleteUser(username string) error {
 	userURL := ncA.buildOCSEndpoint(fmt.Sprintf("/users/%s", username))
 	res, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).Delete(userURL)
 	if err != nil {
-		klog.Errorf("Error when sending DELETE request for deletion in nextcloud for user %s: %s", username, err)
+		klog.Errorf("Error when sending DELETE request for deletion in nextcloud for user %s -> %s", username, err)
 		return err
 	}
 	statusCode, message, err := parseOCSResponseMeta(res.Body())
 	if err != nil {
-		klog.Errorf("Error when parsing response of delete in nextcloud of user %s: %s", username, err)
+		klog.Errorf("Error when parsing response of delete in nextcloud of user %s -> %s", username, err)
 		return err
 	}
 	if *statusCode != 100 {
 		// since DELETE request fails if user is already deleted (WTF?!?!?) need to check if user still exists
 		if found, _, err := ncA.GetUser(username); err != nil {
-			klog.Errorf("Error when checking if nextcloud user %s exists: %s", username, err)
+			klog.Errorf("Error when checking if nextcloud user %s exists -> %s", username, err)
 			return err
 		} else if found {
-			klog.Errorf("Error when deleting nextcloud user %s, user still exists despite attempted deletion, statusCode: %d, message: %s", username, *statusCode, *message)
+			klog.Errorf("Error when deleting nextcloud user %s, user still exists despite attempted deletios -> statusCode: %d, message: %s", username, *statusCode, *message)
 			return errors.New("nextcloud user still exists after deletion")
 		}
 		return nil
@@ -137,7 +137,7 @@ func (ncA *NcActor) DeleteUser(username string) error {
 func parseOCSResponseMeta(respBody []byte) (parsedStatusCode *int, parsedMessage *string, err error) {
 	ocsJSON, err := extractOCSResponse(respBody)
 	if err != nil {
-		klog.Error("Error when extracting OCS response")
+		klog.Errorf("Error when extracting OCS response meta -> %s", err)
 		return nil, nil, err
 	}
 	metaJSON := ocsJSON["meta"].(map[string]interface{})
@@ -149,7 +149,7 @@ func parseOCSResponseMeta(respBody []byte) (parsedStatusCode *int, parsedMessage
 func parseOCSResponseData(respBody []byte) (parsedDisplayname *string, err error) {
 	ocsJSON, err := extractOCSResponse(respBody)
 	if err != nil {
-		klog.Error("Error when extracting OCS response")
+		klog.Errorf("Error when extracting OCS response data -> %s", err)
 		return nil, err
 	}
 	metaJSON := ocsJSON["data"].(map[string]interface{})
@@ -161,7 +161,7 @@ func extractOCSResponse(respBody []byte) (map[string]interface{}, error) {
 	respJSON := make(map[string]interface{})
 	err := json.Unmarshal(respBody, &respJSON)
 	if err != nil {
-		klog.Error("Error when un-marshaling OCS response")
+		klog.Errorf("Error when un-marshaling OCS response -> %s", err)
 		return nil, err
 	}
 	ocsJSON := respJSON["ocs"].(map[string]interface{})
