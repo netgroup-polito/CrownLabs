@@ -1,6 +1,14 @@
 apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
 metadata:
-  name: swnet
+  name: tea
 spec:
-  prettyName: Software Networking
+  prettyName: A cup of tea from hte queen
+
+---
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: coffee
+spec:
+  prettyName: Just coffee

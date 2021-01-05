@@ -19,6 +19,7 @@ package tenant_controller
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -52,24 +53,11 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var tn crownlabsv1alpha1.Tenant
 	var userID *string
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error getting tenant %s on deletion", req.Name)
+		klog.Errorf("Error when getting tenant %s before starting reconcile", req.Name)
 		klog.Error(err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		// reconcile was triggered by a delete request
-		if userID, _, err = r.KcA.getUserInfo(ctx, req.Name); err != nil {
-			klog.Errorf("Error when checking if user %s existed for deletion", req.Name)
-			klog.Error(err)
-			return ctrl.Result{}, err
-		} else if userID != nil {
-			// userID != nil means user already existed when tenant was deleted, so need to delete user in keycloak
-			if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
-				klog.Errorf("Error when deleting user %s", req.Name)
-				klog.Error(err)
-				return ctrl.Result{}, err
-			}
-		}
-		klog.Infof("Tenant %s resources deleted", req.Name)
+		klog.Infof("Tenant %s deleted", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -78,7 +66,49 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
 	}
 
+	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
+		klog.Infof("Processing deletion of tenant %s", tn.Name)
+		if containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+			// reconcile was triggered by a delete request
+			if userID, _, err := r.KcA.getUserInfo(ctx, tn.Name); err != nil {
+				klog.Errorf("Error when checking if user %s existed for deletion", tn.Name)
+				klog.Error(err)
+				retrigErr = err
+			} else if userID != nil {
+				// userID != nil means user exist in keycloak, so need to delete it
+				if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
+					klog.Errorf("Error when deleting user %s", tn.Name)
+					klog.Error(err)
+					retrigErr = err
+				}
+			}
+			// remove finalizer from the tenant
+			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+			if err := r.Update(context.Background(), &tn); err != nil {
+				klog.Errorf("Error when removing tenant operator finalizer from tenant %s", tn.Name)
+				klog.Error(err)
+				retrigErr = err
+			}
+		}
+		if retrigErr == nil {
+			klog.Infof("Tenant %s ready for deletion", tn.Name)
+		} else {
+			klog.Errorf("Error when preparing tenant %s for deletion, need to retry", tn.Name)
+		}
+		return ctrl.Result{}, retrigErr
+	}
+	// tenant is NOT being deleted
 	klog.Infof("Reconciling tenant %s", req.Name)
+
+	// add tenant operator finalizer to tenant
+	if !containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		tn.ObjectMeta.Finalizers = append(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+		if err := r.Update(context.Background(), &tn); err != nil {
+			klog.Errorf("Error when adding finalizer to tenant %s", tn.Name)
+			klog.Error(err)
+			retrigErr = err
+		}
+	}
 
 	// namespace creation
 	nsName := fmt.Sprintf("tenant-%s", strings.Replace(tn.Name, ".", "-", -1))
@@ -164,6 +194,43 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
 	}
+
+	if err := updateTnLabels(&tn, tnWorkspaceLabels); err != nil {
+		klog.Errorf("Unable to update label of tenant %s", tn.Name)
+		klog.Error(err)
+		retrigErr = err
+	}
+
+	// need to update resource to apply labels
+	if err := r.Update(ctx, &tn); err != nil {
+		// if status update fails, still try to reconcile later
+		klog.Error("Unable to update resource before exiting reconciler", err)
+		retrigErr = err
+	}
+
+	if retrigErr != nil {
+		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
+		return ctrl.Result{}, retrigErr
+	}
+
+	// no retrigErr, need to normal reconcile later, so need to create random number and exit
+	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resoultion to the second
+	if err != nil {
+		klog.Error("Error when generating random number for reque", err)
+		return ctrl.Result{}, err
+	}
+	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
+	klog.Infof("Tenant %s reconciled successfully, next in %s", tn.Name, nextRequeDuration)
+	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
+}
+
+func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&crownlabsv1alpha1.Tenant{}).
+		Complete(r)
+}
+
+func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tnWorkspaceLabels map[string]string) error {
 	if tn.Labels == nil {
 		tn.Labels = make(map[string]string)
 	} else {
@@ -173,24 +240,46 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	for k, v := range tnWorkspaceLabels {
 		tn.Labels[k] = v
 	}
-	// need to update resource to apply labels
-	if err := r.Update(ctx, &tn); err != nil {
-		// if status update fails, still try to reconcile later
-		klog.Error("Unable to update resource before exiting reconciler", err)
-		retrigErr = err
+
+	cleanedFirstName, err := cleanName(tn.Spec.FirstName)
+	if err != nil {
+		klog.Errorf("Error when cleaning first name of tenant %s", tn.Name)
+		return err
 	}
-	if retrigErr == nil {
-		klog.Infof("Tenant %s reconciled successfully", tn.Name)
-	} else {
-		klog.Errorf("Tenant %s failed to reconcile", tn.Name)
+	cleanedLastName, err := cleanName(tn.Spec.LastName)
+	if err != nil {
+		klog.Errorf("Error when cleaning last name of tenant %s", tn.Name)
+		return err
 	}
-	return ctrl.Result{RequeueAfter: (time.Minute * time.Duration(randomRange(60, 120)))}, retrigErr
+	tn.Labels["crownlabs.polito.it/first-name"] = *cleanedFirstName
+	tn.Labels["crownlabs.polito.it/last-name"] = *cleanedLastName
+	return nil
 }
 
-func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha1.Tenant{}).
-		Complete(r)
+func cleanName(name string) (*string, error) {
+	okRegex := "^[a-zA-Z0-9_]+$"
+	name = strings.ReplaceAll(name, " ", "_")
+	ok, err := regexp.MatchString(okRegex, name)
+	if err != nil {
+		klog.Errorf("Error when checking name %s", name)
+		klog.Error(err)
+		return nil, err
+	} else if !ok {
+		problemChars := make([]string, 0)
+		for _, c := range name {
+			if ok, err := regexp.MatchString(okRegex, string(c)); err != nil {
+				klog.Errorf("Error when cleaning name %s at char %s", name, string(c))
+				klog.Error(err)
+				return nil, err
+			} else if !ok {
+				problemChars = append(problemChars, string(c))
+			}
+		}
+		for _, v := range problemChars {
+			name = strings.Replace(name, v, "", 1)
+		}
+	}
+	return &name, nil
 }
 
 // updateTnNamespace updates the tenant namespace
@@ -316,7 +405,7 @@ func updateTnResQuota(rq *v1.ResourceQuota) {
 
 	resourceList := make(v1.ResourceList)
 
-	resourceList["limits.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
+	resourceList["limits.cpu"] = *resource.NewQuantity(15, resource.DecimalSI)
 	resourceList["limits.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
 	resourceList["requests.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
 	resourceList["requests.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)

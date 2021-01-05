@@ -69,6 +69,7 @@ spec:
                   - Ok
                   - Failed
                   type: string
+                description: list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
                 type: object
             type: object
         type: object
