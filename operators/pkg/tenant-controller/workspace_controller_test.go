@@ -115,7 +115,7 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.Eq(userKcRole),
-	).Return(&gocloak.Role{Name: &userKcRole, Description: &wsPrettyName}, nil).MinTimes(1).MaxTimes(2)
+	).Return(&gocloak.Role{Name: &userKcRole, Description: &wsPrettyName}, nil).AnyTimes()
 
 	mockKcCLient.EXPECT().GetClientRole(
 		gomock.AssignableToTypeOf(context.Background()),
@@ -123,7 +123,7 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.Eq(managerKcRole),
-	).Return(&gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}, nil).MinTimes(1).MaxTimes(2)
+	).Return(&gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}, nil).AnyTimes()
 
 	mockKcCLient.EXPECT().UpdateRole(
 		gomock.AssignableToTypeOf(context.Background()),
@@ -131,7 +131,7 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.AssignableToTypeOf(gocloak.Role{Name: &userKcRole, Description: &wsPrettyName}),
-	).Return(nil).MinTimes(1).MaxTimes(2)
+	).Return(nil).AnyTimes()
 
 	mockKcCLient.EXPECT().UpdateRole(
 		gomock.AssignableToTypeOf(context.Background()),
@@ -139,7 +139,7 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 		gomock.Eq(kcTargetRealm),
 		gomock.Eq(kcTargetClientID),
 		gomock.AssignableToTypeOf(gocloak.Role{Name: &managerKcRole, Description: &wsPrettyName}),
-	).Return(nil).MinTimes(1).MaxTimes(2)
+	).Return(nil).AnyTimes()
 }
 
 func checkWsClusterResourceCreation(ctx context.Context, wsName, nsName string, timeout, interval time.Duration) {

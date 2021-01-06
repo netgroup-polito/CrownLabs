@@ -1,12 +1,8 @@
 /*
-
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -62,31 +58,10 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// workspace is being deleted
 		if containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
-			rolesToDelete := genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)
-			if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
-				klog.Errorf("Error when deleting roles of workspace %s -> %s", ws.Name, err)
+			if err := r.handleDeletion(ctx, ws.Name, ws.Spec.PrettyName); err != nil {
+				klog.Errorf("Error when deleting resources handled by workspace  %s -> %s", ws.Name, err)
 				retrigErr = err
 			}
-
-			// unsubscribe tenants from workspace to delete
-			var tenantsToUpdate crownlabsv1alpha1.TenantList
-			targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, ws.Name)
-			switch err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); {
-			case client.IgnoreNotFound(err) != nil:
-				klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion -> %s", ws.Name, err)
-				retrigErr = err
-			case err != nil:
-				klog.Infof("No tenants subscribed to workspace %s", ws.Name)
-			default:
-				for i := range tenantsToUpdate.Items {
-					deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, ws.Name)
-					if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
-						klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tenantsToUpdate.Items[i].Name, ws.Name, err)
-						retrigErr = err
-					}
-				}
-			}
-
 			// remove finalizer from the workspace
 			ws.ObjectMeta.Finalizers = removeString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 			if err := r.Update(context.Background(), &ws); err != nil {
@@ -115,36 +90,35 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	nsName := fmt.Sprintf("workspace-%s", ws.Name)
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	nsOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		updateNamespace(&ns)
-		return ctrl.SetControllerReference(&ws, &ns, r.Scheme)
-	})
-	if err != nil {
-		klog.Errorf("Unable to create or update namespace of workspace %s -> %s", ws.Name, err)
+	nsOk, err := r.createOrUpdateClusterResources(ctx, &ws, nsName)
+	if nsOk {
+		klog.Infof("Namespace %s for tenant %s updated", nsName, ws.Name)
+		ws.Status.Namespace.Created = true
+		ws.Status.Namespace.Name = nsName
+		if err != nil {
+			klog.Errorf("Unable to update cluster resource of tenant %s -> %s", ws.Name, err)
+			retrigErr = err
+		}
+		klog.Infof("Cluster resourcess for tenant %s updated", ws.Name)
+	} else {
+		klog.Errorf("Unable to update namespace of tenant %s -> %s", ws.Name, err)
 		ws.Status.Namespace.Created = false
 		ws.Status.Namespace.Name = ""
 		retrigErr = err
-	} else {
-		klog.Infof("Namespace %s for workspace %s %s", nsName, ws.Name, nsOpRes)
-		ws.Status.Namespace.Created = true
-		ws.Status.Namespace.Name = nsName
-		if err = r.createOrUpdateWsClusterResources(ctx, &ws, nsName); err != nil {
-			klog.Errorf("Error creating k8s resources for workspace %s -> %s", ws.Name, err)
-			retrigErr = err
-		} else {
-			klog.Infof("Cluster resources for workspace %s have been correctly handled", ws.Name)
-		}
 	}
 
 	if ws.Status.Subscriptions == nil {
-		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
+		// len 1 of the map is for the number of subscriptions (keycloak)
+		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus, 1)
 	}
-	if err = r.KcA.createKcRoles(ctx, genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
+	// handling keycloak resources
+	if err = r.KcA.createKcRoles(ctx, genWorkspaceKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
+		klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
 	} else {
+		klog.Infof("Roles for workspace %s created successfully", ws.Name)
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
 	}
 
@@ -182,22 +156,38 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func updateNamespace(ns *v1.Namespace) {
-	if ns.Labels == nil {
-		ns.Labels = make(map[string]string)
+func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPrettyName string) error {
+	var retErr error
+	rolesToDelete := genWorkspaceKcRolesData(wsName, wsPrettyName)
+	if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
+		klog.Errorf("Error when deleting roles of workspace %s -> %s", wsName, err)
+		retErr = err
 	}
-	ns.Labels["crownlabs.polito.it/type"] = "workspace"
+
+	// unsubscribe tenants from workspace to delete
+	var tenantsToUpdate crownlabsv1alpha1.TenantList
+	targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, wsName)
+
+	err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel})
+	switch {
+	case client.IgnoreNotFound(err) != nil:
+		klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion -> %s", wsName, err)
+		retErr = err
+	case err != nil:
+		klog.Infof("No tenants subscribed to workspace %s", wsName)
+	default:
+		for i := range tenantsToUpdate.Items {
+			removeWsFromTn(&tenantsToUpdate.Items[i].Spec.Workspaces, wsName)
+			if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
+				klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tenantsToUpdate.Items[i].Name, wsName, err)
+				retErr = err
+			}
+		}
+	}
+	return retErr
 }
 
-func genWorkspaceRolesData(wsName, wsPrettyName string) map[string]string {
-	return map[string]string{genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager): wsPrettyName, genWorkspaceRoleName(wsName, crownlabsv1alpha1.User): wsPrettyName}
-}
-
-func genWorkspaceRoleName(wsName string, role crownlabsv1alpha1.WorkspaceUserRole) string {
-	return fmt.Sprintf("workspace-%s:%s", wsName, role)
-}
-
-func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
+func removeWsFromTn(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
 	idxToRemove := -1
 	for i, wsData := range *workspaces {
 		if wsData.WorkspaceRef.Name == wsToRemove {
@@ -209,7 +199,18 @@ func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemo
 	}
 }
 
-func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Context, ws *crownlabsv1alpha1.Workspace, nsName string) error {
+func (r *WorkspaceReconciler) createOrUpdateClusterResources(ctx context.Context, ws *crownlabsv1alpha1.Workspace, nsName string) (nsOk bool, err error) {
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+
+	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+		updateWsNamespace(&ns)
+		return ctrl.SetControllerReference(ws, &ns, r.Scheme)
+	}); nsErr != nil {
+		klog.Errorf("Error when updating namespace of workspace %s -> %s", ws.Name, nsErr)
+		return false, nsErr
+	}
+
+	var retErr error = nil
 	// handle clusterRoleBinding
 	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("crownlabs-manage-instances-%s", ws.Name)}}
 	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
@@ -218,7 +219,7 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update cluster role binding for workspace %s -> %s", ws.Name, err)
-		return err
+		retErr = err
 	}
 	klog.Infof("Cluster role binding for workspace %s %s", ws.Name, crbOpRes)
 
@@ -230,7 +231,7 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update role binding for workspace %s -> %s", ws.Name, err)
-		return err
+		retErr = err
 	}
 	klog.Infof("Role binding for workspace %s %s", ws.Name, rbOpRes)
 
@@ -242,11 +243,18 @@ func (r *WorkspaceReconciler) createOrUpdateWsClusterResources(ctx context.Conte
 	})
 	if err != nil {
 		klog.Errorf("Unable to create or update manager role binding for workspace %s -> %s", ws.Name, err)
-		return err
+		retErr = err
 	}
 	klog.Infof("Manager role binding for workspace %s %s", ws.Name, mngRbOpRes)
 
-	return nil
+	return true, retErr
+}
+
+func updateWsNamespace(ns *v1.Namespace) {
+	if ns.Labels == nil {
+		ns.Labels = make(map[string]string, 1)
+	}
+	ns.Labels["crownlabs.polito.it/type"] = "workspace"
 }
 
 func updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName string) {
@@ -255,7 +263,7 @@ func updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName string) {
 	}
 	crb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	crb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
-	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
@@ -264,7 +272,7 @@ func updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
 	}
 	rb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-view-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.User)), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceKcRoleName(wsName, crownlabsv1alpha1.User)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
@@ -273,5 +281,13 @@ func updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
 	}
 	rb.Labels["crownlabs.polito.it/managed-by"] = "workspace"
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWorkspaceKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func genWorkspaceKcRolesData(wsName, wsPrettyName string) map[string]string {
+	return map[string]string{genWorkspaceKcRoleName(wsName, crownlabsv1alpha1.Manager): wsPrettyName, genWorkspaceKcRoleName(wsName, crownlabsv1alpha1.User): wsPrettyName}
+}
+
+func genWorkspaceKcRoleName(wsName string, role crownlabsv1alpha1.WorkspaceUserRole) string {
+	return fmt.Sprintf("workspace-%s:%s", wsName, role)
 }

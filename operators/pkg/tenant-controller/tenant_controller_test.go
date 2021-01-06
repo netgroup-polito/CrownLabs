@@ -44,8 +44,8 @@ var _ = Describe("Tenant controller", func() {
 		wsManagerRole = "workspace-ws1:manager"
 
 		tnName          = "mariorossi"
-		tnFirstName     = "marià"
-		tnLastName      = "ròssì"
+		tnFirstName     = "mariò"
+		tnLastName      = "ròssì verdò"
 		tnWorkspaces    = []crownlabsv1alpha1.UserWorkspaceData{{WorkspaceRef: crownlabsv1alpha1.GenericRef{Name: "ws1"}, Role: crownlabsv1alpha1.User}}
 		tnEmail         = "mario.rossi@email.com"
 		userID          = "userID"
@@ -147,14 +147,14 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsUserRole),
-		).Return(nil).MinTimes(1).MaxTimes(2)
+		).Return(nil).AnyTimes()
 
 		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsManagerRole),
-		).Return(nil).MinTimes(1).MaxTimes(2)
+		).Return(nil).AnyTimes()
 
 	})
 
@@ -231,7 +231,7 @@ var _ = Describe("Tenant controller", func() {
 			if tn.Labels["crownlabs.polito.it/first-name"] != "mari" {
 				return false
 			}
-			if tn.Labels["crownlabs.polito.it/last-name"] != "rss" {
+			if tn.Labels["crownlabs.polito.it/last-name"] != "rss_verd" {
 				return false
 			}
 			if !containsString(tn.Finalizers, "crownlabs.polito.it/tenant-operator") {
