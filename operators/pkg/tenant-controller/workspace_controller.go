@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +29,8 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -72,17 +73,18 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			// unsubscribe tenants from workspace to delete
 			var tenantsToUpdate crownlabsv1alpha1.TenantList
 			targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, ws.Name)
-			if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); client.IgnoreNotFound(err) != nil {
+			switch err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); {
+			case client.IgnoreNotFound(err) != nil:
 				klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion", ws.Name)
 				klog.Error(err)
 				retrigErr = err
-			} else if err != nil {
+			case err != nil:
 				klog.Infof("No tenants subscribed to workspace %s", ws.Name)
-			} else {
-				for i, tn := range tenantsToUpdate.Items {
+			default:
+				for i := range tenantsToUpdate.Items {
 					deleteWorkspace(&tenantsToUpdate.Items[i].Spec.Workspaces, ws.Name)
 					if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
-						klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tn.Name, ws.Name)
+						klog.Errorf("Error when unsubscribing tenant %s from workspace %s", tenantsToUpdate.Items[i].Name, ws.Name)
 						klog.Error(err)
 						retrigErr = err
 					}
@@ -135,7 +137,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for workspace %s %s", nsName, ws.Name, nsOpRes)
 		ws.Status.Namespace.Created = true
 		ws.Status.Namespace.Name = nsName
-		if err := createOrUpdateWsClusterResources(ctx, r, &ws, nsName); err != nil {
+		if err = createOrUpdateWsClusterResources(ctx, r, &ws, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for workspace %s", ws.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -147,7 +149,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if ws.Status.Subscriptions == nil {
 		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus)
 	}
-	if err := r.KcA.createKcRoles(ctx, genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
+	if err = r.KcA.createKcRoles(ctx, genWorkspaceRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
 	} else {
@@ -157,7 +159,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ws.Status.Ready = retrigErr == nil
 
 	// update status before exiting reconcile
-	if err := r.Status().Update(ctx, &ws); err != nil {
+	if err = r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
@@ -210,7 +212,6 @@ func deleteWorkspace(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemo
 	if idxToRemove != -1 {
 		*workspaces = append((*workspaces)[:idxToRemove], (*workspaces)[idxToRemove+1:]...) // Truncate slice.
 	}
-
 }
 
 func createOrUpdateWsClusterResources(ctx context.Context, r *WorkspaceReconciler, ws *crownlabsv1alpha1.Workspace, nsName string) error {

@@ -17,10 +17,12 @@ limitations under the License.
 package instance_controller
 
 import (
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,7 +52,6 @@ func TestAPIs(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
-
 }
 
 var _ = BeforeSuite(func(done Done) {
@@ -91,12 +92,12 @@ var _ = BeforeSuite(func(done Done) {
 		Scheme:             k8sManager.GetScheme(),
 		EventsRecorder:     k8sManager.GetEventRecorderFor("LabInstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		NextcloudBaseUrl:   "fake.com",
-		WebsiteBaseUrl:     "fakesite.com",
+		NextcloudBaseURL:   "fake.com",
+		WebsiteBaseURL:     "fakesite.com",
 		WebdavSecretName:   "webdav-secret",
 		Oauth2ProxyImage:   "test-image/test",
 		OidcClientSecret:   "sdad-csad-cdsw-asde",
-		OidcProviderUrl:    "provider-url.com",
+		OidcProviderURL:    "provider-url.com",
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

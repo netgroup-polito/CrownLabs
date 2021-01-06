@@ -32,7 +32,7 @@ type LabInstanceSpec struct {
 // LabInstanceStatus defines the observed state of LabInstance
 type LabInstanceStatus struct {
 	Phase string `json:"phase,omitempty"`
-	Url   string `json:"url,omitempty"`
+	URL   string `json:"url,omitempty"`
 	IP    string `json:"ip,omitempty"`
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`

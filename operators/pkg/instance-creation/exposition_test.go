@@ -44,7 +44,7 @@ func TestForgeIngress(t *testing.T) {
 		name           = "usertest"
 		namespace      = "namespacetest"
 		urlUUID        = "urlUUIDtest"
-		websiteBaseUrl = "websiteBaseUrlTest"
+		websiteBaseURL = "websiteBaseUrlTest"
 		svc            = corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "svc-test",
@@ -57,7 +57,7 @@ func TestForgeIngress(t *testing.T) {
 				},
 			},
 		}
-		url = websiteBaseUrl + "/" + urlUUID
+		url = websiteBaseURL + "/" + urlUUID
 	)
 
 	ownerRef := []metav1.OwnerReference{{
@@ -67,7 +67,7 @@ func TestForgeIngress(t *testing.T) {
 	},
 	}
 
-	ingress := ForgeIngress(name, namespace, svc, urlUUID, websiteBaseUrl, ownerRef)
+	ingress := ForgeIngress(name, namespace, &svc, urlUUID, websiteBaseURL, ownerRef)
 
 	assert.Equal(t, ingress.ObjectMeta.Name, name+"-ingress")
 	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
@@ -78,8 +78,8 @@ func TestForgeIngress(t *testing.T) {
 	assert.Equal(t, ingress.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/configuration-snippet"], `sub_filter '<head>' '<head> <base href="https://$host/`+urlUUID+`/index.html">';`)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"(/|$)(.*)")
 	assert.Equal(t, ingress.ObjectMeta.Annotations["crownlabs.polito.it/probe-url"], "https://"+url)
-	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseUrl)
-	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseUrl)
+	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
+	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
 	assert.Equal(t, ingress.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
 	assert.Equal(t, ingress.OwnerReferences[0].Kind, "Instance")
 	assert.Equal(t, ingress.OwnerReferences[0].Name, "Test1")
@@ -92,7 +92,7 @@ func TestForgeOauth2Deployment(t *testing.T) {
 		urlUUID      = "urlUUIDtest"
 		image        = "imagetest"
 		clientSecret = "secrettest"
-		providerUrl  = "urltest"
+		providerURL  = "urltest"
 	)
 	ownerRef := []metav1.OwnerReference{{
 		APIVersion: "crownlabs.polito.it/v1alpha2",
@@ -101,7 +101,7 @@ func TestForgeOauth2Deployment(t *testing.T) {
 	},
 	}
 
-	deploy := ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerUrl, ownerRef)
+	deploy := ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL, ownerRef)
 
 	assert.Equal(t, deploy.ObjectMeta.Name, name+"-oauth2-deploy")
 	assert.Equal(t, deploy.ObjectMeta.Namespace, namespace)
@@ -112,10 +112,9 @@ func TestForgeOauth2Deployment(t *testing.T) {
 	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--proxy-prefix=/"+urlUUID+"/oauth2")
 	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--cookie-path=/"+urlUUID)
 	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--client-secret="+clientSecret)
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--login-url="+providerUrl+"/protocol/openid-connect/auth")
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--redeem-url="+providerUrl+"/protocol/openid-connect/token")
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--validate-url="+providerUrl+"/protocol/openid-connect/userinfo")
-
+	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--login-url="+providerURL+"/protocol/openid-connect/auth")
+	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--redeem-url="+providerURL+"/protocol/openid-connect/token")
+	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--validate-url="+providerURL+"/protocol/openid-connect/userinfo")
 }
 
 func TestForgeOauth2Service(t *testing.T) {
@@ -144,7 +143,7 @@ func TestForgeOauth2Ingress(t *testing.T) {
 		name           = "usertest"
 		namespace      = "namespacetest"
 		urlUUID        = "urlUUIDtest"
-		websiteBaseUrl = "websiteBaseUrlTest"
+		websiteBaseURL = "websiteBaseUrlTest"
 		svc            = corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "svc-test",
@@ -165,7 +164,7 @@ func TestForgeOauth2Ingress(t *testing.T) {
 	},
 	}
 
-	ingress := ForgeOauth2Ingress(name, namespace, svc, urlUUID, websiteBaseUrl, ownerRef)
+	ingress := ForgeOauth2Ingress(name, namespace, &svc, urlUUID, websiteBaseURL, ownerRef)
 
 	assert.Equal(t, ingress.ObjectMeta.Name, name+"-oauth2-ingress")
 	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
@@ -175,6 +174,6 @@ func TestForgeOauth2Ingress(t *testing.T) {
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name, svc.Name)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Port.Number, svc.Spec.Ports[0].TargetPort.IntVal)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"/oauth2/.*")
-	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseUrl)
-	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseUrl)
+	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
+	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
 }

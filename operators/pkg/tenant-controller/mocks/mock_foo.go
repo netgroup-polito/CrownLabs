@@ -6,11 +6,12 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gocloak "github.com/Nerzal/gocloak/v7"
 	jwt "github.com/dgrijalva/jwt-go/v4"
 	resty "github.com/go-resty/resty/v2"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockGoCloak is a mock of GoCloak interface

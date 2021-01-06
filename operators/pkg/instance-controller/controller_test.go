@@ -2,14 +2,16 @@ package instance_controller
 
 import (
 	"context"
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -180,7 +182,7 @@ var _ = Describe("LabOperator controller", func() {
 					}
 					return len(vmList.Items) == 1
 				}, timeout, interval).Should(BeTrue())
-				By("VirtualMachine Has An Ownerreferce")
+				By("VirtualMachine Has An OwnerReference")
 
 				flag := true
 				expectedOwnerReference := metav1.OwnerReference{
@@ -210,10 +212,9 @@ var _ = Describe("LabOperator controller", func() {
 	})
 })
 
-func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdObject runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
+func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdObject runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
 	Eventually(func() bool {
 		err := k8sClient.Get(ctx, nsLookupKey, createdObject)
 		return err == nil
 	}, timeout, interval).Should(expectedStatus)
-
 }

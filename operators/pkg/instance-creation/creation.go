@@ -3,10 +3,9 @@ package instance_creation
 import (
 	"context"
 	"fmt"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -15,6 +14,8 @@ import (
 	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var terminationGracePeriod int64 = 30
@@ -22,7 +23,7 @@ var CPUhypervisorReserved float32 = 0.5
 var memoryHypervisorReserved string = "500M"
 var registryCred string = "registry-credentials"
 
-func CreateVirtualMachineInstance(name string, namespace string, template *crownlabsv1alpha2.Environment, instanceName string, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
+func CreateVirtualMachineInstance(name, namespace string, template *crownlabsv1alpha2.Environment, instanceName, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
 	vmMemory := template.Resources.Memory
 	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
 	vm := virtv1.VirtualMachineInstance{
@@ -40,11 +41,11 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 			TerminationGracePeriodSeconds: &terminationGracePeriod,
 			Domain: virtv1.DomainSpec{
 				Resources: virtv1.ResourceRequirements{
-					Requests: v1.ResourceList{
+					Requests: corev1.ResourceList{
 						"cpu":    resource.MustParse(ComputeCPURequests(template.Resources.CPU, template.Resources.ReservedCPUPercentage)),
 						"memory": template.Resources.Memory,
 					},
-					Limits: v1.ResourceList{
+					Limits: corev1.ResourceList{
 						"cpu":    resource.MustParse(ComputeCPULimits(template.Resources.CPU, CPUhypervisorReserved)),
 						"memory": template.Resources.Memory,
 					},
@@ -84,7 +85,7 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 						ContainerDisk: &virtv1.ContainerDiskSource{
 							Image:           template.Image,
 							ImagePullSecret: registryCred,
-							ImagePullPolicy: v1.PullIfNotPresent,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 					},
 				},
@@ -102,17 +103,16 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 	return &vm, nil
 }
 
-func ComputeCPULimits(CPU uint32, HypervisorCoefficient float32) string {
-	return fmt.Sprintf("%f", float32(CPU)+HypervisorCoefficient)
+func ComputeCPULimits(cpu uint32, hypervisorCoefficient float32) string {
+	return fmt.Sprintf("%f", float32(cpu)+hypervisorCoefficient)
 }
 
-func ComputeCPURequests(CPU uint32, percentage uint32) string {
-	return fmt.Sprintf("%f", float32(CPU*percentage)/100)
+func ComputeCPURequests(cpu, percentage uint32) string {
+	return fmt.Sprintf("%f", float32(cpu*percentage)/100)
 }
 
-// create a resource or update it if already exists
-func CreateOrUpdate(c client.Client, ctx context.Context, object interface{}) error {
-
+// CreateOrUpdate creates a resource or updates it if already exists
+func CreateOrUpdate(ctx context.Context, c client.Client, object interface{}) error {
 	switch obj := object.(type) {
 	case corev1.Secret:
 		var sec corev1.Secret
@@ -211,7 +211,7 @@ func CreateOrUpdate(c client.Client, ctx context.Context, object interface{}) er
 	return nil
 }
 
-func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
+func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
 	for key, value := range matchLabels {
 		if v1, ok := ns.Labels[key]; !ok || v1 != value {
 			return false

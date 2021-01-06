@@ -19,17 +19,19 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"time"
 
 	"github.com/Nerzal/gocloak/v7"
-	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
+	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -122,12 +124,10 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		klog.Fatal("Problem running manager", err)
 	}
-
 }
 
 // newKcActor sets up a keycloak client with the specififed parameters and performs the first login
 func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm string) (*controllers.KcActor, error) {
-
 	kcClient := gocloak.NewClient(kcURL)
 	token, err := kcClient.LoginAdmin(context.Background(), kcUser, kcPsw, loginRealm)
 	if err != nil {
@@ -150,8 +150,7 @@ func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm 
 }
 
 // checkAndRenewTokenPeriodically checks every intervalCheck if the token is about in less than expireLimit or is already expired, if so it renews it
-func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloak, token *gocloak.JWT, kcAdminUser string, kcAdminPsw string, loginRealm string, intervalCheck time.Duration, expireLimit time.Duration) {
-
+func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloak, token *gocloak.JWT, kcAdminUser, kcAdminPsw, loginRealm string, intervalCheck, expireLimit time.Duration) {
 	kcRenewTokenTicker := time.NewTicker(intervalCheck)
 	for {
 		// wait intervalCheck
@@ -178,23 +177,23 @@ func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloa
 }
 
 // getClientID returns the ID of the target client given the human id, to be used with the gocloak library
-func getClientID(ctx context.Context, kcClient gocloak.GoCloak, token string, realmName string, targetClient string) (string, error) {
-
+func getClientID(ctx context.Context, kcClient gocloak.GoCloak, token, realmName, targetClient string) (string, error) {
 	clients, err := kcClient.GetClients(ctx, token, realmName, gocloak.GetClientsParams{ClientID: &targetClient})
 	if err != nil {
 		klog.Errorf("Error when getting clientID for client %s", targetClient)
 		klog.Error(err)
 		return "", err
-	} else if len(clients) > 1 {
-		klog.Error(nil, "Error, got too many clientIDs for client %s", targetClient)
-		return "", err
-	} else if len(clients) < 0 {
-		klog.Error(nil, "Error, no clientID for client %s", targetClient)
-		return "", err
-
-	} else {
-		targetClientID := *clients[0].ID
-		return targetClientID, nil
 	}
 
+	switch len(clients) {
+	case 0:
+		klog.Error(nil, "Error, no clientID for client %s", targetClient)
+		return "", fmt.Errorf("no client ID for client %s", targetClient)
+	case 1:
+		targetClientID := *clients[0].ID
+		return targetClientID, nil
+	default:
+		klog.Error(nil, "Error, got too many clientIDs for client %s", targetClient)
+		return "", fmt.Errorf("too many clientIDs for client %s", targetClient)
+	}
 }

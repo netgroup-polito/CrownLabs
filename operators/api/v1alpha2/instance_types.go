@@ -31,7 +31,7 @@ type InstanceSpec struct {
 // InstanceStatus defines the observed state of Instance
 type InstanceStatus struct {
 	Phase string `json:"phase,omitempty"`
-	Url   string `json:"url,omitempty"`
+	URL   string `json:"url,omitempty"`
 	IP    string `json:"ip,omitempty"`
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`

@@ -2,7 +2,7 @@ package instance_creation
 
 import (
 	"gopkg.in/yaml.v2"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,13 +23,13 @@ type cloudInitConfig struct {
 	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys,omitempty"`
 }
 
-func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl string, publicKeys []string) map[string]string {
+func createUserdata(nextUsername, nextPassword, nextCloudBaseURL string, publicKeys []string) map[string]string {
 	var Userdata cloudInitConfig
 
 	Userdata.Network.Version = 2
 	Userdata.Network.ID0.Dhcp4 = true
 	Userdata.Mounts = [][]string{{
-		nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername,
+		nextCloudBaseURL + "/remote.php/dav/files/" + nextUsername,
 		"/media/MyDrive",
 		"davfs",
 		"_netdev,auto,user,rw,uid=1000,gid=1000",
@@ -52,7 +52,7 @@ func createUserdata(nextUsername string, nextPassword string, nextCloudBaseUrl s
 	return map[string]string{"userdata": headerComment + string(out)}
 }
 
-func CreateCloudInitSecret(name string, namespace string, nextUsername string, nextPassword string, nextCloudBaseUrl string, publicKeys []string, references []metav1.OwnerReference) v1.Secret {
+func CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL string, publicKeys []string, references []metav1.OwnerReference) v1.Secret {
 	secret := v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
@@ -67,7 +67,7 @@ func CreateCloudInitSecret(name string, namespace string, nextUsername string, n
 		StringData: createUserdata(
 			nextUsername,
 			nextPassword,
-			nextCloudBaseUrl,
+			nextCloudBaseURL,
 			publicKeys),
 		Type: v1.SecretTypeOpaque,
 	}

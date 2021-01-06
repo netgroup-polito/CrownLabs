@@ -18,14 +18,12 @@ package instance_controller
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
+	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/api/errors"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +32,9 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
 // LabInstanceReconciler reconciles a Instance object
@@ -42,12 +43,12 @@ type LabInstanceReconciler struct {
 	Scheme             *runtime.Scheme
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
-	WebsiteBaseUrl     string
-	NextcloudBaseUrl   string
+	WebsiteBaseURL     string
+	NextcloudBaseURL   string
 	WebdavSecretName   string
 	Oauth2ProxyImage   string
 	OidcClientSecret   string
-	OidcProviderUrl    string
+	OidcProviderURL    string
 }
 
 func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -69,7 +70,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// It performs reconciliation only if the Instance belongs to whitelisted namespaces
 	// by checking the existence of keys in labInstance namespace
 	if err := r.Get(ctx, namespaceName, &ns); err == nil {
-		if !instance_creation.CheckLabels(ns, r.NamespaceWhitelist.MatchLabels) {
+		if !instance_creation.CheckLabels(&ns, r.NamespaceWhitelist.MatchLabels) {
 			klog.Info("Namespace " + req.Namespace + " does not meet the selector labels")
 			return ctrl.Result{}, nil
 		}
@@ -77,7 +78,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		klog.Error("Unable to get Instance namespace")
 		klog.Error(err)
 	}
-	klog.Info("Namespace" + req.Namespace + " met the selector labels")
+	klog.Info("Namespace " + req.Namespace + " met the selector labels")
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
 	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
@@ -109,27 +110,27 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		klog.Error(err)
 	}
 
-	if _, err := r.generateEnvironments(labTemplate, labInstance, VMstart); err != nil {
+	if _, err := r.generateEnvironments(&labTemplate, &labInstance, VMstart); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// create secret referenced by VirtualMachineInstance (Cloudinit)
 	// To be extracted in a configuration flag
-	VmElaborationTimestamp := time.Now()
-	VMElaborationDuration := VmElaborationTimestamp.Sub(VMstart)
+	VMElaborationTimestamp := time.Now()
+	VMElaborationDuration := VMElaborationTimestamp.Sub(VMstart)
 	elaborationTimes.Observe(VMElaborationDuration.Seconds())
 
 	return ctrl.Result{}, nil
 }
 
-func (r *LabInstanceReconciler) generateEnvironments(template crownlabsv1alpha2.Template, instance crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
+func (r *LabInstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Template, instance *crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
 	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(instance.Name, ".", "-"), uuid.New().String())
 	namespace := instance.Namespace
 	for i := range template.Spec.EnvironmentList {
 		// prepare variables common to all resources
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case crownlabsv1alpha2.ClassVM:
-			if err := r.CreateVMEnvironment(&instance, &template.Spec.EnvironmentList[i], namespace, name, vmstart); err != nil {
+			if err := r.CreateVMEnvironment(instance, &template.Spec.EnvironmentList[i], namespace, name, vmstart); err != nil {
 				return ctrl.Result{}, err
 			}
 		case crownlabsv1alpha2.ClassContainer:
@@ -145,16 +146,16 @@ func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func setLabInstanceStatus(r *LabInstanceReconciler, ctx context.Context,
+func (r *LabInstanceReconciler) setLabInstanceStatus(
+	ctx context.Context,
 	msg string, eventType string, eventReason string,
 	labInstance *crownlabsv1alpha2.Instance, ip, url string) {
-
 	klog.Info(msg)
 	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
 
 	labInstance.Status.Phase = eventReason
 	labInstance.Status.IP = ip
-	labInstance.Status.Url = url
+	labInstance.Status.URL = url
 	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
 	if err := r.Status().Update(ctx, labInstance); err != nil {
 		klog.Error("Unable to update Instance status")

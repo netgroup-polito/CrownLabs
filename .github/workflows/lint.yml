@@ -22,9 +22,9 @@ jobs:
       - name: Check linting
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.31
+          version: v1.34
           working-directory: operators
-          args: --timeout=600s --enable gosec,prealloc,gofmt,govet --skip-files "zz_generated.*.go"
+          args: --timeout=600s
 
 
   python-lint:
