@@ -73,7 +73,6 @@ func TestAPIs(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
 		[]Reporter{printer.NewlineReporter{}})
-
 }
 
 var _ = BeforeSuite(func(done Done) {
@@ -128,7 +127,7 @@ var _ = AfterSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout time.Duration, interval time.Duration) {
+func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
 	Eventually(func() bool {
 		err := k8sClient.Get(ctx, objLookupKey, targetObj)
 		return err == nil

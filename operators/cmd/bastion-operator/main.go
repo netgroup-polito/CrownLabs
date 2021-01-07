@@ -18,15 +18,17 @@ package main
 
 import (
 	"flag"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
 	"os"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	bastion_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

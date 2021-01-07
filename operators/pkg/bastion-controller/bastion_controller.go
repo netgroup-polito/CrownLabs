@@ -58,7 +58,6 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var keys []string
 
 	if _, err := os.Stat(r.AuthorizedKeysPath); err == nil {
-
 		// if the file exists, read the whole file in a []byte
 		data, err := ioutil.ReadFile(r.AuthorizedKeysPath)
 		if err != nil {
@@ -93,11 +92,9 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 func (r *BastionReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsalpha1.Tenant{}).
 		Complete(r)

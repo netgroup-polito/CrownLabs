@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/Nerzal/gocloak/v7 v7.10.0
-	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/go-logr/logr v0.3.0
 	github.com/go-logr/zapr v0.3.0 // indirect
@@ -15,7 +14,6 @@ require (
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.10.0
 	github.com/stretchr/testify v1.6.1
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.19.0
@@ -26,7 +24,6 @@ require (
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubevirt.io/client-go v0.35.0
 	sigs.k8s.io/controller-runtime v0.6.2
-	sigs.k8s.io/controller-tools v0.4.1 // indirect
 )
 
 replace (

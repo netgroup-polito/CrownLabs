@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,8 +41,8 @@ var labels = map[string]string{
 }
 
 func TestWhitelist(t *testing.T) {
-	c1 := CheckLabels(ns1, labels)
-	c2 := CheckLabels(ns2, labels)
+	c1 := CheckLabels(&ns1, labels)
+	c2 := CheckLabels(&ns2, labels)
 	assert.Equal(t, c1, true, "The two label set should be identical and return true.")
 	assert.Equal(t, c2, false, "The two labels set should be different and return false.")
 }
@@ -118,10 +118,10 @@ func TestCheckLabels(t *testing.T) {
 			Labels: map[string]string{},
 		},
 	}
-	assert.Equal(t, CheckLabels(ns, labels), true)
-	assert.Equal(t, CheckLabels(ns1, labels), false)
-	assert.Equal(t, CheckLabels(ns2, labels), false)
-	assert.Equal(t, CheckLabels(ns3, labels), false)
+	assert.Equal(t, CheckLabels(&ns, labels), true)
+	assert.Equal(t, CheckLabels(&ns1, labels), false)
+	assert.Equal(t, CheckLabels(&ns2, labels), false)
+	assert.Equal(t, CheckLabels(&ns3, labels), false)
 }
 
 func TestComputeCPULimits(t *testing.T) {

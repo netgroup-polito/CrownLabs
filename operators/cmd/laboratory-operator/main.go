@@ -24,13 +24,14 @@ import (
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,11 +55,11 @@ func main() {
 	var enableLeaderElection bool
 	var namespaceWhiteList string
 	var webdavSecret string
-	var websiteBaseUrl string
-	var nextcloudBaseUrl string
+	var websiteBaseURL string
+	var nextcloudBaseURL string
 	var oauth2ProxyImage string
 	var oidcClientSecret string
-	var oidcProviderUrl string
+	var oidcProviderURL string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -66,12 +67,12 @@ func main() {
 	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
-	flag.StringVar(&websiteBaseUrl, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&nextcloudBaseUrl, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
+	flag.StringVar(&websiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&nextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
 	flag.StringVar(&oauth2ProxyImage, "oauth2-proxy-image", "", "The docker image used for the oauth2-proxy deployment")
 	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret used by oauth2-proxy")
-	flag.StringVar(&oidcProviderUrl, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
+	flag.StringVar(&oidcProviderURL, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
 	flag.Parse()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -93,12 +94,12 @@ func main() {
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor("InstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		NextcloudBaseUrl:   nextcloudBaseUrl,
-		WebsiteBaseUrl:     websiteBaseUrl,
+		NextcloudBaseURL:   nextcloudBaseURL,
+		WebsiteBaseURL:     websiteBaseURL,
 		WebdavSecretName:   webdavSecret,
 		Oauth2ProxyImage:   oauth2ProxyImage,
 		OidcClientSecret:   oidcClientSecret,
-		OidcProviderUrl:    oidcProviderUrl,
+		OidcProviderURL:    oidcProviderURL,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Instance")
 	}

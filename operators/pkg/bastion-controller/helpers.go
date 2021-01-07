@@ -20,6 +20,7 @@ func removeKey(s []string, i int) []string {
 		return s
 	}
 	s[i] = s[len(s)-1]
+
 	return s[:len(s)-1]
 }
 
@@ -35,22 +36,22 @@ func Decompose(entry string) (AuthorizedKeysEntry, error) {
 			Key:  entryComponents[1],
 			ID:   entryComponents[2],
 		}, nil
-	} else {
-		return AuthorizedKeysEntry{}, errors.New("Invalid entry")
 	}
+
+	return AuthorizedKeysEntry{}, errors.New("invalid entry")
 }
 
-func Create(entry string, ID string) (AuthorizedKeysEntry, error) {
+func Create(entry, id string) (AuthorizedKeysEntry, error) {
 	entryComponents := strings.Split(entry, string(" "))
 	if len(entryComponents) == 3 || len(entryComponents) == 2 {
 		return AuthorizedKeysEntry{
 			Algo: entryComponents[0],
 			Key:  entryComponents[1],
-			ID:   ID,
+			ID:   id,
 		}, nil
-	} else {
-		return AuthorizedKeysEntry{}, errors.New("Invalid entry")
 	}
+
+	return AuthorizedKeysEntry{}, errors.New("invalid entry")
 }
 
 func (e *AuthorizedKeysEntry) Compose() string {
@@ -76,7 +77,7 @@ func decomposeAndPurgeEntries(keys []string, tenantID string) []string {
 	return keys
 }
 
-func composeAndMarkEntries(keys []string, tenantKeys []string, tenantID string) []string {
+func composeAndMarkEntries(keys, tenantKeys []string, tenantID string) []string {
 	for i := range tenantKeys {
 		entry, err := Create(tenantKeys[i], tenantID)
 		if err != nil {

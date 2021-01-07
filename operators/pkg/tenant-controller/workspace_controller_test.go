@@ -18,8 +18,6 @@ import (
 
 	gocloak "github.com/Nerzal/gocloak/v7"
 	"github.com/golang/mock/gomock"
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -27,6 +25,9 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 )
 
 var _ = Describe("Workspace controller", func() {
@@ -105,7 +106,7 @@ var _ = Describe("Workspace controller", func() {
 
 })
 
-func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak, kcAccessToken string, kcTargetRealm string, kcTargetClientID string, wsName string, wsPrettyName string) {
+func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak, kcAccessToken, kcTargetRealm, kcTargetClientID, wsName, wsPrettyName string) {
 	userKcRole := fmt.Sprintf("workspace-%s:user", wsName)
 	managerKcRole := fmt.Sprintf("workspace-%s:manager", wsName)
 	mockKcCLient.EXPECT().GetClientRole(
@@ -141,7 +142,7 @@ func setupMocksForWorkspaceCreationExistingRoles(mockKcCLient *mocks.MockGoCloak
 	).Return(nil).MinTimes(1).MaxTimes(2)
 }
 
-func checkWsClusterResourceCreation(ctx context.Context, wsName, nsName string, timeout time.Duration, interval time.Duration) {
+func checkWsClusterResourceCreation(ctx context.Context, wsName, nsName string, timeout, interval time.Duration) {
 	By("By checking that the corresponding namespace has been created")
 
 	nsLookupKey := types.NamespacedName{Name: nsName, Namespace: ""}
@@ -200,5 +201,4 @@ func checkWsClusterResourceCreation(ctx context.Context, wsName, nsName string, 
 	Expect(createdMngRb.RoleRef.Kind).Should(Equal("ClusterRole"))
 	Expect(createdMngRb.Subjects).Should(HaveLen(1))
 	Expect(createdMngRb.Subjects[0]).Should(MatchFields(IgnoreExtras, Fields{"Name": Equal(mngRGroupName), "Kind": Equal("Group")}))
-
 }

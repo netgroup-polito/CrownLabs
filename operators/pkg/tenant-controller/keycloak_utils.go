@@ -3,7 +3,6 @@ package tenant_controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
@@ -41,17 +40,21 @@ func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName, newRoleDescr 
 		// role didn't exist
 		// need to create new role
 		klog.Infof("Role didn't exist %s", newRoleName)
-		createdRoleName, err := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
+		createdRoleName, err2 := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
 		if err != nil {
-			klog.Error("Error when creating role", err)
-			return err
+			klog.Error("Error when creating role", err2)
+			return err2
 		}
 		klog.Infof("Role created %s", createdRoleName)
 		return nil
-	} else if err != nil {
+	}
+
+	if err != nil {
 		klog.Error("Error when getting user role", err)
 		return err
-	} else if *role.Name == newRoleName {
+	}
+
+	if *role.Name == newRoleName {
 		klog.Infof("Role already existed %s", newRoleName)
 		err := kcA.Client.UpdateRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
 		if err != nil {
@@ -60,12 +63,12 @@ func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName, newRoleDescr 
 		}
 		return nil
 	}
+
 	klog.Errorf("Error when getting role %s", newRoleName)
-	return errors.New("Something went wrong when getting a role")
+	return errors.New("something went wrong when getting a role")
 }
 
 func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete map[string]string) error {
-
 	for role := range rolesToDelete {
 		if err := kcA.Client.DeleteClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, role); err != nil {
 			if !strings.Contains(err.Error(), "404") {
@@ -77,19 +80,23 @@ func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete map[string]
 	return nil
 }
 
-func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID *string, email *string, err error) {
+func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID, email *string, err error) {
 	// using Exact in the GetUsersParams deosn't work cause keycloak doesn't offer the field in the API
 	usersFound, err := kcA.Client.GetUsers(ctx, kcA.Token.AccessToken, kcA.TargetRealm, gocloak.GetUsersParams{Username: &username})
 	if err != nil {
 		klog.Errorf("Error when trying to find user %s", username)
 		klog.Error(err)
 		return nil, nil, err
-	} else if len(usersFound) == 0 {
+	}
+
+	switch len(usersFound) {
+	case 0:
 		// no existing users found, create a new one
 		return nil, nil, nil
-	} else if len(usersFound) == 1 {
+	case 1:
 		return usersFound[0].ID, usersFound[0].Email, nil
-	} else if len(usersFound) > 1 {
+
+	default:
 		exactMatches := 0
 		exactID := ""
 		exactEmail := ""
@@ -103,12 +110,11 @@ func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID *s
 		if exactMatches == 1 {
 			return &exactID, &exactEmail, nil
 		}
-		return nil, nil, errors.New("Found too many users")
+		return nil, nil, errors.New("found too many users")
 	}
-	return nil, nil, fmt.Errorf("Error when getting user %s", username)
 }
 
-func (kcA *KcActor) createKcUser(ctx context.Context, username string, firstName string, lastName string, email string) (*string, error) {
+func (kcA *KcActor) createKcUser(ctx context.Context, username, firstName, lastName, email string) (*string, error) {
 	tr := true
 	fa := false
 	newUser := gocloak.User{
@@ -140,7 +146,7 @@ func (kcA *KcActor) createKcUser(ctx context.Context, username string, firstName
 	return &newUserID, nil
 }
 
-func (kcA *KcActor) updateKcUser(ctx context.Context, userID string, firstName string, lastName string, email string, requireUserActions bool) error {
+func (kcA *KcActor) updateKcUser(ctx context.Context, userID, firstName, lastName, email string, requireUserActions bool) error {
 	tr := true
 	fa := false
 	updatedUser := gocloak.User{
@@ -174,7 +180,7 @@ func (kcA *KcActor) updateKcUser(ctx context.Context, userID string, firstName s
 	return nil
 }
 
-func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, userID string, editOnlyPrefix string) error {
+func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, userID, editOnlyPrefix string) error {
 	rolesToSet := make([]gocloak.Role, len(roleNames))
 	// convert workspaces to actual keyloak role
 	for i, roleName := range roleNames {
@@ -216,7 +222,6 @@ func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, use
 }
 
 func subtractRoles(a []*gocloak.Role, b []gocloak.Role, subtractOnlyPrefix string) []gocloak.Role {
-
 	var res []gocloak.Role
 	// temporary map to hold values of b for faster subtraction in sacrifice of memory
 	tempMap := make(map[string]bool)

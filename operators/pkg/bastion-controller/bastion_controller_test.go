@@ -80,7 +80,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 		// create or update tenant in order to reset the specs
 
 		if err1 := k8sClient.Get(context.Background(), tenant1LookupKey, tenant1); err1 != nil {
-			tenant1 := &crownlabsalpha1.Tenant{
+			tenant1 = &crownlabsalpha1.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
 					Kind:       "Tenant",
@@ -114,7 +114,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 		}, timeout, interval).Should(Equal(PublicKeysTenant1))
 
 		if err2 := k8sClient.Get(context.Background(), tenant2LookupKey, tenant2); err2 != nil {
-			tenant2 := &crownlabsalpha1.Tenant{
+			tenant2 = &crownlabsalpha1.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
 					Kind:       "Tenant",

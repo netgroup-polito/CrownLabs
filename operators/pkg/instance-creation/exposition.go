@@ -2,6 +2,7 @@ package instance_creation
 
 import (
 	"encoding/base64"
+
 	"github.com/google/uuid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,8 +13,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func ForgeService(name string, namespace string, references []metav1.OwnerReference) corev1.Service {
-
+func ForgeService(name, namespace string, references []metav1.OwnerReference) corev1.Service {
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name + "-svc",
@@ -44,9 +44,9 @@ func ForgeService(name string, namespace string, references []metav1.OwnerRefere
 	return service
 }
 
-func ForgeIngress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string, references []metav1.OwnerReference) networkingv1.Ingress {
+func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
-	url := websiteBaseUrl + "/" + urlUUID
+	url := websiteBaseURL + "/" + urlUUID
 
 	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,13 +67,13 @@ func ForgeIngress(name string, namespace string, svc corev1.Service, urlUUID str
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{
 				{
-					Hosts:      []string{websiteBaseUrl},
+					Hosts:      []string{websiteBaseURL},
 					SecretName: "crownlabs-labinstances-secret",
 				},
 			},
 			Rules: []networkingv1.IngressRule{
 				{
-					Host: websiteBaseUrl,
+					Host: websiteBaseURL,
 					IngressRuleValue: networkingv1.IngressRuleValue{
 						HTTP: &networkingv1.HTTPIngressRuleValue{
 							Paths: []networkingv1.HTTPIngressPath{
@@ -100,8 +100,7 @@ func ForgeIngress(name string, namespace string, svc corev1.Service, urlUUID str
 	return ingress
 }
 
-func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerUrl string, references []metav1.OwnerReference) appsv1.Deployment {
-
+func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL string, references []metav1.OwnerReference) appsv1.Deployment {
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
 	cookieSecret := base64.StdEncoding.EncodeToString(id)
@@ -137,9 +136,9 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 								"--provider=keycloak",
 								"--client-id=k8s",
 								"--client-secret=" + clientSecret,
-								"--login-url=" + providerUrl + "/protocol/openid-connect/auth",
-								"--redeem-url=" + providerUrl + "/protocol/openid-connect/token",
-								"--validate-url=" + providerUrl + "/protocol/openid-connect/userinfo",
+								"--login-url=" + providerURL + "/protocol/openid-connect/auth",
+								"--redeem-url=" + providerURL + "/protocol/openid-connect/token",
+								"--validate-url=" + providerURL + "/protocol/openid-connect/userinfo",
 								"--proxy-prefix=/" + urlUUID + "/oauth2",
 								"--cookie-path=/" + urlUUID,
 								"--email-domain=*",
@@ -171,8 +170,7 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 	return deploy
 }
 
-func ForgeOauth2Service(name string, namespace string, references []metav1.OwnerReference) corev1.Service {
-
+func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReference) corev1.Service {
 	service := corev1.Service{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -197,7 +195,7 @@ func ForgeOauth2Service(name string, namespace string, references []metav1.Owner
 	return service
 }
 
-func ForgeOauth2Ingress(name string, namespace string, svc corev1.Service, urlUUID string, websiteBaseUrl string, references []metav1.OwnerReference) networkingv1.Ingress {
+func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
@@ -216,13 +214,13 @@ func ForgeOauth2Ingress(name string, namespace string, svc corev1.Service, urlUU
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{
 				{
-					Hosts:      []string{websiteBaseUrl},
+					Hosts:      []string{websiteBaseURL},
 					SecretName: "crownlabs-labinstances-secret",
 				},
 			},
 			Rules: []networkingv1.IngressRule{
 				{
-					Host: websiteBaseUrl,
+					Host: websiteBaseURL,
 					IngressRuleValue: networkingv1.IngressRuleValue{
 						HTTP: &networkingv1.HTTPIngressRuleValue{
 							Paths: []networkingv1.HTTPIngressPath{

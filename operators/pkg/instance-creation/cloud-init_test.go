@@ -13,11 +13,11 @@ func TestCreateUserData(t *testing.T) {
 	var (
 		nextUsername     = "usertest"
 		nextPassword     = "passtest"
-		nextCloudBaseUrl = "nextcloud.url"
+		nextCloudBaseURL = "nextcloud.url"
 	)
 	publicKeys := []string{"key1", "key2", "key3"}
 
-	rawConfig := createUserdata(nextUsername, nextPassword, nextCloudBaseUrl, publicKeys)
+	rawConfig := createUserdata(nextUsername, nextPassword, nextCloudBaseURL, publicKeys)
 
 	var config cloudInitConfig
 
@@ -29,7 +29,7 @@ func TestCreateUserData(t *testing.T) {
 	hc := strings.HasPrefix(rawConfig["userdata"], "#cloud-config\n")
 
 	var (
-		expectedmount       = []string{nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}
+		expectedmount       = []string{nextCloudBaseURL + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}
 		expectedcontent     = "/media/MyDrive " + nextUsername + " " + nextPassword
 		expectedpath        = "/etc/davfs2/secrets"
 		expectedpermissions = "0600"
@@ -44,7 +44,6 @@ func TestCreateUserData(t *testing.T) {
 	assert.Equal(t, config.SSHAuthorizedKeys[0], publicKeys[0], "Public key should be set to"+publicKeys[0]+" .")
 	assert.Equal(t, config.SSHAuthorizedKeys[1], publicKeys[1], "Public key should be set to"+publicKeys[1]+" .")
 	assert.Equal(t, config.SSHAuthorizedKeys[2], publicKeys[2], "Public key should be set to"+publicKeys[2]+" .")
-
 }
 
 func TestCreateCloudInitSecret(t *testing.T) {
@@ -53,7 +52,7 @@ func TestCreateCloudInitSecret(t *testing.T) {
 		namespace        = "namespace"
 		nextUsername     = "usertest"
 		nextPassword     = "passtest"
-		nextCloudBaseUrl = "nextcloud.url"
+		nextCloudBaseURL = "nextcloud.url"
 	)
 	publicKeys := []string{"key1", "key2", "key3"}
 	ownerRef := []metav1.OwnerReference{{
@@ -61,10 +60,10 @@ func TestCreateCloudInitSecret(t *testing.T) {
 		Kind:       "Instance",
 		Name:       "Test1",
 	}}
-	secret := CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseUrl, publicKeys, ownerRef)
+	secret := CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL, publicKeys, ownerRef)
 
 	var (
-		expectedmount       = []string{nextCloudBaseUrl + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}
+		expectedmount       = []string{nextCloudBaseURL + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}
 		expectedcontent     = "/media/MyDrive " + nextUsername + " " + nextPassword
 		expectedpath        = "/etc/davfs2/secrets"
 		expectedpermissions = "0600"
@@ -72,14 +71,14 @@ func TestCreateCloudInitSecret(t *testing.T) {
 
 	var config cloudInitConfig
 
-	//convert and store cloud-init config in config
+	// convert and store cloud-init config in config
 	err := yaml.Unmarshal([]byte(secret.StringData["userdata"]), &config)
 	assert.Equal(t, err, nil, "Yaml parser should return nil error.")
 
 	assert.Equal(t, secret.ObjectMeta.Name, "name-secret", "Name of secret.ObjectMeta should be "+name+"-secret")
 	assert.Equal(t, secret.ObjectMeta.Namespace, namespace, "Namespace of secret.ObjectMeta should be "+namespace)
 
-	//check config
+	// check config
 	assert.Equal(t, config.Network.Version, 2, "Network version should be set to 2.")
 	assert.Equal(t, config.Network.ID0.Dhcp4, true, "DHCPv4 should be set to true.")
 	assert.Equal(t, config.Mounts[0], expectedmount)

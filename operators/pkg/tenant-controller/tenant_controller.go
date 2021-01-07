@@ -23,13 +23,14 @@ import (
 	"strings"
 	"time"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -70,7 +71,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
 		if containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
 			// reconcile was triggered by a delete request
-			if userID, _, err := r.KcA.getUserInfo(ctx, tn.Name); err != nil {
+			var err error
+			if userID, _, err = r.KcA.getUserInfo(ctx, tn.Name); err != nil {
 				klog.Errorf("Error when checking if user %s existed for deletion", tn.Name)
 				klog.Error(err)
 				retrigErr = err
@@ -111,7 +113,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// namespace creation
-	nsName := fmt.Sprintf("tenant-%s", strings.Replace(tn.Name, ".", "-", -1))
+	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
@@ -129,7 +131,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Infof("Namespace %s for tenant %s %s", nsName, req.Name, nsOpRes)
 		tn.Status.PersonalNamespace.Created = true
 		tn.Status.PersonalNamespace.Name = nsName
-		if err := createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
+		if err = createOrUpdateTnClusterResources(ctx, r, &tn, nsName); err != nil {
 			klog.Errorf("Error creating k8s resources for tenant %s", tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -146,7 +148,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		wsLookupKey := types.NamespacedName{Name: tnWs.WorkspaceRef.Name, Namespace: ""}
 		var ws crownlabsv1alpha1.Workspace
 
-		if err := r.Get(ctx, wsLookupKey, &ws); err != nil {
+		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
 			klog.Errorf("Error when checking if workspace %s exists in tenant %s", tnWs.WorkspaceRef.Name, tn.Name)
 			klog.Error(err)
 			retrigErr = err
@@ -189,20 +191,20 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// place status value to ready if everything is fine, in other words, no need to reconcile
 	tn.Status.Ready = retrigErr == nil
 
-	if err := r.Status().Update(ctx, &tn); err != nil {
+	if err = r.Status().Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update status before exiting reconciler", err)
 		retrigErr = err
 	}
 
-	if err := updateTnLabels(&tn, tnWorkspaceLabels); err != nil {
+	if err = updateTnLabels(&tn, tnWorkspaceLabels); err != nil {
 		klog.Errorf("Unable to update label of tenant %s", tn.Name)
 		klog.Error(err)
 		retrigErr = err
 	}
 
 	// need to update resource to apply labels
-	if err := r.Update(ctx, &tn); err != nil {
+	if err = r.Update(ctx, &tn); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Error("Unable to update resource before exiting reconciler", err)
 		retrigErr = err
@@ -214,7 +216,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resoultion to the second
+	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resolution to the second
 	if err != nil {
 		klog.Error("Error when generating random number for reque", err)
 		return ctrl.Result{}, err
@@ -235,7 +237,7 @@ func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tnWorkspaceLabels map[string]s
 		tn.Labels = make(map[string]string)
 	} else {
 		// need to do this after updating status cause the update will erase non-status changes
-		cleanWorkspaceLabels(&tn.Labels)
+		cleanWorkspaceLabels(tn.Labels)
 	}
 	for k, v := range tnWorkspaceLabels {
 		tn.Labels[k] = v
@@ -303,10 +305,10 @@ func genUserRoles(workspaces []crownlabsv1alpha1.UserWorkspaceData) []string {
 }
 
 // cleanWorkspaceLabels removes all the labels of a workspace from a tenant
-func cleanWorkspaceLabels(labels *map[string]string) {
-	for k := range *labels {
+func cleanWorkspaceLabels(labels map[string]string) {
+	for k := range labels {
 		if strings.HasPrefix(k, crownlabsv1alpha1.WorkspaceLabelPrefix) {
-			delete(*labels, k)
+			delete(labels, k)
 		}
 	}
 }
@@ -436,7 +438,7 @@ func updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
 	}}
 }
 
-func updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName string, crName string) {
+func updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string, 1)
 	}

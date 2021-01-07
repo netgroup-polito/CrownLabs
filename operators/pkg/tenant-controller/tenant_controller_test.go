@@ -18,9 +18,10 @@ import (
 
 	gocloak "github.com/Nerzal/gocloak/v7"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
-	. "github.com/onsi/ginkgo"
 
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -254,8 +255,7 @@ var _ = Describe("Tenant controller", func() {
 
 })
 
-func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, timeout time.Duration, interval time.Duration) {
-
+func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, timeout, interval time.Duration) {
 	By("By checking that the corresponding namespace has been created")
 
 	nsLookupKey := types.NamespacedName{Name: nsName, Namespace: ""}
@@ -362,5 +362,4 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdNetPolAllow.Spec.Ingress).Should(HaveLen(1))
 	Expect(createdNetPolAllow.Spec.Ingress[0].From).Should(HaveLen(1))
 	Expect(createdNetPolAllow.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["crownlabs.polito.it/allow-instance-access"]).Should(Equal("true"))
-
 }

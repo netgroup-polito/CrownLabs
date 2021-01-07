@@ -21,11 +21,11 @@ import (
 	virtv1 "kubevirt.io/client-go/api/v1"
 )
 
-type VmType string
+type VMType string
 
 const (
-	TypeGUI VmType = "GUI"
-	TypeCLI VmType = "CLI"
+	TypeGUI VMType = "GUI"
+	TypeCLI VMType = "CLI"
 )
 
 // LabTemplateSpec defines the desired state of LabTemplate
@@ -34,9 +34,9 @@ type LabTemplateSpec struct {
 	LabName     string                        `json:"labName,omitempty"`
 	LabNum      resource.Quantity             `json:"labNum,omitempty"`
 	Description string                        `json:"description,omitempty"`
-	Vm          virtv1.VirtualMachineInstance `json:"vm"`
+	VM          virtv1.VirtualMachineInstance `json:"vm"`
 	// +kubebuilder:validation:Enum="GUI";"CLI"
-	VmType `json:"vmType,omitempty"`
+	VMType `json:"vmType,omitempty"`
 }
 
 // LabTemplateStatus defines the observed state of LabTemplate

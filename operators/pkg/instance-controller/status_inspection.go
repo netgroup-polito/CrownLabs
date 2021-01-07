@@ -3,20 +3,21 @@ package instance_controller
 import (
 	"context"
 	"fmt"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"net"
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	"net"
-	"time"
+
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
-func getVmiStatus(r *LabInstanceReconciler, ctx context.Context,
-	guiEnabled bool, service v1.Service, ingress networkingv1.Ingress,
+func (r *LabInstanceReconciler) getVmiStatus(ctx context.Context,
+	guiEnabled bool, service *v1.Service, ingress *networkingv1.Ingress,
 	labInstance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
-
 	var vmStatus virtv1.VirtualMachineInstancePhase
 
 	var ip string
@@ -37,11 +38,11 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context,
 
 				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
 				if vmStatus == virtv1.Failed {
-					setLabInstanceStatus(r, ctx, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
+					r.setLabInstanceStatus(ctx, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
 					return
 				}
 
-				setLabInstanceStatus(r, ctx, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
+				r.setLabInstanceStatus(ctx, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
 				if vmStatus == virtv1.Running {
 					break
 				}
@@ -64,7 +65,7 @@ func getVmiStatus(r *LabInstanceReconciler, ctx context.Context,
 		klog.Error(err)
 	} else {
 		msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to VmiReady."
-		setLabInstanceStatus(r, ctx, msg, "Normal", "VmiReady", labInstance, ip, url)
+		r.setLabInstanceStatus(ctx, msg, "Normal", "VmiReady", labInstance, ip, url)
 		readyTime := time.Now()
 		bootTime := readyTime.Sub(startTimeVM)
 		bootTimes.Observe(bootTime.Seconds())
@@ -85,5 +86,5 @@ func waitForConnection(host, port string) error {
 		}
 	}
 
-	return fmt.Errorf("Timeout while checking whether %v:%v is reachable", host, port)
+	return fmt.Errorf("timeout while checking whether %v:%v is reachable", host, port)
 }
