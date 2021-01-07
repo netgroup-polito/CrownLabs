@@ -115,6 +115,7 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Domain.Devices.Disks[1].Name, "cloudinitdisk")
 	assert.Equal(t, vm.Spec.Domain.CPU.Cores, uint32(1))
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Memory().String(), "1524M")
+	assert.Equal(t, vm.Spec.Domain.Memory.Guest.String(), "1024M")
 	assert.Equal(t, vm.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
 	assert.Equal(t, vm.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
 	assert.Equal(t, vm.Spec.Volumes[0].Name, "containerdisk")
@@ -124,4 +125,41 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "secret-name")
 	assert.Equal(t, vm.Kind, "VirtualMachineInstance")
 	assert.Equal(t, vm.APIVersion, "kubevirt.io/v1alpha3")
+}
+
+func TestCheckLabels(t *testing.T) {
+	labels := map[string]string{
+		"crownlabs.polito.it/operator-selector": "production",
+	}
+	ns := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/operator-selector": "production",
+			},
+		},
+	}
+	ns1 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/operator-selector": "preprod",
+			},
+		},
+	}
+	ns2 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				"crownlabs.polito.it/other": "production",
+			},
+		},
+	}
+	ns3 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{},
+		},
+	}
+	assert.Equal(t, CheckLabels(ns, labels), true)
+	assert.Equal(t, CheckLabels(ns1, labels), false)
+	assert.Equal(t, CheckLabels(ns2, labels), false)
+	assert.Equal(t, CheckLabels(ns3, labels), false)
+
 }

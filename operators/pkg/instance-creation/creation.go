@@ -23,6 +23,7 @@ var memoryHypervisorReserved string = "500M"
 var registryCred string = "registry-credentials"
 
 func CreateVirtualMachineInstance(name string, namespace string, template *crownlabsv1alpha2.Environment, instanceName string, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
+	vmMemory := template.Resources.Memory
 	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
 	vm := virtv1.VirtualMachineInstance{
 		TypeMeta: metav1.TypeMeta{
@@ -52,7 +53,7 @@ func CreateVirtualMachineInstance(name string, namespace string, template *crown
 					Cores: template.Resources.CPU,
 				},
 				Memory: &virtv1.Memory{
-					Guest: &template.Resources.Memory,
+					Guest: &vmMemory,
 				},
 				Machine: virtv1.Machine{},
 				Devices: virtv1.Devices{
@@ -211,8 +212,8 @@ func CreateOrUpdate(c client.Client, ctx context.Context, object interface{}) er
 }
 
 func CheckLabels(ns v1.Namespace, matchLabels map[string]string) bool {
-	for key := range matchLabels {
-		if _, ok := ns.Labels[key]; !ok {
+	for key, value := range matchLabels {
+		if v1, ok := ns.Labels[key]; !ok || v1 != value {
 			return false
 		}
 	}
