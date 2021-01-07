@@ -1,0 +1,51 @@
+# Default values for tenant-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+configurations:
+  keycloak:
+    url: "https://auth.crownlabs.example.com/"
+    loginRealm: master
+    targetRealm: crownlabs
+    targetClient: k8s
+    user: username
+    pass: password
+
+image:
+  repository: crownlabs/laboratory-operator
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart version.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 20000
+  runAsGroup: 20000
+  privileged: false
+
+resources:
+  limits:
+    memory: 250Mi
+    cpu: 1000m
+  requests:
+    memory: 100Mi
+    cpu: 100m
+
+rbacResourcesName: crownlabs-tenant-operator

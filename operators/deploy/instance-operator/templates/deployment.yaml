@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "instance-operator.fullname" . }}
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "instance-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "instance-operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /usr/bin/controller
+          args:
+            - "--webdav-secret-name"
+            - "$(WEBDAV_SECRET_NAME)"
+            - "--namespace-whitelist"
+            - "$(WHITE_LIST_LABELS)"
+            - "--website-base-url"
+            - "$(WEBSITE_BASE_URL)"
+            - "--nextcloud-base-url"
+            - "$(NEXTCLOUD_BASE_URL)"
+            - "--oauth2-proxy-image"
+            - "$(OAUTH2_PROXY_IMAGE)"
+            - "--oidc-client-secret"
+            - "$(OIDC_CLIENT_SECRET)"
+            - "--oidc-provider-url"
+            - "$(OIDC_PROVIDER_URL)"
+          ports:
+            - name: probes
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: WHITE_LIST_LABELS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: whitelist-labels
+            - name: NEXTCLOUD_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: nextcloud-base-url
+            - name: WEBSITE_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: website-base-url
+            - name: WEBDAV_SECRET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: webdav-secret-name
+            - name: OAUTH2_PROXY_IMAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: oauth2-proxy-image
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: oidc-client-secret
+            - name: OIDC_PROVIDER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "instance-operator.fullname" . }}
+                  key: oidc-provider-url

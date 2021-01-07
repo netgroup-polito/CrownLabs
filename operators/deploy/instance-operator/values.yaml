@@ -1,0 +1,52 @@
+# Default values for instance-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+configurations:
+  generic:
+    oauth2ProxyImage: quay.io/oauth2-proxy/oauth2-proxy
+    whitelistLabels: crownlabs.polito.it/operator-selector=production
+    websiteBaseUri: crownlabs.example.com
+  nextcloud:
+    baseUrl: https://nextcloud.example.com
+    webdavSecretName: nextcloud-credentials
+  oidc:
+    clientId: k8s
+    clientSecret: <client-secret>
+    providerUrl: https://auth.example.com/auth/realms/crownlabs
+
+image:
+  repository: crownlabs/laboratory-operator
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart version.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
+podAnnotations: {}
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 20000
+  runAsGroup: 20000
+  privileged: false
+
+resources:
+  limits:
+    memory: 250Mi
+    cpu: 100m
+  requests:
+    memory: 100Mi
+    cpu: 100m
+
+rbacResourcesName: crownlabs-instance-operator
