@@ -4,6 +4,7 @@ RUN apk add --no-cache dumb-init openssh
 # Create new user bastion with nologin
 RUN adduser -D -s /sbin/nologin bastion
 RUN passwd -u -d bastion
+RUN mkdir /ssh_pids && chmod 777 /ssh_pids
 
 # sshd configuration file
 COPY ./sshd_config_custom /etc/ssh/sshd_config_custom
