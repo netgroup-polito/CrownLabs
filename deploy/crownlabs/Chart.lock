@@ -8,5 +8,8 @@ dependencies:
 - name: tenant-operator
   repository: file://../../operators/deploy/tenant-operator
   version: 0.1.0
-digest: sha256:683be07434ee65109ebd4a83cce8c568946be12fea3a16312f9defbe61d408d2
-generated: "2021-01-05T18:08:17.88727354+01:00"
+- name: image-list
+  repository: file://../../operators/deploy/image-list
+  version: 0.1.0
+digest: sha256:2f716cdd8eb491aef86ae69ce90db71e0424bfa320c8631ce3a63fa20dedcbb8
+generated: "2021-01-07T15:36:05.603610255+01:00"

@@ -52,3 +52,15 @@ tenant-operator:
       targetClient: k8s
       user: username
       pass: password
+
+
+image-list:
+  replicaCount: 1
+  image:
+    repository: crownlabs/crownlabs-image-list
+  rbacResourcesName: crownlabs-image-list
+  configurations:
+    registryUrl: http://docker-registry.docker-registry:5000
+    advRegistryName: registry.crownlabs.example.com
+    imageListName: crownlabs-virtual-machine-images
+    updateInterval: 60
