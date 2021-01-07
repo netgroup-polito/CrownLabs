@@ -8,8 +8,11 @@ dependencies:
 - name: tenant-operator
   repository: file://../../operators/deploy/tenant-operator
   version: 0.1.0
+- name: bastion-operator
+  repository: file://../../operators/deploy/bastion-operator
+  version: 0.1.0
 - name: image-list
   repository: file://../../operators/deploy/image-list
   version: 0.1.0
-digest: sha256:2f716cdd8eb491aef86ae69ce90db71e0424bfa320c8631ce3a63fa20dedcbb8
-generated: "2021-01-07T15:36:05.603610255+01:00"
+digest: sha256:073ffad3321d85db51bc972b951d042f142b9b0cc3210cacd0995dc95136c38a
+generated: "2021-01-07T16:41:18.420093863+01:00"

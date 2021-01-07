@@ -1,6 +1,6 @@
 apiVersion: v2
-name: crownlabs
-description: A Helm chart for CrownLabs
+name: bastion-operator
+description: The CrownLabs Bastion Operator
 
 # A chart can be either an 'application' or a 'library' chart.
 #
@@ -15,32 +15,6 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.1
+version: 0.1.0
 
 icon: https://crownlabs.polito.it/images/logo.svg
-
-dependencies:
-- name: dashboard
-  version: "0.1.0"
-  repository: file://../../dashboard/deploy/dashboard
-  condition: dashboard.enabled
-
-- name: instance-operator
-  version: "0.1.0"
-  repository: file://../../operators/deploy/instance-operator
-  condition: instance-operator.enabled
-
-- name: tenant-operator
-  version: "0.1.0"
-  repository: file://../../operators/deploy/tenant-operator
-  condition: tenant-operator.enabled
-
-- name: bastion-operator
-  version: "0.1.0"
-  repository: file://../../operators/deploy/bastion-operator
-  condition: bastion-operator.enabled
-
-- name: image-list
-  version: "0.1.0"
-  repository: file://../../operators/deploy/image-list
-  condition: image-list.enabled

@@ -1,8 +1,0 @@
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: crownlabs-bastion-operator
-rules:
-- apiGroups: ["crownlabs.polito.it"]
-  resources: ["tenants"]
-  verbs: ["get","list","watch"]

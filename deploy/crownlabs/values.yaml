@@ -54,6 +54,15 @@ tenant-operator:
       pass: password
 
 
+bastion-operator:
+  replicaCount: 1
+  image:
+    repositoryBastion: crownlabs/ssh-bastion
+    repositorySidecar: crownlabs/bastion-operator
+  rbacResourcesName: crownlabs-bastion-operator
+  serviceAnnotations: {}
+
+
 image-list:
   replicaCount: 1
   image:
