@@ -73,3 +73,12 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
+
+
+delete-stale-instances:
+  image:
+    repository: crownlabs/delete-stale-instances
+  rbacResourcesName: crownlabs-delete-stale-instances
+  configurations:
+    dryRun: true
+    schedule: "*/15 * * * *"

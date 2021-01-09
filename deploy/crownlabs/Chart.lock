@@ -14,5 +14,8 @@ dependencies:
 - name: image-list
   repository: file://../../operators/deploy/image-list
   version: 0.1.0
-digest: sha256:073ffad3321d85db51bc972b951d042f142b9b0cc3210cacd0995dc95136c38a
-generated: "2021-01-07T16:41:18.420093863+01:00"
+- name: delete-stale-instances
+  repository: file://../../operators/deploy/delete-stale-instances
+  version: 0.1.0
+digest: sha256:f90011092348b000512d6c67e34846275c36adb7c53da914ac11625dcbaf59e4
+generated: "2021-01-08T19:18:07.227020827+01:00"

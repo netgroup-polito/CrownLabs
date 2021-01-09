@@ -1,0 +1,39 @@
+# Default values for delete-stale-instances.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+configurations:
+  dryRun: true
+  schedule: "*/15 * * * *"
+  startingDeadlineSeconds: 300
+
+image:
+  repository: crownlabs/delete-stale-instances
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart version.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  privileged: false
+  runAsNonRoot: true
+  runAsUser: 100000
+  runAsGroup: 100000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 100Mi
+  limits:
+    cpu: 1000m
+    memory: 200Mi
+
+rbacResourcesName: crownlabs-delete-stale-instances
