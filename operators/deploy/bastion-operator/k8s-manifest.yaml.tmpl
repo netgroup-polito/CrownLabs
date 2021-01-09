@@ -74,6 +74,13 @@ spec:
         resources: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
+        securityContext:
+          capabilities:
+            drop: ["all"]
+          allowPrivilegeEscalation: false
+          runAsUser: 1000
+          runAsGroup: 1000
+          privileged: false
         volumeMounts:
         - mountPath: /home/bastion/.ssh
           name: authorized-keys
@@ -90,7 +97,7 @@ spec:
         - name: host-keys
           secret:
             secretName: ssh-bastion-host-keys
-            defaultMode: 0400
+            defaultMode: 0444
 
 ---
 apiVersion: v1

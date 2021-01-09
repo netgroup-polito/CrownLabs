@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	// +kubebuilder:scaffold:imports
@@ -42,7 +43,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = crownlabsv1alpha2.AddToScheme(scheme)
+	_ = crownlabsv1alpha1.AddToScheme(scheme)
 
 	_ = crownlabsv1alpha2.AddToScheme(scheme)
 

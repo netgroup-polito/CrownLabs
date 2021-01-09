@@ -26,6 +26,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -56,11 +57,13 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "95f0db32.crownlabs.polito.it",
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		Port:                   9443,
+		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: ":8081",
+		LivenessEndpointName:   "/healthz",
+		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -84,7 +87,20 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Bastion")
 		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
+	// Add readiness probe
+	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
+	if err != nil {
+		setupLog.Error(err, "Unable to add a readiness check")
+		os.Exit(1)
+	}
+
+	// Add liveness probe
+	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
+	if err != nil {
+		setupLog.Error(err, "Unable add an health check")
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
