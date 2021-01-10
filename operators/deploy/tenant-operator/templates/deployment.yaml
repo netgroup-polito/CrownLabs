@@ -4,7 +4,6 @@ metadata:
   name: {{ include "tenant-operator.fullname" . }}
   labels:
     {{- include "tenant-operator.labels" . | nindent 4 }}
-  annotations:
 {{- with .Values.deploymentAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -44,6 +43,9 @@ spec:
             - "-kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "-kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
           ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
             - name: probes
               containerPort: 8081
               protocol: TCP
@@ -92,3 +94,12 @@ spec:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: keycloak-pass
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "tenant-operator.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname

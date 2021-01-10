@@ -59,3 +59,10 @@ Selector labels
 app.kubernetes.io/name: {{ include "tenant-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Metrics selector additional labels
+*/}}
+{{- define "tenant-operator.metricsAdditionalLabels" -}}
+app.kubernetes.io/component: metrics
+{{- end }}

@@ -51,6 +51,9 @@ spec:
             - "--oidc-provider-url"
             - "$(OIDC_PROVIDER_URL)"
           ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
             - name: probes
               containerPort: 8081
               protocol: TCP
@@ -104,3 +107,12 @@ spec:
                 configMapKeyRef:
                   name: {{ include "instance-operator.fullname" . }}
                   key: oidc-provider-url
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "instance-operator.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname
