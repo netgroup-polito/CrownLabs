@@ -1,75 +1,75 @@
-# Crownlabs Operators
+# CrownLabs Operators
 
-## APIs/CRDs
+This folder contains the different components that constitute the server-side of the CrownLabs business logic. Specifically, they are either Kubernetes operators or stand-alone components which interact with Kubernetes resources.
 
-The Laboratory Operator (LabOperator) implements the backend logic necessary to spawn new laboratories starting from a predefined template. LabOperator relies on two Kubernetes Custom Resource
-Definitions (CRDs) which implement the basic APIs:
-* **Laboratory Template (LabTemplate)** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by professors and read by students, while creating new instances.
-* **Laboratory Instance (LabInstance)** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in LabOperator, which creates/destroy associated resources (e.g.; Virtual Machines).
+## How to deploy
 
+To simplify the deployment and the configuration of the different components, CrownLabs leverages an [Helm](https://helm.sh/) chart.
+More details about the chart and the entire deployment process are available in the [CrownLabs deployment README](../deploy/crownlabs/README.md).
+The following instructions, instead focus on the deployment of a single operator, for development/testing purposes.
 
+### Pre-requirements (instance-operator only)
 
-Both LabTemplates and LabInstances are **namespaced**.
+The only external requirement of the instance-operator is KubeVirt, which is responsible for the management of virtual machines on top of a Kubernetes cluster.
+Please, refer to the corresponding [README](../infrastructure/virtualization/README.md), for more information about the installation process.
 
-#### Add CRDs to the cluster
+### Install the CRDs
 
-Before the deploying the operator, we have to add the LabInstance and LabTemplate CRDs. This can be done via the Makefile:
+Before deploying the CrownLabs operators, it is necessary to install the different required CRDs. This can be done manually:
+
+```bash
+kubectl apply -f deploy/crds
+```
+
+or through the Makefile:
 
 ```bash
 make install
 ```
 
-## Laboratory Instance Operator (LabOperator)
+### Deploy the CrownLabs operators
 
-Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), the operator implements the laboratory creation logic of Crownlabs.
+Thanks to the modularity of the Helm charts, it is possible to deploy each operator independently.
+The following guide focuses on the instance-operator, but it can be trivially adapted to the other components.
 
-Upon the creation of a *LabInstance*, the operator triggers the creation of the following components:
+First, it is necessary to configure the different parameters (e.g. number of replicas, URLs, credentials, ...), depending on the specific set-up.
+In particular, this operation can be completed creating a copy of the [default configuration](deploy/instance-operator/values.yaml), and customizing it with the suitable values.
+It is suggested not to edit the configuration in-place, to avoid checking it out inadvertently in the versioning system.
+
+Then, it is possible to proceed with the deployment/upgrade of the instance-operator:
+
+```bash
+# Get the version to be deployed (e.g. the latest commit on master)
+git fetch origin master
+VERSION=$(git show-ref -s origin/master)
+
+# Perform the instance-operator installation/upgrade
+helm upgrade crownlabs-instance-operator deploy/instance-operator \
+  --install --create-namespace \
+  --namespace crownlabs-instance-operator \
+  --values path/to/configuration.yaml \
+  --set version=${VERSION}
+```
+
+## Instance Operator
+
+Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), the operator implements the environment creation logic of CrownLabs.
+
+Upon the creation of a *Instance*, the operator triggers the creation of the following components:
 * Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
 * An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
 
 All those resources are binded to the LabInstance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
-### Installation
+### APIs/CRDs
 
-#### Pre-requirements
-
-The only LabOperator requirement is to have Kubevirt deployed.
-This can be done with the following commands, as reported by the official website:
-
-```bash
-# On other OS you might need to define it like
-export KUBEVIRT_VERSION="v0.34.0"
-
-# Deploy the KubeVirt operator
-kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
-# Only if HW Virtualization is not available
-kubectl create configmap kubevirt-config -n kubevirt --from-literal debug.useEmulation=true
-# Deploy Kubevirt
-kubectl create -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml
-```
-
-#### Deployment
-To deploy the LabOperator in your cluster, you have to do the following steps.
-
-First, set the desired values in `operators/deploy/laboratory-operator/k8s-manifest-example.env` .
-
-Then export the environment variables and generate the manifest from the template using:
-
-```
-cd operators/deploy/laboratory-operator
-export $(xargs < k8s-manifest-example.env)
-envsubst < k8s-manifest.yaml.tmpl > k8s-manifest.yaml
-```
-
-After the manifest have been correctly generated. You can deploy the labOperator using:
-
-```
-kubectl apply -f k8s-manifest.yaml
-```
+The Instance Operator implements the backend logic necessary to spawn new environments starting from a predefined template. The operator relies on two Kubernetes Custom Resource Definitions (CRDs) which implement the basic APIs:
+* **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
+* **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
 
 ### Build from source
 
-LabOperator requires Golang 1.13 and make. To build the operator:
+The Instance Operator requires Golang 1.15 and make. To build the operator:
 
 ```bash
 go build ./cmd/laboratory-operator/main.go
@@ -77,69 +77,36 @@ go build ./cmd/laboratory-operator/main.go
 
 #### Testing
 
-After having installed Kubevirt in your testing cluster, you have to deploy the Custom Resource Definitions (CRDs) on the target cluster:
-
-```bash
-make install
-```
-
 N.B. So far, the readiness check for VirtualMachines is performed by assuming that the operator is running on the same cluster of the Virtual Machines. This prevents the possibility to have *ready* VMs when testing the operator outside the cluster.
 
 ## SSH bastion
 
-The SSH bastion is composed of a two basic blocks:
+The SSH bastion is composed of two basic blocks:
 1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
 2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://linux.die.net/man/8/sshd)
 
-### Installation
 
-#### Pre-requirements
+#### SSH Key generation
 
-The only pre-requirement needed in order to deploy the SSH bastion is `ssh-keygen` and it is needed only in case you don't already have the host keys that sshd will use.
-You can check if you already have `ssh-keygen` install running:
-```bash
-ssh-keygen --help
-```
-To install it (i.e. on Ubuntu) run:
-```bash
-apt install openssh-client
-```
+In order to deploy the SSH bastion, it is necessary to generate in advance the keys that will be used by the ssh daemon.
+These keys are automatically generated by an helm hook in case not already present.
+Nonetheless, for reference purposes, the following is the manual procedure achieving the same goal:
 
-#### Deployment
-
-To deploy the SSH bastion in your cluster, you have to do the following steps.
-
-First, generate the host keys needed to run sshd using:
+1. Generate the host keys needed to run sshd using:
 ```bash
 # Generate the keys in this folder (they will be ignored by git) or in a folder outside the project
-ssh-keygen -f ssh_host_key_ecdsa -N "" -t ecdsa
-ssh-keygen -f ssh_host_key_ed25519 -N "" -t ed25519
-ssh-keygen -f ssh_host_key_rsa -N "" -t rsa
+ssh-keygen -f ssh_host_key_ecdsa -N "" -t ecdsa -C ""
+ssh-keygen -f ssh_host_key_ed25519 -N "" -t ed25519 -C ""
+ssh-keygen -f ssh_host_key_rsa -N "" -t rsa -C ""
 ```
 
-Now create the secret holding the keys. If the bastion is going to run on a namespace different than default add the `--namespace=<namespace>` option.
+2. Create the secret holding the keys:
 ```bash
-kubectl create secret generic ssh-bastion-host-keys \
+kubectl create secret generic <secret-name> \
+  --namespace: <namespace>
   --from-file=./ssh_host_key_ecdsa \
   --from-file=./ssh_host_key_ed25519 \
   --from-file=./ssh_host_key_rsa
-```
-
-Then set the desired values in `operators/deploy/bastion-operator/k8s-manifest-example.env` .
-
-Export the environment variables and generate the manifest from the template using:
-
-```bash
-cd operators/deploy/bastion-operator
-export $(xargs < k8s-manifest-example.env)
-envsubst < k8s-manifest.yaml.tmpl > k8s-manifest.yaml
-```
-
-After the manifest have been correctly generated you can install the cluster role and deploy the SSH bastion using:
-
-```bash
-kubectl apply -f k8s-cluster-role.yaml
-kubectl apply -f k8s-manifest.yaml
 ```
 
 ## CrownLabs Image List
@@ -174,7 +141,3 @@ Arguments:
   --update-interval UPDATE_INTERVAL
                         the interval (in seconds) between one update and the following
 ```
-
-### Deployment
-
-A sample configuration required for a deployment in a Kubernetes cluster is available in the [deploy folder](deploy/crownlabs-image-list).
