@@ -9,7 +9,7 @@ Tests are available in folder [policies](./policies).
 ## HOW TO DEPLOY
 Run the following commands inside folder [manifest](./manifest):
 - kubectl create -f config-sync.yaml
-- kubectl create -f constraintTemplate.yaml
+- kubectl create -f template.yaml
 - kubectl create -f constraint.yaml
 
 **Severity:** Violation
