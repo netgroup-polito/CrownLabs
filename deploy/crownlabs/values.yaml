@@ -52,3 +52,33 @@ tenant-operator:
       targetClient: k8s
       user: username
       pass: password
+
+
+bastion-operator:
+  replicaCount: 1
+  image:
+    repositoryBastion: crownlabs/ssh-bastion
+    repositorySidecar: crownlabs/bastion-operator
+  rbacResourcesName: crownlabs-bastion-operator
+  serviceAnnotations: {}
+
+
+image-list:
+  replicaCount: 1
+  image:
+    repository: crownlabs/crownlabs-image-list
+  rbacResourcesName: crownlabs-image-list
+  configurations:
+    registryUrl: http://docker-registry.docker-registry:5000
+    advRegistryName: registry.crownlabs.example.com
+    imageListName: crownlabs-virtual-machine-images
+    updateInterval: 60
+
+
+delete-stale-instances:
+  image:
+    repository: crownlabs/delete-stale-instances
+  rbacResourcesName: crownlabs-delete-stale-instances
+  configurations:
+    dryRun: true
+    schedule: "*/15 * * * *"

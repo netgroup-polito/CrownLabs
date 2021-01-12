@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "instance-operator.name" -}}
+{{- define "bastion-operator.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "instance-operator.fullname" -}}
+{{- define "bastion-operator.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -25,16 +25,9 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
-Create chart name and version as used by the chart label.
-*/}}
-{{- define "instance-operator.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
-{{- end }}
-
-{{/*
 The version of the application to be deployed
 */}}
-{{- define "instance-operator.version" -}}
+{{- define "bastion-operator.version" -}}
 {{- if .Values.global }}
 {{- .Values.image.tag | default .Values.global.version | default .Chart.AppVersion }}
 {{- else }}
@@ -43,26 +36,33 @@ The version of the application to be deployed
 {{- end }}
 
 {{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "bastion-operator.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
 Common labels
 */}}
-{{- define "instance-operator.labels" -}}
-helm.sh/chart: {{ include "instance-operator.chart" . }}
-{{ include "instance-operator.selectorLabels" . }}
-app.kubernetes.io/version: {{ include "instance-operator.version" . | quote }}
+{{- define "bastion-operator.labels" -}}
+helm.sh/chart: {{ include "bastion-operator.chart" . }}
+{{ include "bastion-operator.selectorLabels" . }}
+app.kubernetes.io/version: {{ include "bastion-operator.version" . | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
-{{- define "instance-operator.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "instance-operator.name" . }}
+{{- define "bastion-operator.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "bastion-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Metrics selector additional labels
 */}}
-{{- define "instance-operator.metricsAdditionalLabels" -}}
+{{- define "bastion-operator.metricsAdditionalLabels" -}}
 app.kubernetes.io/component: metrics
 {{- end }}

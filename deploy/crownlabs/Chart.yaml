@@ -15,7 +15,7 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.0
+version: 0.1.1
 
 icon: https://crownlabs.polito.it/images/logo.svg
 
@@ -34,3 +34,18 @@ dependencies:
   version: "0.1.0"
   repository: file://../../operators/deploy/tenant-operator
   condition: tenant-operator.enabled
+
+- name: bastion-operator
+  version: "0.1.0"
+  repository: file://../../operators/deploy/bastion-operator
+  condition: bastion-operator.enabled
+
+- name: image-list
+  version: "0.1.0"
+  repository: file://../../operators/deploy/image-list
+  condition: image-list.enabled
+
+- name: delete-stale-instances
+  version: "0.1.0"
+  repository: file://../../operators/deploy/delete-stale-instances
+  condition: delete-stale-instances.enabled

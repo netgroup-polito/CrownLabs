@@ -93,5 +93,16 @@ spec:
               name: shared-data
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       volumes:
       - name: shared-data
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "dashboard.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname

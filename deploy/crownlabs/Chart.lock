@@ -8,5 +8,14 @@ dependencies:
 - name: tenant-operator
   repository: file://../../operators/deploy/tenant-operator
   version: 0.1.0
-digest: sha256:683be07434ee65109ebd4a83cce8c568946be12fea3a16312f9defbe61d408d2
-generated: "2021-01-05T18:08:17.88727354+01:00"
+- name: bastion-operator
+  repository: file://../../operators/deploy/bastion-operator
+  version: 0.1.0
+- name: image-list
+  repository: file://../../operators/deploy/image-list
+  version: 0.1.0
+- name: delete-stale-instances
+  repository: file://../../operators/deploy/delete-stale-instances
+  version: 0.1.0
+digest: sha256:f90011092348b000512d6c67e34846275c36adb7c53da914ac11625dcbaf59e4
+generated: "2021-01-08T19:18:07.227020827+01:00"
