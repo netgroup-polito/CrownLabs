@@ -164,33 +164,36 @@ jobs:
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
-      - name: Load the example configuration
-        run: |
-          cat webservice/k8s-manifest-example.env >> $GITHUB_ENV
-
-      - name: Generate the Frontend manifest
-        uses: danielr1996/envsubst-action@1.0.0
+      - name: Update the Helm chart dependencies
+        uses: WyriHaximus/github-action-helm3@v2
         with:
-          input: ./webservice/k8s-manifest.yaml.tmpl
-          output: ./webservice/k8s-manifest.yaml
+          exec:
+            helm dependency update ./deploy/crownlabs
 
-      - name: KubeScore - Frontend
+      - name: Verify that the helm chart is well-formed
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec:
+            helm lint ./deploy/crownlabs --with-subcharts
+
+      - name: Render the yaml manifests
+        id: helm-template
+        uses: WyriHaximus/github-action-helm3@v2
+        with:
+          exec:
+            helm template crownlabs ./deploy/crownlabs
+            --namespace crownlabs-production
+            --set global.version=v0.0.1
+
+      - name: Save the rendered manifests
+        run: |
+          echo '${{ steps.helm-template.outputs.helm_output }}' > ./deploy/crownlabs/rendered.yaml
+
+      - name: KubeScore Check
         run: |
           docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
-              --ignore-test=pod-networkpolicy,container-security-context \
-            /CrownLabs/webservice/k8s-manifest.yaml
-
-      - name: Generate the Laboratory Operator manifest
-        uses: danielr1996/envsubst-action@1.0.0
-        with:
-          input: ./operators/deploy/laboratory-operator/k8s-manifest.yaml.tmpl
-          output: ./operators/deploy/laboratory-operator/k8s-manifest.yaml
-
-      - name: KubeScore - Laboratory Operator
-        run: |
-          docker run -v  ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
-              --ignore-test=pod-networkpolicy \
-            /CrownLabs/operators/deploy/laboratory-operator/k8s-manifest.yaml
+              --ignore-test=pod-networkpolicy,container-security-context,container-image-pull-policy \
+            /CrownLabs/deploy/crownlabs/rendered.yaml
 
 
   opa:
