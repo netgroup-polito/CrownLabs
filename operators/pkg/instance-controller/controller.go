@@ -18,11 +18,9 @@ package instance_controller
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/core/v1"
@@ -31,8 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
@@ -81,11 +82,6 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Error(err)
 	}
 	klog.Info("Namespace " + req.Namespace + " met the selector labels")
-	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
-	// if metadata.generation is not incremented there's no need to reconcile
-	if instance.Status.ObservedGeneration == instance.ObjectMeta.Generation {
-		return ctrl.Result{}, nil
-	}
 
 	// check if the Template exists
 	templateName := types.NamespacedName{
@@ -101,18 +97,20 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	r.EventsRecorder.Event(&instance, "Normal", "TemplateFound", "Template "+templateName.Name+" found in namespace "+template.Namespace)
-	instance.Labels = map[string]string{
-		"course-name":        strings.ReplaceAll(strings.ToLower(template.Spec.WorkspaceRef.Name), " ", "-"),
-		"template-name":      template.Name,
-		"template-namespace": template.Namespace,
+
+	labeledInstance := *instance.DeepCopy()
+	labeledInstance.Labels = map[string]string{
+		"crownlabs.polito.it/workspace":  strings.ReplaceAll(template.Spec.WorkspaceRef.Name, ".", "-"),
+		"crownlabs.polito.it/template":   template.Name,
+		"crownlabs.polito.it/managed-by": "instance",
 	}
-	instance.Status.ObservedGeneration = instance.ObjectMeta.Generation
-	if err := r.Update(ctx, &instance); err != nil {
+	if err := r.Patch(ctx, &labeledInstance, client.MergeFrom(&instance)); err != nil {
 		klog.Error("Unable to update Instance labels")
 		klog.Error(err)
 	}
 
 	if _, err := r.generateEnvironments(&template, &instance, VMstart); err != nil {
+		klog.Error(err)
 		return ctrl.Result{}, err
 	}
 
@@ -126,12 +124,13 @@ func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *InstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Template, instance *crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
-	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(instance.Name, ".", "-"), uuid.New().String())
 	namespace := instance.Namespace
+	name := strings.ReplaceAll(instance.Name, ".", "-")
 	for i := range template.Spec.EnvironmentList {
 		// prepare variables common to all resources
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case crownlabsv1alpha2.ClassVM:
+
 			if err := r.CreateVMEnvironment(instance, &template.Spec.EnvironmentList[i], namespace, name, vmstart); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -144,9 +143,18 @@ func (r *InstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Te
 
 // SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	klog.Info("setup manager")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Instance{}).
+		For(&crownlabsv1alpha2.Instance{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&cdiv1.DataVolume{}, builder.WithPredicates(dataVolumePredicate())).
 		Complete(r)
+}
+
+func dataVolumePredicate() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(meta metav1.Object, object runtime.Object) bool {
+		dv, ok := object.(*cdiv1.DataVolume)
+		return ok && dv.Status.Phase == cdiv1.DataVolumePhase("Succeeded")
+	})
 }
 
 func (r *InstanceReconciler) setInstanceStatus(
@@ -154,13 +162,20 @@ func (r *InstanceReconciler) setInstanceStatus(
 	msg string, eventType string, eventReason string,
 	instance *crownlabsv1alpha2.Instance, ip, url string) {
 	klog.Info(msg)
+
+	// Ignore other phases if currently ready and no error occurred
+	// Do not return if the event is VmiReady, to avoid problems if the other parameters changed
+	if instance.Status.Phase == "VmiReady" && eventReason != "VmiReady" && eventType == "Normal" && eventReason != "VmiOff" {
+		return
+	}
 	r.EventsRecorder.Event(instance, eventType, eventReason, msg)
 
-	instance.Status.Phase = eventReason
-	instance.Status.IP = ip
-	instance.Status.URL = url
-	instance.Status.ObservedGeneration = instance.ObjectMeta.Generation
-	if err := r.Status().Update(ctx, instance); err != nil {
+	statusInstance := *instance.DeepCopy()
+	statusInstance.Status.IP = ip
+	statusInstance.Status.Phase = eventReason
+	statusInstance.Status.URL = url
+
+	if err := r.Status().Patch(ctx, &statusInstance, client.MergeFrom(instance)); err != nil {
 		klog.Error("Unable to update Instance status")
 		klog.Error(err)
 	}

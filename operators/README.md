@@ -55,12 +55,13 @@ helm upgrade crownlabs-instance-operator deploy/instance-operator \
 
 Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), the operator implements the environment creation logic of CrownLabs.
 
-Upon the creation of a _Instance_, the operator triggers the creation of the following components:
-
-- Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
-- An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
+Upon the creation of a *Instance*, the operator triggers the creation of the following components:
+* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
+* An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
+*  A DataVolume (only in case of prersistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
 
 All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
+
 
 ### APIs/CRDs
 
@@ -68,6 +69,12 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
+
+### Persistent Feature
+The Instance Operator allows you to create persistent Virtual Machines. Persistent means that the VM can be stopped and restarted, deleted and recreated without data loss. To make this possible, the content of the VM's disk is stored in a PVC.
+In order to use this feature, [the CDI operator](../infrastructure/virtualization/README.md) has to be installed.
+Granted the CDI operator has been deployed, the Instance Operator spawns a persistent VM similarly to a normal (i.e. non-persistent) one. To this end, the selection about which version to create is performed looking at the corresponding field in the `template` spec.
+N.B. The process of creating a persistent VirtualMachine can take a bit more time with the respect to a normal one (5-10 mins, depending on the size of the image). However when you recreate the VM you will not have to wait such that time.
 
 ### Build from source
 

@@ -15,20 +15,10 @@ func TestForgeService(t *testing.T) {
 		namespace = "namespacetest"
 	)
 
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
-	}
+	service := ForgeService(name, namespace)
 
-	service := ForgeService(name, namespace, ownerRef)
-
-	assert.Equal(t, service.ObjectMeta.Name, name+"-svc")
+	assert.Equal(t, service.ObjectMeta.Name, name)
 	assert.Equal(t, service.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, service.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, service.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, service.OwnerReferences[0].Name, "Test1")
 	assert.Equal(t, service.Spec.Ports[0].Name, "vnc")
 	assert.Equal(t, service.Spec.Ports[0].Port, int32(6080))
 	assert.Equal(t, service.Spec.Ports[1].Name, "ssh")
@@ -60,16 +50,9 @@ func TestForgeIngress(t *testing.T) {
 		url = websiteBaseURL + "/" + urlUUID
 	)
 
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
-	}
+	ingress := ForgeIngress(name, namespace, &svc, urlUUID, websiteBaseURL)
 
-	ingress := ForgeIngress(name, namespace, &svc, urlUUID, websiteBaseURL, ownerRef)
-
-	assert.Equal(t, ingress.ObjectMeta.Name, name+"-ingress")
+	assert.Equal(t, ingress.ObjectMeta.Name, name)
 	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name, svc.Name)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Port.Number, svc.Spec.Ports[0].TargetPort.IntVal)
@@ -80,9 +63,6 @@ func TestForgeIngress(t *testing.T) {
 	assert.Equal(t, ingress.ObjectMeta.Annotations["crownlabs.polito.it/probe-url"], "https://"+url)
 	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
 	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
-	assert.Equal(t, ingress.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, ingress.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, ingress.OwnerReferences[0].Name, "Test1")
 }
 
 func TestForgeOauth2Deployment(t *testing.T) {
@@ -94,20 +74,11 @@ func TestForgeOauth2Deployment(t *testing.T) {
 		clientSecret = "secrettest"
 		providerURL  = "urltest"
 	)
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
-	}
 
-	deploy := ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL, ownerRef)
+	deploy := ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL)
 
-	assert.Equal(t, deploy.ObjectMeta.Name, name+"-oauth2-deploy")
+	assert.Equal(t, deploy.ObjectMeta.Name, name+"-oauth2")
 	assert.Equal(t, deploy.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, deploy.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, deploy.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, deploy.OwnerReferences[0].Name, "Test1")
 	assert.Equal(t, deploy.Spec.Template.Spec.Containers[0].Image, image)
 	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--proxy-prefix=/"+urlUUID+"/oauth2")
 	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--cookie-path=/"+urlUUID)
@@ -122,19 +93,11 @@ func TestForgeOauth2Service(t *testing.T) {
 		name      = "usertest"
 		namespace = "namespacetest"
 	)
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
-	}
-	service := ForgeOauth2Service(name, namespace, ownerRef)
 
-	assert.Equal(t, service.ObjectMeta.Name, name+"-oauth2-svc")
+	service := ForgeOauth2Service(name, namespace)
+
+	assert.Equal(t, service.ObjectMeta.Name, name+"-oauth2")
 	assert.Equal(t, service.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, service.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, service.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, service.OwnerReferences[0].Name, "Test1")
 	assert.Equal(t, service.Spec.Selector, generateOauth2Labels(name))
 }
 
@@ -157,20 +120,11 @@ func TestForgeOauth2Ingress(t *testing.T) {
 			},
 		}
 	)
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
-	}
 
-	ingress := ForgeOauth2Ingress(name, namespace, &svc, urlUUID, websiteBaseURL, ownerRef)
+	ingress := ForgeOauth2Ingress(name, namespace, &svc, urlUUID, websiteBaseURL)
 
-	assert.Equal(t, ingress.ObjectMeta.Name, name+"-oauth2-ingress")
+	assert.Equal(t, ingress.ObjectMeta.Name, name+"-oauth2")
 	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, ingress.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, ingress.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, ingress.OwnerReferences[0].Name, "Test1")
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name, svc.Name)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Port.Number, svc.Spec.Ports[0].TargetPort.IntVal)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"/oauth2/.*")

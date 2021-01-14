@@ -23,6 +23,7 @@ require (
 	k8s.io/klog/v2 v2.2.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubevirt.io/client-go v0.35.0
+	kubevirt.io/containerized-data-importer v1.25.0
 	sigs.k8s.io/controller-runtime v0.6.2
 )
 

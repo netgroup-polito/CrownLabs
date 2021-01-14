@@ -15,12 +15,11 @@ import (
 
 // ForgeService creates and returns a Kubernetes Service resource providing
 // access to a CrownLabs environment.
-func ForgeService(name, namespace string, references []metav1.OwnerReference) corev1.Service {
+func ForgeService(name, namespace string) corev1.Service {
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name + "-svc",
-			Namespace:       namespace,
-			OwnerReferences: references,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -48,13 +47,13 @@ func ForgeService(name, namespace string, references []metav1.OwnerReference) co
 
 // ForgeIngress creates and returns a Kubernetes Ingress resource providing
 // exposing the remote desktop of a CrownLabs environment.
-func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
+func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	url := websiteBaseURL + "/" + urlUUID
 
 	ingress := networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name + "-ingress",
+			Name:      name,
 			Namespace: namespace,
 			Labels:    nil,
 			Annotations: map[string]string{
@@ -66,7 +65,6 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 				"crownlabs.polito.it/probe-url":                     "https://" + url,
 				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + urlUUID + `/index.html">';`,
 			},
-			OwnerReferences: references,
 		},
 		Spec: networkingv1.IngressSpec{
 			TLS: []networkingv1.IngressTLS{
@@ -107,7 +105,7 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 // ForgeOauth2Deployment creates and returns a Kubernetes Deployment resource
 // for oauth2-proxy, which is used to enforce authentication when connecting
 // to the remote desktop of a CrownLabs environment.
-func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL string, references []metav1.OwnerReference) appsv1.Deployment {
+func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL string) appsv1.Deployment {
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
 	cookieSecret := base64.StdEncoding.EncodeToString(id)
@@ -115,10 +113,9 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name + "-oauth2-deploy",
-			Namespace:       namespace,
-			OwnerReferences: references,
-			Labels:          labels,
+			Name:      name + "-oauth2",
+			Namespace: namespace,
+			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32Ptr(1),
@@ -181,15 +178,14 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 // ForgeOauth2Service creates and returns a Kubernetes Service resource
 // for oauth2-proxy, which is used to enforce authentication when connecting
 // to the remote desktop of a CrownLabs environment.
-func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReference) corev1.Service {
+func ForgeOauth2Service(name, namespace string) corev1.Service {
 	labels := generateOauth2Labels(name)
 	service := corev1.Service{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name + "-oauth2-svc",
-			Namespace:       namespace,
-			OwnerReferences: references,
-			Labels:          labels,
+			Name:      name + "-oauth2",
+			Namespace: namespace,
+			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -210,15 +206,14 @@ func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReferen
 // ForgeOauth2Ingress creates and returns a Kubernetes Ingress resource
 // for oauth2-proxy, which is used to enforce authentication when connecting
 // to the remote desktop of a CrownLabs environment.
-func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
+func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name + "-oauth2-ingress",
-			Namespace:       namespace,
-			OwnerReferences: references,
-			Labels:          generateOauth2Labels(name),
+			Name:      name + "-oauth2",
+			Namespace: namespace,
+			Labels:    generateOauth2Labels(name),
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
 				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",

@@ -19,10 +19,9 @@ func (r *InstanceReconciler) getVmiStatus(ctx context.Context,
 	guiEnabled bool, service *v1.Service, ingress *networkingv1.Ingress,
 	instance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 	var vmStatus virtv1.VirtualMachineInstancePhase
-
 	var ip string
-	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
 
+	url := ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
 	// iterate until the vm is running
 	for {
 		err := r.Client.Get(ctx, types.NamespacedName{
@@ -35,7 +34,6 @@ func (r *InstanceReconciler) getVmiStatus(ctx context.Context,
 				if len(vmi.Status.Interfaces) > 0 {
 					ip = vmi.Status.Interfaces[0].IP
 				}
-
 				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
 				if vmStatus == virtv1.Failed {
 					r.setInstanceStatus(ctx, msg, "Warning", "Vmi"+string(vmStatus), instance, "", "")

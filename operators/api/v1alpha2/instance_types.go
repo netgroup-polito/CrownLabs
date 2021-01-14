@@ -58,10 +58,6 @@ type InstanceStatus struct {
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).
 	IP string `json:"ip,omitempty"`
-
-	// The generation of the object which has been observed. This is used to
-	// filter out the reconciliation events referring only to status modifications.
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true

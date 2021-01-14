@@ -16,3 +16,17 @@ $ kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/${KUBE
 # wait until all KubeVirt components are up
 $ kubectl -n kubevirt wait kv kubevirt --for condition=Available
 ```
+
+# Containerized data importer
+[Containerized-Data-Importer (CDI)](https://github.com/kubevirt/containerized-data-importer) is an operator which automates the creation and population of PVCs with VM images, to be attached to KubeVirt VMs. In particular, it relies on the `Datavolume` resource, which essentially describes the source the image is imported from. Please, refer to the [official documentation](https://github.com/kubevirt/containerized-data-importer/blob/master/doc/image-from-registry.md) for more information about this process.
+
+## How to install
+In the following you can find the commands you need to execute in order to deploy CDI in a Kubernetes cluster:
+```bash
+#Export last cdi version
+export VERSION=$(curl -s https://github.com/kubevirt/containerized-data-importer/releases/latest | grep -o "v[0-9]\.[0-9]*\.[0-9]*")
+#Deploy the cdi operator
+kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-operator.yaml
+#Deploy cdi CR which triggers the actual installation
+kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-cr.yaml
+```
