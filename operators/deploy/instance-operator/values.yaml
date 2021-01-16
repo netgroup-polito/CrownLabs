@@ -18,7 +18,7 @@ configurations:
     providerUrl: https://auth.example.com/auth/realms/crownlabs
 
 image:
-  repository: crownlabs/laboratory-operator
+  repository: crownlabs/instance-operator
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""

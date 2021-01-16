@@ -69,7 +69,7 @@ type EnvironmentResources struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 
-// Template is the Schema for the labtemplates API
+// Template is the Schema for the templates API
 type Template struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

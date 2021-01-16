@@ -23,7 +23,7 @@ import (
 
 // +kubebuilder:docs-gen:collapse=Imports
 
-var _ = Describe("LabOperator controller", func() {
+var _ = Describe("Instance Operator controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (

@@ -59,7 +59,7 @@ Upon the creation of a *Instance*, the operator triggers the creation of the fol
 * Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
 * An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
 
-All those resources are binded to the LabInstance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
+All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
 ### APIs/CRDs
 
@@ -72,7 +72,7 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 The Instance Operator requires Golang 1.15 and make. To build the operator:
 
 ```bash
-go build ./cmd/laboratory-operator/main.go
+go build ./cmd/instance-operator/main.go
 ```
 
 #### Testing

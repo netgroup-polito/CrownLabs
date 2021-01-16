@@ -15,9 +15,9 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
-func (r *LabInstanceReconciler) getVmiStatus(ctx context.Context,
+func (r *InstanceReconciler) getVmiStatus(ctx context.Context,
 	guiEnabled bool, service *v1.Service, ingress *networkingv1.Ingress,
-	labInstance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
+	instance *crownlabsv1alpha2.Instance, vmi *virtv1.VirtualMachineInstance, startTimeVM time.Time) {
 	var vmStatus virtv1.VirtualMachineInstancePhase
 
 	var ip string
@@ -38,11 +38,11 @@ func (r *LabInstanceReconciler) getVmiStatus(ctx context.Context,
 
 				msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to " + string(vmStatus)
 				if vmStatus == virtv1.Failed {
-					r.setLabInstanceStatus(ctx, msg, "Warning", "Vmi"+string(vmStatus), labInstance, "", "")
+					r.setInstanceStatus(ctx, msg, "Warning", "Vmi"+string(vmStatus), instance, "", "")
 					return
 				}
 
-				r.setLabInstanceStatus(ctx, msg, "Normal", "Vmi"+string(vmStatus), labInstance, ip, url)
+				r.setInstanceStatus(ctx, msg, "Normal", "Vmi"+string(vmStatus), instance, ip, url)
 				if vmStatus == virtv1.Running {
 					break
 				}
@@ -65,7 +65,7 @@ func (r *LabInstanceReconciler) getVmiStatus(ctx context.Context,
 		klog.Error(err)
 	} else {
 		msg := "VirtualMachineInstance " + vmi.Name + " in namespace " + vmi.Namespace + " status update to VmiReady."
-		r.setLabInstanceStatus(ctx, msg, "Normal", "VmiReady", labInstance, ip, url)
+		r.setInstanceStatus(ctx, msg, "Normal", "VmiReady", instance, ip, url)
 		readyTime := time.Now()
 		bootTime := readyTime.Sub(startTimeVM)
 		bootTimes.Observe(bootTime.Seconds())

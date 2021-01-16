@@ -2,9 +2,9 @@
 
 # CrownLabs
 
-CrownLabs is a set of services that can deliver **remote computing labs** through a **per-user virtual machine**.
+CrownLabs is a set of services designed to deliver **remote computing labs** through **per-user environments**, based either on virtual machines or lightweight containers.
 
-Instructors can provision a set of virtual machines, properly equipped with the software required for a given lab (e.g., compilers, simulation software, etc).
+Instructors can provision a set of environments (e.g. virtual machines), properly equipped with the software required for a given lab (e.g., compilers, simulation software, etc).
 
 Each student can connect to its own set of (remote) private environments without requiring any additional software, just a simple Web browser. No space problems on the student hard disk, no troubles in setting up the environment required to support multiple subjects on the same machine, and more.
 
@@ -17,24 +17,40 @@ For more information, visit the CrownLabs website ([https://crownlabs.polito.it]
 
 ## Architecture
 
-CrownLabs relies on two major components:
+CrownLabs relies on two major high-level components:
+* **The Backend Business Logic**, which provides the different CrownLabs functionalities and is implemented by custom Kubernetes operators (e.g. the Instance Operator);
+* **The Frontend Dashboard**, which interacts with the Kubernetes API Server and exposes the different CrownLabs custom resources through a graphical interface.
 
-* **Frontend**, which is responsible to access Kubernetes API, guiding the user to creation of VMs.
-* **Laboratory Operator**, which reacts to LabInstances creation by creating the Kubernetes objects to launch
-the laboratory.
-
-A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure. Please notice that, for the sake of clarity, the figure depicts the elements essential for the provision of the actual service (i.e. remote computing labs), while leaving out with those more low-level or associated with the cluster operation (e.g monitoring).
+A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
+Please notice that, for the sake of clarity, the figure depicts the elements essential for the provision of the actual service (i.e. remote computing labs), while leaving out with those more low-level or associated with the cluster operation (e.g monitoring).
 
 ![CrownLabs High-Level Architecture](documentation/architecture.svg)
 
+## Backend Business Logic
 
-## External libraries
+The backend business logic providing the different CrownLabs functionalities is implemented by custom Kubernetes operators, while the data model is defined by means of CRDs.
+Specifically, the main backend components are:
 
-In this project we leverage and modify two external libraries:
+* the Instance Operator, which implements the logic to spawn new environments starting from predefined templates;
+* the Tenant Operator, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workpaces);
+* the Bastion Operator, which configures an SSH bastion to provide command-line access to the environments.
 
-* In the frontend component, we use a browser adaption of [Kubernetes JS Client](https://github.com/kubernetes-client/javascript)
-which is available only for server-side applications. This version is based on a fork from [Scality](https://github.com/scality/kubernetes-client-javascript/tree/browser) which added browser-side support.
-* The laboratory operator leverages the [Kubevirt](https://kubevirt.io/) library to create the VirtualMachineInstances.
+Furthermore, some additional components are leveraged to simplify and automate companion tasks, such as listing the available images and deleting stale environments.
+
+For more information regarding the CrownLabs backend, as well as for the deployment and configuration instructions, please refer to the corresponding [README](./operators/README.md).
+
+## Frontend Dashboard
+
+The frontend dashboard is the component responsible for providing access to the CrownLabs custom resources through an easy to use graphical interface.
+It allows final users to spawn new environments, as well as to define new templates.
+Additionally, privileged users can create, update and delete both tenant and workspace resources, effectively managing the permissions granted to access the system.
+
+The CrownLabs dashboard builds on top of [LiqoDash](https://github.com/liqotech/dashboard), a dynamic and general purpose dashboard designed to display and interact with Kubernetes resources.
+Specifically, it can be thought as a graphical kubectl, which directly interacts with the Kubernetes API server and provides access to both native and custom resources (i.e. those defined through CRDs).
+
+CrownLabs also leverages the possibility offered by the LiqoDash to easily create custom views, hence providing a more tailored interface for the specific use-case (e.g. display the available templates and start an instance of a given environment).
+Additionally, authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
+
 
 # Installation
 
@@ -56,19 +72,7 @@ For more information, visit the CrownLabs website: [https://crownlabs.polito.it]
 Crownlabs has been specifically designed for bare-metal clusters and this assumption will be adopted across the documentation. To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster where at least a subset of nodes supports Hardware Virtualization.
 In [infrastructure](infrastructure/), we present all the services which should be installed on the cluster, with an example of configuration. We strongly suggest to set up on your cluster the same components that we used, in order to avoid feature mismatch.
 
-## Laboratory Operator
+## Deploying the CrownLabs components
 
-The Laboratory Operator (LabOperator) implements the backend logic necessary to spawn new laboratories starting from a predefined template. The instruction to install and configure the LabOperator are detailed [here](operators).
-
-## Frontend
-
-The Frontend lets respectively students and professors interact with templates, for example, spawning new instances and define new templates. The logic to configure and deploy the Frontend are presented [here](webservice).
-
-## Course Setup
-
-Students work is normally organized in course with several professors. CrownLabs maps this logic by creating:
-
-* a Kubernetes namespace for each student, where he/she can create his/her laboratories
-* a Kubernetes namespace for the course where the professor creates the laboratory template, which can be instantiated by the final users. Those are readable only by the students of the course.
-
-All the permissions are handled by the Kubernetes RBAC and the mapping to user and groups is done via Keycloak.
+The deployment and configuration of the different CrownLabs components can be performed leveraging the provided Helm Chart.
+Please, refer to the corresponding [README](./deploy/crownlabs/README.md) file for more information about the installation procedure.

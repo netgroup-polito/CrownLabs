@@ -40,7 +40,6 @@ spec:
       enabled: true
       path: crownLabs/CrownLabsHome
   resources:
-    - render: {}
     - favourite: true
       icon: ControlOutlined
       render:
@@ -53,19 +52,18 @@ spec:
             columnTitle: Footer
           - columnContent: param.spec.sidebar.enabled
             columnTitle: Sidebar
-        tabs: []
       resourceName: DashboardConfig
       resourcePath: /apis/dashboard.liqo.io/v1alpha1/dashboardconfigs
-    - favourite: false
+    - favourite: true
+      icon: CreditCardOutlined
       render:
         columns:
           - columnContent: param.metadata.name
             columnTitle: Name
           - columnContent: param.metadata.namespace
             columnTitle: Namespace
-        tabs: []
-      resourceName: Deployment
-      resourcePath: /apis/apps/v1/deployments
+      resourceName: Template
+      resourcePath: /apis/crownlabs.polito.it/v1alpha2/templates
     - favourite: true
       icon: CodepenOutlined
       render:
@@ -74,30 +72,34 @@ spec:
             columnTitle: Name
           - columnContent: param.metadata.namespace
             columnTitle: Namespace
-          - columnContent: param.spec.labTemplateName
-            columnTitle: Lab Template Name
-          - columnContent: param.spec.labTemplateNamespace
-            columnTitle: Lab Template NS
-          - columnContent: param.status.ip
-            columnTitle: IP
           - columnContent: param.status.phase
             columnTitle: Phase
-        tabs: []
-      resourceName: LabInstance
-      resourcePath: /apis/crownlabs.polito.it/v1alpha1/labinstances
+      resourceName: Instance
+      resourcePath: /apis/crownlabs.polito.it/v1alpha2/instances
     - favourite: true
-      icon: CreditCardOutlined
+      icon: UserOutlined
       render:
         columns:
           - columnContent: param.metadata.name
             columnTitle: Name
-          - columnContent: param.spec.courseName
-            columnTitle: Course
-          - columnContent: param.spec.vmType
-            columnTitle: VM Type
-        tabs: []
-      resourceName: LabTemplate
-      resourcePath: /apis/crownlabs.polito.it/v1alpha1/labtemplates
+          - columnContent: param.spec.firstName
+            columnTitle: First Name
+          - columnContent: param.spec.lastName
+            columnTitle: Last Name
+          - columnContent: param.status.ready
+            columnTitle: Ready
+      resourceName: Tenant
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/tenants
+    - favourite: true
+      icon: BorderOutlined
+      render:
+        columns:
+          - columnContent: param.metadata.name
+            columnTitle: Name
+          - columnContent: param.spec.prettyName
+            columnTitle: Pretty Name
+      resourceName: Workspace
+      resourcePath: /apis/crownlabs.polito.it/v1alpha1/workspaces
     - favourite: true
       icon: UnorderedListOutlined
       render:
@@ -106,49 +108,12 @@ spec:
             columnTitle: Name
           - columnContent: param.metadata.namespace
             columnTitle: Namespace
-        tabs: []
       resourceName: ImageList
       resourcePath: /apis/crownlabs.polito.it/v1alpha1/imagelists
-    - favourite: false
-      render:
-        columns:
-          - columnContent: param.metadata.name
-            columnTitle: Name
-          - columnContent: param.metadata.namespace
-            columnTitle: Namespace
-        tabs: []
-      resourceName: APIResourceList
-      resourcePath: /apis/crownlabs.polito.it/v1alpha1/undefined
-    - favourite: false
-      render:
-        columns:
-          - columnContent: param.metadata.name
-            columnTitle: Name
-          - columnContent: param.metadata.namespace
-            columnTitle: Namespace
-          - columnContent: param.status.podIP
-            columnTitle: Pod IP
-          - columnContent: param.status.containerStatuses.ready
-            columnTitle: Ready
-        tabs: []
-      resourceName: Pod
-      resourcePath: /api/v1/pods
-    - favourite: false
-      render:
-        columns:
-          - columnContent: param.metadata.name
-            columnTitle: Name
-          - columnContent: param.metadata.namespace
-            columnTitle: Namespace
-        tabs:
-          - tabContent: []
-            tabTitle: NewTab
-      resourceName: ConfigMap
-      resourcePath: /api/v1/configmaps
   role:
     roleName: admin
     roleType: grafana_role
   sidebar:
-    alternativeLogo: https://crownlabs.polito.it/c0995264e0b7a6a048e3e8cdc92c4f7b.png
+    alternativeLogo: https://crownlabs.polito.it/images/logo.svg
     alternativeTitle: CrownLabs
     enabled: true

@@ -42,7 +42,7 @@ type InstanceStatus struct {
 // +kubebuilder:resource:shortName="inst"
 // +kubebuilder:storageversion
 
-// Instance is the Schema for the labinstances API
+// Instance is the Schema for the instances API
 type Instance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

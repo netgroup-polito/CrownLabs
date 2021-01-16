@@ -18,7 +18,7 @@ configurations:
     pass: password
 
 image:
-  repository: crownlabs/laboratory-operator
+  repository: crownlabs/tenant-operator
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
