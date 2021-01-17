@@ -9,7 +9,7 @@ More info at [Keycloak's website](https://www.keycloak.org)
 ## Pre-requisites
 Here we assume that in the K8S cluster the following operators are installed and configured:
 * [ROOK](https://rook.io/)
-* [NGINX Ingress Controller](https://www.nginx.com/products/nginx/kubernetes-ingress-controller/)
+* [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx)
 * [cert-manager](https://cert-manager.io/)
 * A namespace in K8S cluster called **keycloak-ha**
 
@@ -247,7 +247,7 @@ This could be done in two different ways:
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority-data: < ca.crt of the API Server > 
+    certificate-authority-data: < ca.crt of the API Server >
     server: https://__Your_API_Server_Address__
   name: kubernetes
 contexts:

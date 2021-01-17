@@ -6,7 +6,7 @@ More info at [Nextcloud's website](https://nextcloud.com)
 ## Pre-requisites
 Here we assume that in the K8S cluster the following operators are installed and configured:
 * [ROOK](https://rook.io/)
-* [NGINX Ingress Controller](https://www.nginx.com/products/nginx/kubernetes-ingress-controller/)
+* [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx)
 * [cert-manager](https://cert-manager.io/)
 * A namespace in K8S cluster called **nextcloud**
 
