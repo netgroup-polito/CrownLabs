@@ -1,6 +1,0 @@
-Jinja2==2.10.*
-keycloak==2.0.*
-pandas==0.25.*
-python_keycloak==0.19.*
-requests==2.22.*
-secrets==1.0.*

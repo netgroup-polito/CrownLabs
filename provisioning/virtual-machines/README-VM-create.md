@@ -81,5 +81,3 @@ For more detailed instructions about creating and customizing Ansible playbook, 
 This requires the administrative username/password of your Docker registry (the script will ask for this information interactively) and it may take some time to upload the image, particulatly in case your local machine does not have a fast connection to the Internet.
 
 6. Optionally, delete the VM with `./setup-crownlabs-vm.sh <vm-name> delete`.
-
-Finally, refer to the [Guide to create courses, labs and student/professor accounts](../courses/) in case you need to create or update the above information in your CrownLabs cluster.
