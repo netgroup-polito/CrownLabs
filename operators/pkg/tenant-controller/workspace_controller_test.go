@@ -65,6 +65,7 @@ var _ = Describe("Workspace controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      wsName,
 				Namespace: wsNamespace,
+				Labels:    map[string]string{targetLabelKey: targetLabelValue},
 			},
 			Spec: crownlabsv1alpha1.WorkspaceSpec{
 				PrettyName: wsPrettyName,

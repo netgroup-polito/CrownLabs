@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "tenant-operator.labels" . | nindent 4 }}
 data:
+  target-label: {{ .Values.configurations.targetLabel }}
   keycloak-url: {{ .Values.configurations.keycloak.url }}
   keycloak-login-realm: {{ .Values.configurations.keycloak.loginRealm }}
   keycloak-target-realm: {{ .Values.configurations.keycloak.targetRealm }}

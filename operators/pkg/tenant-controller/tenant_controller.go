@@ -37,9 +37,11 @@ import (
 // TenantReconciler reconciles a Tenant object
 type TenantReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	KcA    *KcActor
-	NcA    NcHandler
+	Scheme           *runtime.Scheme
+	KcA              *KcActor
+	NcA              NcHandler
+	TargetLabelKey   string
+	TargetLabelValue string
 }
 
 // +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;list;watch;create;update;patch;delete
@@ -204,6 +206,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
+		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
 		Owns(&v1.Namespace{}).
@@ -216,7 +219,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // handleDeletion deletes external resouces of a tenant using a fail-fast:false strategy
-func (r TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
+func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
 	var retErr error = nil
 	// delete keycloak user
 	if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
@@ -245,7 +248,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		updateTnNamespace(&ns, tn.Name)
+		r.updateTnNamespace(&ns, tn.Name)
 		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
 	}); nsErr != nil {
 		klog.Errorf("Error when updating namespace of tenant %s -> %s", tn.Name, nsErr)
@@ -258,7 +261,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
 	}
 	rqOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rq, func() error {
-		updateTnResQuota(&rq)
+		r.updateTnResQuota(&rq)
 		return ctrl.SetControllerReference(tn, &rq, r.Scheme)
 	})
 	if err != nil {
@@ -270,7 +273,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	// handle roleBinding (instance management)
 	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-instances", Namespace: nsName}}
 	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {
-		updateTnRb(&rb, tn.Name)
+		r.updateTnRb(&rb, tn.Name)
 		return ctrl.SetControllerReference(tn, &rb, r.Scheme)
 	})
 	if err != nil {
@@ -283,7 +286,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
 	cr := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: crName}}
 	crOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &cr, func() error {
-		updateTnCr(&cr, tn.Name)
+		r.updateTnCr(&cr, tn.Name)
 		return ctrl.SetControllerReference(tn, &cr, r.Scheme)
 	})
 	if err != nil {
@@ -296,7 +299,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	crbName := crName
 	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: crbName}}
 	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {
-		updateTnCrb(&crb, tn.Name, crName)
+		r.updateTnCrb(&crb, tn.Name, crName)
 		return ctrl.SetControllerReference(tn, &crb, r.Scheme)
 	})
 	if err != nil {
@@ -307,7 +310,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 
 	netPolDeny := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-deny-ingress-traffic", Namespace: nsName}}
 	npDOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolDeny, func() error {
-		updateTnNetPolDeny(&netPolDeny)
+		r.updateTnNetPolDeny(&netPolDeny)
 		return ctrl.SetControllerReference(tn, &netPolDeny, r.Scheme)
 	})
 	if err != nil {
@@ -318,7 +321,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 
 	netPolAllow := netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-allow-trusted-ingress-traffic", Namespace: nsName}}
 	npAOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &netPolAllow, func() error {
-		updateTnNetPolAllow(&netPolAllow)
+		r.updateTnNetPolAllow(&netPolAllow)
 		return ctrl.SetControllerReference(tn, &netPolAllow, r.Scheme)
 	})
 	if err != nil {
@@ -330,21 +333,15 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 }
 
 // updateTnNamespace updates the tenant namespace
-func updateTnNamespace(ns *v1.Namespace, tnName string) {
-	if ns.Labels == nil {
-		ns.Labels = make(map[string]string, 3)
-	}
+func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
+	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
-	ns.Labels["crownlabs.polito.it/operator-selector"] = "production"
 }
 
 // updateTnResQuota updates the tenant resource quota
-func updateTnResQuota(rq *v1.ResourceQuota) {
-	if rq.Labels == nil {
-		rq.Labels = make(map[string]string, 1)
-	}
-	rq.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnResQuota(rq *v1.ResourceQuota) {
+	rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
 
 	resourceList := make(v1.ResourceList)
 
@@ -357,20 +354,14 @@ func updateTnResQuota(rq *v1.ResourceQuota) {
 	rq.Spec.Hard = resourceList
 }
 
-func updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
-	if rb.Labels == nil {
-		rb.Labels = make(map[string]string, 1)
-	}
-	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
+	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 }
 
-func updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
-	if rb.Labels == nil {
-		rb.Labels = make(map[string]string, 1)
-	}
-	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
+	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 	rb.Rules = []rbacv1.PolicyRule{{
 		APIGroups:     []string{"crownlabs.polito.it"},
 		Resources:     []string{"tenants"},
@@ -379,36 +370,27 @@ func updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
 	}}
 }
 
-func updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
-	if rb.Labels == nil {
-		rb.Labels = make(map[string]string, 1)
-	}
-	rb.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
+	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: crName, APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 }
 
-func updateTnNetPolDeny(np *netv1.NetworkPolicy) {
-	if np.Labels == nil {
-		np.Labels = make(map[string]string, 1)
-	}
-	np.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
+	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
 }
 
-func updateTnNetPolAllow(np *netv1.NetworkPolicy) {
-	if np.Labels == nil {
-		np.Labels = make(map[string]string, 1)
-	}
-	np.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
+	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
 		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
 	}}}}}
 }
 
-func (r TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.UserWorkspaceData) error {
+func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.UserWorkspaceData) error {
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
 		klog.Errorf("Error when checking if keycloak user %s existed for creation/update -> %s", tn.Name, err)
@@ -440,7 +422,7 @@ func genKcUserRoleNames(workspaces []crownlabsv1alpha1.UserWorkspaceData) []stri
 	return userRoles
 }
 
-func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) error {
+func (r *TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) error {
 	// independently of the existence of the nexctloud secret for the nextcloud credentials of the user, need to know the displayname of the user, in order to update it if necessary
 	ncUsername := genNcUsername(tn.Name)
 	expectedDisplayname := genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)
@@ -466,7 +448,7 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 			}
 			// nextcloud secret not found, need to create it
 			ncSecOpRes, errCreateSec := ctrl.CreateOrUpdate(ctx, r.Client, &ncSecret, func() error {
-				updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
+				r.updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
 				return ctrl.SetControllerReference(tn, &ncSecret, r.Scheme)
 			})
 			if errCreateSec != nil {
@@ -496,7 +478,7 @@ func (r TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *c
 			return err
 		}
 		ncSecretOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &ncSecret, func() error {
-			updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
+			r.updateTnNcSecret(&ncSecret, ncUsername, *ncPsw)
 			return ctrl.SetControllerReference(tn, &ncSecret, r.Scheme)
 		})
 		if err != nil {
@@ -516,14 +498,10 @@ func genNcDisplayname(firstName, lastName string) string {
 	return fmt.Sprintf("%s %s", firstName, lastName)
 }
 
-func updateTnNcSecret(sec *v1.Secret, username, password string) {
-	if sec.Labels == nil {
-		sec.Labels = make(map[string]string, 1)
-	}
-	sec.Labels["crownlabs.polito.it/managed-by"] = "tenant"
+func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password string) {
+	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
 
 	sec.Type = v1.SecretTypeOpaque
-
 	sec.Data = make(map[string][]byte, 2)
 	sec.Data["username"] = make([]byte, base64.StdEncoding.EncodedLen(len(username)))
 	sec.Data["password"] = make([]byte, base64.StdEncoding.EncodedLen(len(password)))
@@ -589,4 +567,13 @@ func cleanWorkspaceLabels(labels map[string]string) {
 			delete(labels, k)
 		}
 	}
+}
+
+func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
+	}
+	labels[r.TargetLabelKey] = r.TargetLabelValue
+	labels["crownlabs.polito.it/managed-by"] = "tenant"
+	return labels
 }

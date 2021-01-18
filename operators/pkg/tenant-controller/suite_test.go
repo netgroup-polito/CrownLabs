@@ -47,6 +47,9 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
+const targetLabelKey = "reconcile"
+const targetLabelValue = "true"
+
 const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
 const kcTargetClientID = "targetClientId"
@@ -98,17 +101,21 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&WorkspaceReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-		KcA:    &kcA,
+		Client:           k8sManager.GetClient(),
+		Scheme:           k8sManager.GetScheme(),
+		KcA:              &kcA,
+		TargetLabelKey:   targetLabelKey,
+		TargetLabelValue: targetLabelValue,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&TenantReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-		KcA:    &kcA,
-		NcA:    mNcA,
+		Client:           k8sManager.GetClient(),
+		Scheme:           k8sManager.GetScheme(),
+		KcA:              &kcA,
+		NcA:              mNcA,
+		TargetLabelKey:   targetLabelKey,
+		TargetLabelValue: targetLabelValue,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

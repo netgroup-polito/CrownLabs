@@ -36,13 +36,14 @@ spec:
           command:
             - /usr/bin/controller
           args:
-            - "--kc-URL=$(KEYCLOAK_URL)"
+            - "--target-label=$(TARGET_LABEL)"
+            - "--kc-url=$(KEYCLOAK_URL)"
             - "--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)"
             - "--kc-target-realm=$(KEYCLOAK_TARGET_REALM)"
             - "--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)"
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
-            - "--nc-URL=$(NEXTCLOUD_URL)"
+            - "--nc-url=$(NEXTCLOUD_URL)"
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
           ports:
@@ -67,6 +68,11 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
+            - name: TARGET_LABEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "tenant-operator.fullname" . }}
+                  key: target-label
             - name: KEYCLOAK_URL
               valueFrom:
                 configMapKeyRef:

@@ -6,6 +6,8 @@ import (
 	"math/big"
 
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 func randomRange(min, max int) (*int, error) {
@@ -48,4 +50,41 @@ func generateToken() (*string, error) {
 	}
 	token := fmt.Sprintf("%x", b)
 	return &token, nil
+}
+
+func genPredicatesForMatchLabel(targetLabelKey, targetLabelValue string) predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if targetLabelKey == "" && targetLabelValue == "" {
+				return e.ObjectOld != e.ObjectNew
+			} else if value, ok := e.MetaNew.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
+				return false
+			}
+			return e.ObjectOld != e.ObjectNew
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			if targetLabelKey == "" && targetLabelValue == "" {
+				return true
+			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
+				return false
+			}
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			if targetLabelKey == "" && targetLabelValue == "" {
+				return true
+			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
+				return false
+			}
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			if targetLabelKey == "" && targetLabelValue == "" {
+				return true
+			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
+				return false
+			}
+			return true
+		},
+	}
 }

@@ -19,7 +19,6 @@ dashboard:
       clientSecret: <client-secret>
       providerUrl: https://auth.example.com/auth/realms/crownlabs
 
-
 instance-operator:
   replicaCount: 1
   image:
@@ -38,13 +37,13 @@ instance-operator:
       clientSecret: <client-secret>
       providerUrl: https://auth.example.com/auth/realms/crownlabs
 
-
 tenant-operator:
   replicaCount: 1
   image:
     repository: crownlabs/tenant-operator
   rbacResourcesName: crownlabs-tenant-operator
   configurations:
+    targetLabel: crownlabs.polito.it/operator-selector=production
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       loginRealm: master
@@ -57,7 +56,6 @@ tenant-operator:
       user: username
       pass: password
 
-
 bastion-operator:
   replicaCount: 1
   image:
@@ -65,7 +63,6 @@ bastion-operator:
     repositorySidecar: crownlabs/bastion-operator
   rbacResourcesName: crownlabs-bastion-operator
   serviceAnnotations: {}
-
 
 image-list:
   replicaCount: 1
@@ -77,7 +74,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
 
 delete-stale-instances:
   image:

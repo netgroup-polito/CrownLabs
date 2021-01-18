@@ -170,6 +170,7 @@ var _ = Describe("Tenant controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      wsName,
 				Namespace: wsNamespace,
+				Labels:    map[string]string{targetLabelKey: targetLabelValue},
 			},
 			Spec: crownlabsv1alpha1.WorkspaceSpec{
 				PrettyName: wsPrettyName,
@@ -186,6 +187,7 @@ var _ = Describe("Tenant controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      tnName,
 				Namespace: tnNamespace,
+				Labels:    map[string]string{targetLabelKey: targetLabelValue},
 			},
 			Spec: crownlabsv1alpha1.TenantSpec{
 				FirstName:  tnFirstName,
