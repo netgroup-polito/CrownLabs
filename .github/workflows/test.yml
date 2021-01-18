@@ -5,7 +5,7 @@ on:
     - master
     tags:
     - "v*"
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - reopened
@@ -149,8 +149,9 @@ jobs:
               ```
             </details>
           reactions: confused
-        if: github.event_name != 'push' && failure()
-
+        if: |
+          github.event_name != 'push' && failure() &&
+          github.event.pull_request.head.repo.full_name == github.repository
 
   kubernetes-manifests:
     name: Kubernetes manifests
