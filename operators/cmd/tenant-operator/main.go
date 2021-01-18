@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v7"
+	"github.com/go-resty/resty/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -50,27 +51,34 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var kcURL string
-	var kcTenantOperatorUser string
-	var kcTenantOperatorPsw string
+	var kcTnOpUser string
+	var kcTnOpPsw string
 	var kcLoginRealm string
 	var kcTargetRealm string
 	var kcTargetClient string
+	var ncURL string
+	var ncTnOpUser string
+	var ncTnOpPsw string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&kcURL, "kc-URL", "", "The URL of the keycloak client.")
-	flag.StringVar(&kcTenantOperatorUser, "kc-tenant-operator-user", "", "The username of the admin account for keycloak.")
-	flag.StringVar(&kcTenantOperatorPsw, "kc-tenant-operator-psw", "", "The password of the admin account for keycloak.")
+	flag.StringVar(&kcTnOpUser, "kc-tenant-operator-user", "", "The username of the acting account for keycloak.")
+	flag.StringVar(&kcTnOpPsw, "kc-tenant-operator-psw", "", "The password of the acting account for keycloak.")
 	flag.StringVar(&kcLoginRealm, "kc-login-realm", "", "The realm where to login the keycloak account.")
 	flag.StringVar(&kcTargetRealm, "kc-target-realm", "", "The target realm for keycloak clients and roles.")
 	flag.StringVar(&kcTargetClient, "kc-target-client", "", "The target client for keycloak users and roles.")
+	flag.StringVar(&ncURL, "nc-URL", "", "The base URL for the nextcloud actor.")
+	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
+	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.Parse()
 
-	if kcURL == "" || kcTenantOperatorUser == "" || kcTenantOperatorPsw == "" ||
-		kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" {
-		klog.Fatal("Some keycloak parameters are not defined")
+	if kcURL == "" || kcTnOpUser == "" || kcTnOpPsw == "" ||
+		kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" ||
+		ncURL == "" || ncTnOpUser == "" || ncTnOpPsw == "" {
+		klog.Fatal("Some flag parameters are not defined")
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -87,17 +95,20 @@ func main() {
 		klog.Fatal("Unable to start manager", err)
 	}
 
-	kcA, err := newKcActor(kcURL, kcTenantOperatorUser, kcTenantOperatorPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
+	kcA, err := newKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
 	if err != nil {
 		klog.Fatal("Error when setting up keycloak", err)
 	}
 
-	go checkAndRenewTokenPeriodically(context.Background(), kcA.Client, kcA.Token, kcTenantOperatorUser, kcTenantOperatorPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
+	go checkAndRenewTokenPeriodically(context.Background(), kcA.Client, kcA.Token, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 
+	httpClient := resty.New()
+	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	if err = (&controllers.TenantReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		KcA:    kcA,
+		NcA:    &NcA,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create controller for Tenant", err)
 	}

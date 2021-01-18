@@ -23,7 +23,7 @@ type KcActor struct {
 func (kcA *KcActor) createKcRoles(ctx context.Context, rolesToCreate map[string]string) error {
 	for newRoleName, newRoleDescr := range rolesToCreate {
 		if err := kcA.createKcRole(ctx, newRoleName, newRoleDescr); err != nil {
-			klog.Error("Could not create user role", newRoleName)
+			klog.Errorf("Could not create user role %s -> %s", newRoleName, err)
 			return err
 		}
 	}
@@ -40,17 +40,15 @@ func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName, newRoleDescr 
 		// role didn't exist
 		// need to create new role
 		klog.Infof("Role didn't exist %s", newRoleName)
-		createdRoleName, err2 := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
-		if err != nil {
-			klog.Error("Error when creating role", err2)
-			return err2
+		createdRoleName, errCreate := kcA.Client.CreateClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
+		if errCreate != nil {
+			klog.Errorf("Error when creating role -> %s", errCreate)
+			return errCreate
 		}
 		klog.Infof("Role created %s", createdRoleName)
 		return nil
-	}
-
-	if err != nil {
-		klog.Error("Error when getting user role", err)
+	} else if err != nil {
+		klog.Errorf("Error when getting user role -> %s", err)
 		return err
 	}
 
@@ -58,7 +56,7 @@ func (kcA *KcActor) createKcRole(ctx context.Context, newRoleName, newRoleDescr 
 		klog.Infof("Role already existed %s", newRoleName)
 		err := kcA.Client.UpdateRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleAfter)
 		if err != nil {
-			klog.Error("Error when creating role", err)
+			klog.Errorf("Error when creating role -> %s", err)
 			return err
 		}
 		return nil
@@ -72,7 +70,7 @@ func (kcA *KcActor) deleteKcRoles(ctx context.Context, rolesToDelete map[string]
 	for role := range rolesToDelete {
 		if err := kcA.Client.DeleteClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, role); err != nil {
 			if !strings.Contains(err.Error(), "404") {
-				klog.Error("Could not delete user role", role)
+				klog.Errorf("Could not delete user role %s -> %s", role, err)
 				return err
 			}
 		}
@@ -84,8 +82,7 @@ func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID, e
 	// using Exact in the GetUsersParams deosn't work cause keycloak doesn't offer the field in the API
 	usersFound, err := kcA.Client.GetUsers(ctx, kcA.Token.AccessToken, kcA.TargetRealm, gocloak.GetUsersParams{Username: &username})
 	if err != nil {
-		klog.Errorf("Error when trying to find user %s", username)
-		klog.Error(err)
+		klog.Errorf("Error when trying to find user %s -> %s", username, err)
 		return nil, nil, err
 	}
 
@@ -127,8 +124,7 @@ func (kcA *KcActor) createKcUser(ctx context.Context, username, firstName, lastN
 	}
 	newUserID, err := kcA.Client.CreateUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, newUser)
 	if err != nil {
-		klog.Errorf("Error when creating user %s", username)
-		klog.Error(err)
+		klog.Errorf("Error when creating user %s -> %s", username, err)
 		return nil, err
 	}
 	klog.Infof("User %s created", username)
@@ -137,8 +133,7 @@ func (kcA *KcActor) createKcUser(ctx context.Context, username, firstName, lastN
 		Lifespan: &kcA.EmailActionsLifeSpanS,
 		Actions:  &kcA.UserRequiredActions,
 	}); err != nil {
-		klog.Errorf("Error when sending email actions for user %s", username)
-		klog.Error(err)
+		klog.Errorf("Error when sending email actions for user %s -> %s", username, err)
 		return nil, err
 	}
 
@@ -161,8 +156,7 @@ func (kcA *KcActor) updateKcUser(ctx context.Context, userID, firstName, lastNam
 	}
 	err := kcA.Client.UpdateUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, updatedUser)
 	if err != nil {
-		klog.Errorf("Error when updating user %s %s", firstName, lastName)
-		klog.Error(err)
+		klog.Errorf("Error when updating user %s %s -> %s", firstName, lastName, err)
 		return err
 	}
 	if requireUserActions {
@@ -171,8 +165,7 @@ func (kcA *KcActor) updateKcUser(ctx context.Context, userID, firstName, lastNam
 			Lifespan: &kcA.EmailActionsLifeSpanS,
 			Actions:  &kcA.UserRequiredActions,
 		}); err != nil {
-			klog.Errorf("Error when sending email verification user %s %s", firstName, lastName)
-			klog.Error(err)
+			klog.Errorf("Error when sending email verification user %s %s -> %s", firstName, lastName, err)
 			return err
 		}
 		klog.Infof("Sent user confirmation to user %s %s cause email has been updated", firstName, lastName)
@@ -187,8 +180,7 @@ func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, use
 		// check if role exists and get roleID to use with gocloak
 		gotRole, err := kcA.Client.GetClientRole(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, roleName)
 		if err != nil {
-			klog.Errorf("Error when getting info on client role %s", roleName)
-			klog.Error(err)
+			klog.Errorf("Error when getting info on client role %s -> %s", roleName, err)
 			return err
 		}
 		rolesToSet[i].ID = gotRole.ID
@@ -197,8 +189,7 @@ func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, use
 	// get current roles of user
 	userCurrentRoles, err := kcA.Client.GetClientRolesByUserID(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID)
 	if err != nil {
-		klog.Errorf("Error when getting roles of user with ID %s", userID)
-		klog.Error(err)
+		klog.Errorf("Error when getting roles of user with ID %s -> %s", userID, err)
 		return err
 	}
 	rolesToDelete := subtractRoles(userCurrentRoles, rolesToSet, editOnlyPrefix)
@@ -206,16 +197,14 @@ func (kcA *KcActor) updateUserRoles(ctx context.Context, roleNames []string, use
 		// this is idempotent
 		err = kcA.Client.DeleteClientRoleFromUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID, rolesToDelete)
 		if err != nil {
-			klog.Errorf("Error when removing user roles to user with ID %s", userID)
-			klog.Error(err)
+			klog.Errorf("Error when removing user roles to user with ID %s -> %s", userID, err)
 			return err
 		}
 	}
 	// // this is idempotent
 	err = kcA.Client.AddClientRoleToUser(ctx, kcA.Token.AccessToken, kcA.TargetRealm, kcA.TargetClientID, userID, rolesToSet)
 	if err != nil {
-		klog.Errorf("Error when adding user roles to user with ID %s", userID)
-		klog.Error(err)
+		klog.Errorf("Error when adding user roles to user with ID %s -> %s", userID, err)
 		return err
 	}
 	return nil

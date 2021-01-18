@@ -44,8 +44,8 @@ var _ = Describe("Tenant controller", func() {
 		wsManagerRole = "workspace-ws1:manager"
 
 		tnName          = "mariorossi"
-		tnFirstName     = "marià"
-		tnLastName      = "ròssì"
+		tnFirstName     = "mariò"
+		tnLastName      = "ròssì verdò"
 		tnWorkspaces    = []crownlabsv1alpha1.UserWorkspaceData{{WorkspaceRef: crownlabsv1alpha1.GenericRef{Name: "ws1"}, Role: crownlabsv1alpha1.User}}
 		tnEmail         = "mario.rossi@email.com"
 		userID          = "userID"
@@ -147,14 +147,14 @@ var _ = Describe("Tenant controller", func() {
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsUserRole),
-		).Return(nil).MinTimes(1).MaxTimes(2)
+		).Return(nil).AnyTimes()
 
 		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsManagerRole),
-		).Return(nil).MinTimes(1).MaxTimes(2)
+		).Return(nil).AnyTimes()
 
 	})
 
@@ -205,15 +205,19 @@ var _ = Describe("Tenant controller", func() {
 		By("By checking that the needed cluster resources for the tenant have been updated accordingly")
 		checkTnClusterResourceCreation(ctx, tnName, nsName, timeout, interval)
 
-		By("By checking that the tenant has been updated accordingly")
+		By("By checking that the tenant has been updated accordingly after creation")
 
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn)
 			if err != nil {
 				return false
 			}
-			// check if keycloak has been correctly updated
+			// check if namespace status has been correctly updated
 			if !tn.Status.PersonalNamespace.Created || tn.Status.PersonalNamespace.Name != nsName {
+				return false
+			}
+			// check if external subscriptions has been correctly updated
+			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha1.SubscrOk || tn.Status.Subscriptions["nextcloud"] != crownlabsv1alpha1.SubscrOk {
 				return false
 			}
 			// check if workspace inconsistence has been correctly updated
@@ -227,7 +231,7 @@ var _ = Describe("Tenant controller", func() {
 			if tn.Labels["crownlabs.polito.it/first-name"] != "mari" {
 				return false
 			}
-			if tn.Labels["crownlabs.polito.it/last-name"] != "rss" {
+			if tn.Labels["crownlabs.polito.it/last-name"] != "rss_verd" {
 				return false
 			}
 			if !containsString(tn.Finalizers, "crownlabs.polito.it/tenant-operator") {
@@ -239,7 +243,7 @@ var _ = Describe("Tenant controller", func() {
 		By("By deleting the workspace of the tenant")
 		Expect(k8sClient.Delete(ctx, ws)).Should(Succeed())
 
-		By("By checking that the tenant has been updated accordingly")
+		By("By checking that the tenant has been updated accordingly after workspace deletion")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn)
 			if err != nil {

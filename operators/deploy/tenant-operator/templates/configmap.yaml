@@ -9,3 +9,4 @@ data:
   keycloak-login-realm: {{ .Values.configurations.keycloak.loginRealm }}
   keycloak-target-realm: {{ .Values.configurations.keycloak.targetRealm }}
   keycloak-target-client: {{ .Values.configurations.keycloak.targetClient }}
+  nextcloud-url: {{ .Values.configurations.nextcloud.url }}
