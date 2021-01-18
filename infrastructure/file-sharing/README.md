@@ -75,4 +75,4 @@ The authentication through Keycloak is made possible thanks to a third party app
 Here is the [Github repo](https://github.com/zorn-v/nextcloud-social-login) of the application.
 
 ### Clients
-There are different clients available on the [official website](https://nextcloud.com)
+Clients for different platforms are available on the [official website](https://nextcloud.com).

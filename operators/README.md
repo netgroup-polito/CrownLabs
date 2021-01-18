@@ -69,7 +69,7 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 ### Build from source
 
-The Instance Operator requires Golang 1.15 and make. To build the operator:
+The Instance Operator requires Golang 1.15 and `make`. To build the operator:
 
 ```bash
 go build ./cmd/instance-operator/main.go
