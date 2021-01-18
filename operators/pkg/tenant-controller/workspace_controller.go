@@ -67,6 +67,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.Update(context.Background(), &ws); err != nil {
 				klog.Errorf("Error when removing tenant operator finalizer from workspace %s -> %s", ws.Name, err)
 				retrigErr = err
+				tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
 			}
 		}
 		if retrigErr == nil {
@@ -99,6 +100,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			klog.Errorf("Unable to update cluster resource of tenant %s -> %s", ws.Name, err)
 			retrigErr = err
+			tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 		}
 		klog.Infof("Cluster resourcess for tenant %s updated", ws.Name)
 	} else {
@@ -106,6 +108,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ws.Status.Namespace.Created = false
 		ws.Status.Namespace.Name = ""
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 	}
 
 	if ws.Status.Subscriptions == nil {
@@ -117,6 +120,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("workspace", "keycloak").Inc()
 	} else {
 		klog.Infof("Roles for workspace %s created successfully", ws.Name)
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
@@ -128,6 +132,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = r.Status().Update(ctx, &ws); err != nil {
 		// if status update fails, still try to reconcile later
 		klog.Errorf("Unable to update status of workspace %s before exiting reconciler -> %s", ws.Name, err)
+		tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
 		retrigErr = err
 	}
 
@@ -140,6 +145,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resultion to the second
 	if err != nil {
 		klog.Errorf("Error when generating random number for reque -> %s", err)
+		tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
 		return ctrl.Result{}, err
 	}
 	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
@@ -161,6 +167,7 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 	rolesToDelete := genWorkspaceKcRolesData(wsName, wsPrettyName)
 	if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
 		klog.Errorf("Error when deleting roles of workspace %s -> %s", wsName, err)
+		tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
 		retErr = err
 	}
 
@@ -180,6 +187,7 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 			removeWsFromTn(&tenantsToUpdate.Items[i].Spec.Workspaces, wsName)
 			if err := r.Update(ctx, &tenantsToUpdate.Items[i]); err != nil {
 				klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tenantsToUpdate.Items[i].Name, wsName, err)
+				tnOpinternalErrors.WithLabelValues("workspace", "tenant-unsubscription").Inc()
 				retErr = err
 			}
 		}

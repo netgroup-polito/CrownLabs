@@ -75,6 +75,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
 			if err := r.Update(context.Background(), &tn); err != nil {
 				klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
+				tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
 				retrigErr = err
 			}
 		}
@@ -106,6 +107,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			klog.Errorf("Unable to update cluster resource of tenant %s -> %s", tn.Name, err)
 			retrigErr = err
+			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		}
 		klog.Infof("Cluster resourcess for workspace %s updated", tn.Name)
 	} else {
@@ -113,6 +115,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		tn.Status.PersonalNamespace.Created = false
 		tn.Status.PersonalNamespace.Name = ""
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 	}
 
 	// check validity of workspaces in tenant
@@ -127,6 +130,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.WorkspaceRef.Name, tn.Name, err)
 			retrigErr = err
 			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.WorkspaceRef.Name)
+			tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
 		} else {
 			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
 		}
@@ -136,6 +140,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		klog.Errorf("Error when updating keycloak subscription for tenant %s -> %s", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 	} else {
 		klog.Infof("Keycloak subscription for tenant %s updated", tn.Name)
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
@@ -146,6 +151,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			klog.Errorf("Error when updating nextcloud subscription for tenant %s -> %s", tn.Name, err)
 			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
 			retrigErr = err
+			tnOpinternalErrors.WithLabelValues("tenant", "nextcloud").Inc()
 		} else {
 			klog.Infof("Nextcloud subscription for tenant %s updated", tn.Name)
 			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrOk
@@ -167,6 +173,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = updateTnLabels(&tn, tenantExistingWorkspaces); err != nil {
 		klog.Errorf("Unable to update label of tenant %s -> %s", tn.Name, err)
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
 	}
 
 	// need to update resource to apply labels
@@ -174,6 +181,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// if status update fails, still try to reconcile later
 		klog.Errorf("Unable to update tenant %s before exiting reconciler -> %s", tn.Name, err)
 		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
 	}
 
 	if retrigErr != nil {
@@ -185,6 +193,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resolution to the second
 	if err != nil {
 		klog.Errorf("Error when generating random number for reque -> %s", err)
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
 		return ctrl.Result{}, err
 	}
 	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
@@ -212,17 +221,20 @@ func (r TenantReconciler) handleDeletion(ctx context.Context, tnName string) err
 	// delete keycloak user
 	if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
 		klog.Errorf("Error when checking if user %s existed for deletion -> %s", tnName, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 		retErr = err
 	} else if userID != nil {
 		// userID != nil means user exist in keycloak, so need to delete it
 		if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
 			klog.Errorf("Error when deleting user %s -> %s", tnName, err)
+			tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 			retErr = err
 		}
 	}
 	// delete nextcloud user
 	if err := r.NcA.DeleteUser(genNcUsername(tnName)); err != nil {
 		klog.Errorf("Error when deleting nextcloud user for tenant %s -> %s", tnName, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "nextcloud").Inc()
 		retErr = err
 	}
 	return retErr
