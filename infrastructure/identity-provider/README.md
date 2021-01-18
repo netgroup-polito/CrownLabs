@@ -7,7 +7,7 @@ This brief guide presents how to install Keycloak in HA in a K8S cluster with a 
 
 More info at [Keycloak's website](https://www.keycloak.org)
 ## Pre-requisites
-Here we assume that in the K8S cluster the following operators are installed and configured:
+Here we assume that the following operators are installed and configured in the K8s cluster:
 * [ROOK](https://rook.io/)
 * [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx)
 * [cert-manager](https://cert-manager.io/)

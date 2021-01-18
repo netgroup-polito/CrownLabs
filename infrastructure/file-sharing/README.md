@@ -4,7 +4,7 @@ Nextcloud is a suite of client-server software for creating and using file hosti
 
 More info at [Nextcloud's website](https://nextcloud.com)
 ## Pre-requisites
-Here we assume that in the K8S cluster the following operators are installed and configured:
+Here we assume that the following operators are installed and configured in the K8s cluster:
 * [ROOK](https://rook.io/)
 * [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx)
 * [cert-manager](https://cert-manager.io/)
