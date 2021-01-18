@@ -72,5 +72,3 @@ Students work is normally organized in course with several professors. CrownLabs
 * a Kubernetes namespace for the course where the professor creates the laboratory template, which can be instantiated by the final users. Those are readable only by the students of the course.
 
 All the permissions are handled by the Kubernetes RBAC and the mapping to user and groups is done via Keycloak.
-
-Further details about this logic are available [here](provisioning/courses/).

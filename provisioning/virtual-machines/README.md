@@ -9,7 +9,7 @@ The suggested approach to create and upload new VMs in CrownLabs involves the us
 
 Jump to the [Create and configure CrownLabs VMs guide](README-VM-create.md) for creating and uploading VMs in CrownLabs; the above guide contains also detailed instructions for running and customizing the `setup-crownlabs-vms.sh` script.
 
-Once the VM image has been correctly uploaded to the registry, a new laboratory can be configured in the CrownLab live environment, as explained [in the Course/Lab setup](../courses) documentation section.
+Once the VM image has been correctly uploaded to the registry, a new template can be configured through the CrownLabs dashboard.
 
 
 ## Create your own VM manually
