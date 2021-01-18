@@ -1,19 +1,27 @@
-FROM alpine:3.12.1
+# Multi-stage build for Websockify (C version), cleanup & add non-root user
 
-# Build Websockify (C version) & cleanup
-RUN apk add --no-cache --virtual .build-deps git openssl-dev musl-dev gcc make && \
-    git clone https://github.com/novnc/websockify-other.git /wsckfy && \
-    cd /wsckfy/c && \
-    make && \
-    mv /wsckfy/c/websockify /bin/websockify && \
-    rm -rf /wsckfy && \
-    apk del .build-deps && \
-    cd /
+# Builder container
+FROM alpine:3.12.1 AS builder
+
+# Install build tools
+RUN apk add git openssl-dev musl-dev gcc make
+
+# Clone repo & compile
+RUN git clone https://github.com/novnc/websockify-other.git /wsckfy
+RUN cd /wsckfy/c && make
+
+
+
+# Final container
+FROM alpine:3.12.1
 
 ARG UID=1010
 ARG USER=crownlabs
 
 RUN adduser -D -H -u ${UID} -s /sbin/nologin ${USER}
+
+# Copy compiled binary from builder container
+COPY --from=builder /wsckfy/c/websockify /bin/websockify
 
 # Configure default VNC endpoint
 ENV VNC_SERVER=localhost \
@@ -23,6 +31,7 @@ ENV VNC_SERVER=localhost \
 
 EXPOSE ${WS_PORT}
 
+# Enforce non-root user
 USER ${USER}
 
 # Start websockify

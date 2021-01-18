@@ -1,8 +1,10 @@
 FROM ubuntu:20.04
 
+# Define PyCharm version default arguments
 ARG PYCHARM_VERSION="2020.2"
 ARG REVISION=".3"
 
+# Prevent apt from prompting the user for input during install/configuration
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required libraries to render PyCharm
@@ -15,11 +17,14 @@ RUN apt-get install -y wget && \
   mkdir -p /opt/pycharm && \
   wget -qO- https://download.jetbrains.com/python/pycharm-community-${PYCHARM_VERSION}${REVISION}.tar.gz | tar xz --strip 1 -C /opt/pycharm && \
   apt-get purge --autoremove wget -y && \
-  apt-get clean -y
+  apt-get clean -y && \
+  rm -rf /var/lib/apt/lists/*.*
 
+# Define user and user id default arguments
 ARG USER=crownlabs
 ARG UID=1010
 
+# Define basic default enviroment variables
 ENV DISPLAY=:0 \
   USER=${USER} \
   HOME=/home/$USER
