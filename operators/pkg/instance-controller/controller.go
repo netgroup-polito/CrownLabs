@@ -37,8 +37,8 @@ import (
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
-// LabInstanceReconciler reconciles a Instance object
-type LabInstanceReconciler struct {
+// InstanceReconciler reconciles a Instance object
+type InstanceReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
 	EventsRecorder     record.EventRecorder
@@ -51,24 +51,24 @@ type LabInstanceReconciler struct {
 	OidcProviderURL    string
 }
 
-func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	VMstart := time.Now()
 	ctx := context.Background()
 
-	// get labInstance
-	var labInstance crownlabsv1alpha2.Instance
-	if err := r.Get(ctx, req.NamespacedName, &labInstance); err != nil {
+	// get instance
+	var instance crownlabsv1alpha2.Instance
+	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
 		// reconcile was triggered by a delete request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	ns := v1.Namespace{}
 	namespaceName := types.NamespacedName{
-		Name:      labInstance.Namespace,
+		Name:      instance.Namespace,
 		Namespace: "",
 	}
 
 	// It performs reconciliation only if the Instance belongs to whitelisted namespaces
-	// by checking the existence of keys in labInstance namespace
+	// by checking the existence of keys in the instance namespace
 	if err := r.Get(ctx, namespaceName, &ns); err == nil {
 		if !instance_creation.CheckLabels(&ns, r.NamespaceWhitelist.MatchLabels) {
 			klog.Info("Namespace " + req.Namespace + " does not meet the selector labels")
@@ -81,36 +81,36 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	klog.Info("Namespace " + req.Namespace + " met the selector labels")
 	// The metadata.generation value is incremented for all changes, except for changes to .metadata or .status
 	// if metadata.generation is not incremented there's no need to reconcile
-	if labInstance.Status.ObservedGeneration == labInstance.ObjectMeta.Generation {
+	if instance.Status.ObservedGeneration == instance.ObjectMeta.Generation {
 		return ctrl.Result{}, nil
 	}
 
-	// check if labTemplate exists
+	// check if the Template exists
 	templateName := types.NamespacedName{
-		Namespace: labInstance.Spec.Template.Namespace,
-		Name:      labInstance.Spec.Template.Name,
+		Namespace: instance.Spec.Template.Namespace,
+		Name:      instance.Spec.Template.Name,
 	}
-	var labTemplate crownlabsv1alpha2.Template
-	if err := r.Get(ctx, templateName, &labTemplate); err != nil {
+	var template crownlabsv1alpha2.Template
+	if err := r.Get(ctx, templateName, &template); err != nil {
 		// no Template related exists
-		klog.Info("Template " + templateName.Name + " doesn't exist. Deleting Instance " + labInstance.Name)
-		r.EventsRecorder.Event(&labInstance, "Warning", "LabTemplateNotFound", "Template "+templateName.Name+" not found in namespace "+labTemplate.Namespace)
+		klog.Info("Template " + templateName.Name + " doesn't exist.")
+		r.EventsRecorder.Event(&instance, "Warning", "TemplateNotFound", "Template "+templateName.Name+" not found in namespace "+template.Namespace)
 		return ctrl.Result{}, err
 	}
 
-	r.EventsRecorder.Event(&labInstance, "Normal", "LabTemplateFound", "Template "+templateName.Name+" found in namespace "+labTemplate.Namespace)
-	labInstance.Labels = map[string]string{
-		"course-name":        strings.ReplaceAll(strings.ToLower(labTemplate.Spec.WorkspaceRef.Name), " ", "-"),
-		"template-name":      labTemplate.Name,
-		"template-namespace": labTemplate.Namespace,
+	r.EventsRecorder.Event(&instance, "Normal", "TemplateFound", "Template "+templateName.Name+" found in namespace "+template.Namespace)
+	instance.Labels = map[string]string{
+		"course-name":        strings.ReplaceAll(strings.ToLower(template.Spec.WorkspaceRef.Name), " ", "-"),
+		"template-name":      template.Name,
+		"template-namespace": template.Namespace,
 	}
-	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
-	if err := r.Update(ctx, &labInstance); err != nil {
+	instance.Status.ObservedGeneration = instance.ObjectMeta.Generation
+	if err := r.Update(ctx, &instance); err != nil {
 		klog.Error("Unable to update Instance labels")
 		klog.Error(err)
 	}
 
-	if _, err := r.generateEnvironments(&labTemplate, &labInstance, VMstart); err != nil {
+	if _, err := r.generateEnvironments(&template, &instance, VMstart); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -123,7 +123,7 @@ func (r *LabInstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	return ctrl.Result{}, nil
 }
 
-func (r *LabInstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Template, instance *crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
+func (r *InstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Template, instance *crownlabsv1alpha2.Instance, vmstart time.Time) (ctrl.Result, error) {
 	name := fmt.Sprintf("%v-%.4s", strings.ReplaceAll(instance.Name, ".", "-"), uuid.New().String())
 	namespace := instance.Namespace
 	for i := range template.Spec.EnvironmentList {
@@ -140,24 +140,24 @@ func (r *LabInstanceReconciler) generateEnvironments(template *crownlabsv1alpha2
 	return ctrl.Result{}, nil
 }
 
-func (r *LabInstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha2.Instance{}).
 		Complete(r)
 }
 
-func (r *LabInstanceReconciler) setLabInstanceStatus(
+func (r *InstanceReconciler) setInstanceStatus(
 	ctx context.Context,
 	msg string, eventType string, eventReason string,
-	labInstance *crownlabsv1alpha2.Instance, ip, url string) {
+	instance *crownlabsv1alpha2.Instance, ip, url string) {
 	klog.Info(msg)
-	r.EventsRecorder.Event(labInstance, eventType, eventReason, msg)
+	r.EventsRecorder.Event(instance, eventType, eventReason, msg)
 
-	labInstance.Status.Phase = eventReason
-	labInstance.Status.IP = ip
-	labInstance.Status.URL = url
-	labInstance.Status.ObservedGeneration = labInstance.ObjectMeta.Generation
-	if err := r.Status().Update(ctx, labInstance); err != nil {
+	instance.Status.Phase = eventReason
+	instance.Status.IP = ip
+	instance.Status.URL = url
+	instance.Status.ObservedGeneration = instance.ObjectMeta.Generation
+	if err := r.Status().Update(ctx, instance); err != nil {
 		klog.Error("Unable to update Instance status")
 		klog.Error(err)
 	}

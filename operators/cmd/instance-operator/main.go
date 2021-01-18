@@ -90,7 +90,7 @@ func main() {
 	}
 	whiteListMap := parseMap(namespaceWhiteList)
 	klog.Info("Reconciling only namespaces with the following labels: ")
-	if err = (&instance_controller.LabInstanceReconciler{
+	if err = (&instance_controller.InstanceReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor("InstanceOperator"),

@@ -111,7 +111,7 @@ function CrownLabsHome(props){
       />
     </div>,
     <div data-grid={{ w: 14, h: 38, x: 10, y: 0 }}
-         key={'table_labinstances'}
+         key={'table_instances'}
          title={<Badge text={'Running Images'} color={'blue'} />}
     >
       <Instances loading={loading}

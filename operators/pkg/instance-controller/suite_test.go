@@ -87,10 +87,10 @@ var _ = BeforeSuite(func(done Done) {
 		"production": "true",
 	}
 
-	err = (&LabInstanceReconciler{
+	err = (&InstanceReconciler{
 		Client:             k8sManager.GetClient(),
 		Scheme:             k8sManager.GetScheme(),
-		EventsRecorder:     k8sManager.GetEventRecorderFor("LabInstanceOperator"),
+		EventsRecorder:     k8sManager.GetEventRecorderFor("InstanceOperator"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		NextcloudBaseURL:   "fake.com",
 		WebsiteBaseURL:     "fakesite.com",

@@ -68,7 +68,7 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 			TLS: []networkingv1.IngressTLS{
 				{
 					Hosts:      []string{websiteBaseURL},
-					SecretName: "crownlabs-labinstances-secret",
+					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []networkingv1.IngressRule{
@@ -215,7 +215,7 @@ func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, we
 			TLS: []networkingv1.IngressTLS{
 				{
 					Hosts:      []string{websiteBaseURL},
-					SecretName: "crownlabs-labinstances-secret",
+					SecretName: "crownlabs-ingress-secret",
 				},
 			},
 			Rules: []networkingv1.IngressRule{

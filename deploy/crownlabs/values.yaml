@@ -23,7 +23,7 @@ dashboard:
 instance-operator:
   replicaCount: 1
   image:
-    repository: crownlabs/laboratory-operator
+    repository: crownlabs/instance-operator
   rbacResourcesName: crownlabs-instance-operator
   configurations:
     generic:

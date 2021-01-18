@@ -4,7 +4,7 @@ ENV PATH /go/bin:/usr/local/go/bin:$PATH
 ENV GOPATH /go
 COPY ./ /go/src/github.com/netgroup-polito/CrownLabs/operators/
 WORKDIR /go/src/github.com/netgroup-polito/CrownLabs/operators/
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o controller ./cmd/laboratory-operator/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o controller ./cmd/instance-operator/main.go
 RUN cp controller /usr/bin/controller
 
 FROM busybox

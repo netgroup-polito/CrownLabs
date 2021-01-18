@@ -68,7 +68,7 @@ jobs:
       matrix:
         component:
           # Operators
-          - laboratory-operator
+          - instance-operator
           - crownlabs-image-list
           - delete-stale-instances
           - tenant-operator
@@ -88,9 +88,9 @@ jobs:
 
         include:
           # Operators
-          - component: laboratory-operator
+          - component: instance-operator
             context: ./operators
-            dockerfile: ./operators/build/laboratory-operator/Dockerfile
+            dockerfile: ./operators/build/instance-operator/Dockerfile
           - component: crownlabs-image-list
             context: ./operators
             dockerfile: ./operators/build/crownlabs-image-list/Dockerfile
