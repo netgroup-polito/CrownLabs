@@ -99,7 +99,9 @@ function TemplateForm(props){
           workspaces.push(template.spec['workspace.crownlabs.polito.it/WorkspaceRef'].name);
       })
 
-        workspaces.forEach(workspace => {
+      setCourses([]);
+
+      workspaces.forEach(workspace => {
         setCourses(prev => [...prev, {
           value: workspace
         }]);
@@ -150,7 +152,7 @@ function TemplateForm(props){
           </Input.Group>
         </Form.Item>
         <Form.Item label={'Env Type'}>
-          <Select onSelect={value => EnvType.current = value}>
+          <Select placeholder={'Environment Type'} onSelect={value => EnvType.current = value}>
             <Select.Option value={'Container'}>
               Container
             </Select.Option>

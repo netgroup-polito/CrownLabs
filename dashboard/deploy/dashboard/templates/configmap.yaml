@@ -5,6 +5,8 @@ metadata:
   labels:
     {{- include "dashboard.labels" . | nindent 4 }}
 data:
+  app_title: {{ .Values.configurations.app.title }}
+  app_favicon: {{ .Values.configurations.app.favicon }}
   oidc-client-id: {{ .Values.configurations.oidc.clientId }}
   oidc-client-secret: {{ .Values.configurations.oidc.clientSecret }}
   oidc-provider-url: {{ .Values.configurations.oidc.providerUrl }}

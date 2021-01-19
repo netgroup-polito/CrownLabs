@@ -5,6 +5,9 @@
 replicaCount: 1
 
 configurations:
+  app:
+    title: CrownLabs
+    favicon: https://crownlabs.polito.it/logobkg.ico
   oidc:
     clientId: k8s
     clientSecret: <client-secret>

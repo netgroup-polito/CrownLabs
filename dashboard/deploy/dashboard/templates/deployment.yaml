@@ -41,6 +41,16 @@ spec:
               port: https
               scheme: HTTPS
           env:
+            - name: APP_FAVICON
+              valueFrom:
+                configMapKeyRef:
+                  key: app_favicon
+                  name: {{ include "dashboard.fullname" . }}
+            - name: APP_TITLE
+              valueFrom:
+                configMapKeyRef:
+                  key: app_title 
+                  name: {{ include "dashboard.fullname" . }}
             - name: OIDC_PROVIDER_URL
               valueFrom:
                 configMapKeyRef:

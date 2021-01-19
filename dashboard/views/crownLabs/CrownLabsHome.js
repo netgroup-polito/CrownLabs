@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { withRouter, useLocation } from 'react-router-dom';
-import { Row, Alert, Badge, Button, Tooltip } from 'antd';
+import { Row, Alert, Badge, Button, Tooltip, message } from 'antd';
 import DraggableLayout from '../../widgets/draggableLayout/DraggableLayout';
 import Templates from './Templates';
 import Instances from './Instances';
@@ -38,8 +38,10 @@ function CrownLabsHome(props){
       if(onProfessor){
         window.api.setNamespace('all namespaces')
 
-        tenants[0].spec.workspaces.filter(workspace => workspace.role === 'manager')
-          .forEach(workspace => {
+        let managedWorkspaces = tenants[0].spec.workspaces.filter(workspace => workspace.role === 'manager');
+
+        if(managedWorkspaces.length > 0){
+          managedWorkspaces.forEach(workspace => {
             setLoading(true);
             window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/namespaces/workspace-' + workspace.workspaceRef.name + '/templates', setTemplates, true)
               .then(res =>{
@@ -47,12 +49,15 @@ function CrownLabsHome(props){
                 setLoading(false);
                 return res.items;
               }).then(() => {
-                window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/instances', setInstances)
-                  .then(res =>{
-                    setInstances(res.items);
-                  }).catch(() => setLoading(false))
+              window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/instances', setInstances)
+                .then(res =>{
+                  setInstances(res.items);
+                }).catch(() => setLoading(false))
             }).catch(() => setLoading(false))
           });
+        } else {
+          setLoading(false)
+        }
       } else {
         window.api.setNamespace(tenants[0].status.personalNamespace.name);
 
@@ -75,7 +80,14 @@ function CrownLabsHome(props){
   useEffect(() => {
     if(Utils().parseJWT()){
       window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha1/tenants/' + Utils().parseJWT().preferred_username, setTenants, true)
-        .catch(() => setLoading(false))
+        .then(res => setTenants([res]))
+        .catch(() => {
+          setLoading(false);
+          message.error('Failed to get tenant ' + Utils().parseJWT().preferred_username);
+        })
+    } else {
+      setLoading(false);
+      message.error('Impossible to parse token');
     }
 
     /**

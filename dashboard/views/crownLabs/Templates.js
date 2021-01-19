@@ -1,15 +1,89 @@
 import { Button, Empty, Popconfirm, Table, Tooltip, Typography } from 'antd';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CodeOutlined,
   DeleteOutlined,
   DesktopOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { getColumnSearchProps } from '../../services/TableUtils';
+import { getColumnSearchProps, ResizableTitle } from '../../services/TableUtils';
 import Utils from '../../services/Utils';
 
 export default function Templates(props){
+
+  const [columns, setColumns] = useState([]);
+
+  useEffect(() => {
+    setColumns([{
+      dataIndex: 'VM Type',
+      key: 'VM Type',
+      title: 'Type',
+      width: '5em',
+      align: 'center',
+      sortDirections: ['descend', 'ascend'],
+      sorter: {
+        compare: (a, b) => a["VM Type"] - b["VM Type"],
+      },
+      render: text => text ?
+        <Tooltip title={'GUI enabled'}><DesktopOutlined style={{fontSize: 20}} /></Tooltip> :
+        <Tooltip title={'CLI only'}><CodeOutlined style={{fontSize: 20}} /></Tooltip>
+    },
+      {
+        dataIndex: 'Name',
+        key: 'Name',
+        title: <div style={{marginLeft: '2em'}}>Name</div>,
+        sortDirections: ['descend', 'ascend'],
+        defaultSortOrder: 'ascend',
+        sorter: {
+          compare: (a, b) => a.Name.localeCompare(b.Name),
+        },
+        ...getColumnSearchProps('Name', renderTemplates, setColumns)
+      },
+      {
+        dataIndex: 'Course',
+        key: 'Course',
+        title: <div style={{marginLeft: '2em'}}>Course</div>,
+        sortDirections: ['descend', 'ascend'],
+        sorter: {
+          compare: (a, b) => a.Course.localeCompare(b.Course),
+        },
+        ...getColumnSearchProps('Course', renderTemplates, setColumns)
+      },
+      props.onProfessor ? {
+        dataIndex: 'Delete',
+        title: 'Delete',
+        key: 'Delete',
+        width: '6em',
+        align: 'center',
+        render: (text, record) => {
+          const lab = props.templates.find(lab => lab.metadata.name === record.key);
+
+          return (
+            <Popconfirm title={'Delete Lab?'} onConfirm={() => window.api.deleteGenericResource(lab.metadata.selfLink)}>
+              <Button icon={<DeleteOutlined style={{fontSize: 20, color: '#ff4d4f'}}  />}
+                      size={'small'} shape={'circle'}
+                      style={{border: 'none', background: 'none'}}
+              />
+            </Popconfirm>
+          )
+        },
+      } : {  },
+      {
+        title: 'Start',
+        key: 'Start',
+        width: '5em',
+        align: 'center',
+        render: (text, record) => (
+          <Tooltip title={'Create VM'}>
+            <Button icon={<PlayCircleOutlined style={{fontSize: 20, color: '#1890ff'}} />}
+                    size={'small'} shape={'circle'}
+                    style={{border: 'none', background: 'none'}}
+                    onClick={() => startLab(props.templates.find(lab => lab.metadata.name === record.key))}
+            />
+          </Tooltip>
+        ),
+      }])
+  }, [props.templates])
 
   const renderTemplates = (text, record, dataIndex) => {
     return (
@@ -26,95 +100,10 @@ export default function Templates(props){
     templatesViews.push({
       key: templates.metadata.name,
       "VM Type": templates.spec.environmentList[0].guiEnabled,
-      Name: templates.spec.description,
-      ID: templates.metadata.name
+      Name: templates.spec.prettyName,
+      Course: templates.spec['workspace.crownlabs.polito.it/WorkspaceRef'].name
     });
   });
-
-  const columnsTemplates = [
-    {
-      dataIndex: 'VM Type',
-      key: 'VM Type',
-      title: 'Type',
-      width: '5em',
-      fixed: 'left',
-      align: 'center',
-      sortDirections: ['descend', 'ascend'],
-      sorter: {
-        compare: (a, b) => a["VM Type"] - b["VM Type"],
-      },
-      render: text => text ?
-        <Tooltip title={'GUI enabled'}><DesktopOutlined style={{fontSize: 20}} /></Tooltip> :
-        <Tooltip title={'CLI only'}><CodeOutlined style={{fontSize: 20}} /></Tooltip>
-    },
-    {
-      dataIndex: 'Name',
-      key: 'Name',
-      ellipsis: true,
-      fixed: 'left',
-      title: <div style={{marginLeft: '2em'}}>Name</div>,
-      sortDirections: ['descend', 'ascend'],
-      defaultSortOrder: 'ascend',
-      sorter: {
-        compare: (a, b) => a.Name.localeCompare(b.Name),
-      },
-      ...getColumnSearchProps('Name', renderTemplates)
-    },
-    {
-      dataIndex: 'ID',
-      key: 'ID',
-      ellipsis: true,
-      width: '10em',
-      fixed: 'left',
-      title: <div style={{marginLeft: '2em'}}>ID</div>,
-      sortDirections: ['descend', 'ascend'],
-      sorter: {
-        compare: (a, b) => a.ID.localeCompare(b.ID),
-      },
-      ...getColumnSearchProps('ID', renderTemplates)
-    },
-    props.onProfessor ? {
-      dataIndex: 'Delete',
-      title: 'Delete',
-      key: 'Delete',
-      fixed: 'left',
-      width: '6em',
-      align: 'center',
-      ellipsis: true,
-      render: (text, record) => {
-        const lab = props.templates.find(lab => lab.metadata.name === record.ID);
-
-        return (
-          <Popconfirm title={'Delete Lab?'} onConfirm={() => window.api.deleteGenericResource(lab.metadata.selfLink)}>
-            <Button icon={<DeleteOutlined style={{fontSize: 20, color: '#ff4d4f'}}  />}
-                    size={'small'} shape={'circle'}
-                    style={{border: 'none', background: 'none'}}
-            />
-          </Popconfirm>
-        )
-      },
-    } : {
-      fixed: 'left',
-      width: 0
-    },
-    {
-      title: 'Start',
-      key: 'Start',
-      fixed: 'left',
-      width: '5em',
-      align: 'center',
-      ellipsis: true,
-      render: (text, record) => (
-        <Tooltip title={'Create VM'}>
-          <Button icon={<PlayCircleOutlined style={{fontSize: 20, color: '#1890ff'}} />}
-                  size={'small'} shape={'circle'}
-                  style={{border: 'none', background: 'none'}}
-                  onClick={() => startLab(props.templates.find(lab => lab.metadata.name === record.ID))}
-          />
-        </Tooltip>
-      ),
-    },
-  ]
 
   const startLab = template => {
     const templatesName = template.metadata.name;
@@ -152,11 +141,17 @@ export default function Templates(props){
   }
 
   return(
-    <Table columns={columnsTemplates} dataSource={templatesViews}
+    <Table columns={columns} dataSource={templatesViews}
            pagination={{ position: ['bottomCenter'],
              hideOnSinglePage: templatesViews.length < 11,
              showSizeChanger: true,
            }} showSorterTooltip={false}
+           components={{
+             header: {
+               cell: ResizableTitle
+             }
+           }}
+           scroll={{ x: 'max-content' }}
            loading={props.loading}
            locale={{emptyText: <Empty description={'No Available Labs'} image={Empty.PRESENTED_IMAGE_SIMPLE} />}}
     />
