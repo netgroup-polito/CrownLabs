@@ -42,7 +42,7 @@ spec:
             - "--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)"
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
-            - "--nc-url=$(NEXTCLOUD_URL)"
+            - "--nc-URL=$(NEXTCLOUD_URL)"
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
           ports:
@@ -99,7 +99,7 @@ spec:
                   key: keycloak-pass
             - name: NEXTCLOUD_URL
               valueFrom:
-                secretKeyRef:
+                configMapKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: nextcloud-url
             - name: NEXTCLOUD_TENANT_OPERATOR_USER
@@ -111,7 +111,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
-                  key: nextcloud-psw
+                  key: nextcloud-pass
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
