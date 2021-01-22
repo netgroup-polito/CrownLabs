@@ -1,9 +1,0 @@
-# Files and Directories to be ignore during docker build
-./node_modules
-./package-lock.json
-./dist
-./kubernetes
-./Dockerfile
-./README.md
-./yarn.lock
-./.dockerignore

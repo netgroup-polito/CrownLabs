@@ -2,7 +2,7 @@ sig/api:
   - operators/**/*
 
 sig/ui:
-  - webservice/**/*
+  - dashboard/**/*
 
 sig/operations:
   - infrastructure/**/*
