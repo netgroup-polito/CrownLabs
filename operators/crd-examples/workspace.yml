@@ -2,13 +2,23 @@ apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
 metadata:
   name: tea
+  labels:
+    reconcile: "true"
 spec:
-  prettyName: A cup of tea from hte queen
-
+  prettyName: A cup of tea from the queen
 ---
 apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
 metadata:
   name: coffee
+  labels:
+    reconcile: "true"
 spec:
   prettyName: Just coffee
+---
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: chill-pepper
+spec:
+  prettyName: A bit spicy

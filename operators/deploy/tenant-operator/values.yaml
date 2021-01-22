@@ -5,6 +5,7 @@
 replicaCount: 1
 
 configurations:
+  targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
     url: "https://auth.crownlabs.example.com/"
     loginRealm: master

@@ -2,6 +2,8 @@ apiVersion: crownlabs.polito.it/v1alpha1
 kind: Tenant
 metadata:
   name: mariorossi
+  labels:
+    reconcile: "true"
 spec:
   firstName: mario
   lastName: rossi

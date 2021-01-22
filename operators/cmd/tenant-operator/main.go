@@ -20,6 +20,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Nerzal/gocloak/v7"
@@ -50,6 +51,7 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var targetLabel string
 	var kcURL string
 	var kcTnOpUser string
 	var kcTnOpPsw string
@@ -64,22 +66,31 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&kcURL, "kc-URL", "", "The URL of the keycloak client.")
+	flag.StringVar(&targetLabel, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
+	flag.StringVar(&kcURL, "kc-url", "", "The URL of the keycloak client.")
 	flag.StringVar(&kcTnOpUser, "kc-tenant-operator-user", "", "The username of the acting account for keycloak.")
 	flag.StringVar(&kcTnOpPsw, "kc-tenant-operator-psw", "", "The password of the acting account for keycloak.")
 	flag.StringVar(&kcLoginRealm, "kc-login-realm", "", "The realm where to login the keycloak account.")
 	flag.StringVar(&kcTargetRealm, "kc-target-realm", "", "The target realm for keycloak clients and roles.")
 	flag.StringVar(&kcTargetClient, "kc-target-client", "", "The target client for keycloak users and roles.")
-	flag.StringVar(&ncURL, "nc-URL", "", "The base URL for the nextcloud actor.")
+	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.Parse()
 
-	if kcURL == "" || kcTnOpUser == "" || kcTnOpPsw == "" ||
+	if targetLabel == "" ||
+		kcURL == "" || kcTnOpUser == "" || kcTnOpPsw == "" ||
 		kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" ||
 		ncURL == "" || ncTnOpUser == "" || ncTnOpPsw == "" {
-		klog.Fatal("Some flag parameters are not defined")
+		klog.Fatal("Some flag parameters are not defined!")
 	}
+
+	targetLabelKeyValue := strings.Split(targetLabel, "=")
+	if len(targetLabelKeyValue) != 2 {
+		klog.Fatal("Error with target label format")
+	}
+	targetLabelKey := targetLabelKeyValue[0]
+	targetLabelValue := targetLabelKeyValue[1]
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -105,17 +116,21 @@ func main() {
 	httpClient := resty.New()
 	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	if err = (&controllers.TenantReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		KcA:    kcA,
-		NcA:    &NcA,
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		KcA:              kcA,
+		NcA:              &NcA,
+		TargetLabelKey:   targetLabelKey,
+		TargetLabelValue: targetLabelValue,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create controller for Tenant", err)
 	}
 	if err = (&controllers.WorkspaceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		KcA:    kcA,
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		KcA:              kcA,
+		TargetLabelKey:   targetLabelKey,
+		TargetLabelValue: targetLabelValue,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create controller for Workspace", err)
 	}
