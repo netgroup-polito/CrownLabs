@@ -104,22 +104,23 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
 	cookieSecret := base64.StdEncoding.EncodeToString(id)
+	labels := generateOauth2Labels(name)
 
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name + "-oauth2-deploy",
 			Namespace:       namespace,
 			OwnerReferences: references,
-			Labels:          map[string]string{"app": name},
+			Labels:          labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: pointer.Int32Ptr(1),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": name},
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"app": name},
+					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -171,13 +172,14 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 }
 
 func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReference) corev1.Service {
+	labels := generateOauth2Labels(name)
 	service := corev1.Service{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name + "-oauth2-svc",
 			Namespace:       namespace,
 			OwnerReferences: references,
-			Labels:          map[string]string{"app": name},
+			Labels:          labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -188,7 +190,7 @@ func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReferen
 					TargetPort: intstr.IntOrString{IntVal: 4180},
 				},
 			},
-			Selector: map[string]string{"app": name},
+			Selector: labels,
 		},
 	}
 
@@ -203,6 +205,7 @@ func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, we
 			Name:            name + "-oauth2-ingress",
 			Namespace:       namespace,
 			OwnerReferences: references,
+			Labels:          generateOauth2Labels(name),
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/cors-allow-credentials": "true",
 				"nginx.ingress.kubernetes.io/cors-allow-headers":     "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization",
@@ -245,4 +248,12 @@ func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, we
 	}
 
 	return ingress
+}
+
+// generateOauth2Labels returns a map of labels common to all oauth2-proxy resources
+func generateOauth2Labels(instanceName string) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/part-of":   instanceName,
+		"app.kubernetes.io/component": "oauth2-proxy",
+	}
 }
