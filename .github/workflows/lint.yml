@@ -49,32 +49,6 @@ jobs:
           LINTLY_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
 
 
-  frontend-lint:
-    name: Lint the frontend files
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
-          persist-credentials: false
-
-      - name: Setup nodeJS
-        uses: actions/setup-node@v1
-        with:
-          node-version: 12
-
-      - name: Install the packages necessary for lint checking
-        working-directory: ./webservice
-        run: npm run lint-setup
-
-      - name: Check linting
-        working-directory: ./webservice
-        run: npm run lint-check
-
-
   markdown-lint:
     name: Lint markdown files (check links validity)
     runs-on: ubuntu-latest
