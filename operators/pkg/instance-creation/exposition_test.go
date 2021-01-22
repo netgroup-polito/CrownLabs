@@ -135,7 +135,7 @@ func TestForgeOauth2Service(t *testing.T) {
 	assert.Equal(t, service.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
 	assert.Equal(t, service.OwnerReferences[0].Kind, "Instance")
 	assert.Equal(t, service.OwnerReferences[0].Name, "Test1")
-	assert.Equal(t, service.Spec.Selector["app"], name)
+	assert.Equal(t, service.Spec.Selector, generateOauth2Labels(name))
 }
 
 func TestForgeOauth2Ingress(t *testing.T) {
@@ -176,4 +176,14 @@ func TestForgeOauth2Ingress(t *testing.T) {
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"/oauth2/.*")
 	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
 	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
+}
+
+func TestGenerateOauth2Labels(t *testing.T) {
+	instanceName := "oauth2-foo"
+	labels := generateOauth2Labels(instanceName)
+
+	assert.Contains(t, labels, "app.kubernetes.io/part-of")
+	assert.Contains(t, labels, "app.kubernetes.io/component")
+	assert.Equal(t, labels["app.kubernetes.io/part-of"], instanceName)
+	assert.Equal(t, labels["app.kubernetes.io/component"], "oauth2-proxy")
 }
