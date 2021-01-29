@@ -113,7 +113,7 @@ func main() {
 
 	go checkAndRenewTokenPeriodically(context.Background(), kcA.Client, kcA.Token, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 
-	httpClient := resty.New()
+	httpClient := resty.New().SetCookieJar(nil)
 	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	if err = (&controllers.TenantReconciler{
 		Client:           mgr.GetClient(),

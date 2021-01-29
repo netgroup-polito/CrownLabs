@@ -95,6 +95,7 @@ func (ncA *NcActor) UpdateUserData(username, param, value string) error {
 		klog.Errorf("Error when sending request for %s update in nextcloud for user %s -> %s", param, username, err)
 		return err
 	}
+
 	statusCode, message, err := parseOCSResponseMeta(res.Body())
 	if err != nil {
 		klog.Errorf("Error when parsing response of %s update in nextcloud of user %s -> %s", param, username, err)
