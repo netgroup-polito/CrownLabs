@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
@@ -58,18 +59,21 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of workspace %s", ws.Name)
 		// workspace is being deleted
-		if containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		if ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
 			if err := r.handleDeletion(ctx, ws.Name, ws.Spec.PrettyName); err != nil {
 				klog.Errorf("Error when deleting resources handled by workspace  %s -> %s", ws.Name, err)
 				retrigErr = err
 			}
-			// remove finalizer from the workspace
-			ws.ObjectMeta.Finalizers = removeString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
-			if err := r.Update(context.Background(), &ws); err != nil {
-				klog.Errorf("Error when removing tenant operator finalizer from workspace %s -> %s", ws.Name, err)
-				retrigErr = err
-				tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
+			// can remove the finalizer from the workspace if the eternal resources have been successfully deleted
+			if retrigErr != nil {
+				// remove finalizer from the workspace
+				ctrlUtil.RemoveFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName)
+				if err := r.Update(context.Background(), &ws); err != nil {
+					klog.Errorf("Error when removing tenant operator finalizer from workspace %s -> %s", ws.Name, err)
+					retrigErr = err
+					tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
+				}
 			}
 		}
 		if retrigErr == nil {
@@ -84,8 +88,8 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	klog.Infof("Reconciling workspace %s", ws.Name)
 
 	// add tenant operator finalizer to workspace
-	if !containsString(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
-		ws.ObjectMeta.Finalizers = append(ws.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+	if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &ws); err != nil {
 			klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
 			retrigErr = err
