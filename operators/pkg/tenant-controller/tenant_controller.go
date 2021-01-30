@@ -14,7 +14,6 @@ package tenant_controller
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strings"
@@ -503,10 +502,8 @@ func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password s
 
 	sec.Type = v1.SecretTypeOpaque
 	sec.Data = make(map[string][]byte, 2)
-	sec.Data["username"] = make([]byte, base64.StdEncoding.EncodedLen(len(username)))
-	sec.Data["password"] = make([]byte, base64.StdEncoding.EncodedLen(len(password)))
-	base64.StdEncoding.Encode(sec.Data["username"], []byte(username))
-	base64.StdEncoding.Encode(sec.Data["password"], []byte(password))
+	sec.Data["username"] = []byte(username)
+	sec.Data["password"] = []byte(password)
 }
 
 func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.UserWorkspaceData) error {
