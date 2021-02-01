@@ -8,7 +8,5 @@
   - role: ../roles/crownlabs
     when: crownlabs_mode
   - role: ../roles/wireshark
-  - role: ../roles/docker
-  - role: ../roles/gns3
-  - role: ../roles/netlab-generic
+  - role: ../roles/polycube
   - role: ../roles/ubuntu-post

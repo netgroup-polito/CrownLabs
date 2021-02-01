@@ -11,10 +11,10 @@
     - cmake
     - libpcap-dev
 
-- name: Install the packages required for the Cloud Computing labs
+- name: Install the Open vSwitch packages
   apt:
     name: "{{ to_install }}"
     state: present
   vars:
     to_install:
-    - virt-manager
+    - openvswitch-switch
