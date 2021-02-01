@@ -14,20 +14,28 @@ export default function Templates(props){
   const [columns, setColumns] = useState([]);
 
   useEffect(() => {
-    setColumns([{
-      dataIndex: 'VM Type',
-      key: 'VM Type',
-      title: 'Type',
-      width: '5em',
-      align: 'center',
-      sortDirections: ['descend', 'ascend'],
-      sorter: {
-        compare: (a, b) => a["VM Type"] - b["VM Type"],
+    setColumns([
+      {
+        dataIndex: 'VM Type',
+        key: 'VM Type',
+        title: 'Type',
+        width: '5em',
+        align: 'center',
+        sortDirections: ['descend', 'ascend'],
+        sorter: {
+          compare: (a, b) => a["VM Type"] - b["VM Type"],
+        },
+        render: text => {
+          return {
+            children: text ?
+                <Tooltip title={'GUI enabled'}><DesktopOutlined style={{ fontSize: 20 }}/></Tooltip> :
+                <Tooltip title={'CLI only'}><CodeOutlined style={{ fontSize: 20 }}/></Tooltip>,
+            props: {
+                  title: ''
+            }
+          }
+        }
       },
-      render: text => text ?
-        <Tooltip title={'GUI enabled'}><DesktopOutlined style={{fontSize: 20}} /></Tooltip> :
-        <Tooltip title={'CLI only'}><CodeOutlined style={{fontSize: 20}} /></Tooltip>
-    },
       {
         dataIndex: 'Name',
         key: 'Name',
@@ -58,41 +66,60 @@ export default function Templates(props){
         render: (text, record) => {
           const lab = props.templates.find(lab => lab.metadata.name === record.key);
 
-          return (
-            <Popconfirm title={'Delete Lab?'} onConfirm={() => window.api.deleteGenericResource(lab.metadata.selfLink)}>
-              <Button icon={<DeleteOutlined style={{fontSize: 20, color: '#ff4d4f'}}  />}
-                      size={'small'} shape={'circle'}
-                      style={{border: 'none', background: 'none'}}
-              />
-            </Popconfirm>
-          )
-        },
-      } : {  },
+          return {
+            children: (
+              <Popconfirm title={'Delete Lab?'} onConfirm={() => window.api.deleteGenericResource(lab.metadata.selfLink)}>
+                <Button icon={<DeleteOutlined style={{fontSize: 20, color: '#ff4d4f'}}  />}
+                        size={'small'} shape={'circle'}
+                        style={{border: 'none', background: 'none'}}
+                />
+              </Popconfirm>
+            ),
+            props: {
+              title: ''
+            }
+          }
+        }
+      } : {
+        render: () => {
+          return {
+            children: <div/>,
+            props: {
+              title: ''
+            }
+          }
+        }
+      },
       {
         title: 'Start',
         key: 'Start',
         width: '5em',
         align: 'center',
-        render: (text, record) => (
-          <Tooltip title={'Create VM'}>
-            <Button icon={<PlayCircleOutlined style={{fontSize: 20, color: '#1890ff'}} />}
-                    size={'small'} shape={'circle'}
-                    style={{border: 'none', background: 'none'}}
-                    onClick={() => startLab(props.templates.find(lab => lab.metadata.name === record.key))}
-            />
-          </Tooltip>
-        ),
+        render: (text, record) => {
+          return {
+            children: (
+              <Tooltip title={'Create VM'}>
+                <Button icon={<PlayCircleOutlined style={{ fontSize: 20, color: '#1890ff' }}/>}
+                        size={'small'} shape={'circle'}
+                        style={{ border: 'none', background: 'none' }}
+                        onClick={() => startLab(props.templates.find(lab => lab.metadata.name === record.key))}
+                />
+              </Tooltip>
+            ),
+            props: {
+              title: ''
+            }
+          }
+        }
       }])
   }, [props.templates])
 
   const renderTemplates = (text, record, dataIndex) => {
-    return (
-      dataIndex === 'Name' ? (
+    return dataIndex === 'Name' ? (
         <Typography.Text strong>{text}</Typography.Text>
       ) : (
         <div>{text}</div>
       )
-    )
   }
 
   const templatesViews = [];

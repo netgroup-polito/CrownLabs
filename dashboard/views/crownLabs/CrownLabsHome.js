@@ -104,7 +104,10 @@ function CrownLabsHome(props){
   const items = [];
 
   items.push(
-    <div data-grid={{ w: 10, h: 38, x: 0, y: 0 }}
+    <div data-grid={{
+       lg: { w: 10, h: 38, x: 0, y: 0, minH: 28 },
+       md: { w: 24, h: 38, x: 0, y: 0, minH: 28 }
+    }}
          key={'table_templates'}
          title={<Badge text={'Available Images'} color={'blue'} />}
          extra={onProfessor ? [
@@ -122,8 +125,11 @@ function CrownLabsHome(props){
                     templates={templates}
       />
     </div>,
-    <div data-grid={{ w: 14, h: 38, x: 10, y: 0 }}
-         key={'table_instances'}
+    <div data-grid={{
+      lg: {w: 14, h: 38, x: 10, y: 0, minH: 28 },
+      md: {w: 24, h: 38, x: 10, y: 0, minH: 28 }
+    }}
+         key={'table_labinstances'}
          title={<Badge text={'Running Images'} color={'blue'} />}
     >
       <Instances loading={loading}
@@ -140,6 +146,14 @@ function CrownLabsHome(props){
       <DraggableLayout title={
         <Badge text={'templates'} color={'blue'} />
       }
+                       breakpoints={{
+                         lg: 1300,
+                         md: 796,
+                         sm: 568,
+                         xs: 280,
+                         xss: 0
+                       }}
+                       responsive
       >
         {items}
       </DraggableLayout>

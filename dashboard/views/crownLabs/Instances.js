@@ -3,7 +3,7 @@ import { Empty, Button, Table, Tooltip, Typography, Popconfirm } from 'antd';
 import { calculateAge, compareAge } from '../../services/TimeUtils';
 import {
   CheckCircleOutlined,
-  CloseCircleOutlined,
+  CloseCircleOutlined, CodeOutlined, DesktopOutlined,
   ExportOutlined,
   LoadingOutlined
 } from '@ant-design/icons';
@@ -13,23 +13,34 @@ import React, { useEffect, useState } from 'react';
 export default function Instances(props){
 
   const [columns, setColumns] = useState([]);
+  const [terminating, setTerminating] = useState([]);
 
   useEffect(() => {
-    setColumns([{
-      dataIndex: 'Ready',
-      key: 'Ready',
-      title: 'Ready',
-      width: '6em',
-      fixed: true,
-      align: 'center',
-      sortDirections: ['descend', 'ascend'],
-      sorter: {
-        compare: (a, b) => a["Ready"] - b["Ready"],
+    setColumns([
+      {
+        dataIndex: 'Ready',
+        key: 'Ready',
+        title: 'Ready',
+        width: '6em',
+        fixed: true,
+        align: 'center',
+        sortDirections: ['descend', 'ascend'],
+        sorter: {
+          compare: (a, b) => a["Ready"] - b["Ready"],
+        },
+        render: (text, record) => {
+          let terminate = !!terminating.find(i => i === record.key);
+          return {
+            children: text ?
+              terminate ? <Tooltip title={'Deleting VM'}><LoadingOutlined style={{fontSize: 20, color: '#ff4d4f'}} /></Tooltip> :
+                <Tooltip title={'VM Ready'}><CheckCircleOutlined style={{fontSize: 20, color: "#52c41a"}} /></Tooltip> :
+              <Tooltip title={'Creating VM'}><LoadingOutlined style={{fontSize: 20}} /></Tooltip>,
+            props: {
+              title: ''
+            }
+          }
+        }
       },
-      render: text => text ?
-        <Tooltip title={'VM Ready'}><CheckCircleOutlined style={{fontSize: 20, color: "#52c41a"}} /></Tooltip> :
-        <Tooltip title={'Creating VM'}><LoadingOutlined style={{fontSize: 20}} /></Tooltip>
-    },
       {
         dataIndex: 'Name',
         key: 'Name',
@@ -64,38 +75,55 @@ export default function Instances(props){
         align: 'center',
         render: (text, record) => {
           let lab = props.instances.find(lab => lab.metadata.name === record.key);
-          return (
-            <Popconfirm title={'Stop VM?'} onConfirm={() => window.api.deleteGenericResource(lab.metadata.selfLink)}>
-              <Button icon={<CloseCircleOutlined style={{fontSize: 20, color: '#ff4d4f'}} />}
-                      size={'small'} shape={'circle'}
-                      style={{border: 'none', background: 'none'}}
-              />
-            </Popconfirm>
-          )
+          return {
+            children: (
+              <Popconfirm title={'Stop VM?'} onConfirm={() => {
+                setTerminating(prev => {
+                  prev.push(record.key)
+                  return [...prev];
+                })
+                window.api.deleteGenericResource(lab.metadata.selfLink);
+              }}>
+                <Button icon={<CloseCircleOutlined style={{fontSize: 20, color: '#ff4d4f'}} />}
+                        size={'small'} shape={'circle'}
+                        style={{border: 'none', background: 'none'}}
+                />
+              </Popconfirm>
+            ),
+            props: {
+              title: ''
+            }
+          }
         }
       },
       {
         title: 'Connect',
         key: 'Connect',
-        width: '10em',
+        width: '7em',
         align: 'center',
         render: (text, record) => {
           let lab = props.instances.find(lab => lab.metadata.name === record.key)
-          let template = props.templates.find(item => item.metadata.name === lab.spec['template.crownlabs.polito.it/TemplateRef'].name)
-          let url = (lab && lab.status) ? lab.status.url : '';
-          return (
-            (template && lab && template.spec.environmentList[0].guiEnabled && lab.status &&
-              lab.status.phase === 'VmiReady') ? (
-              <Tooltip title={'Connect VM'}>
-                <a target={'_blank'} href={url}>
-                  <Button icon={<ExportOutlined style={{fontSize: 20}} />}
-                          size={'small'} shape={'circle'}
-                          style={{border: 'none', background: 'none'}}
-                  />
-                </a>
-              </Tooltip>
-            ) : null
-          )
+          if(lab){
+            let template = props.templates.find(item => item.metadata.name === lab.spec['template.crownlabs.polito.it/TemplateRef'].name)
+            let url = (lab && lab.status) ? lab.status.url : '';
+            return {
+              children: (
+                (template && template.spec.environmentList[0].guiEnabled && lab.status &&
+                lab.status.phase === 'VmiReady') ? (
+                <Tooltip title={'Connect VM'}>
+                  <a target={'_blank'} href={url}>
+                    <Button icon={<ExportOutlined style={{fontSize: 20}} />}
+                            size={'small'} shape={'circle'}
+                            style={{border: 'none', background: 'none'}}
+                    />
+                  </a>
+                </Tooltip>) : null
+              ),
+              props: {
+                title: ''
+              }
+            }
+          }
         }
       },
       {
@@ -106,9 +134,17 @@ export default function Instances(props){
         sorter: {
           compare: (a, b) => compareAge(a.Age, b.Age),
         },
-        last: true
+        last: true,
+        render: text => {
+          return {
+            children: text,
+            props: {
+              title: ''
+            }
+          }
+        }
       }])
-  }, [props.instances])
+  }, [props.instances, props.templates, terminating])
 
   const renderInstances = (text, record, dataIndex) => {
     return (
@@ -146,7 +182,7 @@ export default function Instances(props){
                cell: ResizableTitle
              }
            }}
-           scroll={{ x: 'max-content' }}
+           scroll={{ x: 'max-content'}}
            loading={props.loading}
            locale={{emptyText: <Empty description={'No Running Labs'} image={Empty.PRESENTED_IMAGE_SIMPLE} />}}
     />
