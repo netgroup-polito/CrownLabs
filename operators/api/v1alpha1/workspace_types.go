@@ -28,6 +28,7 @@ type WorkspaceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// human-readable name of the workspace
 	PrettyName string `json:"prettyName"`
 }
 
@@ -36,11 +37,13 @@ type WorkspaceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// info about the namespace for the workspace resources inside the cluster
 	Namespace NameCreated `json:"namespace,omitempty"`
 
 	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
 	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
 
+	// false if there have been errors within the last reconcile, true otherwise
 	Ready bool `json:"ready,omitempty"`
 }
 

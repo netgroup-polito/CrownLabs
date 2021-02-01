@@ -52,7 +52,7 @@ CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 run-tenant: generate fmt vet manifests
-	go run  cmd/tenant-operator/main.go\
+	go run cmd/tenant-operator/main.go\
 				--target-label=reconcile=true\
 				--kc-url=$(KEYCLOAK_URL)\
 				--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\

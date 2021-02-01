@@ -23,7 +23,6 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// WorkspaceUserRole is an enum for the role of a user in a workspace
 // +kubebuilder:validation:Enum=manager;user
 type WorkspaceUserRole string
 
@@ -36,14 +35,15 @@ const (
 
 // UserWorkspaceData contains the info of the workspaces related to a user
 type UserWorkspaceData struct {
-	WorkspaceRef GenericRef        `json:"workspaceRef"`
-	GroupNumber  uint              `json:"groupNumber,omitempty"`
-	Role         WorkspaceUserRole `json:"role"`
+	// reference to the workspace resource in the cluster
+	WorkspaceRef GenericRef `json:"workspaceRef"`
+	GroupNumber  uint       `json:"groupNumber,omitempty"`
+	// role of the user in the context of the workspace
+	Role WorkspaceUserRole `json:"role"`
 }
 
 // TenantSpec defines the desired state of Tenant
 type TenantSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	FirstName string `json:"firstName"`
@@ -53,10 +53,10 @@ type TenantSpec struct {
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 	Email string `json:"email"`
 
-	// list of workspaces the user is subscribed to
+	// list of workspace the tenant subscribed to
 	Workspaces []UserWorkspaceData `json:"workspaces,omitempty"`
 
-	// public keys of tenant
+	// list of the public keys of the tenant for SSH access
 	PublicKeys []string `json:"publicKeys,omitempty"`
 
 	// should the resource create the sandbox namespace for k8s practice environment
@@ -66,9 +66,9 @@ type TenantSpec struct {
 
 // TenantStatus defines the observed state of Tenant
 type TenantStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// info about the namespace for the user resources inside the cluster
 	PersonalNamespace NameCreated `json:"personalNamespace"`
 	SandboxNamespace  NameCreated `json:"sandboxNamespace"`
 
@@ -77,7 +77,9 @@ type TenantStatus struct {
 
 	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
 	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
-	Ready         bool                          `json:"ready"`
+
+	// false if there have been errors within the last reconcile, true otherwise
+	Ready bool `json:"ready"`
 }
 
 // +kubebuilder:object:root=true
