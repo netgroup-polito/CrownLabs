@@ -3,6 +3,7 @@ package tenant_controller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
@@ -107,7 +108,7 @@ func (kcA *KcActor) getUserInfo(ctx context.Context, username string) (userID, e
 		if exactMatches == 1 {
 			return &exactID, &exactEmail, nil
 		}
-		return nil, nil, errors.New("found too many users")
+		return nil, nil, fmt.Errorf("found %d keycloak users for username %s, too many", exactMatches, username)
 	}
 }
 

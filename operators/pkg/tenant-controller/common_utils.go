@@ -31,16 +31,6 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
-}
-
 func generateToken() (*string, error) {
 	// the size of b is equal to double the length of the generated token
 	b := make([]byte, 20)

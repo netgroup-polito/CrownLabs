@@ -31,6 +31,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // TenantReconciler reconciles a Tenant object
@@ -66,18 +67,21 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
-		if containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		if ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName) {
 			// reconcile was triggered by a delete request
 			if err := r.handleDeletion(ctx, tn.Name); err != nil {
 				klog.Errorf("error when deleting external resources on tenant %s deletion -> %s", tn.Name, err)
 				retrigErr = err
 			}
-			// remove finalizer from the tenant
-			tn.ObjectMeta.Finalizers = removeString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
-			if err := r.Update(context.Background(), &tn); err != nil {
-				klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
-				tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
-				retrigErr = err
+			// can remove the finalizer from the tenant if the eternal resources have been successfully deleted
+			if retrigErr == nil {
+				// remove finalizer from the tenant
+				ctrlUtil.RemoveFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName)
+				if err := r.Update(context.Background(), &tn); err != nil {
+					klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
+					tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+					retrigErr = err
+				}
 			}
 		}
 		if retrigErr == nil {
@@ -91,8 +95,8 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	klog.Infof("Reconciling tenant %s", tn.Name)
 
 	// add tenant operator finalizer to tenant
-	if !containsString(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName) {
-		tn.ObjectMeta.Finalizers = append(tn.ObjectMeta.Finalizers, crownlabsv1alpha1.TnOperatorFinalizerName)
+	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &tn); err != nil {
 			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
 			retrigErr = err
@@ -110,7 +114,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		}
-		klog.Infof("Cluster resourcess for workspace %s updated", tn.Name)
+		klog.Infof("Cluster resourcess for tenant %s updated", tn.Name)
 	} else {
 		klog.Errorf("Unable to update namespace of tenant %s -> %s", tn.Name, err)
 		tn.Status.PersonalNamespace.Created = false
