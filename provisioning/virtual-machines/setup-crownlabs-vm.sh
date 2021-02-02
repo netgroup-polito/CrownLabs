@@ -22,14 +22,17 @@ CROWNLABS_REGISTRY_IMAGE_VERSION=${CROWNLABS_REGISTRY_IMAGE_VERSION:-"$(date '+%
 DESKTOP_UBUNTU_DISTRO=xubuntu
 
 # Configure the credentials of the VM user
-USERNAME=netlab
-PASSWORD=netlab
+USERNAME=crownlabs
+PASSWORD=crownlabs
 FULL_USERNAME="$USERNAME (password $PASSWORD)"
 
 # Configure the locale information
 LOCALE="en_US"
 COUNTRY="IT"
 TIME_ZONE="UTC"
+
+# Configure the HDD size
+HDD_SIZE_GB=15
 
 
 ##########################################
@@ -282,7 +285,7 @@ printf '%s\n%s\n' "${VBOXVERSION}" "6.1.0" | sort --check=quiet --version-sort \
         { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
 
 # VirtualBox HDD
-"${VBOXMANAGE}" createhd --filename "${HDDPATH}" --size 15360 || \
+"${VBOXMANAGE}" createhd --filename "${HDDPATH}" --size $((HDD_SIZE_GB * 1024)) || \
     { echo "VBoxManage command failed. Abort"; exit ${EXIT_FAILURE}; }
 "${VBOXMANAGE}" storagectl "${VMNAME}" --name "SATA Controller" --portcount 1 \
     --add sata --controller IntelAHCI --hostiocache on --bootable on || \

@@ -1,144 +1,32 @@
 ---
 # tasks file for polycube
 
-- name: Install polycube dependencies
+- name: Install polycube pre-requisites
   apt:
-    name: "{{ polycube_dependencies }}"
+    name: git
     state: present
 
-
-- name: Set pistache directories
+- name: Set the polycube parameters
   set_fact:
-    pistache_base: "/home/{{ ansible_user }}/polycube/pistache"
-    pistache_build: "/home/{{ ansible_user }}/polycube/pistache/build"
-
-- name: Checkout the pistache repository
-  git:
-    repo: "https://github.com/oktal/pistache"
-    dest: "{{ pistache_base }}"
-    recursive: yes
-    version: 117db02eda9d63935193ad98be813987f6c32b33
-  become: no
-
-- name: Create the pistache build directory
-  file:
-    path: "{{ pistache_build }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-
-- name: Cmake pistache
-  command:
-    chdir: "{{ pistache_build }}"
-    cmd: cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DPISTACHE_USE_SSL=ON ..
-  become: no
-
-- name: Make pistache
-  make:
-    chdir: "{{ pistache_build }}"
-    params:
-      NUM_THREADS: "{{ ansible_processor_vcpus }}"
-  become: no
-
-- name: Install pistache
-  make:
-    chdir: "{{ pistache_build }}"
-    target: install
-
-
-- name: Set libtins directories
-  set_fact:
-    libtins_base: "/home/{{ ansible_user }}/polycube/libtins"
-    libtins_build: "/home/{{ ansible_user }}/polycube/libtins/build"
-
-- name: Checkout the libtins repository
-  git:
-    repo: "https://github.com/mfontanini/libtins"
-    dest: "{{ libtins_base }}"
-    version: v3.5
-  become: no
-
-- name: Create the libtins build directory
-  file:
-    path: "{{ libtins_build }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-
-- name: Cmake libtins
-  command:
-    chdir: "{{ libtins_build }}"
-    cmd: |
-      cmake -DLIBTINS_ENABLE_CXX11=ON -DLIBTINS_BUILD_EXAMPLES=OFF
-        -DLIBTINS_BUILD_TESTS=OFF -DLIBTINS_ENABLE_DOT11=OFF
-        -DLIBTINS_ENABLE_PCAP=OFF -DLIBTINS_ENABLE_WPA2=OFF
-        -DLIBTINS_ENABLE_WPA2_CALLBACKS=OFF ..
-  become: no
-
-- name: Make libtins
-  make:
-    chdir: "{{ libtins_build }}"
-    params:
-      NUM_THREADS: "{{ ansible_processor_vcpus }}"
-  become: no
-
-- name: Install libtins
-  make:
-    chdir: "{{ libtins_build }}"
-    target: install
-
-
-- name: Set polycube directories
-  set_fact:
-    polycube_go: "/home/{{ ansible_user }}/polycube/go"
-    polycube_base: "/home/{{ ansible_user }}/polycube/polycube"
-    polycube_build: "/home/{{ ansible_user }}/polycube/polycube/build"
-
-- name: Create the GOPATH directory
-  file:
-    path: "{{ polycube_go }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-
-- name: Set $GOPATH in bashrc
-  lineinfile:
-    path: "/home/{{ ansible_user }}/.bashrc"
-    line: "export GOPATH={{ polycube_go }}"
+    polycube_src: "/tmp/polycube"
+    polycube_version: release/v0.11.0
 
 - name: Checkout the polycube repository
   git:
     repo: "https://github.com/polycube-network/polycube"
-    dest: "{{ polycube_base }}"
+    dest: "{{ polycube_src }}"
+    version: "{{ polycube_version }}"
     recursive: yes
-  become: no
-
-- name: Create the polycube build directory
-  file:
-    path: "{{ polycube_build }}"
-    state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-
-- name: Cmake polycube
-  command:
-    chdir: "{{ polycube_build }}"
-    cmd: cmake ..
-  environment:
-    GOPATH: "{{ polycube_go }}"
-  become: no
-
-- name: Make polycube
-  make:
-    chdir: "{{ polycube_build }}"
-    params:
-      NUM_THREADS: "{{ ansible_processor_vcpus }}"
+    depth: 1
   become: no
 
 - name: Install polycube
-  make:
-    chdir: "{{ polycube_build }}"
-    target: install
+  command:
+    cmd: ./scripts/install.sh
+    chdir: "{{ polycube_src }}"
+    creates: /usr/local/bin/polycubectl
+  become: no
+
 
 - name: Install hping3p dependencies
   apt:
@@ -152,7 +40,7 @@
 
 - name: Set hping3p directories
   set_fact:
-    hping3p_base: "/home/{{ ansible_user }}/polycube/hping3p"
+    hping3p_base: "/tmp/hping3p"
 
 - name: Checkout the hping3p repository
   git:
