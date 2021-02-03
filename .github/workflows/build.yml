@@ -47,8 +47,8 @@ jobs:
             echo "::set-output name=ref::${{ github.sha }}"
           fi
 
-          # The suffix to append to the repository name if not triggered by a push to master
-          [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/master" ]] && \
+          # The suffix to append to the repository name if not triggered by a push
+          [[ "${{ github.event_name }}" == "push" && "${{ github.event.repository.full_name }}" == "${{ github.repository }}" ]] && \
             echo "::set-output name=repo-suffix::" || \
             echo "::set-output name=repo-suffix::-dev"
 
