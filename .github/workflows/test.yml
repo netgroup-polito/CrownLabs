@@ -209,9 +209,8 @@ jobs:
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
       - name: Perform the tests
-        uses:  petroprotsakh/opa-test-action@v2.1
+        uses: petroprotsakh/opa-test-action@v2.1
         with:
-          tests: ./policies/
+          tests: ./policies/policies
           options: |
-            --verbose --threshold 100 \
-            --ignore '*.yaml' --ignore '*.yml' --ignore '*.json'
+            --verbose --threshold 100

@@ -1,11 +1,9 @@
-
 package crownlabs_instance_template_reference
 
 t_ns := input.review.object.spec["template.crownlabs.polito.it/TemplateRef"].namespace
 
 ns = t_ns {
 	count([t_ns]) > 0
-	
 }
 
 else = "default" {
@@ -14,13 +12,13 @@ else = "default" {
 
 violation[{"msg": msg, "details": {}}] {
 	not data.inventory.namespace[ns]
-	msg := sprintf("Namespace %v doesn't exist", [data.inventory])
+	msg := sprintf("Namespace %v does not exist", [ns])
 }
 
 violation[{"msg": msg, "details": {}}] {
 	var := data.inventory.namespace[ns]["crownlabs.polito.it/v1alpha2"].Template
 	var == {}
-	msg := sprintf("Namespace %v doesn't contain any template", [ns])
+	msg := sprintf("Namespace %v does not contain any template", [ns])
 }
 
 violation[{"msg": msg, "details": {"missing_template": [missing]}}] {
@@ -30,4 +28,3 @@ violation[{"msg": msg, "details": {"missing_template": [missing]}}] {
 	count(missing) > 0
 	msg := sprintf("wrong template %v", [missing])
 }
-
