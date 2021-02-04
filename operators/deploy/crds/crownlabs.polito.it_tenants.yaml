@@ -60,25 +60,25 @@ spec:
               lastName:
                 type: string
               publicKeys:
-                description: public keys of tenant
+                description: list of the public keys of the tenant for SSH access
                 items:
                   type: string
                 type: array
               workspaces:
-                description: list of workspaces the user is subscribed to
+                description: list of workspace the tenant subscribed to
                 items:
                   description: UserWorkspaceData contains the info of the workspaces related to a user
                   properties:
                     groupNumber:
                       type: integer
                     role:
-                      description: WorkspaceUserRole is an enum for the role of a user in a workspace
+                      description: role of the user in the context of the workspace
                       enum:
                       - manager
                       - user
                       type: string
                     workspaceRef:
-                      description: GenericRef stores generric data to point to a kubernetes resource
+                      description: reference to the workspace resource in the cluster
                       properties:
                         name:
                           type: string
@@ -106,7 +106,7 @@ spec:
                   type: string
                 type: array
               personalNamespace:
-                description: NameCreated contains info about the status of a resource
+                description: info about the namespace for the user resources inside the cluster
                 properties:
                   created:
                     type: boolean
@@ -116,6 +116,7 @@ spec:
                 - created
                 type: object
               ready:
+                description: false if there have been errors within the last reconcile, true otherwise
                 type: boolean
               sandboxNamespace:
                 description: NameCreated contains info about the status of a resource

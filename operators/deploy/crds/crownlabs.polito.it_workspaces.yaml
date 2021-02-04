@@ -43,6 +43,7 @@ spec:
             description: WorkspaceSpec defines the desired state of Workspace
             properties:
               prettyName:
+                description: human-readable name of the workspace
                 type: string
             required:
             - prettyName
@@ -51,7 +52,7 @@ spec:
             description: WorkspaceStatus defines the observed state of Workspace
             properties:
               namespace:
-                description: NameCreated contains info about the status of a resource
+                description: info about the namespace for the workspace resources inside the cluster
                 properties:
                   created:
                     type: boolean
@@ -61,6 +62,7 @@ spec:
                 - created
                 type: object
               ready:
+                description: false if there have been errors within the last reconcile, true otherwise
                 type: boolean
               subscription:
                 additionalProperties:
