@@ -1,7 +1,7 @@
 ---
 # tasks file for netlab-generic
 
-- name: Install the packages required for the sniffing lab
+- name: Install the packages required for the sniffing labs
   apt:
     name: "{{ to_install }}"
     state: present
@@ -10,6 +10,8 @@
     - build-essential
     - cmake
     - libpcap-dev
+    - bpfcc-tools
+    - python3-pyroute2
 
 - name: Install the Open vSwitch packages
   apt:
