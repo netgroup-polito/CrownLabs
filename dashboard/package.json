@@ -1,7 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "build": "cp -r views dashboard/src",
+    "pull-submodule": "git submodule init && git submodule update",
+    "update-version": "cd dashboard && git checkout master && git pull && cd .. && git add dashboard && git commit -m 'Updated dashboard submodule to latest commit on master'",
     "start": "cd dashboard && npm start",
     "test": "cd dashboard && npm test"
   }
