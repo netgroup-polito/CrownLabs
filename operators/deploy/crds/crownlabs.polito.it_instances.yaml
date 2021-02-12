@@ -19,6 +19,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.running
+      name: Running
+      type: string
     - jsonPath: .status.phase
       name: Phase
       type: string
@@ -49,6 +52,17 @@ spec:
             description: InstanceSpec is the specification of the desired state of
               the Instance.
             properties:
+              running:
+                default: true
+                description: Whether the current instance is running or not. This
+                  field is meaningful only in case the Instance refers to persistent
+                  environments, and it allows to stop the environment (e.g. the underlying
+                  VM) without deleting the associated disk. Setting the flag to true
+                  will restart the environment, attaching it to the same disk used
+                  previously. The flag, on the other hand, is silently ignored in
+                  case of non-persistent environments, as the state cannot be preserved
+                  among reboots.
+                type: boolean
               template.crownlabs.polito.it/TemplateRef:
                 description: The reference to the Template to be instantiated.
                 properties:

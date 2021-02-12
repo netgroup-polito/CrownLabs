@@ -109,6 +109,11 @@ type EnvironmentResources struct {
 	// The amount of RAM memory assigned to the given environment. Requests and
 	// limits do correspond to avoid OOMKill issues.
 	Memory resource.Quantity `json:"memory"`
+
+	// The size of the persistent disk allocated for the given environment.
+	// This field is meaningful only in case of persistent environments, while
+	// it is silently ignored in the other cases.
+	Disk resource.Quantity `json:"disk,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -111,6 +111,16 @@ spec:
                           maximum: 8
                           minimum: 1
                           type: integer
+                        disk:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: The size of the persistent disk allocated for
+                            the given environment. This field is meaningful only in
+                            case of persistent environments, while it is silently
+                            ignored in the other cases.
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                         memory:
                           anyOf:
                           - type: integer

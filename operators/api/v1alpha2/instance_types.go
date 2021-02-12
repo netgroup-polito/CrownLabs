@@ -29,6 +29,17 @@ type InstanceSpec struct {
 
 	// The reference to the Tenant which owns the Instance object.
 	Tenant GenericRef `json:"tenant.crownlabs.polito.it/TenantRef"`
+
+	// +kubebuilder:default=true
+
+	// Whether the current instance is running or not. This field is meaningful
+	// only in case the Instance refers to persistent environments, and it allows
+	// to stop the environment (e.g. the underlying VM) without deleting the
+	// associated disk. Setting the flag to true will restart the environment,
+	// attaching it to the same disk used previously. The flag, on the other hand,
+	// is silently ignored in case of non-persistent environments, as the state
+	// cannot be preserved among reboots.
+	Running bool `json:"running,omitempty"`
 }
 
 // InstanceStatus reflects the most recently observed status of the Instance.
@@ -56,6 +67,7 @@ type InstanceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="inst"
+// +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`
