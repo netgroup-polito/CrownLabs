@@ -2,8 +2,10 @@
   "private": true,
   "scripts": {
     "pull-submodule": "git submodule init && git submodule update",
-    "update-version": "cd dashboard && git checkout master && git pull && cd .. && git add dashboard && git commit -m 'Updated dashboard submodule to latest commit on master'",
-    "start": "cd dashboard && npm start",
-    "test": "cd dashboard && npm test"
+    "setup": "npm run pull-submodule && cp -r views dashboard/src && cd dashboard && npm install && cd ..",
+    "update-version": "npm run pull-submodule && cd dashboard && git checkout master && git pull && cd .. && git add dashboard && git commit -m 'Updated dashboard submodule to latest commit on master'",
+    "copy-back": "cp -r dashboard/src/views/crownLabs views",
+    "start": "cd dashboard && npm start && cd ..",
+    "test": "cd dashboard && npm test && cd .."
   }
 }
