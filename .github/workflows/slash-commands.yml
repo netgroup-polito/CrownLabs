@@ -28,11 +28,11 @@ jobs:
               },
               {
                 "command": "deploy-staging",
-                "permission": "write"
+                "permission": "triage"
               },
               {
                 "command": "undeploy-staging",
-                "permission": "write"
+                "permission": "triage"
               },
               {
                 "command": "hold",
