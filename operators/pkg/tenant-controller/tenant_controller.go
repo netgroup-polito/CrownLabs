@@ -10,6 +10,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package tenant_controller groups the functionalities related to the Tenant controller.
 package tenant_controller
 
 import (
@@ -34,7 +35,7 @@ import (
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// TenantReconciler reconciles a Tenant object
+// TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
@@ -203,6 +204,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
 }
 
+// SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
@@ -218,7 +220,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// handleDeletion deletes external resouces of a tenant using a fail-fast:false strategy
+// handleDeletion deletes external resources of a tenant using a fail-fast:false strategy.
 func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
 	var retErr error = nil
 	// delete keycloak user
@@ -243,7 +245,7 @@ func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) er
 	return retErr
 }
 
-// createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy
+// createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
@@ -332,14 +334,14 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	return true, retErr
 }
 
-// updateTnNamespace updates the tenant namespace
+// updateTnNamespace updates the tenant namespace.
 func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
 }
 
-// updateTnResQuota updates the tenant resource quota
+// updateTnResQuota updates the tenant resource quota.
 func (r *TenantReconciler) updateTnResQuota(rq *v1.ResourceQuota) {
 	rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
 
@@ -412,7 +414,7 @@ func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *c
 	return nil
 }
 
-// genKcUserRoleNames maps the workspaces of a tenant to the needed roles in keycloak
+// genKcUserRoleNames maps the workspaces of a tenant to the needed roles in keycloak.
 func genKcUserRoleNames(workspaces []crownlabsv1alpha1.TenantWorkspaceEntry) []string {
 	userRoles := make([]string, len(workspaces))
 	// convert workspaces to actual keyloak role
@@ -558,7 +560,7 @@ func cleanName(name string) (*string, error) {
 	return &name, nil
 }
 
-// cleanWorkspaceLabels removes all the labels of a workspace from a tenant
+// cleanWorkspaceLabels removes all the labels of a workspace from a tenant.
 func cleanWorkspaceLabels(labels map[string]string) {
 	for k := range labels {
 		if strings.HasPrefix(k, crownlabsv1alpha1.WorkspaceLabelPrefix) {

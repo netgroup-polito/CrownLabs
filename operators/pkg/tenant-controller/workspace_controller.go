@@ -30,7 +30,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// WorkspaceReconciler reconciles a Workspace object
+// WorkspaceReconciler reconciles a Workspace object.
 type WorkspaceReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
@@ -156,6 +156,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
 }
 
+// SetupWithManager registers a new controller for Workspace resources.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).

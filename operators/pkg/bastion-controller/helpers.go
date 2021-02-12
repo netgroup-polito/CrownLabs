@@ -24,10 +24,13 @@ func removeKey(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
+// AuthorizedKeysEntry is a structure containing the three different fields
+// of an entry of the .ssh/authorized_keys file.
 type AuthorizedKeysEntry struct {
 	Algo, Key, ID string
 }
 
+// Decompose converts a string into an AuthorizedKeysEntry object.
 func Decompose(entry string) (AuthorizedKeysEntry, error) {
 	entryComponents := strings.Split(entry, string(" "))
 	if len(entryComponents) == 3 {
@@ -41,6 +44,7 @@ func Decompose(entry string) (AuthorizedKeysEntry, error) {
 	return AuthorizedKeysEntry{}, errors.New("invalid entry")
 }
 
+// Create converts a string and an id into an AuthorizedKeysEntry object.
 func Create(entry, id string) (AuthorizedKeysEntry, error) {
 	entryComponents := strings.Split(entry, string(" "))
 	if len(entryComponents) == 3 || len(entryComponents) == 2 {
@@ -54,6 +58,7 @@ func Create(entry, id string) (AuthorizedKeysEntry, error) {
 	return AuthorizedKeysEntry{}, errors.New("invalid entry")
 }
 
+// Compose an AuthorizedKeysEntry object into a string.
 func (e *AuthorizedKeysEntry) Compose() string {
 	return e.Algo + " " + e.Key + " " + e.ID
 }

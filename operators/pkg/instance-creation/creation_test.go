@@ -129,7 +129,7 @@ func TestComputeCPULimits(t *testing.T) {
 		CPU                   uint32  = 1
 		HypervisorCoefficient float32 = 0.2
 	)
-	rawLimit := ComputeCPULimits(CPU, HypervisorCoefficient)
+	rawLimit := computeCPULimits(CPU, HypervisorCoefficient)
 	limit, err := strconv.ParseFloat(rawLimit, 32) /* if bitSize is 32, ParseFloat return always a Float64 but it's convertible to Float32 without changing its value */
 
 	assert.Equal(t, err, nil, "ParseFloat should not return an error")
@@ -142,7 +142,7 @@ func TestComputeCPURequests(t *testing.T) {
 		CPU        uint32 = 1
 		percentage uint32 = 30
 	)
-	rawRequests := ComputeCPURequests(CPU, percentage)
+	rawRequests := computeCPURequests(CPU, percentage)
 	requests, err := strconv.ParseFloat(rawRequests, 32) /* if bitSize is 32, ParseFloat return always a Float64 but it's convertible to Float32 without changing its value */
 
 	assert.Equal(t, err, nil, "ParseInt should not return an error")

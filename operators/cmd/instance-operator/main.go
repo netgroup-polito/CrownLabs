@@ -124,7 +124,7 @@ func main() {
 	}
 }
 
-// This method parses a string to get a map. The different labels should divided by a &
+// This method parses a string to get a map. The different labels should divided by a &.
 func parseMap(raw string) map[string]string {
 	ss := strings.Split(raw, "&")
 	m := make(map[string]string)

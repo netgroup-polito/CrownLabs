@@ -13,6 +13,8 @@ import (
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
+// CreateVMEnvironment implements the logic to create all the different
+// Kubernetes resources required to start a CrownLabs environment.
 func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Instance, environment *crownlabsv1alpha2.Environment, namespace, name string, vmStart time.Time) error {
 	var user, password string
 	// this is added so that all resources created for this Instance are destroyed when the Instance is deleted
