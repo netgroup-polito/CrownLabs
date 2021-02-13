@@ -124,7 +124,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// check validity of workspaces in tenant
-	tenantExistingWorkspaces := []crownlabsv1alpha1.UserWorkspaceData{}
+	tenantExistingWorkspaces := []crownlabsv1alpha1.TenantWorkspaceEntry{}
 	tn.Status.FailingWorkspaces = []string{}
 	// check every workspace of a tenant
 	for _, tnWs := range tn.Spec.Workspaces {
@@ -393,7 +393,7 @@ func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 	}}}}}
 }
 
-func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.UserWorkspaceData) error {
+func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.TenantWorkspaceEntry) error {
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
 		klog.Errorf("Error when checking if keycloak user %s existed for creation/update -> %s", tn.Name, err)
@@ -416,7 +416,7 @@ func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *c
 }
 
 // genKcUserRoleNames maps the workspaces of a tenant to the needed roles in keycloak
-func genKcUserRoleNames(workspaces []crownlabsv1alpha1.UserWorkspaceData) []string {
+func genKcUserRoleNames(workspaces []crownlabsv1alpha1.TenantWorkspaceEntry) []string {
 	userRoles := make([]string, len(workspaces))
 	// convert workspaces to actual keyloak role
 	for i, ws := range workspaces {
@@ -510,7 +510,7 @@ func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password s
 	sec.Data["password"] = []byte(password)
 }
 
-func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.UserWorkspaceData) error {
+func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.TenantWorkspaceEntry) error {
 	if tn.Labels == nil {
 		// the len is 1 for each workspace plus the 2 for firstName and lastName
 		tn.Labels = make(map[string]string, len(tenantExistingWorkspaces)+2)

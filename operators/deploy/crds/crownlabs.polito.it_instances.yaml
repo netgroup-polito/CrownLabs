@@ -18,36 +18,59 @@ spec:
     singular: instance
   scope: Namespaced
   versions:
-  - name: v1alpha2
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.url
+      name: URL
+      type: string
+    - jsonPath: .status.ip
+      name: IP Address
+      type: string
+    name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: Instance is the Schema for the instances API
+        description: Instance describes the instance of a CrownLabs environment Template.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
-            description: InstanceSpec defines the desired state of Instance
+            description: InstanceSpec is the specification of the desired state of
+              the Instance.
             properties:
               template.crownlabs.polito.it/TemplateRef:
+                description: The reference to the Template to be instantiated.
                 properties:
                   name:
+                    description: The name of the resource to be referenced.
                     type: string
                   namespace:
+                    description: The namespace containing the resource to be referenced.
+                      It should be left empty in case of cluster-wide resources.
                     type: string
                 required:
                 - name
                 type: object
               tenant.crownlabs.polito.it/TenantRef:
+                description: The reference to the Tenant which owns the Instance object.
                 properties:
                   name:
+                    description: The name of the resource to be referenced.
                     type: string
                   namespace:
+                    description: The namespace containing the resource to be referenced.
+                      It should be left empty in case of cluster-wide resources.
                     type: string
                 required:
                 - name
@@ -57,16 +80,30 @@ spec:
             - tenant.crownlabs.polito.it/TenantRef
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance
+            description: InstanceStatus reflects the most recently observed status
+              of the Instance.
             properties:
               ip:
+                description: The internal IP address associated with the remote environment,
+                  which can be used to access it through the SSH protocol (leveraging
+                  the SSH bastion in case it is not contacted from another CrownLabs
+                  Instance).
                 type: string
               observedGeneration:
+                description: The generation of the object which has been observed.
+                  This is used to filter out the reconciliation events referring only
+                  to status modifications.
                 format: int64
                 type: integer
               phase:
+                description: The current status Instance, with reference to the associated
+                  environment (e.g. VM). This conveys which resource is being created,
+                  as well as whether the associated VM is being scheduled, is running
+                  or ready to accept incoming connections.
                 type: string
               url:
+                description: The URL where it is possible to access the remote desktop
+                  of the instance (in case of graphical environments)
                 type: string
             type: object
         type: object

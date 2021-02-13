@@ -202,7 +202,7 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 	return retErr
 }
 
-func removeWsFromTn(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
+func removeWsFromTn(workspaces *[]crownlabsv1alpha1.TenantWorkspaceEntry, wsToRemove string) {
 	idxToRemove := -1
 	for i, wsData := range *workspaces {
 		if wsData.WorkspaceRef.Name == wsToRemove {

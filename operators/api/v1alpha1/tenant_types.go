@@ -24,61 +24,87 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // +kubebuilder:validation:Enum=manager;user
+
+// WorkspaceUserRole is an enumeration of the different roles that can be
+// associated to a Tenant in a Workspace.
 type WorkspaceUserRole string
 
 const (
-	// Manager allows to interact with all VMs of a workspace
+	// Manager -> a Tenant with Manager role can interact with all the environments
+	// (i.e. VMs) in a Workspace, as well as add new Tenants to the Workspace.
 	Manager WorkspaceUserRole = "manager"
-	// User allows to interact with owned vms
+	// User -> a Tenant with User role can only interact with his/her own
+	// environments (e.g. VMs) within that Workspace.
 	User WorkspaceUserRole = "user"
 )
 
-// UserWorkspaceData contains the info of the workspaces related to a user
-type UserWorkspaceData struct {
-	// reference to the workspace resource in the cluster
+// TenantWorkspaceEntry contains the information regarding one of the Workspaces
+// the Tenant is subscribed to, including his/her role.
+type TenantWorkspaceEntry struct {
+	// The reference to the Workspace resource the Tenant is subscribed to.
 	WorkspaceRef GenericRef `json:"workspaceRef"`
-	GroupNumber  uint       `json:"groupNumber,omitempty"`
-	// role of the user in the context of the workspace
+
+	// The role of the Tenant in the context of the Workspace.
 	Role WorkspaceUserRole `json:"role"`
+
+	// The number of the group the Tenant belongs to. Empty means no group.
+	GroupNumber uint `json:"groupNumber,omitempty"`
 }
 
-// TenantSpec defines the desired state of Tenant
+// TenantSpec is the specification of the desired state of the Tenant.
 type TenantSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// The first name of the Tenant.
 	FirstName string `json:"firstName"`
 
+	// The last name of the Tenant.
 	LastName string `json:"lastName"`
 
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+
+	// The email associated with the Tenant, which will be used to log-in
+	// into the system.
 	Email string `json:"email"`
 
-	// list of workspace the tenant subscribed to
-	Workspaces []UserWorkspaceData `json:"workspaces,omitempty"`
+	// The list of the Workspaces the Tenant is subscribed to, along with his/her
+	// role in each of them.
+	Workspaces []TenantWorkspaceEntry `json:"workspaces,omitempty"`
 
-	// list of the public keys of the tenant for SSH access
+	// The list of the SSH public keys associated with the Tenant. These will be
+	// used to enable to access the remote environments through the SSH protocol.
 	PublicKeys []string `json:"publicKeys,omitempty"`
 
-	// should the resource create the sandbox namespace for k8s practice environment
 	// +kubebuilder:default=false
+
+	// Whether a sandbox namespace should be created to allow the Tenant play
+	// with Kubernetes.
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 }
 
-// TenantStatus defines the observed state of Tenant
+// TenantStatus reflects the most recently observed status of the Tenant.
 type TenantStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// info about the namespace for the user resources inside the cluster
+	// The namespace containing all CrownLabs related objects of the Tenant.
+	// This is the namespace that groups his/her own Instances, together with
+	// all the accessory resources (e.g. RBACs, resource quotas, network policies,
+	// ...) created by the tenant-operator.
 	PersonalNamespace NameCreated `json:"personalNamespace"`
-	SandboxNamespace  NameCreated `json:"sandboxNamespace"`
 
-	// list of workspace that are throwing errors during subscription
+	// The namespace that can be freely used by the Tenant to play with Kubernetes.
+	// This namespace is created only if the .spec.CreateSandbox flag is true.
+	SandboxNamespace NameCreated `json:"sandboxNamespace"`
+
+	// The list of Workspaces that are throwing errors during subscription.
+	// This mainly happens if .spec.Workspaces contains references to Workspaces
+	// which do not exist.
 	FailingWorkspaces []string `json:"failingWorkspaces"`
 
-	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
+	// The list of the subscriptions to external services (e.g. Keycloak,
+	// Nextcloud, ...), indicating for each one whether it succeeded or an error
+	// occurred.
 	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
 
-	// false if there have been errors within the last reconcile, true otherwise
+	// Whether all subscriptions and resource creations succeeded or an error
+	// occurred. In case of errors, the other status fields provide additional
+	// information about which problem occurred.
 	Ready bool `json:"ready"`
 }
 
@@ -91,7 +117,7 @@ type TenantStatus struct {
 // +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.personalNamespace.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
-// Tenant is the Schema for the tenants API
+// Tenant describes a user of CrownLabs.
 type Tenant struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -102,7 +128,7 @@ type Tenant struct {
 
 // +kubebuilder:object:root=true
 
-// TenantList contains a list of Tenant
+// TenantList contains a list of Tenant objects.
 type TenantList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
