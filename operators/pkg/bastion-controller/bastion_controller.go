@@ -39,8 +39,7 @@ type BastionReconciler struct {
 	AuthorizedKeysPath string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;watch
-
+// Reconcile reconciles the SSH keys of a Tenant resource.
 func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("tenant", req.NamespacedName)

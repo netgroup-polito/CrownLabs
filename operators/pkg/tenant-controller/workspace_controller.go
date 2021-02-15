@@ -39,10 +39,7 @@ type WorkspaceReconciler struct {
 	TargetLabelValue string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=workspaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=workspaces/status,verbs=get;update;patch
-
-// Reconcile reconciles the state of a workspace resource
+// Reconcile reconciles the state of a workspace resource.
 func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var ws crownlabsv1alpha1.Workspace

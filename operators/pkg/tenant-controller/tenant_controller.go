@@ -44,10 +44,7 @@ type TenantReconciler struct {
 	TargetLabelValue string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants/status,verbs=get;update;patch
-
-// Reconcile reconciles the state of a tenant resource
+// Reconcile reconciles the state of a tenant resource.
 func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var tn crownlabsv1alpha1.Tenant
