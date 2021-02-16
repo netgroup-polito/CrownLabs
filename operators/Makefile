@@ -69,3 +69,16 @@ install-tenant: manifests
 
 python-dependencies:
 	pip3 install -r ./build/delete-stale-instances/requirements.txt
+
+user-export:
+	go run cmd/utils/exportKcUsers.go\
+				-path-csv=crownlabsUsers.csv\
+				-path-mail-str=crownlabsUserMails.txt\
+				-path-yaml=crownlabsTenants.yaml\
+				-include-roles=false\
+				-kc-URL=$(KEYCLOAK_URL)\
+				-kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\
+				-kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)\
+				-kc-login-realm=$(KEYCLOAK_LOGIN_REALM)\
+				-kc-target-realm=$(KEYCLOAK_TARGET_REALM)\
+				-kc-target-client=$(KEYCLOAK_TARGET_CLIENT)
