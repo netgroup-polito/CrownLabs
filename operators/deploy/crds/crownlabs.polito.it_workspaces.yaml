@@ -29,49 +29,66 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Workspace is the Schema for the workspaces API
+        description: Workspace describes a workspace in CrownLabs.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
-            description: WorkspaceSpec defines the desired state of Workspace
+            description: WorkspaceSpec is the specification of the desired state of
+              the Workspace.
             properties:
               prettyName:
-                description: human-readable name of the workspace
+                description: The human-readable name of the Workspace.
                 type: string
             required:
             - prettyName
             type: object
           status:
-            description: WorkspaceStatus defines the observed state of Workspace
+            description: WorkspaceStatus reflects the most recently observed status
+              of the Workspace.
             properties:
               namespace:
-                description: info about the namespace for the workspace resources inside the cluster
+                description: The namespace containing all CrownLabs related objects
+                  of the Workspace. This is the namespace that groups multiple related
+                  templates, together with all the accessory resources (e.g. RBACs)
+                  created by the tenant operator.
                 properties:
                   created:
+                    description: Whether the creation succeeded or not.
                     type: boolean
                   name:
+                    description: The name of the considered resource.
                     type: string
                 required:
                 - created
                 type: object
               ready:
-                description: false if there have been errors within the last reconcile, true otherwise
+                description: Whether all subscriptions and resource creations succeeded
+                  or an error occurred. In case of errors, the other status fields
+                  provide additional information about which problem occurred.
                 type: boolean
               subscription:
                 additionalProperties:
-                  description: SubscriptionStatus is an enum for the status of a subscription to a service
+                  description: SubscriptionStatus is an enumeration of the different
+                    states that can be assumed by the subscription to a service (e.g.
+                    successful or failing).
                   enum:
                   - Ok
                   - Failed
                   type: string
-                description: list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
+                description: The list of the subscriptions to external services (e.g.
+                  Keycloak, Nextcloud, ...), indicating for each one whether it succeeded
+                  or an error occurred.
                 type: object
             type: object
         type: object

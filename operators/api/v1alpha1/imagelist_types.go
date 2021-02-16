@@ -16,25 +16,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImageListItem describes a single VM image
+// ImageListItem describes a single VM image.
 type ImageListItem struct {
-	// The name identifying a single image
+	// The name identifying a single image.
 	Name string `json:"name"`
 
-	// The list of versions the image is available in
+	// The list of versions the image is available in.
 	Versions []string `json:"versions"`
 }
 
-// ImageListSpec defines the desired state of ImageList
+// ImageListSpec is the specification of the desired state of the ImageList.
 type ImageListSpec struct {
-	// The host name that can be used to access the registry
+	// The host name that can be used to access the registry.
 	RegistryName string `json:"registryName"`
 
-	// The list of VM images currently available for CrownLabs
+	// The list of VM images currently available in CrownLabs.
 	Images []ImageListItem `json:"images"`
 }
 
-// ImageListStatus defines the observed state of ImageList
+// ImageListStatus reflects the most recently observed status of the ImageList.
 type ImageListStatus struct {
 }
 
@@ -43,7 +43,7 @@ type ImageListStatus struct {
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:printcolumn:name="Registry Name",type=string,JSONPath=`.spec.registryName`
 
-// ImageList is the Schema for the ImageList API
+// ImageList describes the available VM images in the CrownLabs registry.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -54,7 +54,7 @@ type ImageList struct {
 
 // +kubebuilder:object:root=true
 
-// ImageListList contains a list of ImageList
+// ImageListList contains a list of ImageList objects.
 type ImageListList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

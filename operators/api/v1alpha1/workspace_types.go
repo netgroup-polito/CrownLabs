@@ -23,27 +23,28 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// WorkspaceSpec defines the desired state of Workspace
+// WorkspaceSpec is the specification of the desired state of the Workspace.
 type WorkspaceSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// human-readable name of the workspace
+	// The human-readable name of the Workspace.
 	PrettyName string `json:"prettyName"`
 }
 
-// WorkspaceStatus defines the observed state of Workspace
+// WorkspaceStatus reflects the most recently observed status of the Workspace.
 type WorkspaceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// info about the namespace for the workspace resources inside the cluster
+	// The namespace containing all CrownLabs related objects of the Workspace.
+	// This is the namespace that groups multiple related templates, together
+	// with all the accessory resources (e.g. RBACs) created by the tenant
+	// operator.
 	Namespace NameCreated `json:"namespace,omitempty"`
 
-	// list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
+	// The list of the subscriptions to external services (e.g. Keycloak,
+	// Nextcloud, ...), indicating for each one whether it succeeded or an error
+	// occurred.
 	Subscriptions map[string]SubscriptionStatus `json:"subscription,omitempty"`
 
-	// false if there have been errors within the last reconcile, true otherwise
+	// Whether all subscriptions and resource creations succeeded or an error
+	// occurred. In case of errors, the other status fields provide additional
+	// information about which problem occurred.
 	Ready bool `json:"ready,omitempty"`
 }
 
@@ -54,7 +55,7 @@ type WorkspaceStatus struct {
 // +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.namespace.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
-// Workspace is the Schema for the workspaces API
+// Workspace describes a workspace in CrownLabs.
 type Workspace struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -65,7 +66,7 @@ type Workspace struct {
 
 // +kubebuilder:object:root=true
 
-// WorkspaceList contains a list of Workspace
+// WorkspaceList contains a list of Workspace objects.
 type WorkspaceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

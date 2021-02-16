@@ -9,7 +9,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// NcHandler defines the method need to interact with nextcloud
+// NcHandler defines the method need to interact with nextcloud.
 type NcHandler interface {
 	GetUser(ncUsername string) (found bool, displayname *string, err error)
 	CreateUser(ncUsername, ncPsw, displayname string) error
@@ -17,7 +17,7 @@ type NcHandler interface {
 	DeleteUser(username string) error
 }
 
-// NcActor holds the info and methods to interact with nextcloud
+// NcActor holds the info and methods to interact with nextcloud.
 type NcActor struct {
 	Client   *resty.Client
 	TnOpUser string
@@ -29,7 +29,8 @@ type NcActor struct {
 
 var ncHeaders = map[string]string{"OCS-APIRequest": "true"}
 
-// GetUser gets the user with the corresponding username in nextcloud. It returns info about the existence of the user, the displayname of the user and if there are any errors
+// GetUser gets the user with the corresponding username in nextcloud. It returns
+// info about the existence of the user, the displayname of the user and if there are any errors.
 func (ncA *NcActor) GetUser(ncUsername string) (found bool, displayname *string, err error) {
 	userEndpoint := ncA.buildOCSEndpoint(fmt.Sprintf("/users/%s", ncUsername))
 	userRes, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).Get(userEndpoint)
@@ -61,7 +62,7 @@ func (ncA *NcActor) GetUser(ncUsername string) (found bool, displayname *string,
 	}
 }
 
-// CreateUser creates a new user with the passed username, psw and displayname
+// CreateUser creates a new user with the passed username, psw and displayname.
 func (ncA *NcActor) CreateUser(ncUsername, ncPsw, displayname string) error {
 	usersURL := ncA.buildOCSEndpoint("/users")
 	userData := map[string]string{"userid": ncUsername, "password": ncPsw, "displayname": displayname}
@@ -86,7 +87,7 @@ func (ncA *NcActor) CreateUser(ncUsername, ncPsw, displayname string) error {
 	return nil
 }
 
-// UpdateUserData updates the param of the user with the username with the new value
+// UpdateUserData updates the param of the user with the username with the new value.
 func (ncA *NcActor) UpdateUserData(username, param, value string) error {
 	userURL := ncA.buildOCSEndpoint(fmt.Sprintf("/users/%s", username))
 	data := map[string]string{"key": param, "value": value}
@@ -108,7 +109,7 @@ func (ncA *NcActor) UpdateUserData(username, param, value string) error {
 	return nil
 }
 
-// DeleteUser user deletes the user with the corresponding username
+// DeleteUser user deletes the user with the corresponding username.
 func (ncA *NcActor) DeleteUser(username string) error {
 	userURL := ncA.buildOCSEndpoint(fmt.Sprintf("/users/%s", username))
 	res, err := ncA.Client.R().SetBasicAuth(ncA.TnOpUser, ncA.TnOpPsw).SetHeaders(ncHeaders).Delete(userURL)
@@ -127,7 +128,7 @@ func (ncA *NcActor) DeleteUser(username string) error {
 			klog.Errorf("Error when checking if nextcloud user %s exists -> %s", username, err)
 			return err
 		} else if found {
-			klog.Errorf("Error when deleting nextcloud user %s, user still exists despite attempted deletios -> statusCode: %d, message: %s", username, *statusCode, *message)
+			klog.Errorf("Error when deleting nextcloud user %s, user still exists despite attempted deletion -> statusCode: %d, message: %s", username, *statusCode, *message)
 			return errors.New("nextcloud user still exists after deletion")
 		}
 		return nil

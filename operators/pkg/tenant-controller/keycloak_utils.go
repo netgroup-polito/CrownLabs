@@ -10,7 +10,7 @@ import (
 	"k8s.io/klog"
 )
 
-// KcActor contains the needed objects and infos to use keycloak functionalities
+// KcActor contains the needed objects and infos to use keycloak functionalities.
 type KcActor struct {
 	Client                gocloak.GoCloak
 	Token                 *gocloak.JWT
@@ -20,7 +20,7 @@ type KcActor struct {
 	EmailActionsLifeSpanS int
 }
 
-// createKcRoles takes as argument a map with each pair with the roleName as the key and its description as value
+// createKcRoles takes as argument a map with each pair with the roleName as the key and its description as value.
 func (kcA *KcActor) createKcRoles(ctx context.Context, rolesToCreate map[string]string) error {
 	for newRoleName, newRoleDescr := range rolesToCreate {
 		if err := kcA.createKcRole(ctx, newRoleName, newRoleDescr); err != nil {

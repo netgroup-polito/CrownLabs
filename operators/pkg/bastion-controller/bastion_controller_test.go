@@ -93,7 +93,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 					FirstName:  "Mario",
 					LastName:   "Rossi",
 					Email:      "mario.rossi@fakemail.com",
-					Workspaces: []crownlabsalpha1.UserWorkspaceData{},
+					Workspaces: []crownlabsalpha1.TenantWorkspaceEntry{},
 					PublicKeys: PublicKeysTenant1,
 				},
 			}
@@ -127,7 +127,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 					FirstName:  "Fabio",
 					LastName:   "Bianchi",
 					Email:      "fabio.bianchi@fakemail.com",
-					Workspaces: []crownlabsalpha1.UserWorkspaceData{},
+					Workspaces: []crownlabsalpha1.TenantWorkspaceEntry{},
 					PublicKeys: PublicKeysTenant2,
 				},
 			}

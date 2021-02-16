@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package instance_controller groups the functionalities related to the Instance controller.
 package instance_controller
 
 import (
@@ -37,7 +38,7 @@ import (
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
-// InstanceReconciler reconciles a Instance object
+// InstanceReconciler reconciles a Instance object.
 type InstanceReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
@@ -51,6 +52,7 @@ type InstanceReconciler struct {
 	OidcProviderURL    string
 }
 
+// Reconcile reconciles the state of an Instance resource.
 func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	VMstart := time.Now()
 	ctx := context.Background()
@@ -140,6 +142,7 @@ func (r *InstanceReconciler) generateEnvironments(template *crownlabsv1alpha2.Te
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha2.Instance{}).

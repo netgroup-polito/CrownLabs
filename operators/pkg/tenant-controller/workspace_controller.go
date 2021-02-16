@@ -30,7 +30,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// WorkspaceReconciler reconciles a Workspace object
+// WorkspaceReconciler reconciles a Workspace object.
 type WorkspaceReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
@@ -39,10 +39,7 @@ type WorkspaceReconciler struct {
 	TargetLabelValue string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=workspaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=workspaces/status,verbs=get;update;patch
-
-// Reconcile reconciles the state of a workspace resource
+// Reconcile reconciles the state of a workspace resource.
 func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	var ws crownlabsv1alpha1.Workspace
@@ -159,6 +156,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
 }
 
+// SetupWithManager registers a new controller for Workspace resources.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
@@ -202,7 +200,7 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 	return retErr
 }
 
-func removeWsFromTn(workspaces *[]crownlabsv1alpha1.UserWorkspaceData, wsToRemove string) {
+func removeWsFromTn(workspaces *[]crownlabsv1alpha1.TenantWorkspaceEntry, wsToRemove string) {
 	idxToRemove := -1
 	for i, wsData := range *workspaces {
 		if wsData.WorkspaceRef.Name == wsToRemove {

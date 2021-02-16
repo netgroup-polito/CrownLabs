@@ -41,8 +41,8 @@ ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cp go.mod $$CONTROLLER_GEN_TMP_DIR ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
 	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 }

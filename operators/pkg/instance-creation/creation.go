@@ -1,3 +1,5 @@
+// Package instance_creation groups the functionalities related to the
+// creation of the different Kubernetes objects required by the Instance controller
 package instance_creation
 
 import (
@@ -19,10 +21,12 @@ import (
 )
 
 var terminationGracePeriod int64 = 30
-var CPUhypervisorReserved float32 = 0.5
+var cpuHypervisorReserved float32 = 0.5
 var memoryHypervisorReserved string = "500M"
 var registryCred string = "registry-credentials"
 
+// CreateVirtualMachineInstance creates and returns a Kubevirt VirtualMachineInstance
+// object representing the definition of the VM corresponding to a given Environment.
 func CreateVirtualMachineInstance(name, namespace string, template *crownlabsv1alpha2.Environment, instanceName, secretName string, references []metav1.OwnerReference) (*virtv1.VirtualMachineInstance, error) {
 	vmMemory := template.Resources.Memory
 	template.Resources.Memory.Add(resource.MustParse(memoryHypervisorReserved))
@@ -42,11 +46,11 @@ func CreateVirtualMachineInstance(name, namespace string, template *crownlabsv1a
 			Domain: virtv1.DomainSpec{
 				Resources: virtv1.ResourceRequirements{
 					Requests: corev1.ResourceList{
-						"cpu":    resource.MustParse(ComputeCPURequests(template.Resources.CPU, template.Resources.ReservedCPUPercentage)),
+						"cpu":    resource.MustParse(computeCPURequests(template.Resources.CPU, template.Resources.ReservedCPUPercentage)),
 						"memory": template.Resources.Memory,
 					},
 					Limits: corev1.ResourceList{
-						"cpu":    resource.MustParse(ComputeCPULimits(template.Resources.CPU, CPUhypervisorReserved)),
+						"cpu":    resource.MustParse(computeCPULimits(template.Resources.CPU, cpuHypervisorReserved)),
 						"memory": template.Resources.Memory,
 					},
 				},
@@ -103,15 +107,16 @@ func CreateVirtualMachineInstance(name, namespace string, template *crownlabsv1a
 	return &vm, nil
 }
 
-func ComputeCPULimits(cpu uint32, hypervisorCoefficient float32) string {
+func computeCPULimits(cpu uint32, hypervisorCoefficient float32) string {
 	return fmt.Sprintf("%f", float32(cpu)+hypervisorCoefficient)
 }
 
-func ComputeCPURequests(cpu, percentage uint32) string {
+func computeCPURequests(cpu, percentage uint32) string {
 	return fmt.Sprintf("%f", float32(cpu*percentage)/100)
 }
 
-// CreateOrUpdate creates a resource or updates it if already exists
+// CreateOrUpdate creates a resource or updates it if already exists.
+// Deprecated: use https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/controller/controllerutil#CreateOrUpdate
 func CreateOrUpdate(ctx context.Context, c client.Client, object interface{}) error {
 	switch obj := object.(type) {
 	case corev1.Secret:
@@ -211,6 +216,8 @@ func CreateOrUpdate(ctx context.Context, c client.Client, object interface{}) er
 	return nil
 }
 
+// CheckLabels verifies whether a namespace is characterized by a set of
+// required labels.
 func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
 	for key, value := range matchLabels {
 		if v1, ok := ns.Labels[key]; !ok || v1 != value {

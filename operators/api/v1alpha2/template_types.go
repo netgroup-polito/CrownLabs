@@ -20,56 +20,113 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +kubebuilder:validation:Enum="VirtualMachine";"Container"
+
+// EnvironmentType is an enumeration of the different types of environments that
+// can be instantiated in CrownLabs.
 type EnvironmentType string
 
 const (
+	// ClassContainer -> the environment is constituted by a Docker container.
 	ClassContainer EnvironmentType = "Container"
-	ClassVM        EnvironmentType = "VirtualMachine"
+	// ClassVM -> the environment is constituted by a Virtual Machine.
+	ClassVM EnvironmentType = "VirtualMachine"
 )
 
-// TemplateSpec defines the desired state of Template
+// TemplateSpec is the specification of the desired state of the Template.
 type TemplateSpec struct {
-	WorkspaceRef    GenericRef    `json:"workspace.crownlabs.polito.it/WorkspaceRef,omitempty"`
-	PrettyName      string        `json:"prettyName"`
-	Description     string        `json:"description"`
+	// The human-readable name of the Template.
+	PrettyName string `json:"prettyName"`
+
+	// A textual description of the Template.
+	Description string `json:"description"`
+
+	// The reference to the Workspace this Template belongs to.
+	WorkspaceRef GenericRef `json:"workspace.crownlabs.polito.it/WorkspaceRef,omitempty"`
+
+	// The list of environments (i.e. VMs or containers) that compose the Template.
 	EnvironmentList []Environment `json:"environmentList"`
+
 	// +kubebuilder:validation:Pattern="^[0-9]+[mhd]$"
 	// +kubebuilder:default="7d"
+
+	// The maximum lifetime of an Instance referencing the current Template.
+	// Once this period is expired, the Instance may be automatically deleted
+	// or stopped to save resources.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
 }
 
-// TemplateStatus defines the observed state of Template
+// TemplateStatus reflects the most recently observed status of the Template.
 type TemplateStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 }
 
+// Environment defines the characteristics of an environment composing the Template.
 type Environment struct {
-	Name string `json:"name,omitempty"`
-	// +kubebuilder:default=true
-	GuiEnabled bool                 `json:"guiEnabled,omitempty"`
-	Resources  EnvironmentResources `json:"resources"`
-	// +kubebuilder:validation:Enum="VirtualMachine";"Container"
+	// The name identifying the specific environment.
+	Name string `json:"name"`
+
+	// The VM or container to be started when instantiating the environment.
+	Image string `json:"image"`
+
+	// The type of environment to be instantiated, among VirtualMachine and
+	// Container.
 	EnvironmentType EnvironmentType `json:"environmentType"`
-	Persistent      bool            `json:"persistent"`
-	Image           string          `json:"image"`
+
+	// +kubebuilder:default=true
+
+	// Whether the environment is characterized by a graphical desktop or not.
+	GuiEnabled bool `json:"guiEnabled,omitempty"`
+
+	// +kubebuilder:default=false
+
+	// Whether the environment should be persistent (i.e. preserved when the
+	// corresponding instance is terminated) or not.
+	Persistent bool `json:"persistent,omitempty"`
+
+	// The amount of computational resources associated with the environment.
+	Resources EnvironmentResources `json:"resources"`
 }
 
+// EnvironmentResources is the specification of the amount of resources
+// (i.e. CPU, RAM, ...) assigned to a certain environment.
 type EnvironmentResources struct {
+	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=8
-	// +kubebuilder:validation:Minimum:=1
+
+	// The maximum number of CPU cores made available to the environment
+	// (ranging between 1 and 8 cores). This maps to the 'limits' specified
+	// for the actual pod representing the environment.
 	CPU uint32 `json:"cpu"`
-	// +kubebuilder:validation:Maximum:=100
+
 	// +kubebuilder:validation:Minimum:=1
-	ReservedCPUPercentage uint32            `json:"reservedCPUPercentage"`
-	Memory                resource.Quantity `json:"memory"`
+	// +kubebuilder:validation:Maximum:=100
+
+	// The percentage of reserved CPU cores, ranging between 1 and 100, with
+	// respect to the 'CPU' value. Essentially, this corresponds to the 'requests'
+	// specified for the actual pod representing the environment.
+	ReservedCPUPercentage uint32 `json:"reservedCPUPercentage"`
+
+	// The amount of RAM memory assigned to the given environment. Requests and
+	// limits do correspond to avoid OOMKill issues.
+	Memory resource.Quantity `json:"memory"`
+
+	// The size of the persistent disk allocated for the given environment.
+	// This field is meaningful only in case of persistent environments, while
+	// it is silently ignored in the other cases.
+	Disk resource.Quantity `json:"disk,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
+// +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`
+// +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`
+// +kubebuilder:printcolumn:name="Persistent",type=string,JSONPath=`.spec.environmentList[0].persistent`
 
-// Template is the Schema for the templates API
+// Template describes the template of a CrownLabs environment to be instantiated.
 type Template struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -80,7 +137,7 @@ type Template struct {
 
 // +kubebuilder:object:root=true
 
-// TemplateList contains a list of Template
+// TemplateList contains a list of Template objects.
 type TemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

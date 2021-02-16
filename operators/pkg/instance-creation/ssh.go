@@ -11,6 +11,9 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
+// GetPublicKeys extracts and returns the set of public keys associated with a
+// given tenant, along with the ones of the tenants having Manager role in the
+// corresponding workspace.
 func GetPublicKeys(ctx context.Context, c client.Reader, tenantRef, templateRef crownlabsv1alpha2.GenericRef, publicKeys *[]string) error {
 	tenant := crownlabsv1alpha1.Tenant{}
 	if err := c.Get(ctx, types.NamespacedName{

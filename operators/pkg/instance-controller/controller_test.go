@@ -21,8 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// +kubebuilder:docs-gen:collapse=Imports
-
 var _ = Describe("Instance Operator controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bastion_controller groups the functionalities related to the Bastion controller.
 package bastion_controller
 
 import (
@@ -31,7 +32,7 @@ import (
 	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// BastionReconciler reconciles a Bastion object
+// BastionReconciler reconciles a Bastion object.
 type BastionReconciler struct {
 	client.Client
 	Log                logr.Logger
@@ -39,8 +40,7 @@ type BastionReconciler struct {
 	AuthorizedKeysPath string
 }
 
-// +kubebuilder:rbac:groups=crownlabs.polito.it,resources=tenants,verbs=get;watch
-
+// Reconcile reconciles the SSH keys of a Tenant resource.
 func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("tenant", req.NamespacedName)
@@ -94,6 +94,7 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager registers a new controller for Tenant resources.
 func (r *BastionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsalpha1.Tenant{}).

@@ -13,6 +13,8 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+// ForgeService creates and returns a Kubernetes Service resource providing
+// access to a CrownLabs environment.
 func ForgeService(name, namespace string, references []metav1.OwnerReference) corev1.Service {
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -44,6 +46,8 @@ func ForgeService(name, namespace string, references []metav1.OwnerReference) co
 	return service
 }
 
+// ForgeIngress creates and returns a Kubernetes Ingress resource providing
+// exposing the remote desktop of a CrownLabs environment.
 func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	url := websiteBaseURL + "/" + urlUUID
@@ -100,6 +104,9 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 	return ingress
 }
 
+// ForgeOauth2Deployment creates and returns a Kubernetes Deployment resource
+// for oauth2-proxy, which is used to enforce authentication when connecting
+// to the remote desktop of a CrownLabs environment.
 func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL string, references []metav1.OwnerReference) appsv1.Deployment {
 	cookieUUID := uuid.New().String()
 	id, _ := uuid.New().MarshalBinary()
@@ -171,6 +178,9 @@ func ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, provid
 	return deploy
 }
 
+// ForgeOauth2Service creates and returns a Kubernetes Service resource
+// for oauth2-proxy, which is used to enforce authentication when connecting
+// to the remote desktop of a CrownLabs environment.
 func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReference) corev1.Service {
 	labels := generateOauth2Labels(name)
 	service := corev1.Service{
@@ -197,6 +207,9 @@ func ForgeOauth2Service(name, namespace string, references []metav1.OwnerReferen
 	return service
 }
 
+// ForgeOauth2Ingress creates and returns a Kubernetes Ingress resource
+// for oauth2-proxy, which is used to enforce authentication when connecting
+// to the remote desktop of a CrownLabs environment.
 func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, websiteBaseURL string, references []metav1.OwnerReference) networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 	ingress := networkingv1.Ingress{
@@ -250,7 +263,7 @@ func ForgeOauth2Ingress(name, namespace string, svc *corev1.Service, urlUUID, we
 	return ingress
 }
 
-// generateOauth2Labels returns a map of labels common to all oauth2-proxy resources
+// generateOauth2Labels returns a map of labels common to all oauth2-proxy resources.
 func generateOauth2Labels(instanceName string) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/part-of":   instanceName,

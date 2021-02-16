@@ -152,7 +152,7 @@ func main() {
 	}
 }
 
-// newKcActor sets up a keycloak client with the specififed parameters and performs the first login
+// newKcActor sets up a keycloak client with the specified parameters and performs the first login.
 func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm string) (*controllers.KcActor, error) {
 	kcClient := gocloak.NewClient(kcURL)
 	token, err := kcClient.LoginAdmin(context.Background(), kcUser, kcPsw, loginRealm)
@@ -175,7 +175,7 @@ func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm 
 	}, nil
 }
 
-// checkAndRenewTokenPeriodically checks every intervalCheck if the token is about in less than expireLimit or is already expired, if so it renews it
+// checkAndRenewTokenPeriodically checks every intervalCheck if the token is about to expire in less than expireLimit seconds or is already expired, if so it renews it.
 func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloak, token *gocloak.JWT, kcAdminUser, kcAdminPsw, loginRealm string, intervalCheck, expireLimit time.Duration) {
 	kcRenewTokenTicker := time.NewTicker(intervalCheck)
 	for {
@@ -202,7 +202,7 @@ func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloa
 	}
 }
 
-// getClientID returns the ID of the target client given the human id, to be used with the gocloak library
+// getClientID returns the ID of the target client given the human id, to be used with the gocloak library.
 func getClientID(ctx context.Context, kcClient gocloak.GoCloak, token, realmName, targetClient string) (string, error) {
 	clients, err := kcClient.GetClients(ctx, token, realmName, gocloak.GetClientsParams{ClientID: &targetClient})
 	if err != nil {

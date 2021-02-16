@@ -9,6 +9,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GetWebdavCredentials extracts the credentials (i.e. username and password)
+// required to mount the MyDrive disk of a given tenant from the associated
+// secret.
 func GetWebdavCredentials(ctx context.Context, c client.Client, secretName, namespace string, username, password *string) error {
 	sec := corev1.Secret{}
 	nsdName := types.NamespacedName{

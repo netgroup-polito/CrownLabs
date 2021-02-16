@@ -35,54 +35,76 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Tenant is the Schema for the tenants API
+        description: Tenant describes a user of CrownLabs.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
-            description: TenantSpec defines the desired state of Tenant
+            description: TenantSpec is the specification of the desired state of the
+              Tenant.
             properties:
               createSandbox:
                 default: false
-                description: should the resource create the sandbox namespace for k8s practice environment
+                description: Whether a sandbox namespace should be created to allow
+                  the Tenant play with Kubernetes.
                 type: boolean
               email:
+                description: The email associated with the Tenant, which will be used
+                  to log-in into the system.
                 pattern: ^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$
                 type: string
               firstName:
+                description: The first name of the Tenant.
                 type: string
               lastName:
+                description: The last name of the Tenant.
                 type: string
               publicKeys:
-                description: list of the public keys of the tenant for SSH access
+                description: The list of the SSH public keys associated with the Tenant.
+                  These will be used to enable to access the remote environments through
+                  the SSH protocol.
                 items:
                   type: string
                 type: array
               workspaces:
-                description: list of workspace the tenant subscribed to
+                description: The list of the Workspaces the Tenant is subscribed to,
+                  along with his/her role in each of them.
                 items:
-                  description: UserWorkspaceData contains the info of the workspaces related to a user
+                  description: TenantWorkspaceEntry contains the information regarding
+                    one of the Workspaces the Tenant is subscribed to, including his/her
+                    role.
                   properties:
                     groupNumber:
+                      description: The number of the group the Tenant belongs to.
+                        Empty means no group.
                       type: integer
                     role:
-                      description: role of the user in the context of the workspace
+                      description: The role of the Tenant in the context of the Workspace.
                       enum:
                       - manager
                       - user
                       type: string
                     workspaceRef:
-                      description: reference to the workspace resource in the cluster
+                      description: The reference to the Workspace resource the Tenant
+                        is subscribed to.
                       properties:
                         name:
+                          description: The name of the resource to be referenced.
                           type: string
                         namespace:
+                          description: The namespace containing the resource to be
+                            referenced. It should be left empty in case of cluster-wide
+                            resources.
                           type: string
                       required:
                       - name
@@ -98,44 +120,62 @@ spec:
             - lastName
             type: object
           status:
-            description: TenantStatus defines the observed state of Tenant
+            description: TenantStatus reflects the most recently observed status of
+              the Tenant.
             properties:
               failingWorkspaces:
-                description: list of workspace that are throwing errors during subscription
+                description: The list of Workspaces that are throwing errors during
+                  subscription. This mainly happens if .spec.Workspaces contains references
+                  to Workspaces which do not exist.
                 items:
                   type: string
                 type: array
               personalNamespace:
-                description: info about the namespace for the user resources inside the cluster
+                description: The namespace containing all CrownLabs related objects
+                  of the Tenant. This is the namespace that groups his/her own Instances,
+                  together with all the accessory resources (e.g. RBACs, resource
+                  quotas, network policies, ...) created by the tenant-operator.
                 properties:
                   created:
+                    description: Whether the creation succeeded or not.
                     type: boolean
                   name:
+                    description: The name of the considered resource.
                     type: string
                 required:
                 - created
                 type: object
               ready:
-                description: false if there have been errors within the last reconcile, true otherwise
+                description: Whether all subscriptions and resource creations succeeded
+                  or an error occurred. In case of errors, the other status fields
+                  provide additional information about which problem occurred.
                 type: boolean
               sandboxNamespace:
-                description: NameCreated contains info about the status of a resource
+                description: The namespace that can be freely used by the Tenant to
+                  play with Kubernetes. This namespace is created only if the .spec.CreateSandbox
+                  flag is true.
                 properties:
                   created:
+                    description: Whether the creation succeeded or not.
                     type: boolean
                   name:
+                    description: The name of the considered resource.
                     type: string
                 required:
                 - created
                 type: object
               subscriptions:
                 additionalProperties:
-                  description: SubscriptionStatus is an enum for the status of a subscription to a service
+                  description: SubscriptionStatus is an enumeration of the different
+                    states that can be assumed by the subscription to a service (e.g.
+                    successful or failing).
                   enum:
                   - Ok
                   - Failed
                   type: string
-                description: list of subscriptions to non-k8s services (keycloak, nextcloud, ..)
+                description: The list of the subscriptions to external services (e.g.
+                  Keycloak, Nextcloud, ...), indicating for each one whether it succeeded
+                  or an error occurred.
                 type: object
             required:
             - failingWorkspaces

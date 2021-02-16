@@ -52,6 +52,8 @@ func createUserdata(nextUsername, nextPassword, nextCloudBaseURL string, publicK
 	return map[string]string{"userdata": headerComment + string(out)}
 }
 
+// CreateCloudInitSecret creates and returns a Kubernetes Secret object which
+// contains the cloud-init configuration required to correctly start the VMs.
 func CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL string, publicKeys []string, references []metav1.OwnerReference) v1.Secret {
 	secret := v1.Secret{
 		TypeMeta: metav1.TypeMeta{
