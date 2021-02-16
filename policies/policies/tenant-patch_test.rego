@@ -1,6 +1,6 @@
 package crownlabs_tenant_patch
 
-#creator doesn't have any tenant
+#creator does not have any tenant
 test_no_tenant_present {
 	input := {"review": input_review_invalid_creation_creator_has_not_tenant}
 	my_data := data_review1
@@ -8,7 +8,7 @@ test_no_tenant_present {
 	count(result) > 0
 }
 
-#creator can't create a tenant for himself
+#creator cannot create a tenant for himself
 test_creator_already_has_a_tenant {
 	input := {"review": input_review_invalid_creation_creator_has_a_tenant}
 	my_data := data_review1
@@ -16,7 +16,7 @@ test_creator_already_has_a_tenant {
 	count(result) > 0
 }
 
-#creator can't create a tenant in workspace he's not enrolled in
+#creator cannot create a tenant in workspace he is not enrolled in
 test_creator_not_enrolled {
 	input := {"review": input_review_invalid_creation_creator_not_enrolled}
 	my_data := data_review1
@@ -24,7 +24,7 @@ test_creator_not_enrolled {
 	count(result) > 0
 }
 
-#creator can't create a tenant where he's not manager
+#creator cannot create a tenant where he is not manager
 test_creator_not_manager {
 	input := {"review": input_review_invalid_creation_creator_not_manager}
 	my_data := data_review1
@@ -645,6 +645,3 @@ input_review_valid_patch_serviceaccounts = output {
 		},
 	}
 }
-
-
-

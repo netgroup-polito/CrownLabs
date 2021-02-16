@@ -1,6 +1,6 @@
 package crownlabs_tenant_patch
 
-#check if creator has a tenant 
+#check if creator has a tenant
 violation[{"msg": msg, "details": {}}] {
 	req := ["kubernetes:admin", "system:serviceaccounts"]
 	requiredPr := {ws | ws := req[_]}
@@ -41,7 +41,7 @@ violation[{"msg": msg, "details": {}}] {
 	providedWs := {ws | ws := data.inventory.cluster["crownlabs.polito.it/v1alpha1"].Tenant[user].spec.workspaces[_].workspaceRef.name}
 	missing := requiredWs - providedWs
 	count(missing) > 0
-	msg := sprintf("Denied creation request. You don't have the priviledges to create users in this workspace: %v", [missing])
+	msg := sprintf("Denied creation request. You do not have the priviledges to create users in this workspace: %v", [missing])
 }
 
 #check creation of new user can be done only in workspaces where the creator is manager
@@ -60,10 +60,10 @@ violation[{"msg": msg, "details": {}}] {
 	wsData := data.inventory.cluster["crownlabs.polito.it/v1alpha1"].Tenant[user].spec.workspaces[q]
 	wsData.workspaceRef.name == ws
 	wsData.role != "manager"
-	msg := sprintf("Denied creation request. You don't have the priviledges to create users in this workspace: %v", [ws])
+	msg := sprintf("Denied creation request. You do not have the priviledges to create users in this workspace: %v", [ws])
 }
 
-#update can't be done on anything but publicKeys and workspaces
+#update cannot be done on anything but publicKeys and workspaces
 violation[{"msg": msg, "details": {}}] {
 	req := ["kubernetes:admin", "system:serviceaccounts"]
 	requiredPr := {ws | ws := req[_]}
@@ -77,10 +77,10 @@ violation[{"msg": msg, "details": {}}] {
 	input.review.oldObject.spec[key] != input.review.object.spec[key]
 	key != "publicKeys"
 	key != "workspaces"
-	msg := sprintf("Denied patch request. You can't modify: %v field of tenant resource", [key])
+	msg := sprintf("Denied patch request. You cannot modify: %v field of tenant resource", [key])
 }
 
-#update can't be done on a workspace the creator is not part of
+#update cannot be done on a workspace the creator is not part of
 violation[{"msg": msg, "details": {}}] {
 	req := ["kubernetes:admin", "system:serviceaccounts"]
 	requiredPr := {ws | ws := req[_]}
@@ -99,10 +99,10 @@ violation[{"msg": msg, "details": {}}] {
 	providedWs := {ws | ws := data.inventory.cluster["crownlabs.polito.it/v1alpha1"].Tenant[user].spec.workspaces[_].workspaceRef.name}
 	missing := requiredWs - providedWs
 	count(missing) > 0
-	msg := sprintf("Denied patch request. You can't modify the workspace %v, because you are not enrolled in it", [missing])
+	msg := sprintf("Denied patch request. You cannot modify the workspace %v, because you are not enrolled in it", [missing])
 }
 
-#update can't be done on a workspace you are not manager for
+#update cannot be done on a workspace you are not manager for
 violation[{"msg": msg, "details": {}}] {
 	req := ["kubernetes:admin", "system:serviceaccounts"]
 	requiredPr := {ws | ws := req[_]}
@@ -143,5 +143,5 @@ violation[{"msg": msg, "details": {}}] {
 	oldObj.spec[key] != newObj.spec[key]
 	key == "publicKeys"
 	user != tenantName
-	msg := sprintf("Denied patch request. You don't have the priviledges to modify: %v field", [key])
+	msg := sprintf("Denied patch request. You do not have the priviledges to modify: %v field", [key])
 }

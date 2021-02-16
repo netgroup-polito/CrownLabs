@@ -17,5 +17,8 @@ dependencies:
 - name: delete-stale-instances
   repository: file://../../operators/deploy/delete-stale-instances
   version: 0.1.0
-digest: sha256:f90011092348b000512d6c67e34846275c36adb7c53da914ac11625dcbaf59e4
-generated: "2021-01-08T19:18:07.227020827+01:00"
+- name: policies
+  repository: file://../../policies/
+  version: 0.1.0
+digest: sha256:f0f8799c5d44f426355bc124b194bfbe3f2791262fb7d9bdf9c41a6d3e5b05f9
+generated: "2021-02-03T11:11:45.829228405+01:00"
