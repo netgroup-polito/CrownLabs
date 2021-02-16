@@ -69,8 +69,8 @@ type InstanceStatus struct {
 // +kubebuilder:resource:shortName="inst"
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
-// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`,priority=10
+// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`,priority=10
 
 // Instance describes the instance of a CrownLabs environment Template.
 type Instance struct {
