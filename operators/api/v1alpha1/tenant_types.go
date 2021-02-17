@@ -113,8 +113,8 @@ type TenantStatus struct {
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
 // +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
-// +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
-// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.personalNamespace.name`
+// +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`,priority=10
+// +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.personalNamespace.name`,priority=10
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
 
 // Tenant describes a user of CrownLabs.

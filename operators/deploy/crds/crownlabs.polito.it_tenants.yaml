@@ -25,9 +25,11 @@ spec:
       type: string
     - jsonPath: .spec.email
       name: Email
+      priority: 10
       type: string
     - jsonPath: .status.personalNamespace.name
       name: Namespace
+      priority: 10
       type: string
     - jsonPath: .status.ready
       name: Ready

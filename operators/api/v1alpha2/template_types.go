@@ -121,10 +121,10 @@ type EnvironmentResources struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
-// +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`
-// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`
-// +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`
-// +kubebuilder:printcolumn:name="Persistent",type=string,JSONPath=`.spec.environmentList[0].persistent`
+// +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
+// +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10
+// +kubebuilder:printcolumn:name="Persistent",type=string,JSONPath=`.spec.environmentList[0].persistent`,priority=10
 
 // Template describes the template of a CrownLabs environment to be instantiated.
 type Template struct {

@@ -27,9 +27,11 @@ spec:
       type: string
     - jsonPath: .status.url
       name: URL
+      priority: 10
       type: string
     - jsonPath: .status.ip
       name: IP Address
+      priority: 10
       type: string
     name: v1alpha2
     schema:

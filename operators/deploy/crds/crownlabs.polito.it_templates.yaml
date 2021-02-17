@@ -24,15 +24,19 @@ spec:
       type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image
+      priority: 10
       type: string
     - jsonPath: .spec.environmentList[0].environmentType
       name: Type
+      priority: 10
       type: string
     - jsonPath: .spec.environmentList[0].guiEnabled
       name: GUI
+      priority: 10
       type: string
     - jsonPath: .spec.environmentList[0].persistent
       name: Persistent
+      priority: 10
       type: string
     name: v1alpha2
     schema:
