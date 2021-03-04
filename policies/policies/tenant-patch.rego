@@ -1,12 +1,19 @@
 package crownlabs_tenant_patch
 
-#check if creator has a tenant
-violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
+priviledged_users := ["kubernetes:admin", "system:serviceaccounts"]
+
+#verify if creator is admin or an operator. returns true if not. 
+admin_operator_check{
+	requiredPr := {ws | ws := priviledged_users[_]}
 	providedPr := {ws | ws := input.review.userInfo.groups[_]}
 	missingPr := requiredPr - providedPr
 	count(missingPr) > 1
+}
+
+
+#check if creator has a tenant
+violation[{"msg": msg, "details": {}}] {
+	admin_operator_check
 	user := input.review.userInfo.username
 	not data.inventory.cluster["crownlabs.polito.it/v1alpha1"].Tenant[user]
 	msg := sprintf("Denied request. There is no tenant resource for user %v in the cluster", [user])
@@ -14,11 +21,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #check if creator already has a tenant
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "CREATE"
 	user := input.review.userInfo.username
@@ -29,11 +32,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #check creation of new user can be done only in workspaces where the creator is enrolled
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "CREATE"
 	user := input.review.userInfo.username
@@ -46,11 +45,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #check creation of new user can be done only in workspaces where the creator is manager
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "CREATE"
 	user := input.review.userInfo.username
@@ -65,11 +60,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #update cannot be done on anything but publicKeys and workspaces
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "UPDATE"
 	user := input.review.userInfo.username
@@ -82,11 +73,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #update cannot be done on a workspace the creator is not part of
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "UPDATE"
 	user := input.review.userInfo.username
@@ -104,11 +91,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #update cannot be done on a workspace you are not manager for
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "UPDATE"
 	user := input.review.userInfo.username
@@ -128,11 +111,7 @@ violation[{"msg": msg, "details": {}}] {
 
 #update on publicKeys can be done only on your own tenant
 violation[{"msg": msg, "details": {}}] {
-	req := ["kubernetes:admin", "system:serviceaccounts"]
-	requiredPr := {ws | ws := req[_]}
-	providedPr := {ws | ws := input.review.userInfo.groups[_]}
-	missingPr := requiredPr - providedPr
-	count(missingPr) > 1
+	admin_operator_check
 	operation := input.review.operation
 	operation == "UPDATE"
 	user := input.review.userInfo.username
