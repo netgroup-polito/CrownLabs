@@ -1,30 +1,28 @@
 package crownlabs_instance_template_reference
 
-t_ns := input.review.object.spec["template.crownlabs.polito.it/TemplateRef"].namespace
+tmpl_api_version := "crownlabs.polito.it/v1alpha2"
 
-ns = t_ns {
-	count([t_ns]) > 0
-}
+tmpl_ref_field := "template.crownlabs.polito.it/TemplateRef"
 
-else = "default" {
+# Return the referenced template namespace, in case the field is defined, otherwise "default"
+get_tmpl_namespace(review) = namespace {
+	review.object.spec[tmpl_ref_field].namespace
+	namespace := review.object.spec[tmpl_ref_field].namespace
+} else = "default" {
 	true
 }
 
-violation[{"msg": msg, "details": {}}] {
-	not data.inventory.namespace[ns]
-	msg := sprintf("Namespace %v does not exist", [ns])
+# Return the referenced template name
+get_tmpl_name(review) = name {
+	name := review.object.spec[tmpl_ref_field].name
 }
 
-violation[{"msg": msg, "details": {}}] {
-	var := data.inventory.namespace[ns]["crownlabs.polito.it/v1alpha2"].Template
-	var == {}
-	msg := sprintf("Namespace %v does not contain any template", [ns])
-}
+# This violation is triggered if the referenced template does not exist
+violation[{"msg": msg, "details": details}] {
+	tmpl_namespace := get_tmpl_namespace(input.review)
+	tmpl_name := get_tmpl_name(input.review)
 
-violation[{"msg": msg, "details": {"missing_template": [missing]}}] {
-	provided := {input.review.object.spec["template.crownlabs.polito.it/TemplateRef"].name}
-	required := {data.inventory.namespace[ns]["crownlabs.polito.it/v1alpha2"].Template[_].metadata.name}
-	missing := provided - required
-	count(missing) > 0
-	msg := sprintf("wrong template %v", [missing])
+	not data.inventory.namespace[tmpl_namespace][tmpl_api_version].Template[tmpl_name]
+	msg := sprintf("Template %v not found in namespace %v", [tmpl_name, tmpl_namespace])
+	details := {"template_name": tmpl_name, "template_namespace": tmpl_namespace}
 }
