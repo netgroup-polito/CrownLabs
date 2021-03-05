@@ -1,3 +1,4 @@
 [submodule "dashboard/dashboard"]
 	path = dashboard/dashboard
 	url = https://github.com/liqotech/dashboard.git
+	ignore = dirty
