@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -62,7 +63,6 @@ var _ = BeforeSuite(func(done Done) {
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
 			filepath.Join("..", "..", "tests", "crds")},
 	}
-
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
@@ -72,7 +72,8 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	err = crownlabsv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-
+	err = cdiv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
 	ctrl.SetLogger(zap.New(func(o *zap.Options) {
 		o.Development = true

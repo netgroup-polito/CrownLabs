@@ -105,12 +105,6 @@ spec:
                   the SSH bastion in case it is not contacted from another CrownLabs
                   Instance).
                 type: string
-              observedGeneration:
-                description: The generation of the object which has been observed.
-                  This is used to filter out the reconciliation events referring only
-                  to status modifications.
-                format: int64
-                type: integer
               phase:
                 description: The current status Instance, with reference to the associated
                   environment (e.g. VM). This conveys which resource is being created,

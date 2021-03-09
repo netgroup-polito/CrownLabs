@@ -8,7 +8,6 @@ import (
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -19,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 )
 
 var _ = Describe("Instance Operator controller", func() {
@@ -81,6 +81,23 @@ var _ = Describe("Instance Operator controller", func() {
 			Spec: crownlabsv1alpha2.InstanceSpec{
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      TemplateName,
+					Namespace: TemplateNamespace,
+				},
+				Tenant: crownlabsv1alpha2.GenericRef{
+					Name: TenantName,
+				},
+			},
+			Status: crownlabsv1alpha2.InstanceStatus{},
+		}
+		instance2 = crownlabsv1alpha2.Instance{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      InstanceName + "persistent",
+				Namespace: InstanceNamespace,
+			},
+			Spec: crownlabsv1alpha2.InstanceSpec{
+				Template: crownlabsv1alpha2.GenericRef{
+					Name:      TemplateName + "persistent",
 					Namespace: TemplateNamespace,
 				},
 				Tenant: crownlabsv1alpha2.GenericRef{
@@ -167,19 +184,13 @@ var _ = Describe("Instance Operator controller", func() {
 				By("and creating a Instance associated to the template")
 
 				Expect(k8sClient.Create(ctx, &instance)).Should(Succeed())
-				var vmList virtv1.VirtualMachineInstanceList
-				m := map[string]string{
-					"instance-name": InstanceName,
-				}
 
 				By("VirtualMachine Should Exists")
-				Eventually(func() bool {
-					err := k8sClient.List(ctx, &vmList, client.MatchingLabels(m))
-					if err != nil {
-						Fail("Unable to list VirtualMachines")
-					}
-					return len(vmList.Items) == 1
-				}, timeout, interval).Should(BeTrue())
+				var VMI virtv1.VirtualMachineInstance
+				doesEventuallyExists(ctx, types.NamespacedName{
+					Name:      InstanceName,
+					Namespace: InstanceNamespace,
+				}, &VMI, BeTrue(), timeout, interval)
 				By("VirtualMachine Has An OwnerReference")
 
 				flag := true
@@ -191,7 +202,7 @@ var _ = Describe("Instance Operator controller", func() {
 					Controller:         &flag,
 					BlockOwnerDeletion: &flag,
 				}
-				Expect(vmList.Items[0].ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+				Expect(VMI.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 
 				By("Cleaning Instance")
 				Expect(k8sClient.Delete(ctx, &instance)).Should(Succeed())
@@ -200,6 +211,75 @@ var _ = Describe("Instance Operator controller", func() {
 						Namespace: InstanceName,
 						Name:      InstanceName,
 					}, &instance)
+					if err != nil && errors2.IsNotFound(err) {
+						return true
+					}
+					return false
+				}, timeout, interval).Should(BeTrue())
+			})
+		})
+		// Testing Persistent VirtualMachines
+		Context("Create an Instance from a single persistent VM template", func() {
+			It("Creates the single-vm Template and the instance", func() {
+				By("Creating the Template")
+				templateSpecSingleVM.EnvironmentList[0].Persistent = true
+				template := crownlabsv1alpha2.Template{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      TemplateName + "persistent",
+						Namespace: TemplateNamespace,
+					},
+					Spec:   templateSpecSingleVM,
+					Status: crownlabsv1alpha2.TemplateStatus{},
+				}
+				Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
+				doesEventuallyExists(ctx, types.NamespacedName{
+					Name:      TemplateName + "persistent",
+					Namespace: TemplateNamespace,
+				}, &tmp1, BeTrue(), timeout, interval)
+
+				By("and creating a Instance associated to the template")
+				Expect(k8sClient.Create(ctx, &instance2)).Should(Succeed())
+
+				var datavol cdiv1.DataVolume
+				doesEventuallyExists(ctx, types.NamespacedName{
+					Name:      InstanceName + "persistent",
+					Namespace: InstanceNamespace,
+				}, &datavol, BeTrue(), timeout, interval)
+
+				datavol.Status.Phase = cdiv1.DataVolumePhase("Succeeded")
+				Expect(k8sClient.Update(ctx, &datavol)).Should(Succeed())
+
+				flag := true
+				expectedOwnerReference := metav1.OwnerReference{
+					Kind:               "Instance",
+					APIVersion:         "crownlabs.polito.it/v1alpha2",
+					UID:                instance2.ObjectMeta.UID,
+					Name:               InstanceName + "persistent",
+					Controller:         &flag,
+					BlockOwnerDeletion: &flag,
+				}
+
+				By("Datavolume Has An OwnerReference")
+				Expect(datavol.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+				By("VirtualMachine Should Exists")
+				var VM virtv1.VirtualMachine
+				doesEventuallyExists(ctx, types.NamespacedName{
+					Name:      InstanceName + "persistent",
+					Namespace: InstanceNamespace,
+				}, &VM, BeTrue(), timeout, interval)
+
+				By("VirtualMachine Has An OwnerReference")
+				Expect(VM.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+				By("Cleaning Instance")
+				Expect(k8sClient.Delete(ctx, &instance2)).Should(Succeed())
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, types.NamespacedName{
+						Namespace: InstanceName + "persistent",
+						Name:      InstanceName,
+					}, &instance2)
 					if err != nil && errors2.IsNotFound(err) {
 						return true
 					}

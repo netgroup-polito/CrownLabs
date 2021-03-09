@@ -11,6 +11,7 @@ type writeFile struct {
 	Path        string `yaml:"path"`
 	Permissions string `yaml:"permissions"`
 }
+
 type cloudInitConfig struct {
 	Network struct {
 		Version int `yaml:"version"`
@@ -54,16 +55,15 @@ func createUserdata(nextUsername, nextPassword, nextCloudBaseURL string, publicK
 
 // CreateCloudInitSecret creates and returns a Kubernetes Secret object which
 // contains the cloud-init configuration required to correctly start the VMs.
-func CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL string, publicKeys []string, references []metav1.OwnerReference) v1.Secret {
+func CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL string, publicKeys []string) v1.Secret {
 	secret := v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "v1",
 			APIVersion: "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name + "-secret",
-			Namespace:       namespace,
-			OwnerReferences: references,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Data: nil,
 		StringData: createUserdata(

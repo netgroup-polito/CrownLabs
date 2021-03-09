@@ -987,6 +987,7 @@ k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269/go.mod h1:V5BD6M4CyaN5m
 k8s.io/code-generator v0.0.0-20191121015212-c4c8f8345c7e/go.mod h1:DVmfPQgxQENqDIzVR2ddLXMH34qeszkKSdH/N+s+38s=
 k8s.io/code-generator v0.18.6/go.mod h1:TgNEVx9hCyPGpdtCWA34olQYLkh3ok9ar7XfSsr8b6c=
 k8s.io/code-generator v0.19.0-rc.2/go.mod h1:uR3gwQvtcOjBrvwXhFF1lw5kq9BOOAfSKl/pZZ1zW3I=
+k8s.io/code-generator v0.19.0 h1:r0BxYnttP/r8uyKd4+Njg0B57kKi8wLvwEzaaVy3iZ8=
 k8s.io/code-generator v0.19.0/go.mod h1:moqLn7w0t9cMs4+5CQyxnfA/HV8MF6aAVENF+WZZhgk=
 k8s.io/component-base v0.17.0/go.mod h1:rKuRAokNMY2nn2A6LP/MiwpoaMRHpfRnrPaUJJj1Yoc=
 k8s.io/component-base v0.18.6/go.mod h1:knSVsibPR5K6EW2XOjEHik6sdU5nCvKMrzMt2D4In14=
@@ -999,6 +1000,7 @@ k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/gengo v0.0.0-20190907103519-ebc107f98eab/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20200114144118-36b2048a9120/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
+k8s.io/gengo v0.0.0-20200428234225-8167cfdcfc14 h1:t4L10Qfx/p7ASH3gXCdIUtPbbIuegCoUJf3TMSFekjw=
 k8s.io/gengo v0.0.0-20200428234225-8167cfdcfc14/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v0.0.0-20190306015804-8e90cee79f82/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
@@ -1014,6 +1016,7 @@ k8s.io/klog/v2 v2.2.0 h1:XRvcwJozkgZ1UQJmfMGpvRthQHOvihEhYtDfAaxMz/A=
 k8s.io/klog/v2 v2.2.0/go.mod h1:Od+F08eJP+W3HUb4pSrPpgp9DGU4GzlpG/TmITuYh/Y=
 k8s.io/kube-aggregator v0.0.0-20181204002017-122bac39d429/go.mod h1:8sbzT4QQKDEmSCIbfqjV0sd97GpUT7A4W626sBiYJmU=
 k8s.io/kube-aggregator v0.18.6/go.mod h1:MKm8inLHdeiXQJCl6UdmgMosRrqJgyxO2obTXOkey/s=
+k8s.io/kube-aggregator v0.19.0-rc.2 h1:vio1J9d+UHUA/ChBeYgBKVlvzOlG4Jztz1Qw+EIGtFg=
 k8s.io/kube-aggregator v0.19.0-rc.2/go.mod h1:6PWWQhJWKECXUitSZ8Mo6LD9gIu4sPZaPpOEU67NkmM=
 k8s.io/kube-openapi v0.0.0-20181031203759-72693cb1fadd/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
 k8s.io/kube-openapi v0.0.0-20181114233023-0317810137be/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=

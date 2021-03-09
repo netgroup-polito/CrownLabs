@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestCreateUserData(t *testing.T) {
@@ -55,12 +54,7 @@ func TestCreateCloudInitSecret(t *testing.T) {
 		nextCloudBaseURL = "nextcloud.url"
 	)
 	publicKeys := []string{"key1", "key2", "key3"}
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	}}
-	secret := CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL, publicKeys, ownerRef)
+	secret := CreateCloudInitSecret(name, namespace, nextUsername, nextPassword, nextCloudBaseURL, publicKeys)
 
 	var (
 		expectedmount       = []string{nextCloudBaseURL + "/remote.php/dav/files/" + nextUsername, "/media/MyDrive", "davfs", "_netdev,auto,user,rw,uid=1000,gid=1000", "0", "0"}
@@ -75,7 +69,7 @@ func TestCreateCloudInitSecret(t *testing.T) {
 	err := yaml.Unmarshal([]byte(secret.StringData["userdata"]), &config)
 	assert.Equal(t, err, nil, "Yaml parser should return nil error.")
 
-	assert.Equal(t, secret.ObjectMeta.Name, "name-secret", "Name of secret.ObjectMeta should be "+name+"-secret")
+	assert.Equal(t, secret.ObjectMeta.Name, "name", "Name of secret.ObjectMeta should be "+name+"-secret")
 	assert.Equal(t, secret.ObjectMeta.Namespace, namespace, "Namespace of secret.ObjectMeta should be "+namespace)
 
 	// check config
@@ -88,8 +82,4 @@ func TestCreateCloudInitSecret(t *testing.T) {
 	assert.Equal(t, config.SSHAuthorizedKeys[0], publicKeys[0], "Public key should be set to"+publicKeys[0]+" .")
 	assert.Equal(t, config.SSHAuthorizedKeys[1], publicKeys[1], "Public key should be set to"+publicKeys[1]+" .")
 	assert.Equal(t, config.SSHAuthorizedKeys[2], publicKeys[2], "Public key should be set to"+publicKeys[2]+" .")
-
-	assert.Equal(t, secret.ObjectMeta.OwnerReferences[0].APIVersion, "crownlabs.polito.it/v1alpha2")
-	assert.Equal(t, secret.ObjectMeta.OwnerReferences[0].Kind, "Instance")
-	assert.Equal(t, secret.ObjectMeta.OwnerReferences[0].Name, "Test1")
 }

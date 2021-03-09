@@ -28,6 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -48,6 +49,8 @@ func init() {
 	_ = crownlabsv1alpha2.AddToScheme(scheme)
 
 	_ = virtv1.AddToScheme(scheme)
+
+	_ = cdiv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

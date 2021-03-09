@@ -10,6 +10,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	virtv1 "kubevirt.io/client-go/api/v1"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 )
 
 var ns1 = v1.Namespace{
@@ -60,16 +62,16 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 		Persistent:      false,
 		Image:           "test/image",
 	}
-	ownerRef := []metav1.OwnerReference{{
-		APIVersion: "crownlabs.polito.it/v1alpha2",
-		Kind:       "Instance",
-		Name:       "Test1",
-	},
+	vm := virtv1.VirtualMachineInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "name",
+			Namespace: "namespace"},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VirtualMachineInstance",
+			APIVersion: "kubevirt.io/v1alpha3",
+		},
 	}
-	vm, err := CreateVirtualMachineInstance("name", "namespace", tc1, "instance-name", "secret-name", ownerRef)
-	assert.Equal(t, err, nil, "Errors while generating the VMI")
-	assert.Equal(t, vm.Name, "name-vmi", "The VMI has not the expected name")
-	assert.Equal(t, vm.Namespace, "namespace", "The VMI is not created in the expected namespace")
+	UpdateVirtualMachineInstanceSpec(&vm, tc1)
 	assert.Equal(t, len(vm.Spec.Volumes), 2, "The VMI has a number of volume different from expected")
 	assert.Equal(t, len(vm.Spec.Domain.Devices.Disks), 2, "The VMI has a number of devices different from the expected")
 	assert.Equal(t, vm.Spec.Domain.Devices.Disks[0].Name, "containerdisk")
@@ -83,9 +85,57 @@ func TestCreateVirtualMachineInstance(t *testing.T) {
 	assert.Equal(t, vm.Spec.Volumes[0].ContainerDisk.ImagePullPolicy, v1.PullIfNotPresent)
 	assert.Equal(t, vm.Spec.Volumes[0].ContainerDisk.ImagePullSecret, registryCred)
 	assert.Equal(t, vm.Spec.Volumes[1].Name, "cloudinitdisk")
-	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "secret-name")
-	assert.Equal(t, vm.Kind, "VirtualMachineInstance")
-	assert.Equal(t, vm.APIVersion, "kubevirt.io/v1alpha3")
+	assert.Equal(t, vm.Spec.Volumes[1].VolumeSource.CloudInitNoCloud.UserDataSecretRef.Name, "name")
+}
+
+func TestCreatePersistentVirtualMachine(t *testing.T) {
+	tc1 := &v1alpha2.Environment{
+		Name:       "Test1Pers",
+		GuiEnabled: true,
+		Resources: v1alpha2.EnvironmentResources{
+			CPU:                   1,
+			ReservedCPUPercentage: 25,
+			Memory:                resource.MustParse("1024M"),
+		},
+		EnvironmentType: v1alpha2.ClassVM,
+		Persistent:      true,
+		Image:           "test/image",
+	}
+	vm := virtv1.VirtualMachine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VirtualMachine",
+			APIVersion: "kubevirt.io/v1alpha3",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "name",
+			Namespace: "namespace"},
+	}
+	dv := cdiv1.DataVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "name",
+			Namespace: "namespace"},
+	}
+	instance := &v1alpha2.Instance{
+		Spec: v1alpha2.InstanceSpec{
+			Running: true,
+		},
+	}
+
+	UpdateDataVolumeSpec(&dv, tc1)
+	assert.Equal(t, "docker://"+tc1.Image, dv.Spec.Source.Registry.URL, "The datavolume has not the correct image")
+	UpdateVirtualMachineSpec(&vm, tc1, instance.Spec.Running)
+	assert.Equal(t, len(vm.Spec.Template.Spec.Volumes), 2, "The VMI has a number of volume different from expected")
+	assert.Equal(t, len(vm.Spec.Template.Spec.Domain.Devices.Disks), 2, "The VMI has a number of devices different from the expected")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Devices.Disks[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Devices.Disks[1].Name, "cloudinitdisk")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.CPU.Cores, uint32(1))
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Resources.Limits.Memory().String(), "1524M")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Memory.Guest.String(), "1024M")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
+	assert.Equal(t, vm.Spec.Template.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
+	assert.Equal(t, vm.Spec.Template.Spec.Volumes[0].Name, "containerdisk")
+	assert.Equal(t, vm.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName, "name")
+	assert.Equal(t, vm.Spec.Template.Spec.Volumes[1].Name, "cloudinitdisk")
 }
 
 func TestCheckLabels(t *testing.T) {

@@ -19,16 +19,24 @@ rules:
 
 - apiGroups: [""]
   resources: ["secrets","services","events"]
-  verbs: ["get","list","watch","create"]
+  verbs: ["get","list","watch","create","patch","update"]
 
 - apiGroups: ["apps"]
   resources: ["deployments"]
-  verbs: ["get","list","watch","create"]
+  verbs: ["get","list","watch","create","patch","update"]
 
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingresses"]
-  verbs: ["get","list","watch","create"]
+  verbs: ["get","list","watch","create","patch","update"]
 
 - apiGroups: ["kubevirt.io"]
   resources: ["virtualmachines", "virtualmachineinstances"]
-  verbs: ["get","list","watch","create"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["cdi.kubevirt.io"]
+  resources: ["datavolumes"]
+  verbs: ["get","list","watch","create", "patch", "update"]
+
+- apiGroups: ["cdi.kubevirt.io"]
+  resources: ["datavolumes/source"]
+  verbs: ["create", "patch", "update"]
