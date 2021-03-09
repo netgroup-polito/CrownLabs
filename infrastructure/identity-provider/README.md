@@ -5,7 +5,11 @@ It enables to concentrate all the tasks related to identity and access managemen
 
 This brief guide presents how to install Keycloak in HA in a K8S cluster with a PostgreSQL Database backend (also in HA).
 
-More info at [Keycloak's website](https://www.keycloak.org)
+More info at [Keycloak's website](https://www.keycloak.org).
+
+**If you want to connect to the CrownLabs cluster, jump to the [Accessing using Keycloak as authentication server](#accessing-k8s-cluster-using-keycloak-as-authentication-server) section.**
+
+
 ## Pre-requisites
 Here we assume that the following operators are installed and configured in the K8s cluster:
 * [ROOK](https://rook.io/)
@@ -193,7 +197,7 @@ Please follow the [official documentation](https://kubernetes.io/docs/reference/
 
 
 ## Accessing K8S cluster using Keycloak as authentication server
-In order to start interacting with your Kubernetes cluster, you will use a command line tool called **kubectl**. You will need to install kubectl on your local machine.
+In order to start interacting with your Kubernetes cluster, you will use a command line tool called **kubectl**. You will need to install (1) `kubectl` on your local machine, and (2) the **kubelogin** plugin (also known as kubectl `oidc-login`), to enable the OIDC authentication.
 
 A **kubeconfig** file is a file used to configure access to Kubernetes when used in conjunction with the kubectl commandline tool.
 
