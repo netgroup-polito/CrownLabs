@@ -7,5 +7,14 @@
     "copy-back": "cp -r dashboard/src/views/crownLabs views",
     "start": "cd dashboard && npm start && cd ..",
     "test": "cd dashboard && npm test && cd .."
+  },
+  "prettier": {
+    "printWidth": 80,
+    "trailingComma": "none",
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "endOfLine": "lf"
   }
 }
