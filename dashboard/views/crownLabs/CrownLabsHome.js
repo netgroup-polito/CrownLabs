@@ -8,8 +8,7 @@ import Utils from '../../services/Utils';
 import { PlusOutlined } from '@ant-design/icons';
 import TemplateForm from './TemplateForm';
 
-function CrownLabsHome(props){
-
+function CrownLabsHome(props) {
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -20,71 +19,113 @@ function CrownLabsHome(props){
   const onProfessor = location.pathname === '/professor';
 
   useEffect(() => {
-    if(onProfessor && instances.length > 0){
+    if (onProfessor && instances.length > 0) {
       let workspaces = [];
       instances.forEach(instance => {
         templates.forEach(template => {
-          if(instance.spec['template.crownlabs.polito.it/TemplateRef'].name === template.metadata.name){
+          if (
+            instance.spec['template.crownlabs.polito.it/TemplateRef'].name ===
+            template.metadata.name
+          ) {
             workspaces.push(instance);
           }
-        })
-      })
+        });
+      });
       setInstancesProfessor(workspaces);
     }
-  }, [instances])
+  }, [instances]);
 
   useEffect(() => {
-    if(tenants.length === 1){
-      if(onProfessor){
-        window.api.setNamespace('all namespaces')
+    if (tenants.length === 1) {
+      if (onProfessor) {
+        window.api.setNamespace('all namespaces');
 
-        let managedWorkspaces = tenants[0].spec.workspaces.filter(workspace => workspace.role === 'manager');
+        let managedWorkspaces = tenants[0].spec.workspaces.filter(
+          workspace => workspace.role === 'manager'
+        );
 
-        if(managedWorkspaces.length > 0){
+        if (managedWorkspaces.length > 0) {
           managedWorkspaces.forEach(workspace => {
             setLoading(true);
-            window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/namespaces/workspace-' + workspace.workspaceRef.name + '/templates', setTemplates, true)
-              .then(res =>{
-                setTemplates(prev => [...prev, ...res.items])
+            window.api
+              .getGenericResource(
+                '/apis/crownlabs.polito.it/v1alpha2/namespaces/workspace-' +
+                  workspace.workspaceRef.name +
+                  '/templates',
+                setTemplates,
+                true
+              )
+              .then(res => {
+                setTemplates(prev => [...prev, ...res.items]);
                 setLoading(false);
                 return res.items;
-              }).then(() => {
-              window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/instances', setInstances)
-                .then(res =>{
-                  setInstances(res.items);
-                }).catch(() => setLoading(false))
-            }).catch(() => setLoading(false))
+              })
+              .then(() => {
+                window.api
+                  .getGenericResource(
+                    '/apis/crownlabs.polito.it/v1alpha2/instances',
+                    setInstances
+                  )
+                  .then(res => {
+                    setInstances(res.items);
+                  })
+                  .catch(() => setLoading(false));
+              })
+              .catch(() => setLoading(false));
           });
         } else {
-          setLoading(false)
+          setLoading(false);
         }
       } else {
         window.api.setNamespace(tenants[0].status.personalNamespace.name);
 
         tenants[0].spec.workspaces.forEach(workspace => {
           setLoading(true);
-          window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/namespaces/workspace-' + workspace.workspaceRef.name + '/templates', setTemplates, true)
-            .then(res =>{
-              setTemplates(prev => [...prev, ...res.items])
+          window.api
+            .getGenericResource(
+              '/apis/crownlabs.polito.it/v1alpha2/namespaces/workspace-' +
+                workspace.workspaceRef.name +
+                '/templates',
+              setTemplates,
+              true
+            )
+            .then(res => {
+              setTemplates(prev => [...prev, ...res.items]);
               setLoading(false);
-            }).catch(() => setLoading(false))
+            })
+            .catch(() => setLoading(false));
         });
-        window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha2/namespaces/' + tenants[0].status.personalNamespace.name + '/instances', setInstances)
-          .then(res =>{
+        window.api
+          .getGenericResource(
+            '/apis/crownlabs.polito.it/v1alpha2/namespaces/' +
+              tenants[0].status.personalNamespace.name +
+              '/instances',
+            setInstances
+          )
+          .then(res => {
             setInstances(res.items);
-          }).catch(() => setLoading(false))
+          })
+          .catch(() => setLoading(false));
       }
     }
-  }, [tenants])
+  }, [tenants]);
 
   useEffect(() => {
-    if(Utils().parseJWT()){
-      window.api.getGenericResource('/apis/crownlabs.polito.it/v1alpha1/tenants/' + Utils().parseJWT().preferred_username, setTenants, true)
+    if (Utils().parseJWT()) {
+      window.api
+        .getGenericResource(
+          '/apis/crownlabs.polito.it/v1alpha1/tenants/' +
+            Utils().parseJWT().preferred_username,
+          setTenants,
+          true
+        )
         .then(res => setTenants([res]))
         .catch(() => {
           setLoading(false);
-          message.error('Failed to get tenant ' + Utils().parseJWT().preferred_username);
-        })
+          message.error(
+            'Failed to get tenant ' + Utils().parseJWT().preferred_username
+          );
+        });
     } else {
       setLoading(false);
       message.error('Impossible to parse token');
@@ -98,69 +139,106 @@ function CrownLabsHome(props){
       window.api.abortWatch('instances');
       window.api.abortWatch('templates');
       window.api.abortWatch('tenants');
-    }
+    };
   }, []);
 
   const items = [];
 
   items.push(
-    <div data-grid={{
-       lg: { w: 10, h: 38, x: 0, y: 0, minH: 28 },
-       md: { w: 24, h: 38, x: 0, y: 0, minH: 28 }
-    }}
-         key={'table_templates'}
-         title={<Badge text={'Available Images'} color={'blue'} />}
-         extra={onProfessor ? [
-           <Tooltip title={'Create new template'} key={'add_template'}>
-             <Button icon={<PlusOutlined />}
-                     style={{marginTop: -8, marginBottom: -8, marginRight: -8}}
-                     type={'primary'} onClick={() => setOpenCreate(true)} />
-           </Tooltip>
-         ] : null}
+    <div
+      data-grid={{
+        lg: { w: 10, h: 38, x: 0, y: 0, minH: 28 },
+        md: { w: 24, h: 38, x: 0, y: 0, minH: 28 }
+      }}
+      key={'table_templates'}
+      title={<Badge text={'Available Images'} color={'blue'} />}
+      extra={
+        onProfessor
+          ? [
+              <Tooltip title={'Create new template'} key={'add_template'}>
+                <Button
+                  icon={<PlusOutlined />}
+                  style={{ marginTop: -8, marginBottom: -8, marginRight: -8 }}
+                  type={'primary'}
+                  onClick={() => setOpenCreate(true)}
+                />
+              </Tooltip>
+            ]
+          : null
+      }
     >
-      <Templates loading={loading}
-                    {...props}
-                    tenants={tenants}
-                    onProfessor={onProfessor}
-                    templates={templates}
+      <Templates
+        loading={loading}
+        {...props}
+        tenants={tenants}
+        onProfessor={onProfessor}
+        templates={templates}
       />
     </div>,
-    <div data-grid={{
-      lg: {w: 14, h: 38, x: 10, y: 0, minH: 28 },
-      md: {w: 24, h: 38, x: 10, y: 0, minH: 28 }
-    }}
-         key={'table_labinstances'}
-         title={<Badge text={'Running Images'} color={'blue'} />}
+    <div
+      data-grid={{
+        lg: { w: 14, h: 38, x: 10, y: 0, minH: 28 },
+        md: { w: 24, h: 38, x: 10, y: 0, minH: 28 }
+      }}
+      key={'table_labinstances'}
+      title={<Badge text={'Running Images'} color={'blue'} />}
     >
-      <Instances loading={loading}
-                 {...props}
-                 onProfessor={onProfessor}
-                 templates={templates}
-                 instances={onProfessor ? instancesProfessor : instances}
+      <Instances
+        loading={loading}
+        {...props}
+        onProfessor={onProfessor}
+        templates={templates}
+        instances={onProfessor ? instancesProfessor : instances}
       />
     </div>
-  )
+  );
 
-  return(
+  return (
     <Alert.ErrorBoundary>
-      <DraggableLayout title={
-        <Badge text={'templates'} color={'blue'} />
-      }
-                       breakpoints={{
-                         lg: 1300,
-                         md: 796,
-                         sm: 568,
-                         xs: 280,
-                         xss: 0
-                       }}
-                       responsive
+      <DraggableLayout
+        title={<Badge text={'templates'} color={'blue'} />}
+        breakpoints={{
+          lg: 1300,
+          md: 796,
+          sm: 568,
+          xs: 280,
+          xss: 0
+        }}
+        responsive
       >
         {items}
       </DraggableLayout>
-      <TemplateForm templates={templates}
-                    visible={openCreate}
-                    setVisible={setOpenCreate}
+      <TemplateForm
+        templates={templates}
+        visible={openCreate}
+        setVisible={setOpenCreate}
       />
+      <div
+        style={{
+          textAlign: 'center',
+          margin: 'auto',
+          marginTop: 20,
+          padding: '0 20px',
+          maxWidth: 800
+        }}
+      >
+        <h1
+          style={{
+            fontSize: '1.2rem'
+          }}
+        >
+          Persistent VMs are here!
+        </h1>{' '}
+        <p
+          style={{
+            fontSize: '1rem'
+          }}
+        >
+          You can now shutdown persistent VMs without destroying them, to avoid
+          resource consumption. Once off you can start them back up. Creating
+          persistent VMs could take more time, around 6-8 minutes.
+        </p>
+      </div>
     </Alert.ErrorBoundary>
   );
 }
