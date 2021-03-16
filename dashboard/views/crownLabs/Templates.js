@@ -56,14 +56,14 @@ export default function Templates(props) {
         sorter: {
           compare: (a, b) => a['Persistence'] - b['Persistence']
         },
-        render: text => {
+        render: persistence => {
           return {
-            children: text ? (
-              <Tooltip title={'GUI enabled'}>
+            children: persistence ? (
+              <Tooltip title={"Persistent"}>
                 <CheckOutlined style={{ fontSize: 15, color: colorBlue }} />
               </Tooltip>
             ) : (
-              <Tooltip title={'CLI only'}>
+              <Tooltip title={"Ephemeral"}>
                 <CloseOutlined style={{ fontSize: 15 }} />
               </Tooltip>
             ),

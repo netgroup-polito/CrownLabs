@@ -158,16 +158,14 @@ export default function Instances(props) {
                 template.spec.environmentList[0].guiEnabled &&
                 lab.status &&
                 lab.status.phase === 'VmiReady' ? (
-                  <Tooltip title={'Connect VM'}>
-                    <a target={'_blank'} href={url}>
-                      <Button
-                        icon={<ExportOutlined style={{ fontSize: 20 }} />}
-                        size={'small'}
-                        shape={'circle'}
-                        style={{ border: 'none', background: 'none' }}
-                      />
-                    </a>
-                  </Tooltip>
+                  <a target={'_blank'} href={url}>
+                    <Button
+                      icon={<ExportOutlined style={{ fontSize: 20 }} />}
+                      size={'small'}
+                      shape={'circle'}
+                      style={{ border: 'none', background: 'none' }}
+                    />
+                  </a>
                 ) : null,
               props: {
                 title: ''
