@@ -109,6 +109,6 @@ annotations:
 ```
 
 ### Additional references
-1. [Enabling ModSecurity in the Kubernetes Ingress-NGINX Controller](https://medium.com/@awkwardferny/enabling-modsecurity-in-the-kubernetes-ingress-nginx-controller-111f9c877998)
+1. [Enabling ModSecurity in the Kubernetes Ingress-NGINX Controller](https://awkwardferny.medium.com/enabling-modsecurity-in-the-kubernetes-ingress-nginx-controller-111f9c877998)
 2. [Creating an OpenWAF solution with Nginx, ElasticSearch and ModSecurity](https://karlstoney.com/2018/02/23/nginx-ingress-modsecurity-and-secchatops/)
 3. [ModSecurity does not block request, only logs, while SecRuleEngine is set to On](https://github.com/kubernetes/ingress-nginx/issues/4385)
