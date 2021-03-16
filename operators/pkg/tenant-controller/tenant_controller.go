@@ -57,6 +57,13 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if tn.Labels[r.TargetLabelKey] != r.TargetLabelValue {
+		// if entered here it means that is in the reconcile
+		// which has been requed after
+		// the last successful one with the old target label
+		return ctrl.Result{}, nil
+	}
+
 	var retrigErr error = nil
 	if tn.Status.Subscriptions == nil {
 		// make initial len is 2 (keycloak and nextcloud)
