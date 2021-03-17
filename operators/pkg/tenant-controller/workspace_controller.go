@@ -52,6 +52,13 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if ws.Labels[r.TargetLabelKey] != r.TargetLabelValue {
+		// if entered here it means that is in the reconcile
+		// which has been requed after
+		// the last successful one with the old target label
+		return ctrl.Result{}, nil
+	}
+
 	var retrigErr error = nil
 	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of workspace %s", ws.Name)
