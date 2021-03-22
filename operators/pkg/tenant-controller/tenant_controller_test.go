@@ -36,6 +36,8 @@ import (
 var _ = Describe("Tenant controller", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	var (
+		mockCtrl *gomock.Controller
+
 		wsName        = "ws1"
 		wsNamespace   = ""
 		wsPrettyName  = "workspace 1"
@@ -68,8 +70,7 @@ var _ = Describe("Tenant controller", func() {
 
 	BeforeEach(func() {
 
-		mockCtrl := gomock.NewController(GinkgoT())
-		mKcClient = nil
+		mockCtrl = gomock.NewController(GinkgoT())
 		mKcClient = mocks.NewMockGoCloak(mockCtrl)
 		kcA.Client = mKcClient
 
@@ -77,14 +78,14 @@ var _ = Describe("Tenant controller", func() {
 
 		// the user did not exist
 		mKcClient.EXPECT().GetUsers(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(gocloak.GetUsersParams{Username: &tnName}),
 		).Return([]*gocloak.User{}, nil).AnyTimes()
 
 		mKcClient.EXPECT().CreateUser(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(
@@ -99,7 +100,7 @@ var _ = Describe("Tenant controller", func() {
 		).Return(userID, nil).AnyTimes()
 
 		mKcClient.EXPECT().ExecuteActionsEmail(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(gocloak.ExecuteActionsEmail{
@@ -109,7 +110,7 @@ var _ = Describe("Tenant controller", func() {
 			})).Return(nil).AnyTimes()
 
 		mKcClient.EXPECT().GetClientRole(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
@@ -117,7 +118,7 @@ var _ = Describe("Tenant controller", func() {
 		).Return(&testUserRole, nil).AnyTimes()
 
 		mKcClient.EXPECT().GetClientRolesByUserID(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
@@ -125,7 +126,7 @@ var _ = Describe("Tenant controller", func() {
 		).Return(beforeUserRoles, nil).AnyTimes()
 
 		mKcClient.EXPECT().DeleteClientRoleFromUser(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
@@ -134,7 +135,7 @@ var _ = Describe("Tenant controller", func() {
 		).Return(nil).AnyTimes()
 
 		mKcClient.EXPECT().AddClientRoleToUser(
-			gomock.AssignableToTypeOf(context.Background()),
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
@@ -142,20 +143,25 @@ var _ = Describe("Tenant controller", func() {
 			gomock.AssignableToTypeOf(rolesToSet),
 		).Return(nil).AnyTimes()
 
-		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
+		mKcClient.EXPECT().DeleteClientRole(
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsUserRole),
 		).Return(nil).AnyTimes()
 
-		mKcClient.EXPECT().DeleteClientRole(gomock.AssignableToTypeOf(context.Background()),
+		mKcClient.EXPECT().DeleteClientRole(
+			gomock.Any(),
 			gomock.Eq(kcAccessToken),
 			gomock.Eq(kcTargetRealm),
 			gomock.Eq(kcTargetClientID),
 			gomock.Eq(wsManagerRole),
 		).Return(nil).AnyTimes()
+	})
 
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	It("Should create the related resources when creating a tenant", func() {

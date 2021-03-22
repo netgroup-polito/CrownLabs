@@ -8,6 +8,7 @@ import (
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	virtv1 "kubevirt.io/client-go/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -16,7 +17,6 @@ import (
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 )
@@ -290,7 +290,7 @@ var _ = Describe("Instance Operator controller", func() {
 	})
 })
 
-func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdObject runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
+func doesEventuallyExists(ctx context.Context, nsLookupKey types.NamespacedName, createdObject client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
 	Eventually(func() bool {
 		err := k8sClient.Get(ctx, nsLookupKey, createdObject)
 		return err == nil

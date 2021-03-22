@@ -10,4 +10,10 @@ RUN cp controller /usr/bin/controller
 FROM busybox
 COPY --from=builder /usr/bin/controller /usr/bin/controller
 USER 20000:20000
+
+# KubeVirt registers two versions of its API, which is not supported by
+# the kubernetes client. This environment variable is required to force
+# KubeVirt register only a specific version of the API
+ENV KUBEVIRT_CLIENT_GO_SCHEME_REGISTRATION_VERSION v1alpha3
+
 ENTRYPOINT [ "/usr/bin/controller" ]

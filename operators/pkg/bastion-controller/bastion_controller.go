@@ -45,8 +45,7 @@ type BastionReconciler struct {
 }
 
 // Reconcile reconciles the SSH keys of a Tenant resource.
-func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}

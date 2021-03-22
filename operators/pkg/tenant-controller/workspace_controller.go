@@ -45,8 +45,7 @@ type WorkspaceReconciler struct {
 }
 
 // Reconcile reconciles the state of a workspace resource.
-func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
