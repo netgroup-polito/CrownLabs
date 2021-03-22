@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/Nerzal/gocloak/v7 v7.10.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
-	github.com/go-logr/logr v0.3.0
+	github.com/go-logr/logr v0.3.0 // indirect
 	github.com/go-logr/zapr v0.3.0 // indirect
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/golang/mock v1.4.4
@@ -19,7 +19,6 @@ require (
 	k8s.io/api v0.19.0
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.2.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	kubevirt.io/client-go v0.35.0

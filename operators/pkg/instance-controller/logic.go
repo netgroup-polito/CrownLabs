@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	v1 "kubevirt.io/client-go/api/v1"
+	virtv1 "kubevirt.io/client-go/api/v1"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -19,7 +19,7 @@ import (
 // Kubernetes resources required to start a CrownLabs environment.
 func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Instance, environment *crownlabsv1alpha2.Environment, namespace, name string, vmStart time.Time) error {
 	var user, password string
-	var vmi *v1.VirtualMachineInstance
+	var vmi *virtv1.VirtualMachineInstance
 	ctx := context.TODO()
 	err := instance_creation.GetWebdavCredentials(ctx, r.Client, r.WebdavSecretName, instance.Namespace, &user, &password)
 	if err != nil {
@@ -85,10 +85,10 @@ func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Ins
 	}
 
 	// create vm
-	vmi = &v1.VirtualMachineInstance{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+	vmi = &virtv1.VirtualMachineInstance{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
 	vmStatus := "VmiCreated"
 	if environment.Persistent {
-		vm := v1.VirtualMachine{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+		vm := virtv1.VirtualMachine{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
 		_, err = ctrl.CreateOrUpdate(ctx, r.Client, &vm, func() error {
 			instance_creation.UpdateVirtualMachineSpec(&vm, environment, instance.Spec.Running)
 			vm.Spec.Template.ObjectMeta.Labels = instance_creation.UpdateLabels(vm.Spec.Template.ObjectMeta.Labels, environment, name)

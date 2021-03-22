@@ -29,8 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
@@ -52,8 +50,6 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds")},
@@ -76,7 +72,6 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = (&BastionReconciler{
 		Client:             k8sManager.GetClient(),
-		Log:                ctrl.Log.WithName("controllers").WithName("Bastion"),
 		Scheme:             k8sManager.GetScheme(),
 		AuthorizedKeysPath: "./authorized_keys_test",
 	}).SetupWithManager(k8sManager)
