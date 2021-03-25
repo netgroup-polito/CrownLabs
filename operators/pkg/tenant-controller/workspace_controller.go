@@ -37,11 +37,20 @@ type WorkspaceReconciler struct {
 	KcA              *KcActor
 	TargetLabelKey   string
 	TargetLabelValue string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the state of a workspace resource.
 func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	var ws crownlabsv1alpha1.Workspace
 
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {

@@ -101,21 +101,23 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&WorkspaceReconciler{
-		Client:           k8sManager.GetClient(),
-		Scheme:           k8sManager.GetScheme(),
-		KcA:              &kcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		KcA:                &kcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&TenantReconciler{
-		Client:           k8sManager.GetClient(),
-		Scheme:           k8sManager.GetScheme(),
-		KcA:              &kcA,
-		NcA:              mNcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		KcA:                &kcA,
+		NcA:                mNcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

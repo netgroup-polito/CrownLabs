@@ -97,6 +97,7 @@ var _ = BeforeSuite(func(done Done) {
 		Oauth2ProxyImage:   "test-image/test",
 		OidcClientSecret:   "sdad-csad-cdsw-asde",
 		OidcProviderURL:    "provider-url.com",
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

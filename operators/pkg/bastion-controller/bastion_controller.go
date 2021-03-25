@@ -37,11 +37,20 @@ type BastionReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
 	AuthorizedKeysPath string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the SSH keys of a Tenant resource.
 func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	klog.Info("reconciling bastion")
 
 	tenant := &crownlabsalpha1.Tenant{}

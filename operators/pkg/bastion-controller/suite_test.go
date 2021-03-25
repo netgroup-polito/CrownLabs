@@ -74,6 +74,7 @@ var _ = BeforeSuite(func(done Done) {
 		Client:             k8sManager.GetClient(),
 		Scheme:             k8sManager.GetScheme(),
 		AuthorizedKeysPath: "./authorized_keys_test",
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

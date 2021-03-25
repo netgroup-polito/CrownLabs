@@ -51,10 +51,19 @@ type InstanceReconciler struct {
 	Oauth2ProxyImage   string
 	OidcClientSecret   string
 	OidcProviderURL    string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the state of an Instance resource.
 func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	VMstart := time.Now()
 	ctx := context.Background()
 
