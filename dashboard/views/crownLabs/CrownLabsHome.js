@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { withRouter, useLocation } from 'react-router-dom';
-import { Row, Alert, Badge, Button, Tooltip, message } from 'antd';
+import { notification, Alert, Badge, Button, Tooltip, message } from 'antd';
 import DraggableLayout from '../../widgets/draggableLayout/DraggableLayout';
-import Templates from './Templates';
+import Templates, { colorBlue } from './Templates';
 import Instances from './Instances';
 import Utils from '../../services/Utils';
 import { PlusOutlined } from '@ant-design/icons';
@@ -140,6 +140,53 @@ function CrownLabsHome(props) {
       window.api.abortWatch('templates');
       window.api.abortWatch('tenants');
     };
+  }, []);
+
+  useEffect(() => {
+    const FORM_CHANNEL_UPD = 'FORM_CHANNEL_UPD';
+    const localUpd = localStorage.getItem(FORM_CHANNEL_UPD);
+
+    if (!localUpd) {
+      notification.open({
+        message: '',
+        description: (
+          <div
+            style={{
+              textAlign: 'center',
+              margin: 20
+            }}
+          >
+            We would like to know your thoughts about CrownLabs! Please fill{' '}
+            <a
+              target="_blank"
+              href="https://forms.gle/g86xkWTHoaULfPHp8"
+              style={{}}
+            >
+              this form
+            </a>
+            !
+            <br /> If you would like to keep posted about the latest news of
+            CrownLabs, join our{' '}
+            <a target="_blank" href="https://t.me/crownlabsNews">
+              channel
+              <img
+                style={{ display: 'inline', height: 25, margin: 5 }}
+                src="https://cdn.svgporn.com/logos/telegram.svg"
+              />
+            </a>
+          </div>
+        ),
+        duration: 0,
+        placement: 'topRight',
+        onClose: () => {
+          localStorage.setItem(FORM_CHANNEL_UPD, JSON.stringify(true));
+        },
+        style: {
+          border: `4px solid ${colorBlue}`,
+          padding: 10
+        }
+      });
+    }
   }, []);
 
   const items = [];
