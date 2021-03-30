@@ -174,7 +174,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager registers a new controller for Workspace resources.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
+		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
 		For(&crownlabsv1alpha1.Workspace{}).
 		Owns(&v1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).

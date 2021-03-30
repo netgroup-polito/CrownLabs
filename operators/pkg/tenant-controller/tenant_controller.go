@@ -223,7 +223,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
-		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
+		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
 		Owns(&v1.Namespace{}).
