@@ -18,41 +18,17 @@ spec:
     singular: datavolume
   scope: Namespaced
   versions:
-   - name: v1alpha1
-     schema:
+  - name: v1alpha1
+    schema:
       openAPIV3Schema:
-        properties:
-          spec:
-            type: object
-            x-preserve-unknown-fields: true
-          status:
-            description: DataVolumeStatus contains the current status of the DataVolume
-            properties:
-              phase:
-                description: Phase is the current phase of the data volume
-                type: string
-            type: object
-        required:
-        - spec
         type: object
-     served: true
-     storage: false
-   - name: v1beta1
-     schema:
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: false
+  - name: v1beta1
+    schema:
       openAPIV3Schema:
-        properties:
-          spec:
-            type: object
-            x-preserve-unknown-fields: true
-          status:
-            description: DataVolumeStatus contains the current status of the DataVolume
-            properties:
-              phase:
-                description: Phase is the current phase of the data volume
-                type: string
-            type: object
-        required:
-        - spec
-        type: object  
-     served: true
-     storage: true
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+    served: true
+    storage: true

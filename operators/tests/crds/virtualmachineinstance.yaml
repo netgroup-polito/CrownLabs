@@ -1,15 +1,6 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  annotations:
-    kubevirt.io/generation: "477"
-    kubevirt.io/install-strategy-identifier: 23289924f55eee7d0fcc18bd38e91878b971fbc0
-    kubevirt.io/install-strategy-registry: index.docker.io/kubevirt
-    kubevirt.io/install-strategy-version: v0.34.0
-  labels:
-    app.kubernetes.io/component: kubevirt
-    app.kubernetes.io/managed-by: kubevirt-operator
-    kubevirt.io: ""
   name: virtualmachineinstances.kubevirt.io
 spec:
   conversion:
@@ -25,9 +16,12 @@ spec:
       - vmi
       - vmis
     singular: virtualmachineinstance
-  preserveUnknownFields: true
   scope: Namespaced
   versions:
     - name: v1alpha3
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
       served: true
       storage: true
