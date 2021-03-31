@@ -72,6 +72,13 @@ instance-operator:
       novncImage: crownlabs/novnc
       filebrowserImage: filebrowser/filebrowser
       filebrowserImageTag: latest
+    containerVmSnapshots:
+      kanikoImage: gcr.io/kaniko-project/executor
+      exportImage: "crownlabs/img-exporter"
+      exportImageTag: ""
+    privateContainerRegistry:
+      url: registry.crownlabs.example.com
+      secretName: registry-credentials      
 
 tenant-operator:
   replicaCount: 1

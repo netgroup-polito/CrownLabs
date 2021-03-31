@@ -292,14 +292,3 @@ func CreateOrUpdate(ctx context.Context, c client.Client, object interface{}) er
 
 	return nil
 }
-
-// CheckLabels verifies whether a namespace is characterized by a set of
-// required labels.
-func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
-	for key, value := range matchLabels {
-		if v1, ok := ns.Labels[key]; !ok || v1 != value {
-			return false
-		}
-	}
-	return true
-}

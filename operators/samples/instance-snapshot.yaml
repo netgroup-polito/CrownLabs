@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-john-doe
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: InstanceSnapshot
+metadata:
+  name: green-tea-6831-snapshot
+  namespace: tenant-john-doe
+spec:
+  instanceRef:
+    name: green-tea-6831
+    namespace: workspace-tea
+  imageName: new-green-tea-image

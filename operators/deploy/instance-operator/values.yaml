@@ -23,6 +23,13 @@ configurations:
     novncImage: crownlabs/novnc
     filebrowserImage: filebrowser/filebrowser
     filebrowserImageTag: latest
+  containerVmSnapshots:
+    kanikoImage: gcr.io/kaniko-project/executor:latest
+    exportImage: "crownlabs/img-exporter"
+    exportImageTag: ""
+  privateContainerRegistry:
+    url: registry.crownlabs.example.com
+    secretName: registry-credentials
 
 image:
   repository: crownlabs/instance-operator

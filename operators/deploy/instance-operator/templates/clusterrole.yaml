@@ -10,6 +10,10 @@ rules:
   verbs: ["get","list","watch","create","update","patch","delete", "deleteCollection"]
 
 - apiGroups: ["crownlabs.polito.it"]
+  resources: ["instancesnapshots", "instancesnapshots/status"]
+  verbs: ["get","list","watch","create","update","patch"]
+
+- apiGroups: ["crownlabs.polito.it"]
   resources: ["templates", "tenants"]
   verbs: ["get","list","watch"]
 
@@ -24,6 +28,10 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["batch"]
+  resources: ["jobs", "jobs/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
 
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingresses"]
