@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/event"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -42,39 +42,17 @@ func generateToken() (*string, error) {
 	return &token, nil
 }
 
-func genPredicatesForMatchLabel(targetLabelKey, targetLabelValue string) predicate.Predicate {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if targetLabelKey == "" && targetLabelValue == "" {
-				return e.ObjectOld != e.ObjectNew
-			} else if value, ok := e.MetaNew.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
-				return false
-			}
-			return e.ObjectOld != e.ObjectNew
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			if targetLabelKey == "" && targetLabelValue == "" {
-				return true
-			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
-				return false
-			}
-			return true
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			if targetLabelKey == "" && targetLabelValue == "" {
-				return true
-			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
-				return false
-			}
-			return true
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			if targetLabelKey == "" && targetLabelValue == "" {
-				return true
-			} else if value, ok := e.Meta.GetLabels()[targetLabelKey]; !ok || targetLabelValue != value {
-				return false
-			}
-			return true
+func labelSelectorPredicate(targetLabelKey, targetLabelValue string) predicate.Predicate {
+	labelSelector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			targetLabelKey: targetLabelValue,
 		},
 	}
+
+	lsPred, err := predicate.LabelSelectorPredicate(labelSelector)
+	if err != nil {
+		klog.Fatalf("Failed to construct the label selector predicate: %v", err)
+	}
+
+	return lsPred
 }

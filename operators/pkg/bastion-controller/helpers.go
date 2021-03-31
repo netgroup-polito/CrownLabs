@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-logr/logr"
+	"k8s.io/klog/v2"
 )
 
-func closeFile(f *os.File, log logr.Logger) {
+func closeFile(f *os.File) {
 	err := f.Close()
 	if err != nil {
-		log.Error(err, "unable to close the file authorized_keys")
+		klog.Errorf("unable to close the file authorized_keys: %v", err)
 	}
 }
 

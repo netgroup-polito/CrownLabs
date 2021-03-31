@@ -9,7 +9,11 @@ gen: generate fmt vet manifests
 
 #run all tests
 test:
-	go test ./... -p 1 -coverprofile coverage.out -covermode=count
+	# KubeVirt registers two versions of its API, which is not supported by
+	# the kubernetes client. This environment variable is required to force
+	# KubeVirt register only a specific version of the API
+	KUBEVIRT_CLIENT_GO_SCHEME_REGISTRATION_VERSION=v1alpha3 \
+		go test ./... -coverprofile coverage.out -covermode=count
 
 test-python: python-dependencies
 	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py

@@ -43,11 +43,19 @@ type TenantReconciler struct {
 	NcA              NcHandler
 	TargetLabelKey   string
 	TargetLabelValue string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the state of a tenant resource.
-func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	var tn crownlabsv1alpha1.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
@@ -215,7 +223,7 @@ func (r *TenantReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha1.Tenant{}).
-		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
+		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
 		Owns(&v1.Namespace{}).

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	gocloak "github.com/Nerzal/gocloak/v7"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // KcActor contains the needed objects and infos to use keycloak functionalities.

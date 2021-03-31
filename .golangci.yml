@@ -1,4 +1,10 @@
 linters-settings:
+  gomodguard:
+    blocked:
+      modules:
+        - github.com/go-logr/logr:
+            recommendations:
+              - k8s.io/klog/v2
   gci:
     local-prefixes: github.com/netgroup-polito/CrownLabs
   goconst:
@@ -53,6 +59,7 @@ linters:
     - gofmt
     - goimports
     - golint
+    - gomodguard
   # - gomnd
     - goprintffuncname
     - gosec

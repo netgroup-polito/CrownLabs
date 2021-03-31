@@ -51,12 +51,20 @@ type InstanceReconciler struct {
 	Oauth2ProxyImage   string
 	OidcClientSecret   string
 	OidcProviderURL    string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the state of an Instance resource.
-func (r *InstanceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	VMstart := time.Now()
-	ctx := context.Background()
 
 	// get instance
 	var instance crownlabsv1alpha2.Instance
@@ -151,7 +159,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func dataVolumePredicate() predicate.Predicate {
-	return predicate.NewPredicateFuncs(func(meta metav1.Object, object runtime.Object) bool {
+	return predicate.NewPredicateFuncs(func(object client.Object) bool {
 		dv, ok := object.(*cdiv1.DataVolume)
 		return ok && dv.Status.Phase == cdiv1.DataVolumePhase("Succeeded")
 	})

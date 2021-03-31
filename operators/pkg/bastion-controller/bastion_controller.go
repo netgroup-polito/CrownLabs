@@ -23,9 +23,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -35,16 +35,22 @@ import (
 // BastionReconciler reconciles a Bastion object.
 type BastionReconciler struct {
 	client.Client
-	Log                logr.Logger
 	Scheme             *runtime.Scheme
 	AuthorizedKeysPath string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the SSH keys of a Tenant resource.
-func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.WithValues("tenant", req.NamespacedName)
-	log.Info("reconciling bastion")
+func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
+	klog.Info("reconciling bastion")
 
 	tenant := &crownlabsalpha1.Tenant{}
 	deleted := false
@@ -61,7 +67,7 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// if the file exists, read the whole file in a []byte
 		data, err := ioutil.ReadFile(r.AuthorizedKeysPath)
 		if err != nil {
-			log.Error(err, "unable to read the file authorized_keys")
+			klog.Errorf("unable to read the file authorized_keys: %v", err)
 			return ctrl.Result{}, err
 		}
 
@@ -77,16 +83,16 @@ func (r *BastionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	f, err := os.Create(r.AuthorizedKeysPath)
 	if err != nil {
-		log.Error(err, "unable to create the file authorized_keys")
+		klog.Errorf("unable to create the file authorized_keys: %v", err)
 		return ctrl.Result{}, nil
 	}
 
-	defer closeFile(f, log)
+	defer closeFile(f)
 
 	if len(keys) > 0 {
 		_, err = f.Write([]byte(strings.Join(keys, string("\n"))))
 		if err != nil {
-			log.Error(err, "unable to write to authorized_keys")
+			klog.Errorf("unable to write to authorized_keys: %v", err)
 			return ctrl.Result{}, nil
 		}
 	}

@@ -77,6 +77,7 @@ func main() {
 	flag.StringVar(&oauth2ProxyImage, "oauth2-proxy-image", "", "The docker image used for the oauth2-proxy deployment")
 	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret used by oauth2-proxy")
 	flag.StringVar(&oidcProviderURL, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
+	klog.InitFlags(nil)
 	flag.Parse()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

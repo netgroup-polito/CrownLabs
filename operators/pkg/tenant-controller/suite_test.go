@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -96,26 +95,29 @@ var _ = BeforeSuite(func(done Done) {
 	// +kubebuilder:scaffold:scheme
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
 	})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&WorkspaceReconciler{
-		Client:           k8sManager.GetClient(),
-		Scheme:           k8sManager.GetScheme(),
-		KcA:              &kcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		KcA:                &kcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&TenantReconciler{
-		Client:           k8sManager.GetClient(),
-		Scheme:           k8sManager.GetScheme(),
-		KcA:              &kcA,
-		NcA:              mNcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		KcA:                &kcA,
+		NcA:                mNcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -136,7 +138,7 @@ var _ = AfterSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj runtime.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
+func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
 	Eventually(func() bool {
 		err := k8sClient.Get(ctx, objLookupKey, targetObj)
 		return err == nil

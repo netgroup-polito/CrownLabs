@@ -37,11 +37,19 @@ type WorkspaceReconciler struct {
 	KcA              *KcActor
 	TargetLabelKey   string
 	TargetLabelValue string
+
+	// This function, if configured, is deferred at the beginning of the Reconcile.
+	// Specifically, it is meant to be set to GinkgoRecover during the tests,
+	// in order to lead to a controlled failure in case the Reconcile panics.
+	ReconcileDeferHook func()
 }
 
 // Reconcile reconciles the state of a workspace resource.
-func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if r.ReconcileDeferHook != nil {
+		defer r.ReconcileDeferHook()
+	}
+
 	var ws crownlabsv1alpha1.Workspace
 
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
@@ -166,7 +174,7 @@ func (r *WorkspaceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // SetupWithManager registers a new controller for Workspace resources.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		WithEventFilter(genPredicatesForMatchLabel(r.TargetLabelKey, r.TargetLabelValue)).
+		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
 		For(&crownlabsv1alpha1.Workspace{}).
 		Owns(&v1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
