@@ -85,6 +85,7 @@ jobs:
           - tigervnc
           - websockify
           - pycharm
+          - blender
 
         include:
           # Operators
@@ -117,6 +118,8 @@ jobs:
             context: ./provisioning/containers/gui-common/websockify
           - component: pycharm
             context: ./provisioning/containers/pycharm
+          - component: blender
+            context: ./provisioning/containers/blender
 
           # SSH bastion
           - component: ssh-bastion
