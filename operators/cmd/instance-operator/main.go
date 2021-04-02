@@ -64,6 +64,10 @@ func main() {
 	var oauth2ProxyImage string
 	var oidcClientSecret string
 	var oidcProviderURL string
+	var containerEnvSidecarsTag string
+	var containerEnvVncImg string
+	var containerEnvWebsockifyImg string
+	var containerEnvNovncImg string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -77,6 +81,10 @@ func main() {
 	flag.StringVar(&oauth2ProxyImage, "oauth2-proxy-image", "", "The docker image used for the oauth2-proxy deployment")
 	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret used by oauth2-proxy")
 	flag.StringVar(&oidcProviderURL, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
+	flag.StringVar(&containerEnvSidecarsTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
+	flag.StringVar(&containerEnvVncImg, "container-env-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvWebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvNovncImg, "container-env-novnc-img", "crownlabs/novnc", "The image name for the novnc image (sidecar for graphical container environment)")
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -105,6 +113,12 @@ func main() {
 		Oauth2ProxyImage:   oauth2ProxyImage,
 		OidcClientSecret:   oidcClientSecret,
 		OidcProviderURL:    oidcProviderURL,
+		ContainerEnvOpts: instance_controller.ContainerEnvOpts{
+			ImagesTag:     containerEnvSidecarsTag,
+			VncImg:        containerEnvVncImg,
+			WebsockifyImg: containerEnvWebsockifyImg,
+			NovncImg:      containerEnvNovncImg,
+		},
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Instance")
 	}

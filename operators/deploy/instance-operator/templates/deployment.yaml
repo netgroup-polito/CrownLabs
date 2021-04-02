@@ -36,20 +36,17 @@ spec:
           command:
             - /usr/bin/controller
           args:
-            - "--webdav-secret-name"
-            - "$(WEBDAV_SECRET_NAME)"
-            - "--namespace-whitelist"
-            - "$(WHITE_LIST_LABELS)"
-            - "--website-base-url"
-            - "$(WEBSITE_BASE_URL)"
-            - "--nextcloud-base-url"
-            - "$(NEXTCLOUD_BASE_URL)"
-            - "--oauth2-proxy-image"
-            - "$(OAUTH2_PROXY_IMAGE)"
-            - "--oidc-client-secret"
-            - "$(OIDC_CLIENT_SECRET)"
-            - "--oidc-provider-url"
-            - "$(OIDC_PROVIDER_URL)"
+            - "--webdav-secret-name={{ .Values.configurations.nextcloud.webdavSecretName }}"
+            - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
+            - "--website-base-url={{ .Values.configurations.generic.websiteBaseUri }}"
+            - "--nextcloud-base-url={{ .Values.configurations.nextcloud.baseUrl }}"
+            - "--oauth2-proxy-image={{ .Values.configurations.generic.oauth2ProxyImage }}"
+            - "--oidc-client-secret={{ .Values.configurations.oidc.clientSecret }}"
+            - "--oidc-provider-url={{ .Values.configurations.oidc.providerUrl }}"
+            - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
+            - "--container-env-vnc-img={{ .Values.configurations.containerEnvironmentOptions.vncImage }}"
+            - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
+            - "--container-env-novnc-img={{ .Values.configurations.containerEnvironmentOptions.novncImage }}"
           ports:
             - name: metrics
               containerPort: 8080
@@ -71,42 +68,7 @@ spec:
             periodSeconds: 3
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          env:
-            - name: WHITE_LIST_LABELS
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: whitelist-labels
-            - name: NEXTCLOUD_BASE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: nextcloud-base-url
-            - name: WEBSITE_BASE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: website-base-url
-            - name: WEBDAV_SECRET_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: webdav-secret-name
-            - name: OAUTH2_PROXY_IMAGE
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: oauth2-proxy-image
-            - name: OIDC_CLIENT_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: oidc-client-secret
-            - name: OIDC_PROVIDER_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "instance-operator.fullname" . }}
-                  key: oidc-provider-url
+
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

@@ -66,3 +66,10 @@ Metrics selector additional labels
 {{- define "instance-operator.metricsAdditionalLabels" -}}
 app.kubernetes.io/component: metrics
 {{- end }}
+
+{{/*
+The tag to be used for sidecar containers images
+*/}}
+{{- define "instance-operator.containerEnvironmentSidecarsTag" -}}
+{{- .Values.configurations.containerEnvironmentOptions.tag | default ( include "instance-operator.version" . ) }}
+{{- end }}
