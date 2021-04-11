@@ -41,6 +41,8 @@ instance-operator:
       vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
       novncImage: crownlabs/novnc
+      filebrowserImage: filebrowser/filebrowser
+      filebrowserImageTag: latest
 
 tenant-operator:
   replicaCount: 1

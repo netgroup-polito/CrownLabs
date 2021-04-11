@@ -40,10 +40,12 @@ import (
 
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
-	ImagesTag     string
-	VncImg        string
-	WebsockifyImg string
-	NovncImg      string
+	ImagesTag         string
+	VncImg            string
+	WebsockifyImg     string
+	NovncImg          string
+	FileBrowserImg    string
+	FileBrowserImgTag string
 }
 
 // InstanceReconciler reconciles a Instance object.

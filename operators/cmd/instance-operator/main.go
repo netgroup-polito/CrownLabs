@@ -68,6 +68,8 @@ func main() {
 	var containerEnvVncImg string
 	var containerEnvWebsockifyImg string
 	var containerEnvNovncImg string
+	var containerEnvFileBrowserImg string
+	var containerEnvFileBrowserImgTag string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -85,6 +87,8 @@ func main() {
 	flag.StringVar(&containerEnvVncImg, "container-env-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvWebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvNovncImg, "container-env-novnc-img", "crownlabs/novnc", "The image name for the novnc image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvFileBrowserImg, "container-env-filebrowser-img", "filebrowser/filebrowser", "The image name for the filebrowser image (sidecar for gui-based file manager)")
+	flag.StringVar(&containerEnvFileBrowserImgTag, "container-env-filebrowser-img-tag", "latest", "The tag for the FileBrowser container (the gui-based file manager)")
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -114,10 +118,12 @@ func main() {
 		OidcClientSecret:   oidcClientSecret,
 		OidcProviderURL:    oidcProviderURL,
 		ContainerEnvOpts: instance_controller.ContainerEnvOpts{
-			ImagesTag:     containerEnvSidecarsTag,
-			VncImg:        containerEnvVncImg,
-			WebsockifyImg: containerEnvWebsockifyImg,
-			NovncImg:      containerEnvNovncImg,
+			ImagesTag:         containerEnvSidecarsTag,
+			VncImg:            containerEnvVncImg,
+			WebsockifyImg:     containerEnvWebsockifyImg,
+			NovncImg:          containerEnvNovncImg,
+			FileBrowserImg:    containerEnvFileBrowserImg,
+			FileBrowserImgTag: containerEnvFileBrowserImgTag,
 		},
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Instance")
