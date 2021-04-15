@@ -10,7 +10,8 @@ import {
   PauseCircleOutlined,
   DeleteOutlined,
   ExportOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import {
   getColumnSearchProps,
@@ -191,8 +192,8 @@ export default function Instances(props) {
           return {
             children:
               template &&
-              template.spec.environmentList[0].persistent &&
-              (lab?.status?.phase === 'VmiReady' ||
+              template.spec.environmentList[0].persistent ?
+              ((lab?.status?.phase === 'VmiReady' ||
                 lab?.status?.phase === 'VmiOff') &&
               (lab?.spec.running ? (
                 <Popconfirm
@@ -237,6 +238,19 @@ export default function Instances(props) {
                     shape={'circle'}
                     style={{ border: 'none', background: 'none' }}
                   />
+                </Tooltip>
+              ))) : (
+                template && template.spec.environmentList[0].environmentType === 'Container'
+                  && lab.status && lab.status.url && (
+                <Tooltip title={'Open file browser'}>
+                  <a target={'_blank'} href={`${lab.status.url}/mydrive/files`}>
+                    <Button
+                      icon={<FolderOpenOutlined style={{ fontSize: 20 }} />}
+                      size={'small'}
+                      shape={'circle'}
+                      style={{ border: 'none', background: 'none' }}
+                    />
+                  </a>
                 </Tooltip>
               )),
             props: {
