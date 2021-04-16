@@ -47,6 +47,8 @@ spec:
             - "--container-env-vnc-img={{ .Values.configurations.containerEnvironmentOptions.vncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             - "--container-env-novnc-img={{ .Values.configurations.containerEnvironmentOptions.novncImage }}"
+            - "--container-env-filebrowser-img={{ .Values.configurations.containerEnvironmentOptions.filebrowserImage }}"
+            - "--container-env-filebrowser-img-tag={{ .Values.configurations.containerEnvironmentOptions.filebrowserImageTag }}"
           ports:
             - name: metrics
               containerPort: 8080

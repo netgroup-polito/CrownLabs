@@ -56,7 +56,7 @@ func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Ins
 		r.setInstanceStatus(ctx, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", instance, "", "")
 	}
 
-	service, ingress, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name)
+	service, ingress, _, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name, false)
 	if err != nil {
 		return err
 	}

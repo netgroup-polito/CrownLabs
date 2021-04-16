@@ -63,6 +63,7 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 				"nginx.ingress.kubernetes.io/auth-signin":           "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
 				"nginx.ingress.kubernetes.io/auth-url":              "https://$host/" + urlUUID + "/oauth2/auth",
 				"crownlabs.polito.it/probe-url":                     "https://" + url,
+				"crownlabs.polito.it/url-uuid":                      urlUUID,
 				"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + urlUUID + `/index.html">';`,
 			},
 		},
@@ -87,6 +88,60 @@ func ForgeIngress(name, namespace string, svc *corev1.Service, urlUUID, websiteB
 											Name: svc.Name,
 											Port: networkingv1.ServiceBackendPort{
 												Number: svc.Spec.Ports[0].TargetPort.IntVal,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return ingress
+}
+
+// ForgeFileBrowserIngress creates and returns a Kubernetes Ingress resource
+// exposing FileBrowser for a CrownLabs container environment.
+func ForgeFileBrowserIngress(
+	name, namespace string, svc *corev1.Service,
+	urlUUID, websiteBaseURL, fileBrowserPortName string,
+) networkingv1.Ingress {
+	pathType := networkingv1.PathTypePrefix
+
+	ingress := networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-filebrowser",
+			Namespace: namespace,
+			Labels:    nil,
+			Annotations: map[string]string{
+				"nginx.ingress.kubernetes.io/auth-signin": "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
+				"nginx.ingress.kubernetes.io/auth-url":    "https://$host/" + urlUUID + "/oauth2/auth",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			TLS: []networkingv1.IngressTLS{
+				{
+					Hosts:      []string{websiteBaseURL},
+					SecretName: "crownlabs-ingress-secret",
+				},
+			},
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: websiteBaseURL,
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									Path:     "/" + urlUUID + "/mydrive(/|$)(.*)",
+									PathType: &pathType,
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: svc.Name,
+											Port: networkingv1.ServiceBackendPort{
+												Name: fileBrowserPortName,
 											},
 										},
 									},

@@ -21,6 +21,8 @@ configurations:
     vncImage: crownlabs/tigervnc
     websockifyImage: crownlabs/websockify
     novncImage: crownlabs/novnc
+    filebrowserImage: filebrowser/filebrowser
+    filebrowserImageTag: latest
 
 image:
   repository: crownlabs/instance-operator

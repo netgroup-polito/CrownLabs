@@ -38,6 +38,7 @@ func buildContainerInstanceDeploymentSpec(
 	name string, instance *crownlabsv1alpha2.Instance,
 	environment *crownlabsv1alpha2.Environment,
 	o *ContainerEnvOpts, httpPort int32,
+	fileBrowserPort int32, mountPath, urlUUID string,
 ) appsv1.DeploymentSpec {
 	userID := int64(1010)
 	yes := true
@@ -61,13 +62,11 @@ func buildContainerInstanceDeploymentSpec(
 
 	examMode := false // template.ExamMode (?)
 
-	websockifyPort := int32(8888)
-	vncPort := int32(5900)
-
+	noVncPortName := "http-port"
 	noVncProbe := v1.Probe{
 		Handler: v1.Handler{
 			HTTPGet: &v1.HTTPGetAction{
-				Port: intstr.FromString("http-port"),
+				Port: intstr.FromString(noVncPortName),
 				Path: "/healthz",
 			},
 		},
@@ -75,20 +74,36 @@ func buildContainerInstanceDeploymentSpec(
 		PeriodSeconds:       5,
 	}
 
+	websockifyPort := int32(8888)
+	websockifyPortName := "websockify-port"
 	websockifyProbe := v1.Probe{
 		Handler: v1.Handler{
 			TCPSocket: &v1.TCPSocketAction{
-				Port: intstr.FromString("websockify-port"),
+				Port: intstr.FromString(websockifyPortName),
 			},
 		},
 		InitialDelaySeconds: 1,
 		PeriodSeconds:       5,
 	}
 
+	vncPort := int32(5900)
+	vncPortName := "vnc-port"
 	tigerVncProbe := v1.Probe{
 		Handler: v1.Handler{
 			TCPSocket: &v1.TCPSocketAction{
-				Port: intstr.FromString("vnc-port"),
+				Port: intstr.FromString(vncPortName),
+			},
+		},
+		InitialDelaySeconds: 3,
+		PeriodSeconds:       5,
+	}
+
+	fileBrowserPortName := "browser-port"
+	fileBrowserProbe := v1.Probe{
+		Handler: v1.Handler{
+			HTTPGet: &v1.HTTPGetAction{
+				Port: intstr.FromString(fileBrowserPortName),
+				Path: "/health",
 			},
 		},
 		InitialDelaySeconds: 3,
@@ -102,7 +117,7 @@ func buildContainerInstanceDeploymentSpec(
 			Resources: buildResRequirements(0.02, 50, resource.MustParse("100Mi")), // actual: ~25MiB
 			Ports: []v1.ContainerPort{{
 				ContainerPort: httpPort,
-				Name:          "http-port",
+				Name:          noVncPortName,
 			}},
 			Env: []v1.EnvVar{{
 				Name:  "HIDE_NOVNC_BAR",
@@ -128,7 +143,7 @@ func buildContainerInstanceDeploymentSpec(
 			}},
 			Ports: []v1.ContainerPort{{
 				ContainerPort: websockifyPort,
-				Name:          "websockify-port",
+				Name:          websockifyPortName,
 			}},
 			SecurityContext: &contSecCtx,
 			// LivenessProbe: &websockifyProbe,
@@ -141,10 +156,34 @@ func buildContainerInstanceDeploymentSpec(
 			SecurityContext: &contSecCtx,
 			Ports: []v1.ContainerPort{{
 				ContainerPort: vncPort,
-				Name:          "vnc-port",
+				Name:          vncPortName,
 			}},
 			// LivenessProbe:   &tigerVncProbe,
 			ReadinessProbe: &tigerVncProbe,
+		},
+		{
+			Name:      "filebrowser",
+			Image:     o.FileBrowserImg + ":" + o.FileBrowserImgTag,
+			Resources: buildResRequirements(0.1, 10, resource.MustParse("100Mi")), // actual: ~10MiB
+			Args: []string{
+				"--port=" + fmt.Sprintf("%d", fileBrowserPort),
+				"--root=" + mountPath,
+				"--baseurl=/" + urlUUID + "/mydrive",
+				"--database=/tmp/database.db",
+				"--noauth=true",
+			},
+			SecurityContext: &contSecCtx,
+			Ports: []v1.ContainerPort{{
+				ContainerPort: fileBrowserPort,
+				Name:          fileBrowserPortName,
+			}},
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "shared",
+					MountPath: mountPath,
+				},
+			},
+			ReadinessProbe: &fileBrowserProbe,
 		},
 		{
 			Name:  name,
@@ -155,6 +194,10 @@ func buildContainerInstanceDeploymentSpec(
 				environment.Resources.Memory,
 			),
 			SecurityContext: &contSecCtx,
+			VolumeMounts: []v1.VolumeMount{{
+				Name:      "shared",
+				MountPath: mountPath, // Same as filebrowser for simplicity
+			}},
 		},
 	}
 
@@ -170,13 +213,20 @@ func buildContainerInstanceDeploymentSpec(
 			MatchLabels: labels,
 		},
 		Template: v1.PodTemplateSpec{
-
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: labels,
 			},
 			Spec: v1.PodSpec{
 				Containers:      containers,
 				SecurityContext: &podSecCtx,
+				Volumes: []v1.Volume{
+					{
+						Name: "shared",
+						VolumeSource: v1.VolumeSource{
+							EmptyDir: &v1.EmptyDirVolumeSource{},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -192,7 +242,7 @@ func (r *InstanceReconciler) CreateContainerEnvironment(
 	vmStart time.Time) error {
 	ctx := context.TODO()
 
-	service, ingress, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name)
+	service, ingress, urlUUID, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name, true)
 	if err != nil {
 		return err
 	}
@@ -205,7 +255,7 @@ func (r *InstanceReconciler) CreateContainerEnvironment(
 	}
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
-		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080)
+		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", urlUUID)
 		depl.Labels = instance_creation.UpdateLabels(depl.Labels, environment, name)
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	}); err != nil {
