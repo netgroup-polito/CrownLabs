@@ -9,7 +9,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	errors "k8s.io/apimachinery/pkg/api/errors"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -55,28 +55,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			Spec:   v1.NamespaceSpec{},
 			Status: v1.NamespaceStatus{},
 		}
-		webdavSecret = v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "webdav-secret",
-				Namespace: InstanceNamespace,
-			},
-			Data: map[string][]byte{
-				"username": []byte("username"),
-				"password": []byte("password"),
-			},
-			StringData: nil,
-			Type:       "",
-		}
-		environment = crownlabsv1alpha2.Environment{
-			Name:            InstanceName,
-			Image:           "crownlabs/pycharm",
-			EnvironmentType: crownlabsv1alpha2.ClassContainer,
-			Resources: crownlabsv1alpha2.EnvironmentResources{
-				CPU:                   1,
-				ReservedCPUPercentage: 1,
-				Memory:                resource.MustParse("1024M"),
-			},
-		}
 		template = crownlabsv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -85,10 +63,21 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			},
 			Spec: crownlabsv1alpha2.TemplateSpec{
 				WorkspaceRef: crownlabsv1alpha2.GenericRef{},
-				PrettyName:   "App Container Template",
+				PrettyName:   "Container template",
 				Description:  "This is the container template",
 				EnvironmentList: []crownlabsv1alpha2.Environment{
-					environment,
+					{
+						Name:            TemplateName,
+						Image:           "crownlabs/pycharm",
+						EnvironmentType: crownlabsv1alpha2.ClassContainer,
+						GuiEnabled:      true,
+						Persistent:      false,
+						Resources: crownlabsv1alpha2.EnvironmentResources{
+							CPU:                   1,
+							ReservedCPUPercentage: 1,
+							Memory:                resource.MustParse("1024M"),
+						},
+					},
 				},
 				DeleteAfter: "30d",
 			},
@@ -104,6 +93,10 @@ var _ = Describe("Instance Operator controller for containers", func() {
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      TemplateName,
 					Namespace: TemplateNamespace,
+				},
+				Tenant: crownlabsv1alpha2.GenericRef{
+					Name:      "tenant-name",
+					Namespace: "tenant-namespace",
 				},
 			},
 			Status: crownlabsv1alpha2.InstanceStatus{},
@@ -150,16 +143,19 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			},
 			Status: crownlabsv1alpha2.InstanceStatus{},
 		}
-		ns   = v1.Namespace{}
 		tmpl = crownlabsv1alpha2.Template{}
 		inst = crownlabsv1alpha2.Instance{}
+		svc  = v1.Service{}
+		ingr = networkingv1.Ingress{}
 		depl = appsv1.Deployment{}
 		pvc  = v1.PersistentVolumeClaim{}
+		flag = true
 	)
 
-	Context("When creating containerized apps", func() {
+	Context("When creating the container-based Instance", func() {
 		It("Should create the Instance and Template namespaces", func() {
 			ctx = context.Background()
+			ns := v1.Namespace{}
 			By("Creating the Template namespace")
 			Expect(k8sClient.Create(ctx, &templateNs)).Should(Succeed())
 			doesEventuallyExist(ctx, types.NamespacedName{
@@ -168,13 +164,12 @@ var _ = Describe("Instance Operator controller for containers", func() {
 
 			By("Creating the Instance namespace")
 			Expect(k8sClient.Create(ctx, &instanceNs)).Should(Succeed())
-			Expect(k8sClient.Create(ctx, &webdavSecret)).Should(Succeed())
 			doesEventuallyExist(ctx, types.NamespacedName{
 				Name: InstanceNamespace,
 			}, &ns, BeTrue(), timeout, interval)
 		})
 
-		It("Should create the container Template and the related container Instance", func() {
+		It("Should create the Template and the related Instance", func() {
 			By("Creating the Template")
 			Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
 			doesEventuallyExist(ctx, types.NamespacedName{
@@ -190,24 +185,103 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			}, &inst, BeTrue(), timeout, interval)
 		})
 
-		It("Should check the deployment exists", func() {
-			By("Checking for the existence of the deployment")
+		It("Should create the exposition environment", func() {
+			expectedOwnerReference := metav1.OwnerReference{
+				Kind:               "Instance",
+				APIVersion:         "crownlabs.polito.it/v1alpha2",
+				UID:                inst.ObjectMeta.UID,
+				Name:               InstanceName,
+				Controller:         &flag,
+				BlockOwnerDeletion: &flag,
+			}
+
+			By("Checking that the service exposing the pod (remote desktop + FileBrowser containers) exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName,
+				Namespace: InstanceNamespace,
+			}, &svc, BeTrue(), timeout, interval)
+			By("Checking that the service has got an OwnerReference")
+			Expect(svc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+			By("Checking that the ingress exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName,
+				Namespace: InstanceNamespace,
+			}, &ingr, BeTrue(), timeout, interval)
+			By("Checking that the ingress has got an OwnerReference")
+			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+			By("Checking that the dedicated FileBrowser ingress exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "-filebrowser",
+				Namespace: InstanceNamespace,
+			}, &ingr, BeTrue(), timeout, interval)
+			By("Checking that the dedicated FileBrowser ingress has got an OwnerReference")
+			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+			By("Checking that the OAUTH service exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "-oauth2",
+				Namespace: InstanceNamespace,
+			}, &svc, BeTrue(), timeout, interval)
+			By("Checking that the auth service has got an OwnerReference")
+			Expect(svc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+			By("Checking that the OAUTH ingress exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "-oauth2",
+				Namespace: InstanceNamespace,
+			}, &ingr, BeTrue(), timeout, interval)
+			By("Checking that the auth ingress has got an OwnerReference")
+			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+
+			By("Checking that the OAUTH deployment exists")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "-oauth2",
+				Namespace: InstanceNamespace,
+			}, &depl, BeTrue(), timeout, interval)
+			By("Checking that the auth deployment has got an OwnerReference")
+			Expect(depl.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+		})
+
+		It("Should create the deployment", func() {
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName,
+				Namespace: InstanceNamespace,
+			}, &inst, BeTrue(), timeout, interval)
+
+			expectedOwnerReference := metav1.OwnerReference{
+				Kind:               "Instance",
+				APIVersion:         "crownlabs.polito.it/v1alpha2",
+				UID:                inst.ObjectMeta.UID,
+				Name:               InstanceName,
+				Controller:         &flag,
+				BlockOwnerDeletion: &flag,
+			}
+
+			By("Checking that the deployment exists")
 			doesEventuallyExist(ctx, types.NamespacedName{
 				Name:      InstanceName,
 				Namespace: InstanceNamespace,
 			}, &depl, BeTrue(), timeout, interval)
 
-			flag := true
-			expectedOwnerReference := metav1.OwnerReference{
-				Kind:               "Instance",
-				APIVersion:         "crownlabs.polito.it/v1alpha2",
-				UID:                instance.ObjectMeta.UID,
-				Name:               InstanceName,
-				Controller:         &flag,
-				BlockOwnerDeletion: &flag,
-			}
-			By("Ensuring the deployment has got an OwnerReference")
+			By("Checking that the deployment has got an OwnerReference")
 			Expect(depl.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+		})
+
+		It("Should have the Instance ready", func() {
+			By("Setting the number of ready replicas")
+			depl.Status.Replicas = 1
+			depl.Status.ReadyReplicas = 1
+			Expect(k8sClient.Status().Update(ctx, &depl)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      InstanceName,
+					Namespace: InstanceNamespace,
+				}, &instance)
+				return err == nil && instance.Status.Phase == "VmiReady"
+			}, timeout, interval).Should(BeTrue())
 		})
 	})
 
@@ -267,25 +341,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 				Name:      InstanceName,
 				Namespace: InstanceNamespace,
 			}, &depl, BeTrue(), timeout, interval)
-		})
-	})
-
-	Context("When deleting containerized apps", func() {
-		It("Should delete the container Instance", func() {
-			By("Deleting the container Instance")
-			Expect(k8sClient.Delete(ctx, &instance)).Should(Succeed())
-
-			By("Ensuring the container Instance is deleted")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, types.NamespacedName{
-					Name:      InstanceName,
-					Namespace: InstanceNamespace,
-				}, &inst)
-				if err != nil && errors.IsNotFound(err) {
-					return true
-				}
-				return false
-			}, timeout, interval).Should(BeTrue())
 		})
 	})
 })
