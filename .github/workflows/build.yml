@@ -139,6 +139,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.component }}-buildx-
+
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -164,6 +172,16 @@ jobs:
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # Temporary fix, to prevent the cache from continuing growing
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   trigger-events-master:
     name: Trigger events upon successful push to master
