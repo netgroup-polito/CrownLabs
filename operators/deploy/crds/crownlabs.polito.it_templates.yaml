@@ -38,6 +38,9 @@ spec:
       name: Persistent
       priority: 10
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha2
     schema:
       openAPIV3Schema:

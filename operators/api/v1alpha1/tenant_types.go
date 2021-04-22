@@ -116,6 +116,7 @@ type TenantStatus struct {
 // +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`,priority=10
 // +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.personalNamespace.name`,priority=10
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Tenant describes a user of CrownLabs.
 type Tenant struct {

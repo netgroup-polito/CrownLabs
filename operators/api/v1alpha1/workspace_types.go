@@ -54,6 +54,7 @@ type WorkspaceStatus struct {
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Namespace",type=string,JSONPath=`.status.namespace.name`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Workspace describes a workspace in CrownLabs.
 type Workspace struct {
