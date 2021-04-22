@@ -117,8 +117,12 @@ func ForgeFileBrowserIngress(
 			Namespace: namespace,
 			Labels:    nil,
 			Annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/auth-signin": "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
-				"nginx.ingress.kubernetes.io/auth-url":    "https://$host/" + urlUUID + "/oauth2/auth",
+				"nginx.ingress.kubernetes.io/auth-signin":              "https://$host/" + urlUUID + "/oauth2/start?rd=$escaped_request_uri",
+				"nginx.ingress.kubernetes.io/auth-url":                 "https://$host/" + urlUUID + "/oauth2/auth",
+				"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
+				"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
+				"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
+				"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
 			},
 		},
 		Spec: networkingv1.IngressSpec{
