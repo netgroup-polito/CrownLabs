@@ -76,8 +76,12 @@ jobs:
           - tenant-operator
           - bastion-operator
 
-          # Frontend
-          - frontend
+          # The current dashboard
+          - dashboard
+
+          # The new frontend
+          - frontend-app
+          - frontend-storybook
 
           # SSH bastion
           - ssh-bastion
@@ -107,9 +111,21 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/bastion-operator/Dockerfile
 
-          # Frontend
-          - component: frontend
+          # The current dashboard
+          - component: dashboard
             context: ./dashboard/dashboard
+
+          # The new frontend
+          - component: frontend-app
+            context: ./frontend
+            build-args: |
+              BUILD_TARGET=app
+              SUBROUTE=/app
+          - component: frontend-storybook
+            context: ./frontend
+            build-args: |
+              BUILD_TARGET=storybook
+              SUBROUTE=/
 
           # Laboratory environments
           - component: novnc
@@ -177,6 +193,7 @@ jobs:
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
+          build-args: ${{ matrix.build-args }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 

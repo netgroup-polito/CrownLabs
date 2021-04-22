@@ -1,32 +1,20 @@
-# Default values for dashboard.
+# Default values for frontend-storybook.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
-configurations:
-  app:
-    title: CrownLabs
-    favicon: https://crownlabs.polito.it/logobkg.ico
-  oidc:
-    clientId: k8s
-    clientSecret: <client-secret>
-    providerUrl: https://auth.example.com/auth/realms/crownlabs
-
 image:
-  repository: crownlabs/dashboard
+  repository: crownlabs/frontend-storybook
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
-
-opensslImage: emberstack/openssl@sha256:1fad327428e28ac1138444fca06000c2bf04b5efb56e85440f5cbfb25e40a122
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-deploymentAnnotations:
-  reloader.stakater.com/auto: "true"
+deploymentAnnotations: {}
 podAnnotations: {}
 
 securityContext:
@@ -41,21 +29,19 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: 443
+  port: 80
 
 ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
-    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
-    nginx.ingress.kubernetes.io/secure-backends: "true"
   hostname: crownlabs.example.com
   path: /
-  secret: dashboard-certificate
+  secret: frontend-storybook-certificate
 
 resources:
   limits:
-    cpu: 1000m
+    cpu: 100m
     memory: 250Mi
   requests:
-    cpu: 100m
-    memory: 100Mi
+    cpu: 10m
+    memory: 25Mi

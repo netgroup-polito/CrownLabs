@@ -2,6 +2,12 @@ dependencies:
 - name: dashboard
   repository: file://../../dashboard/deploy/dashboard
   version: 0.1.0
+- name: frontend-app
+  repository: file://../../frontend/deploy/frontend-app
+  version: 0.1.0
+- name: frontend-storybook
+  repository: file://../../frontend/deploy/frontend-storybook
+  version: 0.1.0
 - name: instance-operator
   repository: file://../../operators/deploy/instance-operator
   version: 0.1.0
@@ -20,5 +26,5 @@ dependencies:
 - name: policies
   repository: file://../../policies/
   version: 0.1.0
-digest: sha256:f0f8799c5d44f426355bc124b194bfbe3f2791262fb7d9bdf9c41a6d3e5b05f9
-generated: "2021-02-03T11:11:45.829228405+01:00"
+digest: sha256:d370b30247ec7645be2b7541f2e4d7feb154ae1f2c8f271ce98441740b4ce94b
+generated: "2021-04-22T12:32:48.064223219+02:00"

@@ -10,7 +10,7 @@ createClusterRoles: true
 dashboard:
   replicaCount: 1
   image:
-    repository: crownlabs/frontend
+    repository: crownlabs/dashboard
   ingress:
     hostname: https://crownlabs.example.com
   configurations:
@@ -18,6 +18,28 @@ dashboard:
       clientId: k8s
       clientSecret: <client-secret>
       providerUrl: https://auth.example.com/auth/realms/crownlabs
+
+frontend-app:
+  replicaCount: 1
+  image:
+    repository: crownlabs/frontend-app
+  ingress:
+    hostname: crownlabs.example.com
+    path: /
+  configuration:
+    backend:
+      apiServer: https://apiserver.example.com
+    oidc:
+      clientId: <client-id>
+      clientSecret: <client-secret>
+      providerUrl: https://auth.example.com/auth/realms/crownlabs
+
+frontend-storybook:
+  replicaCount: 1
+  image:
+    repository: crownlabs/frontend-storybook
+  ingress:
+    hostname: storybook.crownlabs.example.com
 
 instance-operator:
   replicaCount: 1
