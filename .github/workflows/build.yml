@@ -35,6 +35,8 @@ jobs:
 
       - name: Configure
         id: configure
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           # The ref of the commit to checkout (do not use the merge commit if pull request)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -52,8 +54,8 @@ jobs:
             echo "::set-output name=repo-suffix::" || \
             echo "::set-output name=repo-suffix::-dev"
 
-          # Do not push the resulting images to DockerHub if triggered by a pull request
-          [[ "${{ github.event_name }}" == "pull_request" ]] && \
+          # Do not push the resulting images to DockerHub if triggered by a pull request or DockerHub credentials are not available
+          [[ "${{ github.event_name }}" == "pull_request" || -z $DOCKER_USERNAME ]] && \
             echo "::set-output name=repo-push::false" || \
             echo "::set-output name=repo-push::true"
 
@@ -156,7 +158,10 @@ jobs:
 
       - name: Configure the build-push-action parameters
         id: parameters
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
+          echo "::set-output name=repo-owner::${DOCKER_USERNAME:-crownlabs}"
           echo "::set-output name=repo-name::${{ matrix.component }}${{ needs.configure.outputs.repo-suffix }}"
 
           [[ -n "${{ matrix.dockerfile }}" ]] && \
@@ -167,8 +172,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           tags: |
-            crownlabs/${{ steps.parameters.outputs.repo-name }}:latest
-            crownlabs/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+            ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:latest
+            ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
@@ -191,8 +196,8 @@ jobs:
       - build
     if: |
       github.event_name == 'push' &&
-      github.event.repository.full_name == github.repository &&
-      github.ref == 'refs/heads/master'
+      github.ref == 'refs/heads/master' &&
+      needs.configure.outputs.repo-push == 'true'
 
     steps:
       - name: Send the Slack notification
@@ -219,7 +224,9 @@ jobs:
     needs:
       - configure
       - build
-    if: github.event_name == 'repository_dispatch'
+    if: |
+      github.event_name == 'repository_dispatch' &&
+      needs.configure.outputs.repo-push == 'true'
 
     steps:
       - name: Notify Event to CrownOps
@@ -248,7 +255,9 @@ jobs:
     needs:
       - configure
       - build
-    if: needs.configure.outputs.version != ''
+    if: |
+      needs.configure.outputs.version != '' &&
+      needs.configure.outputs.repo-push == 'true'
 
     steps:
       - name: Checkout
