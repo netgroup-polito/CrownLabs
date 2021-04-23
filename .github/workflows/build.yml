@@ -92,6 +92,7 @@ jobs:
           - websockify
           - pycharm
           - blender
+          - blender-lts
 
         include:
           # Operators
@@ -138,6 +139,8 @@ jobs:
             context: ./provisioning/containers/pycharm
           - component: blender
             context: ./provisioning/containers/blender
+          - component: blender-lts
+            context: ./provisioning/containers/blender-lts
 
           # SSH bastion
           - component: ssh-bastion
