@@ -1,0 +1,16 @@
+server {
+    listen              8080;
+    server_name         localhost;
+
+    location ${SUBROUTE} {
+        root   /usr/share/nginx/html;
+        index  index.html;
+        try_files $uri ${SUBROUTE}/index.html;
+    }
+
+    location /healthz {
+        access_log off;
+        return 200 "healthy\n";
+    }
+
+}
