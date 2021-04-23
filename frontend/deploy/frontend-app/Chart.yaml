@@ -1,6 +1,6 @@
 apiVersion: v2
-name: dashboard
-description: The current frontend dashboard to interact with CrownLabs
+name: frontend-app
+description: The new frontend to interact with CrownLabs
 
 # A chart can be either an 'application' or a 'library' chart.
 #
