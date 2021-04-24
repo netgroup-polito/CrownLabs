@@ -231,7 +231,9 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 
 ### Monitor the Bind DNS Server
 
-[bind_exporter](https://github.com/prometheus-community/bind_exporter) is a Prometheus exporter from Bind. The following guide is an adapted version of this [blog post](https://computingforgeeks.com/how-to-monitor-bind-dns-server-with-prometheus-and-grafana/).
+[bind_exporter](https://github.com/prometheus-community/bind_exporter) is a Prometheus exporter from Bind.
+<!-- markdown-link-check-disable-next-line -->
+The following guide is an adapted version of this [blog post](https://computingforgeeks.com/how-to-monitor-bind-dns-server-with-prometheus-and-grafana/).
 
 #### Bind configuration
 1. Download the latest release of the `bind_exporter` binary:
