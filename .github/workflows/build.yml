@@ -140,7 +140,10 @@ jobs:
           - component: blender
             context: ./provisioning/containers/blender
           - component: blender-lts
-            context: ./provisioning/containers/blender-lts
+            context: ./provisioning/containers/blender
+            build-args: |
+              BLENDER_VERSION_MAJOR=2.83
+              BLENDER_VERSION_MINOR=13
 
           # SSH bastion
           - component: ssh-bastion
