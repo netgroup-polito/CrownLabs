@@ -162,9 +162,18 @@ func buildContainerInstanceDeploymentSpec(
 			ReadinessProbe: &tigerVncProbe,
 		},
 		{
-			Name:      "filebrowser",
-			Image:     o.FileBrowserImg + ":" + o.FileBrowserImgTag,
-			Resources: buildResRequirements(0.1, 10, resource.MustParse("100Mi")), // actual: ~10MiB
+			Name:  "filebrowser",
+			Image: o.FileBrowserImg + ":" + o.FileBrowserImgTag,
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.01)),
+					"memory": resource.MustParse("100Mi"),
+				},
+				Limits: v1.ResourceList{
+					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.25)),
+					"memory": resource.MustParse("500Mi"),
+				},
+			},
 			Args: []string{
 				"--port=" + fmt.Sprintf("%d", fileBrowserPort),
 				"--root=" + mountPath,
