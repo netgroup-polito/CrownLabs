@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-john-doe
+---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Instance
 metadata:

@@ -1,3 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-tea
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-coffee
+---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
@@ -7,15 +17,15 @@ spec:
   prettyName: Green Tea
   description: Green tea is a type of tea that is made from ...
   environmentList:
-  - name: green-tea-1
-    environmentType: VirtualMachine
-    image: registry.crownlabs.example.com/tea/green:finest
-    guiEnabled: true
-    persistent: false
-    resources:
-      cpu: 2
-      memory: 2G
-      reservedCPUPercentage: 25
+    - name: green-tea-1
+      environmentType: VirtualMachine
+      image: registry.crownlabs.example.com/tea/green:finest
+      guiEnabled: true
+      persistent: false
+      resources:
+        cpu: 2
+        memory: 2G
+        reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: tea
   deleteAfter: 30d
@@ -29,15 +39,15 @@ spec:
   prettyName: Dark coffee
   description: Too strong to keep it running for a long time
   environmentList:
-  - name: dark-coffee-1
-    environmentType: Container
-    image: registry.crownlabs.example.com/coffee/dark:strongest
-    guiEnabled: false
-    persistent: true
-    resources:
-      cpu: 4
-      memory: 1G
-      reservedCPUPercentage: 50
+    - name: dark-coffee-1
+      environmentType: Container
+      image: registry.crownlabs.example.com/coffee/dark:strongest
+      guiEnabled: false
+      persistent: true
+      resources:
+        cpu: 4
+        memory: 1G
+        reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee
   deleteAfter: 1h
