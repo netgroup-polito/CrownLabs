@@ -1,0 +1,73 @@
+@success-color: #28a745;
+@warning-color: #eca52b;
+@info-color: #17a2b8;
+@buttons: success @success-color, warning @warning-color, info @info-color;
+.getButtons(@index:1) when(@index <= length(@buttons)) {
+    @name: extract(extract(@buttons, @index),1);
+    @color: extract(extract(@buttons, @index),2);
+    @colorHoverFocus: lighten(@color, 10%);
+    @colorActive: darken(@color, 10%);
+    .ant-btn-@{name}{
+        color: #fff !important;
+        background-color: @color !important;
+        border-color: @color !important;
+        text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+        -webkit-box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+    }
+    .ant-btn-@{name}-disabled,
+    .ant-btn-@{name}.disabled,
+    .ant-btn-@{name}[disabled],
+    .ant-btn-@{name}-disabled:hover,
+    .ant-btn-@{name}.disabled:hover,
+    .ant-btn-@{name}[disabled]:hover,
+    .ant-btn-@{name}-disabled:focus,
+    .ant-btn-@{name}.disabled:focus,
+    .ant-btn-@{name}[disabled]:focus,
+    .ant-btn-@{name}-disabled:active,
+    .ant-btn-@{name}.disabled:active,
+    .ant-btn-@{name}[disabled]:active,
+    .ant-btn-@{name}-disabled.active,
+    .ant-btn-@{name}.disabled.active,
+    .ant-btn-@{name}[disabled].active {
+        color: rgba(0, 0, 0, 0.25) !important;
+        background-color: #f5f5f5 !important;
+        border-color: #d9d9d9 !important;
+        text-shadow: none !important;
+        -webkit-box-shadow: none !important;
+        box-shadow: none !important;
+    }
+    .ant-btn-@{name}:hover,
+    .ant-btn-@{name}:focus {
+        color: #fff !important;
+        background-color: @colorHoverFocus !important;
+        border-color: @colorHoverFocus !important;
+    }
+    .ant-btn-@{name}:active,
+    .ant-btn-@{name}.active {
+        color: #fff !important;
+        background-color: @colorActive !important;
+        border-color: @colorActive !important;
+    }
+    .ant-btn-background-ghost.ant-btn-@{name} {
+        color: @color !important;
+        background: transparent !important;
+        border-color: @color !important;
+        text-shadow: none !important;
+    }
+    .ant-btn-background-ghost.ant-btn-@{name}:hover, 
+    .ant-btn-background-ghost.ant-btn-@{name}:focus {
+        color: @colorHoverFocus !important;
+        background: transparent !important;
+        border-color: @colorHoverFocus !important;
+    }
+    .ant-btn-background-ghost.ant-btn-@{name}:active, 
+    .ant-btn-background-ghost.ant-btn-@{name}.active {
+        color: @color !important;
+        background: transparent !important;
+        border-color: @colorActive !important;
+    }
+    .getButtons(@index + 1);
+};
+
+.getButtons();

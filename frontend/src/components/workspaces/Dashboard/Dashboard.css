@@ -1,0 +1,16 @@
+/* Courses */
+
+.course {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  border-radius: 2rem;
+  border: 0;
+  outline: none;
+}
+
+.course.active {
+  border: solid #1c7afd;
+  border-width: 4px;
+}

@@ -1,46 +1,59 @@
 import './App.css';
-import { PUBLIC_URL, REACT_APP_CROWNLABS_APISERVER_URL } from './env';
-import { BrowserRouter, Link, Route, Switch } from 'react-router-dom';
+import { PUBLIC_URL } from './env';
+import { BrowserRouter, NavLink, Route, Switch } from 'react-router-dom';
+import { Layout, Button, Space, Switch as SwitchToggle } from 'antd';
+import { useState } from 'react';
+import Dashboard from './components/workspaces/Dashboard';
+import { Auth } from './components/workspaces/auth';
+import { ModalExit } from './components/workspaces/Modal';
+
+const { Header, Footer, Content } = Layout;
 
 function App() {
-  return (
-    <div
-      style={{
-        backgroundColor: '#003676',
-        color: 'white',
-        margin: 'auto',
-        width: '100%',
-        height: '100%',
-        fontSize: '2.7rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'center',
-      }}
-    >
-      <BrowserRouter basename={PUBLIC_URL}>
-        <Switch>
-          <Route path="/active">
-            <div>Active</div>
-            <Link to="/">Go Home</Link>
-          </Route>
-          <Route path="/account">
-            <div>Account</div>
-            <Link to="/">Go Home</Link>
-          </Route>
-          <Route path="/" exact>
-            <div className="p-10 m-10">
-              CrownLabs will get a new look!
-              <br /> Apiserver at {REACT_APP_CROWNLABS_APISERVER_URL}{' '}
-            </div>
+  const [auth, setAuth] = useState(false);
+  const [showExitModal, setshowExitModal] = useState(false);
 
-            <Link to="/active">Go to active</Link>
-            <Link to="/account">Go to account</Link>
-          </Route>
+  return (
+    <BrowserRouter basename={PUBLIC_URL}>
+      <Layout className="h-screen">
+        <Header className="flex justify-center align-center">
+          <Space size="small">
+            <NavLink exact={true} to="/">
+              <Button type="primary" shape="round" size={'large'}>
+                Dashboard
+              </Button>
+            </NavLink>
+            <NavLink to="/active">
+              <Button type="primary" shape="round" size={'large'}>
+                Active
+              </Button>
+            </NavLink>
+            <NavLink to="/account">
+              <Button type="primary" shape="round" size={'large'}>
+                Account
+              </Button>
+            </NavLink>
+            <SwitchToggle checked={auth} onChange={() => setAuth(!auth)} />
+          </Space>
+        </Header>
+        <Switch>
+          <Auth.Provider value={auth}>
+            <Route path="/active"></Route>
+            <Route path="/account"></Route>
+            <Route path="/" exact>
+              <Content className="pt-5">
+                <Dashboard />
+                <ModalExit
+                  showmodal={showExitModal}
+                  setshowmodal={setshowExitModal}
+                />
+              </Content>
+            </Route>
+          </Auth.Provider>
         </Switch>
-      </BrowserRouter>
-    </div>
+        <Footer className="flex justify-center items-center">Footer</Footer>
+      </Layout>
+    </BrowserRouter>
   );
 }
 
