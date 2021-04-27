@@ -1,5 +1,5 @@
 import './App.css';
-import { REACT_APP_CROWNLABS_APISERVER_URL, PUBLIC_URL } from './env';
+import { PUBLIC_URL, REACT_APP_CROWNLABS_APISERVER_URL } from './env';
 import { BrowserRouter, Link, Route, Switch } from 'react-router-dom';
 
 function App() {
@@ -13,24 +13,30 @@ function App() {
         height: '100%',
         fontSize: '2.7rem',
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        textAlign: 'center'
+        textAlign: 'center',
       }}
     >
       <BrowserRouter basename={PUBLIC_URL}>
         <Switch>
           <Route path="/active">
-            ACTIVE
-            <Link to="/account">to account</Link>
+            <div>Active</div>
+            <Link to="/">Go Home</Link>
           </Route>
           <Route path="/account">
-            ACCOUNT
-            <Link to="/active">to active</Link>
+            <div>Account</div>
+            <Link to="/">Go Home</Link>
           </Route>
           <Route path="/" exact>
-            CrownLabs will get a new look! <br /> Apiserver at{' '}
-            {REACT_APP_CROWNLABS_APISERVER_URL}
+            <div className="p-10 m-10">
+              CrownLabs will get a new look!
+              <br /> Apiserver at {REACT_APP_CROWNLABS_APISERVER_URL}{' '}
+            </div>
+
+            <Link to="/active">Go to active</Link>
+            <Link to="/account">Go to account</Link>
           </Route>
         </Switch>
       </BrowserRouter>
