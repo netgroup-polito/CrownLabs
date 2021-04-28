@@ -1,0 +1,33 @@
+{
+  "name": "qlkube",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "local": "IN_CLUSTER=false npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qlkube/qlkube.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/qlkube/qlkube/issues"
+  },
+  "homepage": "https://github.com/qlkube/qlkube#readme",
+  "dependencies": {
+    "apollo-server-express": "^2.9.7",
+    "compression": "^1.7.4",
+    "express": "^4.17.1",
+    "got": "^9.6.0",
+    "graphql": "^14.5.8",
+    "graphql-tools": "^4.0.6",
+    "oasgraph": "^0.14.3",
+    "pino": "^5.13.6",
+    "promise-any": "^0.2.0"
+  }
+}
