@@ -15,6 +15,7 @@ async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
+        tokenJSONpath:"$.token",
     });
     return schema
 }

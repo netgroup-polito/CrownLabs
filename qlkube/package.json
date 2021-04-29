@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "local": "IN_CLUSTER=false npm start",
+    "dev": "IN_CLUSTER=false nodemon src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,9 +16,12 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/qlkube/qlkube/issues"
+    "url": "https://github.com/netgroup-polito/CrownLabs/issues"
   },
-  "homepage": "https://github.com/qlkube/qlkube#readme",
+  "homepage": "https://github.com/netgroup-polito/CrownLabs/qlkube#readme",
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  },
   "dependencies": {
     "apollo-server-express": "^2.9.7",
     "compression": "^1.7.4",
