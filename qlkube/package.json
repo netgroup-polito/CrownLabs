@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "IN_CLUSTER=false nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css}",
+    "pre-commit": "lint-staged",
+    "prepare": "cd .. && husky install qlkube/.husky"
   },
   "repository": {
     "type": "git",
@@ -20,7 +23,10 @@
   },
   "homepage": "https://github.com/netgroup-polito/CrownLabs/qlkube#readme",
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "husky": "^6.0.0",
+    "lint-staged": "^10.5.4",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.2.1"
   },
   "dependencies": {
     "apollo-server-express": "^2.9.7",
@@ -32,5 +38,16 @@
     "oasgraph": "^0.14.3",
     "pino": "^5.13.6",
     "promise-any": "^0.2.0"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "endOfLine": "lf"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css}": "prettier --write"
   }
 }
