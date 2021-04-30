@@ -11,12 +11,40 @@ import TemplateForm from './TemplateForm';
 function CrownLabsHome(props) {
   const [loading, setLoading] = useState(true);
   const [openCreate, setOpenCreate] = useState(false);
-  const [templates, setTemplates] = useState([]);
-  const [instances, setInstances] = useState([]);
-  const [tenants, setTenants] = useState([]);
-  const [instancesProfessor, setInstancesProfessor] = useState([]);
+  const [templates, setTemplatesRaw] = useState([]);
+  const [instances, setInstancesRaw] = useState([]);
+  const [tenants, setTenantsRaw] = useState([]);
+  const [instancesProfessor, setInstancesProfessorRaw] = useState([]);
   let location = useLocation();
   const onProfessor = location.pathname === '/professor';
+
+  const setTemplates = (templates) => {
+    templates.forEach((t) => {
+      t.metadata.selfLink = `/crownlabs.polito.it/v1alpha2/namespaces/${t.metadata.namespace}/templates/${t.metadata.name}`;
+    });
+    setTemplatesRaw(templates);
+  };
+
+  const setInstances = (instances) => {
+    instances.forEach((i) => {
+      t.metadata.selfLink = `/crownlabs.polito.it/v1alpha2/namespaces/${i.metadata.namespace}/instances/${i.metadata.name}`;
+    });
+    setInstancesRaw(instances);
+  };
+
+  const setInstancesProfessor = (instances) => {
+    instances.forEach((i) => {
+      t.metadata.selfLink = `/crownlabs.polito.it/v1alpha2/namespaces/${i.metadata.namespace}/instances/${i.metadata.name}`;
+    });
+    setInstancesProfessorRaw(instances);
+  };
+
+  setTenants = (tenants) => {
+    tenants.forEach((t) => {
+      t.metadata.selfLink = `/crownlabs.polito.it/v1alpha2/namespaces/${t.metadata.namespace}/templates/${t.metadata.name}`;
+    });
+    setTenantsRaw(tenants);
+  };
 
   useEffect(() => {
     if (onProfessor && instances.length > 0) {
