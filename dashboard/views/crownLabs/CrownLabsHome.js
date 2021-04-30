@@ -39,7 +39,7 @@ function CrownLabsHome(props) {
     setInstancesProfessorRaw(instances);
   };
 
-  setTenants = (tenants) => {
+  const setTenants = (tenants) => {
     tenants.forEach((t) => {
       t.metadata.selfLink = `/crownlabs.polito.it/v1alpha2/namespaces/${t.metadata.namespace}/templates/${t.metadata.name}`;
     });
