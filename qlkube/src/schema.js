@@ -1,15 +1,32 @@
-const {
-  GraphQLString,
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLBoolean,
-} = require('graphql');
+const { GraphQLString, GraphQLSchema, GraphQLObjectType } = require('graphql');
 const { mergeSchemas } = require('graphql-tools');
 const { createGraphQlSchema } = require('oasgraph');
+const { decorateBaseSchema } = require('./decorateBaseSchema.js');
 
 exports.createSchema = async (oas, kubeApiUrl, token) => {
   let baseSchema = await oasToGraphQlSchema(oas, kubeApiUrl, token);
-  return decorateSchema(baseSchema);
+  let allSchema = decorateSchema(baseSchema);
+  try {
+    let schemaWithInstanceTemplate = decorateBaseSchema(
+      'itPolitoCrownlabsV1alpha2Template',
+      'TemplateCrownlabsPolitoItTemplateRef',
+      allSchema,
+      'templateWrapper',
+      ['name', 'namespace']
+    );
+    let schemaWithInstanceTenant = decorateBaseSchema(
+      'itPolitoCrownlabsV1alpha1Tenant',
+      'TenantCrownlabsPolitoItTenantRef',
+      schemaWithInstanceTemplate,
+      'tenantWrapper',
+      ['name']
+    );
+
+    return schemaWithInstanceTenant;
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
+  }
 };
 
 async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
