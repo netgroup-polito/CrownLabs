@@ -83,6 +83,9 @@ jobs:
           - frontend-app
           - frontend-storybook
 
+          # qlkube - graphQL for k8s
+          - qlkube
+
           # SSH bastion
           - ssh-bastion
 
@@ -127,6 +130,10 @@ jobs:
             build-args: |
               BUILD_TARGET=storybook
               SUBROUTE=/
+
+          # qlkube - graphQL for k8s
+          - component:  qlkube
+            context: ./qlkube
 
           # Laboratory environments
           - component: novnc

@@ -41,6 +41,13 @@ frontend-storybook:
   ingress:
     hostname: storybook.crownlabs.example.com
 
+qlkube:
+  replicaCount: 1
+  image:
+    repository: crownlabs/qlkube
+  ingress:
+    hostname: qlkube.crownlabs.example.com
+
 instance-operator:
   replicaCount: 1
   image:
