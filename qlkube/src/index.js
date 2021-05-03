@@ -45,9 +45,8 @@ async function main() {
     res.setHeader('content-type', 'text/plain');
     res.send(printSchema(schema));
   });
-  app.get('/health', (req, res) => {
-    res.setHeader('content-type', 'application/json');
-    res.json({ healthy: true });
+  app.get('/healthz', (req, res) => {
+    res.sendStatus(200);
   });
   server.applyMiddleware({
     app,

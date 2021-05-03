@@ -2,5 +2,4 @@
 # shellcheck disable=SC1090
 . "$(dirname "$0")/_/husky.sh"
 
-echo TESSSSSSSSSSSST
 yarn --cwd=qlkube pre-commit

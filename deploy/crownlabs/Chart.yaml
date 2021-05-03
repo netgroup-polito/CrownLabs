@@ -35,6 +35,11 @@ dependencies:
   repository: file://../../frontend/deploy/frontend-storybook
   condition: frontend-storybook.enabled
 
+- name: qlkube
+  version: "0.1.0"
+  repository: file://../../qlkube/deploy/qlkube
+  condition: qlkube.enabled
+
 - name: instance-operator
   version: "0.1.0"
   repository: file://../../operators/deploy/instance-operator
