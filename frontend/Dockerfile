@@ -9,7 +9,8 @@ RUN mkdir --parent /tmp/frontend
 WORKDIR /tmp/frontend
 
 COPY --chown=node:node ./package.json /tmp/frontend/package.json
-RUN yarn install --frozen-lockfile
+COPY --chown=node:node ./yarn.lock /tmp/frontend/yarn.lock
+RUN yarn install
 
 ARG BUILD_TARGET
 ARG SUBROUTE="/"

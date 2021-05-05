@@ -1,20 +1,24 @@
-import Example, { IExampleProps } from './Example';
+import ExampleButton, { IExampleButtonProps } from './ExampleButton';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../utils';
+import { someKeysOf } from '../../../utils';
 
 export default {
-  title: 'Components/Example',
-  component: Example,
-  argTypes: { onClick: { action: 'clicked' } },
+  title: 'Components/Examples/ExampleButton',
+  component: ExampleButton,
+  argTypes: {
+    onClick: { action: 'clicked' },
+  },
 } as Meta;
 
-const defaultArgs: someKeysOf<IExampleProps> = {
-  text: 'Example',
+const defaultArgs: someKeysOf<IExampleButtonProps> = {
+  text: 'Example Button',
   disabled: false,
   specialCSS: false,
 };
 
-const Template: Story<IExampleProps> = args => <Example {...args} />;
+const Template: Story<IExampleButtonProps> = args => (
+  <ExampleButton {...args} />
+);
 
 export const Default = Template.bind({});
 
