@@ -47,6 +47,10 @@ spec:
             - "--container-env-vnc-img={{ .Values.configurations.containerEnvironmentOptions.vncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             - "--container-env-novnc-img={{ .Values.configurations.containerEnvironmentOptions.novncImage }}"
+            - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
+            - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
+            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
+            - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--container-env-filebrowser-img={{ .Values.configurations.containerEnvironmentOptions.filebrowserImage }}"
             - "--container-env-filebrowser-img-tag={{ .Values.configurations.containerEnvironmentOptions.filebrowserImageTag }}"
           ports:

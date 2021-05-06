@@ -31,6 +31,7 @@ type InstanceSpec struct {
 	Tenant GenericRef `json:"tenant.crownlabs.polito.it/TenantRef"`
 
 	// +kubebuilder:default=true
+	// +kubebuilder:validation:Optional
 
 	// Whether the current instance is running or not. This field is meaningful
 	// only in case the Instance refers to persistent environments, and it allows
@@ -39,7 +40,7 @@ type InstanceSpec struct {
 	// attaching it to the same disk used previously. The flag, on the other hand,
 	// is silently ignored in case of non-persistent environments, as the state
 	// cannot be preserved among reboots.
-	Running bool `json:"running,omitempty"`
+	Running bool `json:"running"`
 }
 
 // InstanceStatus reflects the most recently observed status of the Instance.

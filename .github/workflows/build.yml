@@ -89,6 +89,9 @@ jobs:
           # SSH bastion
           - ssh-bastion
 
+          # img-export for persistent VM instances snapshot
+          - img-exporter
+
           # Laboratory environments
           - novnc
           - tigervnc
@@ -155,6 +158,10 @@ jobs:
           # SSH bastion
           - component: ssh-bastion
             context: ./operators/build/ssh-bastion
+
+          # img-exporter image for InstanceSnapshot
+          - component: img-exporter
+            context: ./operators/build/img-exporter
 
     steps:
       - name: Checkout

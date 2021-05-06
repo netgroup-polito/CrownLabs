@@ -22,7 +22,6 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // ContainerEnvOpts contains images name and tag for container environment.
@@ -82,24 +81,16 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// reconcile was triggered by a delete request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	ns := v1.Namespace{}
-	namespaceName := types.NamespacedName{
-		Name:      instance.Namespace,
-		Namespace: "",
-	}
 
-	// It performs reconciliation only if the Instance belongs to whitelisted namespaces
-	// by checking the existence of keys in the instance namespace
-	if err := r.Get(ctx, namespaceName, &ns); err == nil {
-		if !instance_creation.CheckLabels(&ns, r.NamespaceWhitelist.MatchLabels) {
-			klog.Info("Namespace " + req.Namespace + " does not meet the selector labels")
-			return ctrl.Result{}, nil
+	// Check the selector label, in order to know whether to perform or not reconciliation.
+	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.Namespace, r.NamespaceWhitelist.MatchLabels); !proceed {
+		// If there was an error while checking, show the error and try again.
+		if err != nil {
+			klog.Error(err)
+			return ctrl.Result{}, err
 		}
-	} else {
-		klog.Error("Unable to get Instance namespace")
-		klog.Error(err)
+		return ctrl.Result{}, nil
 	}
-	klog.Info("Namespace " + req.Namespace + " met the selector labels")
 
 	// check if the Template exists
 	templateName := types.NamespacedName{

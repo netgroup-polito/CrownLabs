@@ -34,6 +34,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -68,6 +69,10 @@ func main() {
 	var containerEnvVncImg string
 	var containerEnvWebsockifyImg string
 	var containerEnvNovncImg string
+	var vmRegistry string
+	var vmRegistrySecret string
+	var containerImgExport string
+	var containerKaniko string
 	var containerEnvFileBrowserImg string
 	var containerEnvFileBrowserImgTag string
 
@@ -87,6 +92,10 @@ func main() {
 	flag.StringVar(&containerEnvVncImg, "container-env-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvWebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvNovncImg, "container-env-novnc-img", "crownlabs/novnc", "The image name for the novnc image (sidecar for graphical container environment)")
+	flag.StringVar(&vmRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
+	flag.StringVar(&vmRegistrySecret, "vm-registry-secret", "", "The name of the secret for the VM registry")
+	flag.StringVar(&containerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
+	flag.StringVar(&containerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 	flag.StringVar(&containerEnvFileBrowserImg, "container-env-filebrowser-img", "filebrowser/filebrowser", "The image name for the filebrowser image (sidecar for gui-based file manager)")
 	flag.StringVar(&containerEnvFileBrowserImgTag, "container-env-filebrowser-img-tag", "latest", "The tag for the FileBrowser container (the gui-based file manager)")
 	klog.InitFlags(nil)
@@ -127,6 +136,21 @@ func main() {
 		},
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal(err, "unable to create controller", "controller", "Instance")
+	}
+
+	if err = (&instancesnapshot_controller.InstanceSnapshotReconciler{
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		EventsRecorder:     mgr.GetEventRecorderFor("instance-snapshot"),
+		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		VMRegistry:         vmRegistry,
+		RegistrySecretName: vmRegistrySecret,
+		ContainersSnapshot: instancesnapshot_controller.ContainersSnapshotOpts{
+			ContainerKaniko:    containerKaniko,
+			ContainerImgExport: containerImgExport,
+		},
+	}).SetupWithManager(mgr); err != nil {
+		klog.Fatal(err, "unable to create controller", "controller", "InstanceSnapshot")
 	}
 
 	// +kubebuilder:scaffold:builder
