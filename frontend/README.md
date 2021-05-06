@@ -55,7 +55,7 @@ Each component needs to have its own folder with the following structure, e.g. f
 
 ### File structure
 
-Refer to the [Example component](./src/components/Example/) for a demo
+Refer to the [Example component](./src/components/Examples/ExampleButton/) for a demo.
 
 #### Component
 
@@ -66,6 +66,51 @@ Each component file needs to host a single component and needs to have the follo
 - component props interface with the name `${ComponentName}Props` (if needed)
 - functional component declaration
 
+Additionally:
+
+- if a task (like manipulating dynamic elements, animations, resizing) can be **_easily_** implemented using tailwind/css follow that implementation instead of relying on React/TS
+- have jsx only inside the return statement of the component
+
+  - Invalid:
+
+  ```ts
+  const Example: FC<IExampleProps> = ({ ...props }) => {
+    const { text, disabled, onClick, size, specialCSS } = props;
+    // do not have jsx outside the return
+    const content = <h5 className={specialCSS ? 'rainbow-text' : ''}>{text}</h5>
+
+    return (
+    <Button
+        disabled={disabled}
+        size={size}
+        onClick={onClick}
+        type="primary"
+        className="p-10"
+    >
+        {content}
+    </Button>
+  );
+  ```
+
+  - Accepted:
+
+  ```tsx
+  const Example: FC<IExampleProps> = ({ ...props }) => {
+    const { text, disabled, onClick, size, specialCSS } = props;
+
+    return (
+    <Button
+        disabled={disabled}
+        size={size}
+        onClick={onClick}
+        type="primary"
+        className="p-10"
+    >
+        <h5 className={specialCSS ? 'rainbow-text' : ''}>{text}</h5>
+    </Button>
+  );
+  ```
+
 #### Storybook
 
 Each storybook file needs to have the following structure:
@@ -75,6 +120,8 @@ Each storybook file needs to have the following structure:
 - default component args declaration (use `someKeysOf` type function)
 - template declaration
 - component stories
+
+Include in the `title` of the export default the path to create a hierarchy for your components. The path should be `Components/${subComponentsFolders}/${ComponentName}`
 
 ## Useful links
 
