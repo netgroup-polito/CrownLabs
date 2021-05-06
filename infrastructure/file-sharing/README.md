@@ -15,11 +15,17 @@ We can significantly improve our Nextcloud server performance with memory cachin
 Having multiple Nextcloud server instances a memory caching is indispensable in order to prevent conflicts when same file is requested by different users at the same time.
 
 **Redis** is an excellent modern memcache to use for distributed caching, and as a key-value store for Transactional File Locking because it guarantees that cached objects are available for as long as they are needed.
-To run a Redis cluster we need the [KubeDB Operator](https://kubedb.com). We can install it with a bash script or Helm. To keep it quick’n’easy we’ll use their bash script for that:
+
+To run a Redis cluster we need the [KubeDB Operator](https://kubedb.com), which can be installed using Helm after having obtained a [licence for the community edition](https://license-issuer.appscode.com/):
+
 ```bash
-curl -fsSL https://github.com/kubedb/installer/raw/v0.13.0-rc.0/deploy/kubedb.sh | bash -s -- --namespace=kubedb
+helm repo add appscode https://charts.appscode.com/stable/
+helm repo update
+helm install --create-namespace -namespace kubedb kubedb appscode/kubedb \
+  --values=manifests/kubedb-values.yaml\
+  --version v2021.04.16 \
+  --set-file global.license=<license-file>
 ```
-Here we decided to deploy the KubeDb Operator in a namespace called **kubedb**
 
 Then we install **redis** applying the [nextcloud-redis-cluster-manifest.yaml](manifests/nextcloud-redis-cluster-manifest.yaml):
 ```bash

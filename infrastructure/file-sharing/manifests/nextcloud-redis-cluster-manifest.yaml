@@ -6,39 +6,69 @@ metadata:
     app.kubernetes.io/part-of: nextcloud
   name: redis-nextcloud
 spec:
-  version: "5.0.3-v1"
-  mode: Standalone
   cluster:
     master: 1
     replicas: 3
+  configSecret:
+    name: redis-nextcloud
+  mode: Standalone
+  monitor:
+    agent: prometheus.io/operator
+    prometheus:
+      exporter:
+        port: 56790
+      serviceMonitor:
+        interval: 10s
+        labels:
+          app: kubedb
+  podTemplate:
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: redis-nextcloud
+                  app.kubernetes.io/managed-by: kubedb.com
+                  app.kubernetes.io/name: redises.kubedb.com
+              namespaces:
+              - nextcloud
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: redis-nextcloud
+                  app.kubernetes.io/managed-by: kubedb.com
+                  app.kubernetes.io/name: redises.kubedb.com
+              namespaces:
+              - nextcloud
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+            weight: 50
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 250m
+          memory: 128Mi
+      serviceAccountName: redis-nextcloud
+  replicas: 1
+  serviceTemplates:
+  - alias: primary
+    spec:
+      ports:
+      - name: http
+        port: 9200
+      type: ClusterIP
   storage:
-    storageClassName: "rook-ceph-block"
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
         storage: 250Mi
-  podTemplate:
-    spec:
-      resources:
-        requests:
-          memory: "128Mi"
-          cpu: "250m"
-        limits:
-          memory: "256Mi"
-          cpu: "500m"
-  serviceTemplate:
-    spec:
-      type: ClusterIP
-      ports:
-      - name: http
-        port: 9200
-        targetPort: http
-        terminationPolicy: WipeOut
-  updateStrategy:
-    type: RollingUpdate
-  monitor:
-    agent: prometheus.io/coreos-operator
-    prometheus:
-      namespace: monitoring
-      interval: 10s
+    storageClassName: rook-ceph-block
+  storageType: Durable
+  terminationPolicy: Halt
+  version: 5.0.3-v1
