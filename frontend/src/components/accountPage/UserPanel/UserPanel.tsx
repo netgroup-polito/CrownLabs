@@ -18,7 +18,7 @@ const UserPanel: FC<IUserPanelProps> = props => {
   const { avatar, sshKeys, ...otherInfo } = props;
 
   return (
-    <Row className="p-4">
+    <Row className="p-4" align="middle">
       <Col xs={24} sm={8} className="text-center">
         <Avatar size="large" icon={avatar ?? <UserOutlined />} />
         <p>
@@ -34,8 +34,8 @@ const UserPanel: FC<IUserPanelProps> = props => {
           </TabPane>
           <TabPane tab="SSH Keys" key="2">
             <Table dataSource={sshKeys}>
-              <Column title="Name" dataIndex="name" key="name" />
-              <Column title="Key" dataIndex="key" key="key" />
+              <Column title="Name" dataIndex="name" />
+              <Column title="Key" dataIndex="key" />
             </Table>
           </TabPane>
         </Tabs>

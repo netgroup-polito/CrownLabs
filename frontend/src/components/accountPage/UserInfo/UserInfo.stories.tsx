@@ -3,9 +3,9 @@ import { Story, Meta } from '@storybook/react';
 import { someKeysOf } from '../../../utils';
 
 export default {
-  title: 'Components/UserInfo',
+  title: 'Components/AccountPage/UserInfo',
   component: UserInfo,
-  argTypes: { onClick: { action: 'clicked' } },
+  argTypes: {},
 } as Meta;
 
 const defaultArgs: someKeysOf<IUserInfoProps> = {
