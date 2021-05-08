@@ -76,6 +76,7 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
+- **InstanceSnapshot** defines a snapshot for a persistent VM instance, once the operator finds this resource, it will start the snapshot creation process.
 
 ### Persistent Feature
 
@@ -94,6 +95,17 @@ The PVC represents a request for a PersistentVolume (PV). In other words thanks 
 The aim of the importer pod is to extract an image (in this case from a docker registry where it is saved) and load it inside the PVC. This process, depending on the size of the image, can take some minutes. Once the import is completed, the Phase of the DataVolume becomes Succeeded and the Instance Operator wakes up so that all the other resources are created.
 
 N.B. The process of creating a persistent VirtualMachine can take, as said, a bit more time with the respect to a normal one (5-10 mins). However when you restart the VM you will not have to wait such time.
+
+### Snapshots of persistent VM instances
+
+The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry. This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource. Once a new resource is found it will start the snapshot creation process. It is important to notice that at the moment it is not possible to perform snapshots of ephemeral VMs, moreover, persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
+
+If the request for a new snapshot is valid a new Job is created, performing two main actions:
+
+- **Exporting the VM's disk**: this action is done by a container init in the job, it steals the DataVolume from the VM, and converts the raw disk image in it as a qcow2 image with [QEMU disk image utility](https://qemu.readthedocs.io/en/latest/tools/qemu-img.html). After the conversion it creates the Dockerfile for the Docker image build. 
+- **Building a new image and pushing it to the Docker registry**: once the container init successfully terminates, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job is done with [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a priviliged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a great amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (At the moment the RAM memory limit for the Kaniko container is set to 32GB).
+
+When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, it is first needed to create a new Template with the newly uploaded image.
 
 ### Build from source
 
