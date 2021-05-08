@@ -11,11 +11,12 @@ export interface IUserPanelProps {
   username: string;
   email: string;
   avatar?: string;
+  scrollKeys: boolean;
   sshKeys?: { name: string; key: string }[];
 }
 
 const UserPanel: FC<IUserPanelProps> = props => {
-  const { avatar, sshKeys, ...otherInfo } = props;
+  const { avatar, sshKeys, scrollKeys, ...otherInfo } = props;
 
   return (
     <Row className="p-4" align="middle">
@@ -34,8 +35,17 @@ const UserPanel: FC<IUserPanelProps> = props => {
           </TabPane>
           <TabPane tab="SSH Keys" key="2">
             <Table dataSource={sshKeys}>
-              <Column title="Name" dataIndex="name" />
-              <Column title="Key" dataIndex="key" />
+              <Column title="Name" dataIndex="name" width={120} />
+              <Column
+                title="Key"
+                dataIndex="key"
+                className={
+                  scrollKeys
+                    ? 'overflow-auto overflow-clip'
+                    : 'whitespace-normal'
+                }
+                ellipsis={true}
+              />
             </Table>
           </TabPane>
         </Tabs>

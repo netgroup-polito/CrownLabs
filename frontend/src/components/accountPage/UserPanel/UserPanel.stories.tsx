@@ -36,4 +36,7 @@ const Template: Story<IUserPanelProps> = args => <UserPanel {...args} />;
 
 export const Default = Template.bind({});
 
-Default.args = defaultArgs;
+Default.args = { ...defaultArgs, scrollKeys: false };
+
+export const ScrollKeys = Template.bind({});
+ScrollKeys.args = { ...defaultArgs, scrollKeys: true };
