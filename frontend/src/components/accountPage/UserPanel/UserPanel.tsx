@@ -34,15 +34,16 @@ const UserPanel: FC<IUserPanelProps> = props => {
             <UserInfo {...otherInfo} />
           </TabPane>
           <TabPane tab="SSH Keys" key="2">
-            <Table dataSource={sshKeys}>
+            <Table
+              dataSource={sshKeys}
+              expandedRowRender={record => <p>{record.key}</p>}
+            >
               <Column title="Name" dataIndex="name" width={120} />
               <Column
                 title="Key"
                 dataIndex="key"
                 className={
-                  scrollKeys
-                    ? 'overflow-auto overflow-clip'
-                    : 'whitespace-normal'
+                  scrollKeys ? 'overflow-auto overflow-clip' : 'overflow-hidden'
                 }
                 ellipsis={true}
               />
