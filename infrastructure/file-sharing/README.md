@@ -68,7 +68,7 @@ kubectl -n nextcloud -f nextcloud-admin-credentials-secret.yaml
 kubectl -n nextcloud -f nextcloud-deployment.yaml
 ```
 ### Configuration
-Nextcloud cloud configuration is really vast argument, please consult the [official documentation](https://docs.nextcloud.com/server/18/admin_manual/configuration_server/index.html).
+Nextcloud cloud configuration is really vast argument, please consult the [official documentation](https://docs.nextcloud.com/server/19/admin_manual/configuration_server/index.html).
 Please check also the above mentioned manifests to configure the deployment as you want. After the installation for sure you will need
 to modify the nextcloud config file named **config.php**. Usually it is found in ```/var/www/html/config/config.php```.
 In [nextcloud-deployment.yaml](manifests/nextcloud-deployment.yaml) the replica size is set to ```1``` because we need only one instance during installation and configuration of Nextcloud.
