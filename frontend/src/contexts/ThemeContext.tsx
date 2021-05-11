@@ -6,7 +6,7 @@ import {
   useState,
 } from 'react';
 
-const LOCALSTORAGE_IS_DARL_THEME_KEY = 'REACT_APP_IS_DARK_THEME';
+const LOCALSTORAGE_IS_DARK_THEME_KEY = 'REACT_APP_IS_DARK_THEME';
 const MEDIA_QUERY_PREFER_LIGHT_SCHEMA = '(prefers-color-scheme: light)';
 const MEDIA_QUERY_PREFER_DARK_SCHEMA = '(prefers-color-scheme: dark)';
 
@@ -26,7 +26,7 @@ const ThemeContextProvider: FC<PropsWithChildren<{}>> = props => {
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
     // first check if user has already set theme
     const localIsDarkTheme = localStorage.getItem(
-      LOCALSTORAGE_IS_DARL_THEME_KEY
+      LOCALSTORAGE_IS_DARK_THEME_KEY
     );
     if (localIsDarkTheme) {
       return JSON.parse(localIsDarkTheme);
@@ -44,13 +44,13 @@ const ThemeContextProvider: FC<PropsWithChildren<{}>> = props => {
   useEffect(() => {
     if (isDarkTheme) {
       localStorage.setItem(
-        LOCALSTORAGE_IS_DARL_THEME_KEY,
+        LOCALSTORAGE_IS_DARK_THEME_KEY,
         JSON.stringify(true)
       );
       document.body.classList.remove('light');
     } else {
       localStorage.setItem(
-        LOCALSTORAGE_IS_DARL_THEME_KEY,
+        LOCALSTORAGE_IS_DARK_THEME_KEY,
         JSON.stringify(false)
       );
       document.body.classList.add('light');
