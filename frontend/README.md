@@ -121,7 +121,10 @@ Each storybook file needs to have the following structure:
 - template declaration
 - component stories
 
-Include in the `title` of the export default the path to create a hierarchy for your components. The path should be `Components/${subComponentsFolders}/${ComponentName}`
+Additionally:
+
+- Include in the `title` of the default export the path to create a hierarchy for your components. The path should be `Components/${subComponentsFolders}/${ComponentName}`
+- If you component needs external contexts and/or side-loaded data. You can use [decorators](https://storybook.js.org/docs/react/writing-stories/decorators) in you stories to provide them
 
 ## Useful links
 

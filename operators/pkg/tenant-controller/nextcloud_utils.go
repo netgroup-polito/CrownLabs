@@ -25,7 +25,7 @@ type NcActor struct {
 	BaseURL  string
 }
 
-// reference https://docs.nextcloud.com/server/15/admin_manual/configuration_user/instruction_set_for_users.html#add-a-new-user
+// reference https://docs.nextcloud.com/server/19/admin_manual/configuration_user/instruction_set_for_users.html#add-a-new-user
 
 var ncHeaders = map[string]string{"OCS-APIRequest": "true"}
 
