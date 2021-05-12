@@ -1,3 +1,5 @@
+# Default values at https://github.com/prometheus/alertmanager/blob/master/template/default.tmpl
+
 route:
   #group_by: [severity]
   # If an alert isn't caught by a route, send it warning.
@@ -22,6 +24,7 @@ route:
   - match:
       severity: none
     receiver: 'none'
+
 receivers:
 - name: 'critical'
   slack_configs:
@@ -29,20 +32,29 @@ receivers:
     send_resolved: true
     api_url: 'https://hooks.slack.com/services/XXXXX'
     #title_link: 'https://alertmanager.crownlabs.polito.it'
-    title: '{{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status
-      | toUpper }}] {{ .CommonAnnotations.summary }}'
-    text: "{{ range .Alerts }}*Priority*: `{{ .Labels.severity | toUpper }}`\n*AlertName*:
-      {{ .Labels.alertname }}\n{{ .Annotations.summary }}\n{{ end }}"
+    title: |-
+      {{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}{{ if .CommonLabels.job }} for {{ .CommonLabels.job }}{{ end }}
+    text: >-
+      {{ range .Alerts -}}
+        {{ if .Annotations.title }}*{{ .Annotations.title }}*{{ end }}
+        {{ if .Annotations.description }} •  {{ .Annotations.description }}{{ end }} {{ if .Annotations.message }} •  {{ .Annotations.message }} {{ end }}
+      {{ end }}
+    fallback: '{{ template "slack.default.title" . }}' # for notifications
 - name: 'warning'
   slack_configs:
   - channel: 'alerts-warning'
     send_resolved: true
     api_url: 'https://hooks.slack.com/services/XXXXY'
     #title_link: 'https://alertmanager.crownlabs.polito.it'
-    title: '{{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status
-      | toUpper }}] {{ .CommonAnnotations.summary }}'
-    text: "{{ range .Alerts }}*Priority*: `{{ .Labels.severity | toUpper }}`\n*AlertName*:
-      {{ .Labels.alertname }}\n{{ .Annotations.summary }}\n{{ end }}"
+    title: |-
+      {{ if eq .Status "firing" }}:fire:{{ else }}:trophy:{{ end }} [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}{{ if .CommonLabels.job }} for {{ .CommonLabels.job }}{{ end }}
+    text: >-
+      {{ range .Alerts -}}
+        {{ if .Annotations.title }}*{{ .Annotations.title }}*{{ end }}
+        {{ if .Annotations.description }} •  {{ .Annotations.description }}{{ end }} {{ if .Annotations.message }} •  {{ .Annotations.message }} {{ end }}
+      {{ end }}
+    fallback: '{{ template "slack.default.title" . }}' # for notifications
+
 - name: 'none'
   slack_configs:
   - channel: 'alerts-watchdog'
