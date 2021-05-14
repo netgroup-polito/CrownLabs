@@ -1,18 +1,14 @@
-import UserPanel, { IUserPanelProps } from './UserPanel';
+import SSHKeysTable, { ISSHKeysTableProps } from './SSHKeysTable';
 import { Story, Meta } from '@storybook/react';
 import { someKeysOf } from '../../../utils';
 
 export default {
-  title: 'Components/AccountPage/UserPanel',
-  component: UserPanel,
+  title: 'Components/AccountPage/SSHKeysTable',
+  component: SSHKeysTable,
   argTypes: {},
 } as Meta;
 
-const defaultArgs: someKeysOf<IUserPanelProps> = {
-  firstName: 'John',
-  lastName: 'Doe',
-  username: 's123456',
-  email: 'john.doe@studenti.polito.it',
+const defaultArgs: someKeysOf<ISSHKeysTableProps> = {
   sshKeys: [
     {
       name: 'Linux key',
@@ -32,12 +28,8 @@ const defaultArgs: someKeysOf<IUserPanelProps> = {
   ],
 };
 
-const Template: Story<IUserPanelProps> = args => <UserPanel {...args} />;
+const Template: Story<ISSHKeysTableProps> = args => <SSHKeysTable {...args} />;
 
 export const Default = Template.bind({});
 
-Default.args = { ...defaultArgs };
-
-export const NoSSHKeys = Template.bind({});
-const { sshKeys, ...otherArgs } = defaultArgs;
-NoSSHKeys.args = { ...otherArgs };
+Default.args = defaultArgs;

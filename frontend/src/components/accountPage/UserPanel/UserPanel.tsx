@@ -1,25 +1,29 @@
-import { FC } from 'react';
-import { Row, Col, Avatar, Tabs, Table } from 'antd';
+import { FC, useState } from 'react';
+import { Row, Col, Avatar, Tabs, Button } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import UserInfo from '../UserInfo/UserInfo';
+import SSHKeysTable from '../SSHKeysTable';
+import Modal from 'antd/lib/modal/Modal';
+import SSHKeysForm from '../SSHKeysForm';
 
 const { TabPane } = Tabs;
-const { Column } = Table;
 export interface IUserPanelProps {
   firstName: string;
   lastName: string;
   username: string;
   email: string;
   avatar?: string;
-  scrollKeys: boolean;
   sshKeys?: { name: string; key: string }[];
 }
 
 const UserPanel: FC<IUserPanelProps> = props => {
-  const { avatar, sshKeys, scrollKeys, ...otherInfo } = props;
+  const { avatar, sshKeys, ...otherInfo } = props;
+  const [showSSHModal, setShowSSHModal] = useState(false);
+
+  const closeModal = () => setShowSSHModal(false);
 
   return (
-    <Row className="p-4" align="middle">
+    <Row className="p-4" align="top">
       <Col xs={24} sm={8} className="text-center">
         <Avatar size="large" icon={avatar ?? <UserOutlined />} />
         <p>
@@ -34,20 +38,23 @@ const UserPanel: FC<IUserPanelProps> = props => {
             <UserInfo {...otherInfo} />
           </TabPane>
           <TabPane tab="SSH Keys" key="2">
-            <Table
-              dataSource={sshKeys}
-              expandedRowRender={record => <p>{record.key}</p>}
+            <SSHKeysTable sshKeys={sshKeys} />
+            <Button className="mt-3" onClick={() => setShowSSHModal(true)}>
+              Add SSH key
+            </Button>
+            <Modal
+              title="New SSH key"
+              visible={showSSHModal}
+              footer={null}
+              onCancel={closeModal}
             >
-              <Column title="Name" dataIndex="name" width={120} />
-              <Column
-                title="Key"
-                dataIndex="key"
-                className={
-                  scrollKeys ? 'overflow-auto overflow-clip' : 'overflow-hidden'
-                }
-                ellipsis={true}
+              <SSHKeysForm
+                onSaveKey={newKey => {
+                  closeModal();
+                }}
+                onCancel={closeModal}
               />
-            </Table>
+            </Modal>
           </TabPane>
         </Tabs>
       </Col>
