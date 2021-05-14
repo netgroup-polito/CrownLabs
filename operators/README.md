@@ -76,7 +76,7 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
-- **InstanceSnapshot** defines a snapshot for a persistent VM instance. Once this resource is created, the associated operator will start the snapshot creation process.
+- **InstanceSnapshot** defines a snapshot for a persistent VM instance. The associated operator will start the snapshot creation process once this resource is created.
 
 ### Persistent Feature
 
