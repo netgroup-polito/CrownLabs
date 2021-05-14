@@ -80,7 +80,7 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 ### Persistent Feature
 
-The Instance Operator allows you to create persistent Virtual Machines (VM). Persistent means that the VM can be stopped and restarted, deleted and recreated without data loss. 
+The Instance Operator enables the creation of persistent Virtual Machines (VM), i.e., VMs that can be stopped and restarted, deleted and recreated while keeping all the modifications done on the VM image disk.
 In order to use this feature, [the CDI operator](../infrastructure/virtualization/README.md) has to be installed.
 
 Provided that the CDI Operator has been deployed, the Instance Operator spawns a persistent VM similarly to a normal (i.e. non-persistent) one. To this end, the selection about which kind of VM is wanted, i.e. persistent or not, is performed looking at the corresponding field in the `template` spec. In the same way you can choose the size of the persistent disk that the VM will have.
@@ -98,14 +98,20 @@ N.B. The process of creating a persistent VirtualMachine can take, as said, a bi
 
 ### Snapshots of persistent VM instances
 
-The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry. This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource. Once a new resource is found it will start the snapshot creation process. It is important to notice that at the moment it is not possible to perform snapshots of ephemeral VMs, moreover, persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
+The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry.
+This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource.
+This controller starts the snapshot creation process once a new *InstanceSnapshot* resource is found.
 
-If the request for a new snapshot is valid a new Job is created, performing two main actions:
+The two main limitations of this approach are the following:
+- Snapshots of *ephemeral* VMs are currently unsupported
+- Persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
 
-- **Exporting the VM's disk**: this action is done by a container init in the job, it steals the DataVolume from the VM, and converts the raw disk image in it as a qcow2 image with [QEMU disk image utility](https://qemu.readthedocs.io/en/latest/tools/qemu-img.html). After the conversion it creates the Dockerfile for the Docker image build. 
-- **Building a new image and pushing it to the Docker registry**: once the container init successfully terminates, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job is done with [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a priviliged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a great amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (At the moment the RAM memory limit for the Kaniko container is set to 32GB).
+If the request for a new snapshot is valid, a new Job is created that performs the following two main actions:
 
-When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, it is first needed to create a new Template with the newly uploaded image.
+- **Export the VM's disk**: this action is done by an init container in the job; it steals the DataVolume from the VM and converts the above raw disk image in a QCOW2 image, using the [QEMU disk image utility](https://qemu.readthedocs.io/en/latest/tools/qemu-img.html). After the conversion, it creates the Dockerfile for the Docker image build, which is needed in the next step.
+- **Build a new image and push it to the Docker registry**: once the init container terminates successfully, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job leverages [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a privileged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a large amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (currently the Kaniko container has a RAM memory limit of 32GB).
+
+When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
 ### Build from source
 
