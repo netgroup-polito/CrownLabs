@@ -181,8 +181,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}
+          # The cache key is composed of the combination of the component name, the hash of the files in the build context and the hash of the commit.
+          # Example: Linux-instance-operator-buildx-78702f5342c365de6dec21db1910023b19d0c56b3e3187ac860131d88ac24498-3e0fbf49898789ec0ff0f78272dd0a7703389810
+          # The hash of the files in the context guarantees that a match is always found if no files of the component are modified, while the commit hash
+          # guarantees uniqueness of the name, to ensure the cache is always updated (i.e. to prevent issues if the base image changes).
+          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-
             ${{ runner.os }}-${{ matrix.component }}-buildx-
 
       - name: Login to DockerHub
