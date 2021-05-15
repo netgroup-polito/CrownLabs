@@ -55,6 +55,14 @@ jobs:
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
+      - name: Check if /operators files changed
+        uses: dorny/paths-filter@v2
+        id: pathFilter
+        with:
+          filters: |
+            operators:
+              - 'operators/**'
+
       - name: Setup Go
         uses: actions/setup-go@v1
         with:
@@ -83,6 +91,7 @@ jobs:
           make test-python
 
       - name: Send coverage
+        if: steps.pathFilter.outputs.operators == 'true'
         uses: shogo82148/actions-goveralls@v1
         with:
           path-to-profile: coverage.out
@@ -168,20 +177,20 @@ jobs:
       - name: Update the Helm chart dependencies
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec:
+          exec: 
             helm dependency update ./deploy/crownlabs
 
       - name: Verify that the helm chart is well-formed
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec:
+          exec: 
             helm lint ./deploy/crownlabs --with-subcharts
 
       - name: Render the yaml manifests
         id: helm-template
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec:
+          exec: 
             helm template crownlabs ./deploy/crownlabs
             --namespace crownlabs-production
             --set global.version=v0.0.1
@@ -195,7 +204,6 @@ jobs:
           docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
               --ignore-test=pod-networkpolicy,container-security-context,container-image-pull-policy \
             /CrownLabs/deploy/crownlabs/rendered.yaml
-
 
   opa:
     name: Policies
