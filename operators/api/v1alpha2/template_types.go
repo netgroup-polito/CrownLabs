@@ -111,8 +111,10 @@ type EnvironmentResources struct {
 	Memory resource.Quantity `json:"memory"`
 
 	// The size of the persistent disk allocated for the given environment.
-	// This field is meaningful only in case of persistent environments, while
-	// it is silently ignored in the other cases.
+	// This field is meaningful only in case of persistent or container-based
+	// environments, while it is silently ignored in the other cases.
+	// In case of containers, when this field is not specified, an emptyDir will be
+	// attached to the pod but this could result in data loss whenever the pod dies.
 	Disk resource.Quantity `json:"disk,omitempty"`
 }
 

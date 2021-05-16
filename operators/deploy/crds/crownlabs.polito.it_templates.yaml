@@ -124,8 +124,11 @@ spec:
                           - type: string
                           description: The size of the persistent disk allocated for
                             the given environment. This field is meaningful only in
-                            case of persistent environments, while it is silently
-                            ignored in the other cases.
+                            case of persistent or container-based environments, while
+                            it is silently ignored in the other cases. In case of
+                            containers, when this field is not specified, an emptyDir
+                            will be attached to the pod but this could result in data
+                            loss whenever the pod dies.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         memory:
