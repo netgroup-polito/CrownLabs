@@ -108,10 +108,53 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			},
 			Status: crownlabsv1alpha2.InstanceStatus{},
 		}
+		environmentWithPVC = crownlabsv1alpha2.Environment{
+			Name:            InstanceName,
+			Image:           "crownlabs/pycharm",
+			EnvironmentType: crownlabsv1alpha2.ClassContainer,
+			Resources: crownlabsv1alpha2.EnvironmentResources{
+				CPU:                   1,
+				ReservedCPUPercentage: 1,
+				Memory:                resource.MustParse("1024M"),
+				Disk:                  resource.MustParse("5G"),
+			},
+		}
+		templateWithPVC = crownlabsv1alpha2.Template{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      TemplateName + "with-pvc",
+				Namespace: TemplateNamespace,
+			},
+			Spec: crownlabsv1alpha2.TemplateSpec{
+				WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+				PrettyName:   "App Container Template",
+				Description:  "This is the container template",
+				EnvironmentList: []crownlabsv1alpha2.Environment{
+					environmentWithPVC,
+				},
+				DeleteAfter: "30d",
+			},
+			Status: crownlabsv1alpha2.TemplateStatus{},
+		}
+		instanceWithPVC = crownlabsv1alpha2.Instance{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      InstanceName + "with-pvc",
+				Namespace: InstanceNamespace,
+			},
+			Spec: crownlabsv1alpha2.InstanceSpec{
+				Template: crownlabsv1alpha2.GenericRef{
+					Name:      TemplateName + "with-pvc",
+					Namespace: TemplateNamespace,
+				},
+			},
+			Status: crownlabsv1alpha2.InstanceStatus{},
+		}
 		ns   = v1.Namespace{}
 		tmpl = crownlabsv1alpha2.Template{}
 		inst = crownlabsv1alpha2.Instance{}
 		depl = appsv1.Deployment{}
+		pvc  = v1.PersistentVolumeClaim{}
 	)
 
 	Context("When creating containerized apps", func() {
@@ -166,6 +209,47 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			By("Ensuring the deployment has got an OwnerReference")
 			Expect(depl.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 		})
+	})
+
+	Context("When creating containerized apps with attached PVC", func() {
+		It("Should create the container Template and the related container Instance", func() {
+			By("Creating the Template")
+			Expect(k8sClient.Create(ctx, &templateWithPVC)).Should(Succeed())
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      TemplateName + "with-pvc",
+				Namespace: TemplateNamespace,
+			}, &tmpl, BeTrue(), timeout, interval)
+
+			By("Creating the Instance associated to the Template")
+			Expect(k8sClient.Create(ctx, &instanceWithPVC)).Should(Succeed())
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "with-pvc",
+				Namespace: InstanceNamespace,
+			}, &inst, BeTrue(), timeout, interval)
+		})
+
+		It("Should correctly generate a PVC", func() {
+			By("Checking for the existence of the PVC")
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name:      InstanceName + "with-pvc",
+				Namespace: InstanceNamespace,
+			}, &pvc, BeTrue(), timeout, interval)
+
+			By("Checking that the PVC Has An OwnerReference")
+			flag := true
+			expectedOwnerReference := metav1.OwnerReference{
+				Kind:               "Instance",
+				APIVersion:         "crownlabs.polito.it/v1alpha2",
+				UID:                instanceWithPVC.ObjectMeta.UID,
+				Name:               InstanceName + "with-pvc",
+				Controller:         &flag,
+				BlockOwnerDeletion: &flag,
+			}
+			Expect(pvc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+			By("Checking that the PVC size is correct")
+			Expect(*(pvc.Spec.Resources.Requests.Storage())).To(BeEquivalentTo(templateWithPVC.Spec.EnvironmentList[0].Resources.Disk))
+		})
+
 	})
 
 	Context("When deleting the deployment", func() {

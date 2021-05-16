@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -32,6 +33,26 @@ func buildResRequirements(
 			"memory": mem,
 		},
 	}
+}
+
+func buildContainerVolume(
+	volumeName, claimName string,
+	environment *crownlabsv1alpha2.Environment,
+) v1.Volume {
+	volume := v1.Volume{
+		Name:         volumeName,
+		VolumeSource: v1.VolumeSource{},
+	}
+
+	if environment.Resources.Disk.IsZero() {
+		volume.VolumeSource.EmptyDir = &v1.EmptyDirVolumeSource{}
+	} else {
+		volume.VolumeSource.PersistentVolumeClaim = &v1.PersistentVolumeClaimVolumeSource{
+			ClaimName: claimName,
+		}
+	}
+
+	return volume
 }
 
 func buildContainerInstanceDeploymentSpec(
@@ -226,16 +247,27 @@ func buildContainerInstanceDeploymentSpec(
 				Labels: labels,
 			},
 			Spec: v1.PodSpec{
-				Containers:      containers,
-				SecurityContext: &podSecCtx,
+				Containers:                   containers,
+				SecurityContext:              &podSecCtx,
+				AutomountServiceAccountToken: &no,
 				Volumes: []v1.Volume{
-					{
-						Name: "shared",
-						VolumeSource: v1.VolumeSource{
-							EmptyDir: &v1.EmptyDirVolumeSource{},
-						},
-					},
+					buildContainerVolume("shared", name, environment),
 				},
+			},
+		},
+	}
+}
+
+func buildContainerInstancePVCSpec(
+	environment *crownlabsv1alpha2.Environment,
+) v1.PersistentVolumeClaimSpec {
+	return v1.PersistentVolumeClaimSpec{
+		AccessModes: []v1.PersistentVolumeAccessMode{
+			v1.ReadWriteOnce,
+		},
+		Resources: v1.ResourceRequirements{
+			Requests: v1.ResourceList{
+				v1.ResourceStorage: environment.Resources.Disk,
 			},
 		},
 	}
@@ -254,6 +286,28 @@ func (r *InstanceReconciler) CreateContainerEnvironment(
 	service, ingress, urlUUID, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name, true)
 	if err != nil {
 		return err
+	}
+
+	if !environment.Resources.Disk.IsZero() {
+		pvc := v1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
+		}
+
+		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
+			// PVC's spec is immutable, it has to be set at creation
+			if pvc.ObjectMeta.CreationTimestamp.IsZero() {
+				pvc.Spec = buildContainerInstancePVCSpec(environment)
+			}
+			return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
+		})
+		if err != nil {
+			r.setInstanceStatus(ctx, "Could not create PVC "+pvc.Name+" in namespace "+pvc.Namespace+": "+err.Error(), "Error", "VmiNotCreated", instance, "", "")
+			return err
+		}
+		klog.Infof("Successfully %s PVC for instance %s in namespace %s", res, instance, namespace)
 	}
 
 	depl := appsv1.Deployment{
