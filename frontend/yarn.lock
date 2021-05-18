@@ -3571,6 +3571,11 @@ ansi-to-html@^0.6.11:
   dependencies:
     entities "^1.1.2"
 
+antd-button-color@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/antd-button-color/-/antd-button-color-1.0.4.tgz#1746bf5b14ef1692929cb0332d076f7fd7b3faf6"
+  integrity sha512-KDzsvs0myFF5HLg8Kj4UW1icuw/vffXW0wwBOUWqVITrLXnrzkRpnOh6DEDmvsjxC8pwM4OCciouqfUlt5+7NA==
+
 antd@^4.15.2:
   version "4.15.3"
   resolved "https://registry.yarnpkg.com/antd/-/antd-4.15.3.tgz#000b460c5fa9c3f5a33eb14f6ddf360723dec5e2"
