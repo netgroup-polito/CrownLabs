@@ -9,3 +9,7 @@
 .history
 .idea
 .vscode
+node_modules
+
+# MacBook
+.DS_Store

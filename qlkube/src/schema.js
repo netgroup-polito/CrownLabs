@@ -7,14 +7,14 @@ exports.createSchema = async (oas, kubeApiUrl, token) => {
   let baseSchema = await oasToGraphQlSchema(oas, kubeApiUrl, token);
   let allSchema = decorateSchema(baseSchema);
   try {
-    let schemaWithInstanceTemplate = decorateBaseSchema(
+    const schemaWithInstanceTemplate = decorateBaseSchema(
       'itPolitoCrownlabsV1alpha2Template',
       'TemplateCrownlabsPolitoItTemplateRef',
       allSchema,
       'templateWrapper',
       ['name', 'namespace']
     );
-    let schemaWithInstanceTenant = decorateBaseSchema(
+    const schemaWithInstanceTenant = decorateBaseSchema(
       'itPolitoCrownlabsV1alpha1Tenant',
       'TenantCrownlabsPolitoItTenantRef',
       schemaWithInstanceTemplate,
