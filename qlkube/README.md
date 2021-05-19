@@ -40,3 +40,28 @@ yarn dev
 ## Schema
 
 The generated graphql schema is served at /schema
+
+## Playground adjust
+
+An issue could be seen in the playground when you test the subscription due to some graphql-playground modules. This bug is about the scrolling of the responses. At the moment, the only way to overcome this issue is to use a browser extension that injects custom css into the page. A possible extension for fixing that is [Stylus](https://chrome.google.com/webstore/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne).
+
+After you have installed the extension and opened the option panel, you can add custom css clicking on the respective button under the menu **Actions** and adding the code below:
+
+```css
+.graphiql-wrapper > div:first-child > div:first-child > div:nth-child(2) {
+    height: 100%;
+}
+.graphiql-wrapper > div:first-child > div:first-child > div:nth-child(2) > div:nth-child(2) {
+    height: 100%;
+    overflow-anchor: auto;
+}
+```
+
+Finally, add the correct url of **CrownLabs Playground** and save.
+
+[setting](../documentation/settingExtension.mp4)
+
+
+## Subscriptions
+
+[example](../documentation/subscriptionExample.mp4)
