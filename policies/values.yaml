@@ -44,7 +44,7 @@ gatekeeperNamespace: gatekeeper-system
 
 # Hook configurations
 hook:
-  kubectlImage: bitnami/kubectl:1.19
+  kubectlImage: bitnami/kubectl:1.21
   pullPolicy: IfNotPresent
   securityContext:
     capabilities:
@@ -57,10 +57,10 @@ hook:
     privileged: false
   resources:
     limits:
-      memory: 100Mi
+      memory: 250Mi
       cpu: 1000m
     requests:
-      memory: 100Mi
+      memory: 250Mi
       cpu: 10m
 
 nameOverride: ""
