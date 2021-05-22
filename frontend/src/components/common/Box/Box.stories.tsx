@@ -11,108 +11,132 @@ export default {
   argTypes: {
     header: {
       options: [
-        'Small_Simple',
-        'Middle_Simple',
-        'Large_Simple',
-        'Small_Custom',
-        'Middle_Custom',
-        'Large_Custom',
+        'Center_Only_small',
+        'Center_Only_middle',
+        'Center_Only_large',
+        'Left_Center_Right_small',
+        'Left_Center_Right_middle',
+        'Left_Center_Right_large',
       ],
       mapping: {
-        Small_Simple: {
+        Center_Only_small: {
           size: 'small' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Simple Header small</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Simple Header small</b>
+              </p>
+            </div>
           ),
         },
-        Middle_Simple: {
+        Center_Only_middle: {
           size: 'middle' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Simple Header middle</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Simple Header middle</b>
+              </p>
+            </div>
           ),
         },
-        Large_Simple: {
+        Center_Only_large: {
           size: 'large' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Simple Header large</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Simple Header large</b>
+              </p>
+            </div>
           ),
         },
-        Small_Custom: {
+        Left_Center_Right_small: {
           size: 'small' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Custom Header small</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Custom Header small</b>
+              </p>
+            </div>
           ),
           left: (
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              icon={<UserSwitchOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pl-10">
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<UserSwitchOutlined />}
+              />
+            </div>
           ),
           right: (
-            <Button
-              type="lightdark"
-              shape="circle"
-              size="large"
-              icon={<PlusOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pr-10">
+              <Button
+                type="lightdark"
+                shape="circle"
+                size="large"
+                icon={<PlusOutlined />}
+              />
+            </div>
           ),
         },
-        Middle_Custom: {
+        Left_Center_Right_middle: {
           size: 'middle' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Custom Header middle</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Custom Header middle</b>
+              </p>
+            </div>
           ),
           left: (
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              icon={<UserSwitchOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pl-10">
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<UserSwitchOutlined />}
+              />
+            </div>
           ),
           right: (
-            <Button
-              type="lightdark"
-              shape="circle"
-              size="large"
-              icon={<PlusOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pr-10">
+              <Button
+                type="lightdark"
+                shape="circle"
+                size="large"
+                icon={<PlusOutlined />}
+              />
+            </div>
           ),
         },
-        Large_Custom: {
+        Left_Center_Right_large: {
           size: 'large' as BoxHeaderSize,
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>Custom Header large</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>Custom Header large</b>
+              </p>
+            </div>
           ),
           left: (
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              icon={<UserSwitchOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pl-10">
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<UserSwitchOutlined />}
+              />
+            </div>
           ),
           right: (
-            <Button
-              type="lightdark"
-              shape="circle"
-              size="large"
-              icon={<PlusOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pr-10">
+              <Button
+                type="lightdark"
+                shape="circle"
+                size="large"
+                icon={<PlusOutlined />}
+              />
+            </div>
           ),
         },
       },
@@ -121,11 +145,32 @@ export default {
       options: ['Yes', 'None'],
       mapping: {
         Yes: (
-          <Button type="success" shape="round" size={'large'} disabled={false}>
-            Button Footer Example
-          </Button>
+          <div className="w-full py-10 flex justify-center">
+            <Button
+              type="success"
+              shape="round"
+              size={'large'}
+              disabled={false}
+            >
+              Button Footer Example
+            </Button>
+          </div>
         ),
         None: undefined,
+      },
+    },
+    headerMinHeight: {
+      options: ['Yes', 'None'],
+      mapping: {
+        Yes: true,
+        None: false,
+      },
+    },
+    footerMinHeight: {
+      options: ['Yes', 'None'],
+      mapping: {
+        Yes: true,
+        None: false,
       },
     },
   },
@@ -158,16 +203,20 @@ User.args = {
   ...defaultArgs,
   header: {
     center: (
-      <p className="md:text-4xl text-2xl text-center mb-0">
-        <b>User View</b>
-      </p>
+      <div className="h-full flex justify-center items-center pl-10">
+        <p className="md:text-4xl text-2xl text-center mb-0">
+          <b>User View</b>
+        </p>
+      </div>
     ),
     size: 'large' as BoxHeaderSize,
   },
   footer: (
-    <Button type="success" shape="round" size={'large'} disabled={false}>
-      Button Footer
-    </Button>
+    <div className="w-full py-10 flex justify-center">
+      <Button type="success" shape="round" size={'large'} disabled={false}>
+        Button Footer Example
+      </Button>
+    </div>
   ),
 };
 
@@ -177,31 +226,39 @@ Manager.args = {
   ...defaultArgs,
   header: {
     center: (
-      <p className="md:text-4xl text-2xl text-center mb-0">
-        <b>Manager View</b>
-      </p>
+      <div className="h-full flex justify-center items-center px-5">
+        <p className="md:text-4xl text-2xl text-center mb-0">
+          <b>Manager View</b>
+        </p>
+      </div>
     ),
     left: (
-      <Button
-        type="primary"
-        shape="circle"
-        size="large"
-        icon={<UserSwitchOutlined />}
-      />
+      <div className="h-full flex justify-center items-center pl-10">
+        <Button
+          type="primary"
+          shape="circle"
+          size="large"
+          icon={<UserSwitchOutlined />}
+        />
+      </div>
     ),
     right: (
-      <Button
-        type="lightdark"
-        shape="circle"
-        size="large"
-        icon={<PlusOutlined />}
-      />
+      <div className="h-full flex justify-center items-center pr-10">
+        <Button
+          type="lightdark"
+          shape="circle"
+          size="large"
+          icon={<PlusOutlined />}
+        />
+      </div>
     ),
     size: 'large' as BoxHeaderSize,
   },
   footer: (
-    <Button type="success" shape="round" size={'large'} disabled={false}>
-      Button Footer
-    </Button>
+    <div className="w-full py-10 flex justify-center">
+      <Button type="success" shape="round" size={'large'} disabled={false}>
+        Button Footer Example
+      </Button>
+    </div>
   ),
 };
