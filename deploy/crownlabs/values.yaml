@@ -45,6 +45,7 @@ qlkube:
   replicaCount: 1
   image:
     repository: crownlabs/qlkube
+  rbacResourcesName: crownlabs-qlkube
   ingress:
     hostname: qlkube.crownlabs.example.com
 
