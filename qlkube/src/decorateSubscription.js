@@ -1,10 +1,14 @@
+const { withFilter } = require('apollo-server');
 const { gql } = require('apollo-server-core');
-const { extendSchema } = require('graphql/utilities');
 const { addResolversToSchema } = require('@graphql-tools/schema');
-const { PubSub, withFilter } = require('apollo-server');
+const { extendSchema } = require('graphql/utilities');
+const { pubsubAsyncIterator } = require('./pubsub.js');
+const { subscriptions } = require('./subscriptions.js');
 const { capitalizeType } = require('./utils.js');
+const { canWatchResource } = require('./watch.js');
 
-const pubsub = new PubSub();
+let cacheSubscriptions = {};
+const TEN_MINUTES = 10 * 60 * 1000;
 
 function decorateEnum(baseSchema, enumName, values) {
   if (!baseSchema) throw 'Parameter baseSchema cannot be empty!';
@@ -29,7 +33,7 @@ function decorateEnum(baseSchema, enumName, values) {
   return newSchema;
 }
 
-function decorateSubscription(baseSchema, targetType, enumType) {
+function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
   if (!baseSchema) throw 'Parameter baseSchema cannot be empty!';
   if (!targetType) throw 'Parameter targetType cannot be empty!';
   if (!enumType) throw 'Parameter enumType cannot be empty!';
@@ -62,12 +66,23 @@ function decorateSubscription(baseSchema, targetType, enumType) {
     Subscription: {
       [subscriptionField]: {
         subscribe: withFilter(
-          () => pubsub.asyncIterator([label]),
+          () => pubsubAsyncIterator(label),
           (payload, variables, info, context) => {
+            const resourceApi = subscriptions.filter(sub => {
+              return `${sub.type}Update` === context.fieldName;
+            })[0];
             return (
               payload.apiObj.metadata.namespace === variables.namespace &&
               (variables.name === undefined ||
-                payload.apiObj.metadata.name === variables.name)
+                payload.apiObj.metadata.name === variables.name) &&
+              checkPermission(
+                info.token,
+                resourceApi.group,
+                resourceApi.resource,
+                variables.namespace,
+                variables.name,
+                kubeApiUrl
+              )
             );
           }
         ),
@@ -92,9 +107,59 @@ function decorateSubscription(baseSchema, targetType, enumType) {
   return newSchema;
 }
 
-function setupSubscriptions(subscriptions, schema) {
+async function checkPermission(
+  token,
+  group = '',
+  resource,
+  namespace,
+  name = '',
+  kubeApiUrl
+) {
+  if (!token) throw 'Parameter token cannot be empty!';
+  if (!resource) throw 'Parameter resource cannot be empty!';
+  if (!namespace) throw 'Parameter namespace cannot be empty!';
+  if (!kubeApiUrl) throw 'Parameter kubeApiUrl cannot be empty!';
+
+  const keyCache = `${token}_${group}_${resource}_${namespace}_${name}`;
+  const lastSub = cacheSubscriptions[keyCache];
+  const canUserWatchResourceCached =
+    lastSub &&
+    !(
+      Date.now() - lastSub > TEN_MINUTES && delete cacheSubscriptions[keyCache]
+    );
+
+  if (canUserWatchResourceCached) {
+    return true;
+  } else {
+    const canUserWatchResource = await canWatchResource(
+      kubeApiUrl,
+      token,
+      resource,
+      group,
+      namespace,
+      name
+    );
+
+    if (canUserWatchResource) {
+      cacheSubscriptions[keyCache] = Date.now();
+      return true;
+    }
+  }
+  return false;
+}
+
+function clearCache() {
+  const currentTimestamp = Date.now();
+  Object.keys(cacheSubscriptions).forEach(e => {
+    currentTimestamp - cacheSubscriptions[e] > TEN_MINUTES &&
+      delete cacheSubscriptions[e];
+  });
+}
+
+function setupSubscriptions(subscriptions, schema, kubeApiUrl) {
   if (!subscriptions) throw 'Parameter subscriptions cannot be empty!';
   if (!schema) throw 'Parameter schema cannot be empty!';
+  if (!kubeApiUrl) throw 'Parameter kubeApiUrl cannot be empty!';
 
   let newSchema = decorateEnum(schema, 'UpdateType', [
     'ADDED',
@@ -102,19 +167,23 @@ function setupSubscriptions(subscriptions, schema) {
     'DELETED',
   ]);
 
-  subscriptions.forEach(e => {
-    newSchema = decorateSubscription(newSchema, e.type, 'UpdateType');
+  subscriptions.forEach(sub => {
+    newSchema = decorateSubscription(
+      newSchema,
+      sub.type,
+      'UpdateType',
+      kubeApiUrl
+    );
   });
 
-  return newSchema;
-}
+  setInterval(() => {
+    clearCache();
+  }, TEN_MINUTES * 2.2);
 
-function publishEvent(label, value) {
-  pubsub.publish(label, value);
+  return newSchema;
 }
 
 module.exports = {
   decorateSubscription,
   setupSubscriptions,
-  publishEvent,
 };

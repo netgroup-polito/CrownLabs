@@ -1,16 +1,16 @@
-const fs = require('fs').promises;
-const { createServer } = require('http');
-const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const compression = require('compression');
-const { createSchema } = require('./schema');
-const { kwatch } = require('./watch.js');
-const { setupSubscriptions } = require('./decorateSubscription.js');
-const { subscriptions } = require('./subscriptions.js');
-const getOpenApiSpec = require('./oas');
-const { printSchema } = require('graphql');
-const logger = require('pino')({ useLevelLabels: true });
 const dotenv = require('dotenv');
+const express = require('express');
+const fs = require('fs').promises;
+const { printSchema } = require('graphql');
+const { createServer } = require('http');
+const logger = require('pino')({ useLevelLabels: true });
+const { setupSubscriptions } = require('./decorateSubscription.js');
+const getOpenApiSpec = require('./oas');
+const { createSchema } = require('./schema');
+const { subscriptions } = require('./subscriptions.js');
+const { kwatch } = require('./watch.js');
 
 dotenv.config();
 
@@ -30,12 +30,11 @@ async function main() {
         'utf8'
       )
     : '';
-
   const oas = await getOpenApiSpec(kubeApiUrl, token);
   let schema = await createSchema(oas, kubeApiUrl, token);
 
   try {
-    schema = setupSubscriptions(subscriptions, schema);
+    schema = setupSubscriptions(subscriptions, schema, kubeApiUrl);
   } catch (e) {
     console.error(e);
     process.exit(1);
@@ -47,6 +46,10 @@ async function main() {
       path: '/subscription',
       onConnect: (connectionParams, webSocket, context) => {
         console.log('Connected!');
+        const token =
+          connectionParams.authorization &&
+          connectionParams.authorization.split(' ')[1];
+        return token ? { token } : false;
       },
       onDisconnect: (webSocket, context) => {
         console.log('Disconnected!');
@@ -55,7 +58,8 @@ async function main() {
 
     context: ({ req, connection }) => {
       if (connection) {
-        return {};
+        const token = connection.context.token;
+        return { token };
       } else {
         if (req.headers.authorization && req.headers.authorization.length > 0) {
           const strs = req.headers.authorization.split(' ');
@@ -96,7 +100,10 @@ async function main() {
 
   try {
     subscriptions.forEach(sub => {
-      kwatch(sub.resource, sub.type);
+      const resourceApi = `/${sub.api}${sub.group ? `/${sub.group}` : ''}/${
+        sub.version
+      }/${sub.resource}`;
+      kwatch(resourceApi, sub.type);
     });
   } catch (e) {
     console.error(e);
