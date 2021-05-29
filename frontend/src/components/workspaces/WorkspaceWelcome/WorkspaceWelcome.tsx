@@ -10,9 +10,11 @@ const WorkspaceWelcome: FC<IWorkspaceWelcomeProps> = ({ ...args }) => {
       header={{
         size: 'large',
         center: (
-          <p className="md:text-4xl text-2xl text-center mb-0">
-            <b>Welcome to CrownLabs</b>
-          </p>
+          <div className="h-full flex justify-center items-center px-5">
+            <p className="md:text-4xl text-2xl text-center mb-0">
+              <b>Welcome to CrownLabs</b>
+            </p>
+          </div>
         ),
       }}
     >

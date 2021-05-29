@@ -4,7 +4,7 @@ import './Box.less';
 import { BoxHeaderSize } from '../../../utils';
 export interface IBoxProps {
   header?: BoxHeader;
-  footer?: JSX.Element;
+  footer?: React.ReactNode;
 }
 
 export type BoxHeader = {
@@ -30,39 +30,21 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
         className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box"
         bordered={false}
       >
-        <div className="inner">
+        <div className="w-full flex-none">
           {header && (
             <div
               className={`${
                 size ? classPerSize[size] : ''
-              } flex-none w-full flex justify-center items-center box-header`}
+              } flex justify-center items-center box-header`}
             >
-              {left && (
-                <div className="flex-none h-full flex justify-center items-center pl-10">
-                  {left}
-                </div>
-              )}
-              {center && (
-                <div className="flex-grow h-full flex justify-center items-center px-5">
-                  {center}
-                </div>
-              )}
-              {right && (
-                <div className="flex-none h-full flex justify-center items-center pr-10">
-                  {right}
-                </div>
-              )}
+              <div className="flex-none h-full">{left}</div>
+              <div className="flex-grow h-full">{center}</div>
+              <div className="flex-none h-full">{right}</div>
             </div>
           )}
         </div>
-        {children}
-        <div className="inner">
-          {footer && (
-            <div className="flex-none w-full py-10 flex justify-center">
-              {footer}
-            </div>
-          )}
-        </div>
+        <div className="w-full flex-grow">{children}</div>
+        <div className="w-full flex-none inner">{footer}</div>
       </Card>
     </>
   );

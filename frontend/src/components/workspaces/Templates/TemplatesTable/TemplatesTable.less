@@ -1,0 +1,8 @@
+// WE HAVE TO FIX THIS HARD CODED HEIGHT
+// document.documentElement.style.setProperty('--box-ext-height', `${value}px`); 
+
+.cl-templates-table{
+  min-height: 171px;  
+  height: calc(100vh - var(--box-ext-height, 380px)); //465px if we want to add a Box footer
+
+}

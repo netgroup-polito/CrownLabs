@@ -4,24 +4,14 @@ import Button from 'antd-button-color';
 import { TemplatesTable } from '../Templates/TemplatesTable';
 import { TemplatesEmpty } from '../Templates/TemplatesEmpty';
 import Box from '../../common/Box';
-import { WorkspaceRole } from '../../../utils';
+import { Template, WorkspaceRole } from '../../../utils';
 
 export interface IWorkspaceContainerProps {
   workspace: {
     id: number;
     title: string;
     role: WorkspaceRole;
-    templates: Array<{
-      id: string;
-      name: string;
-      gui: boolean;
-      instances: Array<{
-        id: number;
-        name: string;
-        ip: string;
-        status: boolean;
-      }>;
-    }>;
+    templates: Array<Template>;
   };
 }
 
@@ -44,25 +34,31 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         header={{
           size: 'large',
           center: (
-            <p className="md:text-4xl text-2xl text-center mb-0">
-              <b>{title}</b>
-            </p>
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-4xl text-2xl text-center mb-0">
+                <b>{title}</b>
+              </p>
+            </div>
           ),
           left: role === 'manager' && (
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              icon={<UserSwitchOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pl-10">
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<UserSwitchOutlined />}
+              />
+            </div>
           ),
           right: role === 'manager' && (
-            <Button
-              type="lightdark"
-              shape="circle"
-              size="large"
-              icon={<PlusOutlined />}
-            />
+            <div className="h-full flex justify-center items-center pr-10">
+              <Button
+                type="lightdark"
+                shape="circle"
+                size="large"
+                icon={<PlusOutlined />}
+              />
+            </div>
           ),
         }}
       >
