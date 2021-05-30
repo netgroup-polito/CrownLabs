@@ -28,6 +28,7 @@ const ActiveLanding: FC<IActiveLandingProps> = ({ ...props }) => {
         <NestedTables
           workspaces={workspaces}
           templates={templates}
+          nested={managerView}
           isManager={managerView}
           destroyAll={() => alert('VMs deleted')}
         />

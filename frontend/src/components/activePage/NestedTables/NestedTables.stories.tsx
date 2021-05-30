@@ -37,7 +37,7 @@ export default {
 const defaultArgs: someKeysOf<INestedTablesProps> = {
   workspaces: workspaces,
   templates: templates,
-  isManager: false,
+  nested: false,
 };
 
 const Template: Story<INestedTablesProps> = args => <NestedTables {...args} />;
@@ -66,7 +66,7 @@ UserView.parameters = {
 
 export const ManagerView = Template.bind({});
 
-ManagerView.args = { ...defaultArgs, isManager: true };
+ManagerView.args = { ...defaultArgs, nested: true };
 ManagerView.parameters = {
   docs: {
     // eslint-disable-next-line react/no-multi-comp

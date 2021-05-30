@@ -4,6 +4,9 @@ import { FC, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import RowHeading from '../RowHeading/RowHeading';
+import InstancesTable from '../Instances/InstancesTable/InstancesTable';
+import { IInstance } from '../Instances/InstancesTable/InstancesTable';
+import { instances } from '../tempData';
 
 export interface IWorkspace {
   key: string;
@@ -23,25 +26,26 @@ export interface INestedTablesProps {
   workspaces: Array<IWorkspace>;
   templates: Array<ITemplate>;
   isManager: boolean;
+  nested: boolean;
   destroyAll: () => void;
 }
 
 type rowType = IWorkspace | ITemplate;
 
 const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
-  const { workspaces, templates, isManager, destroyAll } = props;
+  const { workspaces, templates, nested, isManager, destroyAll } = props;
   const { Column } = Table;
   const [expandedID, setExpandedID] = useState(['']);
 
   const accordion = (expanded: boolean, record: rowType) => {
     const expId = !expanded
       ? ''
-      : isManager
+      : nested
       ? (record as IWorkspace).key
       : (record as ITemplate).key;
     setExpandedID([expId]);
   };
-  const data = (isManager ? workspaces : templates) as rowType[];
+  const data = (nested ? workspaces : templates) as rowType[];
   return (
     <Table
       dataSource={data}
@@ -58,20 +62,21 @@ const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
         ),
         // eslint-disable-next-line react/no-multi-comp
         expandedRowRender: record =>
-          isManager ? (
+          nested ? (
             <NestedTables
               workspaces={workspaces}
               templates={(record as IWorkspace).templates}
-              isManager={false}
+              nested={false}
+              isManager={isManager}
               destroyAll={destroyAll}
             />
           ) : (
-            /* record will also be used here */
-            <ul>
-              <li>VM Instance 1</li>
-              <li>VM Instance 2</li>
-              <li>VM Instance 3</li>
-            </ul>
+            <InstancesTable
+              instances={instances.filter(
+                (inst: IInstance) => inst.templateId === record.id
+              )}
+              isManaged={isManager}
+            />
           ),
         expandRowByClick: true,
       }}
@@ -82,7 +87,7 @@ const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
         dataIndex="name"
         key="key"
         render={(text, record: IWorkspace | ITemplate) => {
-          return isManager ? (
+          return nested ? (
             <RowHeading
               text={(record as IWorkspace).name}
               nActive={(record as IWorkspace).templates.length}
