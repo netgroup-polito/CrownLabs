@@ -223,6 +223,23 @@ func buildContainerInstanceDeploymentSpec(
 				environment.Resources.ReservedCPUPercentage,
 				environment.Resources.Memory,
 			),
+			Env: []v1.EnvVar{{
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						ContainerName: name,
+						Resource:      "requests.cpu",
+					},
+				},
+				Name: "CROWNLABS_CPU_REQUESTS",
+			}, {
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						ContainerName: name,
+						Resource:      "limits.cpu",
+					},
+				},
+				Name: "CROWNLABS_CPU_LIMITS",
+			}},
 			SecurityContext: &contSecCtx,
 			VolumeMounts: []v1.VolumeMount{{
 				Name:      "shared",

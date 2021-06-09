@@ -29,16 +29,15 @@ RUN apt-get update && apt-get install -y \
 ARG BLENDER_VERSION_MAJOR="2.92"
 ARG BLENDER_VERSION_MINOR="0"
 ENV BLENDER_VER="${BLENDER_VERSION_MAJOR}.${BLENDER_VERSION_MINOR}-linux64"
-ENV PATH "$PATH:/bin/${BLENDER_VERSION_MAJOR}/python/bin/"
-ENV BLENDER_PATH "/bin/${BLENDER_VERSION_MAJOR}"
-ENV BLENDERPIP "/bin/${BLENDER_VERSION_MAJOR}/python/bin/pip3"
-ENV BLENDERPY "/bin/${BLENDER_VERSION_MAJOR}/python/bin/python3.7m"
+ENV BLENDER_PATH="/bin/${BLENDER_VERSION_MAJOR}"
+ENV PATH "$PATH:${BLENDER_PATH}/python/bin/"
+ENV BLENDERPIP="${BLENDER_PATH}/python/bin/pip3"
+ENV BLENDERPY="${BLENDER_PATH}/python/bin/python3.7m"
 
 # Download and install Blender
-RUN wget -q https://ftp.nluug.nl/pub/graphics/blender/release/Blender${BLENDER_VERSION_MAJOR}/blender-${BLENDER_VER}.tar.xz \ 
+RUN wget -q https://ftp.nluug.nl/pub/graphics/blender/release/Blender${BLENDER_VERSION_MAJOR}/blender-${BLENDER_VER}.tar.xz \
   && tar -xf blender-${BLENDER_VER}.tar.xz --strip-components=1 -C /bin \ 
   && rm -rf blender-${BLENDER_VER}.tar.xz \ 
-  && rm -rf blender-${BLENDER_VER} \
   && rm -rf ${BLENDER_PATH}/python/lib/python3.7/site-packages/numpy
 
 # Download the Python source since it is not bundled with Blender
@@ -46,7 +45,7 @@ RUN wget -q https://ftp.nluug.nl/pub/graphics/blender/release/Blender${BLENDER_V
 # Must first ensurepip to install Blender pip3 and then new numpy
 RUN wget -q https://www.python.org/ftp/python/3.7.10/Python-3.7.10.tgz \ 
   && tar -xzf Python-3.7.10.tgz \ 
-  && cp -r Python-3.7.10/Include/* $BLENDER_PATH/python/include/python3.7m/ \ 
+  && cp -r Python-3.7.10/Include/* ${BLENDER_PATH}/python/include/python3.7m/ \ 
   && rm -rf Python-3.7.10.tgz \ 
   && rm -rf Python-3.7.10 \
   && ${BLENDERPY} -m ensurepip \
@@ -67,6 +66,9 @@ RUN mkdir -p $HOME && useradd -ms /bin/bash -u ${UID} $USER
 
 # Set permissions on user home
 RUN chown -R $USER:$USER $HOME
+
+# Copy the startup script for resources limiting
+COPY autolimits.py ${BLENDER_PATH}/scripts/startup/crownlabs_autolimits.py
 
 # Set the user to use
 USER $USER
