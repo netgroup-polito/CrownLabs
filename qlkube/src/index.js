@@ -47,8 +47,10 @@ async function main() {
       onConnect: (connectionParams, webSocket, context) => {
         console.log('Connected!');
         const token =
-          connectionParams.authorization &&
-          connectionParams.authorization.split(' ')[1];
+          (connectionParams.authorization &&
+            connectionParams.authorization.split(' ')[1]) ||
+          (connectionParams.Authorization &&
+            connectionParams.Authorization.split(' ')[1]);
         return token ? { token } : false;
       },
       onDisconnect: (webSocket, context) => {
