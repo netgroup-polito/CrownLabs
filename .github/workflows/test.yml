@@ -123,6 +123,9 @@ jobs:
       - name: Gather the differences
         id: git-diff
         run: |
+          # Ensure new files are also considered in the diff
+          git add --intent-to-add .
+
           output=$(git diff | head -n 100)
           exit_code=$([ "${output}" ] && echo 1 || echo 0)
 
@@ -177,20 +180,20 @@ jobs:
       - name: Update the Helm chart dependencies
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec: 
+          exec:
             helm dependency update ./deploy/crownlabs
 
       - name: Verify that the helm chart is well-formed
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec: 
+          exec:
             helm lint ./deploy/crownlabs --with-subcharts
 
       - name: Render the yaml manifests
         id: helm-template
         uses: WyriHaximus/github-action-helm3@v2
         with:
-          exec: 
+          exec:
             helm template crownlabs ./deploy/crownlabs
             --namespace crownlabs-production
             --set global.version=v0.0.1
