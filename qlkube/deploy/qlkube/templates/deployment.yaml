@@ -46,6 +46,14 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+          - name: configuration
+            mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.subscriptions.fileName }}"
+            subPath: "{{ .Values.configuration.subscriptions.fileName }}"
+      volumes:
+      - name: configuration
+        configMap:
+          name: "{{ include "qlkube.fullname" . }}"
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

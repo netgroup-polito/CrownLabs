@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "qlkube.fullname" . }}
+  labels:
+    {{- include "qlkube.labels" . | nindent 4 }}
+data:
+  {{ .Values.configuration.subscriptions.fileName }}: |
+    const subscriptions = [
+      {{- range $api := .Values.configuration.subscriptions.apis }}
+      {{- range .resources }}
+      {
+        api: 'apis',
+        group: '{{ $api.group }}',
+        version: '{{ .version }}',
+        resource: '{{ .resource }}',
+        type: '{{ .mapping }}',
+      },
+      {{- end }}
+      {{- end }}
+    ];
+
+    module.exports = { subscriptions };

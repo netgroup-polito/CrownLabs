@@ -10,11 +10,30 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
+configuration:
+  mountPath: /qlkube/src
+
+  # This subscription configuration maps to the current content
+  # of the src/subscriptions.js file
+  subscriptions:
+    fileName: subscriptions.js
+    apis:
+    - group: crownlabs.polito.it
+      resources:
+      - resource: instances
+        version: v1alpha2
+        mapping: itPolitoCrownlabsV1alpha2Instance
+      - resource: templates
+        version: v1alpha2
+        mapping: itPolitoCrownlabsV1alpha2Template
+
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-deploymentAnnotations: {}
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
 podAnnotations: {}
 
 securityContext:
