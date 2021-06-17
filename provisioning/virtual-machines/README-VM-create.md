@@ -53,7 +53,7 @@ Hence, if the VM is rebooted during the local configuration, it may be necessary
 The tools that are required by CrownLabs to work and are automatically installed by the Crownlabs ansible playbooks are:
 - **TigerVNC server**: it allows to connect to the VM desktop from a remote machine.
 - **NoVNC with websockify server**: it allows the above connection to be established through HTTP/HTTPS, hence allowing to connect from a browser, without any other desktop client applications (e.g., VNC client).
-- **Prometheus node exporter**: it exports some run-time information of the VM (e.g., CPU/memory consumption) to the Prometheus monitoring system, running on the Kubernetes cluster, hence facilitating the monitoring of your system.
+- **Prometheus node exporter**: it exports some run-time information of the VM (e.g., CPU/memory consumption) to the Prometheus monitoring system, running on the Kubernetes cluster, hence facilitating the monitoring of your system. For instance, if you are curious about what your VM is exporting, you can connect to `localhost:9100` from the VM itself and see all the scraped metrics.
 - **cloud-init**: it enables to customize some running parameters of the VM at boot time.
 
 
