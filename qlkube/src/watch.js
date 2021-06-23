@@ -56,8 +56,8 @@ async function canWatchResource(
 }
 
 function kwatch(api, label) {
-  if (!api) throw 'Parameter api cannot be empty!';
-  if (!label) throw 'Parameter label cannot be empty!';
+  if (!api) throw new Error('Parameter api cannot be empty!');
+  if (!label) throw new Error('Parameter label cannot be empty!');
   watch
     .watch(
       api,

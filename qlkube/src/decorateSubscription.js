@@ -1,5 +1,5 @@
 const { withFilter } = require('apollo-server');
-const { gql } = require('apollo-server-core');
+const { gql, ForbiddenError } = require('apollo-server-core');
 const { addResolversToSchema } = require('@graphql-tools/schema');
 const { extendSchema } = require('graphql/utilities');
 const { pubsubAsyncIterator } = require('./pubsub.js');
@@ -11,12 +11,12 @@ let cacheSubscriptions = {};
 const TEN_MINUTES = 10 * 60 * 1000;
 
 function decorateEnum(baseSchema, enumName, values) {
-  if (!baseSchema) throw 'Parameter baseSchema cannot be empty!';
-  if (!enumName) throw 'Parameter enumName cannot be empty!';
-  if (!values) throw 'Parameter values cannot be empty!';
+  if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
+  if (!enumName) throw new Error('Parameter enumName cannot be empty!');
+  if (!values) throw new Error('Parameter values cannot be empty!');
 
   if (baseSchema._typeMap[enumName] !== undefined)
-    throw 'Enum type is already present in the schema!';
+    throw new Error('Enum type is already present in the schema!');
 
   let enumType = `enum ${enumName} {`;
   values.forEach(val => {
@@ -34,12 +34,12 @@ function decorateEnum(baseSchema, enumName, values) {
 }
 
 function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
-  if (!baseSchema) throw 'Parameter baseSchema cannot be empty!';
-  if (!targetType) throw 'Parameter targetType cannot be empty!';
-  if (!enumType) throw 'Parameter enumType cannot be empty!';
+  if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
+  if (!targetType) throw new Error('Parameter targetType cannot be empty!');
+  if (!enumType) throw new Error('Parameter enumType cannot be empty!');
 
   if (baseSchema.getQueryType().getFields()[targetType] === undefined)
-    throw 'Target type not found into the schema';
+    throw new Error('Target type not found into the schema');
 
   const subscriptionField = `${targetType}Update`;
   const label = targetType;
@@ -115,10 +115,10 @@ async function checkPermission(
   name = '',
   kubeApiUrl
 ) {
-  if (!token) throw 'Parameter token cannot be empty!';
-  if (!resource) throw 'Parameter resource cannot be empty!';
-  if (!namespace) throw 'Parameter namespace cannot be empty!';
-  if (!kubeApiUrl) throw 'Parameter kubeApiUrl cannot be empty!';
+  if (!token) throw new Error('Parameter token cannot be empty!');
+  if (!resource) throw new Error('Parameter resource cannot be empty!');
+  if (!namespace) throw new Error('Parameter namespace cannot be empty!');
+  if (!kubeApiUrl) throw new Error('Parameter kubeApiUrl cannot be empty!');
 
   const keyCache = `${token}_${group}_${resource}_${namespace}_${name}`;
   const lastSub = cacheSubscriptions[keyCache];
@@ -140,12 +140,11 @@ async function checkPermission(
       name
     );
 
-    if (canUserWatchResource) {
-      cacheSubscriptions[keyCache] = Date.now();
-      return true;
-    }
+    if (!canUserWatchResource)
+      throw new ForbiddenError('Token Error! You cannot watch this resource');
+    cacheSubscriptions[keyCache] = Date.now();
+    return true;
   }
-  return false;
 }
 
 function clearCache() {
@@ -157,9 +156,10 @@ function clearCache() {
 }
 
 function setupSubscriptions(subscriptions, schema, kubeApiUrl) {
-  if (!subscriptions) throw 'Parameter subscriptions cannot be empty!';
-  if (!schema) throw 'Parameter schema cannot be empty!';
-  if (!kubeApiUrl) throw 'Parameter kubeApiUrl cannot be empty!';
+  if (!subscriptions)
+    throw new Error('Parameter subscriptions cannot be empty!');
+  if (!schema) throw new Error('Parameter schema cannot be empty!');
+  if (!kubeApiUrl) throw new Error('Parameter kubeApiUrl cannot be empty!');
 
   let newSchema = decorateEnum(schema, 'UpdateType', [
     'ADDED',
