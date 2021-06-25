@@ -92,6 +92,7 @@ const DefaultResponseFormat = "text/html"
 // SupportedResponseFormats is a map associating to each supported format the corresponding file extension.
 var SupportedResponseFormats = map[string]string{
 	"text/html":        "html",
+	"text/plain":       "txt",
 	"application/json": "json",
 }
 
@@ -161,7 +162,7 @@ func errorHandler(templates map[string]*template.Template) func(http.ResponseWri
 		message, ok := errorMessages[code]
 		if !ok {
 			message = errorMessages[0]
-			klog.Infof("Unknown error message for code %v. Using %v", code, message)
+			klog.Warningf("Unknown error message for code %v. Using %v", code, message)
 		}
 
 		// Get the output format requested by the user
@@ -185,8 +186,8 @@ func errorHandler(templates map[string]*template.Template) func(http.ResponseWri
 		}
 
 		// Serve the response
-		klog.Infof("Error Code: %v - URI: %v - Ingress: %v/%v - Format: %v",
-			code, r.Header.Get(OriginalURI), r.Header.Get(Namespace), r.Header.Get(IngressName), format)
+		klog.Infof("Error Code: %v - URI: '%v' - Ingress: '%v/%v' - Requested format: '%v' - Response format: '%v'",
+			code, r.Header.Get(OriginalURI), r.Header.Get(Namespace), r.Header.Get(IngressName), r.Header.Get(FormatHeader), format)
 		if err := tmpl.Execute(w, errorData); err != nil {
 			klog.Error("Failed to prepare the response from the template: ", err)
 			return

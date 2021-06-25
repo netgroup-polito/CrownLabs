@@ -15,7 +15,7 @@ spec:
     solvers:
     - http01:
         ingress:
-          class: nginx
+          class: nginx-external
     - dns01:
         rfc2136:
           nameserver: 130.192.225.79
