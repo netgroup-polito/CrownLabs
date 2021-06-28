@@ -8,6 +8,7 @@ const { createServer } = require('http');
 const logger = require('pino')({ useLevelLabels: true });
 const { setupSubscriptions } = require('./decorateSubscription.js');
 const getOpenApiSpec = require('./oas');
+const { decorateOpenapi } = require('./decorateOpenapi');
 const { createSchema } = require('./schema');
 const { subscriptions } = require('./subscriptions.js');
 const { kwatch } = require('./watch.js');
@@ -31,7 +32,8 @@ async function main() {
       )
     : '';
   const oas = await getOpenApiSpec(kubeApiUrl, token);
-  let schema = await createSchema(oas, kubeApiUrl, token);
+  const targetOas = decorateOpenapi(oas);
+  let schema = await createSchema(targetOas, kubeApiUrl, token);
 
   try {
     schema = setupSubscriptions(subscriptions, schema, kubeApiUrl);
