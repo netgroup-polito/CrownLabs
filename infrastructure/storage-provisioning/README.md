@@ -1,7 +1,7 @@
 # Storage Provisioning - Rook-Ceph
 
 [Rook](https://rook.io/) is a cloud-native storage orchestrator for Kubernetes.
-Among the different alternatives supported by Rook, we adopted [Ceph](https://ceph.io) as the selected storage provider.
+Among the different alternatives supported by Rook, we adopted [Ceph](https://ceph.io/en) as the selected storage provider.
 
 ## Install Rook-Ceph
 

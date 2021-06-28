@@ -20,17 +20,17 @@ function decorateBaseSchema(
   nameWrapper,
   argsNeeded
 ) {
-  if (!targetQuery) throw 'Parameter targetQuery cannot be empty!';
-  if (!extendedType) throw 'Parameter extendedType cannot be empty!';
-  if (!nameWrapper) throw 'Parameter nameWrapper cannot be empty!';
-  if (!argsNeeded) throw 'Parameter argsNeeded cannot be empty!';
-  if (!baseSchema) throw 'Parameter baseSchema cannot be empty!';
+  if (!targetQuery) throw new Error('Parameter targetQuery cannot be empty!');
+  if (!extendedType) throw new Error('Parameter extendedType cannot be empty!');
+  if (!nameWrapper) throw new Error('Parameter nameWrapper cannot be empty!');
+  if (!argsNeeded) throw new Error('Parameter argsNeeded cannot be empty!');
+  if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
 
   if (baseSchema.getQueryType().getFields()[targetQuery] === undefined)
-    throw 'Parameter targetQuery not valid!';
+    throw new Error('Parameter targetQuery not valid!');
   const targetType = baseSchema.getQueryType().getFields()[targetQuery];
 
-  if (!targetType) throw 'targetType fault!';
+  if (!targetType) throw new Error('targetType fault!');
 
   const typeWrapper = capitalizeType(nameWrapper);
   const typeTargetQuery = capitalizeType(targetQuery);
@@ -50,7 +50,7 @@ function decorateBaseSchema(
         const newParent = {};
         for (e of argsNeeded) {
           if (parent[e] === undefined)
-            throw `Error: ${e} is not into the parent object!`;
+            throw new Error(`Error: ${e} is not into the parent object!`);
           newParent[e] = parent[e];
         }
         return newParent;
