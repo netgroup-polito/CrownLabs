@@ -1,4 +1,4 @@
-FROM node:14-alpine
+FROM node:16.3-alpine
 
 RUN mkdir --parent /qlkube
 RUN chown node:node /qlkube && chmod 770 /qlkube
