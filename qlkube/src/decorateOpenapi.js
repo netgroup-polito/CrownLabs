@@ -2,6 +2,16 @@ const { apiGroups } = require('./apiGroups');
 
 const k8s = 'io.k8s.apimachinery';
 
+/**
+ *
+ * @param {*} oas
+ * This function filters the OpenApi made from k8s API.
+ * Starting from a list of paths,
+ * for each path into oas checks if at least one of our paths matches with it,
+ * so that paths that are never matched are removed.
+ * @returns
+ */
+
 function decorateOpenapi(oas) {
   let result = true;
   let keys = Object.keys(oas.paths);
@@ -9,7 +19,7 @@ function decorateOpenapi(oas) {
     result = true;
     const paths = apiGroups.paths;
     paths.forEach(path => {
-      result &&= key.indexOf(path) == -1;
+      result = result && !key.includes(path);
     });
     return result;
   });
@@ -25,7 +35,7 @@ function decorateOpenapi(oas) {
     );
     definitions.push(k8s);
     definitions.forEach(definition => {
-      result &&= key.indexOf(definition) == -1;
+      result = result && !key.includes(definition);
     });
     return result;
   });
