@@ -28,7 +28,7 @@ frontend-app:
     path: /
   configuration:
     backend:
-      apiServer: https://apiserver.example.com
+      graphql: https://graphql.example.com
     oidc:
       clientId: <client-id>
       clientSecret: <client-secret>
