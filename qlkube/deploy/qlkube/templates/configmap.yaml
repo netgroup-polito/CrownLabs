@@ -5,6 +5,17 @@ metadata:
   labels:
     {{- include "qlkube.labels" . | nindent 4 }}
 data:
+  {{ .Values.configuration.exposedAPIs.fileName }}: |
+    const apiGroups = {
+      paths: [
+        {{- range .Values.configuration.exposedAPIs.apis }}
+          '{{ . }}',
+        {{- end }}
+      ],
+    };
+
+    module.exports = { apiGroups };
+
   {{ .Values.configuration.subscriptions.fileName }}: |
     const subscriptions = [
       {{- range $api := .Values.configuration.subscriptions.apis }}

@@ -42,11 +42,15 @@ spec:
             httpGet:
               path: /healthz
               port: http
+            initialDelaySeconds: 60
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           volumeMounts:
+          - name: configuration
+            mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.exposedAPIs.fileName }}"
+            subPath: "{{ .Values.configuration.exposedAPIs.fileName }}"
           - name: configuration
             mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.subscriptions.fileName }}"
             subPath: "{{ .Values.configuration.subscriptions.fileName }}"

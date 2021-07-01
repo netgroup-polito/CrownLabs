@@ -13,8 +13,15 @@ image:
 configuration:
   mountPath: /qlkube/src
 
+  # ExposedAPIs represents the list of Kubernetes APIs which are
+  # exposed through graphql.
+  exposedAPIs:
+    fileName: apiGroups.js
+    apis:
+    - crownlabs.polito.it
+
   # This subscription configuration maps to the current content
-  # of the src/subscriptions.js file
+  # of the src/subscriptions.js file. Must be a subset of exposedAPIs.
   subscriptions:
     fileName: subscriptions.js
     apis:

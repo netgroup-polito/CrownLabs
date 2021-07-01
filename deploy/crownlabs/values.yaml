@@ -49,6 +49,9 @@ qlkube:
   ingress:
     hostname: qlkube.crownlabs.example.com
   configuration:
+    exposedAPIs:
+      apis:
+      - crownlabs.polito.it
     subscriptions:
       apis:
       - group: crownlabs.polito.it
