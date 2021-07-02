@@ -96,41 +96,6 @@ func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Ins
 	return nil
 }
 
-func (r *InstanceReconciler) createOAUTHlogic(name string, instance *crownlabsv1alpha2.Instance, namespace, urlUUID string) error {
-	ctx := context.TODO()
-
-	// create Service for oauth2
-	oauthService := instance_creation.ForgeOauth2Service(name, namespace)
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &oauthService, func() error {
-		return ctrl.SetControllerReference(instance, &oauthService, r.Scheme)
-	}); err != nil {
-		r.setInstanceStatus(ctx, "Could not create service "+oauthService.Name+" in namespace "+oauthService.Namespace, "Warning", "Oauth2ServiceNotCreated", instance, "", "")
-		return err
-	}
-	r.setInstanceStatus(ctx, "Service "+oauthService.Name+" correctly created in namespace "+oauthService.Namespace, "Normal", "Oauth2ServiceCreated", instance, "", "")
-
-	// create Ingress to manage the oauth2 service
-	oauthIngress := instance_creation.ForgeOauth2Ingress(name, namespace, &oauthService, urlUUID, r.WebsiteBaseURL)
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &oauthIngress, func() error {
-		return ctrl.SetControllerReference(instance, &oauthIngress, r.Scheme)
-	}); err != nil {
-		r.setInstanceStatus(ctx, "Could not create ingress "+oauthIngress.Name+" in namespace "+oauthIngress.Namespace, "Warning", "Oauth2IngressNotCreated", instance, "", "")
-		return err
-	}
-	r.setInstanceStatus(ctx, "Ingress "+oauthIngress.Name+" correctly created in namespace "+oauthIngress.Namespace, "Normal", "Oauth2IngressCreated", instance, "", "")
-
-	// create Deployment for oauth2
-	oauthDeploy := instance_creation.ForgeOauth2Deployment(name, namespace, urlUUID, r.Oauth2ProxyImage, r.OidcClientSecret, r.OidcProviderURL)
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &oauthDeploy, func() error {
-		return ctrl.SetControllerReference(instance, &oauthDeploy, r.Scheme)
-	}); err != nil {
-		r.setInstanceStatus(ctx, "Could not create deployment "+oauthDeploy.Name+" in namespace "+oauthDeploy.Namespace, "Warning", "Oauth2DeployNotCreated", instance, "", "")
-		return err
-	}
-	r.setInstanceStatus(ctx, "Deployment "+oauthDeploy.Name+" correctly created in namespace "+oauthDeploy.Namespace, "Normal", "Oauth2DeployCreated", instance, "", "")
-	return nil
-}
-
 func (r *InstanceReconciler) createPersistentlogic(instance *crownlabsv1alpha2.Instance, environment *crownlabsv1alpha2.Environment, name string) (bool, error) {
 	ctx := context.TODO()
 	// create datavolume

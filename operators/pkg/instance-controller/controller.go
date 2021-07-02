@@ -57,9 +57,7 @@ type InstanceReconciler struct {
 	WebsiteBaseURL     string
 	NextcloudBaseURL   string
 	WebdavSecretName   string
-	Oauth2ProxyImage   string
-	OidcClientSecret   string
-	OidcProviderURL    string
+	InstancesAuthURL   string
 	Concurrency        int
 	ContainerEnvOpts   ContainerEnvOpts
 

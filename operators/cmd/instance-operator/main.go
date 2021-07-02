@@ -44,13 +44,10 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = crownlabsv1alpha1.AddToScheme(scheme)
-
 	_ = crownlabsv1alpha2.AddToScheme(scheme)
 
 	_ = virtv1.AddToScheme(scheme)
-
 	_ = cdiv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -60,9 +57,7 @@ func main() {
 	var webdavSecret string
 	var websiteBaseURL string
 	var nextcloudBaseURL string
-	var oauth2ProxyImage string
-	var oidcClientSecret string
-	var oidcProviderURL string
+	var instancesAuthURL string
 	var containerEnvSidecarsTag string
 	var containerEnvVncImg string
 	var containerEnvWebsockifyImg string
@@ -83,21 +78,24 @@ func main() {
 		"( e.g. key1=value1&key2=value2")
 	flag.StringVar(&websiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&nextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
+	flag.StringVar(&instancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
-	flag.StringVar(&oauth2ProxyImage, "oauth2-proxy-image", "", "The docker image used for the oauth2-proxy deployment")
-	flag.StringVar(&oidcClientSecret, "oidc-client-secret", "", "The oidc client secret used by oauth2-proxy")
-	flag.StringVar(&oidcProviderURL, "oidc-provider-url", "", "The url of the oidc provider used by oauth2-proxy")
+
 	flag.StringVar(&containerEnvSidecarsTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvVncImg, "container-env-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvWebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvNovncImg, "container-env-novnc-img", "crownlabs/novnc", "The image name for the novnc image (sidecar for graphical container environment)")
+
 	flag.StringVar(&vmRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
 	flag.StringVar(&vmRegistrySecret, "vm-registry-secret", "", "The name of the secret for the VM registry")
+
 	flag.StringVar(&containerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&containerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 	flag.StringVar(&containerEnvFileBrowserImg, "container-env-filebrowser-img", "filebrowser/filebrowser", "The image name for the filebrowser image (sidecar for gui-based file manager)")
 	flag.StringVar(&containerEnvFileBrowserImgTag, "container-env-filebrowser-img-tag", "latest", "The tag for the FileBrowser container (the gui-based file manager)")
+
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 8, "The maximum number of concurrent Reconciles which can be run")
+
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -123,9 +121,7 @@ func main() {
 		NextcloudBaseURL:   nextcloudBaseURL,
 		WebsiteBaseURL:     websiteBaseURL,
 		WebdavSecretName:   webdavSecret,
-		Oauth2ProxyImage:   oauth2ProxyImage,
-		OidcClientSecret:   oidcClientSecret,
-		OidcProviderURL:    oidcProviderURL,
+		InstancesAuthURL:   instancesAuthURL,
 		ContainerEnvOpts: instance_controller.ContainerEnvOpts{
 			ImagesTag:         containerEnvSidecarsTag,
 			VncImg:            containerEnvVncImg,
