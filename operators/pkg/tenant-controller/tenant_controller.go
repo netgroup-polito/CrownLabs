@@ -72,7 +72,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	var retrigErr error = nil
+	var retrigErr error
 	if tn.Status.Subscriptions == nil {
 		// make initial len is 2 (keycloak and nextcloud)
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus, 2)
@@ -237,7 +237,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // handleDeletion deletes external resources of a tenant using a fail-fast:false strategy.
 func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
-	var retErr error = nil
+	var retErr error
 	// delete keycloak user
 	if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
 		klog.Errorf("Error when checking if user %s existed for deletion -> %s", tnName, err)
@@ -272,7 +272,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 		return false, nsErr
 	}
 
-	var retErr error = nil
+	var retErr error
 	// handle resource quota
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
@@ -536,35 +536,21 @@ func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []cro
 		tn.Labels[wsLabelKey] = string(wsData.Role)
 	}
 
-	cleanedFirstName, err := cleanName(tn.Spec.FirstName)
-	if err != nil {
-		klog.Errorf("Error when cleaning first name of tenant %s -> %s", tn.Name, err)
-		return err
-	}
-	cleanedLastName, err := cleanName(tn.Spec.LastName)
-	if err != nil {
-		klog.Errorf("Error when cleaning last name of tenant %s -> %s", tn.Name, err)
-		return err
-	}
+	cleanedFirstName := cleanName(tn.Spec.FirstName)
+	cleanedLastName := cleanName(tn.Spec.LastName)
 	tn.Labels["crownlabs.polito.it/first-name"] = *cleanedFirstName
 	tn.Labels["crownlabs.polito.it/last-name"] = *cleanedLastName
 	return nil
 }
 
-func cleanName(name string) (*string, error) {
-	okRegex := "^[a-zA-Z0-9_]+$"
+func cleanName(name string) *string {
+	okRegex := regexp.MustCompile("^[a-zA-Z0-9_]+$")
 	name = strings.ReplaceAll(name, " ", "_")
-	ok, err := regexp.MatchString(okRegex, name)
-	if err != nil {
-		klog.Errorf("Error when checking name %s for cleaning -> %s", name, err)
-		return nil, err
-	} else if !ok {
+
+	if !okRegex.MatchString(name) {
 		problemChars := make([]string, 2)
 		for _, c := range name {
-			if ok, err := regexp.MatchString(okRegex, string(c)); err != nil {
-				klog.Errorf("Error when cleaning name %s at char %s -> %s", name, string(c), err)
-				return nil, err
-			} else if !ok {
+			if !okRegex.MatchString(string(c)) {
 				problemChars = append(problemChars, string(c))
 			}
 		}
@@ -572,7 +558,7 @@ func cleanName(name string) (*string, error) {
 			name = strings.Replace(name, v, "", 1)
 		}
 	}
-	return &name, nil
+	return &name
 }
 
 // cleanWorkspaceLabels removes all the labels of a workspace from a tenant.

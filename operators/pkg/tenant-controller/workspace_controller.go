@@ -66,7 +66,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	var retrigErr error = nil
+	var retrigErr error
 	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of workspace %s", ws.Name)
 		// workspace is being deleted
@@ -237,7 +237,7 @@ func (r *WorkspaceReconciler) createOrUpdateClusterResources(ctx context.Context
 		return false, nsErr
 	}
 
-	var retErr error = nil
+	var retErr error
 	// handle clusterRoleBinding
 	crb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("crownlabs-manage-instances-%s", ws.Name)}}
 	crbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &crb, func() error {

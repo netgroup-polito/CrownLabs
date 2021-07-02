@@ -22,8 +22,8 @@ import (
 
 var terminationGracePeriod int64 = 30
 var cpuHypervisorReserved float32 = 0.5
-var memoryHypervisorReserved string = "500M"
-var registryCred string = "registry-credentials"
+var memoryHypervisorReserved = "500M"
+var registryCred = "registry-credentials"
 
 // UpdateVirtualMachineInstanceSpec updates the specification of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VM corresponding to a given CrownLabs Environment.
