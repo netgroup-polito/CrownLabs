@@ -22,7 +22,7 @@ jobs:
       - name: Check linting
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.34
+          version: v1.41.1
           working-directory: operators
           args: --timeout=600s
 
@@ -81,8 +81,8 @@ jobs:
 
       - name: Run shellcheck
         uses: azohra/shell-linter@v0.4.0
-  
-  
+
+
   frontend-lint:
     name: Lint frontend files
     runs-on: ubuntu-latest

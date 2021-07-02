@@ -29,9 +29,20 @@ uninstall: manifests
 
 manifests: controller-gen
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=deploy/crds
-# Run go fmt against code
-fmt:
+
+# Install gci if not available
+gci:
+ifeq (, $(shell which gci))
+	@{ \
+	go get github.com/daixiang0/gci@v0.2.9 ;\
+	}
+endif
+
+# Run go fmt and gci against code
+fmt: gci
 	go fmt ./...
+	find $(pwd) -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci -local github.com/netgroup-polito/CrownLabs -w {} \;
+
 # Run go vet against code
 vet:
 	go vet ./...
