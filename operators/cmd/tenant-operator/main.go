@@ -19,11 +19,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v7"
 	"github.com/go-resty/resty/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -60,6 +58,7 @@ func main() {
 	var ncURL string
 	var ncTnOpUser string
 	var ncTnOpPsw string
+	var maxConcurrentReconciles int
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -75,6 +74,7 @@ func main() {
 	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 8, "The maximum number of concurrent Reconciles which can be run")
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -106,12 +106,12 @@ func main() {
 		klog.Fatal("Unable to start manager", err)
 	}
 
-	kcA, err := newKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
+	kcA, err := controllers.NewKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
 	if err != nil {
 		klog.Fatal("Error when setting up keycloak", err)
 	}
 
-	go checkAndRenewTokenPeriodically(context.Background(), kcA.Client, kcA.Token, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
+	go checkAndRenewTokenPeriodically(context.Background(), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 
 	httpClient := resty.New().SetCookieJar(nil)
 	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
@@ -122,6 +122,7 @@ func main() {
 		NcA:              &NcA,
 		TargetLabelKey:   targetLabelKey,
 		TargetLabelValue: targetLabelValue,
+		Concurrency:      maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		klog.Fatal("Unable to create controller for Tenant", err)
 	}
@@ -152,37 +153,14 @@ func main() {
 	}
 }
 
-// newKcActor sets up a keycloak client with the specified parameters and performs the first login.
-func newKcActor(kcURL, kcUser, kcPsw, targetRealmName, targetClient, loginRealm string) (*controllers.KcActor, error) {
-	kcClient := gocloak.NewClient(kcURL)
-	token, err := kcClient.LoginAdmin(context.Background(), kcUser, kcPsw, loginRealm)
-	if err != nil {
-		klog.Error("Unable to login as admin on keycloak", err)
-		return nil, err
-	}
-	kcTargetClientID, err := getClientID(context.Background(), kcClient, token.AccessToken, targetRealmName, targetClient)
-	if err != nil {
-		klog.Errorf("Error when getting client id for %s", targetClient)
-		return nil, err
-	}
-	return &controllers.KcActor{
-		Client:                kcClient,
-		Token:                 token,
-		TargetClientID:        kcTargetClientID,
-		TargetRealm:           targetRealmName,
-		UserRequiredActions:   []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"},
-		EmailActionsLifeSpanS: 60 * 60 * 24 * 30, // 30 Days
-	}, nil
-}
-
 // checkAndRenewTokenPeriodically checks every intervalCheck if the token is about to expire in less than expireLimit seconds or is already expired, if so it renews it.
-func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloak, token *gocloak.JWT, kcAdminUser, kcAdminPsw, loginRealm string, intervalCheck, expireLimit time.Duration) {
+func checkAndRenewTokenPeriodically(ctx context.Context, kcA *controllers.KcActor, kcAdminUser, kcAdminPsw, loginRealm string, intervalCheck, expireLimit time.Duration) {
 	kcRenewTokenTicker := time.NewTicker(intervalCheck)
 	for {
 		// wait intervalCheck
 		<-kcRenewTokenTicker.C
 		// take expiration date of token from tokenJWT claims
-		_, claims, err := kcClient.DecodeAccessToken(ctx, token.AccessToken, loginRealm, "")
+		_, claims, err := kcA.Client.DecodeAccessToken(ctx, kcA.GetAccessToken(), loginRealm, "")
 		if err != nil {
 			klog.Fatal("Error when decoding token", err)
 		}
@@ -192,34 +170,12 @@ func checkAndRenewTokenPeriodically(ctx context.Context, kcClient gocloak.GoCloa
 
 		// if token is about to expire, renew it
 		if tokenExpiresIn < expireLimit {
-			newToken, err := kcClient.LoginAdmin(ctx, kcAdminUser, kcAdminPsw, loginRealm)
+			newToken, err := kcA.Client.LoginAdmin(ctx, kcAdminUser, kcAdminPsw, loginRealm)
 			if err != nil {
 				klog.Fatal("Error when renewing token", err)
 			}
-			*token = *newToken
+			kcA.SetToken(newToken)
 			klog.Info("Keycloak token renewed")
 		}
-	}
-}
-
-// getClientID returns the ID of the target client given the human id, to be used with the gocloak library.
-func getClientID(ctx context.Context, kcClient gocloak.GoCloak, token, realmName, targetClient string) (string, error) {
-	clients, err := kcClient.GetClients(ctx, token, realmName, gocloak.GetClientsParams{ClientID: &targetClient})
-	if err != nil {
-		klog.Errorf("Error when getting clientID for client %s", targetClient)
-		klog.Error(err)
-		return "", err
-	}
-
-	switch len(clients) {
-	case 0:
-		klog.Error(nil, "Error, no clientID for client %s", targetClient)
-		return "", fmt.Errorf("no client ID for client %s", targetClient)
-	case 1:
-		targetClientID := *clients[0].ID
-		return targetClientID, nil
-	default:
-		klog.Error(nil, "Error, got too many clientIDs for client %s", targetClient)
-		return "", fmt.Errorf("too many clientIDs for client %s", targetClient)
 	}
 }
