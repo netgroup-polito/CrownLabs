@@ -8,7 +8,7 @@ The following presents a summary of the basic operations required to deploy Kube
 
 ```bash
 # Pick an upstream version of KubeVirt to install
-$ export KUBEVIRT_VERSION=v0.35.0
+$ export KUBEVIRT_VERSION=v0.42.1
 # Deploy the KubeVirt operator
 $ kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml
 # Create the KubeVirt CR (instance deployment request) which triggers the actual installation
