@@ -18,8 +18,15 @@ exports.createSchema = async (oas, kubeApiUrl, token) => {
       'tenantWrapper',
       ['name']
     );
+    const schemaWithTenantWorkspace = decorateBaseSchema(
+      'itPolitoCrownlabsV1alpha1Workspace',
+      'WorkspaceRef',
+      schemaWithInstanceTenant,
+      'workspaceWrapper',
+      ['name']
+    );
 
-    return schemaWithInstanceTenant;
+    return schemaWithTenantWorkspace;
   } catch (e) {
     console.error(e);
     process.exit(1);
