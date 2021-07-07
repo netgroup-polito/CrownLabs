@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -31,33 +32,29 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 		})
 	}
 
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
 		return ctrl.SetControllerReference(instance, &service, r.Scheme)
-	}); err != nil {
+	})
+
+	if err != nil {
 		r.setInstanceStatus(ctx, "Could not create service "+service.Name+" in namespace "+service.Namespace+": "+err.Error(), "Error", "ServiceNotCreated", instance, "", "")
 		return v1.Service{}, networkingv1.Ingress{}, "", err
 	}
-
-	msg := "Service " + service.Name + " correctly created in namespace " + service.Namespace
-	if hasFileBrowser {
-		msg += " (includes FileBrowser exposition)"
-	}
-
-	r.setInstanceStatus(ctx, msg, "Normal", "ServiceCreated", instance, "", "")
+	klog.Infof("Service for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 
 	urlUUID := uuid.New().String()
 
 	// create Ingress to manage the service
 	ingress := instance_creation.ForgeIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL)
-
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &ingress, func() error {
+	op, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingress, func() error {
 		return ctrl.SetControllerReference(instance, &ingress, r.Scheme)
-	}); err != nil {
+	})
+
+	if err != nil {
 		r.setInstanceStatus(ctx, "Could not create ingress "+ingress.Name+" in namespace "+ingress.Namespace+": "+err.Error(), "Error", "IngressNotCreated", instance, "", "")
 		return service, networkingv1.Ingress{}, "", err
 	}
-
-	r.setInstanceStatus(ctx, "Ingress "+ingress.Name+" correctly created in namespace "+ingress.Namespace, "Normal", "IngressCreated", instance, "", "")
+	klog.Infof("Ingress (gui) for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 
 	// Overwrite using the actual ingress' url UUID
 	urlUUID = ingress.Annotations["crownlabs.polito.it/url-uuid"]
@@ -65,15 +62,15 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 	if hasFileBrowser {
 		// create separate Ingress for FileBrowser to manage the same service
 		fileBrowserIngress := instance_creation.ForgeFileBrowserIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL, fileBrowserPortName)
-
-		if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &fileBrowserIngress, func() error {
+		op, err := ctrl.CreateOrUpdate(ctx, r.Client, &fileBrowserIngress, func() error {
 			return ctrl.SetControllerReference(instance, &fileBrowserIngress, r.Scheme)
-		}); err != nil {
+		})
+
+		if err != nil {
 			r.setInstanceStatus(ctx, "Could not create ingress "+fileBrowserIngress.Name+" in namespace "+fileBrowserIngress.Namespace+": "+err.Error(), "Error", "IngressNotCreated", instance, "", "")
 			return service, networkingv1.Ingress{}, urlUUID, err
 		}
-
-		r.setInstanceStatus(ctx, "Ingress "+fileBrowserIngress.Name+" correctly created in namespace "+fileBrowserIngress.Namespace, "Normal", "IngressCreated", instance, "", "")
+		klog.Infof("Ingress (filebrowser) for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 	}
 
 	if err := r.createOAUTHlogic(name, instance, instance.Namespace, urlUUID); err != nil {

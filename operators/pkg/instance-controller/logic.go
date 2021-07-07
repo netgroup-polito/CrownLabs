@@ -47,13 +47,13 @@ func (r *InstanceReconciler) CreateVMEnvironment(instance *crownlabsv1alpha2.Ins
 
 	// create secret
 	secret := instance_creation.CreateCloudInitSecret(name, namespace, user, password, r.NextcloudBaseURL, publicKeys)
-	_, err = ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		return ctrl.SetControllerReference(instance, &secret, r.Scheme)
 	})
 	if err != nil {
 		r.setInstanceStatus(ctx, "Could not create secret "+secret.Name+" in namespace "+secret.Namespace, "Warning", "SecretNotCreated", instance, "", "")
 	} else {
-		r.setInstanceStatus(ctx, "Secret "+secret.Name+" correctly created in namespace "+secret.Namespace, "Normal", "SecretCreated", instance, "", "")
+		klog.Infof("Secret for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 	}
 
 	service, ingress, _, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name, false)
@@ -135,7 +135,7 @@ func (r *InstanceReconciler) createPersistentlogic(instance *crownlabsv1alpha2.I
 	ctx := context.TODO()
 	// create datavolume
 	dv := cdiv1.DataVolume{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: instance.Namespace}}
-	dvOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
+	op, err := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
 		instance_creation.UpdateDataVolumeSpec(&dv, environment)
 		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
 	})
@@ -143,7 +143,7 @@ func (r *InstanceReconciler) createPersistentlogic(instance *crownlabsv1alpha2.I
 		klog.Error(err, "unable to create or update DataVolume ")
 		return false, err
 	}
-	klog.Infof("Data volume correctly %s", dvOpRes)
+	klog.Infof("DataVolume for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 
 	// check if datavolume is succeeded
 	if dv.Status.Phase != cdiv1.DataVolumePhase("Succeeded") {
@@ -151,6 +151,6 @@ func (r *InstanceReconciler) createPersistentlogic(instance *crownlabsv1alpha2.I
 		return false, nil
 	}
 
-	r.setInstanceStatus(ctx, "PVC "+dv.Name+" import completed", "Normal", "ImportCompleted", instance, "", "")
+	klog.Infof("DataVolume import for instance %s/%s completed", instance.GetNamespace(), instance.GetName())
 	return true, nil
 }
