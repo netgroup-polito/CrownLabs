@@ -324,7 +324,7 @@ func (r *InstanceReconciler) CreateContainerEnvironment(
 			r.setInstanceStatus(ctx, "Could not create PVC "+pvc.Name+" in namespace "+pvc.Namespace+": "+err.Error(), "Error", "VmiNotCreated", instance, "", "")
 			return err
 		}
-		klog.Infof("Successfully %s PVC for instance %s in namespace %s", res, instance, namespace)
+		klog.Infof("PVC for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), res)
 	}
 
 	depl := appsv1.Deployment{
