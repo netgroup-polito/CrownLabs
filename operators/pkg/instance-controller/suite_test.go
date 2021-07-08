@@ -94,9 +94,7 @@ var _ = BeforeSuite(func(done Done) {
 		NextcloudBaseURL:   "fake.com",
 		WebsiteBaseURL:     "fakesite.com",
 		WebdavSecretName:   "webdav-secret",
-		Oauth2ProxyImage:   "test-image/test",
-		OidcClientSecret:   "sdad-csad-cdsw-asde",
-		OidcProviderURL:    "provider-url.com",
+		InstancesAuthURL:   "fake.com/auth",
 		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

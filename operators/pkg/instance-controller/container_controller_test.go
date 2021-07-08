@@ -217,30 +217,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			}, &ingr, BeTrue(), timeout, interval)
 			By("Checking that the dedicated FileBrowser ingress has got an OwnerReference")
 			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
-
-			By("Checking that the OAUTH service exists")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName + "-oauth2",
-				Namespace: InstanceNamespace,
-			}, &svc, BeTrue(), timeout, interval)
-			By("Checking that the auth service has got an OwnerReference")
-			Expect(svc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
-
-			By("Checking that the OAUTH ingress exists")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName + "-oauth2",
-				Namespace: InstanceNamespace,
-			}, &ingr, BeTrue(), timeout, interval)
-			By("Checking that the auth ingress has got an OwnerReference")
-			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
-
-			By("Checking that the OAUTH deployment exists")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName + "-oauth2",
-				Namespace: InstanceNamespace,
-			}, &depl, BeTrue(), timeout, interval)
-			By("Checking that the auth deployment has got an OwnerReference")
-			Expect(depl.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 		})
 
 		It("Should create the deployment", func() {

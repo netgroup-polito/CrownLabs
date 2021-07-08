@@ -31,11 +31,12 @@ func TestForgeService(t *testing.T) {
 
 func TestForgeIngress(t *testing.T) {
 	var (
-		name           = "usertest"
-		namespace      = "namespacetest"
-		urlUUID        = "urlUUIDtest"
-		websiteBaseURL = "websiteBaseUrlTest"
-		svc            = corev1.Service{
+		name             = "usertest"
+		namespace        = "namespacetest"
+		urlUUID          = "urlUUIDtest"
+		websiteBaseURL   = "websiteBaseUrlTest"
+		instancesAuthURL = "fake.com/auth"
+		svc              = corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "svc-test",
 			},
@@ -50,94 +51,46 @@ func TestForgeIngress(t *testing.T) {
 		url = websiteBaseURL + "/" + urlUUID
 	)
 
-	ingress := ForgeIngress(name, namespace, &svc, urlUUID, websiteBaseURL)
+	instancesAuthAnnotations := appendInstancesAuthAnnotations(map[string]string{}, instancesAuthURL)
+	ingress := ForgeIngress(name, namespace, &svc, websiteBaseURL, urlUUID, instancesAuthURL)
 
 	assert.Equal(t, ingress.ObjectMeta.Name, name)
 	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name, svc.Name)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Port.Number, svc.Spec.Ports[0].TargetPort.IntVal)
-	assert.Equal(t, ingress.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/auth-signin"], "https://$host/"+urlUUID+"/oauth2/start?rd=$escaped_request_uri")
-	assert.Equal(t, ingress.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/auth-url"], "https://$host/"+urlUUID+"/oauth2/auth")
 	assert.Equal(t, ingress.ObjectMeta.Annotations["nginx.ingress.kubernetes.io/configuration-snippet"], `sub_filter '<head>' '<head> <base href="https://$host/`+urlUUID+`/index.html">';`)
 	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"(/|$)(.*)")
 	assert.Equal(t, ingress.ObjectMeta.Annotations["crownlabs.polito.it/probe-url"], "https://"+url)
 	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
 	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
+
+	for key, value := range instancesAuthAnnotations {
+		assert.Contains(t, ingress.GetAnnotations(), key)
+		assert.Equal(t, ingress.GetAnnotations()[key], value)
+	}
 }
 
-func TestForgeOauth2Deployment(t *testing.T) {
-	var (
-		name         = "usertest"
-		namespace    = "namespacetest"
-		urlUUID      = "urlUUIDtest"
-		image        = "imagetest"
-		clientSecret = "secrettest"
-		providerURL  = "urltest"
+func TestAppendInstancesAuthAnnotations(t *testing.T) {
+	const (
+		instancesAuthURL = "fake.com/auth"
+		originalKey      = "originalKey"
+		originalValue    = "originalValue"
 	)
 
-	deploy := ForgeOauth2Deployment(name, namespace, urlUUID, image, clientSecret, providerURL)
+	originalAnnotations := map[string]string{
+		originalKey: originalValue,
+	}
 
-	assert.Equal(t, deploy.ObjectMeta.Name, name+"-oauth2")
-	assert.Equal(t, deploy.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, deploy.Spec.Template.Spec.Containers[0].Image, image)
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--proxy-prefix=/"+urlUUID+"/oauth2")
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--cookie-path=/"+urlUUID)
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--client-secret="+clientSecret)
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--login-url="+providerURL+"/protocol/openid-connect/auth")
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--redeem-url="+providerURL+"/protocol/openid-connect/token")
-	assert.Contains(t, deploy.Spec.Template.Spec.Containers[0].Args, "--validate-url="+providerURL+"/protocol/openid-connect/userinfo")
-}
+	resultingAnnotations := appendInstancesAuthAnnotations(originalAnnotations, instancesAuthURL)
 
-func TestForgeOauth2Service(t *testing.T) {
-	var (
-		name      = "usertest"
-		namespace = "namespacetest"
-	)
+	// The original annotations are unmodified
+	assert.Contains(t, resultingAnnotations, originalKey)
+	assert.Equal(t, resultingAnnotations[originalKey], originalValue)
 
-	service := ForgeOauth2Service(name, namespace)
+	// The new annotations are added correctly
+	assert.Contains(t, resultingAnnotations, "nginx.ingress.kubernetes.io/auth-url")
+	assert.Contains(t, resultingAnnotations, "nginx.ingress.kubernetes.io/auth-signin")
 
-	assert.Equal(t, service.ObjectMeta.Name, name+"-oauth2")
-	assert.Equal(t, service.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, service.Spec.Selector, generateOauth2Labels(name))
-}
-
-func TestForgeOauth2Ingress(t *testing.T) {
-	var (
-		name           = "usertest"
-		namespace      = "namespacetest"
-		urlUUID        = "urlUUIDtest"
-		websiteBaseURL = "websiteBaseUrlTest"
-		svc            = corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "svc-test",
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{
-					{
-						TargetPort: intstr.IntOrString{IntVal: 22},
-					},
-				},
-			},
-		}
-	)
-
-	ingress := ForgeOauth2Ingress(name, namespace, &svc, urlUUID, websiteBaseURL)
-
-	assert.Equal(t, ingress.ObjectMeta.Name, name+"-oauth2")
-	assert.Equal(t, ingress.ObjectMeta.Namespace, namespace)
-	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Name, svc.Name)
-	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Backend.Service.Port.Number, svc.Spec.Ports[0].TargetPort.IntVal)
-	assert.Equal(t, ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path, "/"+urlUUID+"/oauth2/.*")
-	assert.Equal(t, ingress.Spec.TLS[0].Hosts[0], websiteBaseURL)
-	assert.Equal(t, ingress.Spec.Rules[0].Host, websiteBaseURL)
-}
-
-func TestGenerateOauth2Labels(t *testing.T) {
-	instanceName := "oauth2-foo"
-	labels := generateOauth2Labels(instanceName)
-
-	assert.Contains(t, labels, "app.kubernetes.io/part-of")
-	assert.Contains(t, labels, "app.kubernetes.io/component")
-	assert.Equal(t, labels["app.kubernetes.io/part-of"], instanceName)
-	assert.Equal(t, labels["app.kubernetes.io/component"], "oauth2-proxy")
+	assert.Equal(t, resultingAnnotations["nginx.ingress.kubernetes.io/auth-url"], instancesAuthURL+"/auth")
+	assert.Equal(t, resultingAnnotations["nginx.ingress.kubernetes.io/auth-signin"], instancesAuthURL+"/start?rd=$escaped_request_uri")
 }

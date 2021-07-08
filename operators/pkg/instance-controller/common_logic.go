@@ -45,7 +45,7 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 	urlUUID := uuid.New().String()
 
 	// create Ingress to manage the service
-	ingress := instance_creation.ForgeIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL)
+	ingress := instance_creation.ForgeIngress(name, instance.Namespace, &service, r.WebsiteBaseURL, urlUUID, r.InstancesAuthURL)
 	op, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingress, func() error {
 		return ctrl.SetControllerReference(instance, &ingress, r.Scheme)
 	})
@@ -61,7 +61,7 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 
 	if hasFileBrowser {
 		// create separate Ingress for FileBrowser to manage the same service
-		fileBrowserIngress := instance_creation.ForgeFileBrowserIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL, fileBrowserPortName)
+		fileBrowserIngress := instance_creation.ForgeFileBrowserIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL, fileBrowserPortName, r.InstancesAuthURL)
 		op, err := ctrl.CreateOrUpdate(ctx, r.Client, &fileBrowserIngress, func() error {
 			return ctrl.SetControllerReference(instance, &fileBrowserIngress, r.Scheme)
 		})
@@ -71,10 +71,6 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 			return service, networkingv1.Ingress{}, urlUUID, err
 		}
 		klog.Infof("Ingress (filebrowser) for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
-	}
-
-	if err := r.createOAUTHlogic(name, instance, instance.Namespace, urlUUID); err != nil {
-		return service, ingress, urlUUID, err
 	}
 
 	return service, ingress, urlUUID, nil

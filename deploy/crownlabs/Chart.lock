@@ -8,9 +8,12 @@ dependencies:
 - name: frontend-storybook
   repository: file://../../frontend/deploy/frontend-storybook
   version: 0.1.0
+- name: qlkube
+  repository: file://../../qlkube/deploy/qlkube
+  version: 0.1.0
 - name: instance-operator
   repository: file://../../operators/deploy/instance-operator
-  version: 0.1.0
+  version: 0.1.1
 - name: tenant-operator
   repository: file://../../operators/deploy/tenant-operator
   version: 0.1.0
@@ -26,5 +29,5 @@ dependencies:
 - name: policies
   repository: file://../../policies/
   version: 0.1.0
-digest: sha256:d370b30247ec7645be2b7541f2e4d7feb154ae1f2c8f271ce98441740b4ce94b
-generated: "2021-04-22T12:32:48.064223219+02:00"
+digest: sha256:2e3f930d3126953bb8c7ed7d61270a8850dee55716ffca26defae21600d2bd24
+generated: "2021-07-06T19:01:31.090144215+02:00"
