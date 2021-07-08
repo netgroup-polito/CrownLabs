@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
@@ -30,6 +31,8 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 		PubKeysToBeChecked = map[string][]string{}
 		PublicKeysTenant1  []string
 		PublicKeysTenant2  []string
+		tenant1LookupKey   = types.NamespacedName{Name: NameTenant1}
+		tenant2LookupKey   = types.NamespacedName{Name: NameTenant2}
 	)
 
 	ctx := context.Background()
@@ -74,8 +77,6 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 
 		tenant1 := &crownlabsalpha1.Tenant{}
 		tenant2 := &crownlabsalpha1.Tenant{}
-		tenant1LookupKey := types.NamespacedName{Name: NameTenant1, Namespace: ""}
-		tenant2LookupKey := types.NamespacedName{Name: NameTenant2, Namespace: ""}
 
 		// create or update tenant in order to reset the specs
 
@@ -86,8 +87,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 					Kind:       "Tenant",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      NameTenant1,
-					Namespace: "",
+					Name: NameTenant1,
 				},
 				Spec: crownlabsalpha1.TenantSpec{
 					FirstName:  "Mario",
@@ -120,8 +120,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 					Kind:       "Tenant",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      NameTenant2,
-					Namespace: "",
+					Name: NameTenant2,
 				},
 				Spec: crownlabsalpha1.TenantSpec{
 					FirstName:  "Fabio",
@@ -174,27 +173,28 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 			createdTenant := &crownlabsalpha1.Tenant{}
 
 			Eventually(func() []string {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: "s11111", Namespace: ""}, createdTenant)
+				err := k8sClient.Get(ctx, tenant1LookupKey, createdTenant)
 				if err != nil {
 					return nil
 				}
 				return createdTenant.Spec.PublicKeys
 			}, timeout, interval).Should(Equal(PublicKeysTenant1))
 
-			PublicKeysTenant1[0] = "ecdsa-sha2-nistp256 yet_another_public_key comment_3"
+			Expect(retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: NameTenant1}, createdTenant)
+				if err != nil {
+					return err
+				}
+				PublicKeysTenant1[0] = "ecdsa-sha2-nistp256 yet_another_public_key comment_3"
 
-			createdTenant.Spec.PublicKeys = PublicKeysTenant1
+				createdTenant.Spec.PublicKeys = PublicKeysTenant1
+				return k8sClient.Update(ctx, createdTenant)
+			})).Should(Succeed())
 
-			Eventually(func() bool {
-				err := k8sClient.Update(ctx, createdTenant)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
-			tenantLookupKey := types.NamespacedName{Name: NameTenant1, Namespace: ""}
 			updatedTenant := &crownlabsalpha1.Tenant{}
 
 			Eventually(func() []string {
-				err := k8sClient.Get(ctx, tenantLookupKey, updatedTenant)
+				err := k8sClient.Get(ctx, tenant1LookupKey, updatedTenant)
 				if err != nil {
 					return nil
 				}
@@ -213,17 +213,11 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 
 	Context("When deleting a Tenant", func() {
 		BeforeEach(func() {
-
-			Eventually(func() bool {
-				err := k8sClient.Delete(ctx, &crownlabsalpha1.Tenant{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      NameTenant1,
-						Namespace: "",
-					},
-				})
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
+			Expect(k8sClient.Delete(ctx, &crownlabsalpha1.Tenant{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: NameTenant1,
+				},
+			})).Should(Succeed())
 		})
 
 		It("Should contain only the keys of the remaining tenant", func() {
