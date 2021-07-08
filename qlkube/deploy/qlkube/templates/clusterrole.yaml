@@ -4,20 +4,16 @@ metadata:
   name: {{ .Values.rbacResourcesName }}
   labels: {{- include "qlkube.labels" . | nindent 4 }}
 rules:
+  {{- range .Values.configuration.subscriptions.apis }}
   - apiGroups:
-      - crownlabs.polito.it
+      - {{ .group }}
     resources:
-      - instances
-      - instances/status
-      - instancesnapshots
-      - instancesnapshots/status
-      - templates
-      - templates/status
-      - workspaces
-      - workspaces/status
-      - tenants
-      - tenants/status
+    {{- range .resources }}
+      - {{ .resource }}
+      - {{ .resource }}/status
+    {{- end }}
     verbs:
       - get
       - list
       - watch
+  {{- end }}
