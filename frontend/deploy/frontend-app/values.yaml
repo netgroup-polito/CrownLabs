@@ -14,7 +14,7 @@ configuration:
   mountPath: /usr/share/nginx/html
   fileName: config.js
   backend:
-    apiServer: https://apiserver.example.com
+    graphql: https://graphql.example.com
   oidc:
     clientId: <client-id>
     clientSecret: <client-secret>

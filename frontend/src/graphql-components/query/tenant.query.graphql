@@ -1,0 +1,27 @@
+query tenant($tenantId: String!) {
+  tenant: itPolitoCrownlabsV1alpha1Tenant(name: $tenantId) {
+    spec {
+      email
+      firstName
+      lastName
+      workspaces {
+        role
+        workspaceRef {
+          workspaceId: name
+          workspaceWrapper {
+            itPolitoCrownlabsV1alpha1Workspace {
+              spec {
+                workspaceName: prettyName
+              }
+              status {
+                namespace {
+                  workspaceNamespace: name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

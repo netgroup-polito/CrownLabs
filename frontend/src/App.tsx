@@ -1,5 +1,5 @@
 import './App.css';
-import { PUBLIC_URL, REACT_APP_CROWNLABS_APISERVER_URL } from './env';
+import { PUBLIC_URL, REACT_APP_CROWNLABS_GRAPHQL_URL } from './env';
 import { BrowserRouter, Link, Route, Switch } from 'react-router-dom';
 
 function App() {
@@ -32,7 +32,7 @@ function App() {
           <Route path="/" exact>
             <div className="p-10 m-10">
               CrownLabs will get a new look!
-              <br /> Apiserver at {REACT_APP_CROWNLABS_APISERVER_URL}{' '}
+              <br /> GraphQL at {REACT_APP_CROWNLABS_GRAPHQL_URL}{' '}
             </div>
 
             <Link to="/active">Go to active</Link>
