@@ -36,14 +36,14 @@ spec:
           command:
             - /usr/bin/controller
           args:
-            - "--target-label=$(TARGET_LABEL)"
-            - "--kc-url=$(KEYCLOAK_URL)"
-            - "--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)"
-            - "--kc-target-realm=$(KEYCLOAK_TARGET_REALM)"
-            - "--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)"
+            - "--target-label={{ .Values.configurations.targetLabel }}"
+            - "--kc-url{{ .Values.configurations.keycloak.url }}"
+            - "--kc-login-realm={{ .Values.configurations.keycloak.loginRealm }}"
+            - "--kc-target-realm={{ .Values.configurations.keycloak.targetClient }}"
+            - "--kc-target-client={{ .Values.configurations.keycloak.targetClient }}"
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
-            - "--nc-url=$(NEXTCLOUD_URL)"
+            - "--nc-url={{ .Values.configurations.nextcloud.url }}"
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
           ports:
@@ -68,31 +68,6 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            - name: TARGET_LABEL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: target-label
-            - name: KEYCLOAK_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: keycloak-url
-            - name: KEYCLOAK_LOGIN_REALM
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: keycloak-login-realm
-            - name: KEYCLOAK_TARGET_REALM
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: keycloak-target-realm
-            - name: KEYCLOAK_TARGET_CLIENT
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: keycloak-target-client
             - name: KEYCLOAK_TENANT_OPERATOR_USER
               valueFrom:
                 secretKeyRef:
@@ -103,11 +78,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: keycloak-pass
-            - name: NEXTCLOUD_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: nextcloud-url
             - name: NEXTCLOUD_TENANT_OPERATOR_USER
               valueFrom:
                 secretKeyRef:
