@@ -1,4 +1,11 @@
+run:
+  skip-files:
+    - "zz_generated.*.go"
+
 linters-settings:
+  exhaustive:
+    check-generated: false
+    default-signifies-exhaustive: true
   gomodguard:
     blocked:
       modules:
@@ -22,8 +29,6 @@ linters-settings:
       - sloppyReassign
   goimports:
     local-prefixes: github.com/netgroup-polito/CrownLabs
-  golint:
-    min-confidence: 0.8
   govet:
     check-shadowing: true
   misspell:
@@ -46,9 +51,11 @@ linters:
     - errcheck
     - errorlint
     - exhaustive
+    - exportloopref
   # - funlen
   # - gochecknoglobals
   # - gochecknoinits
+    - gci
   # - gocognit
   # - goconst
     - gocritic
@@ -58,7 +65,6 @@ linters:
   # - goerr113
     - gofmt
     - goimports
-    - golint
     - gomodguard
   # - gomnd
     - goprintffuncname
@@ -66,7 +72,6 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
   # - lll
   # - maligned
     - misspell
@@ -75,8 +80,8 @@ linters:
     - noctx
     - nolintlint
   # - prealloc
+    - revive
     - rowserrcheck
-    - scopelint
     - staticcheck
     - structcheck
     - stylecheck
@@ -98,7 +103,11 @@ issues:
 
   exclude-rules:
     - linters:
-        - golint
+        - govet
+      text: 'declaration of "(err|ctx)" shadows declaration at'
+
+    - linters:
+        - revive
       # Excluding, as many packages are currently affected by this
       text: "don't use an underscore in package name"
 

@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

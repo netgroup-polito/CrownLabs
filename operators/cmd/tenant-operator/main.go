@@ -34,7 +34,6 @@ import (
 
 	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
-	// +kubebuilder:scaffold:imports
 )
 
 var (

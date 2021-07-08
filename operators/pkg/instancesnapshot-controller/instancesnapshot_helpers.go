@@ -70,7 +70,7 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	}
 
 	// Retrieve the environment from the template.
-	var env *crownlabsv1alpha2.Environment = nil
+	var env *crownlabsv1alpha2.Environment
 
 	if isnap.Spec.Environment.Name != "" {
 		for i := range template.Spec.EnvironmentList {

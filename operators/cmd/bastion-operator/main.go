@@ -29,7 +29,6 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	bastion_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
