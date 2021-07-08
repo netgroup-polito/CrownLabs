@@ -280,3 +280,35 @@ users:
       command: kubectl
       env: null
 ```
+
+## User Instances Authentication
+
+In CrownLabs, the access to the graphical desktop of the user instances should be protected, so that only authenticated users can connect to them.
+For this purpose, we leverage [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy), a solution which in this configuration stands in between the reverse-proxy (Nginx in our case) and the OIDC provider (Keycloak).
+
+Once enabled on a per-ingress basis through the proper annotations (see below), all user requests are authenticated against oauth2-proxy, which in turn initially redirects the user to the OIDC provider for the log-in process.
+Once authenticated, oauth2-proxy returns a cookie to the user, which will be validated during the following checks, without further interacting with the OIDC provider.
+
+### Deploying oauth2-proxy
+
+We leverage Helm to install a centralized deployment (i.e. used for all user instances) of oauth2-proxy, configuring it with multiple replicas for failure tolerance, and leveraging Redis (with Sentinel) as session storage backend.
+The full configuration is described by the corresponding [values file](manifests/oauth2-proxy-values.yaml), with only the secrets redacted.
+The installation/update can be performed with the following:
+
+```bash
+helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
+helm upgrade --install crownlabs-instances-auth oauth2-proxy/oauth2-proxy \
+  --namespace crownlabs-instances-auth --create-namespace \
+  --values manivests/oauth2-proxy-values.yaml
+```
+
+### Enabling the authentication
+
+Once installed. user authentication can be enabled on a per-ingress basis thorough the following annotations (automatically configured by the instance-operator upon instance creation), pointing to the URLs where the oauth2-proxy deployment is exposed:
+
+```yaml
+nginx.ingress.kubernetes.io/auth-url: https://crownlabs.polito.it/app/instances/oauth2/auth
+nginx.ingress.kubernetes.io/auth-signin: https://crownlabs.polito.it/app/instances/oauth2/start?rd=$escaped_request_uri
+```
+
+Currently, we perform user authentication only, hence ensuring no external users can access the graphical desktop of the user instances. Still, more complex authorization policies (e.g., group-based), could be applied both globally (i.e., inside the oauth2-proxy configuration) and [specifically for each ingress resource](https://github.com/oauth2-proxy/oauth2-proxy/pull/849).
