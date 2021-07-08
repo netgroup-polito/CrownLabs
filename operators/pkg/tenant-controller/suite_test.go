@@ -59,7 +59,7 @@ var reqActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
 var emailActionLifespan = 60 * 60 * 24 * 30
 var kcA = KcActor{
 	Client:                mKcClient,
-	Token:                 mToken,
+	token:                 mToken,
 	TargetRealm:           kcTargetRealm,
 	TargetClientID:        kcTargetClientID,
 	UserRequiredActions:   reqActions,

@@ -31,6 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -59,6 +60,7 @@ type InstanceReconciler struct {
 	Oauth2ProxyImage   string
 	OidcClientSecret   string
 	OidcProviderURL    string
+	Concurrency        int
 	ContainerEnvOpts   ContainerEnvOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
@@ -160,6 +162,9 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// Also Deployments are watched in order to better handle container environment.
 		Owns(&appsv1.Deployment{}).
 		Owns(&cdiv1.DataVolume{}, builder.WithPredicates(dataVolumePredicate())).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: r.Concurrency,
+		}).
 		Complete(r)
 }
 

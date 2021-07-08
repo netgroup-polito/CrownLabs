@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -43,6 +44,7 @@ type TenantReconciler struct {
 	NcA              NcHandler
 	TargetLabelKey   string
 	TargetLabelValue string
+	Concurrency      int
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -208,7 +210,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resolution to the second
+	nextRequeSeconds, err := randomRange(3600*4, 3600*8) // need to use seconds value for interval 4h-8h to have resolution to the second
 	if err != nil {
 		klog.Errorf("Error when generating random number for reque -> %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
@@ -232,6 +234,9 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&netv1.NetworkPolicy{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: r.Concurrency,
+		}).
 		Complete(r)
 }
 
@@ -245,7 +250,7 @@ func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) er
 		retErr = err
 	} else if userID != nil {
 		// userID != nil means user exist in keycloak, so need to delete it
-		if err = r.KcA.Client.DeleteUser(ctx, r.KcA.Token.AccessToken, r.KcA.TargetRealm, *userID); err != nil {
+		if err = r.KcA.Client.DeleteUser(ctx, r.KcA.GetAccessToken(), r.KcA.TargetRealm, *userID); err != nil {
 			klog.Errorf("Error when deleting user %s -> %s", tnName, err)
 			tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 			retErr = err
