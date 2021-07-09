@@ -17,6 +17,7 @@ configurations:
     url: "https://nextcloud.crownlabs.example.com/"
     user: username
     pass: password
+  maxConcurrentReconciles: 1
 
 image:
   repository: crownlabs/tenant-operator

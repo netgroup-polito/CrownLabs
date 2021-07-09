@@ -74,7 +74,7 @@ func main() {
 	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
-	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 8, "The maximum number of concurrent Reconciles which can be run")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	klog.InitFlags(nil)
 	flag.Parse()
 

@@ -46,6 +46,7 @@ spec:
             - "--nc-url={{ .Values.configurations.nextcloud.url }}"
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
+            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics
               containerPort: 8080

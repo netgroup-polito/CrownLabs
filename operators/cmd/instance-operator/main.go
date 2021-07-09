@@ -94,7 +94,7 @@ func main() {
 	flag.StringVar(&containerEnvFileBrowserImg, "container-env-filebrowser-img", "filebrowser/filebrowser", "The image name for the filebrowser image (sidecar for gui-based file manager)")
 	flag.StringVar(&containerEnvFileBrowserImgTag, "container-env-filebrowser-img-tag", "latest", "The tag for the FileBrowser container (the gui-based file manager)")
 
-	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 8, "The maximum number of concurrent Reconciles which can be run")
+	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 
 	klog.InitFlags(nil)
 	flag.Parse()
