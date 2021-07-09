@@ -51,6 +51,7 @@ spec:
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--container-env-filebrowser-img={{ .Values.configurations.containerEnvironmentOptions.filebrowserImage }}"
             - "--container-env-filebrowser-img-tag={{ .Values.configurations.containerEnvironmentOptions.filebrowserImageTag }}"
+            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics
               containerPort: 8080

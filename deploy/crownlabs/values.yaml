@@ -90,6 +90,7 @@ instance-operator:
     privateContainerRegistry:
       url: registry.crownlabs.example.com
       secretName: registry-credentials
+    maxConcurrentReconciles: 1
 
 tenant-operator:
   replicaCount: 1
@@ -109,6 +110,7 @@ tenant-operator:
       url: "https://nextcloud.crownlabs.example.com/"
       user: username
       pass: password
+    maxConcurrentReconciles: 1
 
 bastion-operator:
   replicaCount: 1
