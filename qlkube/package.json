@@ -30,16 +30,16 @@
   },
   "dependencies": {
     "@graphql-tools/schema": "^7.1.4",
-    "@kubernetes/client-node": "^0.14.3",
-    "apollo-server": "2.25.1",
+    "@kubernetes/client-node": "^0.15.0",
+    "apollo-server": "2.25.2",
     "apollo-server-express": "^2.25.1",
     "compression": "^1.7.4",
     "dotenv": "^9.0.2",
     "express": "^4.17.1",
     "express-graphql": "^0.12.0",
     "got": "^9.6.0",
-    "graphql": "^14.5.8",
-    "graphql-tools": "^4.0.6",
+    "graphql": "^15.5.1",
+    "graphql-tools": "^7.0.5",
     "oasgraph": "^0.14.3",
     "pino": "^5.13.6",
     "promise-any": "^0.2.0"
@@ -54,5 +54,8 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css}": "prettier --write"
+  },
+  "resolutions": {
+    "yargs-parser": "20.2.2"
   }
 }

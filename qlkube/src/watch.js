@@ -69,7 +69,7 @@ function kwatch(api, label) {
         });
       },
       err => {
-        console.log(err);
+        console.error(err);
       }
     )
     .then(req => {});
