@@ -1,0 +1,24 @@
+query workspaceTemplates($workspaceNamespace: String!) {
+  templateList: itPolitoCrownlabsV1alpha2TemplateList(
+    namespace: $workspaceNamespace
+  ) {
+    templates: items {
+      spec {
+        name: prettyName
+        description
+        environmentList {
+          guiEnabled
+          persistent
+          resources {
+            cpu
+            disk
+            memory
+          }
+        }
+      }
+      metadata {
+        id: name
+      }
+    }
+  }
+}

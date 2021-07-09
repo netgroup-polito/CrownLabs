@@ -33,7 +33,7 @@
     "storybook": "start-storybook -p 6006 -s public",
     "build-storybook": "build-storybook -s public -o build",
     "prepare": "cd .. && husky install frontend/.husky",
-    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css} && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0",
+    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0",
     "pre-commit": "lint-staged",
     "generate": "graphql-codegen --config codegen.yml"
   },
@@ -76,6 +76,9 @@
       ]
     }
   },
+  "eslintIgnore": [
+    "generated-types.tsx"
+  ],
   "browserslist": {
     "production": [
       ">0.2%",
@@ -124,7 +127,7 @@
     "endOfLine": "lf"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,css}": [
+    "*.{ts,tsx,js,jsx,json,css,graphql}": [
       "prettier --write"
     ],
     "*.{ts,tsx,js,jsx}": [
