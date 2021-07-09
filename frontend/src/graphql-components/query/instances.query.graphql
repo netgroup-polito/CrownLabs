@@ -1,0 +1,32 @@
+query ownedInstances($tenantNamespace: String!) {
+  instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
+    namespace: $tenantName
+  ) {
+    instances: items {
+      status {
+        ip
+        phase
+        url
+      }
+      spec {
+        running
+        templateCrownlabsPolitoItTemplateRef {
+          name
+          namespace
+          templateWrapper {
+            itPolitoCrownlabsV1alpha2Template {
+              spec {
+                templateName: prettyName
+                templateDescription: description
+                environmentList {
+                  guiEnabled
+                  persistent
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
