@@ -37,7 +37,7 @@ spec:
             - /usr/bin/controller
           args:
             - "--target-label={{ .Values.configurations.targetLabel }}"
-            - "--kc-url{{ .Values.configurations.keycloak.url }}"
+            - "--kc-url={{ .Values.configurations.keycloak.url }}"
             - "--kc-login-realm={{ .Values.configurations.keycloak.loginRealm }}"
             - "--kc-target-realm={{ .Values.configurations.keycloak.targetClient }}"
             - "--kc-target-client={{ .Values.configurations.keycloak.targetClient }}"
