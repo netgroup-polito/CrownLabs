@@ -39,7 +39,7 @@ spec:
             - "--target-label={{ .Values.configurations.targetLabel }}"
             - "--kc-url={{ .Values.configurations.keycloak.url }}"
             - "--kc-login-realm={{ .Values.configurations.keycloak.loginRealm }}"
-            - "--kc-target-realm={{ .Values.configurations.keycloak.targetClient }}"
+            - "--kc-target-realm={{ .Values.configurations.keycloak.targetRealm }}"
             - "--kc-target-client={{ .Values.configurations.keycloak.targetClient }}"
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
