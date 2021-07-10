@@ -1,7 +1,7 @@
 const { gql } = require('apollo-server-core');
 const { extendSchema } = require('graphql/utilities');
 const { addResolversToSchema } = require('@graphql-tools/schema');
-const { capitalizeType } = require('./utils.js');
+const { capitalizeType, graphqlLogger } = require('./utils.js');
 
 /**
  *
@@ -58,6 +58,9 @@ function decorateBaseSchema(
     },
     [typeWrapper]: {
       [targetQuery]: (parent, args, context, info) => {
+        graphqlLogger(
+          `[i] Resolve ${targetQuery} query of ${typeWrapper} type wrapper`
+        );
         return targetType.resolve(parent, parent, context, info);
       },
     },

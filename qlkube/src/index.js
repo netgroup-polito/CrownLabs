@@ -12,6 +12,11 @@ const { decorateOpenapi } = require('./decorateOpenapi');
 const { createSchema } = require('./schema');
 const { subscriptions } = require('./subscriptions.js');
 const { kwatch } = require('./watch.js');
+const {
+  getBearerToken,
+  graphqlQueryRegistry,
+  graphqlLogger,
+} = require('./utils.js');
 
 dotenv.config();
 
@@ -25,16 +30,15 @@ async function main() {
   const kubeApiUrl = inCluster
     ? 'https://kubernetes.default.svc'
     : 'http://localhost:8001';
-  const token = inCluster
+  const inClusterToken = inCluster
     ? await fs.readFile(
         '/var/run/secrets/kubernetes.io/serviceaccount/token',
         'utf8'
       )
     : '';
-  const oas = await getOpenApiSpec(kubeApiUrl, token);
+  const oas = await getOpenApiSpec(kubeApiUrl, inClusterToken);
   const targetOas = decorateOpenapi(oas);
-  let schema = await createSchema(targetOas, kubeApiUrl, token);
-
+  let schema = await createSchema(targetOas, kubeApiUrl, inClusterToken);
   try {
     schema = setupSubscriptions(subscriptions, schema, kubeApiUrl);
   } catch (e) {
@@ -44,33 +48,28 @@ async function main() {
 
   const server = new ApolloServer({
     schema,
+    playground: true,
+    plugins: [graphqlQueryRegistry],
     subscriptions: {
       path: '/subscription',
       onConnect: (connectionParams, webSocket, context) => {
-        console.log('Connected!');
-        const token =
-          (connectionParams.authorization &&
-            connectionParams.authorization.split(' ')[1]) ||
-          (connectionParams.Authorization &&
-            connectionParams.Authorization.split(' ')[1]);
-        return token ? { token } : false;
+        graphqlLogger('[i] New connection');
+        const token = getBearerToken(connectionParams);
+        return { token };
       },
       onDisconnect: (webSocket, context) => {
-        console.log('Disconnected!');
+        graphqlLogger('[i] Disconnected');
       },
     },
 
     context: ({ req, connection }) => {
       if (connection) {
-        const token = connection.context.token;
+        const { token } = connection.context;
         return { token };
-      } else {
-        if (req.headers.authorization && req.headers.authorization.length > 0) {
-          const strs = req.headers.authorization.split(' ');
-          var user = {};
-          user.token = strs[1];
-          return user;
-        }
+      }
+      if (!req.headers['apollo-query-plan-experimental']) {
+        const token = getBearerToken(req.headers);
+        return { token };
       }
     },
   });

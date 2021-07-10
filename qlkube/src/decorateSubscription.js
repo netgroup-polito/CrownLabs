@@ -6,6 +6,7 @@ const { pubsubAsyncIterator } = require('./pubsub.js');
 const { subscriptions } = require('./subscriptions.js');
 const { capitalizeType } = require('./utils.js');
 const { canWatchResource } = require('./watch.js');
+const { graphqlLogger } = require('./utils');
 
 let cacheSubscriptions = {};
 const TEN_MINUTES = 10 * 60 * 1000;
@@ -71,6 +72,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
             const resourceApi = subscriptions.filter(sub => {
               return `${sub.type}Update` === context.fieldName;
             })[0];
+            graphqlLogger(`[i] Validate ${context.fieldName} subscription`);
             return (
               payload.apiObj.metadata.namespace === variables.namespace &&
               (variables.name === undefined ||
@@ -87,6 +89,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
           }
         ),
         resolve: async (payload, args, context, info) => {
+          graphqlLogger(`[i] Resolve ${context.fieldName} subscription`);
           return payload;
         },
       },
