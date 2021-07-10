@@ -2413,6 +2413,11 @@
     "@gar/promisify" "^1.0.1"
     semver "^7.3.5"
 
+"@novnc/novnc@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@novnc/novnc/-/novnc-1.2.0.tgz#535ffd7d074022d35205deae2753100f1f2b29f3"
+  integrity sha512-FaUckOedGhSbwQBXk/KGyxKt9ngskg4wPw6ghbHWXOUEmQscAZr3467lTU5DSfppwHJt5k+lQiHoeYUuY90l2Q==
+
 "@npmcli/move-file@^1.0.1":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@npmcli/move-file/-/move-file-1.1.2.tgz#1a82c3e372f7cae9253eb66d72543d6b8685c674"
