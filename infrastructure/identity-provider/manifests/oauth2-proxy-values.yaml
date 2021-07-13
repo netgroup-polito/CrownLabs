@@ -23,6 +23,7 @@ config:
   configFile: |-
     cookie_expire = "168h0m0s"
     cookie_path = "/"
+    cookie_domains = [ "crownlabs.polito.it" , "exams.crownlabs.polito.it" , "exercises.crownlabs.polito.it" ]
     cookie_refresh = "45m0s"
     email_domains = [ "*" ]
     oidc_issuer_url = "https://auth.crownlabs.polito.it/auth/realms/crownlabs"
@@ -32,6 +33,7 @@ config:
     skip_provider_button = true
     silence_ping_logging = true
     upstreams = [ "file:///dev/null" ]
+    whitelist_domains = [ "crownlabs.polito.it" , "exams.crownlabs.polito.it" , "exercises.crownlabs.polito.it" ]
 
   # Custom configuration file: oauth2_proxy.cfg
   # configFile: |-
