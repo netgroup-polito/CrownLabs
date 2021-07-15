@@ -1,3 +1,5 @@
+//This component will be removed in the next weeks after a decorators refactoring
+/* eslint-disable react/no-multi-comp */
 import { useState } from 'react';
 import { Layout, Skeleton } from 'antd';
 import Button from 'antd-button-color';
@@ -31,4 +33,10 @@ const ModalDecorator = (Story: Story, context: StoryContext) => {
   );
 };
 
-export { ModalDecorator };
+const LogoDecorator = (Story: Story) => (
+  <div className="flex h-full justify-center h-screen ">
+    <Story />
+  </div>
+);
+
+export { ModalDecorator, LogoDecorator };
