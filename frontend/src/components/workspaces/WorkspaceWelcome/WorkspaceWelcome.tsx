@@ -1,6 +1,6 @@
-import logo from '../../../assets/logo.svg';
 import Box from '../../common/Box';
 import { FC } from 'react';
+import Logo from '../../common/Logo';
 
 export interface IWorkspaceWelcomeProps {}
 
@@ -20,7 +20,7 @@ const WorkspaceWelcome: FC<IWorkspaceWelcomeProps> = ({ ...args }) => {
     >
       <div className="w-full flex-grow flex flex-wrap content-center justify-center py-5 2xl:py-52">
         <div className="w-full pb-10 flex justify-center">
-          <img width={150} src={logo} alt="Logo Crownlabs" />
+          <Logo widthPx={150} />
         </div>
         <p className="text-xl xs:text-3xl text-center px-5 xs:px-24">
           Select a Workspace <br />
