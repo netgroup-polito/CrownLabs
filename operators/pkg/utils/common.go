@@ -25,7 +25,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -57,13 +57,13 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 	// by checking the existence of keys in the namespace of the InstanceSnapshot.
 	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err == nil {
 		if !CheckLabels(&ns, matchLabels) {
-			klog.Infof("Namespace %s does not meet the selector labels", namespaceName)
+			ctrl.LoggerFrom(ctx).V(LogDebugLevel).Info("selector labels not met")
 			return false, nil
 		}
 	} else {
 		return false, fmt.Errorf("error when retrieving the InstanceSnapshot namespace -> %w", err)
 	}
 
-	klog.Info("Namespace " + namespaceName + " met the selector labels")
+	ctrl.LoggerFrom(ctx).V(LogDebugLevel).Info("selector labels met")
 	return true, nil
 }

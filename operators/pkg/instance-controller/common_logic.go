@@ -10,6 +10,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
@@ -18,10 +19,12 @@ import (
 func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 	ctx context.Context,
 	instance *crownlabsv1alpha2.Instance,
-	name string, hasFileBrowser bool,
+	hasFileBrowser bool,
 ) (v1.Service, networkingv1.Ingress, string, error) {
+	namespacedName := forge.NamespaceName(instance)
+
 	// create Service to expose the pod
-	service := instance_creation.ForgeService(name, instance.Namespace)
+	service := instance_creation.ForgeService(namespacedName.Name, namespacedName.Namespace)
 
 	fileBrowserPortName := "filebrowser"
 	if hasFileBrowser {
@@ -45,7 +48,7 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 	urlUUID := uuid.New().String()
 
 	// create Ingress to manage the service
-	ingress := instance_creation.ForgeIngress(name, instance.Namespace, &service, r.WebsiteBaseURL, urlUUID, r.InstancesAuthURL)
+	ingress := instance_creation.ForgeIngress(namespacedName.Name, namespacedName.Namespace, &service, r.WebsiteBaseURL, urlUUID, r.InstancesAuthURL)
 	op, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingress, func() error {
 		return ctrl.SetControllerReference(instance, &ingress, r.Scheme)
 	})
@@ -61,7 +64,7 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 
 	if hasFileBrowser {
 		// create separate Ingress for FileBrowser to manage the same service
-		fileBrowserIngress := instance_creation.ForgeFileBrowserIngress(name, instance.Namespace, &service, urlUUID, r.WebsiteBaseURL, fileBrowserPortName, r.InstancesAuthURL)
+		fileBrowserIngress := instance_creation.ForgeFileBrowserIngress(namespacedName.Name, namespacedName.Namespace, &service, urlUUID, r.WebsiteBaseURL, fileBrowserPortName, r.InstancesAuthURL)
 		op, err := ctrl.CreateOrUpdate(ctx, r.Client, &fileBrowserIngress, func() error {
 			return ctrl.SetControllerReference(instance, &fileBrowserIngress, r.Scheme)
 		})
@@ -72,6 +75,9 @@ func (r *InstanceReconciler) CreateInstanceExpositionEnvironment(
 		}
 		klog.Infof("Ingress (filebrowser) for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), op)
 	}
+
+	instance.Status.IP = service.Spec.ClusterIP
+	instance.Status.URL = ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
 
 	return service, ingress, urlUUID, nil
 }

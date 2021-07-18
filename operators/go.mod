@@ -20,8 +20,8 @@ require (
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
-	kubevirt.io/client-go v0.39.0
-	kubevirt.io/containerized-data-importer v1.32.0
+	kubevirt.io/client-go v0.43.0
+	kubevirt.io/containerized-data-importer v1.34.1
 	sigs.k8s.io/controller-runtime v0.8.3
 )
 

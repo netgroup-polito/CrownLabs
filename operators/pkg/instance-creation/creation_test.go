@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -111,19 +110,12 @@ func TestCreatePersistentVirtualMachine(t *testing.T) {
 			Name:      "name",
 			Namespace: "namespace"},
 	}
-	dv := cdiv1.DataVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "name",
-			Namespace: "namespace"},
-	}
 	instance := &v1alpha2.Instance{
 		Spec: v1alpha2.InstanceSpec{
 			Running: true,
 		},
 	}
 
-	UpdateDataVolumeSpec(&dv, tc1)
-	assert.Equal(t, "docker://"+tc1.Image, dv.Spec.Source.Registry.URL, "The datavolume has not the correct image")
 	UpdateVirtualMachineSpec(&vm, tc1, instance.Spec.Running)
 	assert.Equal(t, len(vm.Spec.Template.Spec.Volumes), 2, "The VMI has a number of volume different from expected")
 	assert.Equal(t, len(vm.Spec.Template.Spec.Domain.Devices.Disks), 2, "The VMI has a number of devices different from the expected")
@@ -135,7 +127,7 @@ func TestCreatePersistentVirtualMachine(t *testing.T) {
 	assert.Equal(t, vm.Spec.Template.Spec.Domain.Resources.Limits.Cpu().String(), "1500m")
 	assert.Equal(t, vm.Spec.Template.Spec.Domain.Resources.Requests.Cpu().String(), "250m")
 	assert.Equal(t, vm.Spec.Template.Spec.Volumes[0].Name, "containerdisk")
-	assert.Equal(t, vm.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName, "name")
+	assert.Equal(t, vm.Spec.Template.Spec.Volumes[0].DataVolume.Name, "name")
 	assert.Equal(t, vm.Spec.Template.Spec.Volumes[1].Name, "cloudinitdisk")
 }
 

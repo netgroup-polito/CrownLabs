@@ -66,9 +66,21 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-run-tenant: generate fmt vet manifests
+run-instance: generate
+	# KubeVirt registers two versions of its API, which is not supported by
+	# the kubernetes client. This environment variable is required to force
+	# KubeVirt register only a specific version of the API
+	KUBEVIRT_CLIENT_GO_SCHEME_REGISTRATION_VERSION=v1alpha3 \
+	go run cmd/instance-operator/main.go\
+				--webdav-secret-name=nextcloud-credentials\
+				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
+				--website-base-url=crownlabs.polito.it\
+				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
+				--nextcloud-base-url=crownlabs.polito.it/cloud
+
+run-tenant: generate
 	go run cmd/tenant-operator/main.go\
-				--target-label=reconcile=true\
+				--target-label=crownlabs.polito.it/operator-selector=local\
 				--kc-url=$(KEYCLOAK_URL)\
 				--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\
 				--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)\

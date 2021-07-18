@@ -8,9 +8,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var terminationGracePeriod int64 = 30
@@ -31,6 +31,8 @@ func UpdateVirtualMachineInstanceSpec(vmi *virtv1.VirtualMachineInstance, templa
 			containerdisk,
 			cloudinitdisk,
 		},
+		ReadinessProbe: forge.VMReadinessProbe(template),
+		Networks:       []virtv1.Network{*virtv1.DefaultPodNetwork()},
 	}
 }
 
@@ -50,8 +52,11 @@ func UpdateVirtualMachineSpec(vm *virtv1.VirtualMachine, template *crownlabsv1al
 					containerdisk,
 					cloudinitdisk,
 				},
+				ReadinessProbe: forge.VMReadinessProbe(template),
+				Networks:       []virtv1.Network{*virtv1.DefaultPodNetwork()},
 			},
 		},
+		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{},
 	}
 }
 
@@ -61,8 +66,8 @@ func CreateVolumeContainerdiskPVC(template *crownlabsv1alpha2.Environment, name 
 	volume := virtv1.Volume{
 		Name: "containerdisk",
 		VolumeSource: virtv1.VolumeSource{
-			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-				ClaimName: name,
+			DataVolume: &virtv1.DataVolumeSource{
+				Name: name,
 			},
 		},
 	}
@@ -120,7 +125,7 @@ func UpdateVMdomain(template *crownlabsv1alpha2.Environment) virtv1.DomainSpec {
 		Memory: &virtv1.Memory{
 			Guest: &vmMemory,
 		},
-		Machine: virtv1.Machine{},
+		Machine: &virtv1.Machine{},
 		Devices: virtv1.Devices{
 			Disks: []virtv1.Disk{
 				{
@@ -140,6 +145,7 @@ func UpdateVMdomain(template *crownlabsv1alpha2.Environment) virtv1.DomainSpec {
 					},
 				},
 			},
+			Interfaces: []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
 		},
 	}
 	return Domain
@@ -154,27 +160,6 @@ func UpdateLabels(labels map[string]string, template *crownlabsv1alpha2.Environm
 	labels["crownlabs.polito.it/template"] = template.Name
 	labels["crownlabs.polito.it/managed-by"] = "instance"
 	return labels
-}
-
-// UpdateDataVolumeSpec create datavolume specification.
-// object allows the creation of the pvc and the import of the virtual machine image.
-func UpdateDataVolumeSpec(dv *cdiv1.DataVolume, template *crownlabsv1alpha2.Environment) {
-	dv.Spec = cdiv1.DataVolumeSpec{
-		Source: cdiv1.DataVolumeSource{
-			Registry: &cdiv1.DataVolumeSourceRegistry{
-				URL:       "docker://" + template.Image,
-				SecretRef: "registry-credentials-cdi",
-			},
-		},
-		PVC: &corev1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: template.Resources.Disk,
-				},
-			},
-		},
-	}
 }
 
 func computeCPULimits(cpu uint32, hypervisorCoefficient float32) string {
