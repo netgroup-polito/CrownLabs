@@ -18,6 +18,8 @@ spec:
   template:
     metadata:
       name: nextcloud
+      annotations:
+        backup.velero.io/backup-volumes: nextcloud-data
       labels:
         app.kubernetes.io/name: nextcloud
         app.kubernetes.io/part-of: nextcloud

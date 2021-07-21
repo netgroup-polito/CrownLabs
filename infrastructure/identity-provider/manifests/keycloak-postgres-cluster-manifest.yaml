@@ -17,3 +17,5 @@ spec:
     keycloak: keycloak # dbname: owner
   postgresql:
     version: "12"
+  podAnnotations:
+    backup.velero.io/backup-volumes: pgdata

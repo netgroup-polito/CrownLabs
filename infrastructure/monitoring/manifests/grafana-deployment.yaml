@@ -31,6 +31,8 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        backup.velero.io/backup-volumes: grafana-storage
       labels:
         app: grafana
     spec:
