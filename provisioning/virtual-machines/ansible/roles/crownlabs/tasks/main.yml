@@ -16,9 +16,16 @@
     state: present
     install_recommends: no
 
+- name: Set cloud-init valid DataSources
+  debconf:
+    name: cloud-init
+    question: cloud-init/datasources
+    vtype: multiselect
+    value: NoCloud, None
+
 - name: Copy the cloud-init configuration
-  copy:
-    src: files/cloud.cfg
+  template:
+    src: templates/cloud.cfg
     dest: /etc/cloud/cloud.cfg
 
 - name: Hide the cidata disk
