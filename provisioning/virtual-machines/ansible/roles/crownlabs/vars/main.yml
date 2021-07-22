@@ -15,7 +15,5 @@ unnecessary_packages:
 
 unnecessary_services:
 - apport.service
-- logrotate.timer
-- logrotate.service
 - man-db.timer
 - man-db.service
