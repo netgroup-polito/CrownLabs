@@ -108,6 +108,10 @@ spec:
                   the SSH bastion in case it is not contacted from another CrownLabs
                   Instance).
                 type: string
+              myDriveUrl:
+                description: The URL where it is possible to access the persistent
+                  drive associated with the instance (in case of container-based environments)
+                type: string
               phase:
                 description: The current status Instance, with reference to the associated
                   environment (e.g. VM). This conveys which resource is being created,

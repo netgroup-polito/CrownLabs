@@ -6,7 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	virtv1 "kubevirt.io/client-go/api/v1"
 
@@ -56,9 +57,9 @@ var _ = Describe("Status Inspection", func() {
 			return &virtv1.VirtualMachineInstance{Status: virtv1.VirtualMachineInstanceStatus{
 				Phase: phase,
 				Conditions: []virtv1.VirtualMachineInstanceCondition{
-					{Type: virtv1.VirtualMachineInstanceReady, Status: v1.ConditionFalse},
-					{Type: virtv1.VirtualMachineInstanceIsMigratable, Status: v1.ConditionTrue},
-					{Type: virtv1.VirtualMachineInstancePaused, Status: v1.ConditionFalse},
+					{Type: virtv1.VirtualMachineInstanceReady, Status: corev1.ConditionFalse},
+					{Type: virtv1.VirtualMachineInstanceIsMigratable, Status: corev1.ConditionTrue},
+					{Type: virtv1.VirtualMachineInstancePaused, Status: corev1.ConditionFalse},
 				},
 			}}
 		}
@@ -67,9 +68,9 @@ var _ = Describe("Status Inspection", func() {
 			return &virtv1.VirtualMachineInstance{Status: virtv1.VirtualMachineInstanceStatus{
 				Phase: virtv1.Running,
 				Conditions: []virtv1.VirtualMachineInstanceCondition{
-					{Type: virtv1.VirtualMachineInstanceReady, Status: v1.ConditionTrue},
-					{Type: virtv1.VirtualMachineInstanceIsMigratable, Status: v1.ConditionTrue},
-					{Type: virtv1.VirtualMachineInstancePaused, Status: v1.ConditionFalse},
+					{Type: virtv1.VirtualMachineInstanceReady, Status: corev1.ConditionTrue},
+					{Type: virtv1.VirtualMachineInstanceIsMigratable, Status: corev1.ConditionTrue},
+					{Type: virtv1.VirtualMachineInstancePaused, Status: corev1.ConditionFalse},
 				},
 			}}
 		}
@@ -97,6 +98,36 @@ var _ = Describe("Status Inspection", func() {
 			Entry("When the VMI status is failed", ForgeVMI(virtv1.Failed), clv1alpha2.EnvironmentPhaseFailed),
 			Entry("When the VMI status is succeeded", ForgeVMI(virtv1.Succeeded), clv1alpha2.EnvironmentPhaseFailed),
 			Entry("When the VMI is being deleted", ForgeStoppingVMI(), clv1alpha2.EnvironmentPhaseStopping),
+		)
+	})
+
+	Describe("The statusinspection.RetrievePhaseFromDeployment function", func() {
+		var reconciler instance_controller.InstanceReconciler
+
+		ForgeDeployment := func(desired, ready int32) *appsv1.Deployment {
+			return &appsv1.Deployment{
+				Spec:   appsv1.DeploymentSpec{Replicas: &desired},
+				Status: appsv1.DeploymentStatus{ReadyReplicas: ready},
+			}
+		}
+
+		ForgeStoppingDeployment := func() *appsv1.Deployment {
+			timestamp := metav1.NewTime(time.Now())
+			return &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &timestamp}}
+		}
+
+		BeforeEach(func() {
+			reconciler = instance_controller.InstanceReconciler{}
+		})
+
+		DescribeTable("Correctly returns the expected instance phase",
+			func(deployment *appsv1.Deployment, expected clv1alpha2.EnvironmentPhase) {
+				Expect(reconciler.RetrievePhaseFromDeployment(deployment)).To(Equal(expected))
+			},
+			Entry("When the deployment has no replicas", ForgeDeployment(0, 0), clv1alpha2.EnvironmentPhaseOff),
+			Entry("When the deployment replicas are not ready", ForgeDeployment(1, 0), clv1alpha2.EnvironmentPhaseStarting),
+			Entry("When the deployment replicas are ready", ForgeDeployment(1, 1), clv1alpha2.EnvironmentPhaseReady),
+			Entry("When the deployment is being deleted", ForgeStoppingDeployment(), clv1alpha2.EnvironmentPhaseStopping),
 		)
 	})
 })

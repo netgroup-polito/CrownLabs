@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
@@ -59,7 +60,7 @@ func buildContainerInstanceDeploymentSpec(
 	name string, instance *crownlabsv1alpha2.Instance,
 	environment *crownlabsv1alpha2.Environment,
 	o *ContainerEnvOpts, httpPort int32,
-	fileBrowserPort int32, mountPath, urlUUID string,
+	fileBrowserPort int32, mountPath, basePath string,
 ) appsv1.DeploymentSpec {
 	userID := int64(1010)
 	yes := true
@@ -198,7 +199,7 @@ func buildContainerInstanceDeploymentSpec(
 			Args: []string{
 				"--port=" + fmt.Sprintf("%d", fileBrowserPort),
 				"--root=" + mountPath,
-				"--baseurl=/" + urlUUID + "/mydrive",
+				"--baseurl=" + basePath,
 				"--database=/tmp/database.db",
 				"--noauth=true",
 			},
@@ -248,20 +249,14 @@ func buildContainerInstanceDeploymentSpec(
 		},
 	}
 
-	template := &instance.Spec.Template
-	labels := map[string]string{
-		"name":                         name,
-		"crownlabs.polito.it/template": template.Namespace + "_" + template.Name,
-	}
-
 	return appsv1.DeploymentSpec{
 		Replicas: pointer.Int32Ptr(1),
 		Selector: &metav1.LabelSelector{
-			MatchLabels: labels,
+			MatchLabels: forge.InstanceSelectorLabels(instance),
 		},
 		Template: v1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: labels,
+				Labels: forge.InstanceSelectorLabels(instance),
 			},
 			Spec: v1.PodSpec{
 				Containers:                   containers,
@@ -296,11 +291,16 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(
 	ctx context.Context,
 	instance *crownlabsv1alpha2.Instance,
 	environment *crownlabsv1alpha2.Environment) error {
+	log := ctrl.LoggerFrom(ctx, "environment", environment.Name)
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	name := strings.ReplaceAll(instance.GetName(), ".", "-")
 	namespace := instance.GetNamespace()
 
-	service, ingress, urlUUID, err := r.CreateInstanceExpositionEnvironment(ctx, instance, true)
+	// Enforce the service and the ingress to expose the environment.
+	err := r.EnforceInstanceExposition(ctx, instance, environment)
 	if err != nil {
+		log.Error(err, "failed to enforce the instance exposition objects")
 		return err
 	}
 
@@ -320,7 +320,7 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(
 			return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
 		})
 		if err != nil {
-			r.setInstanceStatus(ctx, "Could not create PVC "+pvc.Name+" in namespace "+pvc.Namespace+": "+err.Error(), "Error", "VmiNotCreated", instance, "", "")
+			log.Error(err, "failed to enforce PVC existence", "pvc", klog.KObj(&pvc))
 			return err
 		}
 		klog.Infof("PVC for instance %s/%s %s", instance.GetNamespace(), instance.GetName(), res)
@@ -334,23 +334,20 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(
 	}
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
-		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", urlUUID)
+		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", forge.IngressMyDrivePath(instance))
 		depl.Labels = instance_creation.UpdateLabels(depl.Labels, environment, name)
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	}); err != nil {
-		r.setInstanceStatus(ctx, "Could not create deployment "+depl.Name+" in namespace "+depl.Namespace+": "+err.Error(), "Error", "VmiNotCreated", instance, "", "")
+		log.Error(err, "failed to enforce deployment existence", "deployment", klog.KObj(&depl))
 		return err
 	}
 
-	ip := ""
-	url := ""
-	status := "VmiCreated"
-	if depl.Status.ReadyReplicas > 0 {
-		ip = service.Spec.ClusterIP
-		url = ingress.GetAnnotations()["crownlabs.polito.it/probe-url"]
-		status = "VmiReady"
+	phase := r.RetrievePhaseFromDeployment(&depl)
+	if phase != instance.Status.Phase {
+		log.Info("phase changed", "deployment", klog.KObj(&depl),
+			"previous", string(instance.Status.Phase), "current", string(phase))
+		instance.Status.Phase = phase
 	}
-	r.setInstanceStatus(ctx, "Container Deployment "+depl.Name+" in namespace "+depl.Namespace+" status update to "+status, "Normal", status, instance, ip, url)
 
 	return nil
 }

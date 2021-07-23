@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -188,29 +187,4 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			MaxConcurrentReconciles: r.Concurrency,
 		}).
 		Complete(r)
-}
-
-// The setInstanceStatus function is deprecated and should no longer be used.
-func (r *InstanceReconciler) setInstanceStatus(
-	ctx context.Context,
-	msg string, eventType string, eventReason string,
-	instance *crownlabsv1alpha2.Instance, ip, url string) {
-	klog.Info(msg)
-
-	// Ignore other phases if currently ready and no error occurred
-	// Do not return if the event is VmiReady, to avoid problems if the other parameters changed
-	if instance.Status.Phase == "VmiReady" && eventReason != "VmiReady" && eventType == "Normal" && eventReason != "VmiOff" {
-		return
-	}
-	r.EventsRecorder.Event(instance, eventType, eventReason, msg)
-
-	statusInstance := *instance.DeepCopy()
-	statusInstance.Status.IP = ip
-	statusInstance.Status.Phase = crownlabsv1alpha2.EnvironmentPhase(eventReason)
-	statusInstance.Status.URL = url
-
-	if err := r.Status().Patch(ctx, &statusInstance, client.MergeFrom(instance)); err != nil {
-		klog.Error("Unable to update Instance status")
-		klog.Error(err)
-	}
 }

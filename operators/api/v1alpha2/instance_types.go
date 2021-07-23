@@ -81,6 +81,10 @@ type InstanceStatus struct {
 	// (in case of graphical environments)
 	URL string `json:"url,omitempty"`
 
+	// The URL where it is possible to access the persistent drive associated with
+	// the instance (in case of container-based environments)
+	MyDriveURL string `json:"myDriveUrl,omitempty"`
+
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).

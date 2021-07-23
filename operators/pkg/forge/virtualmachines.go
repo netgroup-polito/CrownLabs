@@ -18,9 +18,9 @@ const (
 
 // VMReadinessProbe forges the readiness probe for a given VM environment.
 func VMReadinessProbe(environment *clv1alpha2.Environment) *virtv1.Probe {
-	port := ServiceSSHPort
+	port := SSHPortNumber
 	if environment.GuiEnabled {
-		port = ServiceNoVNCPort
+		port = GUIPortNumber
 	}
 
 	return &virtv1.Probe{

@@ -25,10 +25,10 @@ func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context, instance 
 		return err
 	}
 
-	// Create the service and the ingress to expose the environment.
-	// nolint:dogsled // this will be fixed as part of the next refactoring.
-	_, _, _, err := r.CreateInstanceExpositionEnvironment(ctx, instance, false)
+	// Enforce the service and the ingress to expose the environment.
+	err := r.EnforceInstanceExposition(ctx, instance, environment)
 	if err != nil {
+		log.Error(err, "failed to enforce the instance exposition objects")
 		return err
 	}
 
@@ -47,13 +47,13 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context, instance
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &vm, func() error {
+		instance_creation.UpdateVirtualMachineSpec(&vm, environment, instance.Spec.Running)
 		if vm.CreationTimestamp.IsZero() {
 			vm.Spec.DataVolumeTemplates = []virtv1.DataVolumeTemplateSpec{
 				forge.DataVolumeTemplate(vm.Name, environment),
 			}
+			vm.Spec.Template.ObjectMeta.Labels = forge.InstanceSelectorLabels(instance)
 		}
-		instance_creation.UpdateVirtualMachineSpec(&vm, environment, instance.Spec.Running)
-		vm.Spec.Template.ObjectMeta.Labels = instance_creation.UpdateLabels(vm.Spec.Template.ObjectMeta.Labels, environment, vm.GetName())
 		return ctrl.SetControllerReference(instance, &vm, r.Scheme)
 	})
 
@@ -81,8 +81,8 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context, 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &vmi, func() error {
 		if vmi.ObjectMeta.CreationTimestamp.IsZero() {
 			instance_creation.UpdateVirtualMachineInstanceSpec(&vmi, environment)
+			vmi.SetLabels(forge.InstanceObjectLabels(vmi.GetLabels(), instance))
 		}
-		vmi.Labels = instance_creation.UpdateLabels(vmi.Labels, environment, vmi.GetName())
 		return ctrl.SetControllerReference(instance, &vmi, r.Scheme)
 	})
 
