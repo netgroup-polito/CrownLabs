@@ -1,5 +1,7 @@
 <application>
   <component name="GeneralSettings">
+    <option name="autoSaveIfInactive" value="true" />
+    <option name="inactiveTimeout" value="5" />
     <option name="showTipsOnStartup" value="false" />
   </component>
 </application>

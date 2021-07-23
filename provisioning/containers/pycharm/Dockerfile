@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 # Define PyCharm version default arguments
-ARG PYCHARM_VERSION="2020.2"
+ARG PYCHARM_VERSION="2021.1"
 ARG REVISION=".3"
 
 # Prevent apt from prompting the user for input during install/configuration
@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required libraries to render PyCharm
 RUN apt-get update && \
   apt-get install -y --no-install-recommends libxrender1 libxtst6 libxi6 libfontconfig1 && \
-  apt-get install -y python3 python3-venv
+  apt-get install -y python3 python3-venv python3-setuptools
 
 # Install wget, download and unpack PyCharm, and clean up
 RUN apt-get install -y wget && \
@@ -33,8 +33,8 @@ ENV DISPLAY=:0 \
 RUN useradd -ms /bin/bash -u ${UID} $USER
 
 # Copy PyCharm pre-configuration (PyCharm configuration and consent options on license and usage stats)
-COPY config $HOME/.config/JetBrains/PyCharmCE${PYCHARM_VERSION}/options
-COPY java $HOME/.java/.userPrefs/jetbrains/'_!(!!cg"p!(}!}@"j!(k!|w"w!'\''8!b!"p!'\'':!e@=='
+COPY config $HOME/.config/JetBrains/PyCharmCE${PYCHARM_VERSION}
+COPY java "$HOME/.java/.userPrefs/jetbrains/_!(!!cg\"p!(}!}@\"j!(k!|w\"w!'8!b!\"p!':!e@=="
 COPY local $HOME/.local/share/JetBrains/consentOptions
 
 # Set permissions on user home
@@ -45,4 +45,4 @@ USER $USER
 
 # CMD [ "executable", "parameter", ... ] form throws an error if $PROJECT_DIR is not set
 # Therefore, bash-like form is used
-CMD /opt/pycharm/bin/pycharm.sh $PROJECT_DIR
+ENTRYPOINT ["/opt/pycharm/bin/pycharm.sh"]
