@@ -71,112 +71,17 @@ kubectl get pods -l application=spilo -L spilo-role
 kubectl get svc -l application=spilo -L spilo-role
 ```
 
-## TLS-Certificate
-Apply the the manifest [cert-manager-keycloak-certificate-request.yaml](manifests/cert-manager-keycloak-certificate-request.yaml) to get a certificate for the keycloak domain.
+## Keycloak Server deployment
+Keycloak helm repository is available at [Codecentric's Github](https://github.com/codecentric/helm-charts/tree/master/charts/keycloak).
 
-```bash
-kubectl create -f manifests/cert-manager-keycloak-certificate-request.yaml -n keycloak-ha
-```
 
-This command will create a `tls-secret` named `keycloak-certificate-secret`. We will need it during the keycloak server deployment.
-
-## Keycloak Server
-First of all get the helm charts from [Codecentric](https://github.com/codecentric/helm-charts/tree/master/charts/keycloak):
+The following commands will add the repository and deploy keycloak.
+Helm values are directly commented, further documentation is available at the link above.
 
 ```bash
 #add the codecentric helm repository
 helm repo add codecentric https://codecentric.github.io/helm-charts
-#download the codecentric/keycloak charts on your pc
-helm pull codecentric/keycloak
-```
-
-After extracting the archive, replace file `keycloak/values.yaml` with `conf-files/keycloak-values.yaml`.
-Note, you need to rename the later one in `values.yaml`.
-
-The following are some changes that have bene done to user the resources deployed before in this guide:
-
-```yaml
-# add the volume and volumeMount of the tls-certificate and of the custom template for keycloak in values.yaml file
-extraVolumes: |
-  - name: keycloak-tls-certificate
-    secret:
-      defaultMode: 420
-      secretName: keycloak-tls-certificate-secret
-  - configMap:
-      defaultMode: 420
-      name: keycloak-theme-email
-    name: keycloak-theme-email
-  - configMap:
-      defaultMode: 420
-      name: keycloak-theme-email-messages
-    name: keycloak-theme-email-messages
-  - configMap:
-      defaultMode: 420
-      name: keycloak-theme-email-html
-    name: keycloak-theme-email-html
-  - configMap:
-      defaultMode: 420
-      name: keycloak-theme-email-text
-    name: keycloak-theme-email-text
-extraVolumeMounts: |
-  - mountPath: /etc/x509/https
-    name: keycloak-tls-certificate
-    readOnly: true
-  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email
-    name: keycloak-theme-email
-    readOnly: true
-  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/messages
-    name: keycloak-theme-email-messages
-    readOnly: true
-  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/html
-    name: keycloak-theme-email-html
-    readOnly: true
-  - mountPath: /opt/jboss/keycloak/themes/crownlabs/email/text
-    name: keycloak-theme-email-text
-    readOnly: true
-```
-
-Set the number of replicas of the server according to your preferences:
-```yaml
-keycloak:
-  replicas: 3
-```
-
-Set the database config to use the PostgreSQL Cluster deployed before:
-
-```yaml
-  persistence:
-    # If true, the Postgres chart is deployed
-    deployPostgres: false
-    # The database vendor. Can be either "postgres", "mysql", "mariadb", or "h2"
-    dbVendor: postgres
-    ## The following values only apply if "deployPostgres" is set to "false"
-    dbName: keycloak
-    dbHost: keycloak-db-cluster
-    dbPort: 5432
-    ## Database Credentials are loaded from a Secret residing in the same Namespace as keycloak.
-    ## The Chart can read credentials from an existing Secret OR it can provision its own Secret.
-    ## Specify existing Secret
-    # If set, specifies the Name of an existing Secret to read db credentials from.
-    existingSecret: "keycloak.keycloak-db-cluster.credentials"
-    existingSecretPasswordKey: "password"  # read keycloak db password from existingSecret under this Key
-    existingSecretUsernameKey: "username"  # read keycloak db user from existingSecret under this Key```
-```
-
-For more information visit the following [page](https://hub.docker.com/r/jboss/keycloak/).
-
-### Install keycloak server
-Type the following command:
-
-```bash
-helm install keycloak-server keycloak/ --namespace keycloak-ha
-```
-
-Now, check that the new pods are up and running. Once everything has gone smooth, apply the manifest to the service:
-
-```bash
-#apply manifests/keycloak-ingress.yaml in order to reach keycloak from outside.
-kubectl create -f manifests/keycloak-ingress.yaml -n keycloak-ha
+helm install keycloak-server codecentric/keycloak --namespace keycloak-ha --create-namespace --values=conf-files/keycloak-configuration.yaml
 ```
 
 ### Customize the email templates

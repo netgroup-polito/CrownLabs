@@ -17,6 +17,7 @@ data:
   # Client configuration in Keycloak (ID and Secret)
   GF_AUTH_GENERIC_OAUTH_CLIENT_ID: monitoring
   GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: <monitoring-secret>
+  GF_AUTH_GENERIC_OAUTH_SCOPES: email
   # Keycloak URLs
   GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://auth.crownlabs.polito.it/auth/realms/crownlabs/protocol/openid-connect/auth
   GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://auth.crownlabs.polito.it/auth/realms/crownlabs/protocol/openid-connect/token
