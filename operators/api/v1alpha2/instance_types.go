@@ -19,8 +19,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// EnvironmentPhase is an enumeration of the different phases associated with
+// an instance of a given environment template.
+type EnvironmentPhase string
+
+const (
+	// EnvironmentPhaseUnset -> the environment phase is unknown.
+	EnvironmentPhaseUnset EnvironmentPhase = ""
+	// EnvironmentPhaseImporting -> the image of the environment is being imported.
+	EnvironmentPhaseImporting EnvironmentPhase = "Importing"
+	// EnvironmentPhaseStarting -> the environment is starting.
+	EnvironmentPhaseStarting EnvironmentPhase = "Starting"
+	// EnvironmentPhaseRunning -> the environment is running, but not yet ready.
+	EnvironmentPhaseRunning EnvironmentPhase = "Running"
+	// EnvironmentPhaseReady -> the environment is ready to be accessed.
+	// TODO: update the value to Ready once no more needed for backward compatibility
+	// with the current CrownLabs dashboard.
+	EnvironmentPhaseReady EnvironmentPhase = "VmiReady"
+	// EnvironmentPhaseStopping -> the environment is being stopped.
+	EnvironmentPhaseStopping EnvironmentPhase = "Stopping"
+	// EnvironmentPhaseOff -> the environment is currently shut down.
+	// TODO: update the value to Off once no more needed for backward compatibility
+	// with the current CrownLabs dashboard.
+	EnvironmentPhaseOff EnvironmentPhase = "VmiOff"
+	// EnvironmentPhaseFailed -> the environment has failed, and cannot be restarted.
+	EnvironmentPhaseFailed EnvironmentPhase = "Failed"
+	// EnvironmentPhaseCreationLoopBackoff -> the environment has encountered a temporary error during creation.
+	EnvironmentPhaseCreationLoopBackoff EnvironmentPhase = "CreationLoopBackoff"
+)
 
 // InstanceSpec is the specification of the desired state of the Instance.
 type InstanceSpec struct {
@@ -49,7 +75,7 @@ type InstanceStatus struct {
 	// (e.g. VM). This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
 	// accept incoming connections.
-	Phase string `json:"phase,omitempty"`
+	Phase EnvironmentPhase `json:"phase,omitempty"`
 
 	// The URL where it is possible to access the remote desktop of the instance
 	// (in case of graphical environments)

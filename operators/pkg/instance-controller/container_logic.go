@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -290,17 +290,16 @@ func buildContainerInstancePVCSpec(
 	}
 }
 
-// CreateContainerEnvironment implements the logic to create all the different
+// EnforceContainerEnvironment implements the logic to create all the different
 // Kubernetes resources required to start a containerized CrownLabs environment.
-func (r *InstanceReconciler) CreateContainerEnvironment(
+func (r *InstanceReconciler) EnforceContainerEnvironment(
+	ctx context.Context,
 	instance *crownlabsv1alpha2.Instance,
-	environment *crownlabsv1alpha2.Environment,
-	namespace string,
-	name string,
-	vmStart time.Time) error {
-	ctx := context.TODO()
+	environment *crownlabsv1alpha2.Environment) error {
+	name := strings.ReplaceAll(instance.GetName(), ".", "-")
+	namespace := instance.GetNamespace()
 
-	service, ingress, urlUUID, err := r.CreateInstanceExpositionEnvironment(ctx, instance, name, true)
+	service, ingress, urlUUID, err := r.CreateInstanceExpositionEnvironment(ctx, instance, true)
 	if err != nil {
 		return err
 	}

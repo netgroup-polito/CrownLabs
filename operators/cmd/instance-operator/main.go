@@ -22,9 +22,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,6 +36,7 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 var (
@@ -41,13 +44,13 @@ var (
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	_ = crownlabsv1alpha1.AddToScheme(scheme)
-	_ = crownlabsv1alpha2.AddToScheme(scheme)
+	utilruntime.Must(crownlabsv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
 
-	_ = virtv1.AddToScheme(scheme)
-	_ = cdiv1.AddToScheme(scheme)
+	utilruntime.Must(virtv1.AddToScheme(scheme))
+	utilruntime.Must(cdiv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -99,24 +102,36 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
+	if !klog.V(5).Enabled() {
+		klog.SetLogFilter(utils.LogShortenerFilter{})
+	}
+	ctrl.SetLogger(klogr.NewWithOptions())
+
+	log := ctrl.Log.WithName("setup")
+
+	whiteListMap := parseMap(namespaceWhiteList)
+	log.Info("restricting reconciled namespaces", "labels", namespaceWhiteList)
+
+	// Configure the manager
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		LeaderElection:         enableLeaderElection,
-		Port:                   9443,
 		HealthProbeBindAddress: ":8081",
 		LivenessEndpointName:   "/healthz",
 		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
-		klog.Fatal(err, "unable to start manager")
+		log.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
-	whiteListMap := parseMap(namespaceWhiteList)
-	klog.Info("Reconciling only namespaces with the following labels: ")
+
+	// Configure the Instance controller
+	instanceCtrlName := "Instance"
 	if err = (&instance_controller.InstanceReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor("InstanceOperator"),
+		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		NextcloudBaseURL:   nextcloudBaseURL,
 		WebsiteBaseURL:     websiteBaseURL,
@@ -131,13 +146,16 @@ func main() {
 			FileBrowserImgTag: containerEnvFileBrowserImgTag,
 		},
 	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "Instance")
+		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
+		os.Exit(1)
 	}
 
+	// Configure the InstanceSnapshot controller
+	instanceSnapshotCtrl := "InstanceSnapshot"
 	if err = (&instancesnapshot_controller.InstanceSnapshotReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor("instance-snapshot"),
+		EventsRecorder:     mgr.GetEventRecorderFor(instanceSnapshotCtrl),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		VMRegistry:         vmRegistry,
 		RegistrySecretName: vmRegistrySecret,
@@ -146,25 +164,28 @@ func main() {
 			ContainerImgExport: containerImgExport,
 		},
 	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal(err, "unable to create controller", "controller", "InstanceSnapshot")
+		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
+		os.Exit(1)
 	}
 
-	// +kubebuilder:scaffold:builder
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {
-		klog.Error("Unable to add a readiness check")
+		log.Error(err, "unable to add a readiness check")
 		os.Exit(1)
 	}
 
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
 	if err != nil {
-		klog.Fatal("Unable add an health check")
+		log.Error(err, "unable to add an health check")
+		os.Exit(1)
 	}
-	klog.Info("starting manager")
+
+	log.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		klog.Fatal("Unable to start manager")
+		log.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 }
 

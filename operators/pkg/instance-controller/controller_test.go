@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -240,15 +239,6 @@ var _ = Describe("Instance Operator controller", func() {
 				By("and creating a Instance associated to the template")
 				Expect(k8sClient.Create(ctx, &instance2)).Should(Succeed())
 
-				var datavol cdiv1.DataVolume
-				doesEventuallyExist(ctx, types.NamespacedName{
-					Name:      InstanceName + "persistent",
-					Namespace: InstanceNamespace,
-				}, &datavol, BeTrue(), timeout, interval)
-
-				datavol.Status.Phase = cdiv1.DataVolumePhase("Succeeded")
-				Expect(k8sClient.Update(ctx, &datavol)).Should(Succeed())
-
 				flag := true
 				expectedOwnerReference := metav1.OwnerReference{
 					Kind:               "Instance",
@@ -258,9 +248,6 @@ var _ = Describe("Instance Operator controller", func() {
 					Controller:         &flag,
 					BlockOwnerDeletion: &flag,
 				}
-
-				By("Datavolume Has An OwnerReference")
-				Expect(datavol.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 
 				By("VirtualMachine Should Exists")
 				var VM virtv1.VirtualMachine

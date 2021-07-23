@@ -5,6 +5,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // ForgeService creates and returns a Kubernetes Service resource providing
@@ -20,14 +22,14 @@ func ForgeService(name, namespace string) corev1.Service {
 				{
 					Name:       "vnc",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       6080,
-					TargetPort: intstr.IntOrString{IntVal: 6080},
+					Port:       forge.ServiceNoVNCPort,
+					TargetPort: intstr.FromInt(forge.ServiceNoVNCPort),
 				},
 				{
 					Name:       "ssh",
 					Protocol:   corev1.ProtocolTCP,
-					Port:       22,
-					TargetPort: intstr.IntOrString{IntVal: 22},
+					Port:       forge.ServiceSSHPort,
+					TargetPort: intstr.FromInt(forge.ServiceSSHPort),
 				},
 			},
 			Selector:  map[string]string{"name": name},
