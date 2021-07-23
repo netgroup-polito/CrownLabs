@@ -62,24 +62,24 @@ toolbar.justify:                                                center
 
 toolbar:                                                                flat
 toolbar.pixmap:
-toolbar.color:                                                  #fc7a08
-toolbar.colorTo:                                                #fc7a08
+toolbar.color:                                                  #ef7b00
+toolbar.colorTo:                                                #ef7b00
 
 toolbar.clock:                                                  flat
 toolbar.clock.justify:                                  center
-toolbar.clock.color:                                    #fc7a08
-toolbar.clock.colorTo:                                  #fc7a08
+toolbar.clock.color:                                    #ef7b00
+toolbar.clock.colorTo:                                  #ef7b00
 toolbar.clock.textColor:                                #F1F1F1
 
 toolbar.workspace:                                              flat
 toolbar.workspace.justify:                              Center
-toolbar.workspace.color:                                #fc7a08
-toolbar.workspace.colorTo:                              #fc7a08
+toolbar.workspace.color:                                #ef7b00
+toolbar.workspace.colorTo:                              #ef7b00
 toolbar.workspace.textColor:                    #F1F1F1
 
 toolbar.button:                                                 flat
-toolbar.button.color:                                   #fc7a08
-toolbar.button.colorTo:                                 #fc7a08
+toolbar.button.color:                                   #ef7b00
+toolbar.button.colorTo:                                 #ef7b00
 toolbar.button.picColor:                                #F1F1F1
 toolbar.button.pressed:                                 sunken
 toolbar.button.pressed.color:                   #313131
@@ -87,8 +87,8 @@ toolbar.button.pressed.colorTo:                 #313131
 toolbar.button.pressed.picColor:                #000000
 
 toolbar.iconbar.empty:                                  flat
-toolbar.iconbar.empty.color:                    #fc7a08
-toolbar.iconbar.empty.colorTo:                  #fc7a08
+toolbar.iconbar.empty.color:                    #ef7b00
+toolbar.iconbar.empty.colorTo:                  #ef7b00
 
 toolbar.iconbar.focused.borderWidth:    0
 toolbar.iconbar.focused.borderColor:    #000000

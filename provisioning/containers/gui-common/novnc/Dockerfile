@@ -1,6 +1,6 @@
 FROM nginx:1.19.5-alpine
 
-ARG HTML_DATA=/usr/share/nginx/html
+ENV HTML_DATA=/usr/share/nginx/html
 
 # Get noVNC & cleanup
 RUN wget -qO- https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz | \
