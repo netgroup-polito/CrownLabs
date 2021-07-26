@@ -3,18 +3,20 @@ import { Story, Meta } from '@storybook/react';
 import Button from 'antd-button-color';
 import { Space, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { ModalDecorator } from '../../../Decorators';
 
 export default {
   title: 'Components/common/ModalAlert',
   component: ModalAlert,
   argTypes: { onClick: { action: 'clicked' } },
+  decorators: [ModalDecorator],
 } as Meta;
 
 const Template: Story<IModalAlertProps> = args => <ModalAlert {...args} />;
 
 export const Loading = Template.bind({});
 Loading.args = {
-  headTitle: 'Loading modal ...',
+  headTitle: 'Loading modal',
   showModal: true,
   alertType: 'warning',
   alertMessage: 'Crownlabs is creating your vm ...',
