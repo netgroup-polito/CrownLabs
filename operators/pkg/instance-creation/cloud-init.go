@@ -1,3 +1,4 @@
+// Package instance_creation is deprecated and will be removed during the next refactoring steps.
 package instance_creation
 
 import (

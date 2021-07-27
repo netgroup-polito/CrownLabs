@@ -88,7 +88,7 @@ var _ = Describe("Status Inspection", func() {
 			func(vmi *virtv1.VirtualMachineInstance, expected clv1alpha2.EnvironmentPhase) {
 				Expect(reconciler.RetrievePhaseFromVMI(vmi)).To(Equal(expected))
 			},
-			Entry("When the VMI status is unset", ForgeVMI(virtv1.VmPhaseUnset), clv1alpha2.EnvironmentPhaseStarting),
+			Entry("When the VMI status is unset", ForgeVMI(virtv1.VmPhaseUnset), clv1alpha2.EnvironmentPhaseUnset),
 			Entry("When the VMI is pending", ForgeVMI(virtv1.Pending), clv1alpha2.EnvironmentPhaseStarting),
 			Entry("When the VMI is scheduling", ForgeVMI(virtv1.Scheduling), clv1alpha2.EnvironmentPhaseStarting),
 			Entry("When the VMI is scheduled", ForgeVMI(virtv1.Scheduled), clv1alpha2.EnvironmentPhaseStarting),

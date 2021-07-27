@@ -16,8 +16,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 )
 
 func buildResRequirements(
@@ -287,18 +287,16 @@ func buildContainerInstancePVCSpec(
 
 // EnforceContainerEnvironment implements the logic to create all the different
 // Kubernetes resources required to start a containerized CrownLabs environment.
-func (r *InstanceReconciler) EnforceContainerEnvironment(
-	ctx context.Context,
-	instance *crownlabsv1alpha2.Instance,
-	environment *crownlabsv1alpha2.Environment) error {
-	log := ctrl.LoggerFrom(ctx, "environment", environment.Name)
-	ctx = ctrl.LoggerInto(ctx, log)
+func (r *InstanceReconciler) EnforceContainerEnvironment(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
 
 	name := strings.ReplaceAll(instance.GetName(), ".", "-")
 	namespace := instance.GetNamespace()
 
 	// Enforce the service and the ingress to expose the environment.
-	err := r.EnforceInstanceExposition(ctx, instance, environment)
+	err := r.EnforceInstanceExposition(ctx)
 	if err != nil {
 		log.Error(err, "failed to enforce the instance exposition objects")
 		return err
@@ -335,7 +333,7 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
 		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", forge.IngressMyDrivePath(instance))
-		depl.Labels = instance_creation.UpdateLabels(depl.Labels, environment, name)
+		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	}); err != nil {
 		log.Error(err, "failed to enforce deployment existence", "deployment", klog.KObj(&depl))

@@ -35,7 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -78,7 +80,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
 
 	// Get the instance object.
-	var instance crownlabsv1alpha2.Instance
+	var instance clv1alpha2.Instance
 	if err = r.Get(ctx, req.NamespacedName, &instance); err != nil {
 		if !kerrors.IsNotFound(err) {
 			log.Error(err, "failed retrieving instance")
@@ -97,20 +99,33 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, nil
 	}
 
+	// Add the retrieved instance as part of the context.
+	ctx, _ = clctx.InstanceInto(ctx, &instance)
+
 	// Retrieve the template associated with the current instance.
 	templateName := types.NamespacedName{
 		Namespace: instance.Spec.Template.Namespace,
 		Name:      instance.Spec.Template.Name,
 	}
-
-	var template crownlabsv1alpha2.Template
+	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
 		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, template.Namespace, template.Name)
 		return ctrl.Result{}, err
 	}
-	log = log.WithValues("template", templateName)
+	ctx, log = clctx.TemplateInto(ctx, &template)
 	log.Info("successfully retrieved the instance template")
+
+	// Retrieve the tenant associated with the current instance.
+	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
+	var tenant clv1alpha1.Tenant
+	if err := r.Get(ctx, tenantName, &tenant); err != nil {
+		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
+		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, template.Name)
+		return ctrl.Result{}, err
+	}
+	ctx, log = clctx.TenantInto(ctx, &tenant)
+	log.Info("successfully retrieved the instance tenant")
 
 	// Patch the instance labels to allow for easier categorization.
 	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template)
@@ -126,7 +141,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	// Defer the function to patch the instance status depending on the modifications
 	// performed while enforcing the desired environments.
-	defer func(original, updated *crownlabsv1alpha2.Instance) {
+	defer func(original, updated *clv1alpha2.Instance) {
 		if !reflect.DeepEqual(original.Status, updated.Status) {
 			if err2 := r.Status().Patch(ctx, updated, client.MergeFrom(original)); err2 != nil {
 				log.Error(err2, "failed to update the instance status")
@@ -138,9 +153,14 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}(instance.DeepCopy(), &instance)
 
 	// Iterate over and enforce the instance environments.
-	if err := r.enforceEnvironments(ctrl.LoggerInto(ctx, log), &instance, &template); err != nil {
+	if err := r.enforceEnvironments(ctx); err != nil {
 		log.Error(err, "failed to enforce instance environments")
-		instance.Status.Phase = crownlabsv1alpha2.EnvironmentPhaseCreationLoopBackoff
+
+		// Do not set the CreationLoopBackOff phase in case of conflicts, to prevent transients.
+		if !kerrors.IsConflict(err) {
+			instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+		}
+
 		return ctrl.Result{}, err
 	}
 	log.Info("instance environments correctly enforced")
@@ -148,25 +168,30 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	return ctrl.Result{}, nil
 }
 
-func (r *InstanceReconciler) enforceEnvironments(ctx context.Context, instance *crownlabsv1alpha2.Instance, template *crownlabsv1alpha2.Template) error {
+func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
+
 	for i := range template.Spec.EnvironmentList {
+		environment := &template.Spec.EnvironmentList[i]
+		ctx, log := clctx.EnvironmentInto(ctx, environment)
+
 		// Currently, only instances composed of a single environment are supported.
 		// Nonetheless, we return nil in the end, since it is useless to retry later.
 		if i >= 1 {
 			err := fmt.Errorf("instances composed of multiple environments are currently not supported")
-			ctrl.LoggerFrom(ctx).Error(err, "failed to process environment")
+			log.Error(err, "failed to process environment")
 			return nil
 		}
 
-		environment := &template.Spec.EnvironmentList[i]
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
-		case crownlabsv1alpha2.ClassVM:
-			if err := r.EnforceVMEnvironment(ctx, instance, environment); err != nil {
+		case clv1alpha2.ClassVM:
+			if err := r.EnforceVMEnvironment(ctx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
-		case crownlabsv1alpha2.ClassContainer:
-			if err := r.EnforceContainerEnvironment(ctx, instance, environment); err != nil {
+		case clv1alpha2.ClassContainer:
+			if err := r.EnforceContainerEnvironment(ctx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
@@ -179,7 +204,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context, instance *
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("setup manager")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Instance{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&clv1alpha2.Instance{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&virtv1.VirtualMachineInstance{}).
