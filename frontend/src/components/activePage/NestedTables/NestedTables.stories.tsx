@@ -7,7 +7,7 @@ import {
   Primary,
 } from '@storybook/addon-docs/blocks';
 import { someKeysOf } from '../../../utils';
-import { templates, workspaces } from '../tempData';
+import { templates, workspaces, instances } from '../tempData';
 
 export default {
   title: 'Components/ActivePage/NestedTables/NestedTables',
@@ -37,6 +37,7 @@ export default {
 const defaultArgs: someKeysOf<INestedTablesProps> = {
   workspaces: workspaces,
   templates: templates,
+  instances: instances,
   nested: false,
 };
 

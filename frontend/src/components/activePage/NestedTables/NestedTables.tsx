@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { FC, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import RowHeading from '../RowHeading/RowHeading';
 import InstancesTable from '../Instances/InstancesTable/InstancesTable';
 import { IInstance } from '../Instances/InstancesTable/InstancesTable';
-import { instances } from '../tempData';
 
 export interface IWorkspace {
   key: string;
@@ -22,9 +19,11 @@ export interface ITemplate {
   workspace: string;
   nActiveInstances: number;
 }
+
 export interface INestedTablesProps {
   workspaces: Array<IWorkspace>;
   templates: Array<ITemplate>;
+  instances: Array<IInstance>;
   isManager: boolean;
   nested: boolean;
   destroyAll: () => void;
@@ -33,7 +32,9 @@ export interface INestedTablesProps {
 type rowType = IWorkspace | ITemplate;
 
 const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
-  const { workspaces, templates, nested, isManager, destroyAll } = props;
+  const { workspaces, templates, instances, nested, isManager, destroyAll } =
+    props;
+
   const { Column } = Table;
   const [expandedID, setExpandedID] = useState(['']);
 
@@ -66,6 +67,7 @@ const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
             <NestedTables
               workspaces={workspaces}
               templates={(record as IWorkspace).templates}
+              instances={instances}
               nested={false}
               isManager={isManager}
               destroyAll={destroyAll}

@@ -2,7 +2,7 @@ import { FC, useState } from 'react';
 import { Col } from 'antd';
 import NestedTables from '../NestedTables/NestedTables';
 import ViewModeButton from '../ActiveLanding/ViewModeButton/ViewModeButton';
-import { workspaces, templates } from '../tempData';
+import { workspaces, templates, instances } from '../tempData';
 import Box from '../../common/Box';
 
 export interface IActiveLandingProps {
@@ -28,6 +28,7 @@ const ActiveLanding: FC<IActiveLandingProps> = ({ ...props }) => {
         <NestedTables
           workspaces={workspaces}
           templates={templates}
+          instances={instances}
           nested={managerView}
           isManager={managerView}
           destroyAll={() => alert('VMs deleted')}

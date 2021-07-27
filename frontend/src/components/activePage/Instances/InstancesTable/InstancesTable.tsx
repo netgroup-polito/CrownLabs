@@ -4,7 +4,7 @@ import VmInstanceIcons, {
   IInstanceIconsProps,
 } from '../InstanceIcons/InstanceIcons';
 import InstanceContent from '../InstanceContent/InstanceContent';
-/* import './InstancesTable.css'; */
+import './InstancesTable.css';
 
 export interface IInstance {
   id: string;
