@@ -51,8 +51,6 @@ spec:
             {{- toYaml .Values.securityContexts.sidecar | nindent 12 }}
           image: "{{ .Values.image.repositorySidecar }}:{{ include "bastion-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /usr/bin/controller
           ports:
             - name: metrics
               containerPort: 8080

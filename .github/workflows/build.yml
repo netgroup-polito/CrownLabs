@@ -104,7 +104,8 @@ jobs:
           # Operators
           - component: instance-operator
             context: ./operators
-            dockerfile: ./operators/build/instance-operator/Dockerfile
+            dockerfile: ./operators/build/golang-common/Dockerfile
+            build-args: COMPONENT=instance-operator
           - component: crownlabs-image-list
             context: ./operators
             dockerfile: ./operators/build/crownlabs-image-list/Dockerfile
@@ -113,10 +114,12 @@ jobs:
             dockerfile: ./operators/build/delete-stale-instances/Dockerfile
           - component: tenant-operator
             context: ./operators
-            dockerfile: ./operators/build/tenant-operator/Dockerfile
+            dockerfile: ./operators/build/golang-common/Dockerfile
+            build-args: COMPONENT=tenant-operator
           - component: bastion-operator
             context: ./operators
-            dockerfile: ./operators/build/bastion-operator/Dockerfile
+            dockerfile: ./operators/build/golang-common/Dockerfile
+            build-args: COMPONENT=bastion-operator
 
           # The current dashboard
           - component: dashboard
