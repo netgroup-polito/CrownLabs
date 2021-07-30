@@ -5,10 +5,11 @@ go 1.15
 require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
+	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/golang/mock v1.5.0
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0

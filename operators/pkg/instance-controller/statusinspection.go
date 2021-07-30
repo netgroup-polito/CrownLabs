@@ -1,7 +1,8 @@
 package instance_controller
 
 import (
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	virtv1 "kubevirt.io/client-go/api/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -67,11 +68,31 @@ func (r *InstanceReconciler) RetrievePhaseFromVMI(vmi *virtv1.VirtualMachineInst
 	}
 }
 
+// RetrievePhaseFromDeployment converts the Deployment phase to the corresponding one of the instance.
+func (r *InstanceReconciler) RetrievePhaseFromDeployment(deployment *appsv1.Deployment) clv1alpha2.EnvironmentPhase {
+	if !deployment.DeletionTimestamp.IsZero() {
+		return clv1alpha2.EnvironmentPhaseStopping
+	}
+
+	if *deployment.Spec.Replicas == 0 {
+		return clv1alpha2.EnvironmentPhaseOff
+	}
+
+	switch *deployment.Spec.Replicas {
+	case 0:
+		return clv1alpha2.EnvironmentPhaseOff
+	case deployment.Status.ReadyReplicas:
+		return clv1alpha2.EnvironmentPhaseReady
+	default:
+		return clv1alpha2.EnvironmentPhaseStarting
+	}
+}
+
 // isVMIReady checks whether a VMI is ready, depending on its conditions.
 func isVMIReady(vmi *virtv1.VirtualMachineInstance) bool {
 	for _, condition := range vmi.Status.Conditions {
 		if condition.Type == virtv1.VirtualMachineInstanceReady {
-			return condition.Status == v1.ConditionTrue
+			return condition.Status == corev1.ConditionTrue
 		}
 	}
 

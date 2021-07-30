@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("Instance Operator controller for containers", func() {
@@ -89,6 +90,7 @@ var _ = Describe("Instance Operator controller for containers", func() {
 				Namespace: InstanceNamespace,
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
+				Running: true,
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      TemplateName,
 					Namespace: TemplateNamespace,
@@ -203,18 +205,12 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			Expect(svc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 
 			By("Checking that the ingress exists")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName,
-				Namespace: InstanceNamespace,
-			}, &ingr, BeTrue(), timeout, interval)
+			doesEventuallyExist(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingr, BeTrue(), timeout, interval)
 			By("Checking that the ingress has got an OwnerReference")
 			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 
 			By("Checking that the dedicated FileBrowser ingress exists")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName + "-filebrowser",
-				Namespace: InstanceNamespace,
-			}, &ingr, BeTrue(), timeout, interval)
+			doesEventuallyExist(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingr, BeTrue(), timeout, interval)
 			By("Checking that the dedicated FileBrowser ingress has got an OwnerReference")
 			Expect(ingr.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
 		})

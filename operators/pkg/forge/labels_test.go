@@ -12,14 +12,18 @@ import (
 
 var _ = Describe("Labels forging", func() {
 
+	const (
+		instanceName      = "kubernetes-0000"
+		instanceNamespace = "tenant-tester"
+		templateName      = "kubernetes"
+		templateNamespace = "workspace-netgroup"
+		tenantName        = "tester"
+		workspaceName     = "netgroup"
+		environmentName   = "control-plane"
+	)
+
 	Describe("The forge.InstanceLabels function", func() {
 		var template clv1alpha2.Template
-
-		const (
-			templateName      = "kubernetes"
-			templateNamespace = "workspace-netgroup"
-			workspaceName     = "netgroup"
-		)
 
 		type InstanceLabelsCase struct {
 			Input           map[string]string
@@ -81,5 +85,101 @@ var _ = Describe("Labels forging", func() {
 				ExpectedUpdated: true,
 			}),
 		)
+	})
+
+	Describe("The forge.InstanceObjectLabels function", func() {
+		var instance clv1alpha2.Instance
+
+		type ObjectLabelsCase struct {
+			Input          map[string]string
+			ExpectedOutput map[string]string
+		}
+
+		BeforeEach(func() {
+			instance = clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
+				Spec: clv1alpha2.InstanceSpec{
+					Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
+					Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+				},
+			}
+		})
+
+		DescribeTable("Correctly populates the labels set",
+			func(c ObjectLabelsCase) {
+				Expect(forge.InstanceObjectLabels(c.Input, &instance)).To(Equal(c.ExpectedOutput))
+			},
+			Entry("When the input labels map is nil", ObjectLabelsCase{
+				Input: nil,
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "instance",
+					"crownlabs.polito.it/instance":   instanceName,
+					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/tenant":     tenantName,
+				},
+			}),
+			Entry("When the input labels map already contains the expected values", ObjectLabelsCase{
+				Input: map[string]string{
+					"crownlabs.polito.it/managed-by": "instance",
+					"crownlabs.polito.it/instance":   instanceName,
+					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "instance",
+					"crownlabs.polito.it/instance":   instanceName,
+					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+			}),
+			Entry("When the input labels map contains only part of the expected values", ObjectLabelsCase{
+				Input: map[string]string{
+					"crownlabs.polito.it/managed-by": "instance",
+					"crownlabs.polito.it/template":   templateName,
+					"user/key":                       "user/value",
+				},
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "instance",
+					"crownlabs.polito.it/instance":   instanceName,
+					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+			}),
+		)
+	})
+
+	Describe("The forge.InstanceSelectorLabels function", func() {
+		var instance clv1alpha2.Instance
+
+		BeforeEach(func() {
+			instance = clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
+				Spec: clv1alpha2.InstanceSpec{
+					Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
+					Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+				},
+			}
+		})
+
+		Context("The selector labels are generated", func() {
+			It("Should have the correct values", func() {
+				Expect(forge.InstanceSelectorLabels(&instance)).To(Equal(map[string]string{
+					"crownlabs.polito.it/instance": instanceName,
+					"crownlabs.polito.it/template": templateName,
+					"crownlabs.polito.it/tenant":   tenantName,
+				}))
+			})
+
+			It("Should be a subset of the object labels", func() {
+				selectorLabels := forge.InstanceSelectorLabels(&instance)
+				objectLabels := forge.InstanceObjectLabels(nil, &instance)
+				for key, value := range selectorLabels {
+					Expect(objectLabels).To(HaveKeyWithValue(key, value))
+				}
+			})
+		})
 	})
 })

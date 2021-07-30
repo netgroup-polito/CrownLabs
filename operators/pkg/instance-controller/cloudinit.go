@@ -26,7 +26,7 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context, instanc
 	log := ctrl.LoggerFrom(ctx)
 
 	// Retrieve the WebDav credentials.
-	namespacedName := forge.NamespaceName(instance)
+	namespacedName := forge.NamespacedName(instance)
 	secretName := types.NamespacedName{Namespace: namespacedName.Namespace, Name: r.WebdavSecretName}
 	user, password, err := r.getWebDavCredentials(ctx, secretName)
 	if err != nil {

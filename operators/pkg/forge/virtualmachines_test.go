@@ -34,11 +34,11 @@ var _ = Describe("VirtualMachines forging", func() {
 			},
 			Entry("When the environment has the GUI enabled", VMReadinessProbeCase{
 				Environment: clv1alpha2.Environment{GuiEnabled: true},
-				Port:        forge.ServiceNoVNCPort,
+				Port:        forge.GUIPortNumber,
 			}),
 			Entry("When the environment has not the GUI enabled", VMReadinessProbeCase{
 				Environment: clv1alpha2.Environment{GuiEnabled: false},
-				Port:        forge.ServiceSSHPort,
+				Port:        forge.SSHPortNumber,
 			}),
 		)
 	})

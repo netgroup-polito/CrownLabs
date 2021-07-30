@@ -41,28 +41,94 @@ var _ = Describe("Utils forging", func() {
 		)
 	})
 
-	Describe("The forge.NamespaceName function", func() {
+	Describe("The forge.ObjectMetaWithSuffix function", func() {
+		const Suffix = "prime"
 
-		type ObjectMetaCase struct {
+		type ObjectMetaCaseWithSuffix struct {
+			InstanceNamespace string
+			InstanceName      string
+			ExpectedOutput    metav1.ObjectMeta
+		}
+
+		DescribeTable("Correctly returns the expected object meta",
+			func(c ObjectMetaCaseWithSuffix) {
+				Expect(forge.ObjectMetaWithSuffix(ForgeInstance(c.InstanceNamespace, c.InstanceName), Suffix)).To(Equal(c.ExpectedOutput))
+			},
+			Entry("When the instance name does not contain dots", ObjectMetaCaseWithSuffix{
+				InstanceNamespace: "workspace-netgroup",
+				InstanceName:      "kubernetes-1234",
+				ExpectedOutput:    metav1.ObjectMeta{Namespace: "workspace-netgroup", Name: "kubernetes-1234-prime"},
+			}),
+			Entry("When the instance name does contain dots", ObjectMetaCaseWithSuffix{
+				InstanceNamespace: "workspace-netgroup",
+				InstanceName:      "kuber.netes.1234",
+				ExpectedOutput:    metav1.ObjectMeta{Namespace: "workspace-netgroup", Name: "kuber-netes-1234-prime"},
+			}),
+		)
+	})
+
+	Describe("The forge.NamespacedName function", func() {
+		type NamespaceNameCase struct {
 			InstanceNamespace string
 			InstanceName      string
 			ExpectedOutput    types.NamespacedName
 		}
 
 		DescribeTable("Correctly returns the expected object meta",
-			func(c ObjectMetaCase) {
-				Expect(forge.NamespaceName(ForgeInstance(c.InstanceNamespace, c.InstanceName))).To(Equal(c.ExpectedOutput))
+			func(c NamespaceNameCase) {
+				Expect(forge.NamespacedName(ForgeInstance(c.InstanceNamespace, c.InstanceName))).To(Equal(c.ExpectedOutput))
 			},
-			Entry("When the instance name does not contain dots", ObjectMetaCase{
+			Entry("When the instance name does not contain dots", NamespaceNameCase{
 				InstanceNamespace: "workspace-netgroup",
 				InstanceName:      "kubernetes-1234",
 				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kubernetes-1234"},
 			}),
-			Entry("When the instance name does contain dots", ObjectMetaCase{
+			Entry("When the instance name does contain dots", NamespaceNameCase{
 				InstanceNamespace: "workspace-netgroup",
 				InstanceName:      "kuber.netes.1234",
 				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kuber-netes-1234"},
 			}),
 		)
+	})
+
+	Describe("The forge.NamespacedNameWithSuffix function", func() {
+		const Suffix = "prime"
+
+		type NamespaceNameWithSuffixCase struct {
+			InstanceNamespace string
+			InstanceName      string
+			ExpectedOutput    types.NamespacedName
+		}
+
+		DescribeTable("Correctly returns the expected object meta",
+			func(c NamespaceNameWithSuffixCase) {
+				Expect(forge.NamespacedNameWithSuffix(ForgeInstance(c.InstanceNamespace, c.InstanceName), Suffix)).To(Equal(c.ExpectedOutput))
+			},
+			Entry("When the instance name does not contain dots", NamespaceNameWithSuffixCase{
+				InstanceNamespace: "workspace-netgroup",
+				InstanceName:      "kubernetes-1234",
+				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kubernetes-1234-prime"},
+			}),
+			Entry("When the instance name does contain dots", NamespaceNameWithSuffixCase{
+				InstanceNamespace: "workspace-netgroup",
+				InstanceName:      "kuber.netes.1234",
+				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kuber-netes-1234-prime"},
+			}),
+		)
+	})
+
+	Describe("The forge.NamespacedNameWToObjectMeta function", func() {
+		var (
+			namespacedName types.NamespacedName
+			objectMeta     metav1.ObjectMeta
+		)
+
+		BeforeEach(func() {
+			namespacedName = types.NamespacedName{Name: "kubernetes-0000", Namespace: "workspace-netgroup"}
+		})
+		JustBeforeEach(func() { objectMeta = forge.NamespacedNameToObjectMeta(namespacedName) })
+
+		It("Should have a matching name", func() { Expect(objectMeta.Name).To(BeIdenticalTo(namespacedName.Name)) })
+		It("Should have a matching namespace", func() { Expect(objectMeta.Namespace).To(BeIdenticalTo(namespacedName.Namespace)) })
 	})
 })

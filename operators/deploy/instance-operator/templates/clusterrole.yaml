@@ -22,8 +22,12 @@ rules:
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]
-  resources: ["secrets","services","events","persistentvolumeclaims"]
+  resources: ["secrets","events","persistentvolumeclaims"]
   verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get","list","watch","create","patch","update", "delete"]
 
 - apiGroups: ["apps"]
   resources: ["deployments"]
@@ -35,7 +39,7 @@ rules:
 
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingresses"]
-  verbs: ["get","list","watch","create","patch","update"]
+  verbs: ["get","list","watch","create","patch","update","delete"]
 
 - apiGroups: ["kubevirt.io"]
   resources: ["virtualmachines", "virtualmachineinstances"]
