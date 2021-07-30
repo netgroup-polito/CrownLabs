@@ -33,8 +33,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /usr/bin/controller
           args:
             - "--webdav-secret-name={{ .Values.configurations.nextcloud.webdavSecretName }}"
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"

@@ -33,8 +33,6 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ include "tenant-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /usr/bin/controller
           args:
             - "--target-label={{ .Values.configurations.targetLabel }}"
             - "--kc-url={{ .Values.configurations.keycloak.url }}"
