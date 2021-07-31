@@ -9,5 +9,4 @@ data:
     window.REACT_APP_CROWNLABS_GRAPHQL_URL="{{ .Values.configuration.backend.graphql }}";
     window.REACT_APP_CROWNLABS_OIDC_PROVIDER_URL="{{ .Values.configuration.oidc.providerUrl }}";
     window.REACT_APP_CROWNLABS_OIDC_CLIENT_ID="{{ .Values.configuration.oidc.clientId }}";
-    window.REACT_APP_CROWNLABS_OIDC_CLIENT_SECRET="{{ .Values.configuration.oidc.clientSecret }}";
-    window.REACT_APP_CROWNLABS_OIDC_REDIRECT_URI="https://{{ .Values.ingress.hostname }}/";
+    window.REACT_APP_CROWNLABS_OIDC_REALM="{{ .Values.configuration.oidc.realm }}";

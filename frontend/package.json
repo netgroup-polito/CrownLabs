@@ -19,6 +19,7 @@
     "antd-button-color": "^1.0.4",
     "craco-less": "^1.17.1",
     "graphql": "^15.5.1",
+    "keycloak-js": "12.0.4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-router-dom": "^5.2.0",
@@ -93,6 +94,10 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.6",
+    "@graphql-codegen/introspection": "1.18.2",
+    "@graphql-codegen/typescript": "1.22.4",
+    "@graphql-codegen/typescript-operations": "1.18.3",
+    "@graphql-codegen/typescript-react-apollo": "2.2.8",
     "@storybook/addon-actions": "^6.2.8",
     "@storybook/addon-essentials": "^6.2.8",
     "@storybook/addon-links": "^6.2.8",
@@ -108,11 +113,7 @@
     "prettier": "^2.2.1",
     "storybook-addon-themes": "^6.1.0",
     "storybook-preset-craco": "^0.0.4",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat",
-    "@graphql-codegen/typescript": "1.22.4",
-    "@graphql-codegen/typescript-react-apollo": "2.2.8",
-    "@graphql-codegen/typescript-operations": "1.18.3",
-    "@graphql-codegen/introspection": "1.18.2"
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat"
   },
   "resolutions": {
     "babel-loader": "8.1.0"

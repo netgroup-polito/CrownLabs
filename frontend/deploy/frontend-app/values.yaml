@@ -17,7 +17,7 @@ configuration:
     graphql: https://graphql.example.com
   oidc:
     clientId: <client-id>
-    clientSecret: <client-secret>
+    realm: <realm>
     providerUrl: https://auth.example.com/auth/realms/crownlabs
 
 imagePullSecrets: []
