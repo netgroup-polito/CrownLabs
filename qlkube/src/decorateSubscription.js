@@ -2,11 +2,16 @@ const { withFilter } = require('apollo-server');
 const { gql, ForbiddenError } = require('apollo-server-core');
 const { addResolversToSchema } = require('@graphql-tools/schema');
 const { extendSchema } = require('graphql/utilities');
-const { pubsubAsyncIterator } = require('./pubsub.js');
-const { subscriptions } = require('./subscriptions.js');
-const { capitalizeType } = require('./utils.js');
-const { canWatchResource } = require('./watch.js');
-const { graphqlLogger } = require('./utils');
+const { pubsubAsyncIterator } = require('./pubsub');
+const { subscriptions } = require('./subscriptions');
+const { canWatchResource } = require('./watch');
+const { wrappers } = require('./wrappers');
+const {
+  capitalizeType,
+  getQueryField,
+  graphqlLogger,
+  uncapitalizeType,
+} = require('./utils');
 
 let cacheSubscriptions = {};
 const TEN_MINUTES = 10 * 60 * 1000;
@@ -44,6 +49,24 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
 
   const subscriptionField = `${targetType}Update`;
   const label = targetType;
+  const sublabels = wrappers
+    .map(wtype => {
+      if (wtype['parents'].includes(targetType)) return wtype['type'];
+    })
+    .filter(s => {
+      return s;
+    });
+  const fieldWrapper = wrappers
+    .map(wtype => {
+      if (wtype['parents'].includes(targetType)) return wtype['fieldWrapper'];
+    })
+    .filter(s => {
+      return s;
+    })
+    .map(s => {
+      return uncapitalizeType(s);
+    });
+  const subQueryType = targetType;
 
   const subType =
     baseSchema._typeMap.Subscription === undefined
@@ -67,20 +90,73 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
     Subscription: {
       [subscriptionField]: {
         subscribe: withFilter(
-          () => pubsubAsyncIterator(label),
-          (payload, variables, info, context) => {
-            const resourceApi = subscriptions.filter(sub => {
-              return `${sub.type}Update` === context.fieldName;
+          () => pubsubAsyncIterator(label, ...sublabels),
+          async (payload, variables, context, info) => {
+            graphqlLogger(`[i] Validate ${info.fieldName} subscription`);
+
+            let subfieldsCheck = false;
+
+            const resourceApiMainType = subscriptions.filter(sub => {
+              return `${sub.type}Update` === info.fieldName;
             })[0];
-            graphqlLogger(`[i] Validate ${context.fieldName} subscription`);
+
+            if (sublabels.length > 0) {
+              graphqlLogger(`[i] Search for ${targetType} main query object`);
+              const mainQueryObj = baseSchema.getQueryType().getFields()[
+                subQueryType
+              ];
+              if (!mainQueryObj) throw new Error('Query object not found');
+
+              graphqlLogger(
+                `[i] Resolve main query object with variables: ${JSON.stringify(
+                  variables
+                )}`
+              );
+              const newApiObj = await mainQueryObj.resolve(
+                variables,
+                variables,
+                context,
+                info
+              );
+
+              graphqlLogger(`[i] Main query object resolved`);
+              graphqlLogger(
+                `[i] Checking whether watched object is the main query object`
+              );
+              subfieldsCheck =
+                subfieldsCheck ||
+                (payload.apiObj.metadata.namespace === variables.namespace &&
+                  (variables.name === undefined ||
+                    payload.apiObj.metadata.name === variables.name));
+
+              if (!subfieldsCheck) {
+                let targetObjField;
+
+                fieldWrapper.forEach(fw => {
+                  targetObjField = getQueryField(newApiObj, fw);
+                  if (typeof targetObjField === 'object') {
+                    subfieldsCheck =
+                      subfieldsCheck ||
+                      (targetObjField.namespace ===
+                        payload.apiObj.metadata.namespace &&
+                        (targetObjField.name === undefined ||
+                          targetObjField.name ===
+                            payload.apiObj.metadata.name));
+                  }
+                });
+              }
+              if (subfieldsCheck) payload.apiObj = newApiObj;
+            }
+
             return (
+              subfieldsCheck &&
               payload.apiObj.metadata.namespace === variables.namespace &&
               (variables.name === undefined ||
                 payload.apiObj.metadata.name === variables.name) &&
               checkPermission(
-                info.token,
-                resourceApi.group,
-                resourceApi.resource,
+                context.token,
+                resourceApiMainType.group,
+                resourceApiMainType.resource,
                 variables.namespace,
                 variables.name,
                 kubeApiUrl
@@ -89,7 +165,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
           }
         ),
         resolve: async (payload, args, context, info) => {
-          graphqlLogger(`[i] Resolve ${context.fieldName} subscription`);
+          graphqlLogger(`[i] Resolve ${info.fieldName} subscription`);
           return payload;
         },
       },

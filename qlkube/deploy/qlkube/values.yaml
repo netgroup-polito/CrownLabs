@@ -18,22 +18,35 @@ configuration:
   exposedAPIs:
     fileName: apiGroups.js
     apis:
-    - crownlabs.polito.it
+      - crownlabs.polito.it
 
   # This subscription configuration maps to the current content
   # of the src/subscriptions.js file. Must be a subset of exposedAPIs.
   subscriptions:
     fileName: subscriptions.js
     apis:
-    - group: crownlabs.polito.it
-      resources:
-      - resource: instances
-        version: v1alpha2
-        mapping: itPolitoCrownlabsV1alpha2Instance
-      - resource: templates
-        version: v1alpha2
-        mapping: itPolitoCrownlabsV1alpha2Template
+      - group: crownlabs.polito.it
+        resources:
+          - resource: instances
+            version: v1alpha2
+            mapping: itPolitoCrownlabsV1alpha2Instance
+          - resource: templates
+            version: v1alpha2
+            mapping: itPolitoCrownlabsV1alpha2Template
 
+  # This wrappers configuration maps to the current content
+  # of the src/wrappers.js file. Must be a subset of exposedAPIs.
+  wrappers:
+    fileName: wrappers.js
+    resources:
+      - type: itPolitoCrownlabsV1alpha2Template
+        fieldWrapper: TemplateCrownlabsPolitoItTemplateRef
+        nameWrapper: templateWrapper
+        queryFieldsRequired:
+          - name
+          - namespace
+        parents:
+          - itPolitoCrownlabsV1alpha2Instance
 
 imagePullSecrets: []
 nameOverride: ""
@@ -46,7 +59,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1000

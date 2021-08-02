@@ -72,7 +72,7 @@ function kwatch(api, label) {
         });
       },
       err => {
-        if (err.message === 'Not Found') {
+        if (err?.message === 'Not Found') {
           console.error('No items found to watch, restarting in 2s');
           setTimeout(() => kwatch(api, label), 2000);
         } else {
