@@ -4,12 +4,15 @@ import { ApolloProvider } from '@apollo/client';
 import { client } from './graphql-components/apolloClientSetup';
 import './theming';
 import App from './App';
+import AuthContextProvider from './contexts/AuthContext';
 
 ReactDOM.render(
   <React.StrictMode>
-    <ApolloProvider client={client}>
-      <App />
-    </ApolloProvider>
+    <AuthContextProvider>
+      <ApolloProvider client={client}>
+        <App />
+      </ApolloProvider>
+    </AuthContextProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

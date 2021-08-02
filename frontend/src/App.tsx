@@ -1,8 +1,37 @@
+import { useContext, useEffect, useState } from 'react';
 import './App.css';
-import { PUBLIC_URL, REACT_APP_CROWNLABS_GRAPHQL_URL } from './env';
-import { BrowserRouter, Link, Route, Switch } from 'react-router-dom';
+import { PUBLIC_URL } from './env';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import { AuthContext, logout } from './contexts/AuthContext';
+import { Button } from 'antd';
 
 function App() {
+  const { isLoggedIn, userId, token } = useContext(AuthContext);
+  const [instances, setInstances] = useState<string[] | undefined>(undefined);
+  useEffect(() => {
+    if (userId) {
+      fetch(
+        `https://apiserver.crownlabs.polito.it/apis/crownlabs.polito.it/v1alpha2/namespaces/tenant-${userId.replaceAll(
+          '.',
+          '-'
+        )}/instances`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+        .then(res => res.json())
+        .then(body => {
+          if (body.items) {
+            setInstances(body.items.map((item: any) => item.metadata.name));
+          }
+        })
+        .catch(err => {
+          console.error('ERROR WHEN GETTING INSTANCES', err);
+        });
+    }
+  }, [userId, token]);
   return (
     <div
       style={{
@@ -21,22 +50,30 @@ function App() {
     >
       <BrowserRouter basename={PUBLIC_URL}>
         <Switch>
-          <Route path="/active">
-            <div>Active</div>
-            <Link to="/">Go Home</Link>
-          </Route>
-          <Route path="/account">
-            <div>Account</div>
-            <Link to="/">Go Home</Link>
-          </Route>
           <Route path="/" exact>
-            <div className="p-10 m-10">
-              CrownLabs will get a new look!
-              <br /> GraphQL at {REACT_APP_CROWNLABS_GRAPHQL_URL}{' '}
+            <div className="p-10 m-10 flex flex-col items-center">
+              {isLoggedIn && (
+                <>
+                  {instances?.length === 0
+                    ? 'You have no active instances at the moment'
+                    : 'Your instances on CrownLabs:'}
+                </>
+              )}
+              {instances?.map(instance => (
+                <h6 style={{ fontSize: '1.5rem' }}>{instance}</h6>
+              ))}
+              {isLoggedIn && (
+                <>
+                  <Button
+                    onClick={() => {
+                      logout();
+                    }}
+                  >
+                    LOGOUT
+                  </Button>
+                </>
+              )}
             </div>
-
-            <Link to="/active">Go to active</Link>
-            <Link to="/account">Go to account</Link>
           </Route>
         </Switch>
       </BrowserRouter>

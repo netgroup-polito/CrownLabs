@@ -12,11 +12,12 @@ dashboard:
   image:
     repository: crownlabs/dashboard
   ingress:
-    hostname: https://crownlabs.example.com
+    hostname: crownlabs.example.com
   configurations:
     oidc:
       clientId: k8s
       clientSecret: <client-secret>
+      realm: <realm>
       providerUrl: https://auth.example.com/auth/realms/crownlabs
 
 frontend-app:
@@ -31,8 +32,7 @@ frontend-app:
       graphql: https://graphql.example.com
     oidc:
       clientId: <client-id>
-      clientSecret: <client-secret>
-      providerUrl: https://auth.example.com/auth/realms/crownlabs
+      providerUrl: https://auth.example.com/auth/
 
 frontend-storybook:
   replicaCount: 1
