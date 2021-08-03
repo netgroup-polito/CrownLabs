@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 )
@@ -104,7 +105,10 @@ var _ = Describe("Generation of the exposition environment", func() {
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
 		reconciler = instance_controller.InstanceReconciler{Client: client, Scheme: scheme.Scheme, WebsiteBaseURL: host}
-		err = reconciler.EnforceInstanceExposition(ctx, &instance, &environment)
+
+		ctx, _ = clctx.InstanceInto(ctx, &instance)
+		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		err = reconciler.EnforceInstanceExposition(ctx)
 	})
 
 	type DescribeBodyParameters struct {

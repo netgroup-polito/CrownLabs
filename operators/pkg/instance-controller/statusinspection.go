@@ -41,8 +41,6 @@ func (r *InstanceReconciler) RetrievePhaseFromVMI(vmi *virtv1.VirtualMachineInst
 	}
 
 	switch vmi.Status.Phase {
-	case virtv1.VmPhaseUnset:
-		return clv1alpha2.EnvironmentPhaseStarting
 	case virtv1.Pending:
 		return clv1alpha2.EnvironmentPhaseStarting
 	case virtv1.Scheduling:

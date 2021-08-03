@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -25,6 +26,7 @@ var _ = Describe("Instance Operator controller for containers", func() {
 		TemplateNamespace = "template-namespace-cont"
 		InstanceName      = "instance-name-cont"
 		InstanceNamespace = "instance-namespace-cont"
+		TenantName        = "test-tenant-cont"
 
 		timeout  = time.Second * 20
 		interval = time.Millisecond * 500
@@ -84,7 +86,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			Status: crownlabsv1alpha2.TemplateStatus{},
 		}
 		instance = crownlabsv1alpha2.Instance{
-			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      InstanceName,
 				Namespace: InstanceNamespace,
@@ -96,8 +97,7 @@ var _ = Describe("Instance Operator controller for containers", func() {
 					Namespace: TemplateNamespace,
 				},
 				Tenant: crownlabsv1alpha2.GenericRef{
-					Name:      "tenant-name",
-					Namespace: "tenant-namespace",
+					Name: TenantName,
 				},
 			},
 			Status: crownlabsv1alpha2.InstanceStatus{},
@@ -131,7 +131,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 			Status: crownlabsv1alpha2.TemplateStatus{},
 		}
 		instanceWithPVC = crownlabsv1alpha2.Instance{
-			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      InstanceName + "with-pvc",
 				Namespace: InstanceNamespace,
@@ -141,8 +140,20 @@ var _ = Describe("Instance Operator controller for containers", func() {
 					Name:      TemplateName + "with-pvc",
 					Namespace: TemplateNamespace,
 				},
+				Tenant: crownlabsv1alpha2.GenericRef{
+					Name: TenantName,
+				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+		}
+		tenant = crownlabsv1alpha1.Tenant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: TenantName,
+			},
+			Spec: crownlabsv1alpha1.TenantSpec{
+				FirstName: "Mario",
+				LastName:  "Rossi",
+				Email:     "mario@rossi.com",
+			},
 		}
 		tmpl = crownlabsv1alpha2.Template{}
 		inst = crownlabsv1alpha2.Instance{}
@@ -177,6 +188,12 @@ var _ = Describe("Instance Operator controller for containers", func() {
 				Name:      TemplateName,
 				Namespace: TemplateNamespace,
 			}, &tmpl, BeTrue(), timeout, interval)
+
+			By("Creating the Tenant")
+			Expect(k8sClient.Create(ctx, &tenant)).Should(Succeed())
+			doesEventuallyExist(ctx, types.NamespacedName{
+				Name: TenantName,
+			}, &tenant, BeTrue(), timeout, interval)
 
 			By("Creating the Instance associated to the Template")
 			Expect(k8sClient.Create(ctx, &instance)).Should(Succeed())
