@@ -13,7 +13,9 @@ const ModalDecorator = (Story: Story, context: StoryContext) => {
     <Layout>
       <Layout.Content>
         <Story />
-        <Skeleton />
+        <div className="m-4">
+          <Skeleton />
+        </div>
         <div className=" flex justify-center mt-12">
           <Button
             onClick={() => setShow(true)}
