@@ -1,6 +1,6 @@
 module github.com/netgroup-polito/CrownLabs/operators
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
