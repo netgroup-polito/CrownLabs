@@ -59,13 +59,15 @@ type InstanceSpec struct {
 	// +kubebuilder:default=true
 	// +kubebuilder:validation:Optional
 
-	// Whether the current instance is running or not. This field is meaningful
-	// only in case the Instance refers to persistent environments, and it allows
-	// to stop the environment (e.g. the underlying VM) without deleting the
-	// associated disk. Setting the flag to true will restart the environment,
-	// attaching it to the same disk used previously. The flag, on the other hand,
-	// is silently ignored in case of non-persistent environments, as the state
-	// cannot be preserved among reboots.
+	// Whether the current instance is running or not.
+	// The meaning of this flag is different depending on whether the instance
+	// refers to a persistent environment or not. If the first case, it allows to
+	// stop the environment (e.g. the underlying VM) without deleting the associated
+	// disk. Setting the flag to true will restart the environment, attaching it
+	// to the same disk used previously. Differently, if the environment is not
+	// persistent, it only tears down the exposition objects, making the instance
+	// effectively unreachable from outside the cluster, but allowing the
+	// subsequent recreation without data loss.
 	Running bool `json:"running"`
 }
 

@@ -7,6 +7,11 @@ const (
 	// EvTmplNotFoundMsg -> the event message corresponding to a not found template.
 	EvTmplNotFoundMsg = "Template %v/%v not found"
 
+	// EvTntNotFound -> the event key corresponding to a not found tenant.
+	EvTntNotFound = "TenantNotFound"
+	// EvTntNotFoundMsg -> the event message corresponding to a not found tenant.
+	EvTntNotFoundMsg = "Tenant %v not found"
+
 	// EvEnvironmentErr -> the event key corresponding to a failed environment enforcement.
 	EvEnvironmentErr = "EnvironmentEnforcementFailed"
 	// EvEnvironmentErrMsg -> the event message corresponding to a failed environment enforcement.

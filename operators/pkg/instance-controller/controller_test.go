@@ -77,6 +77,7 @@ var _ = Describe("Instance Operator controller", func() {
 				Namespace: InstanceNamespace,
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
+				Running: true,
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      TemplateName,
 					Namespace: TemplateNamespace,
@@ -94,6 +95,7 @@ var _ = Describe("Instance Operator controller", func() {
 				Namespace: InstanceNamespace,
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
+				Running: true,
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      TemplateName + "persistent",
 					Namespace: TemplateNamespace,

@@ -115,7 +115,7 @@ When the snapshot creation process successfully terminates, the docker registry 
 
 ### Build from source
 
-The Instance Operator requires Golang 1.15 and `make`. To build the operator:
+The Instance Operator requires Golang 1.16 and `make`. To build the operator:
 
 ```bash
 go build ./cmd/instance-operator/main.go

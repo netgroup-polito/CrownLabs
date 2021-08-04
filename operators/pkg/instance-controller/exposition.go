@@ -11,25 +11,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // EnforceInstanceExposition ensures the presence/absence of the objects required to expose
 // an environment (i.e. service, ingress), depending on whether the instance is running or not.
-func (r *InstanceReconciler) EnforceInstanceExposition(
-	ctx context.Context, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) error {
+func (r *InstanceReconciler) EnforceInstanceExposition(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+
 	if instance.Spec.Running {
-		return r.enforceInstanceExpositionPresence(ctx, instance, environment)
+		return r.enforceInstanceExpositionPresence(ctx)
 	}
 
-	return r.enforceInstanceExpositionAbsence(ctx, instance)
+	return r.enforceInstanceExpositionAbsence(ctx)
 }
 
 // enforceInstanceExpositionPresence ensures the presence of the objects required to expose an environment (i.e. service, ingress).
-func (r *InstanceReconciler) enforceInstanceExpositionPresence(
-	ctx context.Context, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) error {
+func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
 
 	// Enforce the service presence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
@@ -114,7 +117,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(
 }
 
 // enforceInstanceExpositionAbsence ensures the absence of the objects required to expose an environment (i.e. service, ingress).
-func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context, instance *clv1alpha2.Instance) error {
+func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
 	instance.Status.IP = ""
 	instance.Status.URL = ""
 	instance.Status.MyDriveURL = ""

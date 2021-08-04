@@ -9,21 +9,24 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instance_creation "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-creation"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
-	webdavSecretUsernameKey = "username"
-	webdavSecretPasswordKey = "password"
+	// WebdavSecretUsernameKey -> the key of the webdav secret containing the username.
+	WebdavSecretUsernameKey = "username"
+	// WebdavSecretPasswordKey -> The key of the webdav secret containing the password.
+	WebdavSecretPasswordKey = "password"
 )
 
 // EnforceCloudInitSecret enforces the creation/update of a secret containing the cloud-init configuration,
 // based on the information retrieved for the tenant object and its associated WebDav credentials.
-func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context, instance *crownlabsv1alpha2.Instance) error {
+func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 
 	// Retrieve the WebDav credentials.
 	namespacedName := forge.NamespacedName(instance)
@@ -70,14 +73,14 @@ func (r *InstanceReconciler) getWebDavCredentials(ctx context.Context, secretNam
 	var ok bool
 	var userBytes, passBytes []byte
 
-	if userBytes, ok = secret.Data[webdavSecretUsernameKey]; !ok {
-		err = fmt.Errorf("cannot find %v key in secret", webdavSecretUsernameKey)
+	if userBytes, ok = secret.Data[WebdavSecretUsernameKey]; !ok {
+		err = fmt.Errorf("cannot find %v key in secret", WebdavSecretUsernameKey)
 		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve credentials from secret", "secret", secretName)
 		return
 	}
 
-	if passBytes, ok = secret.Data[webdavSecretPasswordKey]; !ok {
-		err = fmt.Errorf("cannot find %v key in secret", webdavSecretPasswordKey)
+	if passBytes, ok = secret.Data[WebdavSecretPasswordKey]; !ok {
+		err = fmt.Errorf("cannot find %v key in secret", WebdavSecretPasswordKey)
 		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve credentials from secret", "secret", secretName)
 		return
 	}
