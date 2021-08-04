@@ -76,6 +76,9 @@ jobs:
           - tenant-operator
           - bastion-operator
 
+          # InstanceSet tools
+          - instanceset-landing
+
           # The current dashboard
           - dashboard
 
@@ -120,6 +123,12 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=bastion-operator
+
+          # InstanceSet components
+          - component: instanceset-landing
+            context: ./operators
+            dockerfile: ./operators/build/golang-common/Dockerfile
+            build-args: COMPONENT=instanceset-landing
 
           # The current dashboard
           - component: dashboard
