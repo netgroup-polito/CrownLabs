@@ -32,8 +32,14 @@ export interface INestedTablesProps {
 type rowType = IWorkspace | ITemplate;
 
 const NestedTables: FC<INestedTablesProps> = ({ ...props }) => {
-  const { workspaces, templates, instances, nested, isManager, destroyAll } =
-    props;
+  const {
+    workspaces,
+    templates,
+    instances,
+    nested,
+    isManager,
+    destroyAll,
+  } = props;
 
   const { Column } = Table;
   const [expandedID, setExpandedID] = useState(['']);

@@ -1,4 +1,5 @@
-import InstanceActions from './InstanceActions';
+import InstanceActions, { IInstanceActionsProps } from './InstanceActions';
+import { someKeysOf } from '../../../../utils';
 import { Story } from '@storybook/react';
 import { Title, Description, Stories } from '@storybook/addon-docs/blocks';
 
@@ -17,14 +18,13 @@ export default {
   },
 };
 
-const defaultArgs = {
-  isManaged: false,
-  displayName: 'Display Name',
-  tenantId: 's123456',
-  tenantDisplayName: 'Name Surname',
+const defaultArgs: someKeysOf<IInstanceActionsProps> = {
+  ip: '192.168.1.1',
 };
 
-const Template: Story = args => <InstanceActions {...args} />;
+const Template: Story<IInstanceActionsProps> = args => (
+  <InstanceActions {...args} />
+);
 
 export const Default = Template.bind({});
 

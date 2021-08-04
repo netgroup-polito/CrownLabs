@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Col } from 'antd';
+import { Col, message } from 'antd';
 import NestedTables from '../NestedTables/NestedTables';
 import ViewModeButton from '../ActiveLanding/ViewModeButton/ViewModeButton';
 import { workspaces, templates, instances } from '../tempData';
@@ -31,7 +31,7 @@ const ActiveLanding: FC<IActiveLandingProps> = ({ ...props }) => {
           instances={instances}
           nested={managerView}
           isManager={managerView}
-          destroyAll={() => alert('VMs deleted')}
+          destroyAll={() => message.info('All VMs deleted')}
         />
       </Col>
     </Box>

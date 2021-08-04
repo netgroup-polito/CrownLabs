@@ -1,5 +1,13 @@
 import { FC } from 'react';
-import { Badge as BadgeAnt, Col, Row, Menu, Dropdown, Typography } from 'antd';
+import {
+  Badge as BadgeAnt,
+  Col,
+  Row,
+  Menu,
+  Dropdown,
+  Typography,
+  Popconfirm,
+} from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, MoreOutlined } from '@ant-design/icons';
 import Badge from '../../common/Badge';
@@ -29,19 +37,30 @@ const RowHeading: FC<IRowHeadingProps> = ({ ...props }) => {
         </Text>
       </Col>
       <Col>
-        <Button
-          type="danger"
-          shape="round"
-          size="middle"
-          icon={<DeleteOutlined />}
-          className="hidden lg:inline-block border-0"
-          onClick={e => {
-            e.stopPropagation();
+        <Popconfirm
+          placement="left"
+          title="You are about to delete all VMs in this. Are you sure?"
+          okText="Yes"
+          cancelText="No"
+          onConfirm={e => {
+            e?.stopPropagation();
             destroyAll();
           }}
+          onCancel={e => e?.stopPropagation()}
         >
-          Destory All
-        </Button>
+          <Button
+            type="danger"
+            shape="round"
+            size="middle"
+            icon={<DeleteOutlined />}
+            className="hidden lg:inline-block border-0"
+            onClick={e => {
+              e.stopPropagation();
+            }}
+          >
+            Destory All
+          </Button>
+        </Popconfirm>
         <Dropdown
           overlay={
             <Menu
