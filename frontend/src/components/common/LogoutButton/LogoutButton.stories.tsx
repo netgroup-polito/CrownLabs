@@ -1,5 +1,6 @@
 import LogoutButton, { ILogoutButtonProps } from './LogoutButton';
 import { Story, Meta } from '@storybook/react';
+import { CenterDecorator } from '../../../decorators/CenterDecorator';
 
 export default {
   title: 'Components/common/LogoutButton',
@@ -7,13 +8,7 @@ export default {
   argTypes: {
     logoutHandler: { table: { disable: true } },
   },
-  decorators: [
-    (Story: Story) => (
-      <div className="flex h-screen items-center justify-center">
-        <Story />
-      </div>
-    ),
-  ],
+  decorators: [CenterDecorator],
 } as Meta;
 
 const Template: Story<ILogoutButtonProps> = args => <LogoutButton {...args} />;

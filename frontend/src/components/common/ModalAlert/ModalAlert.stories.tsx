@@ -3,13 +3,16 @@ import { Story, Meta } from '@storybook/react';
 import Button from 'antd-button-color';
 import { Space, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import { ModalDecorator } from '../../../Decorators';
+import { DialogOpenDecorator } from '../../../decorators/DialogOpenDecorator';
 
 export default {
   title: 'Components/common/ModalAlert',
   component: ModalAlert,
-  argTypes: { onClick: { action: 'clicked' } },
-  decorators: [ModalDecorator],
+  argTypes: {
+    show: { table: { disable: true } },
+    setShow: { table: { disable: true } },
+  },
+  decorators: [DialogOpenDecorator],
 } as Meta;
 
 const Template: Story<IModalAlertProps> = args => <ModalAlert {...args} />;
@@ -17,9 +20,8 @@ const Template: Story<IModalAlertProps> = args => <ModalAlert {...args} />;
 export const Loading = Template.bind({});
 Loading.args = {
   headTitle: 'Loading modal',
-  showModal: true,
   alertType: 'warning',
-  alertMessage: 'Crownlabs is creating your vm ...',
+  alertMessage: 'CrownLabs is creating your vm ...',
   alertDescription:
     'Please remember to turn off your VM in the active section when you don’t need it anymore.',
   buttons: [
@@ -34,13 +36,11 @@ Loading.args = {
       </Space>
     </Button>,
   ],
-  setShowModal: x => null,
 };
 
 export const Ready = Template.bind({});
 Ready.args = {
   headTitle: 'Ready modal',
-  showModal: true,
   alertType: 'success',
   alertMessage: 'your VM is ready',
   alertDescription:
@@ -50,13 +50,11 @@ Ready.args = {
       Go to active
     </Button>,
   ],
-  setShowModal: x => null,
 };
 
 export const Exit = Template.bind({});
 Exit.args = {
   headTitle: 'Wait before going out',
-  showModal: true,
   alertType: 'error',
   alertMessage: 'You have some VM still running',
   alertDescription: 'Please turn off your VM if you don’t need it anymore',
@@ -68,5 +66,4 @@ Exit.args = {
       Go to active
     </Button>,
   ],
-  setShowModal: x => null,
 };

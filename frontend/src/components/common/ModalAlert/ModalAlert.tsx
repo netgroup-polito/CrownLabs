@@ -3,23 +3,23 @@ import { Modal, Alert } from 'antd';
 
 export interface IModalAlertProps {
   headTitle: string;
-  showModal: boolean;
+  show: boolean;
   alertMessage: string;
   alertDescription: string;
   alertType: 'info' | 'success' | 'error' | 'warning';
   buttons: Array<React.ReactNode>;
-  setShowModal: (status: boolean) => void;
+  setShow: (status: boolean) => void;
 }
 
 const ModalAlert: FC<IModalAlertProps> = ({ ...props }) => {
   const {
     headTitle,
-    showModal,
+    show,
     alertType,
     alertMessage,
     alertDescription,
     buttons,
-    setShowModal,
+    setShow,
   } = props;
 
   return (
@@ -27,8 +27,8 @@ const ModalAlert: FC<IModalAlertProps> = ({ ...props }) => {
       footer={false}
       centered
       title={headTitle}
-      visible={showModal}
-      onCancel={() => setShowModal(false)}
+      visible={show}
+      onCancel={() => setShow(false)}
     >
       <Alert
         message={alertMessage}

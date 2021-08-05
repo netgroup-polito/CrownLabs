@@ -1,6 +1,6 @@
 import ThemeSwitcher, { IThemeSwitcherProps } from './ThemeSwitcher';
 import { Story, Meta } from '@storybook/react';
-import ThemeContextProvider from '../../../contexts/ThemeContext';
+import { CenterDecorator } from '../../../decorators/CenterDecorator';
 
 export default {
   title: 'Components/Misc/ThemeSwitcher',
@@ -8,15 +8,7 @@ export default {
   argTypes: {
     onClick: { action: 'clicked' },
   },
-  decorators: [
-    (Story: Story) => {
-      return (
-        <ThemeContextProvider>
-          <Story />
-        </ThemeContextProvider>
-      );
-    },
-  ],
+  decorators: [CenterDecorator],
 } as Meta;
 
 const Template: Story<IThemeSwitcherProps> = args => (

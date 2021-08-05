@@ -1,11 +1,32 @@
 import Navbar, { INavbarProps } from './Navbar';
 import { Story, Meta } from '@storybook/react';
-import { NavbarDecorator } from '../../../Decorators';
+import { MemoryRouter, Route } from 'react-router-dom';
+import ThemeContextProvider from '../../../contexts/ThemeContext';
+import { Layout, Skeleton } from 'antd';
 
 export default {
   title: 'Components/common/Navbar',
   component: Navbar,
-  decorators: [NavbarDecorator],
+  decorators: [
+    (Story: Story) => (
+      <MemoryRouter>
+        <ThemeContextProvider>
+          <Route path="/">
+            <Layout>
+              <Story />
+              <Layout.Content>
+                <div className="m-4">
+                  <Skeleton />
+                  <Skeleton />
+                  <Skeleton />
+                </div>
+              </Layout.Content>
+            </Layout>
+          </Route>
+        </ThemeContextProvider>
+      </MemoryRouter>
+    ),
+  ],
   argTypes: {
     logoutHandler: { table: { disable: true } },
   },

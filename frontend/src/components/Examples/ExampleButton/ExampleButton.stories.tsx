@@ -5,9 +5,6 @@ import { someKeysOf } from '../../../utils';
 export default {
   title: 'Components/Examples/ExampleButton',
   component: ExampleButton,
-  argTypes: {
-    onClick: { action: 'clicked' },
-  },
 } as Meta;
 
 const defaultArgs: someKeysOf<IExampleButtonProps> = {

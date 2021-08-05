@@ -7,7 +7,9 @@ import { someKeysOf } from '../../../../utils';
 export default {
   title: 'Components/workspaces/Grid/WorkspaceGridItem',
   component: WorkspaceGridItem,
-  argTypes: {},
+  argTypes: {
+    onClick: { table: { disable: true } },
+  },
 } as Meta;
 
 const defaultArgs: someKeysOf<IWorkspaceGridItemProps> = {

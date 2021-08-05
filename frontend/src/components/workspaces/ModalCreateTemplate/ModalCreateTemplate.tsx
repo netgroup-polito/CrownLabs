@@ -48,15 +48,15 @@ export interface IModalCreateTemplateProps {
   cpuInterval: Interval;
   ramInterval: Interval;
   diskInterval: Interval;
-  showModal: boolean;
-  setShowModal: (status: boolean) => void;
+  show: boolean;
+  setShow: (status: boolean) => void;
   submitHandler: (t?: Template) => void;
 }
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
-    showModal,
-    setShowModal,
+    show,
+    setShow,
     cpuInterval,
     ramInterval,
     diskInterval,
@@ -146,7 +146,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const closehandler = () => {
-    setShowModal(false);
+    setShow(false);
   };
 
   return (
@@ -156,7 +156,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       centered
       footer={null}
       title={template ? 'Modify template' : 'Create a new template'}
-      visible={showModal}
+      visible={show}
       onCancel={closehandler}
       width="600px"
     >

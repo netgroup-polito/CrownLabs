@@ -8,6 +8,7 @@ import {
   QuestionOutlined,
 } from '@ant-design/icons';
 import Logo from '../Logo';
+import { CenterDecorator } from '../../../decorators/CenterDecorator';
 
 export default {
   title: 'Components/common/TooltipButton',
@@ -16,19 +17,13 @@ export default {
     onClick: { table: { disable: true } },
     icon: { table: { disable: true } },
   },
-  decorators: [
-    (Story: Story) => (
-      <div className="flex justify-center h-screen items-center">
-        <Story />
-      </div>
-    ),
-  ],
+  decorators: [CenterDecorator],
 } as Meta;
 
 const defaultArgs: someKeysOf<ITooltipButtonProps> = {
   TooltipButtonData: {
     type: 'primary',
-    icon: <Logo widthPx={32} />,
+    icon: <Logo widthPx={32} color="white" />,
   },
   onClick: () => null,
 };
