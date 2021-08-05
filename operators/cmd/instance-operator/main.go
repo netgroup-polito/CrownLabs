@@ -126,7 +126,7 @@ func main() {
 	}
 
 	// Configure the Instance controller
-	instanceCtrlName := "Instance"
+	const instanceCtrlName = "Instance"
 	if err = (&instance_controller.InstanceReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),

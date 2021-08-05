@@ -27,8 +27,7 @@ import (
 
 func sha1FromString(in string) string {
 	h := sha1.New() // nolint:gosec // used in polito api
-	_, err := h.Write([]byte(in))
-	if err != nil {
+	if _, err := h.Write([]byte(in)); err != nil {
 		klog.Error("SHA1 generation error [%v]", err)
 	}
 

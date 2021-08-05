@@ -555,7 +555,7 @@ func cleanName(name string) *string {
 	name = strings.ReplaceAll(name, " ", "_")
 
 	if !okRegex.MatchString(name) {
-		problemChars := make([]string, 2)
+		problemChars := make([]string, 0)
 		for _, c := range name {
 			if !okRegex.MatchString(string(c)) {
 				problemChars = append(problemChars, string(c))

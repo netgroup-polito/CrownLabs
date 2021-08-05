@@ -23,8 +23,7 @@ import (
 )
 
 func closeFile(f *os.File) {
-	err := f.Close()
-	if err != nil {
+	if err := f.Close(); err != nil {
 		klog.Errorf("unable to close the file authorized_keys: %v", err)
 	}
 }
