@@ -97,7 +97,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
 		}
-		environment = clv1alpha2.Environment{Name: environmentName}
+		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard}
 
 		serviceName = forge.NamespacedName(&instance)
 		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix)

@@ -75,19 +75,23 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the ingress to access the environment GUI
+	host := forge.HostName(r.WebsiteBaseURL, environment.Mode)
 	path := forge.IngressGUIPath(instance)
+
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUINameSuffix)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
 		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 		if ingressGUI.CreationTimestamp.IsZero() {
-			ingressGUI.Spec = forge.IngressSpec(r.WebsiteBaseURL, path,
+			ingressGUI.Spec = forge.IngressSpec(host, path,
 				forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
 		}
 
 		ingressGUI.SetLabels(forge.InstanceObjectLabels(ingressGUI.GetLabels(), instance))
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(ingressGUI.GetAnnotations(), path))
-		ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.InstancesAuthURL))
+		if environment.Mode == clv1alpha2.ModeStandard {
+			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.InstancesAuthURL))
+		}
 		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
 	})
 
@@ -96,10 +100,10 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return err
 	}
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
-	instance.Status.URL = "https://" + r.WebsiteBaseURL + path
+	instance.Status.URL = "https://" + host + path
 
-	// No need to create the file-browser ingress resource in case of VM environments.
-	if environment.EnvironmentType == clv1alpha2.ClassVM {
+	// No need to create the file-browser ingress resource in case of VM or restricted modes.
+	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.Mode != clv1alpha2.ModeStandard {
 		return nil
 	}
 
@@ -110,7 +114,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 		if ingressMyDrive.CreationTimestamp.IsZero() {
-			ingressMyDrive.Spec = forge.IngressSpec(r.WebsiteBaseURL, path,
+			ingressMyDrive.Spec = forge.IngressSpec(host, path,
 				forge.IngressDefaultCertificateName, service.GetName(), forge.MyDrivePortName)
 		}
 
@@ -125,7 +129,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return err
 	}
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressMyDrive), "result", res)
-	instance.Status.MyDriveURL = "https://" + r.WebsiteBaseURL + path
+	instance.Status.MyDriveURL = "https://" + host + path
 
 	return nil
 }

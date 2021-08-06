@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -52,7 +52,7 @@ func buildResRequirements(
 
 func buildContainerVolume(
 	volumeName, claimName string,
-	environment *crownlabsv1alpha2.Environment,
+	environment *clv1alpha2.Environment,
 ) v1.Volume {
 	volume := v1.Volume{
 		Name:         volumeName,
@@ -71,8 +71,8 @@ func buildContainerVolume(
 }
 
 func buildContainerInstanceDeploymentSpec(
-	name string, instance *crownlabsv1alpha2.Instance,
-	environment *crownlabsv1alpha2.Environment,
+	name string, instance *clv1alpha2.Instance,
+	environment *clv1alpha2.Environment,
 	o *ContainerEnvOpts, httpPort int32,
 	fileBrowserPort int32, mountPath, basePath string,
 ) appsv1.DeploymentSpec {
@@ -96,8 +96,6 @@ func buildContainerInstanceDeploymentSpec(
 		AllowPrivilegeEscalation: &no,
 	}
 
-	examMode := false // template.ExamMode (?)
-
 	noVncPortName := "http-port"
 	noVncProbe := v1.Probe{
 		Handler: v1.Handler{
@@ -119,7 +117,8 @@ func buildContainerInstanceDeploymentSpec(
 			},
 		},
 		InitialDelaySeconds: 1,
-		PeriodSeconds:       5,
+		PeriodSeconds:       2,
+		SuccessThreshold:    3,
 	}
 
 	vncPort := int32(5900)
@@ -131,7 +130,8 @@ func buildContainerInstanceDeploymentSpec(
 			},
 		},
 		InitialDelaySeconds: 3,
-		PeriodSeconds:       5,
+		PeriodSeconds:       2,
+		SuccessThreshold:    3,
 	}
 
 	fileBrowserPortName := "browser-port"
@@ -157,7 +157,7 @@ func buildContainerInstanceDeploymentSpec(
 			}},
 			Env: []v1.EnvVar{{
 				Name:  "HIDE_NOVNC_BAR",
-				Value: strconv.FormatBool(examMode),
+				Value: strconv.FormatBool(environment.Mode == clv1alpha2.ModeExam || environment.Mode == clv1alpha2.ModeExercise),
 			}, {
 				Name:  "HTTP_PORT",
 				Value: fmt.Sprintf("%d", httpPort),
@@ -198,39 +198,6 @@ func buildContainerInstanceDeploymentSpec(
 			ReadinessProbe: &tigerVncProbe,
 		},
 		{
-			Name:  "filebrowser",
-			Image: o.FileBrowserImg + ":" + o.FileBrowserImgTag,
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.01)),
-					"memory": resource.MustParse("100Mi"),
-				},
-				Limits: v1.ResourceList{
-					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.25)),
-					"memory": resource.MustParse("500Mi"),
-				},
-			},
-			Args: []string{
-				"--port=" + fmt.Sprintf("%d", fileBrowserPort),
-				"--root=" + mountPath,
-				"--baseurl=" + basePath,
-				"--database=/tmp/database.db",
-				"--noauth=true",
-			},
-			SecurityContext: &contSecCtx,
-			Ports: []v1.ContainerPort{{
-				ContainerPort: fileBrowserPort,
-				Name:          fileBrowserPortName,
-			}},
-			VolumeMounts: []v1.VolumeMount{
-				{
-					Name:      "shared",
-					MountPath: mountPath,
-				},
-			},
-			ReadinessProbe: &fileBrowserProbe,
-		},
-		{
 			Name:  name,
 			Image: environment.Image,
 			Resources: buildResRequirements(
@@ -263,6 +230,42 @@ func buildContainerInstanceDeploymentSpec(
 		},
 	}
 
+	if environment.Mode == clv1alpha2.ModeStandard {
+		containers = append(containers, v1.Container{
+			Name:  "filebrowser",
+			Image: o.FileBrowserImg + ":" + o.FileBrowserImgTag,
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.01)),
+					"memory": resource.MustParse("100Mi"),
+				},
+				Limits: v1.ResourceList{
+					"cpu":    resource.MustParse(fmt.Sprintf("%f", 0.25)),
+					"memory": resource.MustParse("500Mi"),
+				},
+			},
+			Args: []string{
+				"--port=" + fmt.Sprintf("%d", fileBrowserPort),
+				"--root=" + mountPath,
+				"--baseurl=" + basePath,
+				"--database=/tmp/database.db",
+				"--noauth=true",
+			},
+			SecurityContext: &contSecCtx,
+			Ports: []v1.ContainerPort{{
+				ContainerPort: fileBrowserPort,
+				Name:          fileBrowserPortName,
+			}},
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "shared",
+					MountPath: mountPath,
+				},
+			},
+			ReadinessProbe: &fileBrowserProbe,
+		})
+	}
+
 	return appsv1.DeploymentSpec{
 		Replicas: pointer.Int32Ptr(1),
 		Selector: &metav1.LabelSelector{
@@ -285,7 +288,7 @@ func buildContainerInstanceDeploymentSpec(
 }
 
 func buildContainerInstancePVCSpec(
-	environment *crownlabsv1alpha2.Environment,
+	environment *clv1alpha2.Environment,
 ) v1.PersistentVolumeClaimSpec {
 	return v1.PersistentVolumeClaimSpec{
 		AccessModes: []v1.PersistentVolumeAccessMode{

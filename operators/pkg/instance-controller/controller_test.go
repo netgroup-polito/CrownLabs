@@ -128,6 +128,7 @@ var _ = Describe("Instance Operator controller", func() {
 				{
 					Name:       "Test",
 					GuiEnabled: true,
+					Mode:       crownlabsv1alpha2.ModeStandard,
 					Resources: crownlabsv1alpha2.EnvironmentResources{
 						CPU:                   1,
 						ReservedCPUPercentage: 1,

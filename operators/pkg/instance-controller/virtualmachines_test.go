@@ -136,9 +136,38 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
-	It("Should enforce the cloud-init secret", func() {
-		// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
-		Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
+	Context("The environment mode is Standard", func() {
+		BeforeEach(func() {
+			environment.Mode = clv1alpha2.ModeStandard
+		})
+		It("Should enforce the cloud-init secret", func() {
+			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
+			Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
+		})
+	})
+
+	Context("The environment mode is Exam", func() {
+		BeforeEach(func() {
+			environment.Mode = clv1alpha2.ModeExam
+		})
+		It("Should not enforce the cloud-init secret", func() {
+			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
+			Expect(reconciler.Get(ctx, objectName, &secret)).To(
+				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
+			)
+		})
+	})
+
+	Context("The environment mode is Exercise", func() {
+		BeforeEach(func() {
+			environment.Mode = clv1alpha2.ModeExercise
+		})
+		It("Should not enforce the cloud-init secret", func() {
+			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
+			Expect(reconciler.Get(ctx, objectName, &secret)).To(
+				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
+			)
+		})
 	})
 
 	It("Should enforce the environment exposition objects", func() {

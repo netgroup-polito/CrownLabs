@@ -50,6 +50,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}
 		environment = clv1alpha2.Environment{
 			Image: image,
+			Mode:  clv1alpha2.ModeStandard,
 			Resources: clv1alpha2.EnvironmentResources{
 				CPU:                   cpu,
 				ReservedCPUPercentage: cpuReserved,
@@ -139,6 +140,56 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 	})
 
+	Describe("The forge.Volumes function", func() {
+		type VolumesCase struct {
+			Mode     clv1alpha2.EnvironmentMode
+			Expected func(*clv1alpha2.Instance, *clv1alpha2.Environment) []virtv1.Volume
+		}
+
+		WhenBody := func(c VolumesCase) func() {
+			return func() {
+				var actual, expected []virtv1.Volume
+
+				BeforeEach(func() {
+					environment.Mode = c.Mode
+				})
+
+				JustBeforeEach(func() {
+					actual = forge.Volumes(&instance, &environment)
+					expected = c.Expected(&instance, &environment)
+				})
+
+				It("Correctly returns the expected volumes array", func() {
+					Expect(actual).To(ConsistOf(expected))
+				})
+			}
+		}
+
+		When("mode is Standard", WhenBody(VolumesCase{
+			Mode: clv1alpha2.ModeStandard,
+			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
+				return []virtv1.Volume{
+					forge.VolumeCloudInit(forge.NamespacedName(i).Name),
+					forge.VolumeRootDisk(i, e),
+				}
+			},
+		}))
+
+		When("mode is Exercise", WhenBody(VolumesCase{
+			Mode: clv1alpha2.ModeExercise,
+			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
+				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
+			},
+		}))
+
+		When("mode is Exam", WhenBody(VolumesCase{
+			Mode: clv1alpha2.ModeExam,
+			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
+				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
+			},
+		}))
+	})
+
 	Describe("The forge.VolumeRootDisk function", func() {
 		var volume virtv1.Volume
 
@@ -201,6 +252,50 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct volume secret reference", func() {
 			Expect(volume.CloudInitNoCloud.UserDataSecretRef.Name).To(BeIdenticalTo(name))
 		})
+	})
+
+	Describe("The forge.VolumeDiskTargets function", func() {
+		type VolumesDiskTargetsCase struct {
+			Mode     clv1alpha2.EnvironmentMode
+			Expected []virtv1.Disk
+		}
+
+		WhenBody := func(c VolumesDiskTargetsCase) func() {
+			return func() {
+				var actual, expected []virtv1.Disk
+
+				BeforeEach(func() {
+					environment.Mode = c.Mode
+				})
+
+				JustBeforeEach(func() {
+					actual = forge.VolumeDiskTargets(&environment)
+					expected = c.Expected
+				})
+
+				It("Correctly returns the expected disks array", func() {
+					Expect(actual).To(ConsistOf(expected))
+				})
+			}
+		}
+
+		When("mode is Standard", WhenBody(VolumesDiskTargetsCase{
+			Mode: clv1alpha2.ModeStandard,
+			Expected: []virtv1.Disk{
+				forge.VolumeDiskTarget("root"),
+				forge.VolumeDiskTarget("cloud-init"),
+			},
+		}))
+
+		When("mode is Exercise", WhenBody(VolumesDiskTargetsCase{
+			Mode:     clv1alpha2.ModeExercise,
+			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
+		}))
+
+		When("mode is Exam", WhenBody(VolumesDiskTargetsCase{
+			Mode:     clv1alpha2.ModeExam,
+			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
+		}))
 	})
 
 	Describe("The forge.VolumeDiskTarget function", func() {
