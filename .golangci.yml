@@ -1,6 +1,7 @@
 run:
   skip-files:
     - "zz_generated.*.go"
+    - ".*mock.go"
 
 linters-settings:
   exhaustive:
@@ -21,6 +22,24 @@ linters-settings:
     disabled-checks:
       # Conflicts with govet check-shadowing
       - sloppyReassign
+  goheader:
+    values:
+      const:
+        AUTHORS: Politecnico di Torino
+    template: |-
+      Copyright 2020-{{ YEAR }} {{ AUTHORS }}
+
+      Licensed under the Apache License, Version 2.0 (the "License");
+      you may not use this file except in compliance with the License.
+      You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
   goimports:
     local-prefixes: github.com/netgroup-polito/CrownLabs
   govet:
@@ -42,6 +61,7 @@ linters:
     - depguard
     - dogsled
     - dupl
+    - durationcheck
     - errcheck
     - errorlint
     - exhaustive
@@ -58,6 +78,7 @@ linters:
   # - godox
   # - goerr113
     - gofmt
+    - goheader
     - goimports
     - gomodguard
   # - gomnd
@@ -65,8 +86,11 @@ linters:
     - gosec
     - gosimple
     - govet
+    - ifshort
+    - importas
     - ineffassign
   # - lll
+    - makezero
   # - maligned
     - misspell
     - nakedret
