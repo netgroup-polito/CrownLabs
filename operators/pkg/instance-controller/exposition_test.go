@@ -153,12 +153,12 @@ var _ = Describe("Generation of the exposition environment", func() {
 	DescribeBodyParametersIngressGUI := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
-			return forge.IngressSpec(host, forge.IngressGUIPath(inst),
+			return forge.IngressSpec(host, forge.IngressVNCGUIPath(inst),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec:              netv1.IngressSpec{},
 		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.URL },
-		InstanceStatusExpected: fmt.Sprintf("https://%v/%v", host, instanceUID),
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v", host, instanceUID),
 	}
 
 	DescribeBodyParametersIngressMD := DescribeBodyParameters{
@@ -169,7 +169,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		},
 		EmptySpec:              netv1.IngressSpec{},
 		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.MyDriveURL },
-		InstanceStatusExpected: fmt.Sprintf("https://%v/%v/mydrive", host, instanceUID),
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/mydrive", host, instanceUID),
 	}
 
 	Context("The instance is running", func() {

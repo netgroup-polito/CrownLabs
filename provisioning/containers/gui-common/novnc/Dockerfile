@@ -19,8 +19,9 @@ getConfigVar = (a,b) => {\
 RUN echo "const ois = UI.initSettings;\
 UI.initSettings = () => {\
 ois();\
-let pathName = window.location.pathname.slice(1);\
-if (pathName) UI.forceSetting('path', pathName+'/websockify');\
+let {pathname} = window.location;\
+pathname = pathname.split('/').filter(e=>e).join('/');\
+if (pathname) UI.forceSetting('path', pathname+'/vnc');\
 UI.forceSetting('resize', 'remote');\
 UI.forceSetting('show_dot', true);\
 UI.forceSetting('reconnect', true);\
