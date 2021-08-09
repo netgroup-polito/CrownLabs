@@ -90,6 +90,10 @@ type InstanceStatus struct {
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).
 	IP string `json:"ip,omitempty"`
+
+	// The amount of time the Instance required to become ready for the first time
+	// upon creation.
+	InitialReadyTime string `json:"initialReadyTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -99,6 +103,7 @@ type InstanceStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`,priority=10
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`,priority=10
+// +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.initialReadyTime`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Instance describes the instance of a CrownLabs environment Template.

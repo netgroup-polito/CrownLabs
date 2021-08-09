@@ -19,7 +19,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -195,8 +198,38 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				return err
 			}
 		}
+
+		r.setInitialReadyTimeIfNecessary(ctx)
 	}
 	return nil
+}
+
+// setInitialReadyTimeIfNecessary configures the instance InitialReadyTime status value and emits the corresponding
+// prometheus metric, in case it was not already present and the instance is currently ready.
+func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context) {
+	instance := clctx.InstanceFrom(ctx)
+	if instance.Status.Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.InitialReadyTime != "" {
+		return
+	}
+
+	duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
+	instance.Status.InitialReadyTime = duration.String()
+
+	// Filter out possible outliers from the prometheus metrics.
+	if duration > 30*time.Minute {
+		return
+	}
+
+	template := clctx.TemplateFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
+
+	metricInitialReadyTimes.With(prometheus.Labels{
+		metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
+		metricInitialReadyTimesLabelTemplate:    template.GetName(),
+		metricInitialReadyTimesLabelEnvironment: environment.Name,
+		metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
+		metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
+	}).Observe(duration.Seconds())
 }
 
 // SetupWithManager registers a new controller for Instance resources.
