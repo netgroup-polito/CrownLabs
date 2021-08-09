@@ -114,9 +114,9 @@ func HostName(baseHostName string, mode clv1alpha2.EnvironmentMode) string {
 	case clv1alpha2.ModeStandard:
 		return baseHostName
 	case clv1alpha2.ModeExam:
-		return "exam." + baseHostName
+		return "exams." + baseHostName
 	case clv1alpha2.ModeExercise:
-		return "exercise." + baseHostName
+		return "exercises." + baseHostName
 	}
 
 	return baseHostName
