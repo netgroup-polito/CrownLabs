@@ -67,11 +67,12 @@ spec:
               the Template.
             properties:
               deleteAfter:
-                default: 7d
+                default: never
                 description: The maximum lifetime of an Instance referencing the current
                   Template. Once this period is expired, the Instance may be automatically
-                  deleted or stopped to save resources.
-                pattern: ^[0-9]+[mhd]$
+                  deleted or stopped to save resources. If set to "never", the instance
+                  will not be automatically terminated.
+                pattern: ^(never|[0-9]+[mhd])$
                 type: string
               description:
                 description: A textual description of the Template.

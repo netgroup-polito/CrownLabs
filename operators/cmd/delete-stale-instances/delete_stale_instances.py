@@ -2,6 +2,7 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from datetime import datetime
 import argparse
+import math
 import logging
 import re
 
@@ -15,6 +16,8 @@ class InstanceExpiredDeleter:
     plural_instance = "instances"
     plural_template = "templates"
 
+    delete_after_regex = re.compile("([0-9]+)([mhd])")
+
     def __init__(self, dry_run=None):
         """
         Initializes the object.
@@ -22,7 +25,6 @@ class InstanceExpiredDeleter:
         """
 
         self.dry_run = dry_run
-
         try:
             # Configuration loaded from a kube config
             config.load_kube_config()
@@ -47,29 +49,33 @@ class InstanceExpiredDeleter:
         return instances
 
     @staticmethod
-    def instance_is_expired(time, timecreation):
+    def instance_is_expired(lifespan, timecreation):
         """
         Compares creation timestamp with current timestamp to decide if instance is expired.
         :returns: True if expired or False if it is not
-        :time: instance life span in seconds
+        :lifespan: instance life span in seconds
         :timecreation: instance creation timestamp
         """
         now = datetime.now()
         # calculate time difference to verify expiration status
-        deltatime = now-datetime.strptime(timecreation, '%Y-%m-%dT%H:%M:%SZ')
+        deltatime = now - datetime.strptime(timecreation, '%Y-%m-%dT%H:%M:%SZ')
         total_time = deltatime.total_seconds()
-        return (total_time > time)
+        return (total_time > lifespan)
 
     @staticmethod
-    def convert_to_time(delete_after):
+    def convert_to_life_span(delete_after):
         """
         Converts the delete_after string to the corresponding value in seconds.
         :returns: delete_after paramenter converted to seconds.
         :delete_after: string coming from template rappresenting the expiration threshold of the instance.
         :delete_after: has a standard format of [0-9]+[mhd]
         """
-        temp = re.compile("([0-9]+)([mhd])")
-        delete_after_match = temp.match(delete_after)
+
+        # Do not terminate the instances with delete_after policy "never"
+        if delete_after == "never":
+            return math.inf
+
+        delete_after_match = InstanceExpiredDeleter.delete_after_regex.match(delete_after)
         if delete_after_match is None:
             logger.error(f"DeleteAfter field has a wrong format: '{delete_after}'")
             return None
@@ -78,9 +84,9 @@ class InstanceExpiredDeleter:
         if delete_after_vector[1] == 'm':
             multiplier = 60
         elif delete_after_vector[1] == 'h':
-            multiplier = 60*60
+            multiplier = 60 * 60
         elif delete_after_vector[1] == 'd':
-            multiplier = 60*60*24
+            multiplier = 60 * 60 * 24
         else:
             logger.error(f"DeleteAfter field has a wrong time unit: '{delete_after_vector[1]}'")
             return None
@@ -105,10 +111,10 @@ class InstanceExpiredDeleter:
             return None
 
         delete_after = template.get("spec").get("deleteAfter")
-        time = InstanceExpiredDeleter.convert_to_time(delete_after)
-        logger.debug(f"Retrieved template: '{template_name}' in Namespace: '{template_ns}' "
+        lifespan = InstanceExpiredDeleter.convert_to_life_span(delete_after)
+        logger.debug(f"Retrieved template: '{template_name}' in namespace: '{template_ns}' "
                      f"with maximum lifetime: '{delete_after}' seconds")
-        return time
+        return lifespan
 
     def delete_instance_expired(self, instances):
         """
@@ -130,23 +136,26 @@ class InstanceExpiredDeleter:
             template_ns = instance.get("spec").get("template.crownlabs.polito.it/TemplateRef").get("namespace", "default")
 
             # retrieve instance life span
-            logger.debug(f"Processing instance: '{name}' in Namespace: '{namespace}' Created at: '{creation_timestamp}'")
-            time = self.get_life_span(template_name, template_ns)
-            if time is None:
-                logger.error(f"Template: '{template_name}' in Namespace: '{template_ns}' "
+            logger.debug(f"Processing instance: '{name}' in namespace: '{namespace}' created at: '{creation_timestamp}'")
+            lifespan = self.get_life_span(template_name, template_ns)
+            if lifespan is None:
+                logger.error(f"Template: '{template_name}' in namespace: '{template_ns}' "
                              "has a wrong delete_after field format")
             else:
                 # verify instance expiration status
-                if(InstanceExpiredDeleter.instance_is_expired(time, creation_timestamp)):
+                if(InstanceExpiredDeleter.instance_is_expired(lifespan, creation_timestamp)):
                     try:
                         # delete expired instance
                         api_instance.delete_namespaced_custom_object(group=self.group, version=self.version,
                                                                      namespace=namespace, plural=self.plural_instance,
                                                                      name=name, dry_run=self.dry_run)
-                        logger.debug(f"Deleted instance: '{name}' in Namespace: '{namespace}'")
+                        dry_run_str = "(dry-run)" if self.dry_run else ""
+                        logger.debug(f"Deleted instance: '{name}' in namespace: '{namespace}' {dry_run_str}")
                     except ApiException as e:
                         # exception occurred while deleting instance
                         logger.error(f"Failed to delete instance {namespace}/{name}: '{e}'")
+                else:
+                    logger.debug(f"Instance: '{name}' in namespace: '{namespace}' not yet expired")
 
 
 # Initialize the logger object
@@ -181,12 +190,13 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", required=False, nargs='?', const='All', default=None,
                         help="option dry-run")
     args = parser.parse_args()
-    # Create the object reading the list of the images from the Docker registry
+
     logger.info(f"Deletion mode dry-run is: '{args.dry_run}'")
     instance_expired_deleter = InstanceExpiredDeleter(args.dry_run)
-    logger.info("Starting the delete process")
+    logger.info("Starting the deletion process")
     try:
         instances = instance_expired_deleter.get_instance_list()
         instance_expired_deleter.delete_instance_expired(instances)
+        logger.info("Deletion process completed correctly")
     except KeyboardInterrupt:
         logger.info("Received stop signal. Exiting")
