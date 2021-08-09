@@ -67,11 +67,8 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.E
 // object representing the definition of the VMI corresponding to a non-persistent CrownLabs Environment.
 func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) virtv1.VirtualMachineInstanceSpec {
 	return virtv1.VirtualMachineInstanceSpec{
-		Domain: VirtualMachineDomain(environment),
-		Volumes: []virtv1.Volume{
-			VolumeRootDisk(instance, environment),
-			VolumeCloudInit(NamespacedName(instance).Name),
-		},
+		Domain:                        VirtualMachineDomain(environment),
+		Volumes:                       Volumes(instance, environment),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: pointer.Int64(terminationGracePeriod),
@@ -86,13 +83,20 @@ func VirtualMachineDomain(environment *clv1alpha2.Environment) virtv1.DomainSpec
 		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
 		Resources: VirtualMachineResources(environment),
 		Devices: virtv1.Devices{
-			Disks: []virtv1.Disk{
-				VolumeDiskTarget(volumeRootName),
-				VolumeDiskTarget(volumeCloudInitName),
-			},
+			Disks:      VolumeDiskTargets(environment),
 			Interfaces: []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
 		},
 	}
+}
+
+// Volumes forges the array of volumes to be mounted onto the VMI specification.
+func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) []virtv1.Volume {
+	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
+	// Attach cloudinit volume on non-restricted environments
+	if environment.Mode == clv1alpha2.ModeStandard {
+		volumes = append(volumes, VolumeCloudInit(NamespacedName(instance).Name))
+	}
+	return volumes
 }
 
 // VolumeRootDisk forges the specification of the root volume, either ephemeral or persistent based on
@@ -140,6 +144,16 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 			},
 		},
 	}
+}
+
+// VolumeDiskTargets forges the array of disks to be attached to the VM Domain.
+func VolumeDiskTargets(environment *clv1alpha2.Environment) []virtv1.Disk {
+	disks := []virtv1.Disk{VolumeDiskTarget(volumeRootName)}
+	// Attach cloudinit disk on non-restricted environments
+	if environment.Mode == clv1alpha2.ModeStandard {
+		disks = append(disks, VolumeDiskTarget(volumeCloudInitName))
+	}
+	return disks
 }
 
 // VolumeDiskTarget forges the specification of a KVM disk attached to volume.

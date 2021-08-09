@@ -22,6 +22,9 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
+    - jsonPath: .spec.environmentList[0].mode
+      name: Mode
+      type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image
       priority: 10
@@ -95,6 +98,15 @@ spec:
                     image:
                       description: The VM or container to be started when instantiating
                         the environment.
+                      type: string
+                    mode:
+                      default: Standard
+                      description: The mode associated with the environment (Standard,
+                        Exam, Exercise)
+                      enum:
+                      - Standard
+                      - Exam
+                      - Exercise
                       type: string
                     name:
                       description: The name identifying the specific environment.

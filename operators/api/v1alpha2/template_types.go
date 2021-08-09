@@ -25,11 +25,24 @@ import (
 // can be instantiated in CrownLabs.
 type EnvironmentType string
 
+// +kubebuilder:validation:Enum="Standard";"Exam";"Exercise"
+
+// EnvironmentMode is an enumeration of the mode in which associated instances should be started:
+// each mode consists in presets for exposition and deployment.
+type EnvironmentMode string
+
 const (
 	// ClassContainer -> the environment is constituted by a Docker container.
 	ClassContainer EnvironmentType = "Container"
 	// ClassVM -> the environment is constituted by a Virtual Machine.
 	ClassVM EnvironmentType = "VirtualMachine"
+
+	// ModeStandard -> Normal operation (authentication, ssh, files access).
+	ModeStandard EnvironmentMode = "Standard"
+	// ModeExam -> Restricted access (no authentication, no mydrive access).
+	ModeExam EnvironmentMode = "Exam"
+	// ModeExercise -> Restricted access (no authentication, no mydrive access).
+	ModeExercise EnvironmentMode = "Exercise"
 )
 
 // TemplateSpec is the specification of the desired state of the Template.
@@ -84,6 +97,11 @@ type Environment struct {
 
 	// The amount of computational resources associated with the environment.
 	Resources EnvironmentResources `json:"resources"`
+
+	// +kubebuilder:default="Standard"
+
+	// The mode associated with the environment (Standard, Exam, Exercise)
+	Mode EnvironmentMode `json:"mode,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
@@ -122,6 +140,7 @@ type EnvironmentResources struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
+// +kubebuilder:printcolumn:name="Mode",type=string,JSONPath=`.spec.environmentList[0].mode`
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
 // +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10
