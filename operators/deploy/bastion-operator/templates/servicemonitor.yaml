@@ -1,13 +1,13 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "bastion-operator.fullname" . }}-metrics
+  name: {{ include "bastion-operator.fullname" . }}
   labels:
     {{- include "bastion-operator.labels" . | nindent 4 }}
     {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
 spec:
   endpoints:
-    - interval: 5s
+    - interval: 15s
       path: /metrics
       port: metrics
   namespaceSelector:
