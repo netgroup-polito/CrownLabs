@@ -349,7 +349,11 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(ctx context.Context) er
 	}
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
-		depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", forge.IngressMyDrivePath(instance))
+		// Deployment specifications are forged only at creation time, as changing them later may be
+		// either rejected or cause the restart of the Pod, with consequent possible data loss.
+		if depl.CreationTimestamp.IsZero() {
+			depl.Spec = buildContainerInstanceDeploymentSpec(name, instance, environment, &r.ContainerEnvOpts, 6080, 8080, "/mydrive", forge.IngressMyDrivePath(instance))
+		}
 		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	}); err != nil {
