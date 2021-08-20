@@ -5,17 +5,17 @@ import { ReactComponent as SvgLogo } from '../../../assets/logo.svg';
 export interface ILogoProps {
   widthPx?: number;
   className?: string;
+  color?: string;
 }
 
 const Logo: FC<ILogoProps> = ({ ...props }) => {
-  const { widthPx, className } = props;
+  const { widthPx, className, color } = props;
   return (
-    <div className={'flex items-center justify-center m-0 p-0 ' + className}>
-      <SvgLogo
-        width={widthPx ? `${widthPx}px` : '100%'}
-        className={'logo-color'}
-      />
-    </div>
+    <SvgLogo
+      width={widthPx ? `${widthPx}px` : '100%'}
+      className={className + (!color ? ' logo-color' : '')}
+      style={{ fill: color }}
+    />
   );
 };
 

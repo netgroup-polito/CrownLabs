@@ -16,8 +16,20 @@ export default {
 const Template: Story<ILogoProps> = args => <Logo {...args} />;
 
 export const Default = Template.bind({});
+Default.argTypes = {
+  color: { table: { disable: true } },
+};
 Default.args = {
   widthPx: 300,
 };
 
 export const NoWidth = Template.bind({});
+NoWidth.argTypes = {
+  color: { table: { disable: true } },
+};
+
+export const FixedColor = Template.bind({});
+FixedColor.args = {
+  widthPx: 300,
+  color: 'rgba(255, 0, 0, 1)',
+};
