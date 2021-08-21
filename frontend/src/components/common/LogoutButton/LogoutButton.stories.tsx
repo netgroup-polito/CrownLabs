@@ -5,7 +5,6 @@ export default {
   title: 'Components/common/LogoutButton',
   component: LogoutButton,
   argTypes: {
-    largeMode: { table: { disable: true } },
     logoutHandler: { table: { disable: true } },
   },
   decorators: [
@@ -24,11 +23,4 @@ export const Default = Template.bind({});
 Default.args = {
   logoutHandler: () => null,
   iconStyle: { fontSize: '200px' },
-};
-
-export const LargeMode = Template.bind({});
-
-LargeMode.args = {
-  logoutHandler: () => null,
-  largeMode: true,
 };
