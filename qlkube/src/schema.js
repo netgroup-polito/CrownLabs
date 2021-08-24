@@ -1,32 +1,21 @@
 const { createGraphQlSchema } = require('oasgraph');
 const { decorateBaseSchema } = require('./decorateBaseSchema.js');
+const { wrappers } = require('./wrappers');
 
 exports.createSchema = async (oas, kubeApiUrl, token) => {
   let baseSchema = await oasToGraphQlSchema(oas, kubeApiUrl, token);
   try {
-    const schemaWithInstanceTemplate = decorateBaseSchema(
-      'itPolitoCrownlabsV1alpha2Template',
-      'TemplateCrownlabsPolitoItTemplateRef',
-      baseSchema,
-      'templateWrapper',
-      ['name', 'namespace']
-    );
-    const schemaWithInstanceTenant = decorateBaseSchema(
-      'itPolitoCrownlabsV1alpha1Tenant',
-      'TenantCrownlabsPolitoItTenantRef',
-      schemaWithInstanceTemplate,
-      'tenantWrapper',
-      ['name']
-    );
-    const schemaWithTenantWorkspace = decorateBaseSchema(
-      'itPolitoCrownlabsV1alpha1Workspace',
-      'WorkspaceRef',
-      schemaWithInstanceTenant,
-      'workspaceWrapper',
-      ['name']
-    );
+    wrappers.forEach(wtype => {
+      baseSchema = decorateBaseSchema(
+        wtype['type'],
+        wtype['fieldWrapper'],
+        baseSchema,
+        wtype['nameWrapper'],
+        wtype['queryFieldsRequired']
+      );
+    });
 
-    return schemaWithTenantWorkspace;
+    return baseSchema;
   } catch (e) {
     console.error(e);
     process.exit(1);

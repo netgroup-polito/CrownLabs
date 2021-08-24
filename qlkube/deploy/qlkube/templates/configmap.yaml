@@ -9,7 +9,7 @@ data:
     const apiGroups = {
       paths: [
         {{- range .Values.configuration.exposedAPIs.apis }}
-          '{{ . }}',
+          {{ quote . }},
         {{- end }}
       ],
     };
@@ -22,13 +22,28 @@ data:
       {{- range .resources }}
       {
         api: 'apis',
-        group: '{{ $api.group }}',
-        version: '{{ .version }}',
-        resource: '{{ .resource }}',
-        type: '{{ .mapping }}',
+        group: {{ quote $api.group }},
+        version: {{ quote .version }},
+        resource: {{ quote .resource }},
+        type: {{ quote .mapping }},
       },
       {{- end }}
       {{- end }}
     ];
 
     module.exports = { subscriptions };
+
+  {{ .Values.configuration.wrappers.fileName }}: |
+    const wrappers = [
+      {{- range .Values.configuration.wrappers.resources }}
+      {
+        type: {{ quote .type }},
+        fieldWrapper: {{ quote .fieldWrapper }},
+        nameWrapper: {{ quote .nameWrapper }},
+        queryFieldsRequired: {{ toJson .queryFieldsRequired }},
+        parents: {{ toJson  .parents }},
+      },
+      {{- end }}
+    ];
+
+    module.exports = { wrappers };

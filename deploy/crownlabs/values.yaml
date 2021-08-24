@@ -51,17 +51,28 @@ qlkube:
   configuration:
     exposedAPIs:
       apis:
-      - crownlabs.polito.it
+        - crownlabs.polito.it
     subscriptions:
       apis:
-      - group: crownlabs.polito.it
-        resources:
-        - resource: instances
-          version: v1alpha2
-          mapping: itPolitoCrownlabsV1alpha2Instance
-        - resource: templates
-          version: v1alpha2
-          mapping: itPolitoCrownlabsV1alpha2Template
+        - group: crownlabs.polito.it
+          resources:
+            - resource: instances
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2Instance
+            - resource: templates
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2Template
+    wrappers:
+      fileName: wrappers.js
+      resources:
+        - type: itPolitoCrownlabsV1alpha2Template
+          fieldWrapper: TemplateCrownlabsPolitoItTemplateRef
+          nameWrapper: templateWrapper
+          queryFieldsRequired:
+            - name
+            - namespace
+          parents:
+            - itPolitoCrownlabsV1alpha2Instance
 
 instance-operator:
   replicaCount: 1

@@ -4,6 +4,10 @@ function capitalizeType(name) {
   return name[0].toUpperCase() + name.slice(1);
 }
 
+function uncapitalizeType(name) {
+  return name[0].toLowerCase() + name.slice(1);
+}
+
 function getBearerToken(connectionParams) {
   if (!connectionParams)
     throw new Error('Parameter connectionParams cannot be empty!');
@@ -33,9 +37,40 @@ function graphqlLogger(msg) {
   }
 }
 
+/**
+ * Starting from a query object and a target field,
+ * the algorithm search in deep into the object the specific field.
+ * So, after a check to ensure that queryObj is an object, you retrieve all its keys.
+ * For each key a check with target field is performed, thus the object target is stored and returned.
+ * Otherwise, you use a recursive strategy to analize the subfields.
+ */
+
+function getQueryField(queryObj, targetField) {
+  if (typeof queryObj !== 'object' || queryObj === null) return null;
+
+  let objTarget = null;
+  const keys = Object.keys(queryObj);
+  keys.forEach(key => {
+    if (key === targetField) {
+      objTarget = queryObj[key];
+      return;
+    } else {
+      const result = getQueryField(queryObj[key], targetField);
+      if (result) {
+        objTarget = result;
+        return;
+      }
+    }
+  });
+
+  return objTarget;
+}
+
 module.exports = {
   capitalizeType,
+  uncapitalizeType,
   getBearerToken,
   graphqlQueryRegistry,
   graphqlLogger,
+  getQueryField,
 };
