@@ -10,15 +10,22 @@ RUN wget -qO- https://github.com/novnc/noVNC/archive/v1.2.0.tar.gz | \
     rm -rf ${HTML_DATA}/tests 
 
 # Inject noVNC customizations (JS)
-RUN echo "window.addEventListener('load', () => {\
+RUN echo "const ogcv = getConfigVar;\
+getConfigVar = (a,b) => {\
+    if (a === 'autoconnect') return true;\
+    return ogcv(a,b);\
+}" >> ${HTML_DATA}/app/webutil.js
+
+RUN echo "const ois = UI.initSettings;\
+UI.initSettings = () => {\
+ois();\
 let pathName = window.location.pathname.slice(1);\
 if (pathName) UI.forceSetting('path', pathName+'/websockify');\
 UI.forceSetting('resize', 'remote');\
 UI.forceSetting('show_dot', true);\
 UI.forceSetting('reconnect', true);\
 UI.forceSetting('reconnect_delay', 100);\
-UI.connect();\
-})" >> ${HTML_DATA}/app/ui.js
+}" >> ${HTML_DATA}/app/ui.js
 
 # Copy config template and entrypoint
 COPY nginx.conf.template /etc/nginx/nginx.conf.template
