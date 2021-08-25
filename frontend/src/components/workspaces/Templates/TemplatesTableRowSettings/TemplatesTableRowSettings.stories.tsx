@@ -7,7 +7,11 @@ import { someKeysOf } from '../../../../utils';
 export default {
   title: 'Components/workspaces/Templates/TemplatesTableRowSettings',
   component: TemplatesTableRowSettings,
-  argTypes: {},
+  argTypes: {
+    id: { table: { disable: true } },
+    editTemplate: { table: { disable: true } },
+    deleteTemplate: { table: { disable: true } },
+  },
 } as Meta;
 
 const defaultArgs: someKeysOf<ITemplatesTableRowSettingsProps> = {

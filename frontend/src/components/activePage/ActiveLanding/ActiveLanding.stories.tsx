@@ -2,6 +2,7 @@ import { Story } from '@storybook/react';
 import { Title, Description, Stories } from '@storybook/addon-docs/blocks';
 import ActiveLanding, { IActiveLandingProps } from './ActiveLanding';
 import { someKeysOf } from '../../../utils';
+import { FixedHeightDecorator } from '../../../decorators/FixedHeightDecorator';
 
 export default {
   title: 'Components/ActivePage/ActiveLanding/ActiveLanding',
@@ -16,13 +17,7 @@ export default {
       },
     },
   },
-  decorators: [
-    (Story: any) => (
-      <div style={{ height: '500px' }}>
-        <Story />
-      </div>
-    ),
-  ],
+  decorators: [FixedHeightDecorator],
 };
 
 const defaultArgs: someKeysOf<IActiveLandingProps> = {

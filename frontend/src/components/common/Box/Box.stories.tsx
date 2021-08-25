@@ -159,20 +159,8 @@ export default {
         None: undefined,
       },
     },
-    headerMinHeight: {
-      options: ['Yes', 'None'],
-      mapping: {
-        Yes: true,
-        None: false,
-      },
-    },
-    footerMinHeight: {
-      options: ['Yes', 'None'],
-      mapping: {
-        Yes: true,
-        None: false,
-      },
-    },
+    headerMinHeight: { table: { disable: true } },
+    footerMinHeight: { table: { disable: true } },
   },
 } as Meta;
 

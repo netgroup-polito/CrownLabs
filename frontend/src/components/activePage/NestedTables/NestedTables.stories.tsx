@@ -8,6 +8,7 @@ import {
 } from '@storybook/addon-docs/blocks';
 import { someKeysOf } from '../../../utils';
 import { templates, workspaces } from '../tempData';
+import { FixedHeightDecorator } from '../../../decorators/FixedHeightDecorator';
 
 export default {
   title: 'Components/ActivePage/NestedTables/NestedTables',
@@ -25,13 +26,7 @@ export default {
       },
     },
   },
-  decorators: [
-    (Story: any) => (
-      <div style={{ height: '300px' }}>
-        <Story />
-      </div>
-    ),
-  ],
+  decorators: [FixedHeightDecorator],
 };
 
 const defaultArgs: someKeysOf<INestedTablesProps> = {

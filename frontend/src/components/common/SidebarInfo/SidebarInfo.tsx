@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, SetStateAction } from 'react';
 import { Drawer, List } from 'antd';
 import {
   GithubOutlined,
@@ -9,15 +9,16 @@ import {
   YoutubeFilled,
 } from '@ant-design/icons';
 import Logo from '../Logo';
+import { Dispatch } from 'react';
 
 export interface ISidebarInfoProps {
-  onClose: () => void;
+  setShow: Dispatch<SetStateAction<boolean>>;
   position: 'left' | 'right';
-  visible: boolean;
+  show: boolean;
 }
 
 const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
-  const { onClose, visible, position } = props;
+  const { setShow, show, position } = props;
 
   return (
     <Drawer
@@ -52,8 +53,8 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
       }
       placement={position}
       closable={true}
-      onClose={onClose}
-      visible={visible}
+      onClose={() => setShow(false)}
+      visible={show}
       width={350}
       footer={
         <>

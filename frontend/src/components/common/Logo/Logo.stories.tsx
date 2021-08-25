@@ -1,16 +1,16 @@
 import Logo, { ILogoProps } from './Logo';
 import { Story, Meta } from '@storybook/react';
-import { LogoDecorator } from '../../../Decorators';
+import { CenterDecorator } from '../../../decorators/CenterDecorator';
 
 export default {
   title: 'Components/common/Logo',
   component: Logo,
-  decorators: [LogoDecorator],
   argTypes: {
     widthPx: {
       control: { type: 'range', min: 0, max: 800, step: 1 },
     },
   },
+  decorators: [CenterDecorator],
 } as Meta;
 
 const Template: Story<ILogoProps> = args => <Logo {...args} />;

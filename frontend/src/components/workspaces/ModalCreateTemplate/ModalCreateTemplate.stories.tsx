@@ -3,13 +3,17 @@ import ModalCreateTemplate, {
   Template,
 } from './ModalCreateTemplate';
 import { Story, Meta } from '@storybook/react';
-import { ModalDecorator } from '../../../Decorators';
+import { DialogOpenDecorator } from '../../../decorators/DialogOpenDecorator';
 
 export default {
   title: 'Components/workspaces/ModalCreateTemplate',
   component: ModalCreateTemplate,
-  argTypes: { onClick: { action: 'clicked' } },
-  decorators: [ModalDecorator],
+  decorators: [DialogOpenDecorator],
+  argTypes: {
+    submitHandler: { table: { disable: true } },
+    show: { table: { disable: true } },
+    setShow: { table: { disable: true } },
+  },
 } as Meta;
 
 const TemplateStorybook: Story<IModalCreateTemplateProps> = args => (

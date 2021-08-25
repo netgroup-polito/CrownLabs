@@ -5,7 +5,10 @@ import { someKeysOf } from '../../../../utils';
 export default {
   title: 'Components/workspaces/Templates/TemplatesTable',
   component: TemplatesTable,
-  argTypes: {},
+  argTypes: {
+    editTemplate: { table: { disable: true } },
+    deleteTemplate: { table: { disable: true } },
+  },
 } as Meta;
 
 const defaultArgs: someKeysOf<ITemplatesTableProps> = {
