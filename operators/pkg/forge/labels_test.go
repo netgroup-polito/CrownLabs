@@ -45,6 +45,11 @@ var _ = Describe("Labels forging", func() {
 			ExpectedUpdated bool
 		}
 
+		type InstancePersistentLabelCase struct {
+			EnvironmentList []clv1alpha2.Environment
+			ExpectedValue   string
+		}
+
 		BeforeEach(func() {
 			template = clv1alpha2.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
@@ -67,6 +72,7 @@ var _ = Describe("Labels forging", func() {
 					"crownlabs.polito.it/managed-by": "instance",
 					"crownlabs.polito.it/workspace":  workspaceName,
 					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/persistent": "false",
 				},
 				ExpectedUpdated: true,
 			}),
@@ -75,12 +81,14 @@ var _ = Describe("Labels forging", func() {
 					"crownlabs.polito.it/managed-by": "instance",
 					"crownlabs.polito.it/workspace":  workspaceName,
 					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/persistent": "false",
 					"user/key":                       "user/value",
 				},
 				ExpectedOutput: map[string]string{
 					"crownlabs.polito.it/managed-by": "instance",
 					"crownlabs.polito.it/workspace":  workspaceName,
 					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/persistent": "false",
 					"user/key":                       "user/value",
 				},
 				ExpectedUpdated: false,
@@ -94,9 +102,38 @@ var _ = Describe("Labels forging", func() {
 					"crownlabs.polito.it/managed-by": "instance",
 					"crownlabs.polito.it/workspace":  workspaceName,
 					"crownlabs.polito.it/template":   templateName,
+					"crownlabs.polito.it/persistent": "false",
 					"user/key":                       "user/value",
 				},
 				ExpectedUpdated: true,
+			}),
+		)
+
+		DescribeTable("Correctly configures the persistent label",
+			func(c InstancePersistentLabelCase) {
+				template.Spec.EnvironmentList = c.EnvironmentList
+				output, _ := forge.InstanceLabels(map[string]string{}, &template)
+				Expect(output).To(HaveKeyWithValue("crownlabs.polito.it/persistent", c.ExpectedValue))
+			},
+			Entry("When a single, non-persistent environment is present", InstancePersistentLabelCase{
+				EnvironmentList: []clv1alpha2.Environment{{Persistent: false}},
+				ExpectedValue:   "false",
+			}),
+			Entry("When multiple, non-persistent environments are present", InstancePersistentLabelCase{
+				EnvironmentList: []clv1alpha2.Environment{{Persistent: false}, {Persistent: false}},
+				ExpectedValue:   "false",
+			}),
+			Entry("When a single, persistent environment is present", InstancePersistentLabelCase{
+				EnvironmentList: []clv1alpha2.Environment{{Persistent: true}},
+				ExpectedValue:   "true",
+			}),
+			Entry("When multiple, persistent environments are present", InstancePersistentLabelCase{
+				EnvironmentList: []clv1alpha2.Environment{{Persistent: true}, {Persistent: true}},
+				ExpectedValue:   "true",
+			}),
+			Entry("When multiple, mixed environments are present", InstancePersistentLabelCase{
+				EnvironmentList: []clv1alpha2.Environment{{Persistent: false}, {Persistent: true}, {Persistent: false}},
+				ExpectedValue:   "true",
 			}),
 		)
 	})

@@ -15,15 +15,18 @@
 package forge
 
 import (
+	"strconv"
+
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 const (
-	labelManagedByKey = "crownlabs.polito.it/managed-by"
-	labelInstanceKey  = "crownlabs.polito.it/instance"
-	labelWorkspaceKey = "crownlabs.polito.it/workspace"
-	labelTemplateKey  = "crownlabs.polito.it/template"
-	labelTenantKey    = "crownlabs.polito.it/tenant"
+	labelManagedByKey  = "crownlabs.polito.it/managed-by"
+	labelInstanceKey   = "crownlabs.polito.it/instance"
+	labelWorkspaceKey  = "crownlabs.polito.it/workspace"
+	labelTemplateKey   = "crownlabs.polito.it/template"
+	labelTenantKey     = "crownlabs.polito.it/tenant"
+	labelPersistentKey = "crownlabs.polito.it/persistent"
 
 	labelManagedByValue = "instance"
 )
@@ -40,6 +43,7 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template) (ma
 	update = updateLabel(labels, labelManagedByKey, labelManagedByValue) || update
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
+	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
 
 	return labels, update
 }
@@ -73,4 +77,14 @@ func updateLabel(labels map[string]string, key, value string) bool {
 		return true
 	}
 	return false
+}
+
+// persistentLabelValue returns the value to be assigned to the persistent label, depending on the environment list.
+func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
+	for i := range environmentList {
+		if environmentList[i].Persistent {
+			return strconv.FormatBool(true)
+		}
+	}
+	return strconv.FormatBool(false)
 }
