@@ -28,13 +28,17 @@ const (
 	GUIPortNumber = 6080
 	// MyDrivePortNumber -> the port the "MyDrive" service is exposed to.
 	MyDrivePortNumber = 8080
+	// XVncPortNumber -> the port in the container in which the X server is accessible through VNC.
+	XVncPortNumber = 5900
 
 	// SSHPortName -> the name of the port the SSH daemon is exposed to.
 	SSHPortName = "ssh"
 	// GUIPortName -> the name of the port the NoVNC service is exposed to.
-	GUIPortName = "gui"
+	GUIPortName = "vnc"
 	// MyDrivePortName -> the name of the port the "MyDrive" service is exposed to.
 	MyDrivePortName = "mydrive"
+	// XVncPortName -> the name of the port through which the X server is accessible through VNC.
+	XVncPortName = "xvnc"
 )
 
 // ServiceSpec forges the specification of a Kubernetes Service resource providing
@@ -53,8 +57,7 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	}
 
 	// Add the "MyDrive" port only if the environment is a container.
-	// TODO: add a field in the environment API to select whether to start the "MyDrive" or not.
-	if environment.EnvironmentType == clv1alpha2.ClassContainer {
+	if environment.EnvironmentType == clv1alpha2.ClassContainer && environment.Mode == clv1alpha2.ModeStandard {
 		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
 	}
 

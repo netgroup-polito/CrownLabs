@@ -44,16 +44,6 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// ContainerEnvOpts contains images name and tag for container environment.
-type ContainerEnvOpts struct {
-	ImagesTag         string
-	VncImg            string
-	WebsockifyImg     string
-	NovncImg          string
-	FileBrowserImg    string
-	FileBrowserImgTag string
-}
-
 // InstanceReconciler reconciles a Instance object.
 type InstanceReconciler struct {
 	client.Client
@@ -65,7 +55,7 @@ type InstanceReconciler struct {
 	WebdavSecretName   string
 	InstancesAuthURL   string
 	Concurrency        int
-	ContainerEnvOpts   ContainerEnvOpts
+	ContainerEnvOpts   forge.ContainerEnvOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,

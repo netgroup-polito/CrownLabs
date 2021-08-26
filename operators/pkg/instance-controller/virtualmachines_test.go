@@ -128,8 +128,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	})
 
 	JustBeforeEach(func() {
-		client := FakeClientWrapped{Client: clientBuilder.Build()}
-		reconciler = instance_controller.InstanceReconciler{Client: client, Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
+		reconciler = instance_controller.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
@@ -258,7 +257,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
-				It("The VMI should still be present but unmodified", func() {
+				It("The VMI should still be present and have unmodified specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
 					Expect(vmi.ObjectMeta.Labels).To(Equal(existing.ObjectMeta.Labels))
 					Expect(vmi.Spec).To(Equal(existing.Spec))

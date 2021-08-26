@@ -62,7 +62,7 @@ var _ = Describe("Ingresses", func() {
 			})
 
 			It("Should configure the correct path", func() {
-				Expect(spec.Rules[0].HTTP.Paths[0].Path).To(BeIdenticalTo("/path/to/ingress(/|$)(.*)"))
+				Expect(spec.Rules[0].HTTP.Paths[0].Path).To(BeIdenticalTo("/path/to/ingress"))
 			})
 
 			It("Should configure the correct service backend", func() {
@@ -76,7 +76,6 @@ var _ = Describe("Ingresses", func() {
 	})
 
 	Describe("The forge.IngressGUIAnnotations function", func() {
-		const path = "/path/to/ingress"
 
 		type InstanceGUIAnnotationsCase struct {
 			Input          map[string]string
@@ -85,30 +84,27 @@ var _ = Describe("Ingresses", func() {
 
 		DescribeTable("Correctly populates the annotations set",
 			func(c InstanceGUIAnnotationsCase) {
-				Expect(forge.IngressGUIAnnotations(c.Input, path)).To(Equal(c.ExpectedOutput))
+				Expect(forge.IngressGUIAnnotations(c.Input)).To(Equal(c.ExpectedOutput))
 			},
 			Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
 				Input: nil,
 				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + path + `/index.html">';`,
+					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
+					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
 				},
 			}),
 			Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
 				Input: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + path + `/index.html">';`,
+					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
+					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
 					"user/key": "user/value",
 				},
 				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + path + `/index.html">';`,
+					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
+					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
 					"user/key": "user/value",
 				},
 			}),
@@ -119,10 +115,9 @@ var _ = Describe("Ingresses", func() {
 					"user/key": "user/value",
 				},
 				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":        "/$2",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":    "3600",
-					"nginx.ingress.kubernetes.io/configuration-snippet": `sub_filter '<head>' '<head> <base href="https://$host/` + path + `/index.html">';`,
+					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
+					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
+					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
 					"user/key": "user/value",
 				},
 			}),
@@ -275,14 +270,26 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		Describe("The forge.IngressGUIPath function", func() {
+		Describe("The forge.IngressInstancePath function", func() {
 			JustBeforeEach(func() {
-				path = forge.IngressGUIPath(&instance)
+				path = forge.IngressInstancePath(&instance)
 			})
 
 			Context("The instance has no special configurations", func() {
 				It("Should generate a path based on the instance UID", func() {
-					Expect(path).To(BeIdenticalTo("/" + instanceUID))
+					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID))
+				})
+			})
+		})
+
+		Describe("The forge.IngressVNCGUIPath function", func() {
+			JustBeforeEach(func() {
+				path = forge.IngressVNCGUIPath(&instance)
+			})
+
+			Context("The instance has no special configurations", func() {
+				It("Should generate a path based on the instance UID", func() {
+					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/vnc"))
 				})
 			})
 		})
@@ -294,7 +301,7 @@ var _ = Describe("Ingresses", func() {
 
 			Context("The instance has no special configurations", func() {
 				It("Should generate a path based on the instance UID", func() {
-					Expect(path).To(BeIdenticalTo("/" + instanceUID + "/mydrive"))
+					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/mydrive"))
 				})
 			})
 		})

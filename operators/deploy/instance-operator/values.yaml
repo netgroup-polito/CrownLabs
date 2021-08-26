@@ -14,11 +14,10 @@ configurations:
     webdavSecretName: nextcloud-credentials
   containerEnvironmentOptions:
     tag: ""
-    vncImage: crownlabs/tigervnc
     websockifyImage: crownlabs/websockify
-    novncImage: crownlabs/novnc
-    filebrowserImage: filebrowser/filebrowser
-    filebrowserImageTag: latest
+    xVncImage: crownlabs/tigervnc
+    mydriveImage: filebrowser/filebrowser
+    mydriveImageTag: latest
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
     exportImage: "crownlabs/img-exporter"

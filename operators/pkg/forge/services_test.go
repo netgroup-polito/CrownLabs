@@ -99,16 +99,35 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 				},
 			}),
-			Entry("When the Environment is of type Container", ServiceSpecCase{
+			Entry("When the Environment is of type Container in standard mode", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
 					env.GuiEnabled = true
+					env.Mode = clv1alpha2.ModeStandard
 					return env
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 					{Name: forge.MyDrivePortName, Protocol: corev1.ProtocolTCP, Port: forge.MyDrivePortNumber, TargetPort: intstr.FromInt(forge.MyDrivePortNumber)},
 				},
+			}),
+			Entry("When the Environment is of type Container in exam mode", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassContainer
+					env.GuiEnabled = true
+					env.Mode = clv1alpha2.ModeExam
+					return env
+				},
+				Expected: []corev1.ServicePort{{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)}},
+			}),
+			Entry("When the Environment is of type Container in exercise mode", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassContainer
+					env.GuiEnabled = true
+					env.Mode = clv1alpha2.ModeExercise
+					return env
+				},
+				Expected: []corev1.ServicePort{{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)}},
 			}),
 		)
 	})

@@ -174,7 +174,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 		svc  = v1.Service{}
 		ingr = networkingv1.Ingress{}
 		depl = appsv1.Deployment{}
-		pvc  = v1.PersistentVolumeClaim{}
 		flag = true
 	)
 
@@ -302,28 +301,6 @@ var _ = Describe("Instance Operator controller for containers", func() {
 				Name:      InstanceName + "with-pvc",
 				Namespace: InstanceNamespace,
 			}, &inst, BeTrue(), timeout, interval)
-		})
-
-		It("Should correctly generate a PVC", func() {
-			By("Checking for the existence of the PVC")
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name:      InstanceName + "with-pvc",
-				Namespace: InstanceNamespace,
-			}, &pvc, BeTrue(), timeout, interval)
-
-			By("Checking that the PVC Has An OwnerReference")
-			flag := true
-			expectedOwnerReference := metav1.OwnerReference{
-				Kind:               "Instance",
-				APIVersion:         "crownlabs.polito.it/v1alpha2",
-				UID:                instanceWithPVC.ObjectMeta.UID,
-				Name:               InstanceName + "with-pvc",
-				Controller:         &flag,
-				BlockOwnerDeletion: &flag,
-			}
-			Expect(pvc.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
-			By("Checking that the PVC size is correct")
-			Expect(*(pvc.Spec.Resources.Requests.Storage())).To(BeEquivalentTo(templateWithPVC.Spec.EnvironmentList[0].Resources.Disk))
 		})
 
 	})

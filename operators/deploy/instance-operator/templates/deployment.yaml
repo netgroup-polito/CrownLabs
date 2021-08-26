@@ -40,15 +40,14 @@ spec:
             - "--nextcloud-base-url={{ .Values.configurations.nextcloud.baseUrl }}"
             - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
-            - "--container-env-vnc-img={{ .Values.configurations.containerEnvironmentOptions.vncImage }}"
+            - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
-            - "--container-env-novnc-img={{ .Values.configurations.containerEnvironmentOptions.novncImage }}"
             - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
             - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
             - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
-            - "--container-env-filebrowser-img={{ .Values.configurations.containerEnvironmentOptions.filebrowserImage }}"
-            - "--container-env-filebrowser-img-tag={{ .Values.configurations.containerEnvironmentOptions.filebrowserImageTag }}"
+            - "--container-env-mydrive-img={{ .Values.configurations.containerEnvironmentOptions.mydriveImage }}"
+            - "--container-env-mydrive-img-tag={{ .Values.configurations.containerEnvironmentOptions.mydriveImageTag }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics

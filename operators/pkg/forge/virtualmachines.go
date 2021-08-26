@@ -213,6 +213,7 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 		InitialDelaySeconds: 10,
 		PeriodSeconds:       2,
 		FailureThreshold:    5,
+		SuccessThreshold:    2,
 		Handler: virtv1.Handler{
 			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(port),
