@@ -68,6 +68,7 @@ jobs:
         run: |
           echo "[i] Query output status ${{ steps.query-bad-token.outputs.status }}"
           [[ ${{ steps.query-bad-token.outputs.status }} -eq 401 ]] || exit 1
+        shell: bash
         - name: Send the Slack notification
           uses: 8398a7/action-slack@v3.8.0
           with:
