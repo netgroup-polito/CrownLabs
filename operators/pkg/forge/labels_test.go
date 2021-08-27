@@ -136,6 +136,18 @@ var _ = Describe("Labels forging", func() {
 				ExpectedValue:   "true",
 			}),
 		)
+
+		Context("Checking side effects", func() {
+			var input, expectedInput map[string]string
+
+			BeforeEach(func() {
+				input = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+			})
+
+			JustBeforeEach(func() { forge.InstanceLabels(input, &template) })
+			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
 	})
 
 	Describe("The forge.InstanceObjectLabels function", func() {
@@ -200,6 +212,18 @@ var _ = Describe("Labels forging", func() {
 				},
 			}),
 		)
+
+		Context("Checking side effects", func() {
+			var input, expectedInput map[string]string
+
+			BeforeEach(func() {
+				input = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+			})
+
+			JustBeforeEach(func() { forge.InstanceObjectLabels(input, &instance) })
+			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
 	})
 
 	Describe("The forge.InstanceSelectorLabels function", func() {
