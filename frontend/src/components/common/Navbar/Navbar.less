@@ -11,7 +11,7 @@
 }
 
 body.light .navbar-bg {
-  background-color: #f2f2f2;
+  background-color: white;
 }
 
 .navbar-bg-transparent {
@@ -19,7 +19,7 @@ body.light .navbar-bg {
 }
 
 body.light .navbar-bg-transparent {
-  background-color: white;
+  background-color: #f0f2f5;
 }
 
 .navbar-button {
@@ -46,4 +46,12 @@ body.light .navbar-button:focus {
 
 body.light .navbar-title {
   color: @button-light-hover;
+}
+
+.cl-navbar{
+  --cl-bg-navbar: #141414;
+
+  body.light &{
+    --cl-bg-navbar: white;
+  }
 }
