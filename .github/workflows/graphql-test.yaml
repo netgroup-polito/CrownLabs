@@ -49,6 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
         if: failure()
+
       - name: Check bad Bearer token
         id: query-bad-token
         uses: CamiloGarciaLaRotta/watermelon-http-client@v1.5
@@ -69,19 +70,19 @@ jobs:
           echo "[i] Query output status ${{ steps.query-bad-token.outputs.status }}"
           [[ ${{ steps.query-bad-token.outputs.status }} -eq 401 ]] || exit 1
         shell: bash
-        - name: Send the Slack notification
-          uses: 8398a7/action-slack@v3.8.0
-          with:
-            status: ${{ job.status }}
-            author_name: CrownLabs CI
-            custom_payload: |
-              {
-                attachments: [{
-                  color: 'danger',
-                  text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} GraphQL authorization test with bad bearer token failed`,
-                }]
-              }
-          env:
-            GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
-            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-          if: failure()
+      - name: Send the Slack notification
+        uses: 8398a7/action-slack@v3.8.0
+        with:
+          status: ${{ job.status }}
+          author_name: CrownLabs CI
+          custom_payload: |
+            {
+              attachments: [{
+                color: 'danger',
+                text: `${process.env.AS_WORKFLOW}\n${process.env.AS_JOB} GraphQL authorization test with bad bearer token failed`,
+              }]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        if: failure()
