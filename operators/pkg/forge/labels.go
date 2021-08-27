@@ -34,11 +34,8 @@ const (
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
 // along with a boolean value indicating whether an update should be performed.
 func InstanceLabels(labels map[string]string, template *clv1alpha2.Template) (map[string]string, bool) {
+	labels = deepCopyLabels(labels)
 	update := false
-	if labels == nil {
-		labels = map[string]string{}
-		update = true
-	}
 
 	update = updateLabel(labels, labelManagedByKey, labelManagedByValue) || update
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
@@ -50,9 +47,8 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template) (ma
 
 // InstanceObjectLabels receives in input a set of labels and returns the updated set depending on the specified instance.
 func InstanceObjectLabels(labels map[string]string, instance *clv1alpha2.Instance) map[string]string {
-	if labels == nil {
-		labels = map[string]string{}
-	}
+	labels = deepCopyLabels(labels)
+
 	labels[labelManagedByKey] = labelManagedByValue
 	labels[labelInstanceKey] = instance.Name
 	labels[labelTemplateKey] = instance.Spec.Template.Name
@@ -68,6 +64,15 @@ func InstanceSelectorLabels(instance *clv1alpha2.Instance) map[string]string {
 		labelTemplateKey: instance.Spec.Template.Name,
 		labelTenantKey:   instance.Spec.Tenant.Name,
 	}
+}
+
+// deepCopyLabels creates a copy of the labels map.
+func deepCopyLabels(input map[string]string) map[string]string {
+	output := map[string]string{}
+	for key, value := range input {
+		output[key] = value
+	}
+	return output
 }
 
 // updateLabel configures a map entry to a given value, and returns whether a change was performed.
