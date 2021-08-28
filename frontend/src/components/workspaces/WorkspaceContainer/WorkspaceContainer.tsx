@@ -11,7 +11,7 @@ export interface IWorkspaceContainerProps {
     id: number;
     title: string;
     role: WorkspaceRole;
-    templates: Array<Template>;
+    templates?: Array<Template>;
   };
 }
 
@@ -62,7 +62,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
         }}
       >
-        {templates.length ? (
+        {templates && templates.length ? (
           <TemplatesTable
             templates={templates}
             role={role}

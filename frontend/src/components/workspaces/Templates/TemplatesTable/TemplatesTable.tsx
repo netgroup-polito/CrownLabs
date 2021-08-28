@@ -62,7 +62,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   };
 
   return (
-    <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
+    <div className="w-full flex-grow flex flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
       <Table
         size={'small'}
         showHeader={false}
