@@ -6,6 +6,7 @@ import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 import { WorkspaceRole } from '../../../utils';
 
 export interface IWorkspaceContainerProps {
+  tenantNamespace: string;
   workspace: {
     id: number;
     title: string;
@@ -18,6 +19,7 @@ export interface IWorkspaceContainerProps {
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const {
+    tenantNamespace,
     workspace: { role, title, workspaceNamespace },
     reload,
     setReload,
@@ -58,6 +60,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         }}
       >
         <TemplatesTableLogic
+          tenantNamespace={tenantNamespace}
           role={role}
           workspaceNamespace={workspaceNamespace}
           reload={reload}

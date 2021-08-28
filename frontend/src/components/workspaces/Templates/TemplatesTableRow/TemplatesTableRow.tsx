@@ -9,6 +9,8 @@ import {
 } from '@ant-design/icons';
 import Badge from '../../../common/Badge';
 import { Resources, WorkspaceRole } from '../../../../utils';
+import { CreateInstanceMutation } from '../../../../generated-types';
+import { FetchResult } from 'apollo-link';
 
 export interface ITemplatesTableRowProps {
   id: string;
@@ -20,6 +22,16 @@ export interface ITemplatesTableRowProps {
   activeInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
+  createInstance: (
+    id: string
+  ) => Promise<
+    FetchResult<
+      CreateInstanceMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
+  expandRow: (activeInstances: number, rowId: string, create: boolean) => void;
 }
 
 const infiniteIcon = (
@@ -44,43 +56,52 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     role,
     resources,
     activeInstances,
+    createInstance,
     editTemplate,
     deleteTemplate,
+    expandRow,
   } = props;
 
   return (
     <>
       <div className="w-full flex justify-between py-0">
-        <Space size={'middle'}>
-          <div className="flex items-center">
-            {gui ? (
-              <DesktopOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-            ) : (
-              <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-            )}
-            <label className="ml-3">{name}</label>
-            {persistent && (
-              <Tooltip
-                title={
-                  <>
-                    <div className="text-center">
-                      These Instances can be stopped and restarted without being
-                      deleted.
-                    </div>
-                    <div className="text-center">
-                      Your files won't be deleted in case of an internal
-                      misservice of CrownLabs.
-                    </div>
-                  </>
-                }
-              >
-                <div className="text-green-500 ml-3 flex items-center">
-                  {infiniteIcon}
-                </div>
-              </Tooltip>
-            )}
-          </div>
-        </Space>
+        <div
+          className="flex w-full items-center cursor-pointer"
+          onClick={() => expandRow(activeInstances, id, false)}
+        >
+          <Space size={'middle'}>
+            <div className="flex items-center">
+              {gui ? (
+                <DesktopOutlined
+                  style={{ fontSize: '24px', color: '#1c7afd' }}
+                />
+              ) : (
+                <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+              )}
+              <label className="ml-3 cursor-pointer">{name}</label>
+              {persistent && (
+                <Tooltip
+                  title={
+                    <>
+                      <div className="text-center">
+                        These Instances can be stopped and restarted without
+                        being deleted.
+                      </div>
+                      <div className="text-center">
+                        Your files won't be deleted in case of an internal
+                        misservice of CrownLabs.
+                      </div>
+                    </>
+                  }
+                >
+                  <div className="text-green-500 ml-3 flex items-center">
+                    {infiniteIcon}
+                  </div>
+                </Tooltip>
+              )}
+            </div>
+          </Space>
+        </div>
         <Space size={'small'}>
           <Badge value={activeInstances} size={'small'} />
           <Tooltip
@@ -115,6 +136,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           ) : (
             <Tooltip placement="top" title={'Create Instance'}>
               <Button
+                onClick={() => {
+                  createInstance(id)
+                    .then(() => expandRow(1, id, true))
+                    .catch(() => null);
+                }}
                 className="xs:hidden block"
                 with="link"
                 type="primary"
@@ -124,6 +150,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             </Tooltip>
           )}
           <Button
+            onClick={() => {
+              createInstance(id)
+                .then(() => expandRow(1, id, true))
+                .catch(() => null);
+            }}
             className="hidden xs:block"
             type="primary"
             shape="round"

@@ -6,16 +6,35 @@ import { RightOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { Template, WorkspaceRole } from '../../../../utils';
 import './TemplatesTable.less';
+import { CreateInstanceMutation } from '../../../../generated-types';
+import { FetchResult } from 'apollo-link';
 
 export interface ITemplatesTableProps {
+  tenantNamespace: string;
+  workspaceNamespace: string;
   templates: Array<Template>;
   role: WorkspaceRole;
   editTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
+  createInstance: (
+    id: string
+  ) => Promise<
+    FetchResult<
+      CreateInstanceMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
 }
 
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
-  const { templates, role, editTemplate, deleteTemplate } = props;
+  const {
+    templates,
+    role,
+    editTemplate,
+    deleteTemplate,
+    createInstance,
+  } = props;
 
   /**
    * Our Table has just one column which render all rows using a component TemplateTableRow
@@ -37,6 +56,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           activeInstances={record.instances ? record.instances.length : 0}
           editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
+          createInstance={createInstance}
+          expandRow={expandRow}
         />
       ),
     },
@@ -56,6 +77,18 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     };
    */
   const [expandedId, setExpandedId] = useState(['']);
+
+  const expandRow = (
+    activeInstances: number,
+    rowId: string,
+    create: boolean
+  ) => {
+    if (activeInstances) {
+      if (!create)
+        expandedId[0] === rowId ? setExpandedId(['']) : setExpandedId([rowId]);
+      else setExpandedId([rowId]);
+    }
+  };
 
   const handleAccordion = (expanded: boolean, record: Template) => {
     expanded ? setExpandedId([record.id]) : setExpandedId(['']);
