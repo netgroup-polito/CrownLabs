@@ -15,16 +15,23 @@ function DashboardLogic() {
   //startPolling(20000);
 
   return !loading && data && !error ? (
-    <Dashboard
-      workspaces={
-        data.tenant?.spec?.workspaces?.map(workspace => {
-          return {
-            workspaceId: workspace?.workspaceRef?.workspaceId as string,
-            role: workspace?.role!,
-          };
-        }) ?? []
-      }
-    />
+    <>
+      <Dashboard
+        workspaces={
+          data.tenant?.spec?.workspaces?.map(workspace => {
+            return {
+              workspaceId: workspace?.workspaceRef?.workspaceWrapper
+                ?.itPolitoCrownlabsV1alpha1Workspace?.spec
+                ?.workspaceName as string,
+              role: workspace?.role!,
+              workspaceNamespace: workspace?.workspaceRef?.workspaceWrapper
+                ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
+                ?.workspaceNamespace!,
+            };
+          }) ?? []
+        }
+      />
+    </>
   ) : (
     <div className="h-full w-full flex justify-center items-center">
       <Spin size="large" />

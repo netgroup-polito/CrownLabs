@@ -8,12 +8,14 @@ export interface IDashboardProps {
   workspaces: Array<{
     workspaceId: string;
     role: WorkspaceRole;
+    workspaceNamespace: string;
   }>;
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   const [selectedWsId, setSelectedWs] = useState(-1);
   const { workspaces } = props;
+  const [reload, setReload] = useState(false);
 
   return (
     <>
@@ -25,18 +27,29 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               id: idx,
               title: wk.workspaceId,
             }))}
-            onClick={setSelectedWs}
+            onClick={(id: number) => {
+              setSelectedWs(id);
+              setReload(true);
+            }}
           />
         </div>
       </Col>
-      <Col span={24} lg={14} xxl={12} className="px-4 flex flex-auto">
+      <Col
+        span={24}
+        lg={14}
+        xxl={12}
+        className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
+      >
         {selectedWsId !== -1 ? (
           <WorkspaceContainer
             workspace={{
               id: selectedWsId,
               role: workspaces[selectedWsId].role,
               title: workspaces[selectedWsId].workspaceId,
+              workspaceNamespace: workspaces[selectedWsId].workspaceNamespace,
             }}
+            reload={reload}
+            setReload={setReload}
           />
         ) : (
           <WorkspaceWelcome />

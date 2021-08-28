@@ -41,15 +41,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       <div className="w-full flex justify-between py-0">
         <Space size={'middle'}>
           {gui ? (
-            <DesktopOutlined
-              className={'primary-color-fg'}
-              style={{ fontSize: '24px' }}
-            />
+            <DesktopOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
           ) : (
-            <CodeOutlined
-              className={'primary-color-fg'}
-              style={{ fontSize: '24px' }}
-            />
+            <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
           )}
           <div className="flex items-end">
             {name}

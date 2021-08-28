@@ -18,7 +18,9 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
           className={`cursor-pointer row shadow-lg h-24 w-24 2xl:h-28 2xl:w-28 workspaceitem ${
             isActive ? 'active' : ''
           }`}
-          onClick={() => onClick(id)}
+          onClick={() => {
+            onClick(id);
+          }}
         >
           <label
             className="cursor-pointer font-mono font-semibold flex justify-center items-center pt-2 "
