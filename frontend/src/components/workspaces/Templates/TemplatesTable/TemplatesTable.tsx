@@ -1,3 +1,4 @@
+/* eslint-disable react/no-multi-comp */
 import { FC } from 'react';
 import { Table } from 'antd';
 import { TemplatesTableRow } from '../TemplatesTableRow';
@@ -30,6 +31,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           id={record.id}
           name={record.name}
           gui={record.gui}
+          persistent={record.persistent}
+          resources={record.resources}
           role={role}
           activeInstances={record.instances ? record.instances.length : 0}
           editTemplate={editTemplate}
@@ -84,7 +87,25 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           /**
            * Here we render the expandable content, for example with a nested Table
            */
-          expandedRowRender: template => 'Running Instances',
+          expandedRowRender: template => (
+            <div className="block w-full">
+              {template.instances.map(x => (
+                <div
+                  className="flex justify-between pl-24 pr-1 my-3"
+                  key={x.id}
+                >
+                  <h3> {x.name} </h3>
+                  <h3> IP:{x.ip} </h3>
+                  <h3> Status:{x.status} </h3>
+                  {x.url && (
+                    <a href={x.url}>
+                      <button className="w-20"> OPEN </button>
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          ),
         }}
       />
     </div>
