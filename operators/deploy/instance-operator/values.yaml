@@ -16,8 +16,8 @@ configurations:
     tag: ""
     websockifyImage: crownlabs/websockify
     xVncImage: crownlabs/tigervnc
-    mydriveImage: filebrowser/filebrowser
-    mydriveImageTag: latest
+    contentDownloaderImage: crownlabs/content-downloader
+    mydriveImageAndTag: filebrowser/filebrowser:latest
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
     exportImage: "crownlabs/img-exporter"

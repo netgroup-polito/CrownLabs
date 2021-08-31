@@ -103,6 +103,9 @@ type Environment struct {
 
 	// The mode associated with the environment (Standard, Exam, Exercise)
 	Mode EnvironmentMode `json:"mode,omitempty"`
+
+	// Options to customize container startup
+	ContainerStartupOptions *ContainerStartupOpts `json:"containerStartupOptions,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
@@ -134,6 +137,19 @@ type EnvironmentResources struct {
 	// In case of containers, when this field is not specified, an emptyDir will be
 	// attached to the pod but this could result in data loss whenever the pod dies.
 	Disk resource.Quantity `json:"disk,omitempty"`
+}
+
+// ContainerStartupOpts specifies custom startup options for the created container,
+// including the possibility to download and extract an archive to a given destination
+// and specifying the arguments that will be passed to the application container.
+type ContainerStartupOpts struct {
+	// URL from which GET the archive to be extracted into ContentPath
+	SourceArchiveURL string `json:"sourceArchiveURL,omitempty"`
+	// Path on which storage (EmptyDir/Storage) will be mounted
+	// and into which, if given in SourceArchiveURL, will be extracted the archive
+	ContentPath string `json:"contentPath,omitempty"`
+	// Arguments to be passed to the application container on startup
+	StartupArgs []string `json:"startupArgs,omitempty"`
 }
 
 // +kubebuilder:object:root=true

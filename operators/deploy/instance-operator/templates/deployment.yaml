@@ -42,12 +42,12 @@ spec:
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
             - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
+            - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
+            - "--container-env-mydrive-img-and-tag={{ .Values.configurations.containerEnvironmentOptions.mydriveImageAndTag }}"
             - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
             - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
             - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
-            - "--container-env-mydrive-img={{ .Values.configurations.containerEnvironmentOptions.mydriveImage }}"
-            - "--container-env-mydrive-img-tag={{ .Values.configurations.containerEnvironmentOptions.mydriveImageTag }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics
