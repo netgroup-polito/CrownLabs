@@ -46,6 +46,10 @@ var _ = Describe("Generation of the container based instances", func() {
 			ds.Template.Spec.Containers[i].Resources = corev1.ResourceRequirements{}
 			ds.Template.Spec.Containers[i].Env = []corev1.EnvVar{}
 		}
+		for i := range ds.Template.Spec.InitContainers {
+			ds.Template.Spec.InitContainers[i].Resources = corev1.ResourceRequirements{}
+			ds.Template.Spec.InitContainers[i].Env = []corev1.EnvVar{}
+		}
 		ds.Selector = nil
 		ds.Template.ObjectMeta.Labels = nil
 	}
@@ -88,11 +92,11 @@ var _ = Describe("Generation of the container based instances", func() {
 	BeforeEach(func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		containerOpts = forge.ContainerEnvOpts{
-			ImagesTag:     "v1.2.3",
-			XVncImg:       "x-vnc",
-			WebsockifyImg: "wskfy",
-			MyDriveImg:    "mydrive",
-			MyDriveImgTag: "v4.5.6",
+			ImagesTag:            "v1.2.3",
+			XVncImg:              "x-vnc",
+			WebsockifyImg:        "wskfy",
+			MyDriveImgAndTag:     "mydrive:v4.5.6",
+			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace}},

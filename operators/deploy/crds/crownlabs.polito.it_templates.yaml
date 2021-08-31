@@ -84,6 +84,25 @@ spec:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
                   properties:
+                    containerStartupOptions:
+                      description: Options to customize container startup
+                      properties:
+                        contentPath:
+                          description: Path on which storage (EmptyDir/Storage) will
+                            be mounted and into which, if given in SourceArchiveURL,
+                            will be extracted the archive
+                          type: string
+                        sourceArchiveURL:
+                          description: URL from which GET the archive to be extracted
+                            into ContentPath
+                          type: string
+                        startupArgs:
+                          description: Arguments to be passed to the application container
+                            on startup
+                          items:
+                            type: string
+                          type: array
+                      type: object
                     environmentType:
                       description: The type of environment to be instantiated, among
                         VirtualMachine and Container.

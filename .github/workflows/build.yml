@@ -99,6 +99,7 @@ jobs:
           - novnc
           - tigervnc
           - websockify
+          - content-downloader
           - pycharm
           - blender
           - blender-lts
@@ -157,6 +158,8 @@ jobs:
             context: ./provisioning/containers/gui-common/tigervnc
           - component: websockify
             context: ./provisioning/containers/gui-common/websockify
+          - component: content-downloader
+            context: ./provisioning/containers/content-downloader
           - component: pycharm
             context: ./provisioning/containers/pycharm
           - component: blender

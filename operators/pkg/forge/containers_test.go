@@ -83,11 +83,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			},
 		}
 		opts = forge.ContainerEnvOpts{
-			ImagesTag:     "tag",
-			XVncImg:       "x-vnc-img",
-			WebsockifyImg: "wsfy-img",
-			MyDriveImg:    "fb-img",
-			MyDriveImgTag: "fb-tag",
+			ImagesTag:            "tag",
+			XVncImg:              "x-vnc-img",
+			WebsockifyImg:        "wsfy-img",
+			ContentDownloaderImg: "cont-dler-img",
+			MyDriveImgAndTag:     "fb-img:tag",
 		}
 		container = corev1.Container{}
 	})
@@ -319,7 +319,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct container name and image", func() {
 			// PodSecurityContext setting is checked by GenericContainer specific tests
 			Expect(actual.Name).To(Equal(myDriveName))
-			Expect(actual.Image).To(Equal(opts.MyDriveImg + ":" + opts.MyDriveImgTag))
+			Expect(actual.Image).To(Equal(opts.MyDriveImgAndTag))
 		})
 		It("Should set the correct resources", func() {
 			forge.SetContainerResources(&expected, 0.01, 0.25, 100, 500)
@@ -349,17 +349,139 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 	Describe("The forge.AppContainer function forges the main application container", func() {
 		var actual, expected corev1.Container
+
+		Context("Has to set the general parameters", func() {
+			JustBeforeEach(func() {
+				actual = forge.AppContainer(&environment, myDriveMountPath)
+			})
+
+			It("Should set the correct container name and image", func() {
+				// PodSecurityContext setting is checked by GenericContainer specific tests
+				Expect(actual.Name).To(Equal(environment.Name))
+				Expect(actual.Image).To(Equal(environment.Image))
+			})
+			It("Should set the correct resources", func() {
+				forge.SetContainerResourcesFromEnvironment(&expected, &environment)
+				Expect(actual.Resources).To(Equal(expected.Resources))
+			})
+			It("Should NOT set container ports", func() {
+				Expect(actual.Ports).To(BeEmpty())
+			})
+			It("Should NOT set readiness probes", func() {
+				Expect(actual.ReadinessProbe).To(BeNil())
+			})
+			It("Should set the volume mount", func() {
+				forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
+				Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
+			})
+			It("Should set the env varibles", func() {
+				expected.Name = envName
+				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
+				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+				Expect(actual.Env).To(ConsistOf(expected.Env))
+			})
+		})
+
+		Context("Has to handle custom startup options", func() {
+			testArguments := []string{"argument=yes", "another-argument"}
+			type ContainerCase struct {
+				StartupOpts    *clv1alpha2.ContainerStartupOpts
+				ExpectedOutput func(*clv1alpha2.Environment) []string
+			}
+
+			WhenBody := func(c ContainerCase) func() {
+				return func() {
+					BeforeEach(func() {
+						environment.ContainerStartupOptions = c.StartupOpts
+					})
+
+					JustBeforeEach(func() {
+						actual = forge.AppContainer(&environment, myDriveMountPath)
+					})
+
+					It("Should return the correct startup args", func() {
+						Expect(actual.Args).To(Equal(c.ExpectedOutput(&environment)))
+					})
+				}
+			}
+
+			When("ContainerStartupOptions is nil", WhenBody(ContainerCase{
+				StartupOpts:    nil,
+				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return nil },
+			}))
+
+			When("startup argument are not set", WhenBody(ContainerCase{
+				StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
+				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return nil },
+			}))
+
+			When("startup argument are not set", WhenBody(ContainerCase{
+				StartupOpts:    &clv1alpha2.ContainerStartupOpts{StartupArgs: testArguments},
+				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return testArguments },
+			}))
+		})
+	})
+
+	Describe("The forge.InitContainers function forges the list of init containers for the podSpec", func() {
+		var actual []corev1.Container
+
 		JustBeforeEach(func() {
-			actual = forge.AppContainer(&environment, myDriveMountPath)
+			actual = forge.InitContainers(&environment, &opts)
+		})
+
+		type InitContainersCase struct {
+			StartupOpts    *clv1alpha2.ContainerStartupOpts
+			ExpectedOutput func(*clv1alpha2.Environment) []corev1.Container
+		}
+
+		WhenBody := func(c InitContainersCase) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.ContainerStartupOptions = c.StartupOpts
+				})
+
+				It("Should return the correct volumeSource", func() {
+					Expect(actual).To(Equal(c.ExpectedOutput(&environment)))
+				})
+			}
+		}
+
+		When("ContainerStartupOpts is nil", WhenBody(InitContainersCase{
+			StartupOpts: nil,
+			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
+				return nil
+			},
+		}))
+		When("no archive source is specified", WhenBody(InitContainersCase{
+			StartupOpts: &clv1alpha2.ContainerStartupOpts{},
+			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
+				return nil
+			},
+		}))
+		When("an archive source is specified", WhenBody(InitContainersCase{
+			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
+				return []corev1.Container{forge.ContentDownloaderInitContainer(e.ContainerStartupOptions, &opts)}
+			},
+		}))
+	})
+
+	Describe("The forge.ContentDownloaderInitContainer function forges the initContainer for volume pre-population", func() {
+		const containerName = "content-downloader"
+		var actual, expected corev1.Container
+		csOpts := &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath}
+
+		JustBeforeEach(func() {
+			actual = forge.ContentDownloaderInitContainer(csOpts, &opts)
 		})
 
 		It("Should set the correct container name and image", func() {
 			// PodSecurityContext setting is checked by GenericContainer specific tests
-			Expect(actual.Name).To(Equal(environment.Name))
-			Expect(actual.Image).To(Equal(environment.Image))
+			Expect(actual.Name).To(Equal(containerName))
+			Expect(actual.Image).To(Equal("cont-dler-img:tag"))
 		})
 		It("Should set the correct resources", func() {
-			forge.SetContainerResourcesFromEnvironment(&expected, &environment)
+			forge.SetContainerResources(&expected, 0.5, 1, 256, 1024)
 			Expect(actual.Resources).To(Equal(expected.Resources))
 		})
 		It("Should NOT set container ports", func() {
@@ -372,10 +494,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
 			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
 		})
-		It("Should set the env varibles", func() {
-			expected.Name = envName
-			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
-			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+		It("Should set the correct environment variables", func() {
+			forge.AddEnvVariableToContainer(&expected, "SOURCE_ARCHIVE", httpPath)
+			forge.AddEnvVariableToContainer(&expected, "DESTINATION_PATH", myDriveMountPath)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})
@@ -571,6 +692,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		type ContainerVolumesCase struct {
 			Persistent        bool
 			Mode              clv1alpha2.EnvironmentMode
+			StartupOpts       *clv1alpha2.ContainerStartupOpts
 			ExpectedOutputVSs func(*clv1alpha2.Environment) []corev1.Volume
 		}
 
@@ -578,6 +700,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			return func() {
 				BeforeEach(func() {
 					environment.Persistent = c.Persistent
+					environment.ContainerStartupOptions = c.StartupOpts
 					environment.Mode = c.Mode
 				})
 
@@ -591,7 +714,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Mode:       clv1alpha2.ModeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume("mydrive", instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
 			},
 		}))
 
@@ -611,7 +734,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume("mydrive", instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
 			},
 		}))
 
@@ -619,7 +742,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume("mydrive", instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
 			},
 		}))
 
@@ -627,7 +750,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume("mydrive", instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+			},
+		}))
+
+		When("the environment has the source archive url option", WhenBody(ContainerVolumesCase{
+			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+			Persistent:  false,
+			Mode:        clv1alpha2.ModeExam,
+			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
 			},
 		}))
 
@@ -675,6 +807,122 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					ClaimName: claimName,
 				},
 			},
+		}))
+	})
+
+	Describe("The forge.NeedsContainerVolume function", func() {
+		type NeedsContainerVolumeCase struct {
+			StartupOpts    *clv1alpha2.ContainerStartupOpts
+			Persistent     bool
+			Mode           clv1alpha2.EnvironmentMode
+			ExpectedOutput bool
+		}
+
+		WhenBody := func(c NeedsContainerVolumeCase) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.ContainerStartupOptions = c.StartupOpts
+					environment.Persistent = c.Persistent
+					environment.Mode = c.Mode
+				})
+
+				It("Should return the correct value", func() {
+					Expect(forge.NeedsContainerVolume(&environment)).To(Equal(c.ExpectedOutput))
+				})
+			}
+		}
+
+		When("the volume should not be needed", WhenBody(NeedsContainerVolumeCase{
+			StartupOpts:    nil,
+			Persistent:     false,
+			Mode:           clv1alpha2.ModeExercise,
+			ExpectedOutput: false,
+		}))
+
+		When("the mode is standard", WhenBody(NeedsContainerVolumeCase{
+			StartupOpts:    nil,
+			Persistent:     false,
+			Mode:           clv1alpha2.ModeStandard,
+			ExpectedOutput: true,
+		}))
+
+		When("the environment is persistent", WhenBody(NeedsContainerVolumeCase{
+			StartupOpts:    nil,
+			Persistent:     true,
+			Mode:           clv1alpha2.ModeExercise,
+			ExpectedOutput: true,
+		}))
+
+		When("a source archive is specified", WhenBody(NeedsContainerVolumeCase{
+			StartupOpts:    &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+			Persistent:     false,
+			Mode:           clv1alpha2.ModeExercise,
+			ExpectedOutput: true,
+		}))
+
+	})
+
+	Describe("The forge.NeedsInitContainer function", func() {
+		type NeedsInitContainerCase struct {
+			StartupOpts    *clv1alpha2.ContainerStartupOpts
+			ExpectedOutput bool
+		}
+
+		WhenBody := func(c NeedsInitContainerCase) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.ContainerStartupOptions = c.StartupOpts
+				})
+
+				It("Should return the correct value", func() {
+					Expect(forge.NeedsInitContainer(&environment)).To(Equal(c.ExpectedOutput))
+				})
+			}
+		}
+
+		When("ContainerStartupOpts is nil", WhenBody(NeedsInitContainerCase{
+			StartupOpts:    nil,
+			ExpectedOutput: false,
+		}))
+		When("no source archive is specified", WhenBody(NeedsInitContainerCase{
+			StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
+			ExpectedOutput: false,
+		}))
+		When("a source archive is specified", WhenBody(NeedsInitContainerCase{
+			StartupOpts:    &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+			ExpectedOutput: true,
+		}))
+	})
+
+	Describe("The forge.MyDriveMountPath function", func() {
+		type MyDriveMountPathCase struct {
+			StartupOpts    *clv1alpha2.ContainerStartupOpts
+			ExpectedOutput string
+		}
+
+		WhenBody := func(c MyDriveMountPathCase) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.ContainerStartupOptions = c.StartupOpts
+				})
+
+				It("Should return the correct value", func() {
+					Expect(forge.MyDriveMountPath(&environment)).To(Equal(c.ExpectedOutput))
+				})
+			}
+		}
+
+		When("ContainerStartupOpts is nil", WhenBody(MyDriveMountPathCase{
+			StartupOpts:    nil,
+			ExpectedOutput: myDriveMountPath,
+		}))
+		When("no content path is specified", WhenBody(MyDriveMountPathCase{
+			StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
+			ExpectedOutput: myDriveMountPath,
+		}))
+		When("content path is specified", WhenBody(MyDriveMountPathCase{
+			StartupOpts:    &clv1alpha2.ContainerStartupOpts{ContentPath: volumePath},
+			ExpectedOutput: volumePath,
 		}))
 	})
 

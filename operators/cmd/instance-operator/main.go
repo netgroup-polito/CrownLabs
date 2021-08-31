@@ -61,16 +61,13 @@ func main() {
 	var websiteBaseURL string
 	var nextcloudBaseURL string
 	var instancesAuthURL string
-	var containerEnvSidecarsTag string
-	var containerEnvXVncImg string
-	var containerEnvWebsockifyImg string
 	var vmRegistry string
 	var vmRegistrySecret string
 	var containerImgExport string
 	var containerKaniko string
-	var containerEnvMyDriveImg string
-	var containerEnvMyDriveImgTag string
 	var maxConcurrentReconciles int
+
+	var containerEnvOpts = forge.ContainerEnvOpts{}
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -83,17 +80,17 @@ func main() {
 	flag.StringVar(&instancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
 
-	flag.StringVar(&containerEnvSidecarsTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
-	flag.StringVar(&containerEnvXVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvWebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
+	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvOpts.WebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
+	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
+	flag.StringVar(&containerEnvOpts.MyDriveImgAndTag, "container-env-mydrive-img-and-tag", "filebrowser/filebrowser:latest", "The image name and tag for the filebrowser image (sidecar for gui-based file manager)")
 
 	flag.StringVar(&vmRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
 	flag.StringVar(&vmRegistrySecret, "vm-registry-secret", "", "The name of the secret for the VM registry")
 
 	flag.StringVar(&containerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&containerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
-	flag.StringVar(&containerEnvMyDriveImg, "container-env-mydrive-img", "filebrowser/filebrowser", "The image name for the filebrowser image (sidecar for gui-based file manager)")
-	flag.StringVar(&containerEnvMyDriveImgTag, "container-env-mydrive-img-tag", "latest", "The tag for the FileBrowser container (the gui-based file manager)")
 
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 
@@ -135,13 +132,7 @@ func main() {
 		WebsiteBaseURL:     websiteBaseURL,
 		WebdavSecretName:   webdavSecret,
 		InstancesAuthURL:   instancesAuthURL,
-		ContainerEnvOpts: forge.ContainerEnvOpts{
-			ImagesTag:     containerEnvSidecarsTag,
-			XVncImg:       containerEnvXVncImg,
-			WebsockifyImg: containerEnvWebsockifyImg,
-			MyDriveImg:    containerEnvMyDriveImg,
-			MyDriveImgTag: containerEnvMyDriveImgTag,
-		},
+		ContainerEnvOpts:   containerEnvOpts,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

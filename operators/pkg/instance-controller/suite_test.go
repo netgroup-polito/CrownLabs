@@ -33,6 +33,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -92,6 +93,13 @@ var _ = BeforeSuite(func(done Done) {
 		WebdavSecretName:   "webdav-secret",
 		InstancesAuthURL:   "fake.com/auth",
 		ReconcileDeferHook: GinkgoRecover,
+		ContainerEnvOpts: forge.ContainerEnvOpts{
+			ImagesTag:            "v0.1.2",
+			XVncImg:              "fake-xvnc",
+			WebsockifyImg:        "fake-wskfy",
+			MyDriveImgAndTag:     "fake-filebrowser",
+			ContentDownloaderImg: "fake-archdl",
+		},
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
