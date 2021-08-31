@@ -204,7 +204,7 @@ jobs:
 
       - name: KubeScore Check
         run: |
-          docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score score \
+          docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score:v1.11.0 score \
               --ignore-test=pod-networkpolicy,container-security-context,container-image-pull-policy \
             /CrownLabs/deploy/crownlabs/rendered.yaml
 
