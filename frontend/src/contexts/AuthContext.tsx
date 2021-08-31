@@ -56,7 +56,6 @@ const AuthContextProvider: FC<PropsWithChildren<{}>> = props => {
           });
       })
       .catch(err => {
-        // alert("failed to initialize");
         console.error('Failed to initialize keycloak', err);
       });
   }, []);
