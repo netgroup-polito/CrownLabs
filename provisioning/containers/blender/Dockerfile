@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \ 
     libgl1-mesa-glx \ 
     xz-utils \
+    tzdata \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/*.*
 
@@ -33,6 +34,7 @@ ENV BLENDER_PATH="/bin/${BLENDER_VERSION_MAJOR}"
 ENV PATH "$PATH:${BLENDER_PATH}/python/bin/"
 ENV BLENDERPIP="${BLENDER_PATH}/python/bin/pip3"
 ENV BLENDERPY="${BLENDER_PATH}/python/bin/python3.7m"
+ENV TZ="Europe/Rome"
 
 # Download and install Blender
 RUN wget -q https://ftp.nluug.nl/pub/graphics/blender/release/Blender${BLENDER_VERSION_MAJOR}/blender-${BLENDER_VER}.tar.xz \
