@@ -36,6 +36,8 @@ var httpPageStartingUp string
 // LandingHandler is the main handler of the instanceset-landing: starting from
 // an identifier it (creates, then) redirects to the corresponding instance, if it exists.
 func LandingHandler(w http.ResponseWriter, r *http.Request) {
+	klog.V(3).Infof("Request received: %+v", r.URL.Query())
+
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprintf(w, "Method not allowed")
@@ -99,6 +101,8 @@ func LandingHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, inst.Status.URL, http.StatusFound)
 		return
 	}
+
+	klog.V(2).Infof("Instance %s (phase: %v): sending starting-up page", instanceName, inst.Status.Phase)
 
 	w.Header().Add("refresh", "5")
 	w.WriteHeader(http.StatusCreated)
