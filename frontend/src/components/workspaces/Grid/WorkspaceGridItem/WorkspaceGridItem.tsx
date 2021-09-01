@@ -1,6 +1,5 @@
 import { FC } from 'react';
 import { Row, Col } from 'antd';
-import { ApartmentOutlined } from '@ant-design/icons';
 import './WorkspaceGridItem.less';
 
 export interface IWorkspaceGridItemProps {
@@ -16,12 +15,17 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
     <Row className="sm:px-0 md:px-4">
       <Col span={24} className="flex justify-center pb-2">
         <button
-          className={`row shadow-lg h-24 w-24 2xl:h-28 2xl:w-28 workspaceitem ${
+          className={`cursor-pointer row shadow-lg h-24 w-24 2xl:h-28 2xl:w-28 workspaceitem ${
             isActive ? 'active' : ''
           }`}
           onClick={() => onClick(id)}
         >
-          <ApartmentOutlined style={{ fontSize: '30pt', color: 'black' }} />
+          <label
+            className="cursor-pointer font-mono font-semibold flex justify-center items-center pt-2 "
+            style={{ fontSize: '32pt', color: '#141414' }}
+          >
+            {title[0].toUpperCase() + title[1].toUpperCase()}
+          </label>
         </button>
       </Col>
       <Col span={24} className="flex justify-center pb-0">
