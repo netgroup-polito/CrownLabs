@@ -361,6 +361,7 @@ func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
+	ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 }
 
 // updateTnResQuota updates the tenant resource quota.

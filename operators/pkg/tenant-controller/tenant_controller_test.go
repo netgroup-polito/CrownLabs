@@ -281,6 +281,7 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 
 	Expect(createdNs.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
 	Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+	Expect(createdNs.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/instance-resources-replication", "true"))
 
 	By("By checking that the resource quota of the tenant has been created")
 	rqLookupKey := types.NamespacedName{Name: "crownlabs-resource-quota", Namespace: nsName}
