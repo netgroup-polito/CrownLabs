@@ -6,15 +6,18 @@ import {
   DesktopOutlined,
   CodeOutlined,
   PlayCircleOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import Badge from '../../../common/Badge';
-import { WorkspaceRole } from '../../../../utils';
+import { Resources, WorkspaceRole } from '../../../../utils';
 
 export interface ITemplatesTableRowProps {
   id: string;
   name: string;
   gui: boolean;
+  persistent: boolean;
   role: WorkspaceRole;
+  resources: Resources;
   activeInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
@@ -25,7 +28,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     id,
     name,
     gui,
+    persistent,
     role,
+    resources,
     activeInstances,
     editTemplate,
     deleteTemplate,
@@ -46,14 +51,33 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               style={{ fontSize: '24px' }}
             />
           )}
-          {name}
+          <div className="flex items-end">
+            {name}
+            {persistent && (
+              <Tooltip title="persistent">
+                <SafetyCertificateOutlined
+                  className="text-green-500 ml-2 mb-0.5"
+                  style={{ fontSize: '18px' }}
+                />
+              </Tooltip>
+            )}
+          </div>
         </Space>
         <Space size={'small'}>
           <Badge value={activeInstances} size={'small'} />
           <Tooltip
-            placement="top"
-            title={'CPU: 2 Core - RAM: 2GB'}
-            trigger={'click'}
+            placement="left"
+            title={
+              <>
+                <div>CPU: {resources.cpu || 'unavailable'} Core</div>
+                <div>RAM: {resources.memory || 'unavailable'} GB</div>
+                <div>
+                  {persistent
+                    ? ` DISK: ${resources.disk || 'unavailable'} GB`
+                    : ``}
+                </div>
+              </>
+            }
           >
             <Button
               with="link"
