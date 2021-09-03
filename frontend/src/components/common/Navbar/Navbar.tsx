@@ -1,11 +1,10 @@
-import { FC, useContext } from 'react';
+import { FC } from 'react';
 import { Layout, Drawer } from 'antd';
 import Button from 'antd-button-color';
 import { MenuOutlined } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import ThemeSwitcher from '../../misc/ThemeSwitcher';
-import { ThemeContext } from '../../../contexts/ThemeContext';
 import './Navbar.less';
 import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
@@ -24,7 +23,6 @@ export interface INavbarProps {
 }
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
-  const { isDarkTheme } = useContext(ThemeContext);
   const { routes, transparent, logoutHandler } = props;
   const [show, setShow] = useState(false);
 
@@ -62,7 +60,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
       <Header
         className={
           'flex h-auto px-6 justify-between ' +
-          (transparent ? 'navbar-bg-transparent' : 'navbar-bg')
+          (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
         }
       >
         <div className="flex flex-none items-center w-24 ">
@@ -135,10 +133,12 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         </div>
       </Header>
       <Drawer
-        className={' block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')}
+        className={
+          'cl-navbar block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+        }
         bodyStyle={{
-          backgroundColor: isDarkTheme ? '#141414' : '#f2f2f2',
           paddingBottom: '0px',
+          backgroundColor: 'var(--bg-cl-navbar)',
         }}
         placement="top"
         visible={show}
