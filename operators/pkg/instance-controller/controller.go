@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/trace"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -71,6 +72,10 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
 
+	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
+	ctx = trace.ContextWithTrace(ctx, tracer)
+	defer tracer.LogIfLong(utils.LongThreshold())
+
 	// Get the instance object.
 	var instance clv1alpha2.Instance
 	if err = r.Get(ctx, req.NamespacedName, &instance); err != nil {
@@ -93,6 +98,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	// Add the retrieved instance as part of the context.
 	ctx, _ = clctx.InstanceInto(ctx, &instance)
+	tracer.Step("retrieved the instance")
 
 	// Retrieve the template associated with the current instance.
 	templateName := types.NamespacedName{
@@ -106,6 +112,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TemplateInto(ctx, &template)
+	tracer.Step("retrieved the instance template")
 	log.Info("successfully retrieved the instance template")
 
 	// Retrieve the tenant associated with the current instance.
@@ -117,6 +124,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TenantInto(ctx, &tenant)
+	tracer.Step("retrieved the instance tenant")
 	log.Info("successfully retrieved the instance tenant")
 
 	// Patch the instance labels to allow for easier categorization.
@@ -128,6 +136,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			log.Error(err, "failed to update the instance labels")
 			return ctrl.Result{}, err
 		}
+		tracer.Step("instance labels updated")
 		log.Info("instance labels correctly configured")
 	}
 
@@ -139,6 +148,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 				log.Error(err2, "failed to update the instance status")
 				err = err2
 			} else {
+				tracer.Step("instance status updated")
 				log.Info("instance status correctly updated")
 			}
 		}
@@ -155,6 +165,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		return ctrl.Result{}, err
 	}
+	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
 	return ctrl.Result{}, nil

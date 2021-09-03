@@ -37,6 +37,7 @@ import (
 	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
 var (
@@ -94,6 +95,7 @@ func main() {
 
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 
+	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -108,7 +110,7 @@ func main() {
 	log.Info("restricting reconciled namespaces", "labels", namespaceWhiteList)
 
 	// Configure the manager
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		LeaderElection:         enableLeaderElection,
@@ -133,6 +135,7 @@ func main() {
 		WebdavSecretName:   webdavSecret,
 		InstancesAuthURL:   instancesAuthURL,
 		ContainerEnvOpts:   containerEnvOpts,
+		Concurrency:        maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
