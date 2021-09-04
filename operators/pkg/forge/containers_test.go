@@ -297,7 +297,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Image).To(Equal(opts.XVncImg + ":" + opts.ImagesTag))
 		})
 		It("Should set the correct resources", func() {
-			forge.SetContainerResources(&expected, 0.2, 0.5, 200, 600)
+			forge.SetContainerResources(&expected, 0.05, 0.25, 200, 600)
 			Expect(actual.Resources).To(Equal(expected.Resources))
 		})
 		It("Should set the tcp port exposition", func() {

@@ -16,6 +16,7 @@ package utils
 
 import (
 	"strings"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -81,4 +82,9 @@ func FromResult(result controllerutil.OperationResult) int {
 		return LogDebugLevel
 	}
 	return LogInfoLevel
+}
+
+// LongThreshold returns the duration used to trigger tracing printing.
+func LongThreshold() time.Duration {
+	return 250 * time.Millisecond
 }

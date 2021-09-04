@@ -148,7 +148,7 @@ func WebsockifyContainer(opts *ContainerEnvOpts) corev1.Container {
 // XVncContainer forges the sidecar container which holds the desktop environment through a X+VNC server.
 func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
 	xVncContainer := GenericContainer(XVncName, fmt.Sprintf("%s:%s", opts.XVncImg, opts.ImagesTag))
-	SetContainerResources(&xVncContainer, 0.2, 0.5, 200, 600)
+	SetContainerResources(&xVncContainer, 0.05, 0.25, 200, 600)
 	AddTCPPortToContainer(&xVncContainer, XVncPortName, XVncPortNumber)
 	SetContainerReadinessTCPProbe(&xVncContainer, XVncPortName)
 	return xVncContainer
