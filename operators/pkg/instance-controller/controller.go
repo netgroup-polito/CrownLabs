@@ -100,6 +100,28 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	ctx, _ = clctx.InstanceInto(ctx, &instance)
 	tracer.Step("retrieved the instance")
 
+	// Defer the function to update the instance status depending on the modifications
+	// performed while enforcing the desired environments. This is deferred early to
+	// allow setting the CreationLoopBackOff phase in case of errors.
+	defer func(original, updated *clv1alpha2.Instance) {
+		// If the reconciliation failed with an error, set the instance phase to CreationLoopBackOff.
+		// Do not set the CreationLoopBackOff phase in case of conflicts, to prevent transients.
+		if err != nil && !kerrors.IsConflict(err) {
+			instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+		}
+
+		// Avoid triggering the status update if not necessary.
+		if !reflect.DeepEqual(original.Status, updated.Status) {
+			if err2 := r.Status().Patch(ctx, updated, client.MergeFrom(original)); err2 != nil {
+				log.Error(err2, "failed to update the instance status")
+				err = err2
+			} else {
+				tracer.Step("instance status updated")
+				log.Info("instance status correctly updated")
+			}
+		}
+	}(instance.DeepCopy(), &instance)
+
 	// Retrieve the template associated with the current instance.
 	templateName := types.NamespacedName{
 		Namespace: instance.Spec.Template.Namespace,
@@ -140,29 +162,9 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Info("instance labels correctly configured")
 	}
 
-	// Defer the function to patch the instance status depending on the modifications
-	// performed while enforcing the desired environments.
-	defer func(original, updated *clv1alpha2.Instance) {
-		if !reflect.DeepEqual(original.Status, updated.Status) {
-			if err2 := r.Status().Patch(ctx, updated, client.MergeFrom(original)); err2 != nil {
-				log.Error(err2, "failed to update the instance status")
-				err = err2
-			} else {
-				tracer.Step("instance status updated")
-				log.Info("instance status correctly updated")
-			}
-		}
-	}(instance.DeepCopy(), &instance)
-
 	// Iterate over and enforce the instance environments.
 	if err := r.enforceEnvironments(ctx); err != nil {
 		log.Error(err, "failed to enforce instance environments")
-
-		// Do not set the CreationLoopBackOff phase in case of conflicts, to prevent transients.
-		if !kerrors.IsConflict(err) {
-			instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
-		}
-
 		return ctrl.Result{}, err
 	}
 	tracer.Step("instance environments enforced")
