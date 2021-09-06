@@ -31,10 +31,8 @@ func main() {
 		klog.Fatalf("invalid configuration: %w", err)
 	}
 
-	if isetlanding.Options.DynamicStartup {
-		if err := isetlanding.PrepareClient(); err != nil {
-			klog.Fatal(err)
-		}
+	if err := isetlanding.PrepareClient(); err != nil {
+		klog.Fatal(err)
 	}
 
 	http.HandleFunc("/healthz", healthzHandler)
