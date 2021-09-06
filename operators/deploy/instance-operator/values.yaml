@@ -53,10 +53,10 @@ securityContext:
 
 resources:
   limits:
-    memory: 250Mi
+    memory: 500Mi
     cpu: 1000m
   requests:
-    memory: 100Mi
+    memory: 200Mi
     cpu: 100m
 
 rbacResourcesName: crownlabs-instance-operator
