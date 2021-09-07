@@ -14,6 +14,7 @@ require (
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/prometheus/client_golang v1.10.0
+	github.com/ryanuber/go-glob v1.0.0
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.20.5

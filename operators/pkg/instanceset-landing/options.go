@@ -39,7 +39,7 @@ var Options options
 // Initialize flags and associate each parameter to the given options object.
 func (o *options) Init() {
 	flag.StringVar(&o.ListenerAddr, "address", ":8080", "[address]:port of the landing server")
-	flag.StringVar(&o.CourseCode, "course", "", "Course code")
+	flag.StringVar(&o.CourseCode, "course", "", "Course code (supports globs)")
 	flag.StringVar(&o.Template.Name, "template-name", "", "CrownLabs Template for the exam")
 	flag.StringVar(&o.Template.Namespace, "template-namespace", "workspace-exams", "Namespace of CrownLabs Template for the exam")
 	flag.StringVar(&o.Namespace, "namespace", "", "Custom namespace name, if not given it's automatically generated")
