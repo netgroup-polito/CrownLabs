@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	glob "github.com/ryanuber/go-glob"
 	"k8s.io/klog/v2"
 )
 
@@ -35,7 +36,7 @@ func sha1FromString(in string) string {
 }
 
 func validateInstanceIdentifier(identifier, userID, courseID string) bool {
-	sha := sha1FromString(strings.ToLower(courseID+userID) + Options.IdentifierHashKey)
+	sha := sha1FromString(strings.ToUpper(courseID) + userID + Options.IdentifierHashKey)
 	return strings.EqualFold("e_"+courseID+"_"+userID+"_"+sha, identifier)
 }
 
@@ -53,7 +54,10 @@ func decodeIdentifier(identifier string) (userID, courseID string, err error) {
 		err = errors.New("invalid identifier")
 	}
 
-	if courseID != Options.CourseCode {
+	courseID = strings.ToLower(courseID)
+	userID = strings.ToLower(userID)
+
+	if !glob.Glob(Options.CourseCode, courseID) {
 		err = errors.New("invalid courseID")
 	}
 
