@@ -8,5 +8,6 @@
   - role: ../roles/crownlabs
     when: crownlabs_mode
   - role: ../roles/codeblocks
+  - role: ../roles/pycharm
   - role: ../roles/ttpu-os
   - role: ../roles/ubuntu-post
