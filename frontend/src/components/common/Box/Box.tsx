@@ -29,6 +29,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
       <Card
         className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box"
         bordered={false}
+        bodyStyle={{ height: '100%', flexDirection: 'column', display: 'flex' }}
       >
         <div className="w-full flex-none">
           {header && (
