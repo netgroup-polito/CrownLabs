@@ -1,6 +1,6 @@
 overwrite: true
 schema: "https://graphql.preprod.crownlabs.polito.it/"
-documents: './src/**/*.graphql'
+documents: './src/**/*.{graphql,ts}'
 generates:
   src/generated-types.tsx:
     config:
