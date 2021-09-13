@@ -420,7 +420,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               >
                 <span className="cursor-not-allowed">
                   <Button
-                    style={{ pointerEvents: 'none' }}
+                    className="pointer-events-none"
                     disabled
                     htmlType="submit"
                     type="primary"

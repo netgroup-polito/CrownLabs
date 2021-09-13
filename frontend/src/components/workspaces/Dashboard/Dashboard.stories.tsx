@@ -1,6 +1,6 @@
 import Dashboard, { IDashboardProps } from './Dashboard';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../utils';
 
 export default {
   title: 'Components/workspaces/Dashboard',
@@ -11,27 +11,27 @@ export default {
 const defaultArgs: someKeysOf<IDashboardProps> = {
   workspaces: [
     {
-      role: 'manager',
+      role: WorkspaceRole.manager,
       workspaceId: 'Workspace 1',
       workspaceNamespace: 'w1',
     },
     {
-      role: 'user',
+      role: WorkspaceRole.user,
       workspaceId: 'Workspace 2',
       workspaceNamespace: 'w2',
     },
     {
-      role: 'user',
+      role: WorkspaceRole.user,
       workspaceId: 'Workspace 3',
       workspaceNamespace: 'w3',
     },
     {
-      role: 'manager',
+      role: WorkspaceRole.user,
       workspaceId: 'Workspace 4',
       workspaceNamespace: 'w4',
     },
     {
-      role: 'user',
+      role: WorkspaceRole.user,
       workspaceId: 'Workspace 5',
       workspaceNamespace: 'w5',
     },

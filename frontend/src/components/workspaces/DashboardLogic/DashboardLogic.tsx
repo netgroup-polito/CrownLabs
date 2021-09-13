@@ -4,6 +4,7 @@ import { AuthContext } from '../../../contexts/AuthContext';
 import { TenantQuery, useTenantQuery } from '../../../generated-types';
 
 import { updatedTenant } from '../../../graphql-components/subscription';
+import { WorkspaceRole } from '../../../utils';
 import Dashboard from '../Dashboard/Dashboard';
 
 const DashboardLogic: FC<{}> = () => {
@@ -40,7 +41,7 @@ const DashboardLogic: FC<{}> = () => {
               workspaceId: workspace?.workspaceRef?.workspaceWrapper
                 ?.itPolitoCrownlabsV1alpha1Workspace?.spec
                 ?.workspaceName as string,
-              role: workspace?.role!,
+              role: WorkspaceRole[workspace?.role!],
               workspaceNamespace: workspace?.workspaceRef?.workspaceWrapper
                 ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
                 ?.workspaceNamespace!,

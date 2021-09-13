@@ -1,6 +1,6 @@
 import TemplatesTable, { ITemplatesTableProps } from './TemplatesTable';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../../utils';
 
 export default {
   title: 'Components/workspaces/Templates/TemplatesTable',
@@ -183,7 +183,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       ],
     },
   ],
-  role: 'manager',
+  role: WorkspaceRole.manager,
   editTemplate: () => null,
   deleteTemplate: () => null,
 };

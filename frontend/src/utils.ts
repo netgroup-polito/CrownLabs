@@ -1,7 +1,16 @@
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
-export type WorkspaceRole = 'user' | 'manager';
+export enum WorkspaceRole {
+  user = 'user',
+  manager = 'manager',
+}
 export type BadgeSize = 'small' | 'middle' | 'large';
 export type BoxHeaderSize = 'small' | 'middle' | 'large';
+export type Workspace = {
+  id: string;
+  title: string;
+  role: WorkspaceRole;
+  templates?: Array<Template>;
+};
 export type Resources = {
   cpu: number;
   disk: number;
@@ -27,8 +36,14 @@ export type VmStatus =
   | 'CreationLoopBackoff'; //the environment has encountered a temporary error during creation.
 export type Instance = {
   id: number;
+  gui?: boolean;
+  idTemplate?: string;
+  persistent?: boolean;
+  tenantId?: string;
+  tenantDisplayName?: string;
   name: string;
   ip: string;
   status: VmStatus;
   url: string | null;
+  timeStamp?: string;
 };

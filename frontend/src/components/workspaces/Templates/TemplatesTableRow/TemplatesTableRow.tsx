@@ -118,7 +118,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           </Space>
         </div>
         <Space size={'small'}>
-          <Badge value={activeInstances} size={'small'} />
+          <Badge value={activeInstances} size={'small'} className="mx-2" />
           <Tooltip
             placement="left"
             title={
