@@ -332,6 +332,7 @@ ingress:
   # Ingress annotations
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/custom-http-errors: "418"
   # kubernetes.io/ingress.class: nginx
   # kubernetes.io/tls-acme: "true"
   # ingress.kubernetes.io/affinity: cookie
