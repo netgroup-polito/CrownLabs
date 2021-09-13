@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export default gql`
   subscription updatedOwnedInstances(
     $tenantNamespace: String!
-    $instanceName: String!
+    $instanceName: String
   ) {
     updateInstance: itPolitoCrownlabsV1alpha2InstanceUpdate(
       namespace: $tenantNamespace

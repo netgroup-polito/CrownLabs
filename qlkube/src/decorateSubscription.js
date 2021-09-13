@@ -16,6 +16,12 @@ const {
 let cacheSubscriptions = {};
 const TEN_MINUTES = 10 * 60 * 1000;
 
+function getSubQueryList(queryName) {
+  if (queryName.includes('Instance'))
+    return 'listCrownlabsPolitoItV1alpha2NamespacedInstance';
+  else return `${queryName}List`;
+}
+
 /**
  * Function used to add an enum type in the schema
  * @param {*} baseSchema: The schema that should be extended
@@ -52,6 +58,31 @@ function decorateEnum(baseSchema, enumName, values) {
  * @param {*} targetType: The respective query name of the subscription that should be created
  * @param {*} enumType: Enum type of the watched object containing the state of that
  * @param {*} kubeApiUrl: Url of Kubernetes for checking the permission about obtaining a subscription on a resource
+ * The function starts from the respective query type and generates an `Update` version
+ * for the subscription, this type is made up of two fields: `updateType` and `payload`.
+ * So, the function first extends the schema with the new Subscription type then starts to resolve it
+ * whether the published event passes the check.
+ * First things first, the function resolve `subscriptionField` that correspond to the main type,
+ * to do so it waits to receive events related to labels and then filtering the right published event.
+ *
+ * Into the filter:
+ * 1. you retrieve information about the subscription used for performing a check
+ * on permission of the user about watching this resource.
+ * 2. If the `subscription type` has some wrapped type (sublabels.length > 0):
+ *   2.1 fieldsCheck = false because you must perform the checks on fields of the object(s)
+ *   2.2 You retrieve from the `baseSchema` the respective query used to resolve the object
+ *       starting from namespace and optionally the name of the subscription variables.
+ *   2.3 After the object was resolved you start to check the respective name and namespace
+ *       of the resolved object with the published object for each field and
+ *       each item ( in the case of a list of items ) of the resolved object.
+ * Finally, you return the value of the published events regarding this subscription or not.
+ * The value returned is based on the result of:
+ * 1. `fieldsCheck` value: for subscription with wrapped fields.
+ * 2. Checks of name and namespace of the published event in the case of
+ *    the subscription has not wrapped fields.
+ * 3. `checkPermission()` value: that checks if the user can watch this resource.
+ * If the returned value is true the payload object is passed to the resolver
+ * that use it to return the updated value at the client.
  */
 function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
   if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
@@ -124,11 +155,26 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
     Subscription: {
       [subscriptionField]: {
         subscribe: withFilter(
+          /*
+           * Listening of events on label and sub-labels
+           */
           () => pubsubAsyncIterator(label, ...sublabels),
           async (payload, variables, context, info) => {
             graphqlLogger(`[i] Validate ${info.fieldName} subscription`);
 
-            let subfieldsCheck = false;
+            /*
+             * Some variables used for subscription with wrapped types:
+             * @variable {*} fiekdsCheck: used to notify if name and namespace of the published event
+             * are equal to the respective name and namespace of the resolved object. Starts === true in the case
+             * of the subscription has not wrapped fields.
+             * @variable {*} isList: used to notify if the subscription is on a list of items or on a single object.
+             * @variable {*} found: used in the case of isList === true to notify that the respective
+             * object on the list was found and payload.apiObj = item; so, no other check and overwrite on
+             * payload.apiObj must be performed.
+             */
+            let fieldsCheck = true;
+            const isList = variables.name === undefined;
+            let found = false;
 
             /*
              * Retrieve information about the subscription
@@ -145,9 +191,12 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
              * due to the composition of the wrapped query
              */
             if (sublabels.length > 0) {
-              graphqlLogger(`[i] Search for ${targetType} main query object`);
+              fieldsCheck = false;
+              graphqlLogger(
+                `[i] Search for ${targetType} main query object (is list: ${isList})`
+              );
               const mainQueryObj = baseSchema.getQueryType().getFields()[
-                subQueryType
+                isList ? getSubQueryList(subQueryType) : subQueryType
               ];
               if (!mainQueryObj) throw new Error('Query object not found');
 
@@ -164,32 +213,113 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
               );
 
               graphqlLogger(`[i] Main query object resolved`);
-              graphqlLogger(
-                `[i] Checking whether watched object is the main query object`
-              );
-              subfieldsCheck =
-                subfieldsCheck ||
-                (payload.apiObj.metadata.namespace === variables.namespace &&
-                  (variables.name === undefined ||
-                    payload.apiObj.metadata.name === variables.name));
 
-              if (!subfieldsCheck) {
-                let targetObjField;
+              let targetObjField;
 
-                fieldWrapper.forEach(fw => {
-                  targetObjField = getQueryField(newApiObj, fw);
-                  if (typeof targetObjField === 'object') {
-                    subfieldsCheck =
-                      subfieldsCheck ||
-                      (targetObjField.namespace ===
-                        payload.apiObj.metadata.namespace &&
-                        (targetObjField.name === undefined ||
-                          targetObjField.name ===
-                            payload.apiObj.metadata.name));
+              fieldWrapper.forEach(fw => {
+                if (!fieldsCheck) {
+                  /*
+                   * If the subscription is 'List' version, you find a match
+                   * for each wrapped type and item
+                   */
+                  if (isList) {
+                    for (let item of newApiObj.items) {
+                      /*
+                       * If found is true means that the item on the list
+                       * was found and the payload.apiObj was updated
+                       */
+                      if (!found) {
+                        /*
+                         * Checks if the published event is about the main type
+                         */
+                        graphqlLogger(
+                          `[i] Checks if the published event is about the main type of the item: ${item}`
+                        );
+                        fieldsCheck =
+                          fieldsCheck ||
+                          (item.metadata.namespace ===
+                            payload.apiObj.metadata.namespace &&
+                            (item.metadata.name === undefined ||
+                              item.metadata.name ===
+                                payload.apiObj.metadata.name));
+
+                        if (fieldsCheck) {
+                          graphqlLogger(
+                            `[i] Item found: ${item} on the list, event publisched is about main type`
+                          );
+                          payload.apiObj = item;
+                          found = true;
+                          break;
+                        }
+
+                        /*
+                         * Checks if the published event is about the wrapped type.
+                         * The function getQueryField() retrieve the wrapper type
+                         * in the query object for a given wrapped type
+                         */
+                        graphqlLogger(
+                          `[i] Checks if the published event is about the wrapped type: ${fw} of the item: ${item}`
+                        );
+                        targetObjField = getQueryField(item, fw);
+                        if (typeof targetObjField === 'object') {
+                          fieldsCheck =
+                            fieldsCheck ||
+                            (targetObjField.namespace ===
+                              payload.apiObj.metadata.namespace &&
+                              (targetObjField.name === undefined ||
+                                targetObjField.name ===
+                                  payload.apiObj.metadata.name));
+                        }
+                        if (fieldsCheck) {
+                          graphqlLogger(
+                            `[i] Item found: ${item} on the list, event publisched is about wrapped type: ${fw}`
+                          );
+                          payload.apiObj = item;
+                          found = true;
+                          break;
+                        }
+                      }
+                    }
+                  } else {
+                    graphqlLogger('[i] Check for single item');
+                    /*
+                     * Checking whether the published event is about the main type
+                     */
+                    graphqlLogger(
+                      `[i] Checks if the published event is about the main type of the item: ${payload.apiObj}`
+                    );
+                    fieldsCheck =
+                      fieldsCheck ||
+                      (payload.apiObj.metadata.namespace ===
+                        newApiObj.metadata.namespace &&
+                        (newApiObj.metadata.name === undefined ||
+                          payload.apiObj.metadata.name ===
+                            newApiObj.metadata.name));
+
+                    /*
+                     * Checks if the published event is about the wrapped type.
+                     */
+                    graphqlLogger(
+                      `[i] Checks if the published event is about the wrapped type: ${fw} of the item: ${payload.apiObj}`
+                    );
+                    targetObjField = getQueryField(newApiObj, fw);
+                    if (typeof targetObjField === 'object') {
+                      fieldsCheck =
+                        fieldsCheck ||
+                        (targetObjField.namespace ===
+                          payload.apiObj.metadata.namespace &&
+                          (targetObjField.name === undefined ||
+                            targetObjField.name ===
+                              payload.apiObj.metadata.name));
+                    }
+
+                    if (fieldsCheck) {
+                      graphqlLogger(`[i] Item found: ${payload.apiObj}`);
+                      payload.apiObj = newApiObj;
+                    }
                   }
-                });
-              }
-              if (subfieldsCheck) payload.apiObj = newApiObj;
+                }
+              });
             }
 
             /*
@@ -197,10 +327,10 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
              * So, the new values are sent on the WebSocket to the client
              */
             return (
-              subfieldsCheck &&
-              payload.apiObj.metadata.namespace === variables.namespace &&
+              fieldsCheck &&
+              variables.namespace === payload.apiObj.metadata.namespace &&
               (variables.name === undefined ||
-                payload.apiObj.metadata.name === variables.name) &&
+                variables.name === payload.apiObj.metadata.name) &&
               checkPermission(
                 context.token,
                 resourceApiMainType.group,

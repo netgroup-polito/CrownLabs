@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export default gql`
   subscription updatedWorkspaceTemplates(
     $workspaceNamespace: String!
-    $templateName: String!
+    $templateName: String
   ) {
     updatedTemplate: itPolitoCrownlabsV1alpha2TemplateUpdate(
       namespace: $workspaceNamespace
