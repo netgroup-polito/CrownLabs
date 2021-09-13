@@ -1,0 +1,53 @@
+mutation createTemplate(
+  $workspaceName: String!
+  $workspaceNamespace: String!
+  $templateName: String!
+  $descriptionTemplate: String!
+  $image: String!
+  $guiEnabled: Boolean!
+  $persistent: Boolean!
+  $resources: ResourcesInput!
+  $templateId: String = "template-"
+  $environmentType: EnvironmentType!
+) {
+  createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
+    namespace: $workspaceNamespace
+    itPolitoCrownlabsV1alpha2TemplateInput: {
+      kind: "Template"
+      apiVersion: "crownlabs.polito.it/v1alpha2"
+      spec: {
+        prettyName: $templateName
+        description: $descriptionTemplate
+        environmentList: [
+          {
+            name: "environmentName" #$templateName
+            environmentType: $environmentType
+            image: $image
+            guiEnabled: $guiEnabled
+            persistent: $persistent
+            resources: $resources
+          }
+        ]
+        workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceName }
+      }
+      metadata: { generateName: $templateId, namespace: $workspaceNamespace }
+    }
+  ) {
+    spec {
+      name: prettyName
+      description
+      environmentList {
+        guiEnabled
+        persistent
+        resources {
+          cpu
+          disk
+          memory
+        }
+      }
+    }
+    metadata {
+      id: name
+    }
+  }
+}

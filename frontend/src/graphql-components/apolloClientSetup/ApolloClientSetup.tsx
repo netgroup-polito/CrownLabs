@@ -1,44 +1,67 @@
 import { FC, PropsWithChildren, useEffect, useState } from 'react';
 import { useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import { ApolloProvider } from '@apollo/client';
+import { ApolloProvider } from '@apollo/react-hooks';
+import { getMainDefinition } from '@apollo/client/utilities';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import { ApolloClient } from 'apollo-client';
+import { HttpLink } from 'apollo-link-http';
+import { WebSocketLink } from 'apollo-link-ws';
+import { ApolloLink, split } from 'apollo-link';
 
-import {
-  ApolloClient,
-  createHttpLink,
-  InMemoryCache,
-  NormalizedCacheObject,
-} from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
+
+const httpUri = REACT_APP_CROWNLABS_GRAPHQL_URL;
+const wsUri = httpUri.replace(/^https?/, 'ws') + 'subscription';
+export interface Definition {
+  kind: string;
+  operation?: string;
+}
 
 const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
   const { children } = props;
   const { token, isLoggedIn } = useContext(AuthContext);
-  const [apolloClient, setApolloClient] = useState<
-    ApolloClient<NormalizedCacheObject> | undefined
-  >(undefined);
+  const [apolloClient, setApolloClient] = useState<any>('');
 
   useEffect(() => {
-    const httpLink = createHttpLink({
-      uri: 'https://' + REACT_APP_CROWNLABS_GRAPHQL_URL,
-    });
-
-    const authLink = setContext((_, { headers }) => {
-      return {
+    if (token) {
+      const httpLink = new HttpLink({
+        uri: httpUri,
         headers: {
-          ...headers,
           authorization: token ? `Bearer ${token}` : '',
         },
-      };
-    });
+      });
 
-    setApolloClient(
-      new ApolloClient({
-        link: authLink.concat(httpLink),
-        cache: new InMemoryCache(),
-      })
-    );
+      const wsLink = new WebSocketLink({
+        uri: wsUri,
+        options: {
+          // Automatic reconnect in case of connection error
+          reconnect: true,
+          connectionParams: {
+            authorization: token ? `Bearer ${token}` : '',
+          },
+        },
+      });
+
+      const terminatingLink = split(
+        ({ query }) => {
+          const { kind, operation }: Definition = getMainDefinition(query);
+          // If this is a subscription query, use wsLink, otherwise use httpLink
+          return kind === 'OperationDefinition' && operation === 'subscription';
+        },
+        wsLink,
+        httpLink
+      );
+
+      const link = ApolloLink.from([terminatingLink]);
+
+      setApolloClient(
+        new ApolloClient({
+          link,
+          cache: new InMemoryCache(),
+        })
+      );
+    }
   }, [token]);
   return (
     <>

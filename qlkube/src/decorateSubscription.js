@@ -16,6 +16,12 @@ const {
 let cacheSubscriptions = {};
 const TEN_MINUTES = 10 * 60 * 1000;
 
+/**
+ * Function used to add an enum type in the schema
+ * @param {*} baseSchema: The schema that should be extended
+ * @param {*} enumName: Name of the enum type
+ * @param {*} values: Possible values of the enum type
+ */
 function decorateEnum(baseSchema, enumName, values) {
   if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
   if (!enumName) throw new Error('Parameter enumName cannot be empty!');
@@ -24,6 +30,7 @@ function decorateEnum(baseSchema, enumName, values) {
   if (baseSchema._typeMap[enumName] !== undefined)
     throw new Error('Enum type is already present in the schema!');
 
+  // Create the enum type adding its values
   let enumType = `enum ${enumName} {`;
   values.forEach(val => {
     enumType += `
@@ -39,6 +46,13 @@ function decorateEnum(baseSchema, enumName, values) {
   return newSchema;
 }
 
+/**
+ * Function used to add a new subscription at the schema
+ * @param {*} baseSchema: The schema that should be extended
+ * @param {*} targetType: The respective query name of the subscription that should be created
+ * @param {*} enumType: Enum type of the watched object containing the state of that
+ * @param {*} kubeApiUrl: Url of Kubernetes for checking the permission about obtaining a subscription on a resource
+ */
 function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
   if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
   if (!targetType) throw new Error('Parameter targetType cannot be empty!');
@@ -49,6 +63,10 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
 
   const subscriptionField = `${targetType}Update`;
   const label = targetType;
+  /*
+   * retrieve sub-labels about wrapped fields
+   * in other to listen to changes on them
+   */
   const sublabels = wrappers
     .map(wtype => {
       if (wtype['parents'].includes(targetType)) return wtype['type'];
@@ -56,6 +74,9 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
     .filter(s => {
       return s;
     });
+  /*
+   * retrieve the name of the wrapped fields
+   */
   const fieldWrapper = wrappers
     .map(wtype => {
       if (wtype['parents'].includes(targetType)) return wtype['fieldWrapper'];
@@ -66,18 +87,31 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
     .map(s => {
       return uncapitalizeType(s);
     });
+  /*
+   * The name of the query is used to retrieve
+   * the new data if it has wrapped types
+   */
   const subQueryType = targetType;
 
+  /*
+   * In case of an existing Subscription type in the schema,
+   * you must extend it for adding a new subscription
+   */
   const subType =
     baseSchema._typeMap.Subscription === undefined
       ? 'type Subscription'
       : 'extend type Subscription';
 
+  /*
+   * Converts query name in the query type
+   * e.g. query name: itPolitoCrownlabsV1alpha2Instance
+   *      query type: ItPolitoCrownlabsV1alpha2Instance
+   */
   const subscriptionType = capitalizeType(subscriptionField);
   targetType = capitalizeType(targetType);
 
   const extension = gql`
-  type  ${subscriptionType} {
+  type ${subscriptionType} {
     updateType: ${enumType}
     payload: ${targetType}
   }
@@ -96,10 +130,20 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
 
             let subfieldsCheck = false;
 
+            /*
+             * Retrieve information about the subscription
+             */
             const resourceApiMainType = subscriptions.filter(sub => {
               return `${sub.type}Update` === info.fieldName;
             })[0];
 
+            /*
+             * Check if the subscription has some wrapped types.
+             * If so, more operations must be performed
+             * in other to check whether the published event is related
+             * to the subscription and the main type must be resolved again
+             * due to the composition of the wrapped query
+             */
             if (sublabels.length > 0) {
               graphqlLogger(`[i] Search for ${targetType} main query object`);
               const mainQueryObj = baseSchema.getQueryType().getFields()[
@@ -148,6 +192,10 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
               if (subfieldsCheck) payload.apiObj = newApiObj;
             }
 
+            /*
+             * if all checks are passed the event published is about this subscription.
+             * So, the new values are sent on the WebSocket to the client
+             */
             return (
               subfieldsCheck &&
               payload.apiObj.metadata.namespace === variables.namespace &&
@@ -165,6 +213,11 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
           }
         ),
         resolve: async (payload, args, context, info) => {
+          /*
+           * The values obtained from the watcher or resolved
+           * in the case of wrapped types are now passed
+           * at the son fields of the main type
+           */
           graphqlLogger(`[i] Resolve ${info.fieldName} subscription`);
           return payload;
         },
@@ -172,9 +225,15 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
     },
     [subscriptionType]: {
       updateType: (payload, args, context, info) => {
+        /*
+         * Retrieve from the father the enum tyme
+         */
         return payload.type;
       },
       payload: (payload, args, context, info) => {
+        /*
+         * Retrieve from the father the new values
+         */
         return payload.apiObj;
       },
     },

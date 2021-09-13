@@ -1,0 +1,51 @@
+mutation createInstance(
+  $tenantNamespace: String!
+  $templateName: String!
+  $workspaceNamespace: String!
+  $tenantId: String!
+  $generateName: String = "instance-"
+) {
+  createdInstance: createCrownlabsPolitoItV1alpha2NamespacedInstance(
+    namespace: $tenantNamespace
+    itPolitoCrownlabsV1alpha2InstanceInput: {
+      kind: "Instance"
+      apiVersion: "crownlabs.polito.it/v1alpha2"
+      metadata: { generateName: $generateName }
+      spec: {
+        templateCrownlabsPolitoItTemplateRef: {
+          name: $templateName
+          namespace: $workspaceNamespace
+        }
+        tenantCrownlabsPolitoItTenantRef: {
+          name: $tenantId
+          namespace: $tenantNamespace
+        }
+      }
+    }
+  ) {
+    status {
+      ip
+      phase
+      url
+    }
+    spec {
+      running
+      templateCrownlabsPolitoItTemplateRef {
+        name
+        namespace
+        templateWrapper {
+          itPolitoCrownlabsV1alpha2Template {
+            spec {
+              templateName: prettyName
+              templateDescription: description
+              environmentList {
+                guiEnabled
+                persistent
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 query ownedInstances($tenantNamespace: String!) {
   instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
-    namespace: $tenantName
+    namespace: $tenantNamespace
   ) {
     instances: items {
       status {
