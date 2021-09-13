@@ -6,6 +6,7 @@ import ThemeContextProvider from './contexts/ThemeContext';
 import { BarChartOutlined } from '@ant-design/icons';
 import { AuthContext } from './contexts/AuthContext';
 import { useContext } from 'react';
+import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 
 function App() {
   const { userId } = useContext(AuthContext);
@@ -28,47 +29,52 @@ function App() {
           type: 'success',
         }}
         routes={[
-          { name: 'Dashboard', path: '/' },
-          { name: 'Active', path: '/active' },
           {
-            name: 'Drive',
-            path: 'https://crownlabs.polito.it/cloud/apps/dashboard/',
-            externalLink: true,
+            route: { name: 'Dashboard', path: '/' },
+            content: <DashboardLogic />,
           },
-          { name: 'Account', path: '/account' },
-        ].map(r => {
-          return {
-            route: {
-              ...r,
+          ...[
+            { name: 'Active', path: '/active' },
+            {
+              name: 'Drive',
+              path: 'https://crownlabs.polito.it/cloud/apps/dashboard/',
+              externalLink: true,
             },
-            content: (
-              <Box
-                header={{
-                  size: 'middle',
-                  center: (
-                    <div className="h-full flex justify-center items-center px-5">
-                      <p className="md:text-2xl text-xl text-center mb-0">
-                        <b>{r.name}</b>
-                      </p>
-                    </div>
-                  ),
-                }}
-              >
-                <div className="flex justify-center">
-                  <Alert
-                    className="mb-4 mt-8 mx-8 w-full"
-                    message="Warning"
-                    description="This is a temporary content"
-                    type="warning"
-                    showIcon
-                    closable
-                  />
-                </div>
-                <Skeleton className="px-8 pt-1" />
-              </Box>
-            ),
-          };
-        })}
+            { name: 'Account', path: '/account' },
+          ].map(r => {
+            return {
+              route: {
+                ...r,
+              },
+              content: (
+                <Box
+                  header={{
+                    size: 'middle',
+                    center: (
+                      <div className="h-full flex justify-center items-center px-5">
+                        <p className="md:text-2xl text-xl text-center mb-0">
+                          <b>{r.name}</b>
+                        </p>
+                      </div>
+                    ),
+                  }}
+                >
+                  <div className="flex justify-center">
+                    <Alert
+                      className="mb-4 mt-8 mx-8 w-full"
+                      message="Warning"
+                      description="This is a temporary content"
+                      type="warning"
+                      showIcon
+                      closable
+                    />
+                  </div>
+                  <Skeleton className="px-8 pt-1" />
+                </Box>
+              ),
+            };
+          }),
+        ]}
       />
     </ThemeContextProvider>
   );

@@ -18,7 +18,7 @@ const WorkspaceWelcome: FC<IWorkspaceWelcomeProps> = ({ ...args }) => {
         ),
       }}
     >
-      <div className="w-full flex-grow flex flex-wrap content-center justify-center py-5 2xl:py-52">
+      <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5">
         <div className="w-full pb-10 flex justify-center">
           <Logo widthPx={150} />
         </div>

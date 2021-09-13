@@ -3,30 +3,41 @@ import { Col } from 'antd';
 import { WorkspaceContainer } from '../WorkspaceContainer';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
-import data from '../FakeData';
-export interface IDashboardProps {}
+import { WorkspaceRole } from '../../../utils';
+export interface IDashboardProps {
+  workspaces: Array<{
+    workspaceId: string;
+    role: WorkspaceRole;
+  }>;
+}
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
-  const [selectedWs, setSelectedWs] = useState(-1);
-  const workspaceItems = data.map(workspace =>
-    Object.assign({}, { id: workspace.id, title: workspace.title })
-  );
-  const workspace = data.find(workspace => workspace.id === selectedWs);
+  const [selectedWsId, setSelectedWs] = useState(-1);
+  const { workspaces } = props;
 
   return (
     <>
       <Col span={24} lg={8} xxl={8} className="lg:pr-4 py-5 lg:h-full flex">
         <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar">
           <WorkspaceGrid
-            selectedWs={selectedWs}
-            workspaceItems={workspaceItems}
+            selectedWs={selectedWsId}
+            workspaceItems={workspaces.map((wk, idx) => ({
+              id: idx,
+              title: wk.workspaceId,
+            }))}
             onClick={setSelectedWs}
           />
         </div>
       </Col>
-      <Col span={24} lg={14} xxl={12} className="lg:pl-4 flex flex-auto">
-        {workspace ? (
-          <WorkspaceContainer workspace={workspace} />
+      <Col span={24} lg={14} xxl={12} className="px-4 flex flex-auto">
+        {selectedWsId !== -1 ? (
+          <WorkspaceContainer
+            workspace={{
+              id: selectedWsId,
+              role: workspaces[selectedWsId].role,
+              title: workspaces[selectedWsId].workspaceId,
+            }}
+          />
         ) : (
           <WorkspaceWelcome />
         )}

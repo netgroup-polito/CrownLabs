@@ -29,7 +29,7 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
         </button>
       </Col>
       <Col span={24} className="flex justify-center pb-0">
-        <p className="w-28 h-8 2xl:h-12 2xl:w-32 text-center text-xs 2xl:text-sm pb-0">
+        <p className="w-28 h-6 lg:h-8 2xl:h-12 2xl:w-32 text-center text-xs 2xl:text-sm pb-0">
           {title}
         </p>
       </Col>
