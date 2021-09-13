@@ -72,8 +72,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 i?.metadata?.name === instance.metadata?.name ? instance : i
               );
             } else {
-              prev.instanceList.instances = [...instances, instance];
+              instances = [...instances, instance];
             }
+            prev.instanceList.instances = instances;
           }
 
           const instancePhase = instance.status?.phase;
@@ -166,7 +167,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     }
   }, [loadingTemplate, subscribeToMoreTemplates, userId, workspaceNamespace]);
 
-  const templates = (dataTemplate?.templateList?.templates ?? [])
+  const templates: Template[] = (dataTemplate?.templateList?.templates ?? [])
     .map(t => {
       const { spec, metadata } = t!;
       const [environment] = spec?.environmentList!;
@@ -180,10 +181,13 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           .map((i, n) => {
             return {
               id: n,
-              name: i?.metadata?.name!,
+              name: `${i?.spec?.prettyName ?? i?.metadata?.name}`,
               ip: i?.status?.ip!,
               status: i?.status?.phase! as VmStatus,
               url: i?.status?.url!,
+              gui: i?.spec?.templateCrownlabsPolitoItTemplateRef
+                ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec
+                ?.environmentList![0]?.guiEnabled!,
             };
           })!,
         id: t?.metadata?.id!,

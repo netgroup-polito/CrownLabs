@@ -8,6 +8,7 @@ import { Template, WorkspaceRole } from '../../../../utils';
 import './TemplatesTable.less';
 import { CreateInstanceMutation } from '../../../../generated-types';
 import { FetchResult } from 'apollo-link';
+import TableInstance from '../../../activePage/TableInstance/TableInstance';
 
 export interface ITemplatesTableProps {
   tenantNamespace: string;
@@ -97,7 +98,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   return (
     <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
       <Table
-        size={'small'}
+        size={'middle'}
         showHeader={false}
         rowKey={record => record.id}
         columns={columns}
@@ -120,7 +121,15 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           /**
            * Here we render the expandable content, for example with a nested Table
            */
-          expandedRowRender: template => 'Instances',
+          // eslint-disable-next-line react/no-multi-comp
+          expandedRowRender: template => (
+            <TableInstance
+              showGuiIcon={false}
+              viewMode={WorkspaceRole.user}
+              extended={false}
+              instances={template.instances}
+            />
+          ),
         }}
       />
     </div>
