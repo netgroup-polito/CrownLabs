@@ -74,6 +74,9 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
     nginx.ingress.kubernetes.io/custom-http-errors: "418"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+
   hostname: qlkube.crownlabs.example.com
   path: /
   secret: qlkube-certificate
