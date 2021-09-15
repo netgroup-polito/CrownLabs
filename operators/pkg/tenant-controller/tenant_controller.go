@@ -111,6 +111,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// tenant is NOT being deleted
 	klog.Infof("Reconciling tenant %s", tn.Name)
 
+	// convert the email to lower-case, to prevent issues with keycloak
+	// This modification is not persisted (on purpose) in the tenant resource, since the
+	// update is performed after an update of the status, which restores the original spec.
+	tn.Spec.Email = strings.ToLower(tn.Spec.Email)
+
 	// add tenant operator finalizer to tenant
 	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName) {
 		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName)
@@ -424,7 +429,7 @@ func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *c
 	if userID == nil {
 		userID, err = r.KcA.createKcUser(ctx, tn.Name, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email)
 	} else {
-		err = r.KcA.updateKcUser(ctx, *userID, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email, *currentUserEmail != tn.Spec.Email)
+		err = r.KcA.updateKcUser(ctx, *userID, tn.Spec.FirstName, tn.Spec.LastName, tn.Spec.Email, !strings.EqualFold(*currentUserEmail, tn.Spec.Email))
 	}
 	if err != nil {
 		klog.Errorf("Error when creating or updating keycloak user %s -> %s", tn.Name, err)
