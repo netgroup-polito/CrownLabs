@@ -12,7 +12,7 @@ import { ApolloLink, split } from 'apollo-link';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
 
 const httpUri = REACT_APP_CROWNLABS_GRAPHQL_URL;
-const wsUri = httpUri.replace(/^https?/, 'ws') + 'subscription';
+const wsUri = httpUri.replace(/^http?/, 'ws') + '/subscription';
 export interface Definition {
   kind: string;
   operation?: string;
