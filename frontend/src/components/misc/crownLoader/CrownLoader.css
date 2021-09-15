@@ -1,0 +1,55 @@
+.crown,
+.dash {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation-iteration-count: infinite;
+  stroke-width: 12;
+  fill: none;
+}
+.crown {
+  animation-timing-function: cubic-bezier(0.5, 0.9, 0.5, 0.1);
+  stroke-dasharray: 880;
+  stroke-dashoffset: 880;
+  animation-name: dash1k;
+}
+
+.dash {
+  animation-timing-function: cubic-bezier(0.6, 0, 0.4, 1);
+  stroke-dasharray: 180;
+  stroke-dashoffset: 540;
+  animation-name: dash540;
+}
+
+@keyframes dash1k {
+  0% {
+    stroke-dashoffset: -880;
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 880;
+    opacity: 0;
+  }
+}
+
+@keyframes dash540 {
+  0% {
+    stroke-dashoffset: 540;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -540;
+    opacity: 0;
+  }
+}
