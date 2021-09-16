@@ -27,6 +27,11 @@ export default gql`
             }
           }
         }
+        status {
+          personalNamespace {
+            name
+          }
+        }
       }
     }
   }

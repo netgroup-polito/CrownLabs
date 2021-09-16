@@ -1519,6 +1519,69 @@ export type DeleteTemplateMutation = {
   }>;
 };
 
+export type UpdateTenantMutationVariables = Exact<{
+  workspaceName: Scalars['String'];
+  patchJson: Scalars['String'];
+}>;
+
+export type UpdateTenantMutation = {
+  __typename?: 'Mutation';
+  updateTenant?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha1Tenant';
+    metadata?: Maybe<{
+      __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+      tenantId?: Maybe<string>;
+    }>;
+    spec?: Maybe<{
+      __typename?: 'Spec2';
+      firstName?: Maybe<string>;
+      lastName?: Maybe<string>;
+      email?: Maybe<string>;
+      workspaces?: Maybe<
+        Array<
+          Maybe<{
+            __typename?: 'WorkspacesListItem';
+            role?: Maybe<Role>;
+            workspaceRef?: Maybe<{
+              __typename?: 'WorkspaceRef';
+              name?: Maybe<string>;
+            }>;
+          }>
+        >
+      >;
+    }>;
+  }>;
+};
+
+export type ImagesQueryVariables = Exact<{ [key: string]: never }>;
+
+export type ImagesQuery = {
+  __typename?: 'Query';
+  imageList?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha1ImageListList';
+    images?: Maybe<
+      Array<
+        Maybe<{
+          __typename?: 'ItPolitoCrownlabsV1alpha1ImageList';
+          spec?: Maybe<{
+            __typename?: 'Spec';
+            registryName?: Maybe<string>;
+            images?: Maybe<
+              Array<
+                Maybe<{
+                  __typename?: 'ImagesListItem';
+                  name?: Maybe<string>;
+                  versions?: Maybe<Array<Maybe<string>>>;
+                }>
+              >
+            >;
+          }>;
+        }>
+      >
+    >;
+  }>;
+};
+
 export type OwnedInstancesQueryVariables = Exact<{
   tenantNamespace: Scalars['String'];
 }>;
@@ -1531,6 +1594,67 @@ export type OwnedInstancesQuery = {
       Array<
         Maybe<{
           __typename?: 'ItPolitoCrownlabsV1alpha2Instance';
+          metadata?: Maybe<{
+            __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+            name?: Maybe<string>;
+          }>;
+          status?: Maybe<{
+            __typename?: 'Status3';
+            ip?: Maybe<string>;
+            phase?: Maybe<string>;
+            url?: Maybe<string>;
+          }>;
+          spec?: Maybe<{
+            __typename?: 'Spec4';
+            running?: Maybe<boolean>;
+            templateCrownlabsPolitoItTemplateRef?: Maybe<{
+              __typename?: 'TemplateCrownlabsPolitoItTemplateRef';
+              name?: Maybe<string>;
+              namespace?: Maybe<string>;
+              templateWrapper?: Maybe<{
+                __typename?: 'TemplateWrapper';
+                itPolitoCrownlabsV1alpha2Template?: Maybe<{
+                  __typename?: 'ItPolitoCrownlabsV1alpha2Template';
+                  spec?: Maybe<{
+                    __typename?: 'Spec6';
+                    templateName?: Maybe<string>;
+                    templateDescription?: Maybe<string>;
+                    environmentList?: Maybe<
+                      Array<
+                        Maybe<{
+                          __typename?: 'EnvironmentListListItem';
+                          guiEnabled?: Maybe<boolean>;
+                          persistent?: Maybe<boolean>;
+                        }>
+                      >
+                    >;
+                  }>;
+                }>;
+              }>;
+            }>;
+          }>;
+        }>
+      >
+    >;
+  }>;
+};
+
+export type InstancesLabelSelectorQueryVariables = Exact<{
+  labels?: Maybe<Scalars['String']>;
+}>;
+
+export type InstancesLabelSelectorQuery = {
+  __typename?: 'Query';
+  instanceList?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList';
+    instances?: Maybe<
+      Array<
+        Maybe<{
+          __typename?: 'ItPolitoCrownlabsV1alpha2Instance';
+          metadata?: Maybe<{
+            __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+            name?: Maybe<string>;
+          }>;
           status?: Maybe<{
             __typename?: 'Status3';
             ip?: Maybe<string>;
@@ -1675,6 +1799,54 @@ export type TenantQuery = {
         >
       >;
     }>;
+    status?: Maybe<{
+      __typename?: 'Status';
+      personalNamespace?: Maybe<{
+        __typename?: 'PersonalNamespace';
+        name?: Maybe<string>;
+      }>;
+    }>;
+  }>;
+};
+
+export type TenantsQueryVariables = Exact<{
+  labels?: Maybe<Scalars['String']>;
+  retrieveWorkspaces?: Maybe<Scalars['Boolean']>;
+}>;
+
+export type TenantsQuery = {
+  __typename?: 'Query';
+  tenants?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha1TenantList';
+    items?: Maybe<
+      Array<
+        Maybe<{
+          __typename?: 'ItPolitoCrownlabsV1alpha1Tenant';
+          metadata?: Maybe<{
+            __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+            tenantId?: Maybe<string>;
+          }>;
+          spec?: Maybe<{
+            __typename?: 'Spec2';
+            firstName?: Maybe<string>;
+            lastName?: Maybe<string>;
+            email?: Maybe<string>;
+            workspaces?: Maybe<
+              Array<
+                Maybe<{
+                  __typename?: 'WorkspacesListItem';
+                  role?: Maybe<Role>;
+                  workspaceRef?: Maybe<{
+                    __typename?: 'WorkspaceRef';
+                    name?: Maybe<string>;
+                  }>;
+                }>
+              >
+            >;
+          }>;
+        }>
+      >
+    >;
   }>;
 };
 
@@ -1689,6 +1861,10 @@ export type UpdatedOwnedInstancesSubscription = {
     __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate';
     instance?: Maybe<{
       __typename?: 'ItPolitoCrownlabsV1alpha2Instance';
+      metadata?: Maybe<{
+        __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+        name?: Maybe<string>;
+      }>;
       status?: Maybe<{
         __typename?: 'Status3';
         ip?: Maybe<string>;
@@ -1832,6 +2008,13 @@ export type UpdatedTenantSubscription = {
             }>
           >
         >;
+      }>;
+      status?: Maybe<{
+        __typename?: 'Status';
+        personalNamespace?: Maybe<{
+          __typename?: 'PersonalNamespace';
+          name?: Maybe<string>;
+        }>;
       }>;
     }>;
   }>;
@@ -1978,7 +2161,7 @@ export const CreateTemplateDocument = gql`
           description: $descriptionTemplate
           environmentList: [
             {
-              name: "environmentName"
+              name: "default"
               environmentType: $environmentType
               image: $image
               guiEnabled: $guiEnabled
@@ -2224,12 +2407,167 @@ export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<
   DeleteTemplateMutation,
   DeleteTemplateMutationVariables
 >;
+export const UpdateTenantDocument = gql`
+  mutation updateTenant($workspaceName: String!, $patchJson: String!) {
+    updateTenant: patchCrownlabsPolitoItV1alpha1Tenant(
+      name: $workspaceName
+      applicationJsonPatchJsonInput: $patchJson
+    ) {
+      metadata {
+        tenantId: name
+      }
+      spec {
+        firstName
+        lastName
+        email
+        workspaces {
+          role
+          workspaceRef {
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+export type UpdateTenantMutationFn = Apollo.MutationFunction<
+  UpdateTenantMutation,
+  UpdateTenantMutationVariables
+>;
+export type UpdateTenantComponentProps = Omit<
+  ApolloReactComponents.MutationComponentOptions<
+    UpdateTenantMutation,
+    UpdateTenantMutationVariables
+  >,
+  'mutation'
+>;
+
+export const UpdateTenantComponent = (props: UpdateTenantComponentProps) => (
+  <ApolloReactComponents.Mutation<
+    UpdateTenantMutation,
+    UpdateTenantMutationVariables
+  >
+    mutation={UpdateTenantDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useUpdateTenantMutation__
+ *
+ * To run a mutation, you first call `useUpdateTenantMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateTenantMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateTenantMutation, { data, loading, error }] = useUpdateTenantMutation({
+ *   variables: {
+ *      workspaceName: // value for 'workspaceName'
+ *      patchJson: // value for 'patchJson'
+ *   },
+ * });
+ */
+export function useUpdateTenantMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    UpdateTenantMutation,
+    UpdateTenantMutationVariables
+  >
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    UpdateTenantMutation,
+    UpdateTenantMutationVariables
+  >(UpdateTenantDocument, options);
+}
+export type UpdateTenantMutationHookResult = ReturnType<
+  typeof useUpdateTenantMutation
+>;
+export type UpdateTenantMutationResult = Apollo.MutationResult<UpdateTenantMutation>;
+export type UpdateTenantMutationOptions = Apollo.BaseMutationOptions<
+  UpdateTenantMutation,
+  UpdateTenantMutationVariables
+>;
+export const ImagesDocument = gql`
+  query images {
+    imageList: itPolitoCrownlabsV1alpha1ImageListList {
+      images: items {
+        spec {
+          registryName
+          images {
+            name
+            versions
+          }
+        }
+      }
+    }
+  }
+`;
+export type ImagesComponentProps = Omit<
+  ApolloReactComponents.QueryComponentOptions<
+    ImagesQuery,
+    ImagesQueryVariables
+  >,
+  'query'
+>;
+
+export const ImagesComponent = (props: ImagesComponentProps) => (
+  <ApolloReactComponents.Query<ImagesQuery, ImagesQueryVariables>
+    query={ImagesDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useImagesQuery__
+ *
+ * To run a query within a React component, call `useImagesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useImagesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useImagesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useImagesQuery(
+  baseOptions?: Apollo.QueryHookOptions<ImagesQuery, ImagesQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<ImagesQuery, ImagesQueryVariables>(
+    ImagesDocument,
+    options
+  );
+}
+export function useImagesLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<ImagesQuery, ImagesQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<ImagesQuery, ImagesQueryVariables>(
+    ImagesDocument,
+    options
+  );
+}
+export type ImagesQueryHookResult = ReturnType<typeof useImagesQuery>;
+export type ImagesLazyQueryHookResult = ReturnType<typeof useImagesLazyQuery>;
+export type ImagesQueryResult = Apollo.QueryResult<
+  ImagesQuery,
+  ImagesQueryVariables
+>;
 export const OwnedInstancesDocument = gql`
   query ownedInstances($tenantNamespace: String!) {
     instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
       namespace: $tenantNamespace
     ) {
       instances: items {
+        metadata {
+          name
+        }
         status {
           ip
           phase
@@ -2331,6 +2669,113 @@ export type OwnedInstancesLazyQueryHookResult = ReturnType<
 export type OwnedInstancesQueryResult = Apollo.QueryResult<
   OwnedInstancesQuery,
   OwnedInstancesQueryVariables
+>;
+export const InstancesLabelSelectorDocument = gql`
+  query instancesLabelSelector($labels: String) {
+    instanceList: itPolitoCrownlabsV1alpha2InstanceList(
+      labelSelector: $labels
+    ) {
+      instances: items {
+        metadata {
+          name
+        }
+        status {
+          ip
+          phase
+          url
+        }
+        spec {
+          running
+          templateCrownlabsPolitoItTemplateRef {
+            name
+            namespace
+            templateWrapper {
+              itPolitoCrownlabsV1alpha2Template {
+                spec {
+                  templateName: prettyName
+                  templateDescription: description
+                  environmentList {
+                    guiEnabled
+                    persistent
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+export type InstancesLabelSelectorComponentProps = Omit<
+  ApolloReactComponents.QueryComponentOptions<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >,
+  'query'
+>;
+
+export const InstancesLabelSelectorComponent = (
+  props: InstancesLabelSelectorComponentProps
+) => (
+  <ApolloReactComponents.Query<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >
+    query={InstancesLabelSelectorDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useInstancesLabelSelectorQuery__
+ *
+ * To run a query within a React component, call `useInstancesLabelSelectorQuery` and pass it any options that fit your needs.
+ * When your component renders, `useInstancesLabelSelectorQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useInstancesLabelSelectorQuery({
+ *   variables: {
+ *      labels: // value for 'labels'
+ *   },
+ * });
+ */
+export function useInstancesLabelSelectorQuery(
+  baseOptions?: Apollo.QueryHookOptions<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >(InstancesLabelSelectorDocument, options);
+}
+export function useInstancesLabelSelectorLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<
+    InstancesLabelSelectorQuery,
+    InstancesLabelSelectorQueryVariables
+  >(InstancesLabelSelectorDocument, options);
+}
+export type InstancesLabelSelectorQueryHookResult = ReturnType<
+  typeof useInstancesLabelSelectorQuery
+>;
+export type InstancesLabelSelectorLazyQueryHookResult = ReturnType<
+  typeof useInstancesLabelSelectorLazyQuery
+>;
+export type InstancesLabelSelectorQueryResult = Apollo.QueryResult<
+  InstancesLabelSelectorQuery,
+  InstancesLabelSelectorQueryVariables
 >;
 export const SshKeysDocument = gql`
   query sshKeys($tenantId: String!) {
@@ -2526,6 +2971,11 @@ export const TenantDocument = gql`
           }
         }
       }
+      status {
+        personalNamespace {
+          name
+        }
+      }
     }
   }
 `;
@@ -2585,6 +3035,84 @@ export type TenantQueryResult = Apollo.QueryResult<
   TenantQuery,
   TenantQueryVariables
 >;
+export const TenantsDocument = gql`
+  query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
+    tenants: itPolitoCrownlabsV1alpha1TenantList(labelSelector: $labels) {
+      items {
+        metadata {
+          tenantId: name
+        }
+        spec {
+          firstName
+          lastName
+          email
+          workspaces @include(if: $retrieveWorkspaces) {
+            role
+            workspaceRef {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+export type TenantsComponentProps = Omit<
+  ApolloReactComponents.QueryComponentOptions<
+    TenantsQuery,
+    TenantsQueryVariables
+  >,
+  'query'
+>;
+
+export const TenantsComponent = (props: TenantsComponentProps) => (
+  <ApolloReactComponents.Query<TenantsQuery, TenantsQueryVariables>
+    query={TenantsDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useTenantsQuery__
+ *
+ * To run a query within a React component, call `useTenantsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useTenantsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useTenantsQuery({
+ *   variables: {
+ *      labels: // value for 'labels'
+ *      retrieveWorkspaces: // value for 'retrieveWorkspaces'
+ *   },
+ * });
+ */
+export function useTenantsQuery(
+  baseOptions?: Apollo.QueryHookOptions<TenantsQuery, TenantsQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useQuery<TenantsQuery, TenantsQueryVariables>(
+    TenantsDocument,
+    options
+  );
+}
+export function useTenantsLazyQuery(
+  baseOptions?: Apollo.LazyQueryHookOptions<TenantsQuery, TenantsQueryVariables>
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useLazyQuery<TenantsQuery, TenantsQueryVariables>(
+    TenantsDocument,
+    options
+  );
+}
+export type TenantsQueryHookResult = ReturnType<typeof useTenantsQuery>;
+export type TenantsLazyQueryHookResult = ReturnType<typeof useTenantsLazyQuery>;
+export type TenantsQueryResult = Apollo.QueryResult<
+  TenantsQuery,
+  TenantsQueryVariables
+>;
 export const UpdatedOwnedInstancesDocument = gql`
   subscription updatedOwnedInstances(
     $tenantNamespace: String!
@@ -2595,6 +3123,9 @@ export const UpdatedOwnedInstancesDocument = gql`
       name: $instanceName
     ) {
       instance: payload {
+        metadata {
+          name
+        }
         status {
           ip
           phase
@@ -2850,6 +3381,11 @@ export const UpdatedTenantDocument = gql`
                 }
               }
             }
+          }
+        }
+        status {
+          personalNamespace {
+            name
           }
         }
       }

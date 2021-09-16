@@ -1,7 +1,5 @@
-query ownedInstances($tenantNamespace: String!) {
-  instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
-    namespace: $tenantNamespace
-  ) {
+query instancesLabelSelector($labels: String) {
+  instanceList: itPolitoCrownlabsV1alpha2InstanceList(labelSelector: $labels) {
     instances: items {
       metadata {
         name
