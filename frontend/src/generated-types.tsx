@@ -1680,7 +1680,7 @@ export type TenantQuery = {
 
 export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
   tenantNamespace: Scalars['String'];
-  instanceName: Scalars['String'];
+  instanceName?: Maybe<Scalars['String']>;
 }>;
 
 export type UpdatedOwnedInstancesSubscription = {
@@ -1751,7 +1751,7 @@ export type UpdatedSshKeysSubscription = {
 
 export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
   workspaceNamespace: Scalars['String'];
-  templateName: Scalars['String'];
+  templateName?: Maybe<Scalars['String']>;
 }>;
 
 export type UpdatedWorkspaceTemplatesSubscription = {
@@ -2588,7 +2588,7 @@ export type TenantQueryResult = Apollo.QueryResult<
 export const UpdatedOwnedInstancesDocument = gql`
   subscription updatedOwnedInstances(
     $tenantNamespace: String!
-    $instanceName: String!
+    $instanceName: String
   ) {
     updateInstance: itPolitoCrownlabsV1alpha2InstanceUpdate(
       namespace: $tenantNamespace
@@ -2745,7 +2745,7 @@ export type UpdatedSshKeysSubscriptionResult = Apollo.SubscriptionResult<Updated
 export const UpdatedWorkspaceTemplatesDocument = gql`
   subscription updatedWorkspaceTemplates(
     $workspaceNamespace: String!
-    $templateName: String!
+    $templateName: String
   ) {
     updatedTemplate: itPolitoCrownlabsV1alpha2TemplateUpdate(
       namespace: $workspaceNamespace
