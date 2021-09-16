@@ -9,6 +9,7 @@ import Logo from '../Logo';
 import './AppLayout.less';
 import { RouteData } from '../Navbar/Navbar';
 import { TooltipButtonData } from '../TooltipButton/TooltipButton';
+import { PUBLIC_URL } from '../../../env';
 
 const { Content } = Layout;
 
@@ -34,7 +35,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   } = props;
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={PUBLIC_URL}>
       <Layout className="h-full">
         <Navbar
           logoutHandler={logout}
