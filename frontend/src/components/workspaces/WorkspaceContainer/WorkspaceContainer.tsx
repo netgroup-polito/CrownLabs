@@ -1,32 +1,27 @@
-import { FC } from 'react';
+import { Dispatch, FC, SetStateAction } from 'react';
 import { UserSwitchOutlined, PlusOutlined } from '@ant-design/icons';
 import Button from 'antd-button-color';
-import { TemplatesTable } from '../Templates/TemplatesTable';
-import { TemplatesEmpty } from '../Templates/TemplatesEmpty';
 import Box from '../../common/Box';
-import { Template, WorkspaceRole } from '../../../utils';
+import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
+import { WorkspaceRole } from '../../../utils';
 
 export interface IWorkspaceContainerProps {
   workspace: {
     id: number;
     title: string;
     role: WorkspaceRole;
-    templates?: Array<Template>;
+    workspaceNamespace: string;
   };
+  reload: boolean;
+  setReload: Dispatch<SetStateAction<boolean>>;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const {
-    workspace: { role, title, templates },
+    workspace: { role, title, workspaceNamespace },
+    reload,
+    setReload,
   } = props;
-
-  const editTemplate = (id: string) => {
-    return;
-  };
-
-  const deleteTemplate = (id: string) => {
-    return;
-  };
 
   return (
     <>
@@ -62,16 +57,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
         }}
       >
-        {templates && templates.length ? (
-          <TemplatesTable
-            templates={templates}
-            role={role}
-            editTemplate={editTemplate}
-            deleteTemplate={deleteTemplate}
-          />
-        ) : (
-          <TemplatesEmpty role={role} />
-        )}
+        <TemplatesTableLogic
+          role={role}
+          workspaceNamespace={workspaceNamespace}
+          reload={reload}
+          setReload={setReload}
+        />
       </Box>
     </>
   );

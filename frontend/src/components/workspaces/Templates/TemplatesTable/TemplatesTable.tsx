@@ -62,7 +62,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   };
 
   return (
-    <div className="w-full flex-grow flex flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
+    <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
       <Table
         size={'small'}
         showHeader={false}
@@ -87,25 +87,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           /**
            * Here we render the expandable content, for example with a nested Table
            */
-          expandedRowRender: template => (
-            <div className="block w-full">
-              {template.instances.map(x => (
-                <div
-                  className="flex justify-between pl-24 pr-1 my-3"
-                  key={x.id}
-                >
-                  <h3> {x.name} </h3>
-                  <h3> IP:{x.ip} </h3>
-                  <h3> Status:{x.status} </h3>
-                  {x.url && (
-                    <a href={x.url}>
-                      <button className="w-20"> OPEN </button>
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          ),
+          expandedRowRender: template => 'Instances',
         }}
       />
     </div>
