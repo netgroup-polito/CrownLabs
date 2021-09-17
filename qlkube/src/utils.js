@@ -31,9 +31,15 @@ const graphqlQueryRegistry = {
   },
 };
 
+function getTimestamp() {
+  let today = new Date();
+  let time = `${today.getHours()}:${today.getMinutes()}:${today.getSeconds()}:${today.getMilliseconds()}`;
+  return time;
+}
+
 function graphqlLogger(msg) {
   if (process.env.DEBUG) {
-    console.log(msg);
+    console.log(`(${getTimestamp()}) ${msg}`);
   }
 }
 

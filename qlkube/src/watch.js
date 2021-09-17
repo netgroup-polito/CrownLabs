@@ -74,10 +74,10 @@ function kwatch(api, label) {
       err => {
         if (err?.message === 'Not Found') {
           console.error(`No items for ${api} found to watch, restarting in 2s`);
-          setTimeout(() => kwatch(api, label), 2000);
         } else {
           console.error('Error when watching', err);
         }
+        setTimeout(() => kwatch(api, label), 2000);
       }
     )
     .then(req => {});

@@ -30,6 +30,7 @@ configuration:
           - resource: instances
             version: v1alpha2
             mapping: itPolitoCrownlabsV1alpha2Instance
+            listMapping: itPolitoCrownlabsV1alpha2InstanceList
           - resource: templates
             version: v1alpha2
             mapping: itPolitoCrownlabsV1alpha2Template

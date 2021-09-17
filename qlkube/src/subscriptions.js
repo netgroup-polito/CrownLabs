@@ -9,6 +9,7 @@ const subscriptions = [
     version: 'v1alpha2',
     resource: 'instances',
     type: 'itPolitoCrownlabsV1alpha2Instance',
+    listMapping: 'itPolitoCrownlabsV1alpha2InstanceList',
   },
   {
     api: 'apis',
@@ -16,6 +17,7 @@ const subscriptions = [
     version: 'v1alpha2',
     resource: 'templates',
     type: 'itPolitoCrownlabsV1alpha2Template',
+    listMapping: null,
   },
 ];
 
