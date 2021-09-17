@@ -12,8 +12,6 @@ function DashboardLogic() {
     notifyOnNetworkStatusChange: true,
   });
 
-  //startPolling(20000);
-
   return !loading && data && !error ? (
     <>
       <Dashboard

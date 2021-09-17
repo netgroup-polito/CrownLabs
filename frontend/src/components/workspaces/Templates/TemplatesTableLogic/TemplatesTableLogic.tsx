@@ -1,14 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Spin } from 'antd';
-import { Dispatch, SetStateAction, useContext, useEffect } from 'react';
+import { notification, Spin } from 'antd';
+import Button from 'antd-button-color';
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 import { FC } from 'react';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import {
   useCreateInstanceMutation,
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
+  UpdatedOwnedInstancesSubscriptionResult,
+  OwnedInstancesQuery,
 } from '../../../../generated-types';
-import { VmStatus, WorkspaceRole } from '../../../../utils';
+import { updatedOwnedInstances } from '../../../../graphql-components/subscription';
+import { Template, VmStatus, WorkspaceRole } from '../../../../utils';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 
@@ -30,6 +40,79 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     setReload,
   } = props;
 
+  const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
+
+  const {
+    loading: loadingInstances,
+    error: errorInstances,
+    subscribeToMore: subscribeToMoreInstances,
+  } = useOwnedInstancesQuery({
+    variables: { tenantNamespace },
+    onCompleted: setDataInstances,
+  });
+
+  useEffect(() => {
+    if (!loadingInstances) {
+      subscribeToMoreInstances({
+        document: updatedOwnedInstances,
+        variables: {
+          tenantNamespace,
+        },
+        updateQuery: (prev, { subscriptionData }) => {
+          const {
+            data,
+          } = subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
+
+          if (!data?.updateInstance?.instance) return prev;
+
+          const { instance } = data?.updateInstance;
+
+          if (prev.instanceList?.instances) {
+            let { instances } = prev.instanceList;
+            if (
+              instances.find(i => i?.metadata?.name === instance.metadata?.name)
+            ) {
+              instances = instances.map(i =>
+                i?.metadata?.name === instance.metadata?.name ? instance : i
+              );
+            } else {
+              prev.instanceList.instances = [...instances, instance];
+            }
+          }
+
+          const instancePhase = instance.status?.phase;
+          if (instancePhase === 'VmiReady') {
+            notification.success({
+              message:
+                instance.spec?.templateCrownlabsPolitoItTemplateRef
+                  ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec
+                  ?.templateName,
+              description: `Instance started`,
+              btn: (
+                <Button
+                  type="success"
+                  size="small"
+                  onClick={() =>
+                    window.open(
+                      data?.updateInstance?.instance?.status?.url!,
+                      '_blank'
+                    )
+                  }
+                >
+                  Connect
+                </Button>
+              ),
+            });
+          }
+
+          const newItem = { ...prev };
+          setDataInstances(newItem);
+          return newItem;
+        },
+      });
+    }
+  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
+
   const {
     data: dataTemplate,
     loading: loadingTemplate,
@@ -40,27 +123,49 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     notifyOnNetworkStatusChange: true,
   });
 
-  const {
-    data: dataInstances,
-    loading: loadingInstances,
-    error: errorInstances,
-    startPolling: startPollingInstances,
-  } = useOwnedInstancesQuery({
-    variables: { tenantNamespace },
-  });
-
-  //This polling is used to simulate the subscription behaviour, it will be removed in the next PR
-  startPollingInstances(500);
-
   //This useEffect and the reload state are used to simulate the subscription behaviour, it will be removed in the next PR
   useEffect(() => {
-    if (reload === true && refetchTemplate) {
+    if (reload && refetchTemplate) {
       setReload(false);
       refetchTemplate({ workspaceNamespace });
     }
   }, [reload, refetchTemplate, setReload, workspaceNamespace]);
 
-  const templates = dataTemplate?.templateList?.templates;
+  const { instances } = dataInstances?.instanceList ?? {};
+
+  const templates = (dataTemplate?.templateList?.templates ?? [])
+    .map(t => {
+      const { spec, metadata } = t!;
+      const [environment] = spec?.environmentList!;
+      return {
+        instances: instances
+          ?.filter(
+            x =>
+              x?.spec?.templateCrownlabsPolitoItTemplateRef?.name ===
+              metadata?.id!
+          )
+          .map((i, n) => {
+            return {
+              id: n,
+              name: i?.metadata?.name!,
+              ip: i?.status?.ip!,
+              status: i?.status?.phase! as VmStatus,
+              url: i?.status?.url!,
+            };
+          })!,
+        id: t?.metadata?.id!,
+        name: t?.spec?.name!,
+        gui: !!environment?.guiEnabled!,
+        persistent: environment?.persistent!,
+        resources: {
+          cpu: environment?.resources?.cpu!,
+          // TODO: properly handle resources quantities
+          memory: parseInt(environment?.resources?.memory?.split('G')[0]!),
+          disk: parseInt(environment?.resources?.disk?.split('G')[0]!),
+        },
+      };
+    })
+    .filter(t => t);
 
   const [createInstanceMutation] = useCreateInstanceMutation();
 
@@ -71,42 +176,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       !errorTemplate &&
       !errorInstances &&
       templates &&
-      templates.length ? (
+      instances ? (
         <TemplatesTable
           tenantNamespace={tenantNamespace}
           workspaceNamespace={workspaceNamespace}
-          templates={templates.map(t => {
-            const environment =
-              t?.spec?.environmentList && t?.spec?.environmentList[0];
-            return {
-              instances: dataInstances?.instanceList?.instances
-                ?.filter(
-                  x =>
-                    x?.spec?.templateCrownlabsPolitoItTemplateRef?.name ===
-                    t?.metadata?.id!
-                )
-                .map((i, n) => {
-                  return {
-                    id: n,
-                    name: `Instance ${n}`,
-                    ip: i?.status?.ip!,
-                    status: i?.status?.phase! as VmStatus,
-                    url: i?.status?.url!,
-                  };
-                })!,
-              id: t?.metadata?.id!,
-              name: t?.spec?.name!,
-              gui: (environment && environment.guiEnabled!) || false,
-              persistent: environment?.persistent!,
-              resources: {
-                cpu: environment?.resources?.cpu!,
-                memory: parseInt(
-                  environment?.resources?.memory?.split('G')[0]!
-                ),
-                disk: parseInt(environment?.resources?.disk?.split('G')[0]!),
-              },
-            };
-          })}
+          templates={templates}
           role={role}
           deleteTemplate={() => null}
           editTemplate={() => null}
