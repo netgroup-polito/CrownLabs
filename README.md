@@ -1,4 +1,8 @@
+<!-- markdown-link-check-disable -->
+
 [![Coverage Status](https://coveralls.io/repos/github/netgroup-polito/CrownLabs/badge.svg)](https://coveralls.io/github/netgroup-polito/CrownLabs)
+
+<!-- markdown-link-check-enable -->
 
 # CrownLabs
 
