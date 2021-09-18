@@ -20,7 +20,7 @@ mutation createTemplate(
         description: $descriptionTemplate
         environmentList: [
           {
-            name: "environmentName" #$templateName
+            name: "default"
             environmentType: $environmentType
             image: $image
             guiEnabled: $guiEnabled

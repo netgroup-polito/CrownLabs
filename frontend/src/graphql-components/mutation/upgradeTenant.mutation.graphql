@@ -1,0 +1,21 @@
+mutation updateTenant($workspaceName: String!, $patchJson: String!) {
+  updateTenant: patchCrownlabsPolitoItV1alpha1Tenant(
+    name: $workspaceName
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    metadata {
+      tenantId: name
+    }
+    spec {
+      firstName
+      lastName
+      email
+      workspaces {
+        role
+        workspaceRef {
+          name
+        }
+      }
+    }
+  }
+}

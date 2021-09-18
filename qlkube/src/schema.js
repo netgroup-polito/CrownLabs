@@ -28,7 +28,7 @@ async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
     viewer: false,
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/merge-patch+json',
     },
     tokenJSONpath: '$.token',
   });

@@ -1,0 +1,20 @@
+query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
+  tenants: itPolitoCrownlabsV1alpha1TenantList(labelSelector: $labels) {
+    items {
+      metadata {
+        tenantId: name
+      }
+      spec {
+        firstName
+        lastName
+        email
+        workspaces @include(if: $retrieveWorkspaces) {
+          role
+          workspaceRef {
+            name
+          }
+        }
+      }
+    }
+  }
+}

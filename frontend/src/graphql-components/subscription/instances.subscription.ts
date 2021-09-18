@@ -10,6 +10,9 @@ export default gql`
       name: $instanceName
     ) {
       instance: payload {
+        metadata {
+          name
+        }
         status {
           ip
           phase
