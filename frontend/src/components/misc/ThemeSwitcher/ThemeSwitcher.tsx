@@ -1,5 +1,5 @@
 import { FC, useContext } from 'react';
-import { Switch } from 'antd';
+import { Switch, Tooltip } from 'antd';
 import { ThemeContext } from '../../../contexts/ThemeContext';
 
 export interface IThemeSwitcherProps {
@@ -39,7 +39,7 @@ const ThemeSwitcher: FC<IThemeSwitcherProps> = ({ ...props }) => {
   );
 
   return (
-    <>
+    <Tooltip placement="bottom" title="Switch theme">
       <Switch
         className={className}
         onChange={onChange}
@@ -47,7 +47,7 @@ const ThemeSwitcher: FC<IThemeSwitcherProps> = ({ ...props }) => {
         checkedChildren={moonIcon}
         unCheckedChildren={sunIcon}
       />
-    </>
+    </Tooltip>
   );
 };
 

@@ -6,7 +6,6 @@ import {
   DesktopOutlined,
   CodeOutlined,
   PlayCircleOutlined,
-  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import Badge from '../../../common/Badge';
 import { Resources, WorkspaceRole } from '../../../../utils';
@@ -22,6 +21,19 @@ export interface ITemplatesTableRowProps {
   editTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
 }
+
+const infiniteIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20px">
+    <path
+      d="M256 256s-48-96-126-96c-54.12 0-98 43-98 96s43.88 96 98 96c30 0 56.45-13.18 78-32m48-64s48 96 126 96c54.12 0 98-43 98-96s-43.88-96-98-96c-29.37 0-56.66 13.75-78 32"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-miterlimit="10"
+      stroke-width="48"
+    />
+  </svg>
+);
 
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const {
@@ -40,19 +52,31 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     <>
       <div className="w-full flex justify-between py-0">
         <Space size={'middle'}>
-          {gui ? (
-            <DesktopOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-          ) : (
-            <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-          )}
-          <div className="flex items-end">
-            {name}
+          <div className="flex items-center">
+            {gui ? (
+              <DesktopOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+            ) : (
+              <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+            )}
+            <label className="ml-3">{name}</label>
             {persistent && (
-              <Tooltip title="persistent">
-                <SafetyCertificateOutlined
-                  className="text-green-500 ml-2 mb-0.5"
-                  style={{ fontSize: '18px' }}
-                />
+              <Tooltip
+                title={
+                  <>
+                    <div className="text-center">
+                      These Instances can be stopped and restarted without being
+                      deleted.
+                    </div>
+                    <div className="text-center">
+                      Your files won't be deleted in case of an internal
+                      misservice of CrownLabs.
+                    </div>
+                  </>
+                }
+              >
+                <div className="text-green-500 ml-3 flex items-center">
+                  {infiniteIcon}
+                </div>
               </Tooltip>
             )}
           </div>
