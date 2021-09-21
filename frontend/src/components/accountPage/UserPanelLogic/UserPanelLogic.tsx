@@ -56,6 +56,7 @@ function UserPanelLogic() {
           }),
           manager: 'frontend-tenant-new-keys',
         },
+        onError: apolloErrorCatcher,
       });
     } catch (error) {
       return false;

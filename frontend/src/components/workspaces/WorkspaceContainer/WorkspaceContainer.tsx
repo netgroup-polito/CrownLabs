@@ -12,8 +12,9 @@ import {
 } from '../../../generated-types';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import { Image, Template } from '../ModalCreateTemplate/ModalCreateTemplate';
-import { Tooltip } from 'antd';
+import { Tooltip, Modal } from 'antd';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -60,6 +61,8 @@ const getImages = (dataImages: ImagesQuery) => {
 };
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
+  const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
+
   const {
     tenantNamespace,
     workspace: { role, title, workspaceNamespace, workspaceName },
@@ -128,13 +131,13 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
           left: role === 'manager' && (
             <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users - SOON">
+              <Tooltip title="Manage users">
                 <Button
-                  disabled={true}
                   type="primary"
                   shape="circle"
                   size="large"
                   icon={<UserSwitchOutlined />}
+                  onClick={() => setShowUserListModal(true)}
                 />
               </Tooltip>
             </div>
@@ -163,6 +166,19 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           workspaceNamespace={workspaceNamespace}
           workspaceName={workspaceName}
         />
+        <Modal
+          destroyOnClose={true}
+          title={`Users in ${title} `}
+          width="800px"
+          visible={showUserListModal}
+          footer={null}
+          onCancel={() => setShowUserListModal(false)}
+        >
+          <UserListLogic
+            workspaceName={workspaceName}
+            workspaceNamespace={workspaceNamespace}
+          />
+        </Modal>
       </Box>
     </>
   );
