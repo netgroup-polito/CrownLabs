@@ -75,7 +75,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the ingress to access the environment GUI
-	host := forge.HostName(r.WebsiteBaseURL, environment.Mode)
+	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUINameSuffix)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
@@ -89,7 +89,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		ingressGUI.SetLabels(forge.InstanceObjectLabels(ingressGUI.GetLabels(), instance))
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(ingressGUI.GetAnnotations()))
 		if environment.Mode == clv1alpha2.ModeStandard {
-			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.InstancesAuthURL))
+			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		}
 		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
 	})
@@ -119,7 +119,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 		ingressMyDrive.SetLabels(forge.InstanceObjectLabels(ingressMyDrive.GetLabels(), instance))
 		ingressMyDrive.SetAnnotations(forge.IngressMyDriveAnnotations(ingressMyDrive.GetAnnotations()))
-		ingressMyDrive.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressMyDrive.GetAnnotations(), r.InstancesAuthURL))
+		ingressMyDrive.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressMyDrive.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		return ctrl.SetControllerReference(instance, &ingressMyDrive, r.Scheme)
 	})
 

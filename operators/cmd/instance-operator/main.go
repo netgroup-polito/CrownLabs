@@ -55,31 +55,22 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var namespaceWhiteList string
-	var webdavSecret string
-	var websiteBaseURL string
-	var nextcloudBaseURL string
-	var instancesAuthURL string
-	var vmRegistry string
-	var vmRegistrySecret string
-	var containerImgExport string
-	var containerKaniko string
-	var maxConcurrentReconciles int
+	containerEnvOpts := forge.ContainerEnvOpts{}
+	svcUrls := instance_controller.ServiceUrls{}
+	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 
-	var containerEnvOpts = forge.ContainerEnvOpts{}
-
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&namespaceWhiteList, "namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
+	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
+
+	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
-	flag.StringVar(&websiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&nextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
-	flag.StringVar(&instancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
-	flag.StringVar(&webdavSecret, "webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
+	webdavSecret := flag.String("webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
+	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&svcUrls.NextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
+	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
@@ -87,13 +78,11 @@ func main() {
 	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
 	flag.StringVar(&containerEnvOpts.MyDriveImgAndTag, "container-env-mydrive-img-and-tag", "filebrowser/filebrowser:latest", "The image name and tag for the filebrowser image (sidecar for gui-based file manager)")
 
-	flag.StringVar(&vmRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
-	flag.StringVar(&vmRegistrySecret, "vm-registry-secret", "", "The name of the secret for the VM registry")
+	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
+	flag.StringVar(&instSnapOpts.RegistrySecretName, "vm-registry-secret", "", "The name of the secret for the VM registry")
 
-	flag.StringVar(&containerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
-	flag.StringVar(&containerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
-
-	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
+	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
+	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -106,14 +95,14 @@ func main() {
 
 	log := ctrl.Log.WithName("setup")
 
-	whiteListMap := parseMap(namespaceWhiteList)
+	whiteListMap := parseMap(*namespaceWhiteList)
 	log.Info("restricting reconciled namespaces", "labels", namespaceWhiteList)
 
 	// Configure the manager
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		LeaderElection:         enableLeaderElection,
+		MetricsBindAddress:     *metricsAddr,
+		LeaderElection:         *enableLeaderElection,
 		HealthProbeBindAddress: ":8081",
 		LivenessEndpointName:   "/healthz",
 		ReadinessEndpointName:  "/ready",
@@ -130,12 +119,10 @@ func main() {
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		NextcloudBaseURL:   nextcloudBaseURL,
-		WebsiteBaseURL:     websiteBaseURL,
-		WebdavSecretName:   webdavSecret,
-		InstancesAuthURL:   instancesAuthURL,
+		WebdavSecretName:   *webdavSecret,
+		ServiceUrls:        svcUrls,
 		ContainerEnvOpts:   containerEnvOpts,
-		Concurrency:        maxConcurrentReconciles,
+		Concurrency:        *maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
@@ -148,12 +135,7 @@ func main() {
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceSnapshotCtrl),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		VMRegistry:         vmRegistry,
-		RegistrySecretName: vmRegistrySecret,
-		ContainersSnapshot: instancesnapshot_controller.ContainersSnapshotOpts{
-			ContainerKaniko:    containerKaniko,
-			ContainerImgExport: containerImgExport,
-		},
+		ContainersSnapshot: instSnapOpts,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
 		os.Exit(1)

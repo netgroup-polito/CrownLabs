@@ -35,10 +35,12 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// ContainersSnapshotOpts contains image names and tags of the containers needed for the VM snapshot.
+// ContainersSnapshotOpts contains image names and tags of the containers needed for the VM snapshot, along with VM registry access data.
 type ContainersSnapshotOpts struct {
 	ContainerKaniko    string
 	ContainerImgExport string
+	VMRegistry         string
+	RegistrySecretName string
 }
 
 // InstanceSnapshotReconciler reconciles a InstanceSnapshot object.
@@ -47,8 +49,6 @@ type InstanceSnapshotReconciler struct {
 	EventsRecorder     record.EventRecorder
 	Scheme             *runtime.Scheme
 	NamespaceWhitelist metav1.LabelSelector
-	VMRegistry         string
-	RegistrySecretName string
 	ContainersSnapshot ContainersSnapshotOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.

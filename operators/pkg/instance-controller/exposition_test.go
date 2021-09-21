@@ -118,7 +118,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
-		reconciler = instance_controller.InstanceReconciler{Client: client, Scheme: scheme.Scheme, WebsiteBaseURL: host}
+		reconciler = instance_controller.InstanceReconciler{Client: client, Scheme: scheme.Scheme, ServiceUrls: instance_controller.ServiceUrls{WebsiteBaseURL: host}}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
