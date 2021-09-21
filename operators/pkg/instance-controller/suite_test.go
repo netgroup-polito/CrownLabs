@@ -88,10 +88,12 @@ var _ = BeforeSuite(func(done Done) {
 		Scheme:             k8sManager.GetScheme(),
 		EventsRecorder:     k8sManager.GetEventRecorderFor("Instance"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		NextcloudBaseURL:   "fake.com",
-		WebsiteBaseURL:     "fakesite.com",
+		ServiceUrls: ServiceUrls{
+			NextcloudBaseURL: "fake.com",
+			WebsiteBaseURL:   "fakesite.com",
+			InstancesAuthURL: "fake.com/auth",
+		},
 		WebdavSecretName:   "webdav-secret",
-		InstancesAuthURL:   "fake.com/auth",
 		ReconcileDeferHook: GinkgoRecover,
 		ContainerEnvOpts: forge.ContainerEnvOpts{
 			ImagesTag:            "v0.1.2",

@@ -79,9 +79,9 @@ var _ = BeforeSuite(func(done Done) {
 		Scheme:             k8sManager.GetScheme(),
 		EventsRecorder:     k8sManager.GetEventRecorderFor("instance-snapshot"),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		VMRegistry:         "my-registry",
-		RegistrySecretName: "kaniko-secret",
 		ContainersSnapshot: instancesnapshot_controller.ContainersSnapshotOpts{
+			VMRegistry:         "my-registry",
+			RegistrySecretName: "kaniko-secret",
 			ContainerKaniko:    "kaniko",
 			ContainerImgExport: "crownlabs/img-export",
 		},

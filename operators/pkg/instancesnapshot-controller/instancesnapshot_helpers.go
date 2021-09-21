@@ -151,7 +151,7 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context
 	// Define secret VolumeSource.
 	secretvol := corev1.VolumeSource{
 		Secret: &corev1.SecretVolumeSource{
-			SecretName: r.RegistrySecretName,
+			SecretName: r.ContainersSnapshot.RegistrySecretName,
 			Items: []corev1.KeyToPath{
 				{
 					Key:  ".dockerconfigjson",
@@ -183,7 +183,7 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context
 		Name:  "docker-pusher",
 		Image: r.ContainersSnapshot.ContainerKaniko,
 		Args: []string{"--dockerfile=/workspace/Dockerfile",
-			fmt.Sprintf("--destination=%s/%s/%s:%s", r.VMRegistry, imagedir, isnap.Spec.ImageName, imagetag)},
+			fmt.Sprintf("--destination=%s/%s/%s:%s", r.ContainersSnapshot.VMRegistry, imagedir, isnap.Spec.ImageName, imagetag)},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      "tmp-vol",

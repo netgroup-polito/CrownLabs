@@ -51,17 +51,22 @@ type InstanceReconciler struct {
 	Scheme             *runtime.Scheme
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
-	WebsiteBaseURL     string
-	NextcloudBaseURL   string
 	WebdavSecretName   string
-	InstancesAuthURL   string
 	Concurrency        int
+	ServiceUrls        ServiceUrls
 	ContainerEnvOpts   forge.ContainerEnvOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
+}
+
+// ServiceUrls holds URL parameters for the instance reconciler.
+type ServiceUrls struct {
+	WebsiteBaseURL   string
+	NextcloudBaseURL string
+	InstancesAuthURL string
 }
 
 // Reconcile reconciles the state of an Instance resource.

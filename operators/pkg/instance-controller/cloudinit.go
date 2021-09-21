@@ -61,7 +61,7 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	log.V(utils.LogDebugLevel).Info("public keys correctly retrieved")
 
 	// Create the cloud-init secret
-	secret := instance_creation.CreateCloudInitSecret(namespacedName.Name, namespacedName.Namespace, user, password, r.NextcloudBaseURL, publicKeys)
+	secret := instance_creation.CreateCloudInitSecret(namespacedName.Name, namespacedName.Namespace, user, password, r.ServiceUrls.NextcloudBaseURL, publicKeys)
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		return ctrl.SetControllerReference(instance, &secret, r.Scheme)
 	})
