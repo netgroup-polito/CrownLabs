@@ -12,290 +12,351 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller
+package instance_controller_test
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	gomegaTypes "github.com/onsi/gomega/types"
-	v1 "k8s.io/api/core/v1"
-	errors "k8s.io/apimachinery/pkg/api/errors"
+	. "github.com/onsi/gomega/gstruct"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	virtv1 "kubevirt.io/client-go/api/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
-var _ = Describe("Instance Operator controller", func() {
-
-	// Define utility constants for object names and testing timeouts/durations and intervals.
-	const (
-		InstanceName      = "test-instance"
-		InstanceNamespace = "instance-namespace"
-		TemplateName      = "test-template"
-		TemplateNamespace = "template-namespace"
-		TenantName        = "test-tenant"
-
-		timeout  = time.Second * 20
-		interval = time.Millisecond * 500
-	)
-
+// The following are integration tests aiming to verify that the instance controller
+// reconcile method correctly creates the various resources it has to manage,
+// by running several combinations of configuration. This is not exaustive
+// as a more granular coverage is achieved through the unit tests in this package.
+var _ = Describe("The instance-controller Reconcile method", func() {
+	ctx := context.Background()
 	var (
-		ctx        context.Context
-		templateNs = v1.Namespace{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: TemplateNamespace,
-				Labels: map[string]string{
-					"test-suite": "true",
-				},
-			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
-		}
-		instanceNs = v1.Namespace{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: InstanceNamespace,
-				Labels: map[string]string{
-					"production": "true",
-					"test-suite": "true",
-				},
-			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
-		}
-		webdavSecret = v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "webdav-secret",
-				Namespace: InstanceNamespace,
-			},
-			Data: map[string][]byte{
-				"username": []byte("username"),
-				"password": []byte("password"),
-			},
-			StringData: nil,
-			Type:       "",
-		}
-		instance = crownlabsv1alpha2.Instance{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      InstanceName,
-				Namespace: InstanceNamespace,
-			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
-				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
-					Name:      TemplateName,
-					Namespace: TemplateNamespace,
-				},
-				Tenant: crownlabsv1alpha2.GenericRef{
-					Name: TenantName,
-				},
-			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
-		}
-		instance2 = crownlabsv1alpha2.Instance{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      InstanceName + "persistent",
-				Namespace: InstanceNamespace,
-			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
-				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
-					Name:      TemplateName + "persistent",
-					Namespace: TemplateNamespace,
-				},
-				Tenant: crownlabsv1alpha2.GenericRef{
-					Name: TenantName,
-				},
-			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
-		}
-		templateSpecSingleVM = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
-			PrettyName:   "Wonderful Template",
-			Description:  "A description",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
-				{
-					Name:       "Test",
-					GuiEnabled: true,
-					Mode:       crownlabsv1alpha2.ModeStandard,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
-						CPU:                   1,
-						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
-					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
-					Persistent:      false,
-					Image:           "trololo/vm",
-				},
-			},
-			DeleteAfter: "",
-		}
-		tenant = crownlabsv1alpha1.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: TenantName,
-			},
-			Spec: crownlabsv1alpha1.TenantSpec{
-				FirstName:  "Mario",
-				LastName:   "Rossi",
-				Email:      "mario@rossi.com",
-				Workspaces: nil,
-				PublicKeys: []string{
-					"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP5O4CX17GK17GN+xxfoUpjz6s1FLLQdVSBYSJ02uS/HHueJmE8TQS8tpNfVHQ+i9cCpR+RMXUUDscNjgTxcF8Z0iRIfX6InRUbJt7FSYERX3roSy4YyhNnkDhQe9+1cQNhZsUtVKkTAE4Ew/dnqHjAKMjz+nhiNio7bL0ZsODGZ90uFUfzcg2RUyftluN+IaX9cD9VvmXRmKFMiIUkebOnLxREiOS6aqe8NrqbkK6Bkt0hWhr8U2pfDK86BbgFGL9e7Ms1dWxDPfrOVLnteN0Xe0bLv3HoW1KVlnoC4hwSHaRlhlSU0wgTkfvPzQy/eM95oTrQQCr0fmvjv5uiciP",
-				},
-				CreateSandbox: false,
-			},
-			Status: crownlabsv1alpha1.TenantStatus{},
-		}
-		ns1  = v1.Namespace{}
-		tmp1 = crownlabsv1alpha2.Template{}
+		testName       string
+		runInstance    bool
+		instance       clv1alpha2.Instance
+		environment    clv1alpha2.Environment
+		ingress        netv1.Ingress
+		service        corev1.Service
+		createTenant   bool
+		createTemplate bool
 	)
 
-	Context("", func() {
-		It("Setting up the Instance and Template namespaces", func() {
-			ctx = context.Background()
-			Expect(k8sClient.Create(ctx, &templateNs)).Should(Succeed())
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name: TemplateNamespace,
-			}, &ns1, BeTrue(), timeout, interval)
-			Expect(k8sClient.Create(ctx, &instanceNs)).Should(Succeed())
-			Expect(k8sClient.Create(ctx, &webdavSecret)).Should(Succeed())
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name: InstanceNamespace,
-			}, &ns1, BeTrue(), timeout, interval)
-			Expect(k8sClient.Create(ctx, &tenant)).Should(Succeed())
-			doesEventuallyExist(ctx, types.NamespacedName{
-				Name: TenantName,
-			}, &tenant, BeTrue(), timeout, interval)
+	RunReconciler := func() error {
+		_, err := instanceReconciler.Reconcile(ctx, reconcile.Request{
+			NamespacedName: forge.NamespacedName(&instance),
 		})
-		Context("Create an Instance from a single VM template", func() {
-			It("Creates the single-vm Template and the instance", func() {
-				By("Creating the Template")
-				template := crownlabsv1alpha2.Template{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      TemplateName,
-						Namespace: TemplateNamespace,
-					},
-					Spec:   templateSpecSingleVM,
-					Status: crownlabsv1alpha2.TemplateStatus{},
-				}
-				Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
-				doesEventuallyExist(ctx, types.NamespacedName{
-					Name:      TemplateName,
-					Namespace: TemplateNamespace,
-				}, &tmp1, BeTrue(), timeout, interval)
+		if err != nil {
+			return err
+		}
+		return k8sClient.Get(ctx, forge.NamespacedName(&instance), &instance)
+	}
 
-				By("and creating a Instance associated to the template")
+	BeforeEach(func() {
+		createTenant = true
+		createTemplate = true
+		environment = clv1alpha2.Environment{
+			Name:            "app",
+			Image:           "some-image:v0",
+			EnvironmentType: clv1alpha2.ClassVM,
+			Persistent:      false,
+			GuiEnabled:      true,
+			Resources: clv1alpha2.EnvironmentResources{
+				CPU:                   1,
+				ReservedCPUPercentage: 20,
+				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+			},
+			Mode: clv1alpha2.ModeStandard,
+		}
+	})
 
-				Expect(k8sClient.Create(ctx, &instance)).Should(Succeed())
+	JustBeforeEach(func() {
+		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
+		webdavSecret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: webdavSecretName, Namespace: testName},
+			Data:       map[string][]byte{"username": []byte(testName), "password": []byte(testName)},
+		}
+		tenant := clv1alpha1.Tenant{
+			ObjectMeta: metav1.ObjectMeta{Name: testName},
+			Spec: clv1alpha1.TenantSpec{
+				Email: "test@email.me",
+			},
+		}
+		template := clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testName, Namespace: testName},
+			Spec: clv1alpha2.TemplateSpec{
+				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
+				EnvironmentList: []clv1alpha2.Environment{environment},
+			},
+		}
+		instance = clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{Name: testName, Namespace: testName},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testName, Namespace: testName},
+				Tenant:   clv1alpha2.GenericRef{Name: testName, Namespace: testName},
+				Running:  runInstance,
+			},
+		}
 
-				By("VirtualMachine Should Exists")
-				var VMI virtv1.VirtualMachineInstance
-				doesEventuallyExist(ctx, types.NamespacedName{
-					Name:      InstanceName,
-					Namespace: InstanceNamespace,
-				}, &VMI, BeTrue(), timeout, interval)
-				By("VirtualMachine Has An OwnerReference")
+		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
+		Expect(k8sClient.Create(ctx, &webdavSecret)).To(Succeed())
+		if createTenant {
+			Expect(k8sClient.Create(ctx, &tenant)).To(Succeed())
+		}
+		if createTemplate {
+			Expect(k8sClient.Create(ctx, &template)).To(Succeed())
+		}
+		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
+	})
 
-				flag := true
-				expectedOwnerReference := metav1.OwnerReference{
-					Kind:               "Instance",
-					APIVersion:         "crownlabs.polito.it/v1alpha2",
-					UID:                instance.ObjectMeta.UID,
-					Name:               InstanceName,
-					Controller:         &flag,
-					BlockOwnerDeletion: &flag,
-				}
-				Expect(VMI.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+	Context("The instance is container based", func() {
+		When("the environment is persistent", func() {
+			BeforeEach(func() {
+				testName = "test-container-persistent"
+				environment.Persistent = true
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+				runInstance = false
+			})
 
-				By("Cleaning Instance")
-				Expect(k8sClient.Delete(ctx, &instance)).Should(Succeed())
-				Eventually(func() bool {
-					err := k8sClient.Get(ctx, types.NamespacedName{
-						Namespace: InstanceName,
-						Name:      InstanceName,
-					}, &instance)
-					if err != nil && errors.IsNotFound(err) {
-						return true
-					}
-					return false
-				}, timeout, interval).Should(BeTrue())
+			It("Should correctly reconcile the instance", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
+
+				By("Asserting the deployment has been created", func() {
+					var deploy appsv1.Deployment
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+				})
+
+				By("Asserting the PVC has been created", func() {
+					var pvc corev1.PersistentVolumeClaim
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &pvc)).To(Succeed())
+				})
+
+				By("Asserting the exposition resources aren't present", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
+
+				By("Setting the instance to running", func() {
+					instance.Spec.Running = true
+					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the right exposition resources exist", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
+				})
+
+				By("Asserting the state is coherent", func() {
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
+				})
+
+				By("Asserting the deployment has been created", func() {
+					var deploy appsv1.Deployment
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+				})
 			})
 		})
-		// Testing Persistent VirtualMachines
-		Context("Create an Instance from a single persistent VM template", func() {
-			It("Creates the single-vm Template and the instance", func() {
-				By("Creating the Template")
-				templateSpecSingleVM.EnvironmentList[0].Persistent = true
-				template := crownlabsv1alpha2.Template{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      TemplateName + "persistent",
-						Namespace: TemplateNamespace,
-					},
-					Spec:   templateSpecSingleVM,
-					Status: crownlabsv1alpha2.TemplateStatus{},
-				}
-				Expect(k8sClient.Create(ctx, &template)).Should(Succeed())
-				doesEventuallyExist(ctx, types.NamespacedName{
-					Name:      TemplateName + "persistent",
-					Namespace: TemplateNamespace,
-				}, &tmp1, BeTrue(), timeout, interval)
+		When("the environment is NOT persistent", func() {
+			BeforeEach(func() {
+				testName = "test-container-not-persistent"
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+				runInstance = false
+			})
 
-				By("and creating a Instance associated to the template")
-				Expect(k8sClient.Create(ctx, &instance2)).Should(Succeed())
+			It("Should correctly reconcile the instance", func() {
+				Expect(RunReconciler()).To(Succeed())
 
-				flag := true
-				expectedOwnerReference := metav1.OwnerReference{
-					Kind:               "Instance",
-					APIVersion:         "crownlabs.polito.it/v1alpha2",
-					UID:                instance2.ObjectMeta.UID,
-					Name:               InstanceName + "persistent",
-					Controller:         &flag,
-					BlockOwnerDeletion: &flag,
-				}
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 
-				By("VirtualMachine Should Exists")
-				var VM virtv1.VirtualMachine
-				doesEventuallyExist(ctx, types.NamespacedName{
-					Name:      InstanceName + "persistent",
-					Namespace: InstanceNamespace,
-				}, &VM, BeTrue(), timeout, interval)
+				By("Asserting the deployment has been created with no replicas", func() {
+					var deploy appsv1.Deployment
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+				})
 
-				By("VirtualMachine Has An OwnerReference")
-				Expect(VM.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference))
+				By("Asserting the exposition resources aren't present", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
 
-				By("Cleaning Instance")
-				Expect(k8sClient.Delete(ctx, &instance2)).Should(Succeed())
-				Eventually(func() bool {
-					err := k8sClient.Get(ctx, types.NamespacedName{
-						Namespace: InstanceName + "persistent",
-						Name:      InstanceName,
-					}, &instance2)
-					if err != nil && errors.IsNotFound(err) {
-						return true
-					}
-					return false
-				}, timeout, interval).Should(BeTrue())
+				By("Setting the instance to running", func() {
+					instance.Spec.Running = true
+					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the right exposition resources exist", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
+				})
+
+				By("Asserting the state is coherent", func() {
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
+				})
+
+				By("Asserting the deployment has been created", func() {
+					var deploy appsv1.Deployment
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+				})
+			})
+		})
+	})
+
+	Context("The instance is VM based", func() {
+		When("the environment is persistent", func() {
+			BeforeEach(func() {
+				testName = "test-vm-persistent"
+				environment.Persistent = true
+				runInstance = false
+			})
+
+			It("Should correctly reconcile the instance", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				// Check the status phase is unset since it's retrieved from the VM (and the kubervirt operator is not available in the test env)
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
+
+				By("Asserting the VM has been created", func() {
+					var vm virtv1.VirtualMachine
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+					Expect(vm.Spec.Running).To(PointTo(BeFalse()))
+				})
+
+				By("Asserting the cloudinit secret has been created", func() {
+					var secret corev1.Secret
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
+				})
+
+				By("Asserting the exposition resources aren't present", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
+
+				By("Setting the instance to running", func() {
+					instance.Spec.Running = true
+					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the right exposition resources exist", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the state is coherent", func() {
+					var vm virtv1.VirtualMachine
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+					vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
+					Expect(k8sClient.Update(ctx, &vm))
+					Expect(RunReconciler()).To(Succeed())
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
+				})
+
+				By("Asserting the VM spec has been changed", func() {
+					var vm virtv1.VirtualMachine
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+					Expect(vm.Spec.Running).To(PointTo(BeTrue()))
+				})
+			})
+		})
+
+		When("the environment is NOT persistent", func() {
+			BeforeEach(func() {
+				testName = "test-vm-not-persistent"
+				runInstance = false
+			})
+
+			It("Should correctly reconcile the instance", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
+
+				By("Asserting the VM has NOT been created", func() {
+					var vmi virtv1.VirtualMachineInstance
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vmi)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the cloudinit secret has been created", func() {
+					var secret corev1.Secret
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
+				})
+
+				By("Asserting the exposition resources aren't present", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
+
+				By("Setting the instance to running", func() {
+					instance.Spec.Running = true
+					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the right exposition resources exist", func() {
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the VM has been created", func() {
+					var vmi virtv1.VirtualMachineInstance
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vmi)).To(Succeed())
+					vmi.Status.Phase = virtv1.Running
+					Expect(k8sClient.Update(ctx, &vmi)).To(Succeed())
+				})
+
+				By("Asserting the state is coherent", func() {
+					Expect(RunReconciler()).To(Succeed())
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
+				})
+			})
+		})
+	})
+
+	Context("In case of misconfiguration", func() {
+		When("the template is missing", func() {
+			BeforeEach(func() {
+				testName = "test-missing-template"
+				createTemplate = false
+			})
+
+			It("Should fail instance reconcile", func() {
+				Expect(RunReconciler()).To(HaveOccurred())
+			})
+		})
+
+		When("the tenant is missing", func() {
+			BeforeEach(func() {
+				testName = "test-missing-tenant"
+				createTenant = false
+			})
+
+			It("Should fail instance reconcile", func() {
+				Expect(RunReconciler()).To(HaveOccurred())
 			})
 		})
 	})
 })
-
-func doesEventuallyExist(ctx context.Context, nsLookupKey types.NamespacedName, createdObject client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
-	Eventually(func() bool {
-		err := k8sClient.Get(ctx, nsLookupKey, createdObject)
-		return err == nil
-	}, timeout, interval).Should(expectedStatus)
-}

@@ -91,7 +91,7 @@ func (r *InstanceReconciler) enforceConainer(ctx context.Context) error {
 			depl.Spec = forge.DeploymentSpec(instance, environment, &r.ContainerEnvOpts)
 		}
 
-		depl.Spec.Replicas = forge.ReplicasCount(instance, environment)
+		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())
 
 		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller
+package instance_controller_test
 
 import (
 	"path/filepath"
@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
@@ -31,17 +31,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -51,50 +48,45 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds")},
-	}
-	var err error
-	cfg, err = testEnv.Start()
+var (
+	instanceReconciler instance_controller.InstanceReconciler
+	k8sClient          client.Client
+	testEnv            = envtest.Environment{CRDDirectoryPaths: []string{
+		filepath.Join("..", "..", "deploy", "crds"),
+		filepath.Join("..", "..", "tests", "crds"),
+	}}
+	whiteListMap = map[string]string{"production": "true"}
+)
+
+const webdavSecretName = "webdav-secret"
+
+var _ = BeforeSuite(func() {
+	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = crownlabsv1alpha2.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = crownlabsv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = virtv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-	err = cdiv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(cdiv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	ctrl.SetLogger(klogr.NewWithOptions())
 
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
 
-	whiteListMap := map[string]string{
-		"production": "true",
-	}
-
-	err = (&InstanceReconciler{
-		Client:             k8sManager.GetClient(),
-		Scheme:             k8sManager.GetScheme(),
-		EventsRecorder:     k8sManager.GetEventRecorderFor("Instance"),
-		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		ServiceUrls: ServiceUrls{
+	instanceReconciler = instance_controller.InstanceReconciler{
+		Client:             k8sClient,
+		Scheme:             scheme.Scheme,
+		EventsRecorder:     record.NewFakeRecorder(1024),
+		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+		WebdavSecretName:   webdavSecretName,
+		ReconcileDeferHook: GinkgoRecover,
+		ServiceUrls: instance_controller.ServiceUrls{
 			NextcloudBaseURL: "fake.com",
 			WebsiteBaseURL:   "fakesite.com",
 			InstancesAuthURL: "fake.com/auth",
 		},
-		WebdavSecretName:   "webdav-secret",
-		ReconcileDeferHook: GinkgoRecover,
 		ContainerEnvOpts: forge.ContainerEnvOpts{
 			ImagesTag:            "v0.1.2",
 			XVncImg:              "fake-xvnc",
@@ -102,22 +94,9 @@ var _ = BeforeSuite(func(done Done) {
 			MyDriveImgAndTag:     "fake-filebrowser",
 			ContentDownloaderImg: "fake-archdl",
 		},
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
-	go func() {
-		err = k8sManager.Start(ctrl.SetupSignalHandler())
-		Expect(err).ToNot(HaveOccurred())
-	}()
-
-	k8sClient = k8sManager.GetClient()
-	Expect(k8sClient).ToNot(BeNil())
-
-	close(done)
-}, 60)
+	}
+})
 
 var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
+	Expect(testEnv.Stop()).To(Succeed())
 })

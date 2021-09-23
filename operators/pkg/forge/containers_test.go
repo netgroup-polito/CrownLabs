@@ -129,6 +129,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		type ReplicasCountCase struct {
 			Persistent     bool
 			Running        bool
+			IsNew          bool
 			ExpectedOutput int32
 		}
 
@@ -140,14 +141,22 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				})
 
 				It("Should return the correct Replica count", func() {
-					Expect(forge.ReplicasCount(&instance, &environment)).To(PointTo(Equal(c.ExpectedOutput)))
+					Expect(forge.ReplicasCount(&instance, &environment, c.IsNew)).To(PointTo(Equal(c.ExpectedOutput)))
 				})
 			}
 		}
 
-		When("the environment is persistent and instance is not running", WhenBody(ReplicasCountCase{
+		When("the environment is not persistent and instance is new and not running", WhenBody(ReplicasCountCase{
 			Persistent:     false,
 			Running:        false,
+			IsNew:          true,
+			ExpectedOutput: 0,
+		}))
+
+		When("the environment is not persistent and instance is not new and not running", WhenBody(ReplicasCountCase{
+			Persistent:     false,
+			Running:        false,
+			IsNew:          false,
 			ExpectedOutput: 1,
 		}))
 

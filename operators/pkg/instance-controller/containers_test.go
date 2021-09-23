@@ -170,7 +170,7 @@ var _ = Describe("Generation of the container based instances", func() {
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 					expected := forge.DeploymentSpec(&instance, &environment, &containerOpts)
-					expected.Replicas = forge.ReplicasCount(&instance, &environment)
+					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
 					Expect(deploy.Spec.Selector.MatchLabels).To(BeEquivalentTo(expected.Selector.MatchLabels))
@@ -198,9 +198,9 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
-				It("The deployment replicas should be 1", func() {
+				It("The deployment replicas should be 0", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
 				})
 
 				It("Should set the instance phase to Off", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Generation of the container based instances", func() {
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 				expected := forge.DeploymentSpec(&instance, &environment, &containerOpts)
-				expected.Replicas = forge.ReplicasCount(&instance, &environment)
+				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
 				Expect(deploy.Spec.Selector.MatchLabels).To(BeEquivalentTo(expected.Selector.MatchLabels))
