@@ -87,8 +87,8 @@ func PodSecurityContext() *corev1.PodSecurityContext {
 
 // ReplicasCount returns an int32 pointer to 1 if the instance is not persistent
 // or, if persistent, in case environment spec is set as running; 0 otherwise.
-func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) *int32 {
-	if !environment.Persistent || instance.Spec.Running {
+func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, isNew bool) *int32 {
+	if (!isNew && !environment.Persistent) || instance.Spec.Running {
 		return pointer.Int32(1)
 	}
 	return pointer.Int32(0)
