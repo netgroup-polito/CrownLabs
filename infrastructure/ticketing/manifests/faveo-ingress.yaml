@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  name: faveo-ingress
+  namespace: crownlabs-ticketing
+spec:
+  ingressClassName: nginx-external
+  rules:
+  - host: ticketing.crownlabs.polito.it
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: faveo
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - ticketing.crownlabs.polito.it
+    secretName: crownlabs-ingress-secret
