@@ -46,7 +46,9 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		reconciler    instance_controller.InstanceReconciler
 
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
+		tenant      clv1alpha1.Tenant
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -66,6 +68,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		templateNamespace = "workspace-netgroup"
 		environmentName   = "control-plane"
 		tenantName        = "tester"
+		workspaceName     = "netgroup"
 		webdavCredentials = "webdav-credentials"
 
 		image       = "internal/registry/image:v1.0"
@@ -109,6 +112,15 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				Disk:                  resource.MustParse(disk),
 			},
 		}
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				WorkspaceRef:    clv1alpha2.GenericRef{Name: workspaceName},
+				EnvironmentList: []clv1alpha2.Environment{environment},
+			},
+		}
+
+		tenant = clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
 		objectName = forge.NamespacedName(&instance)
 
@@ -131,7 +143,9 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		reconciler = instance_controller.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
+		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
