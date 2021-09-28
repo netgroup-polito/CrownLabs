@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"time"
@@ -26,13 +26,13 @@ import (
 	virtv1 "kubevirt.io/client-go/api/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
 
 var _ = Describe("Status Inspection", func() {
 
 	Describe("The statusinspection.RetrievePhaseFromVM function", func() {
-		var reconciler instance_controller.InstanceReconciler
+		var reconciler instctrl.InstanceReconciler
 
 		ForgeVM := func(status virtv1.VirtualMachinePrintableStatus) *virtv1.VirtualMachine {
 			return &virtv1.VirtualMachine{Status: virtv1.VirtualMachineStatus{PrintableStatus: status, Ready: false}}
@@ -46,7 +46,7 @@ var _ = Describe("Status Inspection", func() {
 		}
 
 		BeforeEach(func() {
-			reconciler = instance_controller.InstanceReconciler{}
+			reconciler = instctrl.InstanceReconciler{}
 		})
 
 		DescribeTable("Correctly returns the expected instance phase",
@@ -65,7 +65,7 @@ var _ = Describe("Status Inspection", func() {
 	})
 
 	Describe("The statusinspection.RetrievePhaseFromVMI function", func() {
-		var reconciler instance_controller.InstanceReconciler
+		var reconciler instctrl.InstanceReconciler
 
 		ForgeVMI := func(phase virtv1.VirtualMachineInstancePhase) *virtv1.VirtualMachineInstance {
 			return &virtv1.VirtualMachineInstance{Status: virtv1.VirtualMachineInstanceStatus{
@@ -95,7 +95,7 @@ var _ = Describe("Status Inspection", func() {
 		}
 
 		BeforeEach(func() {
-			reconciler = instance_controller.InstanceReconciler{}
+			reconciler = instctrl.InstanceReconciler{}
 		})
 
 		DescribeTable("Correctly returns the expected instance phase",
@@ -116,7 +116,7 @@ var _ = Describe("Status Inspection", func() {
 	})
 
 	Describe("The statusinspection.RetrievePhaseFromDeployment function", func() {
-		var reconciler instance_controller.InstanceReconciler
+		var reconciler instctrl.InstanceReconciler
 
 		ForgeDeployment := func(desired, ready int32) *appsv1.Deployment {
 			return &appsv1.Deployment{
@@ -131,7 +131,7 @@ var _ = Describe("Status Inspection", func() {
 		}
 
 		BeforeEach(func() {
-			reconciler = instance_controller.InstanceReconciler{}
+			reconciler = instctrl.InstanceReconciler{}
 		})
 
 		DescribeTable("Correctly returns the expected instance phase",

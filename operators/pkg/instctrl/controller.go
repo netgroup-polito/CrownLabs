@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package instance_controller groups the functionalities related to the Instance controller.
-package instance_controller
+// Package instctrl groups the functionalities related to the Instance controller.
+package instctrl
 
 import (
 	"context"

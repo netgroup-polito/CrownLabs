@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"path/filepath"
@@ -34,7 +34,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -49,7 +49,7 @@ func TestAPIs(t *testing.T) {
 }
 
 var (
-	instanceReconciler instance_controller.InstanceReconciler
+	instanceReconciler instctrl.InstanceReconciler
 	k8sClient          client.Client
 	testEnv            = envtest.Environment{CRDDirectoryPaths: []string{
 		filepath.Join("..", "..", "deploy", "crds"),
@@ -75,14 +75,14 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
 
-	instanceReconciler = instance_controller.InstanceReconciler{
+	instanceReconciler = instctrl.InstanceReconciler{
 		Client:             k8sClient,
 		Scheme:             scheme.Scheme,
 		EventsRecorder:     record.NewFakeRecorder(1024),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
 		WebdavSecretName:   webdavSecretName,
 		ReconcileDeferHook: GinkgoRecover,
-		ServiceUrls: instance_controller.ServiceUrls{
+		ServiceUrls: instctrl.ServiceUrls{
 			NextcloudBaseURL: "fake.com",
 			WebsiteBaseURL:   "fakesite.com",
 			InstancesAuthURL: "fake.com/auth",

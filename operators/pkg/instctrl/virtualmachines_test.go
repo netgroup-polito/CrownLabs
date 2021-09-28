@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"context"
@@ -36,14 +36,14 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
 
 var _ = Describe("Generation of the virtual machine and virtual machine instances", func() {
 	var (
 		ctx           context.Context
 		clientBuilder fake.ClientBuilder
-		reconciler    instance_controller.InstanceReconciler
+		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
 		template    clv1alpha2.Template
@@ -85,8 +85,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: webdavCredentials, Namespace: instanceNamespace},
 				Data: map[string][]byte{
-					instance_controller.WebdavSecretUsernameKey: []byte("username"),
-					instance_controller.WebdavSecretPasswordKey: []byte("password"),
+					instctrl.WebdavSecretUsernameKey: []byte("username"),
+					instctrl.WebdavSecretPasswordKey: []byte("password"),
 				},
 			},
 			&clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace}},
@@ -140,7 +140,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	})
 
 	JustBeforeEach(func() {
-		reconciler = instance_controller.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
+		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)

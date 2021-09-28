@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"context"
@@ -37,7 +37,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
 
 type FakeClientWrapped struct {
@@ -57,7 +57,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 	var (
 		ctx           context.Context
 		clientBuilder fake.ClientBuilder
-		reconciler    instance_controller.InstanceReconciler
+		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
@@ -118,7 +118,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
-		reconciler = instance_controller.InstanceReconciler{Client: client, Scheme: scheme.Scheme, ServiceUrls: instance_controller.ServiceUrls{WebsiteBaseURL: host}}
+		reconciler = instctrl.InstanceReconciler{Client: client, Scheme: scheme.Scheme, ServiceUrls: instctrl.ServiceUrls{WebsiteBaseURL: host}}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
