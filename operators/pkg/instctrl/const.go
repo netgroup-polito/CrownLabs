@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package instance_controller groups the functionalities related to the Instance controller.
-package instance_controller
+package instctrl
 
 const (
 	// EvTmplNotFound -> the event key corresponding to a not found template.

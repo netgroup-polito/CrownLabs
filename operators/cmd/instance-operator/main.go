@@ -34,8 +34,8 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -56,7 +56,7 @@ func init() {
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	svcUrls := instance_controller.ServiceUrls{}
+	svcUrls := instctrl.ServiceUrls{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -114,7 +114,7 @@ func main() {
 
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
-	if err = (&instance_controller.InstanceReconciler{
+	if err = (&instctrl.InstanceReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),

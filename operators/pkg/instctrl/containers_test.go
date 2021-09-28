@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
 
 var _ = Describe("Generation of the container based instances", func() {
@@ -57,7 +57,7 @@ var _ = Describe("Generation of the container based instances", func() {
 	var (
 		ctx           context.Context
 		clientBuilder fake.ClientBuilder
-		reconciler    instance_controller.InstanceReconciler
+		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
@@ -139,7 +139,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 	JustBeforeEach(func() {
 
-		reconciler = instance_controller.InstanceReconciler{
+		reconciler = instctrl.InstanceReconciler{
 			Client: clientBuilder.Build(), Scheme: scheme.Scheme,
 			ContainerEnvOpts: containerOpts,
 		}

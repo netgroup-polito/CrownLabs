@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package instance_controller_test
+package instctrl_test
 
 import (
 	"context"
@@ -33,7 +33,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instance_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instance-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
@@ -41,7 +41,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 	var (
 		ctx           context.Context
 		clientBuilder fake.ClientBuilder
-		reconciler    instance_controller.InstanceReconciler
+		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
 		template    clv1alpha2.Template
@@ -129,9 +129,9 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build()}
-		reconciler = instance_controller.InstanceReconciler{
+		reconciler = instctrl.InstanceReconciler{
 			Client: client, Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials,
-			ServiceUrls: instance_controller.ServiceUrls{NextcloudBaseURL: nextcloudBaseURL},
+			ServiceUrls: instctrl.ServiceUrls{NextcloudBaseURL: nextcloudBaseURL},
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -144,12 +144,12 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		var expected []byte
 
 		Extractor := func(content map[string][]byte) string {
-			return string(content[instance_controller.UserDataKey])
+			return string(content[instctrl.UserDataKey])
 		}
 
 		BeforeEach(func() {
 			clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-				instance_controller.WebdavSecretUsernameKey, instance_controller.WebdavSecretPasswordKey))
+				instctrl.WebdavSecretUsernameKey, instctrl.WebdavSecretPasswordKey))
 
 			expected, err = forge.CloudInitUserData(nextcloudBaseURL, webdavUsername, webdavPassword, tenant.Spec.PublicKeys)
 			Expect(err).ToNot(HaveOccurred())
@@ -213,7 +213,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			When("the secret contains the expected data", func() {
 				BeforeEach(func() {
 					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						instance_controller.WebdavSecretUsernameKey, instance_controller.WebdavSecretPasswordKey))
+						instctrl.WebdavSecretUsernameKey, instctrl.WebdavSecretPasswordKey))
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -224,7 +224,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			When("the secret does not contain the username", func() {
 				BeforeEach(func() {
 					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						"invalid-username-key", instance_controller.WebdavSecretPasswordKey))
+						"invalid-username-key", instctrl.WebdavSecretPasswordKey))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
@@ -233,7 +233,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			When("the secret does not contain the password", func() {
 				BeforeEach(func() {
 					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						instance_controller.WebdavSecretUsernameKey, "invalid-password-key"))
+						instctrl.WebdavSecretUsernameKey, "invalid-password-key"))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
