@@ -113,6 +113,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             }
           >
             <ThemeSwitcher />
+
             <LogoutButton
               className=" justify-end"
               iconStyle={{ fontSize: '24px' }}

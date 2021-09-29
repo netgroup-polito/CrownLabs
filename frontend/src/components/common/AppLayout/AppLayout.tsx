@@ -5,11 +5,11 @@ import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { logout } from '../../../contexts/AuthContext';
 import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
-import Logo from '../Logo';
 import './AppLayout.less';
 import { RouteData } from '../Navbar/Navbar';
 import { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import { PUBLIC_URL } from '../../../env';
+import { InfoOutlined } from '@ant-design/icons';
 
 const { Content } = Layout;
 
@@ -61,7 +61,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
               tooltipTitle: 'Show CrownLabs infos',
               tooltipPlacement: 'rightBottom',
               type: 'primary',
-              icon: <Logo widthPx={30} color="white" />,
+              icon: <InfoOutlined style={{ fontSize: '22px' }} />,
             }}
             onClick={() => setSideLeftShow(true)}
           />
