@@ -11,7 +11,7 @@ const getOpenApiSpec = require('./oas');
 const { decorateOpenapi } = require('./decorateOpenapi');
 const { createSchema } = require('./schema');
 const { subscriptions } = require('./subscriptions.js');
-const { kwatch } = require('./watch.js');
+const { kinformer } = require('./informer.js');
 const {
   getBearerToken,
   graphqlQueryRegistry,
@@ -101,12 +101,15 @@ async function main() {
     );
   });
 
+  /**
+   * Making informer for watching resources.
+   * Whether you want to change informer with watcher:
+   * 1. Include kwatch from watch.js
+   * 2. Use kwatch(resourceApi, sub.type);
+   */
   try {
     subscriptions.forEach(sub => {
-      const resourceApi = `/${sub.api}${sub.group ? `/${sub.group}` : ''}/${
-        sub.version
-      }/${sub.resource}`;
-      kwatch(resourceApi, sub.type);
+      kinformer(sub);
     });
   } catch (e) {
     console.error(e);
