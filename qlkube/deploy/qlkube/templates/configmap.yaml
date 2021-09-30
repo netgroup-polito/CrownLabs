@@ -26,6 +26,9 @@ data:
         version: {{ quote .version }},
         resource: {{ quote .resource }},
         type: {{ quote .mapping }},
+        {{- if .listMapping }}
+        listMapping: {{ quote .listMapping }},
+        {{- end }}
       },
       {{- end }}
       {{- end }}
