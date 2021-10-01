@@ -17,6 +17,7 @@ function DashboardLogic() {
   return !loading && data && !error ? (
     <>
       <Dashboard
+        tenantNamespace={data.tenant?.status?.personalNamespace?.name!}
         workspaces={
           data.tenant?.spec?.workspaces?.map(workspace => {
             return {

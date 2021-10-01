@@ -5,6 +5,7 @@ import { WorkspaceWelcome } from '../WorkspaceWelcome';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceRole } from '../../../utils';
 export interface IDashboardProps {
+  tenantNamespace: string;
   workspaces: Array<{
     workspaceId: string;
     role: WorkspaceRole;
@@ -14,7 +15,7 @@ export interface IDashboardProps {
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   const [selectedWsId, setSelectedWs] = useState(-1);
-  const { workspaces } = props;
+  const { tenantNamespace, workspaces } = props;
   const [reload, setReload] = useState(false);
 
   return (
@@ -42,6 +43,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       >
         {selectedWsId !== -1 ? (
           <WorkspaceContainer
+            tenantNamespace={tenantNamespace}
             workspace={{
               id: selectedWsId,
               role: workspaces[selectedWsId].role,
