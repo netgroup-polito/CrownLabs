@@ -2,6 +2,15 @@ const { apiGroups } = require('./apiGroups');
 
 const k8s = 'io.k8s.apimachinery';
 
+const force = {
+  uniqueItems: true,
+  type: 'boolean',
+  description:
+    'Force is going to "force" Apply requests. It means user will re-acquire conflicting fields owned by other people. Force flag must be unset for non-apply patch requests.',
+  name: 'force',
+  in: 'query',
+};
+
 /**
  *
  * @param {*} oas
@@ -42,6 +51,15 @@ function decorateOpenapi(oas) {
   removeKeys.forEach(rk => {
     delete oas.definitions[rk];
   });
+
+  for (const path in oas.paths) {
+    const { patch } = oas.paths[path];
+    if (patch) {
+      patch.consumes = ['application/apply-patch+yaml'];
+      if (!patch.parameters.find(p => p.name === 'force'))
+        patch.parameters.push({ ...force });
+    }
+  }
   return oas;
 }
 
