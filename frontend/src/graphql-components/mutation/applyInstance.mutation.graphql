@@ -1,0 +1,17 @@
+mutation applyInstance(
+  $instanceId: String!
+  $tenantNamespace: String!
+  $patchJson: String!
+) {
+  applyInstance: patchCrownlabsPolitoItV1alpha2NamespacedInstance(
+    name: $instanceId
+    namespace: $tenantNamespace
+    force: true
+    fieldManager: "crownlabs"
+    applicationApplyPatchYamlInput: $patchJson
+  ) {
+    spec {
+      running
+    }
+  }
+}

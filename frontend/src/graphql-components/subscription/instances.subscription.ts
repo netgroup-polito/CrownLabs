@@ -12,6 +12,7 @@ export default gql`
       instance: payload {
         metadata {
           name
+          creationTimestamp
         }
         status {
           ip

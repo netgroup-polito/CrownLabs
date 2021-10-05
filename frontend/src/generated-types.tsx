@@ -665,7 +665,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1ImageListArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha1ImageListStatusArgs = {
@@ -673,7 +674,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1ImageListStatusArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha1TenantArgs = {
@@ -681,7 +683,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1TenantArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha1TenantStatusArgs = {
@@ -689,7 +692,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1TenantStatusArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceArgs = {
@@ -697,7 +701,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceStatusArgs = {
@@ -705,7 +710,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceStatusArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
@@ -714,7 +720,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
@@ -723,7 +730,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusArgs = {
@@ -732,7 +740,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStat
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs = {
@@ -741,7 +750,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs =
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
@@ -750,7 +760,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs = {
@@ -759,7 +770,8 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs =
   pretty?: Maybe<Scalars['String']>;
   dryRun?: Maybe<Scalars['String']>;
   fieldManager?: Maybe<Scalars['String']>;
-  applicationJsonPatchJsonInput: Scalars['String'];
+  force?: Maybe<Scalars['Boolean']>;
+  applicationApplyPatchYamlInput: Scalars['String'];
 };
 
 export type MutationReplaceCrownlabsPolitoItV1alpha1ImageListArgs = {
@@ -1281,6 +1293,7 @@ export type StatusInput = {
 export type Subscription = {
   __typename?: 'Subscription';
   itPolitoCrownlabsV1alpha2InstanceUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceUpdate>;
+  itPolitoCrownlabsV1alpha2InstanceLabelsUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceUpdate>;
   itPolitoCrownlabsV1alpha2InstanceSnapshotUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate>;
   itPolitoCrownlabsV1alpha2TemplateUpdate?: Maybe<ItPolitoCrownlabsV1alpha2TemplateUpdate>;
   itPolitoCrownlabsV1alpha1TenantUpdate?: Maybe<ItPolitoCrownlabsV1alpha1TenantUpdate>;
@@ -1291,6 +1304,10 @@ export type Subscription = {
 export type SubscriptionItPolitoCrownlabsV1alpha2InstanceUpdateArgs = {
   name?: Maybe<Scalars['String']>;
   namespace: Scalars['String'];
+};
+
+export type SubscriptionItPolitoCrownlabsV1alpha2InstanceLabelsUpdateArgs = {
+  labelSelector?: Maybe<Scalars['String']>;
 };
 
 export type SubscriptionItPolitoCrownlabsV1alpha2InstanceSnapshotUpdateArgs = {
@@ -1304,8 +1321,8 @@ export type SubscriptionItPolitoCrownlabsV1alpha2TemplateUpdateArgs = {
 };
 
 export type SubscriptionItPolitoCrownlabsV1alpha1TenantUpdateArgs = {
-  name?: Maybe<Scalars['String']>;
-  namespace: Scalars['String'];
+  name: Scalars['String'];
+  namespace?: Maybe<Scalars['String']>;
 };
 
 export type SubscriptionItPolitoCrownlabsV1alpha1WorkspaceUpdateArgs = {
@@ -1397,6 +1414,54 @@ export type WorkspacesListItemInput = {
   groupNumber?: Maybe<Scalars['Int']>;
   role: Role;
   workspaceRef: WorkspaceRefInput;
+};
+
+export type ApplyInstanceMutationVariables = Exact<{
+  instanceId: Scalars['String'];
+  tenantNamespace: Scalars['String'];
+  patchJson: Scalars['String'];
+}>;
+
+export type ApplyInstanceMutation = {
+  __typename?: 'Mutation';
+  applyInstance?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha2Instance';
+    spec?: Maybe<{ __typename?: 'Spec4'; running?: Maybe<boolean> }>;
+  }>;
+};
+
+export type ApplyTenantMutationVariables = Exact<{
+  workspaceName: Scalars['String'];
+  patchJson: Scalars['String'];
+}>;
+
+export type ApplyTenantMutation = {
+  __typename?: 'Mutation';
+  applyTenant?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha1Tenant';
+    metadata?: Maybe<{
+      __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+      tenantId?: Maybe<string>;
+    }>;
+    spec?: Maybe<{
+      __typename?: 'Spec2';
+      firstName?: Maybe<string>;
+      lastName?: Maybe<string>;
+      email?: Maybe<string>;
+      workspaces?: Maybe<
+        Array<
+          Maybe<{
+            __typename?: 'WorkspacesListItem';
+            role?: Maybe<Role>;
+            workspaceRef?: Maybe<{
+              __typename?: 'WorkspaceRef';
+              name?: Maybe<string>;
+            }>;
+          }>
+        >
+      >;
+    }>;
+  }>;
 };
 
 export type CreateInstanceMutationVariables = Exact<{
@@ -1519,36 +1584,39 @@ export type DeleteTemplateMutation = {
   }>;
 };
 
-export type UpdateTenantMutationVariables = Exact<{
-  workspaceName: Scalars['String'];
+export type EditTemplateMutationVariables = Exact<{
+  templateId: Scalars['String'];
+  workspaceNamespace: Scalars['String'];
   patchJson: Scalars['String'];
 }>;
 
-export type UpdateTenantMutation = {
+export type EditTemplateMutation = {
   __typename?: 'Mutation';
-  updateTenant?: Maybe<{
-    __typename?: 'ItPolitoCrownlabsV1alpha1Tenant';
-    metadata?: Maybe<{
-      __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
-      tenantId?: Maybe<string>;
-    }>;
+  editTemplate?: Maybe<{
+    __typename?: 'ItPolitoCrownlabsV1alpha2Template';
     spec?: Maybe<{
-      __typename?: 'Spec2';
-      firstName?: Maybe<string>;
-      lastName?: Maybe<string>;
-      email?: Maybe<string>;
-      workspaces?: Maybe<
+      __typename?: 'Spec6';
+      description?: Maybe<string>;
+      name?: Maybe<string>;
+      environmentList?: Maybe<
         Array<
           Maybe<{
-            __typename?: 'WorkspacesListItem';
-            role?: Maybe<Role>;
-            workspaceRef?: Maybe<{
-              __typename?: 'WorkspaceRef';
-              name?: Maybe<string>;
+            __typename?: 'EnvironmentListListItem';
+            guiEnabled?: Maybe<boolean>;
+            persistent?: Maybe<boolean>;
+            resources?: Maybe<{
+              __typename?: 'Resources';
+              cpu?: Maybe<number>;
+              disk?: Maybe<string>;
+              memory?: Maybe<string>;
             }>;
           }>
         >
       >;
+    }>;
+    metadata?: Maybe<{
+      __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
+      id?: Maybe<string>;
     }>;
   }>;
 };
@@ -1597,6 +1665,7 @@ export type OwnedInstancesQuery = {
           metadata?: Maybe<{
             __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
             name?: Maybe<string>;
+            creationTimestamp?: Maybe<string>;
           }>;
           status?: Maybe<{
             __typename?: 'Status3';
@@ -1654,6 +1723,7 @@ export type InstancesLabelSelectorQuery = {
           metadata?: Maybe<{
             __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
             name?: Maybe<string>;
+            creationTimestamp?: Maybe<string>;
           }>;
           status?: Maybe<{
             __typename?: 'Status3';
@@ -1864,6 +1934,7 @@ export type UpdatedOwnedInstancesSubscription = {
       metadata?: Maybe<{
         __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2';
         name?: Maybe<string>;
+        creationTimestamp?: Maybe<string>;
       }>;
       status?: Maybe<{
         __typename?: 'Status3';
@@ -2020,6 +2091,171 @@ export type UpdatedTenantSubscription = {
   }>;
 };
 
+export const ApplyInstanceDocument = gql`
+  mutation applyInstance(
+    $instanceId: String!
+    $tenantNamespace: String!
+    $patchJson: String!
+  ) {
+    applyInstance: patchCrownlabsPolitoItV1alpha2NamespacedInstance(
+      name: $instanceId
+      namespace: $tenantNamespace
+      force: true
+      fieldManager: "crownlabs"
+      applicationApplyPatchYamlInput: $patchJson
+    ) {
+      spec {
+        running
+      }
+    }
+  }
+`;
+export type ApplyInstanceMutationFn = Apollo.MutationFunction<
+  ApplyInstanceMutation,
+  ApplyInstanceMutationVariables
+>;
+export type ApplyInstanceComponentProps = Omit<
+  ApolloReactComponents.MutationComponentOptions<
+    ApplyInstanceMutation,
+    ApplyInstanceMutationVariables
+  >,
+  'mutation'
+>;
+
+export const ApplyInstanceComponent = (props: ApplyInstanceComponentProps) => (
+  <ApolloReactComponents.Mutation<
+    ApplyInstanceMutation,
+    ApplyInstanceMutationVariables
+  >
+    mutation={ApplyInstanceDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useApplyInstanceMutation__
+ *
+ * To run a mutation, you first call `useApplyInstanceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplyInstanceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applyInstanceMutation, { data, loading, error }] = useApplyInstanceMutation({
+ *   variables: {
+ *      instanceId: // value for 'instanceId'
+ *      tenantNamespace: // value for 'tenantNamespace'
+ *      patchJson: // value for 'patchJson'
+ *   },
+ * });
+ */
+export function useApplyInstanceMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ApplyInstanceMutation,
+    ApplyInstanceMutationVariables
+  >
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<
+    ApplyInstanceMutation,
+    ApplyInstanceMutationVariables
+  >(ApplyInstanceDocument, options);
+}
+export type ApplyInstanceMutationHookResult = ReturnType<
+  typeof useApplyInstanceMutation
+>;
+export type ApplyInstanceMutationResult = Apollo.MutationResult<ApplyInstanceMutation>;
+export type ApplyInstanceMutationOptions = Apollo.BaseMutationOptions<
+  ApplyInstanceMutation,
+  ApplyInstanceMutationVariables
+>;
+export const ApplyTenantDocument = gql`
+  mutation applyTenant($workspaceName: String!, $patchJson: String!) {
+    applyTenant: patchCrownlabsPolitoItV1alpha1Tenant(
+      name: $workspaceName
+      force: true
+      fieldManager: "crownlabs"
+      applicationApplyPatchYamlInput: $patchJson
+    ) {
+      metadata {
+        tenantId: name
+      }
+      spec {
+        firstName
+        lastName
+        email
+        workspaces {
+          role
+          workspaceRef {
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+export type ApplyTenantMutationFn = Apollo.MutationFunction<
+  ApplyTenantMutation,
+  ApplyTenantMutationVariables
+>;
+export type ApplyTenantComponentProps = Omit<
+  ApolloReactComponents.MutationComponentOptions<
+    ApplyTenantMutation,
+    ApplyTenantMutationVariables
+  >,
+  'mutation'
+>;
+
+export const ApplyTenantComponent = (props: ApplyTenantComponentProps) => (
+  <ApolloReactComponents.Mutation<
+    ApplyTenantMutation,
+    ApplyTenantMutationVariables
+  >
+    mutation={ApplyTenantDocument}
+    {...props}
+  />
+);
+
+/**
+ * __useApplyTenantMutation__
+ *
+ * To run a mutation, you first call `useApplyTenantMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplyTenantMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applyTenantMutation, { data, loading, error }] = useApplyTenantMutation({
+ *   variables: {
+ *      workspaceName: // value for 'workspaceName'
+ *      patchJson: // value for 'patchJson'
+ *   },
+ * });
+ */
+export function useApplyTenantMutation(
+  baseOptions?: Apollo.MutationHookOptions<
+    ApplyTenantMutation,
+    ApplyTenantMutationVariables
+  >
+) {
+  const options = { ...defaultOptions, ...baseOptions };
+  return Apollo.useMutation<ApplyTenantMutation, ApplyTenantMutationVariables>(
+    ApplyTenantDocument,
+    options
+  );
+}
+export type ApplyTenantMutationHookResult = ReturnType<
+  typeof useApplyTenantMutation
+>;
+export type ApplyTenantMutationResult = Apollo.MutationResult<ApplyTenantMutation>;
+export type ApplyTenantMutationOptions = Apollo.BaseMutationOptions<
+  ApplyTenantMutation,
+  ApplyTenantMutationVariables
+>;
 export const CreateInstanceDocument = gql`
   mutation createInstance(
     $tenantNamespace: String!
@@ -2407,88 +2643,98 @@ export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<
   DeleteTemplateMutation,
   DeleteTemplateMutationVariables
 >;
-export const UpdateTenantDocument = gql`
-  mutation updateTenant($workspaceName: String!, $patchJson: String!) {
-    updateTenant: patchCrownlabsPolitoItV1alpha1Tenant(
-      name: $workspaceName
-      applicationJsonPatchJsonInput: $patchJson
+export const EditTemplateDocument = gql`
+  mutation editTemplate(
+    $templateId: String!
+    $workspaceNamespace: String!
+    $patchJson: String!
+  ) {
+    editTemplate: patchCrownlabsPolitoItV1alpha2NamespacedTemplate(
+      name: $templateId
+      namespace: $workspaceNamespace
+      force: true
+      fieldManager: "crownlabs"
+      applicationApplyPatchYamlInput: $patchJson
     ) {
-      metadata {
-        tenantId: name
-      }
       spec {
-        firstName
-        lastName
-        email
-        workspaces {
-          role
-          workspaceRef {
-            name
+        name: prettyName
+        description
+        environmentList {
+          guiEnabled
+          persistent
+          resources {
+            cpu
+            disk
+            memory
           }
         }
+      }
+      metadata {
+        id: name
       }
     }
   }
 `;
-export type UpdateTenantMutationFn = Apollo.MutationFunction<
-  UpdateTenantMutation,
-  UpdateTenantMutationVariables
+export type EditTemplateMutationFn = Apollo.MutationFunction<
+  EditTemplateMutation,
+  EditTemplateMutationVariables
 >;
-export type UpdateTenantComponentProps = Omit<
+export type EditTemplateComponentProps = Omit<
   ApolloReactComponents.MutationComponentOptions<
-    UpdateTenantMutation,
-    UpdateTenantMutationVariables
+    EditTemplateMutation,
+    EditTemplateMutationVariables
   >,
   'mutation'
 >;
 
-export const UpdateTenantComponent = (props: UpdateTenantComponentProps) => (
+export const EditTemplateComponent = (props: EditTemplateComponentProps) => (
   <ApolloReactComponents.Mutation<
-    UpdateTenantMutation,
-    UpdateTenantMutationVariables
+    EditTemplateMutation,
+    EditTemplateMutationVariables
   >
-    mutation={UpdateTenantDocument}
+    mutation={EditTemplateDocument}
     {...props}
   />
 );
 
 /**
- * __useUpdateTenantMutation__
+ * __useEditTemplateMutation__
  *
- * To run a mutation, you first call `useUpdateTenantMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useUpdateTenantMutation` returns a tuple that includes:
+ * To run a mutation, you first call `useEditTemplateMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useEditTemplateMutation` returns a tuple that includes:
  * - A mutate function that you can call at any time to execute the mutation
  * - An object with fields that represent the current status of the mutation's execution
  *
  * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
  *
  * @example
- * const [updateTenantMutation, { data, loading, error }] = useUpdateTenantMutation({
+ * const [editTemplateMutation, { data, loading, error }] = useEditTemplateMutation({
  *   variables: {
- *      workspaceName: // value for 'workspaceName'
+ *      templateId: // value for 'templateId'
+ *      workspaceNamespace: // value for 'workspaceNamespace'
  *      patchJson: // value for 'patchJson'
  *   },
  * });
  */
-export function useUpdateTenantMutation(
+export function useEditTemplateMutation(
   baseOptions?: Apollo.MutationHookOptions<
-    UpdateTenantMutation,
-    UpdateTenantMutationVariables
+    EditTemplateMutation,
+    EditTemplateMutationVariables
   >
 ) {
   const options = { ...defaultOptions, ...baseOptions };
   return Apollo.useMutation<
-    UpdateTenantMutation,
-    UpdateTenantMutationVariables
-  >(UpdateTenantDocument, options);
+    EditTemplateMutation,
+    EditTemplateMutationVariables
+  >(EditTemplateDocument, options);
 }
-export type UpdateTenantMutationHookResult = ReturnType<
-  typeof useUpdateTenantMutation
+export type EditTemplateMutationHookResult = ReturnType<
+  typeof useEditTemplateMutation
 >;
-export type UpdateTenantMutationResult = Apollo.MutationResult<UpdateTenantMutation>;
-export type UpdateTenantMutationOptions = Apollo.BaseMutationOptions<
-  UpdateTenantMutation,
-  UpdateTenantMutationVariables
+export type EditTemplateMutationResult = Apollo.MutationResult<EditTemplateMutation>;
+export type EditTemplateMutationOptions = Apollo.BaseMutationOptions<
+  EditTemplateMutation,
+  EditTemplateMutationVariables
 >;
 export const ImagesDocument = gql`
   query images {
@@ -2567,6 +2813,7 @@ export const OwnedInstancesDocument = gql`
       instances: items {
         metadata {
           name
+          creationTimestamp
         }
         status {
           ip
@@ -2678,6 +2925,7 @@ export const InstancesLabelSelectorDocument = gql`
       instances: items {
         metadata {
           name
+          creationTimestamp
         }
         status {
           ip
@@ -3125,6 +3373,7 @@ export const UpdatedOwnedInstancesDocument = gql`
       instance: payload {
         metadata {
           name
+          creationTimestamp
         }
         status {
           ip
@@ -3209,7 +3458,7 @@ export type UpdatedOwnedInstancesSubscriptionHookResult = ReturnType<
 export type UpdatedOwnedInstancesSubscriptionResult = Apollo.SubscriptionResult<UpdatedOwnedInstancesSubscription>;
 export const UpdatedSshKeysDocument = gql`
   subscription updatedSshKeys($tenantId: String!) {
-    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(namespace: $tenantId) {
+    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(name: $tenantId) {
       updatedKeys: payload {
         spec {
           email
@@ -3358,7 +3607,7 @@ export type UpdatedWorkspaceTemplatesSubscriptionHookResult = ReturnType<
 export type UpdatedWorkspaceTemplatesSubscriptionResult = Apollo.SubscriptionResult<UpdatedWorkspaceTemplatesSubscription>;
 export const UpdatedTenantDocument = gql`
   subscription updatedTenant($tenantId: String!) {
-    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(namespace: $tenantId) {
+    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(name: $tenantId) {
       tenant: payload {
         spec {
           email
