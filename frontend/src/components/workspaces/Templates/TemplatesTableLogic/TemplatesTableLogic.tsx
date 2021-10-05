@@ -153,7 +153,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
               newData.templateList!.templates = [
                 ...prev.templateList.templates,
                 newItem!,
-              ];
+              ].sort(
+                (a, b) => a?.metadata?.id!.localeCompare(b?.metadata?.id!)!
+              );
             }
           }
 
@@ -191,8 +193,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         resources: {
           cpu: environment?.resources?.cpu!,
           // TODO: properly handle resources quantities
-          memory: parseInt(environment?.resources?.memory?.split('G')[0]!),
-          disk: parseInt(environment?.resources?.disk?.split('G')[0]!),
+          memory: environment?.resources?.memory!,
+          disk: environment?.resources?.disk!,
         },
       };
     })

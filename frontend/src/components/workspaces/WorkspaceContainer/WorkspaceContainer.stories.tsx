@@ -16,6 +16,7 @@ const defaultArgs: someKeysOf<IWorkspaceContainerProps> = {
     title: 'Reti Locali e Data Center',
     role: WorkspaceRole.manager,
     workspaceNamespace: 'workspaceNamespace',
+    workspaceName: 'workspaceNamespace',
   },
 };
 
@@ -36,5 +37,6 @@ Empty.args = {
     title: 'Software Networking',
     role: WorkspaceRole.user,
     workspaceNamespace: 'workspaceNamespace',
+    workspaceName: 'workspaceNamespace',
   },
 };

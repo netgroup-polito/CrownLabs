@@ -10,6 +10,7 @@ export interface IDashboardProps {
     workspaceId: string;
     role: WorkspaceRole;
     workspaceNamespace: string;
+    workspaceName: string;
   }>;
 }
 
@@ -45,6 +46,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               role: workspaces[selectedWsId].role,
               title: workspaces[selectedWsId].workspaceId,
               workspaceNamespace: workspaces[selectedWsId].workspaceNamespace,
+              workspaceName: workspaces[selectedWsId].workspaceName,
             }}
           />
         ) : (

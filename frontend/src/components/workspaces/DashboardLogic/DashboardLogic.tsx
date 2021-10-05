@@ -45,6 +45,7 @@ const DashboardLogic: FC<{}> = () => {
               workspaceNamespace: workspace?.workspaceRef?.workspaceWrapper
                 ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
                 ?.workspaceNamespace!,
+              workspaceName: workspace?.workspaceRef?.workspaceId!,
             };
           }) ?? []
         }

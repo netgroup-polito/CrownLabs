@@ -13,8 +13,8 @@ export type Workspace = {
 };
 export type Resources = {
   cpu: number;
-  disk: number;
-  memory: number;
+  disk: string;
+  memory: string;
 };
 export type Template = {
   id: string;

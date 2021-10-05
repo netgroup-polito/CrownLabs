@@ -9,8 +9,8 @@ export const templates: Array<Template> = [
     persistent: true,
     resources: {
       cpu: 4,
-      disk: 50,
-      memory: 8,
+      disk: '50',
+      memory: '8',
     },
     instances: [
       {
@@ -74,8 +74,8 @@ export const templates: Array<Template> = [
     persistent: false,
     resources: {
       cpu: 4,
-      disk: 50,
-      memory: 8,
+      disk: '50',
+      memory: '8',
     },
     instances: [
       {
@@ -126,8 +126,8 @@ export const templates: Array<Template> = [
     persistent: false,
     resources: {
       cpu: 4,
-      disk: 50,
-      memory: 8,
+      disk: '50',
+      memory: '8',
     },
     instances: [
       {

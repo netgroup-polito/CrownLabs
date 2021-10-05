@@ -20,8 +20,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -47,8 +47,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -74,8 +74,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -94,8 +94,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -121,8 +121,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -155,8 +155,8 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [
         {
@@ -208,8 +208,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },
@@ -220,8 +220,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },
@@ -232,8 +232,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },
@@ -244,8 +244,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },
@@ -256,8 +256,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },
@@ -268,8 +268,8 @@ NotExpandable.args = {
       persistent: true,
       resources: {
         cpu: 2,
-        memory: 4,
-        disk: 8,
+        memory: '4',
+        disk: '8',
       },
       instances: [],
     },

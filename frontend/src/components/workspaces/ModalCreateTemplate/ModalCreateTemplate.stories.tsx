@@ -24,6 +24,7 @@ export const Create = TemplateStorybook.bind({});
 Create.args = {
   submitHandler: (t?: Template) => {
     alert(JSON.stringify(t));
+    return Promise.resolve({ data: undefined });
   },
   diskInterval: { min: 1, max: 32 },
   ramInterval: { min: 4, max: 16 },
@@ -31,10 +32,12 @@ Create.args = {
   images: [
     {
       name: 'Ubuntu',
+      registry: 'registry',
       vmorcontainer: ['Container', 'VM'],
     },
     {
       name: 'Windows',
+      registry: 'registry',
       vmorcontainer: ['Container'],
     },
   ],
@@ -46,6 +49,7 @@ Modify.args = {
   template: {
     name: 'Existing Template',
     image: 'Ubuntu',
+    registry: 'registry',
     vmorcontainer: 'Container',
     diskMode: false,
     gui: true,
