@@ -1,4 +1,4 @@
-import { Dispatch, FC, SetStateAction } from 'react';
+import { FC } from 'react';
 import { UserSwitchOutlined, PlusOutlined } from '@ant-design/icons';
 import Button from 'antd-button-color';
 import Box from '../../common/Box';
@@ -13,16 +13,12 @@ export interface IWorkspaceContainerProps {
     role: WorkspaceRole;
     workspaceNamespace: string;
   };
-  reload: boolean;
-  setReload: Dispatch<SetStateAction<boolean>>;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const {
     tenantNamespace,
     workspace: { role, title, workspaceNamespace },
-    reload,
-    setReload,
   } = props;
 
   return (
@@ -63,8 +59,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           tenantNamespace={tenantNamespace}
           role={role}
           workspaceNamespace={workspaceNamespace}
-          reload={reload}
-          setReload={setReload}
         />
       </Box>
     </>

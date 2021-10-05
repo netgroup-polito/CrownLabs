@@ -1,13 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { FetchPolicy } from '@apollo/client';
 import { notification, Spin } from 'antd';
 import Button from 'antd-button-color';
-import {
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { FC } from 'react';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import {
@@ -16,8 +11,13 @@ import {
   useWorkspaceTemplatesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   OwnedInstancesQuery,
+  WorkspaceTemplatesQuery,
+  UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
-import { updatedOwnedInstances } from '../../../../graphql-components/subscription';
+import {
+  updatedOwnedInstances,
+  updatedWorkspaceTemplates,
+} from '../../../../graphql-components/subscription';
 import { Template, VmStatus, WorkspaceRole } from '../../../../utils';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
@@ -26,19 +26,13 @@ export interface ITemplateTableLogicProps {
   tenantNamespace: string;
   workspaceNamespace: string;
   role: WorkspaceRole;
-  reload: boolean;
-  setReload: Dispatch<SetStateAction<boolean>>;
 }
+
+const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
-  const {
-    tenantNamespace,
-    workspaceNamespace,
-    role,
-    reload,
-    setReload,
-  } = props;
+  const { tenantNamespace, workspaceNamespace, role } = props;
 
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
 
@@ -49,6 +43,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   } = useOwnedInstancesQuery({
     variables: { tenantNamespace },
     onCompleted: setDataInstances,
+    fetchPolicy: fetchPolicy_networkOnly,
   });
 
   useEffect(() => {
@@ -113,25 +108,79 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     }
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
 
+  const [dataTemplate, setDataTemplate] = useState<WorkspaceTemplatesQuery>();
+
   const {
-    data: dataTemplate,
     loading: loadingTemplate,
     error: errorTemplate,
-    refetch: refetchTemplate,
+    subscribeToMore: subscribeToMoreTemplates,
   } = useWorkspaceTemplatesQuery({
     variables: { workspaceNamespace },
-    notifyOnNetworkStatusChange: true,
+    onCompleted: setDataTemplate,
+    fetchPolicy: fetchPolicy_networkOnly,
   });
 
-  //This useEffect and the reload state are used to simulate the subscription behaviour, it will be removed in the next PR
-  useEffect(() => {
-    if (reload && refetchTemplate) {
-      setReload(false);
-      refetchTemplate({ workspaceNamespace });
-    }
-  }, [reload, refetchTemplate, setReload, workspaceNamespace]);
-
   const { instances } = dataInstances?.instanceList ?? {};
+
+  useEffect(() => {
+    if (!loadingTemplate) {
+      subscribeToMoreTemplates({
+        document: updatedWorkspaceTemplates,
+        variables: { workspaceNamespace: `${workspaceNamespace}` },
+        updateQuery: (prev, { subscriptionData }) => {
+          let newData = { ...prev };
+          let subscriptionResult: 'modified' | 'added' | 'deleted' | '' = '';
+          const {
+            data,
+          } = subscriptionData as UpdatedWorkspaceTemplatesSubscriptionResult;
+          const newItem = data?.updatedTemplate?.template!;
+
+          if (!newItem) return prev;
+
+          if (prev.templateList?.templates) {
+            const oldItem = prev.templateList.templates.find(
+              t => t?.metadata?.id === newItem?.metadata?.id
+            );
+            if (oldItem) {
+              if (JSON.stringify(oldItem) === JSON.stringify(newItem)) {
+                //template have been deleted
+                newData.templateList!.templates = prev.templateList?.templates!.filter(
+                  t => newItem?.metadata?.id !== t?.metadata?.id
+                );
+                subscriptionResult = 'deleted';
+              } else {
+                //template have been modified
+                newData.templateList!.templates = prev.templateList?.templates!.map(
+                  t =>
+                    newItem?.metadata?.id === t?.metadata?.id ? newItem! : t!
+                );
+                subscriptionResult = 'modified';
+              }
+            } else {
+              newData.templateList!.templates = [
+                ...prev.templateList.templates,
+                newItem!,
+              ];
+              subscriptionResult = 'added';
+            }
+          }
+
+          notification['info']({
+            message: 'Workspace updated!',
+            description: (
+              <label>
+                Template <i>{newItem.spec?.name}</i> has been{' '}
+                {subscriptionResult}
+              </label>
+            ),
+          });
+
+          setDataTemplate(newData);
+          return newData;
+        },
+      });
+    }
+  }, [loadingTemplate, subscribeToMoreTemplates, userId, workspaceNamespace]);
 
   const templates = (dataTemplate?.templateList?.templates ?? [])
     .map(t => {
@@ -175,6 +224,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       !loadingInstances &&
       !errorTemplate &&
       !errorInstances &&
+      dataInstances &&
       templates &&
       instances ? (
         <TemplatesTable
