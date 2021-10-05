@@ -1,23 +1,41 @@
 import { Spin } from 'antd';
-import { useContext } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
-import { useTenantQuery } from '../../../generated-types';
+import { TenantQuery, useTenantQuery } from '../../../generated-types';
+
+import { updatedTenant } from '../../../graphql-components/subscription';
 import Dashboard from '../Dashboard/Dashboard';
 
-function DashboardLogic() {
+const DashboardLogic: FC<{}> = () => {
   const { userId } = useContext(AuthContext);
+  const [data, setData] = useState<TenantQuery>();
 
-  const { data, loading, error } = useTenantQuery({
+  const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
     notifyOnNetworkStatusChange: true,
+    onCompleted: setData,
   });
+
+  useEffect(() => {
+    if (!loading) {
+      subscribeToMore({
+        variables: { tenantId: userId ?? '' },
+        document: updatedTenant,
+        updateQuery: (prev, { subscriptionData: { data } }) => {
+          if (!data) return prev;
+          setData(data);
+          return data;
+        },
+      });
+    }
+  }, [subscribeToMore, loading, userId]);
 
   return !loading && data && !error ? (
     <>
       <Dashboard
         tenantNamespace={data.tenant?.status?.personalNamespace?.name!}
         workspaces={
-          data.tenant?.spec?.workspaces?.map(workspace => {
+          data?.tenant?.spec?.workspaces?.map(workspace => {
             return {
               workspaceId: workspace?.workspaceRef?.workspaceWrapper
                 ?.itPolitoCrownlabsV1alpha1Workspace?.spec
@@ -36,6 +54,6 @@ function DashboardLogic() {
       <Spin size="large" />
     </div>
   );
-}
+};
 
 export default DashboardLogic;
