@@ -7,6 +7,7 @@ import { FC } from 'react';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import {
   useCreateInstanceMutation,
+  useDeleteTemplateMutation,
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
@@ -169,7 +170,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             message: 'Workspace updated!',
             description: (
               <label>
-                Template <i>{newItem.spec?.name}</i> has been{' '}
+                Template <b>{newItem.spec?.name}</b> has been{' '}
                 {subscriptionResult}
               </label>
             ),
@@ -217,6 +218,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     .filter(t => t);
 
   const [createInstanceMutation] = useCreateInstanceMutation();
+  const [deleteTemplateMutation] = useDeleteTemplateMutation();
 
   return (
     <Spin size="large" spinning={loadingTemplate || loadingInstances}>
@@ -232,12 +234,19 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           workspaceNamespace={workspaceNamespace}
           templates={templates}
           role={role}
-          deleteTemplate={() => null}
+          deleteTemplate={(templateId: string) =>
+            deleteTemplateMutation({
+              variables: {
+                workspaceNamespace,
+                templateId,
+              },
+            }).catch(err => null)
+          }
           editTemplate={() => null}
-          createInstance={(id: string) =>
+          createInstance={(templateId: string) =>
             createInstanceMutation({
               variables: {
-                templateName: id,
+                templateName: templateId,
                 tenantNamespace,
                 tenantId: userId!,
                 workspaceNamespace,

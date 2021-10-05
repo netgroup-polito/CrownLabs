@@ -37,7 +37,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
             danger
             key="2"
             icon={<DeleteOutlined />}
-            onClick={() => deleteTemplate(id)}
+            onClick={deleteTemplate}
           >
             Delete
           </Menu.Item>
