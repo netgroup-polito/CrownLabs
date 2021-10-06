@@ -12,8 +12,8 @@ const DashboardLogic: FC<{}> = () => {
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
-    notifyOnNetworkStatusChange: true,
     onCompleted: setData,
+    fetchPolicy: 'network-only',
   });
 
   useEffect(() => {

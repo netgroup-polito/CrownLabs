@@ -16,7 +16,6 @@ export interface IDashboardProps {
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   const [selectedWsId, setSelectedWs] = useState(-1);
   const { tenantNamespace, workspaces } = props;
-  const [reload, setReload] = useState(false);
 
   return (
     <>
@@ -28,10 +27,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               id: idx,
               title: wk.workspaceId,
             }))}
-            onClick={(id: number) => {
-              setSelectedWs(id);
-              setReload(true);
-            }}
+            onClick={setSelectedWs}
           />
         </div>
       </Col>
@@ -50,8 +46,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               title: workspaces[selectedWsId].workspaceId,
               workspaceNamespace: workspaces[selectedWsId].workspaceNamespace,
             }}
-            reload={reload}
-            setReload={setReload}
           />
         ) : (
           <WorkspaceWelcome />
