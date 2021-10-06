@@ -2,7 +2,7 @@ import gql from 'graphql-tag';
 
 export default gql`
   subscription updatedTenant($tenantId: String!) {
-    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(namespace: $tenantId) {
+    updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(name: $tenantId) {
       tenant: payload {
         spec {
           email

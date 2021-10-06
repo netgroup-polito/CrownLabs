@@ -1,5 +1,6 @@
 overwrite: true
-schema: "https://graphql.preprod.crownlabs.polito.it/"
+# the schema needs to be manually downloaded.
+schema: schema.graphql
 documents: './src/**/*.{graphql,ts}'
 generates:
   src/generated-types.tsx:

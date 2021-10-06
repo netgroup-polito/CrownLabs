@@ -5,6 +5,7 @@ query ownedInstances($tenantNamespace: String!) {
     instances: items {
       metadata {
         name
+        creationTimestamp
       }
       status {
         ip
