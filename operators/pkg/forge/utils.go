@@ -17,6 +17,7 @@ package forge
 import (
 	"strings"
 
+	petname "github.com/dustinkirkland/golang-petname"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -27,6 +28,10 @@ const (
 	// StringSeparator -> the separator used to concatenate string.
 	StringSeparator = "-"
 )
+
+func init() {
+	petname.NonDeterministicMode()
+}
 
 // ObjectMeta returns the namespace/name pair given an instance object.
 func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
@@ -72,4 +77,9 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 // prevent issues with DNS style requirements.
 func canonicalName(name string) string {
 	return strings.ReplaceAll(name, ".", StringSeparator)
+}
+
+// RandomInstancePrettyName generates a random name of 2 capitalized words.
+func RandomInstancePrettyName() string {
+	return strings.Title(petname.Generate(2, " "))
 }

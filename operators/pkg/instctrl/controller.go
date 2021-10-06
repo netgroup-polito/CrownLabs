@@ -156,8 +156,11 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	// Patch the instance labels to allow for easier categorization.
 	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template)
-	if updated {
+	if updated || instance.Spec.PrettyName == "" {
 		original := instance.DeepCopy()
+		if instance.Spec.PrettyName == "" {
+			instance.Spec.PrettyName = forge.RandomInstancePrettyName()
+		}
 		instance.SetLabels(labels)
 		if err := r.Patch(ctx, &instance, client.MergeFrom(original)); err != nil {
 			log.Error(err, "failed to update the instance labels")
