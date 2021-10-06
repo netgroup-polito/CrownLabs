@@ -1,4 +1,4 @@
-import { Menu, Dropdown } from 'antd';
+import { Menu, Dropdown, Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import {
   PlayCircleOutlined,
@@ -27,11 +27,14 @@ const TemplatesTableRowSettings = ({ ...props }) => {
             Create
           </Menu.Item>
           <Menu.Item
+            disabled
             key="1"
             icon={<EditOutlined />}
             onClick={() => editTemplate(id)}
           >
-            Edit
+            <Tooltip title="Coming soon" placement="left">
+              Edit
+            </Tooltip>
           </Menu.Item>
           <Menu.Item
             danger
