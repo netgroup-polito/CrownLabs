@@ -4,6 +4,7 @@ import Button from 'antd-button-color';
 import Box from '../../common/Box';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 import { WorkspaceRole } from '../../../utils';
+import { Tooltip } from 'antd';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -35,22 +36,26 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
           left: role === 'manager' && (
             <div className="h-full flex justify-center items-center pl-10">
-              <Button
-                type="primary"
-                shape="circle"
-                size="large"
-                icon={<UserSwitchOutlined />}
-              />
+              <Tooltip title="Manage users">
+                <Button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  icon={<UserSwitchOutlined />}
+                />
+              </Tooltip>
             </div>
           ),
           right: role === 'manager' && (
             <div className="h-full flex justify-center items-center pr-10">
-              <Button
-                type="lightdark"
-                shape="circle"
-                size="large"
-                icon={<PlusOutlined />}
-              />
+              <Tooltip title="Create template">
+                <Button
+                  type="lightdark"
+                  shape="circle"
+                  size="large"
+                  icon={<PlusOutlined />}
+                />
+              </Tooltip>
             </div>
           ),
         }}
