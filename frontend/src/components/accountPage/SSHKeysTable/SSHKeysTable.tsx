@@ -12,6 +12,7 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
     <Table
       dataSource={sshKeys}
       expandedRowRender={record => <p>{record.key}</p>}
+      style={{ maxWidth: '800px' }}
     >
       <Column title="Name" dataIndex="name" width={120} />
       <Column title="Key" dataIndex="key" ellipsis={true} />

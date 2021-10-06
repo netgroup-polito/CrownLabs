@@ -7,7 +7,7 @@ import { BarChartOutlined } from '@ant-design/icons';
 import { AuthContext } from './contexts/AuthContext';
 import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
-
+import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 function App() {
   const { userId } = useContext(AuthContext);
   return (
@@ -40,7 +40,6 @@ function App() {
               path: 'https://crownlabs.polito.it/cloud/apps/dashboard/',
               externalLink: true,
             },
-            { name: 'Account', path: '/account' },
           ].map(r => {
             return {
               route: {
@@ -74,6 +73,10 @@ function App() {
               ),
             };
           }),
+          {
+            route: { name: 'Account', path: '/account' },
+            content: <UserPanelLogic />,
+          },
         ]}
       />
     </ThemeContextProvider>

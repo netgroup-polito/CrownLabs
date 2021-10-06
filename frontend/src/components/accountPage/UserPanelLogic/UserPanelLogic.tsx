@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { useTenantQuery } from '../../../generated-types';
 import UserPanel from '../UserPanel';
+import UserPanelContainer from '../UserPanelContainer/UserPanelContainer';
 function UserPanelLogic() {
   const { userId } = useContext(AuthContext);
 
@@ -11,17 +12,17 @@ function UserPanelLogic() {
     notifyOnNetworkStatusChange: true,
   });
 
-  //startPolling(20000);
+  const tenantSpec = data?.tenant?.spec;
 
   return !loading && data && !error ? (
-    <>
+    <UserPanelContainer>
       <UserPanel
-        firstName={data.tenant?.spec?.firstName!}
-        lastName={data.tenant?.spec?.lastName!}
-        email={data.tenant?.spec?.email!}
+        firstName={tenantSpec?.firstName!}
+        lastName={tenantSpec?.lastName!}
+        email={tenantSpec?.email!}
         username={userId!}
       />
-    </>
+    </UserPanelContainer>
   ) : (
     <div className="h-full w-full flex justify-center items-center">
       <Spin size="large" />
