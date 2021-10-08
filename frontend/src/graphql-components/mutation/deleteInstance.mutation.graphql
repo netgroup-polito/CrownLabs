@@ -1,7 +1,7 @@
-mutation deleteInstance($tenantNamespace: String!, $instanceName: String!) {
+mutation deleteInstance($tenantNamespace: String!, $instanceId: String!) {
   deletedInstance: deleteCrownlabsPolitoItV1alpha2NamespacedInstance(
     namespace: $tenantNamespace
-    name: $instanceName
+    name: $instanceId
   ) {
     kind
   }

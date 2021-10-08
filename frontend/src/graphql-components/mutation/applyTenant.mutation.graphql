@@ -1,6 +1,6 @@
-mutation applyTenant($workspaceName: String!, $patchJson: String!) {
+mutation applyTenant($workspaceId: String!, $patchJson: String!) {
   applyTenant: patchCrownlabsPolitoItV1alpha1Tenant(
-    name: $workspaceName
+    name: $workspaceId
     force: true
     fieldManager: "crownlabs"
     applicationApplyPatchYamlInput: $patchJson

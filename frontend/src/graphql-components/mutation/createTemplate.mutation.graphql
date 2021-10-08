@@ -1,5 +1,5 @@
 mutation createTemplate(
-  $workspaceName: String!
+  $workspaceId: String!
   $workspaceNamespace: String!
   $templateName: String!
   $descriptionTemplate: String!
@@ -28,7 +28,7 @@ mutation createTemplate(
             resources: $resources
           }
         ]
-        workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceName }
+        workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
       metadata: { generateName: $templateId, namespace: $workspaceNamespace }
     }

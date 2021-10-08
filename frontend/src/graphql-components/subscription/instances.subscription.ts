@@ -3,11 +3,11 @@ import gql from 'graphql-tag';
 export default gql`
   subscription updatedOwnedInstances(
     $tenantNamespace: String!
-    $instanceName: String
+    $instanceId: String
   ) {
     updateInstance: itPolitoCrownlabsV1alpha2InstanceUpdate(
       namespace: $tenantNamespace
-      name: $instanceName
+      name: $instanceId
     ) {
       instance: payload {
         metadata {
