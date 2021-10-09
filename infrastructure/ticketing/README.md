@@ -2,7 +2,9 @@
 
 Faveo is an open source ticket based support system with knowledge base. It’s specifically designed to cater the needs of Startup's & SME's empowering them with state of art, ticket based support system.
 
+<!-- markdown-link-check-disable -->
 More info at [Faveo's website](https://www.faveohelpdesk.com)
+<!-- markdown-link-check-enable -->
 ### Pre-requisites
 Here we assume that exists a namespace in K8S cluster called **crownlabs-ticketing**
 

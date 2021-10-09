@@ -1,5 +1,4 @@
 overwrite: true
-# the schema needs to be manually downloaded.
 schema: schema.graphql
 documents: './src/**/*.{graphql,ts}'
 generates:
@@ -8,6 +7,6 @@ generates:
       withComponent: true
       preResolveTypes: true
     plugins:
-      - "typescript"
-      - "typescript-operations"
-      - "typescript-react-apollo"
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
