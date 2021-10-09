@@ -12,6 +12,7 @@ mutation applyInstance(
   ) {
     spec {
       running
+      prettyName
     }
   }
 }

@@ -30,6 +30,7 @@ mutation createInstance(
     }
     spec {
       running
+      prettyName
       templateCrownlabsPolitoItTemplateRef {
         name
         namespace
