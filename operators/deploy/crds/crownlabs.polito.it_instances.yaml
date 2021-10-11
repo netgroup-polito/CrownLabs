@@ -19,6 +19,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.prettyName
+      name: Pretty Name
+      type: string
     - jsonPath: .spec.running
       name: Running
       type: string
@@ -60,6 +63,10 @@ spec:
             description: InstanceSpec is the specification of the desired state of
               the Instance.
             properties:
+              prettyName:
+                description: Custom name the user can assign and change at any time
+                  in order to more easily identify the instance.
+                type: string
               running:
                 default: true
                 description: Whether the current instance is running or not. The meaning

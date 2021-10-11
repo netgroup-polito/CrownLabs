@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
+	github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0 // indirect
 	github.com/go-resty/resty/v2 v2.5.0

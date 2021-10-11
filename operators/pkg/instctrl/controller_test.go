@@ -42,6 +42,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 	ctx := context.Background()
 	var (
 		testName       string
+		prettyName     string
 		runInstance    bool
 		instance       clv1alpha2.Instance
 		environment    clv1alpha2.Environment
@@ -102,9 +103,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: testName, Namespace: testName},
 			Spec: clv1alpha2.InstanceSpec{
-				Template: clv1alpha2.GenericRef{Name: testName, Namespace: testName},
-				Tenant:   clv1alpha2.GenericRef{Name: testName, Namespace: testName},
-				Running:  runInstance,
+				Template:   clv1alpha2.GenericRef{Name: testName, Namespace: testName},
+				Tenant:     clv1alpha2.GenericRef{Name: testName, Namespace: testName},
+				Running:    runInstance,
+				PrettyName: prettyName,
 			},
 		}
 
@@ -332,6 +334,33 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(RunReconciler()).To(Succeed())
 					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 				})
+			})
+		})
+	})
+
+	Context("PrettyName handling", func() {
+		When("no name is set", func() {
+			BeforeEach(func() {
+				testName = "test-pretty-name-gen"
+				prettyName = ""
+			})
+
+			It("should set a prettyName", func() {
+				Expect(RunReconciler()).To(Succeed())
+				Expect(instance.Spec.PrettyName).NotTo(BeEmpty())
+			})
+		})
+
+		When("name is set", func() {
+			const prettyNameTest = "Some pretty name!"
+			BeforeEach(func() {
+				testName = "test-pretty-name-set"
+				prettyName = prettyNameTest
+			})
+
+			It("should not change the prettyName", func() {
+				Expect(RunReconciler()).To(Succeed())
+				Expect(instance.Spec.PrettyName).To(Equal(prettyNameTest))
 			})
 		})
 	})

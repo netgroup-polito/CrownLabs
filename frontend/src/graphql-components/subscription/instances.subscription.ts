@@ -21,6 +21,7 @@ export default gql`
         }
         spec {
           running
+          prettyName
           templateCrownlabsPolitoItTemplateRef {
             name
             namespace

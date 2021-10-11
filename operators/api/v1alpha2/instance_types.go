@@ -68,6 +68,11 @@ type InstanceSpec struct {
 	// effectively unreachable from outside the cluster, but allowing the
 	// subsequent recreation without data loss.
 	Running bool `json:"running"`
+
+	// Custom name the user can assign and change at any time
+	// in order to more easily identify the instance.
+	// +kubebuilder:validation:Optional
+	PrettyName string `json:"prettyName"`
 }
 
 // InstanceStatus reflects the most recently observed status of the Instance.
@@ -99,6 +104,7 @@ type InstanceStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="inst"
+// +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`,priority=10

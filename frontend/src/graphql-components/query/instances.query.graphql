@@ -14,6 +14,7 @@ query ownedInstances($tenantNamespace: String!) {
       }
       spec {
         running
+        prettyName
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
