@@ -21,10 +21,9 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
-
-const serviceTenantName = "service-tenant"
 
 func generateInstanceName(userID, courseID string) string {
 	return "ex-" + courseID + "-" + userID + "-crownlabs"
@@ -45,7 +44,7 @@ func enforceOnDemandInstance(ctx context.Context, instanceName string) error {
 				Running:  true,
 				Template: Options.Template,
 				Tenant: clv1alpha2.GenericRef{
-					Name: serviceTenantName,
+					Name: clv1alpha1.SVCTenantName,
 				},
 			}
 		}

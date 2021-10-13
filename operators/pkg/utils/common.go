@@ -65,3 +65,15 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 	ctrl.LoggerFrom(ctx).V(LogDebugLevel).Info("selector labels met")
 	return true, nil
 }
+
+// MatchOneInStringSlices checks if there's at least one common string between two string slices.
+func MatchOneInStringSlices(a, b []string) bool {
+	for _, valA := range a {
+		for _, valB := range b {
+			if valA == valB {
+				return true
+			}
+		}
+	}
+	return false
+}

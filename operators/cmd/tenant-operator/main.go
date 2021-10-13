@@ -16,7 +16,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"os"
 	"strings"
 	"time"
 
@@ -25,15 +27,25 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
+	tenantwh "github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 var (
 	scheme = runtime.NewScheme()
+)
+
+const (
+	// ValidatingWebhookPath -> path on which the validating webhook will be bound. Has to match the one set in the ValidatingWebhookConfiguration.
+	ValidatingWebhookPath = "/validate-v1alpha1-tenant"
+	// MutatingWebhookPath -> path on which the mutating webhook will be bound. Has to match the one set in the MutatingWebhookConfiguration.
+	MutatingWebhookPath = "/mutate-v1alpha1-tenant"
 )
 
 func init() {
@@ -57,6 +69,7 @@ func main() {
 	var ncTnOpUser string
 	var ncTnOpPsw string
 	var maxConcurrentReconciles int
+	var webhookBypassGroups string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -73,19 +86,31 @@ func main() {
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
+	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
+
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	if !klog.V(5).Enabled() {
+		klog.SetLogFilter(utils.LogShortenerFilter{})
+	}
+	ctrl.SetLogger(klogr.NewWithOptions())
+
+	ctx := ctrl.SetupSignalHandler()
+	log := ctrl.Log.WithName("setup")
 
 	if targetLabel == "" ||
 		kcURL == "" || kcTnOpUser == "" || kcTnOpPsw == "" ||
 		kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" ||
 		ncURL == "" || ncTnOpUser == "" || ncTnOpPsw == "" {
-		klog.Fatal("Some flag parameters are not defined!")
+		log.Error(errors.New("missing parameters"), "Initialization failed")
+		os.Exit(1)
 	}
 
 	targetLabelKeyValue := strings.Split(targetLabel, "=")
 	if len(targetLabelKeyValue) != 2 {
-		klog.Fatal("Error with target label format")
+		log.Error(errors.New("target label format error"), "Initialization failed")
+		os.Exit(1)
 	}
 	targetLabelKey := targetLabelKeyValue[0]
 	targetLabelValue := targetLabelKeyValue[1]
@@ -101,15 +126,22 @@ func main() {
 		ReadinessEndpointName:  "/ready",
 	})
 	if err != nil {
-		klog.Fatal("Unable to start manager", err)
+		log.Error(err, "Unable to create manager")
+		os.Exit(1)
 	}
+
+	hookServer := mgr.GetWebhookServer()
+	webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
+	hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
+	hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantLabeler(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue))
 
 	kcA, err := controllers.NewKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
 	if err != nil {
-		klog.Fatal("Error when setting up keycloak", err)
+		log.Error(err, "Unable to setup keycloak")
+		os.Exit(1)
 	}
 
-	go checkAndRenewTokenPeriodically(context.Background(), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
+	go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 
 	httpClient := resty.New().SetCookieJar(nil)
 	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
@@ -122,7 +154,8 @@ func main() {
 		TargetLabelValue: targetLabelValue,
 		Concurrency:      maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create controller for Tenant", err)
+		log.Error(err, "Unable to create controller", "controller", "tenant")
+		os.Exit(1)
 	}
 	if err = (&controllers.WorkspaceReconciler{
 		Client:           mgr.GetClient(),
@@ -131,28 +164,34 @@ func main() {
 		TargetLabelKey:   targetLabelKey,
 		TargetLabelValue: targetLabelValue,
 	}).SetupWithManager(mgr); err != nil {
-		klog.Fatal("Unable to create controller for Workspace", err)
+		log.Error(err, "Unable to create controller", "controller", "workspace")
+		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
+
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {
-		klog.Fatal("unable add a readiness check", err)
+		log.Error(err, "Unable to add the readiness check")
+		os.Exit(1)
 	}
 
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
 	if err != nil {
-		klog.Fatal("unable add a health check", err)
+		log.Error(err, "Unable to add the health check")
+		os.Exit(1)
 	}
 	klog.Info("Starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		klog.Fatal("Problem running manager", err)
+	if err := mgr.Start(ctx); err != nil {
+		log.Error(err, "Failed starting manager")
+		os.Exit(1)
 	}
 }
 
 // checkAndRenewTokenPeriodically checks every intervalCheck if the token is about to expire in less than expireLimit seconds or is already expired, if so it renews it.
 func checkAndRenewTokenPeriodically(ctx context.Context, kcA *controllers.KcActor, kcAdminUser, kcAdminPsw, loginRealm string, intervalCheck, expireLimit time.Duration) {
+	log := ctrl.LoggerFrom(ctx).WithName("token-renewer")
+
 	kcRenewTokenTicker := time.NewTicker(intervalCheck)
 	for {
 		// wait intervalCheck
@@ -160,7 +199,8 @@ func checkAndRenewTokenPeriodically(ctx context.Context, kcA *controllers.KcActo
 		// take expiration date of token from tokenJWT claims
 		_, claims, err := kcA.Client.DecodeAccessToken(ctx, kcA.GetAccessToken(), loginRealm, "")
 		if err != nil {
-			klog.Fatal("Error when decoding token", err)
+			log.Error(err, "Error when decoding token")
+			os.Exit(1)
 		}
 		// convert expiration time in usable time
 		// tokenExpiresIn :=  time.Unix(int64((*claims)["exp"].(float64)), 0).Until()
@@ -170,10 +210,11 @@ func checkAndRenewTokenPeriodically(ctx context.Context, kcA *controllers.KcActo
 		if tokenExpiresIn < expireLimit {
 			newToken, err := kcA.Client.LoginAdmin(ctx, kcAdminUser, kcAdminPsw, loginRealm)
 			if err != nil {
-				klog.Fatal("Error when renewing token", err)
+				log.Error(err, "Error when renewing token")
+				os.Exit(1)
 			}
 			kcA.SetToken(newToken)
-			klog.Info("Keycloak token renewed")
+			log.Info("Keycloak token renewed")
 		}
 	}
 }

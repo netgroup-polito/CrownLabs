@@ -44,6 +44,7 @@ spec:
             - "--nc-url={{ .Values.configurations.nextcloud.url }}"
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
+            - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics
@@ -51,6 +52,9 @@ spec:
               protocol: TCP
             - name: probes
               containerPort: 8081
+              protocol: TCP
+            - name: webhook
+              containerPort: 9443
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -87,6 +91,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: nextcloud-pass
+          volumeMounts:
+          - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
+            name: webhook-certs
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: {{ include "tenant-operator.webhookname" . }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
