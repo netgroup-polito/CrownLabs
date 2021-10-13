@@ -130,7 +130,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         variables: { workspaceNamespace: `${workspaceNamespace}` },
         updateQuery: (prev, { subscriptionData }) => {
           let newData = { ...prev };
-          let subscriptionResult: 'modified' | 'added' | 'deleted' | '' = '';
           const {
             data,
           } = subscriptionData as UpdatedWorkspaceTemplatesSubscriptionResult;
@@ -148,33 +147,20 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 newData.templateList!.templates = prev.templateList?.templates!.filter(
                   t => newItem?.metadata?.id !== t?.metadata?.id
                 );
-                subscriptionResult = 'deleted';
               } else {
                 //template have been modified
                 newData.templateList!.templates = prev.templateList?.templates!.map(
                   t =>
                     newItem?.metadata?.id === t?.metadata?.id ? newItem! : t!
                 );
-                subscriptionResult = 'modified';
               }
             } else {
               newData.templateList!.templates = [
                 ...prev.templateList.templates,
                 newItem!,
               ];
-              subscriptionResult = 'added';
             }
           }
-
-          notification['info']({
-            message: 'Workspace updated!',
-            description: (
-              <label>
-                Template <b>{newItem.spec?.name}</b> has been{' '}
-                {subscriptionResult}
-              </label>
-            ),
-          });
 
           setDataTemplate(newData);
           return newData;
