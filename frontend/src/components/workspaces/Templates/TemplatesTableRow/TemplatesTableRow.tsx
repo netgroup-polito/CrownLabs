@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Space, Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
@@ -11,6 +11,8 @@ import Badge from '../../../common/Badge';
 import { Resources, WorkspaceRole } from '../../../../utils';
 import { CreateInstanceMutation } from '../../../../generated-types';
 import { FetchResult } from 'apollo-link';
+import { ModalAlert } from '../../../common/ModalAlert';
+import { useInstancesLabelSelectorQuery } from '../../../../generated-types';
 
 export interface ITemplatesTableRowProps {
   id: string;
@@ -62,8 +64,33 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     expandRow,
   } = props;
 
+  const {
+    refetch: refetchInstancesLabelSelector,
+  } = useInstancesLabelSelectorQuery({
+    variables: { labels: `crownlabs.polito.it/template=${id}` },
+  });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   return (
     <>
+      <ModalAlert
+        headTitle={name}
+        alertMessage="Cannot delete this template"
+        alertDescription="A template with active instances cannot be deleted. Please delete al the instances associated with this template."
+        alertType="warning"
+        buttons={[
+          <Button
+            shape="round"
+            className="ml-2 w-24"
+            type="primary"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            Close
+          </Button>,
+        ]}
+        show={showDeleteModal}
+        setShow={setShowDeleteModal}
+      />
       <div className="w-full flex justify-between py-0">
         <div
           className="flex w-full items-center cursor-pointer"
@@ -131,7 +158,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <TemplatesTableRowSettings
               id={id}
               editTemplate={editTemplate}
-              deleteTemplate={deleteTemplate}
+              deleteTemplate={() => {
+                refetchInstancesLabelSelector()
+                  .then(ils => {
+                    if (!ils.data.instanceList?.instances!.length && !ils.error)
+                      deleteTemplate(id);
+                    else setShowDeleteModal(true);
+                  })
+                  .catch(err => null);
+              }}
             />
           ) : (
             <Tooltip placement="top" title={'Create Instance'}>
