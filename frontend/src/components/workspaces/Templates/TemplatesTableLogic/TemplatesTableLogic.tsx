@@ -232,7 +232,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           createInstance={(templateId: string) =>
             createInstanceMutation({
               variables: {
-                templateName: templateId,
+                templateId,
                 tenantNamespace,
                 tenantId: userId!,
                 workspaceNamespace,

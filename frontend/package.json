@@ -45,7 +45,7 @@
     "prepare": "cd .. && husky install frontend/.husky",
     "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0",
     "pre-commit": "lint-staged",
-    "generate": "graphql-codegen --config codegen.yml"
+    "generate": "curl https://graphql.preprod.crownlabs.polito.it/schema -o schema.graphql && graphql-codegen --config codegen.yml ; rm -f schema.graphql"
   },
   "eslintConfig": {
     "extends": [
@@ -87,7 +87,7 @@
     }
   },
   "eslintIgnore": [
-    "generated-types.tsx"
+    "**/generated-types.tsx"
   ],
   "browserslist": {
     "production": [

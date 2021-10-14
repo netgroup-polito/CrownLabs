@@ -3,11 +3,11 @@ import gql from 'graphql-tag';
 export default gql`
   subscription updatedWorkspaceTemplates(
     $workspaceNamespace: String!
-    $templateName: String
+    $templateId: String
   ) {
     updatedTemplate: itPolitoCrownlabsV1alpha2TemplateUpdate(
       namespace: $workspaceNamespace
-      name: $templateName
+      name: $templateId
     ) {
       template: payload {
         spec {

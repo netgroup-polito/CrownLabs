@@ -1,6 +1,6 @@
 mutation createInstance(
   $tenantNamespace: String!
-  $templateName: String!
+  $templateId: String!
   $workspaceNamespace: String!
   $tenantId: String!
   $generateName: String = "instance-"
@@ -13,7 +13,7 @@ mutation createInstance(
       metadata: { generateName: $generateName }
       spec: {
         templateCrownlabsPolitoItTemplateRef: {
-          name: $templateName
+          name: $templateId
           namespace: $workspaceNamespace
         }
         tenantCrownlabsPolitoItTenantRef: {
