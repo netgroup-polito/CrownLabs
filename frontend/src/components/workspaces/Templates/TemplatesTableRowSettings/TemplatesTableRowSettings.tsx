@@ -28,7 +28,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
           </Menu.Item>
           <Menu.Item
             disabled
-            key="1"
+            key="2"
             icon={<EditOutlined />}
             onClick={() => editTemplate(id)}
           >
@@ -38,7 +38,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
           </Menu.Item>
           <Menu.Item
             danger
-            key="2"
+            key="3"
             icon={<DeleteOutlined />}
             onClick={deleteTemplate}
           >
