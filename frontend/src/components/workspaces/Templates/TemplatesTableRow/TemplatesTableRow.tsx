@@ -9,7 +9,10 @@ import {
 } from '@ant-design/icons';
 import Badge from '../../../common/Badge';
 import { Resources, WorkspaceRole } from '../../../../utils';
-import { CreateInstanceMutation } from '../../../../generated-types';
+import {
+  CreateInstanceMutation,
+  DeleteTemplateMutation,
+} from '../../../../generated-types';
 import { FetchResult } from 'apollo-link';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { useInstancesLabelSelectorQuery } from '../../../../generated-types';
@@ -24,7 +27,16 @@ export interface ITemplatesTableRowProps {
   resources: Resources;
   activeInstances: number;
   editTemplate: (id: string) => void;
-  deleteTemplate: (id: string) => void;
+  deleteTemplate: (
+    id: string
+  ) => Promise<
+    FetchResult<
+      DeleteTemplateMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
+  deleteTemplateLoading: boolean;
   createInstance: (
     id: string
   ) => Promise<
@@ -54,6 +66,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     createInstance,
     editTemplate,
     deleteTemplate,
+    deleteTemplateLoading,
     expandRow,
   } = props;
 
@@ -63,7 +76,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     variables: { labels: `crownlabs.polito.it/template=${id}` },
   });
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] = useState(
+    false
+  );
+  const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   return (
     <>
       <ModalAlert
@@ -74,15 +90,46 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         buttons={[
           <Button
             shape="round"
-            className="ml-2 w-24"
+            className="w-24"
             type="primary"
-            onClick={() => setShowDeleteModal(false)}
+            onClick={() => setShowDeleteModalNotPossible(false)}
           >
             Close
           </Button>,
         ]}
-        show={showDeleteModal}
-        setShow={setShowDeleteModal}
+        show={showDeleteModalNotPossible}
+        setShow={setShowDeleteModalNotPossible}
+      />
+      <ModalAlert
+        headTitle={name}
+        alertMessage="Delete template"
+        alertDescription="Do you really want to delete this template?"
+        alertType="warning"
+        buttons={[
+          <Button
+            shape="round"
+            className="mr-2 w-24"
+            type="primary"
+            onClick={() => setShowDeleteModalConfirm(false)}
+          >
+            Close
+          </Button>,
+          <Button
+            shape="round"
+            className="ml-2 w-24"
+            type="danger"
+            loading={deleteTemplateLoading}
+            onClick={() =>
+              deleteTemplate(id)
+                .then(() => setShowDeleteModalConfirm(false))
+                .catch(err => null)
+            }
+          >
+            {!deleteTemplateLoading && 'Delete'}
+          </Button>,
+        ]}
+        show={showDeleteModalConfirm}
+        setShow={setShowDeleteModalConfirm}
       />
       <div className="w-full flex justify-between py-0">
         <div
@@ -155,8 +202,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 refetchInstancesLabelSelector()
                   .then(ils => {
                     if (!ils.data.instanceList?.instances!.length && !ils.error)
-                      deleteTemplate(id);
-                    else setShowDeleteModal(true);
+                      setShowDeleteModalConfirm(true);
+                    else setShowDeleteModalNotPossible(true);
                   })
                   .catch(err => null);
               }}

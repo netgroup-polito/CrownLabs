@@ -185,7 +185,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
   ],
   role: WorkspaceRole.manager,
   editTemplate: () => null,
-  deleteTemplate: () => null,
+  deleteTemplate: () => new Promise(() => null),
 };
 
 const Template: Story<ITemplatesTableProps> = args => (

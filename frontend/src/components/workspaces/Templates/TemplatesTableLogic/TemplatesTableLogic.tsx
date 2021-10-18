@@ -205,7 +205,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     .filter(t => t);
 
   const [createInstanceMutation] = useCreateInstanceMutation();
-  const [deleteTemplateMutation] = useDeleteTemplateMutation();
+  const [
+    deleteTemplateMutation,
+    { loading: loadingDeleteTemplateMutation },
+  ] = useDeleteTemplateMutation();
 
   return (
     <Spin size="large" spinning={loadingTemplate || loadingInstances}>
@@ -227,8 +230,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 workspaceNamespace,
                 templateId,
               },
-            }).catch(err => null)
+            })
           }
+          deleteTemplateLoading={loadingDeleteTemplateMutation}
           editTemplate={() => null}
           createInstance={(templateId: string) =>
             createInstanceMutation({

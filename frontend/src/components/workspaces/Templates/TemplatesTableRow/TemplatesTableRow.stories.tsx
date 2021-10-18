@@ -21,7 +21,7 @@ const defaultArgs: someKeysOf<ITemplatesTableRowProps> = {
   role: WorkspaceRole.manager,
   activeInstances: 2,
   editTemplate: () => null,
-  deleteTemplate: () => null,
+  deleteTemplate: () => new Promise(() => null),
   persistent: true,
   resources: { cpu: 2, memory: '8', disk: '16' },
 };
