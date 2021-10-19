@@ -84,16 +84,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                   ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec
                   ?.templateName,
               description: `Instance started`,
-              btn: (
+              btn: instance.status?.url && (
                 <Button
                   type="success"
                   size="small"
-                  onClick={() =>
-                    window.open(
-                      data?.updateInstance?.instance?.status?.url!,
-                      '_blank'
-                    )
-                  }
+                  onClick={() => window.open(instance.status?.url!, '_blank')}
                 >
                   Connect
                 </Button>
