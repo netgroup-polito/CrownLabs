@@ -1,6 +1,6 @@
 import TemplatesEmpty, { ITemplatesEmptyProps } from './TemplatesEmpty';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../../utils';
 
 export default {
   title: 'Components/workspaces/Templates/TemplatesEmpty',
@@ -9,7 +9,7 @@ export default {
 } as Meta;
 
 const defaultArgs: someKeysOf<ITemplatesEmptyProps> = {
-  role: 'manager',
+  role: WorkspaceRole.manager,
 };
 
 const Template: Story<ITemplatesEmptyProps> = args => (

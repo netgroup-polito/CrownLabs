@@ -8,6 +8,8 @@ import { AuthContext } from './contexts/AuthContext';
 import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
+import MainViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
+
 function App() {
   const { userId } = useContext(AuthContext);
   return (
@@ -33,8 +35,11 @@ function App() {
             route: { name: 'Dashboard', path: '/' },
             content: <DashboardLogic />,
           },
+          {
+            route: { name: 'Active', path: '/active' },
+            content: <MainViewLogic />,
+          },
           ...[
-            { name: 'Active', path: '/active' },
             {
               name: 'Drive',
               path: 'https://crownlabs.polito.it/cloud/apps/dashboard/',

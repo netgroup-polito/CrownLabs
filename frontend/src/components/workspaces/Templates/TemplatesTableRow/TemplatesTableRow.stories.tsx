@@ -2,7 +2,7 @@ import TemplatesTableRow, {
   ITemplatesTableRowProps,
 } from './TemplatesTableRow';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../../utils';
 
 export default {
   title: 'Components/workspaces/Templates/TemplatesTableRow',
@@ -18,7 +18,7 @@ const defaultArgs: someKeysOf<ITemplatesTableRowProps> = {
   id: '0_1',
   name: 'Ubuntu VM',
   gui: true,
-  role: 'manager',
+  role: WorkspaceRole.manager,
   activeInstances: 2,
   editTemplate: () => null,
   deleteTemplate: () => null,

@@ -2,7 +2,7 @@ import WorkspaceContainer, {
   IWorkspaceContainerProps,
 } from './WorkspaceContainer';
 import { Story, Meta } from '@storybook/react';
-import { someKeysOf } from '../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../utils';
 
 export default {
   title: 'Components/workspaces/WorkspaceContainer',
@@ -14,7 +14,7 @@ const defaultArgs: someKeysOf<IWorkspaceContainerProps> = {
   workspace: {
     id: 0,
     title: 'Reti Locali e Data Center',
-    role: 'manager',
+    role: WorkspaceRole.manager,
     workspaceNamespace: 'workspaceNamespace',
   },
 };
@@ -34,7 +34,7 @@ Empty.args = {
   workspace: {
     id: 8,
     title: 'Software Networking',
-    role: 'user',
+    role: WorkspaceRole.user,
     workspaceNamespace: 'workspaceNamespace',
   },
 };

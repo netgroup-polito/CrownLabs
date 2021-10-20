@@ -1,7 +1,7 @@
 import { Story } from '@storybook/react';
 import { Title, Description, Stories } from '@storybook/addon-docs/blocks';
 import ViewModeButton, { IViewModeButtonProps } from './ViewModeButton';
-import { someKeysOf } from '../../../../utils';
+import { someKeysOf, WorkspaceRole } from '../../../../utils';
 
 export default {
   title: 'Components/ActivePage/ActiveLanding/ViewModeButton/ViewModeButton',
@@ -19,8 +19,8 @@ export default {
 };
 
 const defaultArgs: someKeysOf<IViewModeButtonProps> = {
-  managerView: false,
-  setManagerView: () => null,
+  currentView: WorkspaceRole.user,
+  setCurrentView: () => null,
 };
 
 const Template: Story<IViewModeButtonProps> = args => (
