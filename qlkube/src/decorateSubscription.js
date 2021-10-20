@@ -369,6 +369,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
              * payload.apiObj must be performed.
              */
             let fieldsCheck = true;
+            const isDeleteType = payload.type === 'DELETED';
             const isList = variables.name === undefined;
             const isResolved = sublabels.length > 0;
             graphqlLogger(
@@ -387,7 +388,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
              * to the subscription and the main type must be resolved again
              * due to the composition of the wrapped query
              */
-            if (isResolved) {
+            if (isResolved && !isDeleteType) {
               graphqlLogger(
                 `[i] Search for ${targetType} main query object of ${
                   info.fieldName
@@ -589,6 +590,7 @@ function decorateLabelsSubscription(
              * payload.apiObj must be performed.
              */
             let fieldsCheck = true;
+            const isDeleteType = payload.type === 'DELETED';
             const isList = true;
             const isResolved = sublabels.length > 0;
             graphqlLogger(
@@ -609,7 +611,7 @@ function decorateLabelsSubscription(
              * to the subscription and the main type must be resolved again
              * due to the composition of the wrapped query
              */
-            if (isResolved) {
+            if (isResolved && !isDeleteType) {
               graphqlLogger(
                 `[i] Search for ${targetType} main query object of ${
                   info.fieldName
