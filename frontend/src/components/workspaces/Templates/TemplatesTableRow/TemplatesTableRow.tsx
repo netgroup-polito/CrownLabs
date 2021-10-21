@@ -78,6 +78,20 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
     useState(false);
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+  const [createDisabled, setCreateDisabled] = useState(false);
+
+  const createInstanceHandler = () => {
+    setCreateDisabled(true);
+    createInstance(id)
+      .then(() => {
+        setTimeout(() => {
+          setCreateDisabled(false);
+        }, 400);
+        expandRow(1, id, true);
+      })
+      .catch(() => setCreateDisabled(false));
+  };
+
   return (
     <>
       <ModalAlert
@@ -87,6 +101,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         alertType="warning"
         buttons={[
           <Button
+            key={0}
             shape="round"
             className="w-24"
             type="primary"
@@ -105,6 +120,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         alertType="warning"
         buttons={[
           <Button
+            key={0}
             shape="round"
             className="mr-2 w-24"
             type="primary"
@@ -113,6 +129,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             Close
           </Button>,
           <Button
+            key={1}
             shape="round"
             className="ml-2 w-24"
             type="danger"
@@ -223,12 +240,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             </Tooltip>
           )}
           <Button
-            onClick={() => {
-              createInstance(id)
-                .then(() => expandRow(1, id, true))
-                .catch(() => null);
-            }}
+            onClick={createInstanceHandler}
             className="hidden xs:block"
+            disabled={createDisabled}
             type="primary"
             shape="round"
             size={'middle'}

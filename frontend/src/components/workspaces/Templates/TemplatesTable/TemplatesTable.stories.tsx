@@ -26,6 +26,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -33,6 +34,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 2,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -53,6 +55,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -60,6 +63,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 2,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -80,6 +84,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Windows VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -100,6 +105,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -107,6 +113,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 2,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -127,6 +134,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -134,6 +142,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 2,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -141,6 +150,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 3,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -161,6 +171,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
       instances: [
         {
           id: 1,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -168,6 +179,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 2,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
@@ -175,6 +187,7 @@ const defaultArgs: someKeysOf<ITemplatesTableProps> = {
         },
         {
           id: 3,
+          //idName: 'idName',
           name: 'Ubuntu VM',
           ip: '192.168.0.1',
           status: 'VmiReady',
