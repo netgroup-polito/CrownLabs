@@ -9,6 +9,7 @@ export default gql`
       namespace: $tenantNamespace
       name: $instanceId
     ) {
+      updateType
       instance: payload {
         metadata {
           name

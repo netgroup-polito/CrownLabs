@@ -9,6 +9,7 @@ export default gql`
       namespace: $workspaceNamespace
       name: $templateId
     ) {
+      updateType
       template: payload {
         spec {
           name: prettyName
