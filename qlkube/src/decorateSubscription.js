@@ -440,7 +440,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
               } with variables: ${JSON.stringify(variables)}`
             );
             const checkMetadataResult = checkMetadata(
-              isResolved,
+              isResolved && !isDeleteType,
               variables,
               payload.apiObj.metadata
             );
