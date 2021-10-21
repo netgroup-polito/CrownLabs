@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Table, message } from 'antd';
+import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
 import { Instance, Template, WorkspaceRole } from '../../../utils';
@@ -9,38 +9,51 @@ import { useDeleteInstanceMutation } from '../../../generated-types';
 
 export interface ITableTemplateProps {
   templates: Array<Template>;
-  //viewMode: WorkspaceRole;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
-  const { templates /* , viewMode */ } = props;
+  const { templates } = props;
+
+  const [deleteInstanceMutation] = useDeleteInstanceMutation();
+
+  const [expandedId, setExpandedId] = useState(['']);
+  const handleAccordion = (expanded: boolean, record: Template) => {
+    setExpandedId(expanded ? [record.id] : ['']);
+  };
+
+  const expandRow = (rowId: string) => {
+    expandedId[0] === rowId ? setExpandedId(['']) : setExpandedId([rowId]);
+  };
+
+  const destroyAll = (templateId: string) => {
+    templates
+      .find(t => t.id === templateId)!
+      .instances.forEach(instance => {
+        deleteInstanceMutation({
+          variables: {
+            tenantNamespace: instance.tenantNamespace!,
+            instanceId: instance.name,
+          },
+        });
+      });
+  };
 
   const columns = [
     {
       title: 'Template',
       key: 'template',
       // eslint-disable-next-line react/no-multi-comp
-      render: (record: Template) => (
+      render: (template: Template) => (
         <TableTemplateRow
-          key={record.id}
-          persistent={record.persistent}
-          text={record.name}
-          nActive={record.instances.length}
-          gui={record.gui}
-          destroyAll={() => message.info('All VMs deleted')}
+          key={template.id}
+          template={template}
+          nActive={template.instances.length}
+          destroyAll={() => destroyAll(template.id)}
+          expandRow={expandRow}
         />
       ),
     },
   ];
-
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
-  const [expandedId, setExpandedId] = useState(['']);
-  const handleAccordion = (expanded: boolean, record: Template) => {
-    expanded ? setExpandedId([record.id]) : setExpandedId(['']);
-  };
-  const startInstance = (idInstance: string, idTemplate: string) => {};
-  const stopInstance = (idInstance: string, idTemplate: string) => {};
-
   return (
     <div
       className={`rowInstance-bg-color ${
@@ -69,19 +82,12 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
             />
           ),
           // eslint-disable-next-line react/no-multi-comp
-          expandedRowRender: ({ instances, persistent }) => (
+          expandedRowRender: ({ instances }) => (
             <TableInstance
               showGuiIcon={false}
               viewMode={WorkspaceRole.manager}
               extended={true}
               instances={instances as Instance[]}
-              startInstance={startInstance}
-              stopInstance={stopInstance}
-              destroyInstance={(instanceId: string, tenantNamespace: string) =>
-                deleteInstanceMutation({
-                  variables: { tenantNamespace, instanceId },
-                })
-              }
             />
           ),
         }}

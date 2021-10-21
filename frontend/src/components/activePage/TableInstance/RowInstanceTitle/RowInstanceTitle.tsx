@@ -84,14 +84,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                     <Form.Item noStyle>
                       <Row gutter={0}>
                         <Col>
-                          <Form.Item
-                            noStyle
-                            rules={[
-                              {
-                                required: true,
-                              },
-                            ]}
-                          >
+                          <Form.Item noStyle rules={[{ required: true }]}>
                             <Input
                               size="small"
                               value={title}

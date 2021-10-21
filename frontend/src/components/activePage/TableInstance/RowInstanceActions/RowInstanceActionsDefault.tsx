@@ -3,19 +3,21 @@ import { Tooltip, Popconfirm } from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Instance } from '../../../../utils';
+import { useDeleteInstanceMutation } from '../../../../generated-types';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
   idTemplate: string;
-  destroyInstance: (instanceId: string, tenantNamespace: string) => void;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, instance, destroyInstance } = props;
-  const { url, status, gui, name, tenantDisplayName } = instance;
+  const { extended, instance } = props;
+  const { url, status, gui, name, tenantNamespace } = instance;
+
+  const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
   const titleFromStatus = () => {
     if (status === 'VmiReady') {
@@ -45,7 +47,14 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           title="Are you sure to delete?"
           okText="Yes"
           cancelText="No"
-          onConfirm={() => destroyInstance(name!, tenantDisplayName!)}
+          onConfirm={() =>
+            deleteInstanceMutation({
+              variables: {
+                instanceId: name,
+                tenantNamespace: tenantNamespace!,
+              },
+            })
+          }
           onCancel={e => e?.stopPropagation()}
         >
           <Button

@@ -1,4 +1,4 @@
-import { FC, SetStateAction } from 'react';
+import { FC, SetStateAction, useState } from 'react';
 import { Dropdown, Menu } from 'antd';
 import Button from 'antd-button-color';
 import {
@@ -9,80 +9,117 @@ import {
   MoreOutlined,
   PoweroffOutlined,
   CaretRightOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { ISSHInfo } from '../SSHModalContent/SSHModalContent';
 import { Instance } from '../../../../utils';
+import {
+  useApplyInstanceMutation,
+  useDeleteInstanceMutation,
+} from '../../../../generated-types';
+import { DropDownAction, setInstanceRunning } from '../../ActiveUtils';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
   fileManager?: boolean;
   ssh?: ISSHInfo;
   extended: boolean;
-  startInstance?: (idInstance: string, idTemplate: string) => void;
-  stopInstance?: (idInstance: string, idTemplate: string) => void;
-  destroyInstance: (instanceId: string, tenantNamespace: string) => void;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const {
-    instance,
-    fileManager,
-    ssh,
-    extended,
-    startInstance,
-    stopInstance,
-    destroyInstance,
-    setSshModal,
-  } = props;
+  const { instance, fileManager, ssh, extended, setSshModal } = props;
 
-  const {
-    status,
-    persistent,
-    url,
-    idTemplate,
-    name,
-    tenantDisplayName,
-  } = instance;
+  const { status, persistent, url, name, tenantNamespace } = instance;
 
-  const dropdownHandler = (key: string) => {
+  const font20px = { fontSize: '20px' };
+
+  const [disabled, setDisabled] = useState(false);
+  const [deleteInstanceMutation] = useDeleteInstanceMutation();
+  const [applyInstanceMutation] = useApplyInstanceMutation();
+
+  const mutateInstanceStatus = async (running: boolean) => {
+    if (!disabled) {
+      setDisabled(true);
+      try {
+        const result = await setInstanceRunning(
+          running,
+          instance,
+          applyInstanceMutation
+        );
+        if (result) setTimeout(setDisabled, 400, false);
+      } catch {
+        // TODO: do nothing at the moment
+      }
+    }
+  };
+
+  const statusComponents = {
+    VmiReady: {
+      menuKey: 'stop',
+      menuIcon: <PoweroffOutlined style={font20px} />,
+      menuText: 'Stop',
+    },
+    VmiOff: {
+      menuKey: 'start',
+      menuIcon: <CaretRightOutlined style={font20px} />,
+      menuText: 'Start',
+    },
+    Other: {
+      menuKey: '',
+      menuIcon: <ExclamationCircleOutlined style={font20px} />,
+      menuText: '',
+    },
+  };
+
+  const { menuKey, menuIcon, menuText } = statusComponents[
+    status === 'VmiReady' || status === 'VmiOff' ? status : 'Other'
+  ];
+
+  const dropdownHandler = (key: DropDownAction) => {
     switch (key) {
-      case 'Start':
-        persistent && startInstance?.(name, idTemplate!);
+      case DropDownAction.start:
+        persistent && mutateInstanceStatus(true);
         break;
-      case 'Stop':
-        persistent && stopInstance?.(name, idTemplate!);
+      case DropDownAction.stop:
+        persistent && mutateInstanceStatus(false);
         break;
-      case 'Connect':
+      case DropDownAction.connect:
         window.open(url!, '_blank');
         break;
-      case 'Destroy':
-        destroyInstance(name!, tenantDisplayName!);
+      case DropDownAction.destroy:
+        deleteInstanceMutation({
+          variables: {
+            instanceId: name,
+            tenantNamespace: tenantNamespace!,
+          },
+        });
         break;
-      case 'SSH':
+      case DropDownAction.ssh:
         setSshModal(true);
         break;
-      case 'Upload':
-        // Something to add
+      case DropDownAction.upload:
+        // TODO: Something to add
+        break;
+      case DropDownAction.destroy_all:
+        // TODO: Popconfirm not work maybe we should use a modal for the confirmation
         break;
       default:
         break;
     }
   };
 
-  const font20px = { fontSize: '20px' };
-
   return (
     <Dropdown
       trigger={['click']}
       overlay={
-        <Menu onClick={click => dropdownHandler(click.key.toString())}>
+        <Menu onClick={({ key }) => dropdownHandler(key as DropDownAction)}>
           <Menu.Item
             disabled={status !== 'VmiReady'}
-            key="Connect"
-            className={`sm:hidden ${
+            key="connect"
+            className={`flex items-center sm:hidden ${
               status === 'VmiReady' &&
               (extended ? 'primary-color-fg' : 'success-color-fg')
             }`}
@@ -90,22 +127,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           >
             Connect
           </Menu.Item>
-          {persistent && startInstance && status === 'VmiOff' && (
+          {persistent && (
             <Menu.Item
-              key="Start"
-              className="sm:hidden"
-              icon={<CaretRightOutlined style={font20px} />}
+              key={menuKey}
+              className="flex items-center sm:hidden"
+              icon={menuIcon}
             >
-              Start
-            </Menu.Item>
-          )}
-          {persistent && stopInstance && status === 'VmiReady' && (
-            <Menu.Item
-              key="Stop"
-              className="sm:hidden"
-              icon={<PoweroffOutlined style={font20px} />}
-            >
-              Stop
+              {menuText}
             </Menu.Item>
           )}
           {extended && (ssh || fileManager) && (
@@ -113,8 +141,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           )}
           {extended && fileManager && (
             <Menu.Item
-              key="Upload"
-              className="xl:hidden"
+              key="upload"
+              className="flex items-center xl:hidden"
               disabled={status !== 'VmiReady'}
               icon={<FolderOpenOutlined style={font20px} />}
             >
@@ -123,8 +151,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           )}
           {extended && ssh && (
             <Menu.Item
-              key="SSH"
-              className="xl:hidden"
+              key="ssh"
+              className="flex items-center xl:hidden"
               disabled={status !== 'VmiReady'}
               icon={<CodeOutlined style={font20px} />}
             >
@@ -133,8 +161,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           )}
           <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
           <Menu.Item
-            key="Destroy"
-            className="sm:hidden"
+            key="destroy"
+            className="flex items-center sm:hidden"
             danger
             icon={<DeleteOutlined style={font20px} />}
           >
