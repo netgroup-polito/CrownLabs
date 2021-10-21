@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Modal, Space, Typography } from 'antd';
+import { Modal, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { Instance } from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
@@ -7,6 +7,8 @@ import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent, { ISSHInfo } from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
+import { DeleteInstanceMutation } from '../../../../generated-types';
+import { FetchResult } from '@apollo/client';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -15,9 +17,15 @@ export interface IRowInstanceActionsProps {
   fileManager?: boolean;
   ssh?: ISSHInfo;
   extended: boolean;
-  startInstance?: (idInstance: number, idTemplate: string) => void;
-  stopInstance?: (idInstance: number, idTemplate: string) => void;
-  destroyInstance: (idInstance: number, idTemplate: string) => void;
+  startInstance?: (idInstance: string, idTemplate: string) => void;
+  stopInstance?: (idInstance: string, idTemplate: string) => void;
+  destroyInstance: () => Promise<
+    FetchResult<
+      DeleteInstanceMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
 }
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
@@ -67,26 +75,27 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     <>
       <div
         className={`w-full flex items-center ${
-          extended ? 'justify-end md:justify-between' : 'justify-end'
+          extended ? 'justify-end sm:justify-between' : 'justify-end'
         }`}
       >
         {extended && (
-          <div className="flex justify-between items-center md:w-1/3 xl:w-1/2">
+          <div className="flex justify-between items-center lg:w-1/3 xl:w-1/2">
             <RowInstanceActionsExtended
               ssh={ssh}
               setSshModal={setSshModal}
+              templateName={instance.templatePrettyName!}
               ip={ip}
               time={getTime()}
               status={status}
               fileManager={fileManager}
             />
-            <Space size={'middle'} className="hidden lg:block">
-              <Text strong>{getTime()}</Text>
-            </Space>
+            <Text className="hidden lg:block" strong>
+              {getTime()}
+            </Text>
           </div>
         )}
         <div
-          className={`flex justify-end items-center gap-2 w-100 md:w-2/3 xl:w-1/2 ${
+          className={`flex justify-end items-center gap-2 w-100 lg:w-2/3 xl:w-1/2 ${
             extended ? 'pr-2' : ''
           }`}
         >

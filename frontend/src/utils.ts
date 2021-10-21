@@ -23,6 +23,7 @@ export type Template = {
   persistent: boolean;
   resources: Resources;
   instances: Array<Instance>;
+  workspaceId?: string;
 };
 export type VmStatus =
   | '' //the environment phase is unknown.
@@ -38,12 +39,15 @@ export type Instance = {
   id: number;
   gui?: boolean;
   idTemplate?: string;
+  templatePrettyName?: string;
   persistent?: boolean;
   tenantId?: string;
   tenantDisplayName?: string;
+  tenantNamespace?: string;
   name: string;
   ip: string;
   status: VmStatus;
   url: string | null;
   timeStamp?: string;
+  workspaceId?: string;
 };

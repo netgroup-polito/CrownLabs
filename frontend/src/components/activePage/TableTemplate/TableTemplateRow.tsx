@@ -6,9 +6,9 @@ import {
   MoreOutlined,
   DesktopOutlined,
   CodeOutlined,
-  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import Badge from '../../common/Badge';
+import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
 
 export interface ITableTemplateRowProps {
   text: string;
@@ -40,11 +40,23 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           {text}
         </Text>
         {persistent && (
-          <Tooltip title="Persistent">
-            <SafetyCertificateOutlined
-              className="text-green-500 flex items-center"
-              style={{ fontSize: '18px' }}
-            />
+          <Tooltip
+            title={
+              <>
+                <div className="text-center">
+                  These Instances can be stopped and restarted without being
+                  deleted.
+                </div>
+                <div className="text-center">
+                  Your files won't be deleted in case of an internal misservice
+                  of CrownLabs.
+                </div>
+              </>
+            }
+          >
+            <div className="success-color-fg flex items-center">
+              <SvgInfinite width="22px" />
+            </div>
           </Tooltip>
         )}
       </Space>

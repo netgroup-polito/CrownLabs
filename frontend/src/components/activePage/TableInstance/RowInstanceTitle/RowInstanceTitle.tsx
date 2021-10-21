@@ -3,8 +3,8 @@ import { Typography, Space, Tooltip, Input, Form, Row, Col } from 'antd';
 import Button from 'antd-button-color';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import { DesktopOutlined, CodeOutlined } from '@ant-design/icons';
-import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { WorkspaceRole, Instance } from '../../../../utils';
+import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {
@@ -18,7 +18,8 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
   const { viewMode, extended, instance, showGuiIcon } = props;
   const {
     name,
-    idTemplate,
+    //idTemplate,
+    templatePrettyName,
     tenantId,
     tenantDisplayName,
     status,
@@ -131,18 +132,10 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                   /> */}
                 </Tooltip>
               )}
-              <Text>
-                <i>{idTemplate}</i>
+              <Text className="hidden md:block">
+                <i>{templatePrettyName}</i>
               </Text>
-              {persistent && extended && (
-                <Tooltip title="Persistent">
-                  <SafetyCertificateOutlined
-                    onClick={() => null}
-                    className="text-green-500 flex items-center"
-                    style={{ fontSize: '18px' }}
-                  />
-                </Tooltip>
-              )}
+              {persistent && extended && <PersistentIcon />}
             </>
           )}
         </Space>

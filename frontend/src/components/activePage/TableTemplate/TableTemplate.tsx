@@ -5,6 +5,7 @@ import TableInstance from '../TableInstance/TableInstance';
 import { Instance, Template, WorkspaceRole } from '../../../utils';
 import TableTemplateRow from './TableTemplateRow';
 import './TableTemplate.less';
+import { useDeleteInstanceMutation } from '../../../generated-types';
 
 export interface ITableTemplateProps {
   templates: Array<Template>;
@@ -32,11 +33,14 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     },
   ];
 
+  const [deleteInstanceMutation] = useDeleteInstanceMutation();
   const [expandedId, setExpandedId] = useState(['']);
   const handleAccordion = (expanded: boolean, record: Template) => {
     expanded ? setExpandedId([record.id]) : setExpandedId(['']);
   };
-  const data = templates;
+  const startInstance = (idInstance: string, idTemplate: string) => {};
+  const stopInstance = (idInstance: string, idTemplate: string) => {};
+
   return (
     <div
       className={`rowInstance-bg-color ${
@@ -51,7 +55,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         rowKey={record => record.id}
         columns={columns}
         size={'middle'}
-        dataSource={data}
+        dataSource={templates}
         pagination={false}
         showHeader={false}
         onExpand={handleAccordion}
@@ -71,6 +75,13 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               viewMode={WorkspaceRole.manager}
               extended={true}
               instances={instances as Instance[]}
+              startInstance={startInstance}
+              stopInstance={stopInstance}
+              destroyInstance={(tenantNamespace: string, instanceId: string) =>
+                deleteInstanceMutation({
+                  variables: { tenantNamespace, instanceId },
+                })
+              }
             />
           ),
         }}

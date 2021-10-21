@@ -11,7 +11,7 @@ export interface IBadgeProps {
 const Badge: FC<IBadgeProps> = ({ ...props }) => {
   const { value, size, className, color } = props;
   const classPerSize = {
-    small: 'h-6 w-6 text-sm ',
+    small: 'h-6 px-1 text-sm ',
     middle: 'h-7 w-7 text-base ',
     large: 'h-8 w-8 text-lg ',
   };
@@ -25,6 +25,7 @@ const Badge: FC<IBadgeProps> = ({ ...props }) => {
     <>
       {value ? (
         <span
+          style={{ minWidth: '1.5rem' }}
           className={`
           ${size ? classPerSize[size] : ''}
           ${className} flex items-center justify-center rounded-lg text-white ${
