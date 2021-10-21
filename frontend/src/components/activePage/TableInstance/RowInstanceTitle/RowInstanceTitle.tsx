@@ -6,7 +6,7 @@ import { DesktopOutlined, CodeOutlined } from '@ant-design/icons';
 import { WorkspaceRole, Instance } from '../../../../utils';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import { useApplyInstanceMutation } from '../../../../generated-types';
-import { setInstancePrettyname } from '../../ActiveUtils';
+import { setInstancePrettyname } from '../../../../utilsLogic';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {

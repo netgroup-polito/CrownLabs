@@ -37,6 +37,7 @@ export type VmStatus =
   | 'CreationLoopBackoff'; //the environment has encountered a temporary error during creation.
 export type Instance = {
   id: number;
+  //idName: string;
   gui?: boolean;
   idTemplate?: string;
   templatePrettyName?: string;

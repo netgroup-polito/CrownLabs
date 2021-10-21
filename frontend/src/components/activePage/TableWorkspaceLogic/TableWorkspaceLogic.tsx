@@ -11,17 +11,17 @@ import {
 } from '../../../generated-types';
 import { FetchPolicy } from '@apollo/client';
 import {
-  getManagerInstances,
-  notifyStatus,
-  filterId,
-  getTemplatesMapped,
-  getWorkspacesMapped,
-} from '../ActiveUtils';
-import {
   comparePrettyName,
   matchK8sObject,
   replaceK8sObject,
 } from '../../../k8sUtils';
+import {
+  filterId,
+  getManagerInstances,
+  getTemplatesMapped,
+  getWorkspacesMapped,
+  notifyStatus,
+} from '../../../utilsLogic';
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 

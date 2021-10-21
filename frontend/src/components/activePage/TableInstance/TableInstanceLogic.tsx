@@ -12,7 +12,7 @@ import {
   UpdateType,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
-import { getInstances, notifyStatus } from '../ActiveUtils';
+import { getInstances, notifyStatus } from '../../../utilsLogic';
 import {
   comparePrettyName,
   matchK8sObject,
