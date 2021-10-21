@@ -123,7 +123,9 @@ interface InstancesSubscriptionData {
 }
 export const updateQueryOwnedInstancesQuery = (
   dataInstances: Instance[],
-  setDataInstances: Dispatch<SetStateAction<Instance[]>>
+  setDataInstances: Dispatch<SetStateAction<Instance[]>>,
+  tenantNamespace: string,
+  workspaceId: string
 ) => {
   return (
     prev: OwnedInstancesQuery,
@@ -143,14 +145,16 @@ export const updateQueryOwnedInstancesQuery = (
       } else if (updateType === UpdateType.Modified) {
         setDataInstances(old =>
           old?.map((i, n) =>
-            i.name === instance?.metadata?.name! ? getInstance(instance!, n) : i
+            i.name === instance?.metadata?.name!
+              ? getInstance(instance!, n, tenantNamespace, workspaceId)
+              : i
           )
         );
       } else if (updateType === UpdateType.Added) {
         if (dataInstances.find(i => i.name === instance?.metadata?.name!)) {
           setDataInstances(old => [
             ...old,
-            getInstance(instance!, old?.length),
+            getInstance(instance!, old?.length, tenantNamespace, workspaceId),
           ]);
         }
       }

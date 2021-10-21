@@ -47,7 +47,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     variables: { tenantNamespace },
     onCompleted: data =>
       setDataInstances(
-        data.instanceList?.instances?.map((i, n) => getInstance(i!, n))!
+        data.instanceList?.instances?.map((i, n) =>
+          getInstance(i!, n, tenantNamespace, workspaceNamespace)
+        )!
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -61,7 +63,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         },
         updateQuery: updateQueryOwnedInstancesQuery(
           dataInstances,
-          setDataInstances
+          setDataInstances,
+          tenantNamespace,
+          workspaceNamespace
         ),
       });
     }
@@ -105,6 +109,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const [deleteTemplateMutation, { loading: loadingDeleteTemplateMutation }] =
     useDeleteTemplateMutation();
 
+  const deleteTemplate = (templateId: string) =>
+    deleteTemplateMutation({
+      variables: {
+        workspaceNamespace,
+        templateId,
+      },
+    });
+
   const createInstance = (templateId: string) =>
     createInstanceMutation({
       variables: {
@@ -116,7 +128,12 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     }).then(i => {
       setDataInstances(old => [
         ...old,
-        getInstance(i.data?.createdInstance!, old.length),
+        getInstance(
+          i.data?.createdInstance!,
+          old.length,
+          tenantNamespace,
+          workspaceNamespace
+        ),
       ]);
       return i;
     });
@@ -137,14 +154,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           workspaceNamespace={workspaceNamespace}
           templates={templates}
           role={role}
-          deleteTemplate={(templateId: string) =>
-            deleteTemplateMutation({
-              variables: {
-                workspaceNamespace,
-                templateId,
-              },
-            })
-          }
+          deleteTemplate={deleteTemplate}
           deleteTemplateLoading={loadingDeleteTemplateMutation}
           editTemplate={() => null}
           createInstance={createInstance}
