@@ -4,28 +4,32 @@ import {
   Slider,
   Form,
   Input,
-  Select,
   Checkbox,
   Tooltip,
-  Row,
+  AutoComplete,
 } from 'antd';
 import Button from 'antd-button-color';
+import {
+  CreateTemplateMutation,
+  useWorkspaceTemplatesQuery,
+} from '../../../generated-types';
+import { FetchResult } from 'apollo-link';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
-const { Option } = Select;
-
-type Image = {
+export type Image = {
   name: string;
   vmorcontainer: Array<Vmorcontainer>;
+  registry: string;
 };
 
 type Vmorcontainer = 'Container' | 'VM';
 
 type Template = {
-  name: string | undefined;
-  image: string | undefined;
-  vmorcontainer: Vmorcontainer | undefined;
+  name?: string;
+  image?: string;
+  registry?: string;
+  vmorcontainer?: Vmorcontainer;
   diskMode: boolean;
   gui: boolean;
   cpu: number;
@@ -39,10 +43,11 @@ type Interval = {
 };
 
 type Valid = {
-  name: { status: string; help: string | undefined };
-  vmorcontainer: { status: string; help: string | undefined };
+  name: { status: string; help?: string };
+  image: { status: string; help?: string };
 };
 export interface IModalCreateTemplateProps {
+  workspaceNamespace: string;
   template?: Template;
   images: Array<Image>;
   cpuInterval: Interval;
@@ -50,8 +55,22 @@ export interface IModalCreateTemplateProps {
   diskInterval: Interval;
   show: boolean;
   setShow: (status: boolean) => void;
-  submitHandler: (t?: Template) => void;
+  submitHandler: (
+    t: Template
+  ) => Promise<
+    FetchResult<
+      CreateTemplateMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
+  loading: boolean;
 }
+
+const getImageNoVer = (image: string) =>
+  image.split(':').length === 2 ? image.split(':')[0] : image;
+
+const isEmptyOrSpaces = (str: string) => !str || str.match(/^ *$/);
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -63,16 +82,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     images,
     template,
     submitHandler,
+    loading,
+    workspaceNamespace,
   } = props;
+
+  const imagesNoVersion = images.map(x => getImageNoVer(x.name));
 
   const [buttonDisabled, setButtonDisabled] = useState(true);
 
   const [formTemplate, setFormTemplate] = useState<Template>({
     name: template && template.name,
     image: template && template.image,
+    registry: template && template.registry,
     vmorcontainer: template && template.vmorcontainer,
     diskMode: !!template && template.diskMode,
-    gui: !!template && template.gui,
+    gui: template?.gui ?? true,
     cpu: template ? template.cpu : cpuInterval.min,
     ram: template ? template.ram : ramInterval.min,
     disk: template ? template.disk : diskInterval.min,
@@ -80,14 +104,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [valid, setValid] = useState<Valid>({
     name: { status: 'success', help: undefined },
-    vmorcontainer: { status: 'success', help: undefined },
+    image: { status: 'success', help: undefined },
   });
+
+  const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>();
 
   useEffect(() => {
     if (
       formTemplate.name &&
       formTemplate.image &&
       formTemplate.vmorcontainer &&
+      valid.name.status === 'success' &&
       (template
         ? template.name !== formTemplate.name ||
           template.image !== formTemplate.image ||
@@ -101,7 +128,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     )
       setButtonDisabled(false);
     else setButtonDisabled(true);
-  }, [formTemplate, template]);
+  }, [formTemplate, template, valid.name.status]);
 
   const nameValidator = () => {
     if (formTemplate.name === '' || formTemplate.name === undefined) {
@@ -109,6 +136,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         return {
           ...old,
           name: { status: 'error', help: 'Please insert template name' },
+        };
+      });
+    } else if (
+      !errorFetchTemplates &&
+      !loadingFetchTemplates &&
+      dataFetchTemplates?.templateList?.templates
+        ?.map(t => t?.spec?.name)
+        .includes(formTemplate.name.trim())
+    ) {
+      setValid(old => {
+        return {
+          ...old,
+          name: {
+            status: 'error',
+            help: 'This name has already been used in this workspace',
+          },
         };
       });
     } else {
@@ -121,19 +164,19 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const vmorcontainerValidator = () => {
-    if (formTemplate.vmorcontainer === undefined) {
+  const imageValidator = () => {
+    if (isEmptyOrSpaces(formTemplate.image!)) {
       setValid(old => {
         return {
           ...old,
-          vmorcontainer: { status: 'error', help: 'Please select' },
+          image: { status: 'error', help: 'Insert an image' },
         };
       });
     } else {
       setValid(old => {
         return {
           ...old,
-          vmorcontainer: { status: 'success', help: undefined },
+          image: { status: 'success', help: undefined },
         };
       });
     }
@@ -148,6 +191,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const closehandler = () => {
     setShow(false);
   };
+
+  const {
+    data: dataFetchTemplates,
+    error: errorFetchTemplates,
+    loading: loadingFetchTemplates,
+    refetch: refetchTemplates,
+  } = useWorkspaceTemplatesQuery({
+    variables: { workspaceNamespace },
+  });
 
   return (
     <Modal
@@ -164,7 +216,25 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         labelCol={{ span: 2 }}
         wrapperCol={{ span: 22 }}
         form={form}
-        onSubmitCapture={() => submitHandler(formTemplate)}
+        onSubmitCapture={() => {
+          submitHandler({
+            ...formTemplate,
+            image:
+              images.find(i => getImageNoVer(i.name) === formTemplate.image)
+                ?.name ?? formTemplate.image,
+          })
+            .then(() => {
+              setShow(false);
+              setFormTemplate(old => {
+                return { ...old, name: undefined };
+              });
+              form.setFieldsValue({
+                templatename: undefined,
+              });
+            })
+            //TODO add error handler
+            .catch(err => null);
+        }}
         initialValues={{
           templatename: formTemplate.name,
           image: formTemplate.image,
@@ -181,7 +251,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           required
           validateStatus={valid.name.status as 'success' | 'error'}
           help={valid.name.help}
-          validateTrigger="onBlur"
+          validateTrigger="onChange"
           rules={[
             {
               required: true,
@@ -190,7 +260,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ]}
         >
           <Input
-            onBlur={e =>
+            onFocus={() => refetchTemplates({ workspaceNamespace })}
+            onChange={e =>
               setFormTemplate(old => {
                 return { ...old, name: e.target.value };
               })
@@ -200,100 +271,63 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           />
         </Form.Item>
 
-        <div className="flex justify-between inline">
+        <div className="flex justify-between items-start inline mb-6">
           <Form.Item
+            className="my-0"
             {...fullLayout}
-            style={{ width: '68%' }}
+            style={{ width: '63%' }}
             name="image"
             required
+            validateStatus={valid.image.status as 'success' | 'error'}
+            help={valid.image.help}
+            validateTrigger="onChange"
+            rules={[
+              {
+                required: true,
+                validator: imageValidator,
+              },
+            ]}
           >
-            <Select
-              placeholder="Image name"
-              onSelect={value => {
+            <AutoComplete
+              options={imagesSearchOptions?.map(x => {
+                return {
+                  value: x,
+                };
+              })}
+              onFocus={() => {
+                if (!imagesSearchOptions?.length)
+                  setImagesSearchOptions(imagesNoVersion!);
+              }}
+              onChange={value => {
+                setImagesSearchOptions(
+                  imagesNoVersion?.filter(s => s.includes(value))
+                );
                 if (value !== formTemplate.image) {
+                  const imageFound = images.find(
+                    i => getImageNoVer(i.name) === value
+                  );
                   setFormTemplate(old => {
-                    if (old.image) {
-                      setValid(old => {
-                        return {
-                          ...old,
-                          vmorcontainer: {
-                            status: 'error',
-                            help: 'Please select',
-                          },
-                        };
-                      });
-                    }
                     return {
                       ...old,
                       image: String(value),
-                      vmorcontainer: undefined,
+                      registry: imageFound?.registry,
+                      vmorcontainer:
+                        imageFound?.vmorcontainer[0] ?? 'Container',
                       diskMode: false,
-                      gui: false,
+                      gui: true,
                     };
                   });
                   form.setFieldsValue({
                     image: value,
-                    vmorcontainer: undefined,
+                    vmorcontainer: imageFound?.vmorcontainer[0] ?? 'Container',
                   });
                 }
               }}
-              showSearch={true}
-            >
-              {images.map(x => (
-                <Option value={x.name} key={x.name}>
-                  {x.name}
-                </Option>
-              ))}
-            </Select>
+              placeholder="Select an image"
+            />
           </Form.Item>
-          <Form.Item
-            {...fullLayout}
-            style={{ width: '28%' }}
-            name="vmorcontainer"
-            required
-            validateStatus={valid.vmorcontainer.status as 'success' | 'error'}
-            help={valid.vmorcontainer.help}
-            rules={[
-              {
-                required: true,
-                validator: vmorcontainerValidator,
-              },
-            ]}
-          >
-            <Select
-              placeholder="VM/Container"
-              onSelect={value => {
-                if (value !== formTemplate.vmorcontainer) {
-                  setFormTemplate(old => {
-                    return {
-                      ...old,
-                      vmorcontainer: String(value) as Vmorcontainer,
-                      diskMode: false,
-                      gui: false,
-                      disk: 0,
-                    };
-                  });
-                  form.setFieldsValue({
-                    vmorcontainer: value,
-                  });
-                }
-              }}
-              showSearch={true}
-            >
-              {formTemplate.image !== undefined
-                ? images
-                    .filter(x => x.name === formTemplate.image)[0]
-                    .vmorcontainer.map(x => (
-                      <Option value={x} key={x}>
-                        {x}
-                      </Option>
-                    ))
-                : null}
-            </Select>
-          </Form.Item>
-        </div>
-        <Row className="flex mb-8 justify-center">
-          <div className="mr-8 md:mr-12">
+
+          <div className="mt-3">
             <span>GUI:</span>
             <Checkbox
               className="ml-3"
@@ -305,7 +339,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }
             />
           </div>
-          <div className="ml-8 md:ml-12">
+          <div className="mr-1 mt-3">
             <span>Persistent: </span>
             <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
               <Checkbox
@@ -325,10 +359,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               />
             </Tooltip>
           </div>
-        </Row>
+        </div>
 
-        <Form.Item labelAlign="left" className="mt-3" label="CPU" name="cpu">
-          <div className="sm:px-3">
+        <Form.Item labelAlign="left" className="mt-10" label="CPU" name="cpu">
+          <div className="sm:pl-3 pr-1">
             <Slider
               handleStyle={alternativeHandle}
               defaultValue={formTemplate.cpu}
@@ -353,7 +387,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           </div>
         </Form.Item>
         <Form.Item labelAlign="left" label="RAM" name="ram">
-          <div className="sm:px-3">
+          <div className="sm:pl-3 pr-1">
             <Slider
               handleStyle={alternativeHandle}
               defaultValue={formTemplate.ram}
@@ -372,7 +406,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 [ramInterval.max]: `${ramInterval.max}GB`,
               }}
               included={false}
-              step={1}
+              step={0.25}
               tipFormatter={(value?: number) => `${value} GB`}
             />
           </div>
@@ -383,7 +417,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           name="disk"
           className={formTemplate.diskMode ? '' : 'hidden'}
         >
-          <div className="sm:px-3 ">
+          <div className="sm:pl-3 pr-1 ">
             <Slider
               handleStyle={alternativeHandle}
               tooltipVisible={false}
@@ -420,7 +454,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               >
                 <span className="cursor-not-allowed">
                   <Button
-                    className="pointer-events-none"
+                    className="w-24 pointer-events-none"
                     disabled
                     htmlType="submit"
                     type="primary"
@@ -433,12 +467,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               </Tooltip>
             ) : (
               <Button
+                className="w-24"
                 htmlType="submit"
                 type="primary"
                 shape="round"
                 size={'middle'}
+                loading={loading}
               >
-                {template ? 'Modify' : 'Create'}
+                {!loading && (template ? 'Modify' : 'Create')}
               </Button>
             )}
           </div>

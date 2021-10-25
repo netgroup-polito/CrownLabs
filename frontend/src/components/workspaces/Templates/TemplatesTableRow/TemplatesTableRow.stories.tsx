@@ -23,7 +23,7 @@ const defaultArgs: someKeysOf<ITemplatesTableRowProps> = {
   editTemplate: () => null,
   deleteTemplate: () => null,
   persistent: true,
-  resources: { cpu: 2, memory: 8, disk: 16 },
+  resources: { cpu: 2, memory: '8', disk: '16' },
 };
 
 const Template: Story<ITemplatesTableRowProps> = args => (

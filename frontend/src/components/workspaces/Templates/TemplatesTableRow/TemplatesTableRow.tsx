@@ -37,6 +37,11 @@ export interface ITemplatesTableRowProps {
   expandRow: (activeInstances: number, rowId: string, create: boolean) => void;
 }
 
+const convertInG = (s: string) =>
+  s.includes('M') && Number(s.split('M')[0]) >= 1000
+    ? `${Number(s.split('M')[0]) / 1000}G`
+    : s;
+
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const {
     id,
@@ -124,10 +129,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             title={
               <>
                 <div>CPU: {resources.cpu || 'unavailable'} Core</div>
-                <div>RAM: {resources.memory || 'unavailable'} GB</div>
+                <div>RAM: {convertInG(resources.memory) || 'unavailable'}B</div>
                 <div>
                   {persistent
-                    ? ` DISK: ${resources.disk || 'unavailable'} GB`
+                    ? ` DISK: ${convertInG(resources.disk) || 'unavailable'}B`
                     : ``}
                 </div>
               </>
