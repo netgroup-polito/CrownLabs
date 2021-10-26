@@ -58,7 +58,7 @@ function getTenantPatchJson(
     email?: string;
     firstName?: string;
     lastName?: string;
-    publicKeys?: [string];
+    publicKeys?: string[];
   },
   workspaces?: {
     role: Role;
