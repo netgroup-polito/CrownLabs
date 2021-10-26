@@ -52,8 +52,14 @@ const TemplatesTableRowSettings = ({ ...props }) => {
       <Button
         with="link"
         type="text"
-        size="large"
-        icon={<EllipsisOutlined style={{ fontSize: '22px' }} />}
+        size="middle"
+        shape="circle"
+        icon={
+          <EllipsisOutlined
+            className="flex justify-center"
+            style={{ fontSize: '22px' }}
+          />
+        }
       />
     </Dropdown>
   );

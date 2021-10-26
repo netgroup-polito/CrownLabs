@@ -141,7 +141,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <Button
               with="link"
               type={'warning'}
-              size={'large'}
+              size={'middle'}
               className={'px-0'}
             >
               Info
@@ -186,7 +186,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             className="hidden xs:block"
             type="primary"
             shape="round"
-            size={'large'}
+            size={'middle'}
           >
             Create
           </Button>

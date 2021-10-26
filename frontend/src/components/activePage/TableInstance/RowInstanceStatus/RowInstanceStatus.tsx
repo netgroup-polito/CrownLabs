@@ -21,9 +21,7 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
     CreationLoopBackoff: (
       <WarningOutlined className="warning-color-fg" style={font20px} />
     ),
-    Running: (
-      <CheckCircleOutlined className="success-color-fg" style={font20px} />
-    ),
+    Running: <LoadingOutlined className="warning-color-fg" style={font20px} />,
     Importing: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
@@ -43,7 +41,7 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
   return (
     <div className="flex gap-4 items-center">
       <Tooltip title={status}>
-        {statusIcon[status !== '' ? status : 'VmiReady']}
+        {statusIcon[status !== '' ? status : 'Starting']}
       </Tooltip>
     </div>
   );

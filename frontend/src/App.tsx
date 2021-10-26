@@ -8,7 +8,7 @@ import { AuthContext } from './contexts/AuthContext';
 import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
-import MainViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
+import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 
 function App() {
   const { userId } = useContext(AuthContext);
@@ -37,7 +37,7 @@ function App() {
           },
           {
             route: { name: 'Active', path: '/active' },
-            content: <MainViewLogic />,
+            content: <ActiveViewLogic />,
           },
           ...[
             {
