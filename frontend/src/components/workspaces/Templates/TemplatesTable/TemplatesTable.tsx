@@ -6,7 +6,10 @@ import { RightOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { Template, WorkspaceRole } from '../../../../utils';
 import './TemplatesTable.less';
-import { CreateInstanceMutation } from '../../../../generated-types';
+import {
+  CreateInstanceMutation,
+  DeleteTemplateMutation,
+} from '../../../../generated-types';
 import { FetchResult } from 'apollo-link';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
 
@@ -16,7 +19,16 @@ export interface ITemplatesTableProps {
   templates: Array<Template>;
   role: WorkspaceRole;
   editTemplate: (id: string) => void;
-  deleteTemplate: (id: string) => void;
+  deleteTemplate: (
+    id: string
+  ) => Promise<
+    FetchResult<
+      DeleteTemplateMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
+  deleteTemplateLoading: boolean;
   createInstance: (
     id: string
   ) => Promise<
@@ -34,6 +46,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     role,
     editTemplate,
     deleteTemplate,
+    deleteTemplateLoading,
     createInstance,
   } = props;
 
@@ -57,6 +70,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           activeInstances={record.instances ? record.instances.length : 0}
           editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
+          deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={expandRow}
         />
