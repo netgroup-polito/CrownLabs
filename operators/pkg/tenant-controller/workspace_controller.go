@@ -79,7 +79,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				retrigErr = err
 			}
 			// can remove the finalizer from the workspace if the eternal resources have been successfully deleted
-			if retrigErr != nil {
+			if retrigErr == nil {
 				// remove finalizer from the workspace
 				ctrlUtil.RemoveFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName)
 				if err := r.Update(context.Background(), &ws); err != nil {
