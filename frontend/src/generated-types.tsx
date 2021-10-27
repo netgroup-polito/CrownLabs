@@ -2353,7 +2353,7 @@ export type CreateInstanceMutationVariables = Exact<{
 }>;
 
 
-export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> };
+export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> };
 
 export type CreateTemplateMutationVariables = Exact<{
   workspaceId: Scalars['String'];
@@ -2642,6 +2642,10 @@ export const CreateInstanceDocument = gql`
     namespace: $tenantNamespace
     itPolitoCrownlabsV1alpha2InstanceInput: {kind: "Instance", apiVersion: "crownlabs.polito.it/v1alpha2", metadata: {generateName: $generateName}, spec: {templateCrownlabsPolitoItTemplateRef: {name: $templateId, namespace: $workspaceNamespace}, tenantCrownlabsPolitoItTenantRef: {name: $tenantId, namespace: $tenantNamespace}}}
   ) {
+    metadata {
+      name
+      creationTimestamp
+    }
     status {
       ip
       phase
