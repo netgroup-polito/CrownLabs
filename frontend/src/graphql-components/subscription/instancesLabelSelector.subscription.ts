@@ -19,6 +19,17 @@ export default gql`
         spec {
           running
           prettyName
+          tenantCrownlabsPolitoItTenantRef {
+            tenantId: name
+            tenantWrapper {
+              itPolitoCrownlabsV1alpha1Tenant {
+                spec {
+                  firstName
+                  lastName
+                }
+              }
+            }
+          }
           templateCrownlabsPolitoItTemplateRef {
             name
             namespace
