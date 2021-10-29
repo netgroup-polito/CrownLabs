@@ -54,4 +54,11 @@ resources:
     memory: 100Mi
     cpu: 100m
 
+webhook:
+  deployment:
+    certsMount: /tmp/k8s-webhook-server/serving-certs/
+    webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+  enableMutating: true
+  clusterIssuer: self-signed
+
 rbacResourcesName: crownlabs-tenant-operator

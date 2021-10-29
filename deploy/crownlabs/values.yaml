@@ -123,6 +123,10 @@ tenant-operator:
       user: username
       pass: password
     maxConcurrentReconciles: 1
+  webhook:
+    deployment:
+      webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    enableMutating: true
 
 bastion-operator:
   replicaCount: 1

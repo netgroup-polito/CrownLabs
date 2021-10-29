@@ -66,3 +66,10 @@ Metrics selector additional labels
 {{- define "tenant-operator.metricsAdditionalLabels" -}}
 app.kubernetes.io/component: metrics
 {{- end }}
+
+{{/*
+Create a qualified app name for the webhook components.
+*/}}
+{{- define "tenant-operator.webhookname" -}}
+{{ .Values.rbacResourcesName }}
+{{- end }}

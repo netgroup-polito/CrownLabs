@@ -34,6 +34,9 @@ const (
 	// User -> a Tenant with User role can only interact with his/her own
 	// environments (e.g. VMs) within that Workspace.
 	User WorkspaceUserRole = "user"
+
+	// SVCTenantName -> name of a system/service tenant to which other resources might belong.
+	SVCTenantName string = "service-tenant"
 )
 
 // TenantWorkspaceEntry contains the information regarding one of the Workspaces
