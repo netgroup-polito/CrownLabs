@@ -3,6 +3,7 @@ query instancesLabelSelector($labels: String) {
     instances: items {
       metadata {
         name
+        tenantNamespace: namespace
         creationTimestamp
       }
       status {

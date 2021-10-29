@@ -9,6 +9,7 @@ export default gql`
       instance: payload {
         metadata {
           name
+          tenantNamespace: namespace
           creationTimestamp
         }
         status {
