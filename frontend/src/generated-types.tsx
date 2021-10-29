@@ -2443,6 +2443,13 @@ export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
 
 export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> }> };
 
+export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
+  labels?: Maybe<Scalars['String']>;
+}>;
+
+
+export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> }> };
+
 export type UpdatedSshKeysSubscriptionVariables = Exact<{
   tenantId: Scalars['String'];
 }>;
@@ -3356,6 +3363,75 @@ export function useUpdatedOwnedInstancesSubscription(baseOptions: Apollo.Subscri
       }
 export type UpdatedOwnedInstancesSubscriptionHookResult = ReturnType<typeof useUpdatedOwnedInstancesSubscription>;
 export type UpdatedOwnedInstancesSubscriptionResult = Apollo.SubscriptionResult<UpdatedOwnedInstancesSubscription>;
+export const UpdatedInstancesLabelSelectorDocument = gql`
+    subscription updatedInstancesLabelSelector($labels: String) {
+  updateInstanceLabelSelector: itPolitoCrownlabsV1alpha2InstanceLabelsUpdate(
+    labelSelector: $labels
+  ) {
+    updateType
+    instance: payload {
+      metadata {
+        name
+        creationTimestamp
+      }
+      status {
+        ip
+        phase
+        url
+      }
+      spec {
+        running
+        prettyName
+        templateCrownlabsPolitoItTemplateRef {
+          name
+          namespace
+          templateWrapper {
+            itPolitoCrownlabsV1alpha2Template {
+              spec {
+                templateName: prettyName
+                templateDescription: description
+                environmentList {
+                  guiEnabled
+                  persistent
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+    `;
+export type UpdatedInstancesLabelSelectorComponentProps = Omit<ApolloReactComponents.SubscriptionComponentOptions<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>, 'subscription'>;
+
+    export const UpdatedInstancesLabelSelectorComponent = (props: UpdatedInstancesLabelSelectorComponentProps) => (
+      <ApolloReactComponents.Subscription<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables> subscription={UpdatedInstancesLabelSelectorDocument} {...props} />
+    );
+    
+
+/**
+ * __useUpdatedInstancesLabelSelectorSubscription__
+ *
+ * To run a query within a React component, call `useUpdatedInstancesLabelSelectorSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useUpdatedInstancesLabelSelectorSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUpdatedInstancesLabelSelectorSubscription({
+ *   variables: {
+ *      labels: // value for 'labels'
+ *   },
+ * });
+ */
+export function useUpdatedInstancesLabelSelectorSubscription(baseOptions?: Apollo.SubscriptionHookOptions<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>(UpdatedInstancesLabelSelectorDocument, options);
+      }
+export type UpdatedInstancesLabelSelectorSubscriptionHookResult = ReturnType<typeof useUpdatedInstancesLabelSelectorSubscription>;
+export type UpdatedInstancesLabelSelectorSubscriptionResult = Apollo.SubscriptionResult<UpdatedInstancesLabelSelectorSubscription>;
 export const UpdatedSshKeysDocument = gql`
     subscription updatedSshKeys($tenantId: String!) {
   updatedTenant: itPolitoCrownlabsV1alpha1TenantUpdate(name: $tenantId) {
