@@ -11,8 +11,8 @@ import { Instance } from '../../../../utils';
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
   instance: Instance;
-  startInstance: (idInstance: number, idTemplate: string) => void;
-  stopInstance: (idInstance: number, idTemplate: string) => void;
+  startInstance: (idInstance: string, idTemplate: string) => void;
+  stopInstance: (idInstance: string, idTemplate: string) => void;
 }
 
 const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
@@ -20,7 +20,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
 }) => {
   const { extended, instance, startInstance, stopInstance } = props;
 
-  const { status, id, idTemplate } = instance;
+  const { status, idTemplate, name } = instance;
 
   const font22px = { fontSize: '22px' };
 
@@ -40,7 +40,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
             style={font22px}
           />
         }
-        onClick={() => startInstance(id, idTemplate!)}
+        onClick={() => startInstance(name, idTemplate!)}
       />
     </Tooltip>
   ) : status === 'VmiOff' ? (
@@ -57,7 +57,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
             style={font22px}
           />
         }
-        onClick={() => stopInstance(id, idTemplate!)}
+        onClick={() => stopInstance(name, idTemplate!)}
       />
     </Tooltip>
   ) : (
@@ -82,7 +82,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
               style={font22px}
             />
           }
-          onClick={() => stopInstance(id, idTemplate!)}
+          onClick={() => stopInstance(name, idTemplate!)}
         />
       </div>
     </Popover>

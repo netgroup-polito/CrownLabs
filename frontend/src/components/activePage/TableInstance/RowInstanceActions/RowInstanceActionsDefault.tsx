@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Tooltip, message } from 'antd';
+import { Tooltip, Popconfirm } from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Instance } from '../../../../utils';
@@ -8,14 +8,14 @@ export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
   idTemplate: string;
-  destroyInstance: (idInstance: number, idTemplate: string) => void;
+  destroyInstance: (tenantNamespace: string, instanceId: string) => void;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, idTemplate, instance, destroyInstance } = props;
-  const { id, url, status, gui } = instance;
+  const { extended, instance, destroyInstance } = props;
+  const { url, status, gui, name, tenantNamespace } = instance;
 
   const titleFromStatus = () => {
     if (status === 'VmiReady') {
@@ -40,27 +40,36 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   return (
     <>
       <Tooltip placement="top" title={'Destroy'}>
-        <Button
-          className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
-          type="danger"
-          with="link"
-          shape="circle"
-          size="middle"
-          icon={
-            <DeleteOutlined
-              className="flex justify-center items-center"
-              style={font22px}
-            />
-          }
-          onClick={() => {
-            destroyInstance(id, idTemplate);
-            message.info('VM deleted');
-          }}
-        />
+        <Popconfirm
+          placement="left"
+          title="Are you sure to delete?"
+          okText="Yes"
+          cancelText="No"
+          onConfirm={() => destroyInstance(tenantNamespace!, name!)}
+          onCancel={e => e?.stopPropagation()}
+        >
+          <Button
+            className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
+            type="danger"
+            with="link"
+            shape="circle"
+            size="middle"
+            icon={
+              <DeleteOutlined
+                className="flex justify-center items-center"
+                style={font22px}
+              />
+            }
+            /* onClick={() => {
+              destroyInstance(tenantDisplayName!, name!);
+              message.info('VM deleted');
+            }} */
+          />
+        </Popconfirm>
       </Tooltip>
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
-          className={` hidden ${extended ? 'md:block ' : 'sm:block '} ${
+          className={` hidden ${extended ? 'lg:block ' : 'sm:block '} ${
             status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''
           }`}
         >
@@ -81,7 +90,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       <Tooltip placement="top" title={'Connect'}>
         <Button
           className={`hidden pointer-events-none ${
-            extended ? 'sm:block md:hidden' : 'xs:block sm:hidden'
+            extended ? 'sm:block lg:hidden' : 'xs:block sm:hidden'
           } block flex items-center`}
           with="link"
           type={classFromProps()}

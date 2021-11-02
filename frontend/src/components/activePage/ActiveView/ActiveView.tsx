@@ -1,20 +1,26 @@
 import { FC, useState } from 'react';
 import { Space, Col, Input, Popconfirm } from 'antd';
-import TableInstance from '../TableInstance/TableInstance';
-import TableWorkspace from '../TableWorkspace/TableWorkspace';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
-import { WorkspaceRole, Workspace, Instance } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import { DeleteOutlined } from '@ant-design/icons';
 import Button from 'antd-button-color';
+import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
+import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 export interface IActiveViewProps {
-  workspaces: Array<Workspace> | [];
-  instances: Array<Instance> | [];
+  userId: string;
+  tenantNamespace: string;
+  workspaces: Array<{
+    prettyName: string;
+    role: WorkspaceRole;
+    namespace: string;
+    id: string;
+  }>;
   managerView: boolean;
 }
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
-  const { managerView, workspaces, instances } = props;
+  const { managerView, userId, tenantNamespace, workspaces } = props;
   const [searchField, setSearchField] = useState('');
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
     WorkspaceRole.user
@@ -75,18 +81,18 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
         }
       >
         {currentView === 'manager' && managerView ? (
-          <TableWorkspace
-            workspaces={workspaces.filter(
-              ({ role }) => role === WorkspaceRole.manager
-            )}
+          <TableWorkspaceLogic
+            workspaces={workspaces}
+            userId={userId}
+            tenantNamespace={tenantNamespace}
             filter={searchField}
           />
         ) : (
-          <TableInstance
+          <TableInstanceLogic
             showGuiIcon={true}
             viewMode={currentView}
-            instances={instances}
             extended={true}
+            tenantNamespace={tenantNamespace}
           />
         )}
       </Box>

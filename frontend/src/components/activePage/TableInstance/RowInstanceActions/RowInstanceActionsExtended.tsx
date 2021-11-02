@@ -1,5 +1,5 @@
 import { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Space, Upload } from 'antd';
+import { Popover, Tooltip, Upload } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { VmStatus } from '../../../../utils';
@@ -9,6 +9,7 @@ export interface IRowInstanceActionsExtendedProps {
   ip: string;
   time: string;
   ssh?: ISSHInfo;
+  templateName: string;
   status: VmStatus;
   fileManager?: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
@@ -17,7 +18,15 @@ export interface IRowInstanceActionsExtendedProps {
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
-  const { ip, time, ssh, status, fileManager, setSshModal } = props;
+  const {
+    ip,
+    time,
+    ssh,
+    templateName,
+    status,
+    fileManager,
+    setSshModal,
+  } = props;
 
   const infoContent = (
     <>
@@ -25,17 +34,21 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         <strong>IP:</strong> {ip}
       </p>
       <p className="m-0 lg:hidden">
-        <strong>Created by:</strong> {time}
+        <strong>Created:</strong> {time} ago
+      </p>
+      <p className="m-0 md:hidden">
+        <strong>Template:</strong> {templateName}
       </p>
     </>
   );
   return (
     <>
-      <Space size={'middle'}>
+      {/* <Space size={'middle'}> */}
+      <div className="inline-flex border-box justify-center">
         <Popover placement="top" content={infoContent} trigger="click">
           <Button
             shape="circle"
-            className="hidden md:block "
+            className="hidden sm:block mr-3"
             disabled={status !== 'VmiReady'}
           >
             <InfoOutlined />
@@ -44,7 +57,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         {ssh && (
           <Button
             shape="round"
-            className="hidden xl:inline-block"
+            className="hidden xl:inline-block mr-3"
             disabled={status !== 'VmiReady'}
             onClick={() => setSshModal(true)}
           >
@@ -62,7 +75,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               >
                 <Button
                   shape="circle"
-                  className={`hidden xl:inline-block ${
+                  className={`hidden mr-3 xl:inline-block ${
                     status !== 'VmiReady' ? 'pointer-events-none' : ''
                   }`}
                   disabled={status !== 'VmiReady'}
@@ -73,7 +86,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             </Upload>
           </Tooltip>
         )}
-      </Space>
+      </div>
+      {/* </Space> */}
     </>
   );
 };

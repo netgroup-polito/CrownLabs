@@ -18,9 +18,9 @@ export interface IRowInstanceActionsDropdownProps {
   fileManager?: boolean;
   ssh?: ISSHInfo;
   extended: boolean;
-  startInstance?: (idInstance: number, idTemplate: string) => void;
-  stopInstance?: (idInstance: number, idTemplate: string) => void;
-  destroyInstance: (idInstance: number, idTemplate: string) => void;
+  startInstance?: (idInstance: string, idTemplate: string) => void;
+  stopInstance?: (idInstance: string, idTemplate: string) => void;
+  destroyInstance: (tenantNamespace: string, instanceId: string) => void;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
@@ -38,21 +38,28 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     setSshModal,
   } = props;
 
-  const { status, persistent, url, id, idTemplate } = instance;
+  const {
+    status,
+    persistent,
+    url,
+    idTemplate,
+    name,
+    tenantDisplayName,
+  } = instance;
 
   const dropdownHandler = (key: string) => {
     switch (key) {
       case 'Start':
-        persistent && startInstance?.(id, idTemplate!);
+        persistent && startInstance?.(name, idTemplate!);
         break;
       case 'Stop':
-        persistent && stopInstance?.(id, idTemplate!);
+        persistent && stopInstance?.(name, idTemplate!);
         break;
       case 'Connect':
         window.open(url!, '_blank');
         break;
       case 'Destroy':
-        destroyInstance(id, idTemplate!);
+        destroyInstance(tenantDisplayName!, name!);
         break;
       case 'SSH':
         setSshModal(true);
