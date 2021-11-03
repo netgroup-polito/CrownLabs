@@ -2379,6 +2379,14 @@ export type DeleteInstanceMutationVariables = Exact<{
 
 export type DeleteInstanceMutation = { __typename?: 'Mutation', deletedInstance?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1StatusV2', kind?: Maybe<string> }> };
 
+export type DeleteLabelSelectorInstancesMutationVariables = Exact<{
+  tenantNamespace: Scalars['String'];
+  labels?: Maybe<Scalars['String']>;
+}>;
+
+
+export type DeleteLabelSelectorInstancesMutation = { __typename?: 'Mutation', deleteLabelSelectorInstances?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1StatusV2', kind?: Maybe<string> }> };
+
 export type DeleteTemplateMutationVariables = Exact<{
   workspaceNamespace: Scalars['String'];
   templateId: Scalars['String'];
@@ -2404,7 +2412,7 @@ export type InstancesLabelSelectorQueryVariables = Exact<{
 }>;
 
 
-export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', tenantId?: Maybe<string>, tenantWrapper?: Maybe<{ __typename?: 'TenantWrapper', itPolitoCrownlabsV1alpha1Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Tenant', spec?: Maybe<{ __typename?: 'Spec2', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }>>> }> };
+export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string>, tenantNamespace?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', tenantId?: Maybe<string>, tenantWrapper?: Maybe<{ __typename?: 'TenantWrapper', itPolitoCrownlabsV1alpha1Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Tenant', spec?: Maybe<{ __typename?: 'Spec2', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }>>> }> };
 
 export type SshKeysQueryVariables = Exact<{
   tenantId: Scalars['String'];
@@ -2448,7 +2456,7 @@ export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', tenantId?: Maybe<string>, tenantWrapper?: Maybe<{ __typename?: 'TenantWrapper', itPolitoCrownlabsV1alpha1Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Tenant', spec?: Maybe<{ __typename?: 'Spec2', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> }> };
+export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, creationTimestamp?: Maybe<string>, tenantNamespace?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', tenantId?: Maybe<string>, tenantWrapper?: Maybe<{ __typename?: 'TenantWrapper', itPolitoCrownlabsV1alpha1Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Tenant', spec?: Maybe<{ __typename?: 'Spec2', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', templateName?: Maybe<string>, templateDescription?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean> }>>> }> }> }> }> }> }> }> };
 
 export type UpdatedSshKeysSubscriptionVariables = Exact<{
   tenantId: Scalars['String'];
@@ -2826,6 +2834,49 @@ export function useDeleteInstanceMutation(baseOptions?: Apollo.MutationHookOptio
 export type DeleteInstanceMutationHookResult = ReturnType<typeof useDeleteInstanceMutation>;
 export type DeleteInstanceMutationResult = Apollo.MutationResult<DeleteInstanceMutation>;
 export type DeleteInstanceMutationOptions = Apollo.BaseMutationOptions<DeleteInstanceMutation, DeleteInstanceMutationVariables>;
+export const DeleteLabelSelectorInstancesDocument = gql`
+    mutation deleteLabelSelectorInstances($tenantNamespace: String!, $labels: String) {
+  deleteLabelSelectorInstances: deleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstance(
+    namespace: $tenantNamespace
+    labelSelector: $labels
+  ) {
+    kind
+  }
+}
+    `;
+export type DeleteLabelSelectorInstancesMutationFn = Apollo.MutationFunction<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>;
+export type DeleteLabelSelectorInstancesComponentProps = Omit<ApolloReactComponents.MutationComponentOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>, 'mutation'>;
+
+    export const DeleteLabelSelectorInstancesComponent = (props: DeleteLabelSelectorInstancesComponentProps) => (
+      <ApolloReactComponents.Mutation<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables> mutation={DeleteLabelSelectorInstancesDocument} {...props} />
+    );
+    
+
+/**
+ * __useDeleteLabelSelectorInstancesMutation__
+ *
+ * To run a mutation, you first call `useDeleteLabelSelectorInstancesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteLabelSelectorInstancesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteLabelSelectorInstancesMutation, { data, loading, error }] = useDeleteLabelSelectorInstancesMutation({
+ *   variables: {
+ *      tenantNamespace: // value for 'tenantNamespace'
+ *      labels: // value for 'labels'
+ *   },
+ * });
+ */
+export function useDeleteLabelSelectorInstancesMutation(baseOptions?: Apollo.MutationHookOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>(DeleteLabelSelectorInstancesDocument, options);
+      }
+export type DeleteLabelSelectorInstancesMutationHookResult = ReturnType<typeof useDeleteLabelSelectorInstancesMutation>;
+export type DeleteLabelSelectorInstancesMutationResult = Apollo.MutationResult<DeleteLabelSelectorInstancesMutation>;
+export type DeleteLabelSelectorInstancesMutationOptions = Apollo.BaseMutationOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>;
 export const DeleteTemplateDocument = gql`
     mutation deleteTemplate($workspaceNamespace: String!, $templateId: String!) {
   deletedTemplate: deleteCrownlabsPolitoItV1alpha2NamespacedTemplate(
@@ -2996,6 +3047,7 @@ export const InstancesLabelSelectorDocument = gql`
     instances: items {
       metadata {
         name
+        tenantNamespace: namespace
         creationTimestamp
       }
       status {
@@ -3383,6 +3435,7 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
     instance: payload {
       metadata {
         name
+        tenantNamespace: namespace
         creationTimestamp
       }
       status {

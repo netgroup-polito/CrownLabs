@@ -1,0 +1,11 @@
+mutation deleteLabelSelectorInstances(
+  $tenantNamespace: String!
+  $labels: String
+) {
+  deleteLabelSelectorInstances: deleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstance(
+    namespace: $tenantNamespace
+    labelSelector: $labels
+  ) {
+    kind
+  }
+}
