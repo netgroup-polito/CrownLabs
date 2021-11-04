@@ -84,6 +84,8 @@ function checkWrappedSubscription(
   let obj;
   let targetObjField;
 
+  graphqlLogger(`[i] Start checkWrappedSubscription`);
+
   fieldWrapper.forEach(fw => {
     if (!resultCheck) {
       /*
@@ -91,21 +93,27 @@ function checkWrappedSubscription(
        * for each wrapped type and item
        */
       if (isList) {
-        for (let item of newApiObj.items) {
-          /*
-           * If found is true means that the item on the list
-           * was found and the payload.apiObj was updated
-           */
-          if (!found) {
+        /*
+         * If found is true means that the item on the list
+         * was found and the payload.apiObj was updated
+         */
+        if (!found) {
+          for (let item of newApiObj.items) {
             /*
              * Checks if the published event is about the main type
              */
             graphqlLogger(
-              `[i] Checks if the published event is about the main type of the item: ${JSON.stringify(
-                item
-              )} (subscription: ${fieldName} with variables: ${JSON.stringify(
+              `[i] Checks if the published event (with metadata name: ${
+                payload.apiObj.metadata.name
+              }, metadata namespace ${
+                payload.apiObj.metadata.namespace
+              }) is about the main type of the item (with name: ${
+                item.metadata.name
+              } and namespace: ${
+                item.metadata.namespace
+              }) for ${fieldName} subscription with ${JSON.stringify(
                 variables
-              )})`
+              )} variables`
             );
             resultCheck = checkMetadata(
               resultCheck,
@@ -115,11 +123,15 @@ function checkWrappedSubscription(
 
             if (resultCheck) {
               graphqlLogger(
-                `[i] Item found: ${JSON.stringify(
-                  item
-                )} on the list, event published is about main type (subscription: ${fieldName} with variables: ${JSON.stringify(
+                `[i] Item found (name: ${item.metadata.name} namespace: ${
+                  item.metadata.namespace
+                }) on the list, event published (with metadata name: ${
+                  payload.apiObj.metadata.name
+                }, metadata namespcae: ${
+                  payload.apiObj.metadata.namespace
+                }) is about main type for ${fieldName} subscription with  ${JSON.stringify(
                   variables
-                )})`
+                )} variables`
               );
               obj = item;
               found = true;
@@ -132,11 +144,17 @@ function checkWrappedSubscription(
              * in the query object for a given wrapped type
              */
             graphqlLogger(
-              `[i] Checks if the published event is about the wrapped type: ${fw} of the item: ${JSON.stringify(
-                item
-              )} (subscription: ${fieldName} with variables: ${JSON.stringify(
+              `[i] Checks if the published event (with metadata name: ${
+                payload.apiObj.metadata.name
+              }, metadata namespace: ${
+                payload.apiObj.metadata.namespace
+              }) is about the wrapped type: ${fw} of the item (with metadata name: ${
+                item.metadata.name
+              }, metadata namespace: ${
+                item.metadata.namespace
+              } for ${fieldName} subscription with ${JSON.stringify(
                 variables
-              )})`
+              )} variables`
             );
             targetObjField = getQueryField(item, fw);
             if (typeof targetObjField === 'object') {
@@ -148,11 +166,15 @@ function checkWrappedSubscription(
             }
             if (resultCheck) {
               graphqlLogger(
-                `[i] Item found: ${JSON.stringify(
-                  item
-                )} on the list, event published is about wrapped type: ${fw} (subscription: ${fieldName} with variables: ${JSON.stringify(
+                `[i] Item found (name: ${item.metadata.name} namespace: ${
+                  item.metadata.namespace
+                }) on the list, event published (with metadata name:${
+                  payload.apiObj.metadata.name
+                }, metadata namespcae: ${
+                  payload.apiObj.metadata.namespace
+                }) is about wrapped type: ${fw} for ${fieldName} subscription with ${JSON.stringify(
                   variables
-                )})`
+                )} variables`
               );
               obj = item;
               found = true;
@@ -162,19 +184,25 @@ function checkWrappedSubscription(
         }
       } else {
         graphqlLogger(
-          `[i] Check for single item (subscription: ${fieldName} with variables: ${JSON.stringify(
+          `[i] Check for single item for ${fieldName} subscription with ${JSON.stringify(
             variables
-          )})`
+          )} variables`
         );
         /*
          * Checking whether the published event is about the main type
          */
         graphqlLogger(
-          `[i] Checks if the published event is about the main type of the item: ${JSON.stringify(
-            payload.apiObj
-          )} (subscription: ${fieldName} with variables: ${JSON.stringify(
+          `[i] Checks if the published event (with metadata name:${
+            payload.apiObj.metadata.name
+          }, metadata namespcae: ${
+            payload.apiObj.metadata.namespace
+          }) is about the main type of the item with name ${
+            newApiObj.metadata.name
+          } and namespace ${
+            newApiObj.metadata.namespace
+          } for ${fieldName} subscription with ${JSON.stringify(
             variables
-          )})`
+          )} variables`
         );
         resultCheck = checkMetadata(
           resultCheck,
@@ -186,11 +214,17 @@ function checkWrappedSubscription(
          * Checks if the published event is about the wrapped type.
          */
         graphqlLogger(
-          `[i] Checks if the published event is about the wrapped type: ${fw} of the item: ${
-            payload.apiObj
-          } (subscription: ${fieldName} with variables: ${JSON.stringify(
+          `[i] Checks if the published event (with metadata name:${
+            payload.apiObj.metadata.name
+          }, metadata namespcae: ${
+            payload.apiObj.metadata.namespace
+          }) is about the wrapped type: ${fw} of the item with name ${
+            newApiObj.metadata.name
+          } and namespace ${
+            newApiObj.metadata.namespace
+          } for ${fieldName} subscription with ${JSON.stringify(
             variables
-          )})`
+          )} variables`
         );
         targetObjField = getQueryField(newApiObj, fw);
         if (typeof targetObjField === 'object') {
@@ -203,11 +237,13 @@ function checkWrappedSubscription(
 
         if (resultCheck) {
           graphqlLogger(
-            `[i] Item found: ${JSON.stringify(
-              payload.apiObj
-            )} (subscription: ${fieldName} with variables: ${JSON.stringify(
+            `[i] Item found with name ${
+              payload.apiObj.metadata.name
+            } and namespace ${
+              payload.apiObj.metadata.namespace
+            } for ${fieldName} subscription with ${JSON.stringify(
               variables
-            )})`
+            )} variables`
           );
           obj = newApiObj;
         }
@@ -358,6 +394,10 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
               } subscription with variables: ${JSON.stringify(variables)}`
             );
 
+            const badPayload =
+              payload.apiObj === undefined ||
+              payload.apiObj.metadata === undefined;
+
             /*
              * Some variables used for subscription with wrapped types:
              * @variable {*} fiekdsCheck: used to notify if name and namespace of the published event
@@ -373,7 +413,11 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
             const isList = variables.name === undefined;
             const isResolved = sublabels.length > 0;
             graphqlLogger(
-              `[i] ${info.fieldName} subscription have (isList: ${isList}, isResolved: ${isResolved})`
+              `[i] ${
+                info.fieldName
+              } subscription have (badPayload: ${badPayload}, isList: ${isList}, isResolved: ${isResolved}, isDeleteType: ${isDeleteType}) and ${JSON.stringify(
+                variables
+              )} variables`
             );
 
             /*
@@ -388,7 +432,7 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
              * to the subscription and the main type must be resolved again
              * due to the composition of the wrapped query
              */
-            if (isResolved && !isDeleteType) {
+            if (isResolved && !isDeleteType && !badPayload) {
               graphqlLogger(
                 `[i] Search for ${targetType} main query object of ${
                   info.fieldName
@@ -411,10 +455,29 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
                 info
               );
 
+              if (newApiObj && (!isList || newApiObj.items))
+                graphqlLogger(
+                  `[i] Main query object of ${
+                    info.fieldName
+                  } with variables: ${JSON.stringify(variables)} resolved`
+                );
+              else
+                graphqlLogger(
+                  `[e] Error during the resolution of the main query object of ${
+                    info.fieldName
+                  } with variables: ${JSON.stringify(variables)}`
+                );
+
               graphqlLogger(
-                `[i] Main query object of ${
+                `[i] checkWrappedSubscription for info.fieldName: ${
                   info.fieldName
-                } with variables: ${JSON.stringify(variables)} resolved`
+                } with:\nisList: ${isList}\nfieldWrapper: ${fieldWrapper}\n${
+                  isList ? newApiObj.items.length : 1
+                } items in newApiObj\npayload with name: ${
+                  payload.apiObj.metadata.name
+                } and namespace: ${
+                  payload.apiObj.metadata.namespace
+                }\nvariables: ${JSON.stringify(variables)}\n`
               );
 
               const { resultCheck, item } = checkWrappedSubscription(
@@ -426,54 +489,66 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
                 info.fieldName
               );
               graphqlLogger(
-                `[i] checkWrappedSubscription returns values (resultCheck: ${resultCheck}, item: ${JSON.stringify(
+                `[i] CheckWrappedSubscription returns values (resultCheck: ${resultCheck}, item: ${JSON.stringify(
                   item
-                )})`
+                )}) for subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(
+                  variables
+                )} and event published (name: ${
+                  payload.apiObj.metadata.name
+                }, namespace: ${payload.apiObj.metadata.namespace})`
               );
               fieldsCheck = resultCheck;
               payload.apiObj = item;
             }
 
-            graphqlLogger(
-              `[i] Starting checkMetadata function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(variables)}`
-            );
-            const checkMetadataResult = checkMetadata(
-              isResolved && !isDeleteType,
-              variables,
-              payload.apiObj.metadata
-            );
-            graphqlLogger(
-              `[i] The result of the checkMetadata function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(
-                variables
-              )} is: ${checkMetadataResult}`
-            );
-            graphqlLogger(
-              `[i] Starting checkPermission function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(variables)}`
-            );
-            const checkPermissionResult = await checkPermission(
-              context.token,
-              resourceApiMainType.group,
-              resourceApiMainType.resource,
-              variables.namespace,
-              variables.name,
-              kubeApiUrl
-            );
-            graphqlLogger(
-              `[i] The result of the checkPermission function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(
-                variables
-              )} is: ${checkPermissionResult}`
-            );
-
+            let checkMetadataResult = false;
+            let checkPermissionResult = false;
+            if (!badPayload && fieldsCheck) {
+              graphqlLogger(
+                `[i] Starting checkMetadata function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(variables)}`
+              );
+              checkMetadataResult = checkMetadata(
+                isResolved && !isDeleteType,
+                variables,
+                payload.apiObj.metadata
+              );
+              graphqlLogger(
+                `[i] The result of the checkMetadata function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(
+                  variables
+                )} is: ${checkMetadataResult}`
+              );
+              graphqlLogger(
+                `[i] Starting checkPermission function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(variables)}`
+              );
+              checkPermissionResult = await checkPermission(
+                context.token,
+                resourceApiMainType.group,
+                resourceApiMainType.resource,
+                variables.namespace,
+                variables.name,
+                kubeApiUrl
+              );
+              graphqlLogger(
+                `[i] The result of the checkPermission function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(
+                  variables
+                )} is: ${checkPermissionResult}`
+              );
+            }
             const resultFiltering =
-              fieldsCheck && checkMetadataResult && checkPermissionResult;
+              !badPayload &&
+              fieldsCheck &&
+              checkMetadataResult &&
+              checkPermissionResult;
             graphqlLogger(
               `[i] The result of the filter about subscription: ${
                 info.fieldName
@@ -545,6 +620,11 @@ function decorateLabelsSubscription(
    */
   const fieldWrapper = getFieldWrapper(targetType);
 
+  if (sublabels.length > 0 && !fieldWrapper)
+    graphqlLogger(
+      `[e] Error: mismatch of sublabels and fieldWrapper variables`
+    );
+
   /*
    * In case of an existing Subscription type in the schema,
    * you must extend it for adding a new subscription
@@ -579,6 +659,10 @@ function decorateLabelsSubscription(
               } subscription with variables: ${JSON.stringify(variables)}`
             );
 
+            const badPayload =
+              payload.apiObj === undefined ||
+              payload.apiObj.metadata === undefined;
+
             /*
              * Some variables used for subscription with wrapped types:
              * @variable {*} fiekdsCheck: used to notify if name and namespace of the published event
@@ -594,7 +678,11 @@ function decorateLabelsSubscription(
             const isList = true;
             const isResolved = sublabels.length > 0;
             graphqlLogger(
-              `[i] ${info.fieldName} subscription have (isList: ${isList}, isResolved: ${isResolved})`
+              `[i] ${
+                info.fieldName
+              } subscription have (badPayload: ${badPayload}, isList: ${isList}, isResolved: ${isResolved}, isDeleteType: ${isDeleteType}) and ${JSON.stringify(
+                variables
+              )} variables`
             );
 
             /*
@@ -611,7 +699,7 @@ function decorateLabelsSubscription(
              * to the subscription and the main type must be resolved again
              * due to the composition of the wrapped query
              */
-            if (isResolved && !isDeleteType) {
+            if (isResolved && !isDeleteType && !badPayload) {
               graphqlLogger(
                 `[i] Search for ${targetType} main query object of ${
                   info.fieldName
@@ -634,10 +722,28 @@ function decorateLabelsSubscription(
                 info
               );
 
+              if (newApiObj && (!isList || newApiObj.items))
+                graphqlLogger(
+                  `[i] Main query object of ${
+                    info.fieldName
+                  } with variables: ${JSON.stringify(variables)} resolved`
+                );
+              else
+                graphqlLogger(
+                  `[e] Error during the resolution of the main query object of ${
+                    info.fieldName
+                  } with variables: ${JSON.stringify(variables)}`
+                );
               graphqlLogger(
-                `[i] Main query object of ${
+                `[i] checkWrappedSubscription for info.fieldName: ${
                   info.fieldName
-                } with variables: ${JSON.stringify(variables)} resolved`
+                } with:\nisList: ${isList}\nfieldWrapper: ${fieldWrapper}\n${
+                  isList ? newApiObj.items.length : 1
+                } items in newApiObj\npayload with name: ${
+                  payload.apiObj.metadata.name
+                } and namespace: ${
+                  payload.apiObj.metadata.namespace
+                }\nvariables: ${JSON.stringify(variables)}\n`
               );
 
               const { resultCheck, item } = checkWrappedSubscription(
@@ -649,39 +755,46 @@ function decorateLabelsSubscription(
                 info.fieldName
               );
               graphqlLogger(
-                `[i] checkWrappedSubscription returns values (resultCheck: ${resultCheck}, item: ${JSON.stringify(
+                `[i] CheckWrappedSubscription returns values (resultCheck: ${resultCheck}, item: ${JSON.stringify(
                   item
                 )}) for subscription: ${
                   info.fieldName
-                } with variables: ${JSON.stringify(variables)}`
+                } with variables: ${JSON.stringify(
+                  variables
+                )} and event published (name: ${
+                  payload.apiObj.metadata.name
+                }, namespace: ${payload.apiObj.metadata.namespace})`
               );
               fieldsCheck = resultCheck;
               payload.apiObj = item;
             }
 
-            graphqlLogger(
-              `[i] Starting checkPermission function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(variables)}`
-            );
-            const checkPermissionResult = await checkPermission(
-              context.token,
-              resourceApiMainType.group,
-              resourceApiMainType.resource,
-              payload.apiObj.metadata.namespace,
-              payload.apiObj.metadata.name,
-              kubeApiUrl
-            );
-            graphqlLogger(
-              `[i] The result of the checkPermission function about subscription: ${
-                info.fieldName
-              } with variables: ${JSON.stringify(
-                variables
-              )} is: ${checkPermissionResult}`
-            );
+            let checkPermissionResult = false;
+            if (!badPayload && fieldsCheck) {
+              graphqlLogger(
+                `[i] Starting checkPermission function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(variables)}`
+              );
+              checkPermissionResult = await checkPermission(
+                context.token,
+                resourceApiMainType.group,
+                resourceApiMainType.resource,
+                payload.apiObj.metadata.namespace,
+                payload.apiObj.metadata.name,
+                kubeApiUrl
+              );
+              graphqlLogger(
+                `[i] The result of the checkPermission function about subscription: ${
+                  info.fieldName
+                } with variables: ${JSON.stringify(
+                  variables
+                )} is: ${checkPermissionResult}`
+              );
+            }
 
             const resultFiltering =
-              fieldsCheck && isResolved && checkPermissionResult;
+              !badPayload && fieldsCheck && isResolved && checkPermissionResult;
             graphqlLogger(
               `[i] The result of the filter about subscription: ${
                 info.fieldName
