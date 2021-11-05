@@ -20,7 +20,7 @@ export interface IRowInstanceActionsDropdownProps {
   extended: boolean;
   startInstance?: (idInstance: string, idTemplate: string) => void;
   stopInstance?: (idInstance: string, idTemplate: string) => void;
-  destroyInstance: (tenantNamespace: string, instanceId: string) => void;
+  destroyInstance: (instanceId: string, tenantNamespace: string) => void;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
@@ -59,7 +59,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         window.open(url!, '_blank');
         break;
       case 'Destroy':
-        destroyInstance(tenantDisplayName!, name!);
+        destroyInstance(name!, tenantDisplayName!);
         break;
       case 'SSH':
         setSshModal(true);

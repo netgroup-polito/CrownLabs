@@ -8,14 +8,14 @@ export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
   idTemplate: string;
-  destroyInstance: (tenantNamespace: string, instanceId: string) => void;
+  destroyInstance: (instanceId: string, tenantNamespace: string) => void;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
   const { extended, instance, destroyInstance } = props;
-  const { url, status, gui, name, tenantNamespace } = instance;
+  const { url, status, gui, name, tenantDisplayName } = instance;
 
   const titleFromStatus = () => {
     if (status === 'VmiReady') {
@@ -45,7 +45,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           title="Are you sure to delete?"
           okText="Yes"
           cancelText="No"
-          onConfirm={() => destroyInstance(tenantNamespace!, name!)}
+          onConfirm={() => destroyInstance(name!, tenantDisplayName!)}
           onCancel={e => e?.stopPropagation()}
         >
           <Button
@@ -60,10 +60,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
                 style={font22px}
               />
             }
-            /* onClick={() => {
-              destroyInstance(tenantDisplayName!, name!);
-              message.info('VM deleted');
-            }} */
           />
         </Popconfirm>
       </Tooltip>

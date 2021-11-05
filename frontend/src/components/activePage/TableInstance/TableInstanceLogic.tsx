@@ -150,7 +150,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
       extended={extended}
       startInstance={startInstance}
       stopInstance={stopInstance}
-      destroyInstance={(tenantNamespace: string, instanceId: string) =>
+      destroyInstance={(instanceId: string, tenantNamespace: string) =>
         deleteInstanceMutation({
           variables: { tenantNamespace, instanceId },
         })

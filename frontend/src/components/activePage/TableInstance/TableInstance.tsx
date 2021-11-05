@@ -16,8 +16,8 @@ export interface ITableInstanceProps {
   startInstance?: (idInstance: string, idTemplate: string) => void;
   stopInstance?: (idInstance: string, idTemplate: string) => void;
   destroyInstance?: (
-    tenantNamespace: string,
-    instanceId: string
+    instanceId: string,
+    tenantNamespace: string
   ) => Promise<
     FetchResult<
       DeleteInstanceMutation,
@@ -105,7 +105,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               startInstance={startInstance}
               stopInstance={stopInstance}
               destroyInstance={() =>
-                destroyInstance!(instance.tenantNamespace!, instance.name)
+                destroyInstance!(instance.name, instance.tenantNamespace!)
               }
             />
           )}
