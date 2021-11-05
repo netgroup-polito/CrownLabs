@@ -77,7 +77,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               instances={instances as Instance[]}
               startInstance={startInstance}
               stopInstance={stopInstance}
-              destroyInstance={(tenantNamespace: string, instanceId: string) =>
+              destroyInstance={(instanceId: string, tenantNamespace: string) =>
                 deleteInstanceMutation({
                   variables: { tenantNamespace, instanceId },
                 })
