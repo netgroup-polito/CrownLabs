@@ -6,20 +6,32 @@ import {
   DeleteOutlined,
   EllipsisOutlined,
 } from '@ant-design/icons';
+import { FetchResult } from 'apollo-link';
+import { CreateInstanceMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowSettingsProps {
   id: string;
+  createInstance: (
+    id: string
+  ) => Promise<
+    FetchResult<
+      CreateInstanceMutation,
+      Record<string, any>,
+      Record<string, any>
+    >
+  >;
   editTemplate: (id: string) => void;
   deleteTemplate: (id: string) => void;
 }
 const TemplatesTableRowSettings = ({ ...props }) => {
-  const { id, editTemplate, deleteTemplate } = props;
+  const { id, createInstance, editTemplate, deleteTemplate } = props;
 
   return (
     <Dropdown
       overlay={
         <Menu>
           <Menu.Item
+            onClick={() => createInstance(id)}
             className="xs:hidden block"
             key="1"
             icon={<PlayCircleOutlined />}
