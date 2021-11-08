@@ -38,6 +38,11 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
+const (
+	// NoWorkspacesLabel -> label to be set (to true) when no workspaces are associated to the tenant.
+	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
+)
+
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
@@ -396,7 +401,7 @@ func (r *TenantReconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
 		APIGroups:     []string{"crownlabs.polito.it"},
 		Resources:     []string{"tenants"},
 		ResourceNames: []string{tnName},
-		Verbs:         []string{"get", "list", "watch"},
+		Verbs:         []string{"get", "list", "watch", "patch", "update"},
 	}}
 }
 
@@ -539,14 +544,19 @@ func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password s
 
 func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.TenantWorkspaceEntry) error {
 	if tn.Labels == nil {
-		// the len is 1 for each workspace plus the 2 for firstName and lastName
-		tn.Labels = make(map[string]string, len(tenantExistingWorkspaces)+2)
+		tn.Labels = map[string]string{}
 	} else {
 		cleanWorkspaceLabels(tn.Labels)
 	}
 	for _, wsData := range tenantExistingWorkspaces {
 		wsLabelKey := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, wsData.WorkspaceRef.Name)
 		tn.Labels[wsLabelKey] = string(wsData.Role)
+	}
+	// label for users without workspaces
+	if len(tenantExistingWorkspaces) == 0 {
+		tn.Labels[NoWorkspacesLabel] = "true"
+	} else {
+		delete(tn.Labels, NoWorkspacesLabel)
 	}
 
 	cleanedFirstName := cleanName(tn.Spec.FirstName)

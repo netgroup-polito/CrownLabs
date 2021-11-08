@@ -332,7 +332,7 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdCr.Rules[0].APIGroups).Should(ContainElement(Equal("crownlabs.polito.it")))
 	Expect(createdCr.Rules[0].Resources).Should(ContainElement(Equal("tenants")))
 	Expect(createdCr.Rules[0].ResourceNames).Should(ContainElement(Equal(tnName)))
-	Expect(createdCr.Rules[0].Verbs).Should(Equal([]string{"get", "list", "watch"}))
+	Expect(createdCr.Rules[0].Verbs).Should(Equal([]string{"get", "list", "watch", "patch", "update"}))
 
 	By("By checking that the cluster role binding of the tenant has been created")
 	crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
