@@ -276,6 +276,18 @@ func (r *WorkspaceReconciler) createOrUpdateClusterResources(ctx context.Context
 	}
 	klog.Infof("Manager role binding for workspace %s %s", ws.Name, mngRbOpRes)
 
+	// handle manager clusterRoleBinding
+	tenantEditCrb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-tenants-" + ws.Name}}
+	tenEdCrbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &tenantEditCrb, func() error {
+		r.updateWsRbMngTnts(&tenantEditCrb, ws.Name)
+		return ctrl.SetControllerReference(ws, &tenantEditCrb, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update tenant manager role binding for workspace %s -> %s", ws.Name, err)
+		retErr = err
+	}
+	klog.Infof("Tenant manager role binding for workspace %s %s", ws.Name, tenEdCrbOpRes)
+
 	return true, retErr
 }
 
@@ -303,6 +315,13 @@ func (r *WorkspaceReconciler) updateWsRbMng(rb *rbacv1.RoleBinding, wsName strin
 	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
 
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func (r *WorkspaceReconciler) updateWsRbMngTnts(rb *rbacv1.ClusterRoleBinding, wsName string) {
+	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
+
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-tenants", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
