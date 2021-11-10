@@ -49,10 +49,9 @@ const getManagerInstances = (
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
   const [{ guiEnabled, persistent }] = environmentList;
-  const {
-    firstName,
-    lastName,
-  } = spec?.tenantCrownlabsPolitoItTenantRef?.tenantWrapper?.itPolitoCrownlabsV1alpha1Tenant?.spec!;
+  const { firstName, lastName } =
+    spec?.tenantCrownlabsPolitoItTenantRef?.tenantWrapper
+      ?.itPolitoCrownlabsV1alpha1Tenant?.spec!;
   const { tenantId } = spec?.tenantCrownlabsPolitoItTenantRef as any;
   const { name, namespace } = spec?.templateCrownlabsPolitoItTemplateRef as any;
   return {

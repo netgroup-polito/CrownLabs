@@ -42,9 +42,10 @@ const DashboardLogic: FC<{}> = () => {
                 ?.itPolitoCrownlabsV1alpha1Workspace?.spec
                 ?.workspaceName as string,
               role: WorkspaceRole[workspace?.role!],
-              workspaceNamespace: workspace?.workspaceRef?.workspaceWrapper
-                ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
-                ?.workspaceNamespace!,
+              workspaceNamespace:
+                workspace?.workspaceRef?.workspaceWrapper
+                  ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
+                  ?.workspaceNamespace!,
               workspaceName: workspace?.workspaceRef?.workspaceId!,
             };
           }) ?? []

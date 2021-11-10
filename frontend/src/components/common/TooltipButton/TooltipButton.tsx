@@ -19,12 +19,8 @@ export interface ITooltipButtonProps {
 const TooltipButton: FC<ITooltipButtonProps> = ({ ...props }) => {
   const { onClick, className } = props;
 
-  const {
-    tooltipTitle,
-    tooltipPlacement,
-    icon,
-    type,
-  } = props.TooltipButtonData;
+  const { tooltipTitle, tooltipPlacement, icon, type } =
+    props.TooltipButtonData;
 
   return (
     <Tooltip title={tooltipTitle} placement={tooltipPlacement}>

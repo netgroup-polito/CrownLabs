@@ -32,10 +32,9 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
 
   const workspaces =
     data?.tenant?.spec?.workspaces?.map(workspace => {
-      const {
-        spec,
-        status,
-      } = workspace?.workspaceRef?.workspaceWrapper?.itPolitoCrownlabsV1alpha1Workspace!;
+      const { spec, status } =
+        workspace?.workspaceRef?.workspaceWrapper
+          ?.itPolitoCrownlabsV1alpha1Workspace!;
       return {
         prettyName: spec?.workspaceName as string,
         role: WorkspaceRole[workspace?.role!],

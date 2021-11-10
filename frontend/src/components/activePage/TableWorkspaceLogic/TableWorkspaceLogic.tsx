@@ -35,10 +35,8 @@ export interface ITableWorkspaceLogicProps {
 
 const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   const { workspaces, userId, tenantNamespace, filter } = props;
-  const [
-    dataInstances,
-    setDataInstances,
-  ] = useState<InstancesLabelSelectorQuery>();
+  const [dataInstances, setDataInstances] =
+    useState<InstancesLabelSelectorQuery>();
 
   const label = `crownlabs.polito.it/workspace in (${workspaces
     .map(({ id }) => id)
@@ -64,9 +62,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           tenantNamespace,
         },
         updateQuery: (prev, { subscriptionData }) => {
-          const {
-            data,
-          } = subscriptionData as UpdatedInstancesLabelSelectorSubscriptionResult;
+          const { data } =
+            subscriptionData as UpdatedInstancesLabelSelectorSubscriptionResult;
 
           if (!data?.updateInstanceLabelSelector?.instance) return prev;
 
