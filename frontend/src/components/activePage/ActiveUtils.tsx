@@ -146,7 +146,7 @@ const notifyStatus = (
               <i>
                 {status === 'VmiReady'
                   ? ' started'
-                  : status === 'VmiOff' ?? ' stopped'}
+                  : status === 'VmiOff' && ' stopped'}
               </i>
             </div>
           </>

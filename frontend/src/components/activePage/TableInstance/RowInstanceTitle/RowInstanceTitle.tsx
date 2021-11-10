@@ -102,7 +102,11 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
               )}
               {!edit ? (
                 <Tooltip title="Click to Edit">
-                  <Text className="w-32" onClick={() => setEdit(true)} ellipsis>
+                  <Text
+                    className="w-32 lg:w-40"
+                    onClick={() => setEdit(true)}
+                    ellipsis
+                  >
                     {title}
                   </Text>
                 </Tooltip>
