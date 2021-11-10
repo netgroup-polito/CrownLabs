@@ -50,4 +50,5 @@ export type Instance = {
   url: string | null;
   timeStamp?: string;
   workspaceId?: string;
+  running?: boolean;
 };

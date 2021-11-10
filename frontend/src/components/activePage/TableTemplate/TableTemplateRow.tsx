@@ -9,20 +9,38 @@ import {
 } from '@ant-design/icons';
 import Badge from '../../common/Badge';
 import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
+import { DropDownAction } from '../ActiveUtils';
+import { Template } from '../../../utils';
 
+const { Text } = Typography;
 export interface ITableTemplateRowProps {
-  text: string;
-  persistent: boolean;
-  gui: boolean;
+  template: Template;
   nActive: number;
   destroyAll: () => void;
+  expandRow: (rowId: string) => void;
 }
 
 const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
-  const { text, persistent, nActive, gui, destroyAll } = props;
-  const { Text } = Typography;
+  const { template, nActive, destroyAll, expandRow } = props;
+
+  const { id, name, persistent, gui } = template;
+
+  const dropdownHandler = (key: DropDownAction) => {
+    switch (key) {
+      case DropDownAction.destroy_all:
+        // TODO: Popconfirm not work maybe we should use a modal for the confirmation
+        break;
+      default:
+        break;
+    }
+  };
   return (
-    <div className="w-full flex justify-between pr-2">
+    <div
+      className="w-full flex justify-between pr-2"
+      onClick={e => {
+        expandRow(id);
+      }}
+    >
       <Space size={'middle'}>
         {gui ? (
           <DesktopOutlined
@@ -37,7 +55,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
         )}
         <Badge size="small" value={nActive} className="mx-0" />
         <Text className="font-bold sm:w-max" ellipsis={true}>
-          {text}
+          {name}
         </Text>
         {persistent && (
           <Tooltip
@@ -78,20 +96,21 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           size="middle"
           icon={<DeleteOutlined />}
           className="hidden lg:inline-block border-0"
-          onClick={e => {
-            e.stopPropagation();
-          }}
+          onClick={e => e?.stopPropagation()}
         >
-          Destory All
+          Destroy All
         </Button>
       </Popconfirm>
-
       <Dropdown
         trigger={['click']}
         overlay={
-          <Menu>
-            <Menu.Item icon={<DeleteOutlined className="text-lg" />} danger>
-              Destory All
+          <Menu onClick={({ key }) => dropdownHandler(key as DropDownAction)}>
+            <Menu.Item
+              key="destroy_all"
+              icon={<DeleteOutlined className="text-lg" />}
+              danger
+            >
+              Destroy All
             </Menu.Item>
           </Menu>
         }

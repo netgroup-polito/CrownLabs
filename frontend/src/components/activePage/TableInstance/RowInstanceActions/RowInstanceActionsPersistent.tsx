@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Popover, Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import {
@@ -7,26 +7,47 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import { Instance } from '../../../../utils';
+import { useApplyInstanceMutation } from '../../../../generated-types';
+import { setInstanceRunning } from '../../ActiveUtils';
 
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
   instance: Instance;
-  startInstance: (idInstance: string, idTemplate: string) => void;
-  stopInstance: (idInstance: string, idTemplate: string) => void;
 }
 
 const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
   ...props
 }) => {
-  const { extended, instance, startInstance, stopInstance } = props;
+  const { extended, instance } = props;
 
-  const { status, idTemplate, name } = instance;
+  const { status } = instance;
 
   const font22px = { fontSize: '22px' };
+
+  const [disabled, setDisabled] = useState(false);
+
+  const [applyInstanceMutation] = useApplyInstanceMutation();
+
+  const mutateInstanceStatus = async (running: boolean) => {
+    if (!disabled) {
+      setDisabled(true);
+      try {
+        const result = await setInstanceRunning(
+          running,
+          instance,
+          applyInstanceMutation
+        );
+        if (result) setTimeout(setDisabled, 400, false);
+      } catch {
+        // TODO: do nothing at the moment
+      }
+    }
+  };
 
   return status === 'VmiReady' ? (
     <Tooltip placement="top" title={'Pause'}>
       <Button
+        loading={disabled}
         className={`hidden ${
           extended ? 'sm:block' : 'xs:block'
         } flex items-center`}
@@ -34,30 +55,33 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         with="link"
         shape="circle"
         size="middle"
+        disabled={disabled}
         icon={
           <PauseCircleOutlined
             className={'flex justify-center items-center'}
             style={font22px}
           />
         }
-        onClick={() => startInstance(name, idTemplate!)}
+        onClick={() => mutateInstanceStatus(false)}
       />
     </Tooltip>
   ) : status === 'VmiOff' ? (
     <Tooltip placement="top" title={'Start'}>
       <Button
+        loading={disabled}
         className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
         type="success"
         with="link"
         shape="circle"
         size="middle"
+        disabled={disabled}
         icon={
           <PlayCircleOutlined
             className={'flex justify-center items-center'}
             style={font22px}
           />
         }
-        onClick={() => stopInstance(name, idTemplate!)}
+        onClick={() => mutateInstanceStatus(true)}
       />
     </Tooltip>
   ) : (
@@ -82,7 +106,6 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
               style={font22px}
             />
           }
-          onClick={() => stopInstance(name, idTemplate!)}
         />
       </div>
     </Popover>

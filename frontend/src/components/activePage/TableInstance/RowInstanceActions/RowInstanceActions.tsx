@@ -7,8 +7,6 @@ import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent, { ISSHInfo } from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
-import { DeleteInstanceMutation } from '../../../../generated-types';
-import { FetchResult } from '@apollo/client';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -17,28 +15,10 @@ export interface IRowInstanceActionsProps {
   fileManager?: boolean;
   ssh?: ISSHInfo;
   extended: boolean;
-  startInstance?: (idInstance: string, idTemplate: string) => void;
-  stopInstance?: (idInstance: string, idTemplate: string) => void;
-  destroyInstance: () => Promise<
-    FetchResult<
-      DeleteInstanceMutation,
-      Record<string, any>,
-      Record<string, any>
-    >
-  >;
 }
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
-  const {
-    instance,
-    now,
-    fileManager,
-    ssh,
-    extended,
-    startInstance,
-    stopInstance,
-    destroyInstance,
-  } = props;
+  const { instance, now, fileManager, ssh, extended } = props;
 
   const { ip, status, persistent, idTemplate } = instance;
 
@@ -99,19 +79,16 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             extended ? 'pr-2' : ''
           }`}
         >
-          {persistent && startInstance && stopInstance && (
+          {persistent && (
             <RowInstanceActionsPersistent
               instance={instance}
               extended={extended}
-              startInstance={startInstance}
-              stopInstance={stopInstance}
             />
           )}
           <RowInstanceActionsDefault
             extended={extended}
             idTemplate={idTemplate!}
             instance={instance}
-            destroyInstance={destroyInstance}
           />
           <RowInstanceActionsDropdown
             instance={instance}
@@ -119,9 +96,6 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             setSshModal={setSshModal}
             fileManager={fileManager}
             extended={extended}
-            startInstance={startInstance}
-            stopInstance={stopInstance}
-            destroyInstance={destroyInstance}
           />
         </div>
       </div>

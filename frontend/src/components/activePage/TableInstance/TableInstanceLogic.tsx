@@ -1,20 +1,19 @@
 import { FetchPolicy } from '@apollo/client';
 import { FC, useState, useEffect, useContext } from 'react';
-import { notification, Spin } from 'antd';
-import Button from 'antd-button-color';
-import { Instance, WorkspaceRole } from '../../../utils';
+import { Spin } from 'antd';
+import { WorkspaceRole } from '../../../utils';
 import './TableInstance.less';
 import TableInstance from './TableInstance';
 import { AuthContext } from '../../../contexts/AuthContext';
 import {
-  useDeleteInstanceMutation,
   useOwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   OwnedInstancesQuery,
   UpdateType,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
-
+import { getInstances, notifyStatus } from '../ActiveUtils';
+import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 export interface ITableInstanceLogicProps {
   viewMode: WorkspaceRole;
   showGuiIcon: boolean;
@@ -28,10 +27,6 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { tenantNamespace, viewMode, extended, showGuiIcon } = props;
   const { userId } = useContext(AuthContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
-
-  const startInstance = (idInstance: string, idTemplate: string) => {};
-  const stopInstance = (idInstance: string, idTemplate: string) => {};
 
   const {
     loading: loadingInstances,
@@ -58,59 +53,26 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           const { instance, updateType } = data?.updateInstance;
 
           if (prev.instanceList?.instances) {
-            let instances = prev.instanceList.instances;
+            let instances = [...prev.instanceList.instances];
             if (updateType === UpdateType.Deleted) {
-              instances = instances.filter(i => {
-                if (i?.metadata?.name !== instance.metadata?.name) {
-                  return true;
-                }
-                notification.warning({
-                  message:
-                    i?.spec?.templateCrownlabsPolitoItTemplateRef
-                      ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec
-                      ?.templateName,
-                  description: `${instance.metadata?.name} deleted`,
-                });
-                return false;
-              });
+              instances = instances.filter(matchK8sObject(instance, true));
             } else {
-              if (
-                instances.find(
-                  i => i?.metadata?.name === instance.metadata?.name
-                )
-              ) {
-                instances = instances.map(i =>
-                  i?.metadata?.name === instance.metadata?.name ? instance : i
-                );
+              if (instances.find(matchK8sObject(instance))) {
+                instances = instances.map(replaceK8sObject(instance));
               } else {
                 instances = [...instances, instance];
               }
             }
-            prev.instanceList.instances = instances;
+            prev.instanceList.instances = [...instances];
           }
 
-          const instancePhase = instance.status?.phase;
-          if (
-            instancePhase === 'VmiReady' &&
-            updateType !== UpdateType.Deleted
-          ) {
-            notification.success({
-              message:
-                instance.spec?.templateCrownlabsPolitoItTemplateRef
-                  ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec
-                  ?.templateName,
-              description: `Instance started`,
-              btn: instance.status?.url && (
-                <Button
-                  type="success"
-                  size="small"
-                  onClick={() => window.open(instance.status?.url!, '_blank')}
-                >
-                  Connect
-                </Button>
-              ),
-            });
-          }
+          notifyStatus(
+            instance.status?.phase!,
+            instance,
+            updateType!,
+            tenantNamespace,
+            WorkspaceRole.user
+          );
 
           const newItem = { ...prev };
           setDataInstances(newItem);
@@ -120,41 +82,16 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     }
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
 
-  const instances =
-    dataInstances?.instanceList?.instances?.map((instance, index) => {
-      const { metadata, spec, status } = instance!;
-      const {
-        environmentList,
-        templateName,
-      } = spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec!;
-      return {
-        id: index,
-        name: metadata?.name,
-        gui: environmentList?.[0]?.guiEnabled,
-        persistent: environmentList?.[0]?.persistent,
-        idTemplate: spec?.templateCrownlabsPolitoItTemplateRef?.name!,
-        templatePrettyName: templateName,
-        ip: instance?.status?.ip,
-        status: instance?.status?.phase,
-        url: status?.url,
-        timeStamp: metadata?.creationTimestamp,
-        tenantNamespace: tenantNamespace,
-        tenantId: userId,
-      } as Instance;
-    }) ?? [];
+  const instances = dataInstances?.instanceList?.instances?.map((i, n) =>
+    getInstances(i!, n, userId!, tenantNamespace)
+  );
+
   return !loadingInstances && !errorInstances && dataInstances && instances ? (
     <TableInstance
       showGuiIcon={showGuiIcon}
       viewMode={viewMode}
       instances={instances}
       extended={extended}
-      startInstance={startInstance}
-      stopInstance={stopInstance}
-      destroyInstance={(instanceId: string, tenantNamespace: string) =>
-        deleteInstanceMutation({
-          variables: { tenantNamespace, instanceId },
-        })
-      }
     />
   ) : (
     <>

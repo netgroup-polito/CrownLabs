@@ -1,12 +1,12 @@
 import { FC, useState } from 'react';
-import { Space, Col, Input, Popconfirm } from 'antd';
+import { Space, Col, Input } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
 import { WorkspaceRole } from '../../../utils';
-import { DeleteOutlined } from '@ant-design/icons';
-import Button from 'antd-button-color';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
+
+const { Search } = Input;
 export interface IActiveViewProps {
   userId: string;
   tenantNamespace: string;
@@ -26,7 +26,6 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
     WorkspaceRole.user
   );
 
-  const { Search } = Input;
   return (
     <Col span={24} lg={22} xxl={20}>
       <Box
@@ -42,11 +41,14 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               </Space>
             </div>
           ),
-          left: currentView === 'manager' && (
+          left: currentView === WorkspaceRole.manager && (
             <div className="h-full flex justify-center items-center pl-10">
               <Search
                 className="hidden sm:block"
                 placeholder="Filter by user ID"
+                onChange={event => {
+                  setSearchField(event.target.value);
+                }}
                 onSearch={value => {
                   setSearchField(value);
                 }}
@@ -55,32 +57,8 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             </div>
           ),
         }}
-        footer={
-          currentView === 'user' && (
-            <div className="w-full py-5 flex justify-center ">
-              <Popconfirm
-                placement="left"
-                title="You are about to delete all VMs in this. Are you sure?"
-                okText="Yes"
-                cancelText="No"
-                onConfirm={e => e?.stopPropagation()}
-                onCancel={e => e?.stopPropagation()}
-              >
-                <Button
-                  type="danger"
-                  shape="round"
-                  size="large"
-                  icon={<DeleteOutlined />}
-                  onClick={e => e.stopPropagation()}
-                >
-                  Destory All
-                </Button>
-              </Popconfirm>
-            </div>
-          )
-        }
       >
-        {currentView === 'manager' && managerView ? (
+        {currentView === WorkspaceRole.manager && managerView ? (
           <TableWorkspaceLogic
             workspaces={workspaces}
             userId={userId}

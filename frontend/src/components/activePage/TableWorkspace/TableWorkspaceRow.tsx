@@ -6,18 +6,20 @@ import Badge from '../../common/Badge';
 
 const { Text } = Typography;
 export interface ITableWorkspaceRowProps {
-  text: string;
+  title: string;
   nActive: number;
+  id: string;
+  expandRow: (rowId: string) => void;
 }
 
 const TableWorkspaceRow: FC<ITableWorkspaceRowProps> = ({ ...props }) => {
-  const { text, nActive } = props;
+  const { title, nActive, id, expandRow } = props;
   return (
-    <div className="w-full flex justify-between">
+    <div className="w-full flex justify-between" onClick={() => expandRow(id)}>
       <Space size={'middle'}>
         <Badge size="small" value={nActive} className="mx-0" color="green" />
         <Text className="font-bold w-48 sm:w-max" ellipsis>
-          {text}
+          {title}
         </Text>
         <Button
           type="ghost"
