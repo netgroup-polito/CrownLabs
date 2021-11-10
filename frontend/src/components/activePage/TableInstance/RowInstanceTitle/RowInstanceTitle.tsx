@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Typography, Space, Tooltip, Input, Form, Row, Col } from 'antd';
 import Button from 'antd-button-color';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
@@ -18,7 +18,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
   const { viewMode, extended, instance, showGuiIcon } = props;
   const {
     name,
-    //idTemplate,
+    prettyName,
     templatePrettyName,
     tenantId,
     tenantDisplayName,
@@ -27,8 +27,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
     gui,
   } = instance;
 
+  useEffect(() => {
+    setTitle(name);
+  }, [name]);
+
   const [edit, setEdit] = useState(false);
-  const [title, setTitle] = useState(name);
+  const [title, setTitle] = useState(prettyName || name);
   const [invalid, setInvalid] = useState(false);
 
   const checkSet = () => {
@@ -42,6 +46,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
 
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    if (prettyName) {
+      setTitle(prettyName);
+    }
+  }, [prettyName]);
+
   return (
     <>
       <div className="w-full flex justify-start items-center pl-4">
@@ -51,8 +61,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
           {viewMode === 'manager' ? (
             <div className="flex items-center gap-4">
               <Text>{tenantId}</Text>
-              <Text className="hidden md:block">{tenantDisplayName}</Text>
-              <Text className="hidden lg:block">{name}</Text>
+              <Text className="hidden lg:w-32 xl:w-max md:block" ellipsis>
+                {tenantDisplayName}
+              </Text>
+              <Text className="hidden lg:w-48 2xl:w-max lg:block" ellipsis>
+                {prettyName ?? name}
+              </Text>
             </div>
           ) : (
             <>
@@ -73,7 +87,9 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
               )}
               {!edit ? (
                 <Tooltip title="Click to Edit">
-                  <Text onClick={() => setEdit(true)}>{title}</Text>
+                  <Text className="w-32" onClick={() => setEdit(true)} ellipsis>
+                    {title}
+                  </Text>
                 </Tooltip>
               ) : (
                 <Tooltip
@@ -108,26 +124,16 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                       </Row>
                     </Form.Item>
                   </Form>
-
-                  {/* <Input
-                    size="small"
-                    value={title}
-                    onChange={event => setTitle(event.target.value)}
-                    style={{ width: `${18 + title.length * 7}px` }}
-                    minLength={10}
-                    onPressEnter={checkSet}
-                    suffix={
-                  <EditOutlined
-                    onClick={() => null}
-                    className="primary-color-fg flex items-center"
-                  />
-                }
-                  /> */}
                 </Tooltip>
               )}
-              <Text className="hidden md:block">
-                <i>{templatePrettyName}</i>
-              </Text>
+              {extended && (
+                <Text
+                  className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
+                  ellipsis
+                >
+                  <i>{templatePrettyName}</i>
+                </Text>
+              )}
               {persistent && extended && <PersistentIcon />}
             </>
           )}

@@ -54,7 +54,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           />
         )}
         <Badge size="small" value={nActive} className="mx-0" />
-        <Text className="font-bold sm:w-max" ellipsis={true}>
+        <Text className="font-bold w-28 xs:w-48 sm:w-max" ellipsis>
           {name}
         </Text>
         {persistent && (

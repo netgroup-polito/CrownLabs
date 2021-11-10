@@ -18,7 +18,7 @@ const TableWorkspaceRow: FC<ITableWorkspaceRowProps> = ({ ...props }) => {
     <div className="w-full flex justify-between" onClick={() => expandRow(id)}>
       <Space size={'middle'}>
         <Badge size="small" value={nActive} className="mx-0" color="green" />
-        <Text className="font-bold w-48 sm:w-max" ellipsis>
+        <Text className="font-bold w-48 xs:w-56 sm:w-max" ellipsis>
           {title}
         </Text>
         <Button

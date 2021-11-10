@@ -2,19 +2,19 @@ import { FC } from 'react';
 import { Tooltip, Popconfirm } from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
-import { Instance } from '../../../../utils';
+import { Instance, WorkspaceRole } from '../../../../utils';
 import { useDeleteInstanceMutation } from '../../../../generated-types';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
-  idTemplate: string;
+  viewMode: WorkspaceRole;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, instance } = props;
+  const { extended, instance, viewMode } = props;
   const { url, status, gui, name, tenantNamespace } = instance;
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
@@ -74,9 +74,13 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       </Tooltip>
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
-          className={` hidden ${extended ? 'lg:block ' : 'sm:block '} ${
-            status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''
-          }`}
+          className={` hidden ${
+            extended
+              ? viewMode === WorkspaceRole.manager
+                ? 'xl:block'
+                : 'lg:block'
+              : 'sm:block '
+          } ${status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''}`}
         >
           <Button
             className={`${
@@ -95,7 +99,11 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       <Tooltip placement="top" title={'Connect'}>
         <Button
           className={`hidden pointer-events-none ${
-            extended ? 'sm:block lg:hidden' : 'xs:block sm:hidden'
+            extended
+              ? `sm:block ${
+                  viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
+                }`
+              : 'xs:block sm:hidden'
           } block flex items-center`}
           with="link"
           type={classFromProps()}

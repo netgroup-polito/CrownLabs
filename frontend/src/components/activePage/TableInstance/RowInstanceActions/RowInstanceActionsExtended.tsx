@@ -43,7 +43,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   );
   return (
     <>
-      {/* <Space size={'middle'}> */}
       <div className="inline-flex border-box justify-center">
         <Popover placement="top" content={infoContent} trigger="click">
           <Button
@@ -87,7 +86,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           </Tooltip>
         )}
       </div>
-      {/* </Space> */}
     </>
   );
 };
