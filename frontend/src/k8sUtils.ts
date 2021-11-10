@@ -5,6 +5,12 @@ export interface K8sObject {
   } | null;
 }
 
+export interface prettyNamedK8sObject {
+  spec?: {
+    prettyName?: string | null;
+  } | null;
+}
+
 /**
  * Compare two k8s objects.
  */
@@ -16,6 +22,16 @@ export function compareK8sObjects(
     a?.metadata?.name === b?.metadata?.name &&
     a?.metadata?.namespace === b?.metadata?.namespace
   );
+}
+
+/**
+ * Compare two k8s extends objects.
+ */
+export function comparePrettyName(
+  a?: prettyNamedK8sObject | null,
+  b?: prettyNamedK8sObject | null
+): boolean {
+  return a?.spec?.prettyName === b?.spec?.prettyName;
 }
 
 /**

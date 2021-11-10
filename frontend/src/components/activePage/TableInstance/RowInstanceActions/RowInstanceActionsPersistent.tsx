@@ -39,7 +39,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         );
         if (result) setTimeout(setDisabled, 400, false);
       } catch {
-        // TODO: do nothing at the moment
+        // TODO: properly handle errors
       }
     }
   };
