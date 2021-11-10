@@ -1,28 +1,26 @@
 import { FC } from 'react';
-import { Table } from 'antd';
+import { Typography, Space } from 'antd';
 
-export interface ISSHInfo {
-  IP: string;
-  KEY: string;
-}
-
+const { Text } = Typography;
 export interface ISSHModalContentProps {
-  sshInfo: ISSHInfo;
+  instanceIp: string;
 }
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
-  const { sshInfo } = props;
-  const { Column } = Table;
-  const data = [];
-  for (const [key, val] of Object.entries(sshInfo)) {
-    data.push({ heading: key, content: val });
-  }
+  const { instanceIp } = props;
 
   return (
-    <Table dataSource={data} showHeader={false} pagination={false} size="small">
-      <Column dataIndex="heading" key="content" />
-      <Column dataIndex="content" key="content" />
-    </Table>
+    <Space direction="vertical">
+      <Text>
+        You have registered a SSH key, connect to your remote instance via the
+        following command:
+      </Text>
+      <Text code copyable>
+        {/* FIXME: use netlab username for older VMs, retrieve the correct username
+            from the VM's creation timestamp */}
+        {`ssh -J bastion@ssh.crownlabs.polito.it crownlabs@${instanceIp}`}
+      </Text>
+    </Space>
   );
 };
 

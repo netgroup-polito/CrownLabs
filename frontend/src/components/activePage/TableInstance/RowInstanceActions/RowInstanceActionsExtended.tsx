@@ -3,13 +3,28 @@ import { Popover, Tooltip, Upload } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { VmStatus } from '../../../../utils';
-import { ISSHInfo } from '../SSHModalContent/SSHModalContent';
+import { EnvironmentType } from '../../../../generated-types';
+
+const getSSHTooltipText = (
+  hasSSHKeys: boolean,
+  isInstanceReady: boolean,
+  environmentType: EnvironmentType
+) => {
+  if (environmentType === EnvironmentType.Container)
+    return 'Containers does not support SSH connection (yet!)';
+  if (!hasSSHKeys)
+    return 'You have no SSH keys associated with your account, go to Account page and add them';
+  if (!isInstanceReady)
+    return 'Instance must be ready in order to connect through SSH';
+  return 'Show SSH connection instructions';
+};
 
 export interface IRowInstanceActionsExtendedProps {
   ip: string;
   time: string;
-  ssh?: ISSHInfo;
+  hasSSHKeys?: boolean;
   templateName: string;
+  environmentType?: EnvironmentType;
   status: VmStatus;
   fileManager?: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
@@ -18,8 +33,16 @@ export interface IRowInstanceActionsExtendedProps {
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
-  const { ip, time, ssh, templateName, status, fileManager, setSshModal } =
-    props;
+  const {
+    ip,
+    time,
+    hasSSHKeys,
+    templateName,
+    environmentType,
+    status,
+    fileManager,
+    setSshModal,
+  } = props;
 
   const infoContent = (
     <>
@@ -46,14 +69,33 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             <InfoOutlined />
           </Button>
         </Popover>
-        {ssh && (
+        {!hasSSHKeys ||
+        status !== 'VmiReady' ||
+        environmentType === EnvironmentType.Container ? (
+          <Tooltip
+            title={getSSHTooltipText(
+              hasSSHKeys || false,
+              status === 'VmiReady',
+              environmentType!
+            )}
+          >
+            <span className="cursor-not-allowed">
+              <Button
+                disabled
+                className="hidden xl:inline-block mr-3 pointer-events-none"
+                shape="round"
+              >
+                Connect via SSH
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
           <Button
             shape="round"
             className="hidden xl:inline-block mr-3"
-            disabled={status !== 'VmiReady'}
             onClick={() => setSshModal(true)}
           >
-            SSH
+            Connect via SSH
           </Button>
         )}
 

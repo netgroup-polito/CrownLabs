@@ -5,7 +5,7 @@ import { Instance, WorkspaceRole } from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
-import SSHModalContent, { ISSHInfo } from '../SSHModalContent/SSHModalContent';
+import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 
 const { Text } = Typography;
@@ -13,13 +13,13 @@ export interface IRowInstanceActionsProps {
   instance: Instance;
   now: Date;
   fileManager?: boolean;
-  ssh?: ISSHInfo;
+  hasSSHKeys?: boolean;
   extended: boolean;
   viewMode: WorkspaceRole;
 }
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
-  const { instance, now, fileManager, ssh, extended, viewMode } = props;
+  const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
 
   const { ip, status, persistent } = instance;
 
@@ -68,9 +68,10 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             }`}
           >
             <RowInstanceActionsExtended
-              ssh={ssh}
+              hasSSHKeys={hasSSHKeys}
               setSshModal={setSshModal}
               templateName={instance.templatePrettyName!}
+              environmentType={instance.environmentType}
               ip={ip}
               time={getTime()}
               status={status}
@@ -101,26 +102,23 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           />
           <RowInstanceActionsDropdown
             instance={instance}
-            ssh={ssh}
+            hasSSHKeys={hasSSHKeys}
             setSshModal={setSshModal}
             fileManager={fileManager}
             extended={extended}
           />
         </div>
       </div>
-      {ssh && (
+      {hasSSHKeys && (
         <Modal
           title="SSH Connection"
           visible={sshModal}
           onOk={() => setSshModal(false)}
           onCancel={() => setSshModal(false)}
-          footer={[
-            <Button type="primary">Set KEY</Button>,
-            <Button onClick={() => setSshModal(false)}>Close</Button>,
-          ]}
+          footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
           centered
         >
-          <SSHModalContent sshInfo={ssh} />
+          <SSHModalContent instanceIp={instance.ip} />
         </Modal>
       )}
     </>

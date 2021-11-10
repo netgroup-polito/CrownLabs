@@ -10,6 +10,7 @@ import {
   UpdatedOwnedInstancesSubscriptionResult,
   OwnedInstancesQuery,
   UpdateType,
+  useSshKeysQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
 import { getInstances, notifyStatus } from '../../../utilsLogic';
@@ -40,6 +41,11 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     variables: { tenantNamespace },
     onCompleted: setDataInstances,
     fetchPolicy: fetchPolicy_networkOnly,
+  });
+
+  const { data: sshKeysResult } = useSshKeysQuery({
+    variables: { tenantId: userId ?? '' },
+    notifyOnNetworkStatusChange: true,
   });
 
   useEffect(() => {
@@ -97,6 +103,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     <TableInstance
       showGuiIcon={showGuiIcon}
       viewMode={viewMode}
+      hasSSHKeys={!!sshKeysResult?.tenant?.spec?.publicKeys?.length}
       instances={instances}
       extended={extended}
     />

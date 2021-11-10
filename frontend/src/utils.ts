@@ -1,3 +1,5 @@
+import { EnvironmentType } from './generated-types';
+
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = 'user',
@@ -25,6 +27,7 @@ export type Template = {
   instances: Array<Instance>;
   workspaceId?: string;
 };
+
 export type VmStatus =
   | '' //the environment phase is unknown.
   | 'Importing' //the image of the environment is being imported.
@@ -45,6 +48,7 @@ export type Instance = {
   tenantId?: string;
   tenantDisplayName?: string;
   tenantNamespace?: string;
+  environmentType?: EnvironmentType;
   name: string;
   prettyName?: string;
   ip: string;

@@ -11,7 +11,6 @@ import {
   CaretRightOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { ISSHInfo } from '../SSHModalContent/SSHModalContent';
 import { Instance } from '../../../../utils';
 import {
   useApplyInstanceMutation,
@@ -22,7 +21,7 @@ import { DropDownAction, setInstanceRunning } from '../../../../utilsLogic';
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
   fileManager?: boolean;
-  ssh?: ISSHInfo;
+  hasSSHKeys?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
@@ -30,7 +29,7 @@ export interface IRowInstanceActionsDropdownProps {
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, ssh, extended, setSshModal } = props;
+  const { instance, fileManager, hasSSHKeys, extended, setSshModal } = props;
 
   const { status, persistent, url, name, tenantNamespace } = instance;
 
@@ -137,7 +136,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               {menuText}
             </Menu.Item>
           )}
-          {extended && (ssh || fileManager) && (
+          {extended && (hasSSHKeys || fileManager) && (
             <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
           )}
           {extended && fileManager && (
@@ -150,7 +149,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               File Manager
             </Menu.Item>
           )}
-          {extended && ssh && (
+          {extended && hasSSHKeys && (
             <Menu.Item
               key="ssh"
               className="flex items-center xl:hidden"
@@ -175,7 +174,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       <Button
         className={`${
           extended
-            ? ssh || fileManager
+            ? hasSSHKeys || fileManager
               ? 'xl:hidden'
               : 'sm:hidden'
             : 'xs:hidden'
