@@ -45,6 +45,7 @@ export type Instance = {
   tenantDisplayName?: string;
   tenantNamespace?: string;
   name: string;
+  prettyName?: string;
   ip: string;
   status: VmStatus;
   url: string | null;

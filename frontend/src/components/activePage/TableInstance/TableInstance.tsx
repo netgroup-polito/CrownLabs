@@ -61,7 +61,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               extended
                 ? viewMode === WorkspaceRole.user
                   ? 'w-5/6 sm:w-2/3 lg:w-3/5 xl:w-1/2 2xl:w-5/12'
-                  : 'w-3/5 md:w-1/2'
+                  : 'w-3/5 sm:w-2/3 lg:w-3/5 xl:w-1/2'
                 : 'w-2/3 md:w-3/4'
             }
             title="Instance Title"
@@ -79,8 +79,8 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             className={
               extended
                 ? viewMode === WorkspaceRole.user
-                  ? 'w-1/6 sm:w-1/3 lg:w-2/5 xl:w-1/22xl:w-7/12'
-                  : 'w-2/5 md:w-1/2'
+                  ? 'w-1/6 sm:w-1/3 lg:w-2/5 xl:w-1/2 2xl:w-7/12'
+                  : 'w-2/5 sm:w-1/3 lg:w-2/5 xl:w-1/2'
                 : 'w-1/3 md:w-1/4'
             }
             title="Instance Actions"
@@ -92,6 +92,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                 now={now}
                 fileManager={true}
                 extended={extended}
+                viewMode={viewMode}
               />
             )}
           />

@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
 import { Modal, Typography } from 'antd';
 import Button from 'antd-button-color';
-import { Instance } from '../../../../utils';
+import { Instance, WorkspaceRole } from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
@@ -15,12 +15,13 @@ export interface IRowInstanceActionsProps {
   fileManager?: boolean;
   ssh?: ISSHInfo;
   extended: boolean;
+  viewMode: WorkspaceRole;
 }
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
-  const { instance, now, fileManager, ssh, extended } = props;
+  const { instance, now, fileManager, ssh, extended, viewMode } = props;
 
-  const { ip, status, persistent, idTemplate } = instance;
+  const { ip, status, persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
 
@@ -59,7 +60,13 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
         }`}
       >
         {extended && (
-          <div className="flex justify-between items-center lg:w-1/3 xl:w-1/2">
+          <div
+            className={`flex justify-between items-center ${
+              viewMode === WorkspaceRole.manager
+                ? 'lg:w-2/5 xl:w-7/12 2xl:w-1/2'
+                : 'lg:w-1/3 xl:w-1/2'
+            }`}
+          >
             <RowInstanceActionsExtended
               ssh={ssh}
               setSshModal={setSshModal}
@@ -75,9 +82,11 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           </div>
         )}
         <div
-          className={`flex justify-end items-center gap-2 w-100 lg:w-2/3 xl:w-1/2 ${
-            extended ? 'pr-2' : ''
-          }`}
+          className={`flex justify-end items-center gap-2 w-100 ${
+            viewMode === WorkspaceRole.manager
+              ? 'lg:w-3/5 xl:w-5/12 2xl:w-1/2'
+              : 'lg:w-2/3 xl:w-1/2'
+          } ${extended ? 'pr-2' : ''}`}
         >
           {persistent && (
             <RowInstanceActionsPersistent
@@ -87,8 +96,8 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           )}
           <RowInstanceActionsDefault
             extended={extended}
-            idTemplate={idTemplate!}
             instance={instance}
+            viewMode={viewMode}
           />
           <RowInstanceActionsDropdown
             instance={instance}

@@ -24,6 +24,7 @@ const getInstances = (
   return {
     id: index,
     name: metadata?.name,
+    prettyName: spec?.prettyName,
     gui: guiEnabled,
     persistent: persistent,
     idTemplate: spec?.templateCrownlabsPolitoItTemplateRef?.name!,
@@ -57,6 +58,7 @@ const getManagerInstances = (
   return {
     id: index,
     name: metadata?.name,
+    prettyName: spec?.prettyName,
     gui: guiEnabled,
     persistent: persistent,
     idTemplate: name,
