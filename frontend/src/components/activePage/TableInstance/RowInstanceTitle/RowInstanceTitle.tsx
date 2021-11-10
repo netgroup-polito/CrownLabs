@@ -5,6 +5,8 @@ import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import { DesktopOutlined, CodeOutlined } from '@ant-design/icons';
 import { WorkspaceRole, Instance } from '../../../../utils';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
+import { useApplyInstanceMutation } from '../../../../generated-types';
+import { setInstancePrettyname } from '../../ActiveUtils';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {
@@ -34,13 +36,23 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
   const [edit, setEdit] = useState(false);
   const [title, setTitle] = useState(prettyName || name);
   const [invalid, setInvalid] = useState(false);
+  const [applyInstanceMutation] = useApplyInstanceMutation();
 
-  const checkSet = () => {
+  const mutateInstancePrettyname = async () => {
     if (title.length < 5) {
       setInvalid(true);
     } else {
       setInvalid(false);
-      setEdit(false);
+      try {
+        const result = await setInstancePrettyname(
+          title,
+          instance,
+          applyInstanceMutation
+        );
+        if (result) setTimeout(setEdit, 400, false);
+      } catch {
+        // TODO: properly handle errors
+      }
     }
   };
 
@@ -64,7 +76,10 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
               <Text className="hidden lg:w-32 xl:w-max md:block" ellipsis>
                 {tenantDisplayName}
               </Text>
-              <Text className="hidden lg:w-48 2xl:w-max lg:block" ellipsis>
+              <Text
+                className="hidden md:w-40 xl:w-48 2xl:w-max lg:block"
+                ellipsis
+              >
                 {prettyName ?? name}
               </Text>
             </div>
@@ -96,7 +111,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                   visible={invalid}
                   title="Title must be at least 5 char"
                 >
-                  <Form form={form} onFinish={checkSet}>
+                  <Form form={form} onFinish={mutateInstancePrettyname}>
                     <Form.Item noStyle>
                       <Row gutter={0}>
                         <Col>

@@ -17,7 +17,11 @@ import {
   getTemplatesMapped,
   getWorkspacesMapped,
 } from '../ActiveUtils';
-import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
+import {
+  comparePrettyName,
+  matchK8sObject,
+  replaceK8sObject,
+} from '../../../k8sUtils';
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
@@ -68,13 +72,16 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           if (!data?.updateInstanceLabelSelector?.instance) return prev;
 
           const { instance, updateType } = data?.updateInstanceLabelSelector;
+          let isPrettyNameUpdate = false;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             if (updateType === UpdateType.Deleted) {
               instances = instances.filter(matchK8sObject(instance, true));
             } else {
-              if (instances.find(matchK8sObject(instance, false))) {
+              const found = instances.find(matchK8sObject(instance, false));
+              if (found) {
+                isPrettyNameUpdate = !comparePrettyName(found, instance);
                 instances = instances.map(replaceK8sObject(instance));
               } else {
                 instances = [...instances, instance];
@@ -83,13 +90,14 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
             prev.instanceList.instances = [...instances];
           }
 
-          notifyStatus(
-            instance.status?.phase!,
-            instance,
-            updateType!,
-            tenantNamespace,
-            WorkspaceRole.manager
-          );
+          !isPrettyNameUpdate &&
+            notifyStatus(
+              instance.status?.phase!,
+              instance,
+              updateType!,
+              tenantNamespace,
+              WorkspaceRole.user
+            );
 
           const newItem = { ...prev };
           setDataInstances(newItem);

@@ -124,7 +124,7 @@ const notifyStatus = (
     const { tenantNamespace: tnm } = instance.metadata as any;
     if (tnm === tenantNamespace || role === WorkspaceRole.user) {
       notification.warning({
-        message: instance.metadata?.name,
+        message: instance.spec?.prettyName || instance.metadata?.name,
         description: `Instance deleted`,
       });
     }
@@ -132,6 +132,27 @@ const notifyStatus = (
     const { tenantNamespace: tnm } = instance.metadata as any;
     const { templateName } = instance.spec?.templateCrownlabsPolitoItTemplateRef
       ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec as any;
+    const content = (status: string) => {
+      return {
+        message: templateName,
+        description: (
+          <>
+            <div>
+              Instance Name:
+              <i> {instance.spec?.prettyName || instance.metadata?.name}</i>
+            </div>
+            <div>
+              Status:
+              <i>
+                {status === 'VmiReady'
+                  ? ' started'
+                  : status === 'VmiOff' ?? ' stopped'}
+              </i>
+            </div>
+          </>
+        ),
+      };
+    };
     switch (status) {
       case 'VmiOff':
         if (
@@ -139,17 +160,7 @@ const notifyStatus = (
           (tnm === tenantNamespace || role === WorkspaceRole.user)
         ) {
           notification.warning({
-            message: templateName,
-            description: (
-              <>
-                <div>
-                  Instance Name: <i>{instance.metadata?.name}</i>
-                </div>
-                <div>
-                  Status: <i>Stopped</i>
-                </div>
-              </>
-            ),
+            ...content(status),
           });
         }
         break;
@@ -160,17 +171,7 @@ const notifyStatus = (
           (tnm === tenantNamespace || role === WorkspaceRole.user)
         ) {
           notification.success({
-            message: <strong>{templateName}</strong>,
-            description: (
-              <>
-                <div>
-                  Instance Name: <i>{instance.metadata?.name}</i>
-                </div>
-                <div>
-                  Status: <i>Started</i>
-                </div>
-              </>
-            ),
+            ...content(status),
             btn: instance.status?.url && (
               <Button
                 type="success"
@@ -233,6 +234,35 @@ const setInstanceRunning = async (
   }
 };
 
+const setInstancePrettyname = async (
+  prettyName: string,
+  instance: Instance,
+  instanceMutation: (
+    options?: MutationFunctionOptions<
+      ApplyInstanceMutation,
+      Exact<{
+        instanceId: string;
+        tenantNamespace: string;
+        patchJson: string;
+      }>
+    >
+  ) => Promise<
+    FetchResult<ApplyInstanceMutation, Record<string, any>, Record<string, any>>
+  >
+) => {
+  try {
+    return await instanceMutation({
+      variables: {
+        instanceId: instance.name,
+        tenantNamespace: instance.tenantNamespace!,
+        patchJson: getInstancePatchJson({ prettyName }),
+      },
+    });
+  } catch {
+    return false;
+  }
+};
+
 export {
   getInstances,
   getManagerInstances,
@@ -241,5 +271,6 @@ export {
   getTemplatesMapped,
   getWorkspacesMapped,
   setInstanceRunning,
+  setInstancePrettyname,
   DropDownAction,
 };
