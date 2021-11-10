@@ -55,9 +55,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           tenantNamespace,
         },
         updateQuery: (prev, { subscriptionData }) => {
-          const {
-            data,
-          } = subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
+          const { data } =
+            subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
 
           if (!data?.updateInstance?.instance) return prev;
 
@@ -126,9 +125,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         variables: { workspaceNamespace: `${workspaceNamespace}` },
         updateQuery: (prev, { subscriptionData }) => {
           let newData = { ...prev };
-          const {
-            data,
-          } = subscriptionData as UpdatedWorkspaceTemplatesSubscriptionResult;
+          const { data } =
+            subscriptionData as UpdatedWorkspaceTemplatesSubscriptionResult;
           const newItem = data?.updatedTemplate?.template!;
 
           if (!newItem) return prev;
@@ -140,15 +138,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             if (oldItem) {
               if (JSON.stringify(oldItem) === JSON.stringify(newItem)) {
                 //template have been deleted
-                newData.templateList!.templates = prev.templateList?.templates!.filter(
-                  t => newItem?.metadata?.id !== t?.metadata?.id
-                );
+                newData.templateList!.templates =
+                  prev.templateList?.templates!.filter(
+                    t => newItem?.metadata?.id !== t?.metadata?.id
+                  );
               } else {
                 //template have been modified
-                newData.templateList!.templates = prev.templateList?.templates!.map(
-                  t =>
+                newData.templateList!.templates =
+                  prev.templateList?.templates!.map(t =>
                     newItem?.metadata?.id === t?.metadata?.id ? newItem! : t!
-                );
+                  );
               }
             } else {
               newData.templateList!.templates = [
@@ -205,10 +204,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     .filter(t => t);
 
   const [createInstanceMutation] = useCreateInstanceMutation();
-  const [
-    deleteTemplateMutation,
-    { loading: loadingDeleteTemplateMutation },
-  ] = useDeleteTemplateMutation();
+  const [deleteTemplateMutation, { loading: loadingDeleteTemplateMutation }] =
+    useDeleteTemplateMutation();
 
   return (
     <Spin size="large" spinning={loadingTemplate || loadingInstances}>

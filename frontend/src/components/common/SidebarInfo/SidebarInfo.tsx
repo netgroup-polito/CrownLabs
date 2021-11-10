@@ -117,8 +117,7 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
           {
             icon: <YoutubeFilled style={{ fontSize: '25px' }} />,
             title: 'YouTube',
-            link:
-              'https://www.youtube.com/playlist?list=PLTAfidx4guQIIPZVaEn8H_hfSTFJ5VQDu',
+            link: 'https://www.youtube.com/playlist?list=PLTAfidx4guQIIPZVaEn8H_hfSTFJ5VQDu',
             linktext: 'CrownLabs videos',
           },
         ]}

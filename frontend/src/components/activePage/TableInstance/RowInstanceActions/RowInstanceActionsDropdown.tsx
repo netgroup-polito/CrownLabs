@@ -74,9 +74,10 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     },
   };
 
-  const { menuKey, menuIcon, menuText } = statusComponents[
-    status === 'VmiReady' || status === 'VmiOff' ? status : 'Other'
-  ];
+  const { menuKey, menuIcon, menuText } =
+    statusComponents[
+      status === 'VmiReady' || status === 'VmiOff' ? status : 'Other'
+    ];
 
   const dropdownHandler = (key: DropDownAction) => {
     switch (key) {

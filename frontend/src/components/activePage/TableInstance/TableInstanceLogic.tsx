@@ -44,9 +44,8 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
         document: updatedOwnedInstances,
         variables: { tenantNamespace },
         updateQuery: (prev, { subscriptionData }) => {
-          const {
-            data,
-          } = subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
+          const { data } =
+            subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
 
           if (!data?.updateInstance?.instance) return prev;
 

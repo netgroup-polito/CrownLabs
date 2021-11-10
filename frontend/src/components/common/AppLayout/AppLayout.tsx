@@ -27,12 +27,8 @@ export interface IAppLayoutProps {
 
 const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   const [sideLeftShow, setSideLeftShow] = useState(false);
-  const {
-    routes,
-    transparentNavbar,
-    TooltipButtonData,
-    TooltipButtonLink,
-  } = props;
+  const { routes, transparentNavbar, TooltipButtonData, TooltipButtonLink } =
+    props;
 
   return (
     <BrowserRouter basename={PUBLIC_URL}>

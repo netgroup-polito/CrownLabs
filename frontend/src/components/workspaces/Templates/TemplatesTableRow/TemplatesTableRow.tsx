@@ -70,15 +70,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     expandRow,
   } = props;
 
-  const {
-    refetch: refetchInstancesLabelSelector,
-  } = useInstancesLabelSelectorQuery({
-    variables: { labels: `crownlabs.polito.it/template=${id}` },
-  });
+  const { refetch: refetchInstancesLabelSelector } =
+    useInstancesLabelSelectorQuery({
+      variables: { labels: `crownlabs.polito.it/template=${id}` },
+    });
 
-  const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] = useState(
-    false
-  );
+  const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
+    useState(false);
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   return (
     <>

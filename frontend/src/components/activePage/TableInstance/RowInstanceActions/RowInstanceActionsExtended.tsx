@@ -18,15 +18,8 @@ export interface IRowInstanceActionsExtendedProps {
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
-  const {
-    ip,
-    time,
-    ssh,
-    templateName,
-    status,
-    fileManager,
-    setSshModal,
-  } = props;
+  const { ip, time, ssh, templateName, status, fileManager, setSshModal } =
+    props;
 
   const infoContent = (
     <>

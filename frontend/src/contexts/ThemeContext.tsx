@@ -32,8 +32,9 @@ const ThemeContextProvider: FC<PropsWithChildren<{}>> = props => {
       return JSON.parse(localIsDarkTheme);
     } else {
       // if not, check if browser/device has theme preference
-      const lightMediaQuery = window.matchMedia(MEDIA_QUERY_PREFER_LIGHT_SCHEMA)
-        .matches;
+      const lightMediaQuery = window.matchMedia(
+        MEDIA_QUERY_PREFER_LIGHT_SCHEMA
+      ).matches;
       if (lightMediaQuery) return false;
     }
     // default to true
