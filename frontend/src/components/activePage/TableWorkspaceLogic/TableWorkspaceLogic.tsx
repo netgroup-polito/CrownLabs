@@ -96,7 +96,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
               instance,
               updateType!,
               tenantNamespace,
-              WorkspaceRole.user
+              WorkspaceRole.manager
             );
 
           const newItem = { ...prev };
