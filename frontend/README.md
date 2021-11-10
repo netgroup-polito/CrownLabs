@@ -53,10 +53,6 @@ Each component needs to have its own folder with the following structure, e.g. f
 - `Exmaple.css` - css specific code for component
 - `index.ts` - utility file to shorten component import statement in other files
 
-### File structure
-
-Refer to the [Example component](./src/components/Examples/ExampleButton/) for a demo.
-
 #### Component
 
 Each component file needs to host a single component and needs to have the following structure:
