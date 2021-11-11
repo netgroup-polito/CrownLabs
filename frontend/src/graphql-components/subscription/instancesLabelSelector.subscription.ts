@@ -9,7 +9,7 @@ export default gql`
       instance: payload {
         metadata {
           name
-          tenantNamespace: namespace
+          namespace
           creationTimestamp
         }
         status {
@@ -42,6 +42,7 @@ export default gql`
                   environmentList {
                     guiEnabled
                     persistent
+                    environmentType
                   }
                 }
               }

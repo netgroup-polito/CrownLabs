@@ -3,7 +3,7 @@ query instancesLabelSelector($labels: String) {
     instances: items {
       metadata {
         name
-        tenantNamespace: namespace
+        namespace
         creationTimestamp
       }
       status {
@@ -36,6 +36,7 @@ query instancesLabelSelector($labels: String) {
                 environmentList {
                   guiEnabled
                   persistent
+                  environmentType
                 }
               }
             }
