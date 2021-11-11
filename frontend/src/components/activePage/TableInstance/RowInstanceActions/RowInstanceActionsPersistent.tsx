@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import { Instance } from '../../../../utils';
 import { useApplyInstanceMutation } from '../../../../generated-types';
-import { setInstanceRunning } from '../../ActiveUtils';
+import { setInstanceRunning } from '../../../../utilsLogic';
 
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;

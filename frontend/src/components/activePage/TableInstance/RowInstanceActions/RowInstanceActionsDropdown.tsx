@@ -17,7 +17,7 @@ import {
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
-import { DropDownAction, setInstanceRunning } from '../../ActiveUtils';
+import { DropDownAction, setInstanceRunning } from '../../../../utilsLogic';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;

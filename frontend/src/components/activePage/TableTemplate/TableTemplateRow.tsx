@@ -9,8 +9,8 @@ import {
 } from '@ant-design/icons';
 import Badge from '../../common/Badge';
 import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
-import { DropDownAction } from '../ActiveUtils';
 import { Template } from '../../../utils';
+import { DropDownAction } from '../../../utilsLogic';
 
 const { Text } = Typography;
 export interface ITableTemplateRowProps {
