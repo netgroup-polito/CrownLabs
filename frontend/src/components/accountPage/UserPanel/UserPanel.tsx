@@ -12,7 +12,6 @@ export interface IUserPanelProps {
   lastName: string;
   username: string;
   email: string;
-  avatar?: string;
   sshKeys?: { name: string; key: string }[];
   onDeleteKey?: (key: {
     name: string;
@@ -22,7 +21,7 @@ export interface IUserPanelProps {
 }
 
 const UserPanel: FC<IUserPanelProps> = props => {
-  const { avatar, sshKeys, ...otherInfo } = props;
+  const { sshKeys, ...otherInfo } = props;
   const [showSSHModal, setShowSSHModal] = useState(false);
 
   const closeModal = () => setShowSSHModal(false);
@@ -35,11 +34,25 @@ const UserPanel: FC<IUserPanelProps> = props => {
       closeModal();
     }
   };
+  const stringHash = (s: string) => {
+    return s.split('').reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+  };
+
+  const generateAvatarUrl = (style: string, seed: string) => {
+    return `https://avatars.dicebear.com/api/${style}/${stringHash(seed)}.svg`;
+  };
 
   return (
     <Row className="p-4" align="top">
       <Col xs={24} sm={8} className="text-center">
-        <Avatar size="large" icon={avatar ?? <UserOutlined />} />
+        <Avatar
+          size={100}
+          src={generateAvatarUrl('bottts', props.username)}
+          icon={<UserOutlined />}
+        />
         <p>
           {otherInfo.firstName} {otherInfo.lastName}
           <br />
