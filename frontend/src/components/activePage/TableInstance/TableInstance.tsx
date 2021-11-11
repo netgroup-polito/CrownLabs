@@ -12,12 +12,13 @@ const { Column } = Table;
 export interface ITableInstanceProps {
   viewMode: WorkspaceRole;
   instances: Array<Instance>;
+  hasSSHKeys?: boolean;
   showGuiIcon: boolean;
   extended: boolean;
 }
 
 const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
-  const { instances, viewMode, extended, showGuiIcon } = props;
+  const { instances, viewMode, extended, hasSSHKeys, showGuiIcon } = props;
 
   const [now, setNow] = useState(new Date());
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
@@ -88,7 +89,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             render={(instance: Instance) => (
               <RowInstanceActions
                 instance={instance}
-                ssh={{ IP: instance.ip, KEY: '' }}
+                hasSSHKeys={hasSSHKeys}
                 now={now}
                 fileManager={true}
                 extended={extended}

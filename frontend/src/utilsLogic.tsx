@@ -103,7 +103,7 @@ export const getInstances = (
   const { environmentList, templateName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
-  const [{ guiEnabled, persistent }] = environmentList;
+  const [{ guiEnabled, persistent, environmentType }] = environmentList;
   return {
     id: index,
     name: metadata?.name,
@@ -112,6 +112,7 @@ export const getInstances = (
     persistent: persistent,
     idTemplate: spec?.templateCrownlabsPolitoItTemplateRef?.name!,
     templatePrettyName: templateName,
+    environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
