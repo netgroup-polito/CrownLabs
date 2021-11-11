@@ -29,7 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -45,7 +44,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 		instance    clv1alpha2.Instance
 		template    clv1alpha2.Template
-		tenant      clv1alpha1.Tenant
+		tenant      clv1alpha2.Tenant
 		environment clv1alpha2.Environment
 
 		webdavSecretName types.NamespacedName
@@ -72,13 +71,13 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		webdavPassword    = "password"
 	)
 
-	NewTenant := func(suffix string, workspace string, role clv1alpha1.WorkspaceUserRole, keys []string) clv1alpha1.Tenant {
-		return clv1alpha1.Tenant{
+	NewTenant := func(suffix string, workspace string, role clv1alpha2.WorkspaceUserRole, keys []string) clv1alpha2.Tenant {
+		return clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   fmt.Sprintf("%s-%s", tenantName, suffix),
-				Labels: map[string]string{clv1alpha1.WorkspaceLabelPrefix + workspace: string(role)},
+				Labels: map[string]string{clv1alpha2.WorkspaceLabelPrefix + workspace: string(role)},
 			},
-			Spec: clv1alpha1.TenantSpec{PublicKeys: keys},
+			Spec: clv1alpha2.TenantSpec{PublicKeys: keys},
 		}
 	}
 
@@ -101,7 +100,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			},
 		}
 		environment = clv1alpha2.Environment{Name: environmentName}
-		tenant = NewTenant("user", workspaceName, clv1alpha1.User, []string{"tenant-key-1", "tenant-key-2"})
+		tenant = NewTenant("user", workspaceName, clv1alpha2.User, []string{"tenant-key-1", "tenant-key-2"})
 
 		webdavSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: webdavCredentials}
 		objectName = forge.NamespacedName(&instance)
@@ -244,7 +243,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 	Describe("The GetPublicKeys function", func() {
 		var (
 			keys  []string
-			other clv1alpha1.Tenant
+			other clv1alpha2.Tenant
 		)
 
 		JustBeforeEach(func() {
@@ -258,7 +257,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 		When("there is a manager associated with the instance workspace", func() {
 			BeforeEach(func() {
-				other = NewTenant("mgr", workspaceName, clv1alpha1.Manager, []string{"manager-key-1", "manager-key-2"})
+				other = NewTenant("mgr", workspaceName, clv1alpha2.Manager, []string{"manager-key-1", "manager-key-2"})
 				clientBuilder.WithObjects(&other)
 			})
 
@@ -271,7 +270,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 		When("there is a manager associated with another workspace", func() {
 			BeforeEach(func() {
-				other = NewTenant("mgr", "another", clv1alpha1.Manager, []string{"manager-key-1", "manager-key-2"})
+				other = NewTenant("mgr", "another", clv1alpha2.Manager, []string{"manager-key-1", "manager-key-2"})
 				clientBuilder.WithObjects(&other)
 			})
 
@@ -281,7 +280,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 		When("there is another user associated with the instance workspace", func() {
 			BeforeEach(func() {
-				other = NewTenant("other", workspaceName, clv1alpha1.User, []string{"other-key-1", "other-key-2"})
+				other = NewTenant("other", workspaceName, clv1alpha2.User, []string{"other-key-1", "other-key-2"})
 				clientBuilder.WithObjects(&other)
 			})
 

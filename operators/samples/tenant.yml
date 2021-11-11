@@ -1,4 +1,4 @@
-apiVersion: crownlabs.polito.it/v1alpha1
+apiVersion: crownlabs.polito.it/v1alpha2
 kind: Tenant
 metadata:
   name: john.doe
@@ -9,15 +9,10 @@ spec:
   lastName: Doe
   email: jonh.doe@email.com
   workspaces:
-    - workspaceRef:
-        name: tea
+    - name: tea
       role: user
-      groupNumber: 12
-    - workspaceRef:
-        name: coffee
+    - name: coffee
       role: manager
-      groupNumber: 12
   publicKeys:
-    - key1
-    - key2
-    - key3
+    - type1 key1 comment1
+    - type2 key2 comment3

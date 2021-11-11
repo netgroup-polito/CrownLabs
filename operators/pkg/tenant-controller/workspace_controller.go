@@ -29,6 +29,7 @@ import (
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // WorkspaceReconciler reconciles a Workspace object.
@@ -72,7 +73,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of workspace %s", ws.Name)
 		// workspace is being deleted
-		if ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		if ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
 			if err := r.handleDeletion(ctx, ws.Name, ws.Spec.PrettyName); err != nil {
 				klog.Errorf("Error when deleting resources handled by workspace  %s -> %s", ws.Name, err)
@@ -81,7 +82,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// can remove the finalizer from the workspace if the eternal resources have been successfully deleted
 			if retrigErr == nil {
 				// remove finalizer from the workspace
-				ctrlUtil.RemoveFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName)
+				ctrlUtil.RemoveFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
 				if err := r.Update(context.Background(), &ws); err != nil {
 					klog.Errorf("Error when removing tenant operator finalizer from workspace %s -> %s", ws.Name, err)
 					retrigErr = err
@@ -101,8 +102,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	klog.Infof("Reconciling workspace %s", ws.Name)
 
 	// add tenant operator finalizer to workspace
-	if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName) {
-		ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha1.TnOperatorFinalizerName)
+	if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
+		ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &ws); err != nil {
 			klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
 			retrigErr = err
@@ -132,17 +133,17 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if ws.Status.Subscriptions == nil {
 		// len 1 of the map is for the number of subscriptions (keycloak)
-		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus, 1)
+		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
 	}
 	// handling keycloak resources
 	if err = r.KcA.createKcRoles(ctx, genWsKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
 		klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
-		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
+		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
 		retrigErr = err
 		tnOpinternalErrors.WithLabelValues("workspace", "keycloak").Inc()
 	} else {
 		klog.Infof("Roles for workspace %s created successfully", ws.Name)
-		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
+		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
 	ws.Status.Ready = retrigErr == nil
@@ -193,8 +194,8 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 	}
 
 	// unsubscribe tenants from workspace to delete
-	var tenantsToUpdate crownlabsv1alpha1.TenantList
-	targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, wsName)
+	var tenantsToUpdate crownlabsv1alpha2.TenantList
+	targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, wsName)
 
 	err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel})
 	switch {
@@ -216,10 +217,10 @@ func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPret
 	return retErr
 }
 
-func removeWsFromTn(workspaces *[]crownlabsv1alpha1.TenantWorkspaceEntry, wsToRemove string) {
+func removeWsFromTn(workspaces *[]crownlabsv1alpha2.TenantWorkspaceEntry, wsToRemove string) {
 	idxToRemove := -1
 	for i, wsData := range *workspaces {
-		if wsData.WorkspaceRef.Name == wsToRemove {
+		if wsData.Name == wsToRemove {
 			idxToRemove = i
 		}
 	}
@@ -301,35 +302,35 @@ func (r *WorkspaceReconciler) updateWsCrb(crb *rbacv1.ClusterRoleBinding, wsName
 	crb.Labels = r.updateWsResourceCommonLabels(crb.Labels)
 
 	crb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
-	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+	crb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func (r *WorkspaceReconciler) updateWsRb(rb *rbacv1.RoleBinding, wsName string) {
 	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
 
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-view-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.User)), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.User)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func (r *WorkspaceReconciler) updateWsRbMng(rb *rbacv1.RoleBinding, wsName string) {
 	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
 
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func (r *WorkspaceReconciler) updateWsRbMngTnts(rb *rbacv1.ClusterRoleBinding, wsName string) {
 	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
 
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-tenants", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha1.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 
 func genWsKcRolesData(wsName, wsPrettyName string) map[string]string {
-	return map[string]string{genWsKcRoleName(wsName, crownlabsv1alpha1.Manager): wsPrettyName, genWsKcRoleName(wsName, crownlabsv1alpha1.User): wsPrettyName}
+	return map[string]string{genWsKcRoleName(wsName, crownlabsv1alpha2.Manager): wsPrettyName, genWsKcRoleName(wsName, crownlabsv1alpha2.User): wsPrettyName}
 }
 
-func genWsKcRoleName(wsName string, role crownlabsv1alpha1.WorkspaceUserRole) string {
+func genWsKcRoleName(wsName string, role crownlabsv1alpha2.WorkspaceUserRole) string {
 	return fmt.Sprintf("workspace-%s:%s", wsName, role)
 }
 

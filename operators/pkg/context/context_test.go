@@ -25,7 +25,6 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/context/mocks"
 )
@@ -104,10 +103,10 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 	Describe("The context.TenantInto/TenantFrom methods", func() {
 		When("storing a tenant in the context and retrieving the logger", func() {
-			var tenant clv1alpha1.Tenant
+			var tenant clv1alpha2.Tenant
 
 			BeforeEach(func() {
-				tenant = clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"}}
+				tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"}}
 				mocklog.EXPECT().WithValues(gomock.Eq(tenantKey), gomock.Eq(klog.KObj(&tenant))).Return(expected)
 			})
 

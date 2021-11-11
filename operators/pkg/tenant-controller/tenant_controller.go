@@ -36,6 +36,7 @@ import (
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 const (
@@ -65,7 +66,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		defer r.ReconcileDeferHook()
 	}
 
-	var tn crownlabsv1alpha1.Tenant
+	var tn crownlabsv1alpha2.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
@@ -84,12 +85,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	var retrigErr error
 	if tn.Status.Subscriptions == nil {
 		// make initial len is 2 (keycloak and nextcloud)
-		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha1.SubscriptionStatus, 2)
+		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 2)
 	}
 
 	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
-		if ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName) {
+		if ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
 			// reconcile was triggered by a delete request
 			if err := r.handleDeletion(ctx, tn.Name); err != nil {
 				klog.Errorf("error when deleting external resources on tenant %s deletion -> %s", tn.Name, err)
@@ -98,7 +99,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// can remove the finalizer from the tenant if the eternal resources have been successfully deleted
 			if retrigErr == nil {
 				// remove finalizer from the tenant
-				ctrlUtil.RemoveFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName)
+				ctrlUtil.RemoveFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
 				if err := r.Update(context.Background(), &tn); err != nil {
 					klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
 					tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
@@ -122,8 +123,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	tn.Spec.Email = strings.ToLower(tn.Spec.Email)
 
 	// add tenant operator finalizer to tenant
-	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName) {
-		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha1.TnOperatorFinalizerName)
+	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
+		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(context.Background(), &tn); err != nil {
 			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
 			retrigErr = err
@@ -151,17 +152,17 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// check validity of workspaces in tenant
-	tenantExistingWorkspaces := []crownlabsv1alpha1.TenantWorkspaceEntry{}
+	tenantExistingWorkspaces := []crownlabsv1alpha2.TenantWorkspaceEntry{}
 	tn.Status.FailingWorkspaces = []string{}
 	// check every workspace of a tenant
 	for _, tnWs := range tn.Spec.Workspaces {
-		wsLookupKey := types.NamespacedName{Name: tnWs.WorkspaceRef.Name, Namespace: ""}
+		wsLookupKey := types.NamespacedName{Name: tnWs.Name, Namespace: ""}
 		var ws crownlabsv1alpha1.Workspace
 		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
 			// if there was a problem, add the workspace to the status of the tenant
-			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.WorkspaceRef.Name, tn.Name, err)
+			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.Name, tn.Name, err)
 			retrigErr = err
-			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.WorkspaceRef.Name)
+			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.Name)
 			tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
 		} else {
 			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
@@ -170,27 +171,27 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
 		klog.Errorf("Error when updating keycloak subscription for tenant %s -> %s", tn.Name, err)
-		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrFailed
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
 		retrigErr = err
 		tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 	} else {
 		klog.Infof("Keycloak subscription for tenant %s updated", tn.Name)
-		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha1.SubscrOk
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
 	if nsOk {
 		if err = r.handleNextcloudSubscription(ctx, &tn, nsName); err != nil {
 			klog.Errorf("Error when updating nextcloud subscription for tenant %s -> %s", tn.Name, err)
-			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
+			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha2.SubscrFailed
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("tenant", "nextcloud").Inc()
 		} else {
 			klog.Infof("Nextcloud subscription for tenant %s updated", tn.Name)
-			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrOk
+			tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha2.SubscrOk
 		}
 	} else {
 		klog.Errorf("Could not handle nextcloud subscription for tenant %s -> namespace update for secret gave error", tn.Name)
-		tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha1.SubscrFailed
+		tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha2.SubscrFailed
 	}
 
 	// place status value to ready if everything is fine, in other words, no need to reconcile
@@ -236,7 +237,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha1.Tenant{}).
+		For(&crownlabsv1alpha2.Tenant{}).
 		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
@@ -278,7 +279,7 @@ func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) er
 }
 
 // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
-func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) (nsOk bool, err error) {
+func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
@@ -425,7 +426,7 @@ func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 	}}}}}
 }
 
-func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.TenantWorkspaceEntry) error {
+func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
 		klog.Errorf("Error when checking if keycloak user %s existed for creation/update -> %s", tn.Name, err)
@@ -448,16 +449,16 @@ func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *c
 }
 
 // genKcUserRoleNames maps the workspaces of a tenant to the needed roles in keycloak.
-func genKcUserRoleNames(workspaces []crownlabsv1alpha1.TenantWorkspaceEntry) []string {
+func genKcUserRoleNames(workspaces []crownlabsv1alpha2.TenantWorkspaceEntry) []string {
 	userRoles := make([]string, len(workspaces))
 	// convert workspaces to actual keyloak role
 	for i, ws := range workspaces {
-		userRoles[i] = fmt.Sprintf("workspace-%s:%s", ws.WorkspaceRef.Name, ws.Role)
+		userRoles[i] = fmt.Sprintf("workspace-%s:%s", ws.Name, ws.Role)
 	}
 	return userRoles
 }
 
-func (r *TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha1.Tenant, nsName string) error {
+func (r *TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
 	// independently of the existence of the nexctloud secret for the nextcloud credentials of the user, need to know the displayname of the user, in order to update it if necessary
 	ncUsername := genNcUsername(tn.Name)
 	expectedDisplayname := genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)
@@ -542,14 +543,14 @@ func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password s
 	sec.Data["password"] = []byte(password)
 }
 
-func updateTnLabels(tn *crownlabsv1alpha1.Tenant, tenantExistingWorkspaces []crownlabsv1alpha1.TenantWorkspaceEntry) error {
+func updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
 	if tn.Labels == nil {
 		tn.Labels = map[string]string{}
 	} else {
 		cleanWorkspaceLabels(tn.Labels)
 	}
 	for _, wsData := range tenantExistingWorkspaces {
-		wsLabelKey := fmt.Sprintf("%s%s", crownlabsv1alpha1.WorkspaceLabelPrefix, wsData.WorkspaceRef.Name)
+		wsLabelKey := fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, wsData.Name)
 		tn.Labels[wsLabelKey] = string(wsData.Role)
 	}
 	// label for users without workspaces
@@ -587,7 +588,7 @@ func cleanName(name string) *string {
 // cleanWorkspaceLabels removes all the labels of a workspace from a tenant.
 func cleanWorkspaceLabels(labels map[string]string) {
 	for k := range labels {
-		if strings.HasPrefix(k, crownlabsv1alpha1.WorkspaceLabelPrefix) {
+		if strings.HasPrefix(k, crownlabsv1alpha2.WorkspaceLabelPrefix) {
 			delete(labels, k)
 		}
 	}

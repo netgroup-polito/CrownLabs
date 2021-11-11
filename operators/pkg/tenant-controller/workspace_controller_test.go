@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 )
 
@@ -103,7 +104,7 @@ var _ = Describe("Workspace controller", func() {
 			if !ws.Status.Namespace.Created || ws.Status.Namespace.Name != nsName {
 				return false
 			}
-			if ws.Status.Subscriptions["keycloak"] != crownlabsv1alpha1.SubscrOk {
+			if ws.Status.Subscriptions["keycloak"] != crownlabsv1alpha2.SubscrOk {
 				return false
 			}
 			if !containsString(ws.Finalizers, "crownlabs.polito.it/tenant-operator") {

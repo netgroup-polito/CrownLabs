@@ -24,17 +24,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 )
 
 var _ = Describe("Validating webhook", func() {
-	forgeTenantWithWorkspaceUser := func(wsName string) *clv1alpha1.Tenant {
-		return &clv1alpha1.Tenant{
-			Spec: clv1alpha1.TenantSpec{
-				Workspaces: []clv1alpha1.TenantWorkspaceEntry{{
-					WorkspaceRef: clv1alpha1.GenericRef{Name: wsName},
-					Role:         clv1alpha1.User,
+	forgeTenantWithWorkspaceUser := func(wsName string) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{
+			Spec: clv1alpha2.TenantSpec{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
+					Name: wsName,
+					Role: clv1alpha2.User,
 				}},
 			},
 		}
@@ -44,17 +44,17 @@ var _ = Describe("Validating webhook", func() {
 		validatingWH *tenantwh.TenantValidator
 		request      admission.Request
 		response     admission.Response
-		manager      *clv1alpha1.Tenant
+		manager      *clv1alpha2.Tenant
 	)
 
 	BeforeEach(func() {
 
-		manager = &clv1alpha1.Tenant{
+		manager = &clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: "some-manager"},
-			Spec: clv1alpha1.TenantSpec{
-				Workspaces: []clv1alpha1.TenantWorkspaceEntry{{
-					WorkspaceRef: clv1alpha1.GenericRef{Name: testWorkspace},
-					Role:         clv1alpha1.Manager,
+			Spec: clv1alpha2.TenantSpec{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
+					Name: testWorkspace,
+					Role: clv1alpha2.Manager,
 				}},
 			},
 		}
@@ -93,7 +93,7 @@ var _ = Describe("Validating webhook", func() {
 
 		When("the old tenant is invalid", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Update, &clv1alpha1.Tenant{}, nil)
+				request = forgeRequest(admissionv1.Update, &clv1alpha2.Tenant{}, nil)
 			})
 			It("Should return an error response", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -104,7 +104,7 @@ var _ = Describe("Validating webhook", func() {
 
 		When("Tenant is being edited by an invalid external user", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Update, &clv1alpha1.Tenant{}, &clv1alpha1.Tenant{})
+				request = forgeRequest(admissionv1.Update, &clv1alpha2.Tenant{}, &clv1alpha2.Tenant{})
 				request.UserInfo.Username = "invalid-manager"
 			})
 			It("Should return an error response", func() {
@@ -116,15 +116,15 @@ var _ = Describe("Validating webhook", func() {
 	})
 
 	Describe("The TenantValidator.HandleSelfEdit method", func() {
-		var newTenant, oldTenant *clv1alpha1.Tenant
+		var newTenant, oldTenant *clv1alpha2.Tenant
 		JustBeforeEach(func() {
 			response = validatingWH.HandleSelfEdit(ctx, newTenant, oldTenant)
 		})
 
 		When("only public keys are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{PublicKeys: []string{"some-key"}}}
-				newTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{PublicKeys: []string{"other-key"}}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{PublicKeys: []string{"some-key"}}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{PublicKeys: []string{"other-key"}}}
 			})
 			It("should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
@@ -133,8 +133,8 @@ var _ = Describe("Validating webhook", func() {
 
 		When("other fields are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{LastName: "test"}}
-				newTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{Email: "other"}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{LastName: "test"}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
 			})
 			It("should deny the change", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -145,14 +145,14 @@ var _ = Describe("Validating webhook", func() {
 	})
 
 	Describe("The TenantValidator.HandleWorkspaceEdit", func() {
-		var newTenant, oldTenant *clv1alpha1.Tenant
+		var newTenant, oldTenant *clv1alpha2.Tenant
 		JustBeforeEach(func() {
 			response = validatingWH.HandleWorkspaceEdit(ctx, newTenant, oldTenant, manager)
 		})
 
 		When("manager adds a workspace he manages", func() {
 			BeforeEach(func() {
-				oldTenant = &clv1alpha1.Tenant{}
+				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser(testWorkspace)
 			})
 			It("Should allow the change", func() {
@@ -162,7 +162,7 @@ var _ = Describe("Validating webhook", func() {
 
 		When("manager removes a workspace he manages", func() {
 			BeforeEach(func() {
-				newTenant = &clv1alpha1.Tenant{}
+				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser(testWorkspace)
 			})
 			It("Should allow the change", func() {
@@ -172,7 +172,7 @@ var _ = Describe("Validating webhook", func() {
 
 		When("manager adds a workspace he doesn't manage", func() {
 			BeforeEach(func() {
-				oldTenant = &clv1alpha1.Tenant{}
+				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
 			})
 			It("Should allow the change", func() {
@@ -184,7 +184,7 @@ var _ = Describe("Validating webhook", func() {
 
 		When("manager remvoes a workspace he doesn't manage", func() {
 			BeforeEach(func() {
-				newTenant = &clv1alpha1.Tenant{}
+				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
 			})
 			It("Should allow the change", func() {
@@ -196,8 +196,8 @@ var _ = Describe("Validating webhook", func() {
 
 		When("other fields are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{LastName: "test"}}
-				newTenant = &clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{Email: "other"}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{LastName: "test"}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
 			})
 			It("should deny the change", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -209,15 +209,15 @@ var _ = Describe("Validating webhook", func() {
 
 	Describe("The CalculateWorkspacesDiff function", func() {
 		type CalcWsDiffCase struct {
-			a, b            []clv1alpha1.TenantWorkspaceEntry
+			a, b            []clv1alpha2.TenantWorkspaceEntry
 			expectedChanges []string
 		}
 		WhenBody := func(cwdc CalcWsDiffCase) func() {
 			return func() {
 				var actuals []string
 				result := tenantwh.CalculateWorkspacesDiff(
-					&clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{Workspaces: cwdc.a}},
-					&clv1alpha1.Tenant{Spec: clv1alpha1.TenantSpec{Workspaces: cwdc.b}},
+					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.a}},
+					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.b}},
 				)
 				for k, v := range result {
 					if v {
@@ -229,31 +229,31 @@ var _ = Describe("Validating webhook", func() {
 				})
 			}
 		}
-		makeWs := func(name string, role clv1alpha1.WorkspaceUserRole) clv1alpha1.TenantWorkspaceEntry {
-			return clv1alpha1.TenantWorkspaceEntry{WorkspaceRef: clv1alpha1.GenericRef{Name: name}, Role: role}
+		makeWs := func(name string, role clv1alpha2.WorkspaceUserRole) clv1alpha2.TenantWorkspaceEntry {
+			return clv1alpha2.TenantWorkspaceEntry{Name: name, Role: role}
 		}
 
 		When("The two tenants have no different workspaces", WhenBody(CalcWsDiffCase{
-			a:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager)},
-			b:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
 			expectedChanges: nil,
 		}))
 
 		When("The first tenant has one more workspace", WhenBody(CalcWsDiffCase{
-			a:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager)},
-			b:               []clv1alpha1.TenantWorkspaceEntry{},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{},
 			expectedChanges: []string{"test-a"},
 		}))
 
 		When("The second tenant has one more workspace", WhenBody(CalcWsDiffCase{
-			a:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager)},
-			b:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager), makeWs("test-b", clv1alpha1.User)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager), makeWs("test-b", clv1alpha2.User)},
 			expectedChanges: []string{"test-b"},
 		}))
 
 		When("There is a difference in roles", WhenBody(CalcWsDiffCase{
-			a:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.User)},
-			b:               []clv1alpha1.TenantWorkspaceEntry{makeWs("test-a", clv1alpha1.Manager)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.User)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
 			expectedChanges: []string{"test-a"},
 		}))
 

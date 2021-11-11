@@ -28,7 +28,6 @@ import (
 	virtv1 "kubevirt.io/client-go/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
@@ -87,9 +86,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: webdavSecretName, Namespace: testName},
 			Data:       map[string][]byte{"username": []byte(testName), "password": []byte(testName)},
 		}
-		tenant := clv1alpha1.Tenant{
+		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
-			Spec: clv1alpha1.TenantSpec{
+			Spec: clv1alpha2.TenantSpec{
 				Email: "test@email.me",
 			},
 		}

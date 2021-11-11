@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsalpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // BastionReconciler reconciles a Bastion object.
@@ -50,7 +50,7 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	klog.Info("reconciling bastion")
 
-	tenant := &crownlabsalpha1.Tenant{}
+	tenant := &crownlabsalpha2.Tenant{}
 	deleted := false
 
 	if err := r.Get(ctx, req.NamespacedName, tenant); apierrors.IsNotFound(err) {
@@ -101,6 +101,6 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *BastionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsalpha1.Tenant{}).
+		For(&crownlabsalpha2.Tenant{}).
 		Complete(r)
 }

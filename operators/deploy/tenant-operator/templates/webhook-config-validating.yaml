@@ -14,7 +14,7 @@ webhooks:
       {{ (split "=" .Values.configurations.targetLabel)._0 }}: {{ (split "=" .Values.configurations.targetLabel)._1 }}
   rules:
   - apiGroups:   ["crownlabs.polito.it"]
-    apiVersions: ["v1alpha1"]
+    apiVersions: ["v1alpha2"]
     operations:  ["CREATE","UPDATE"]
     resources:   ["tenants"]
     scope:       "Cluster"
@@ -22,6 +22,6 @@ webhooks:
     service:
       name: {{ include "tenant-operator.webhookname" . }}
       namespace: {{ .Release.Namespace }}
-      path: /validate-v1alpha1-tenant
+      path: /validate-v1alpha2-tenant
       port: 443
   sideEffects: None

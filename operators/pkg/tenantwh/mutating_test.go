@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 )
 
@@ -42,8 +42,8 @@ var _ = Describe("Mutating webhook", func() {
 		return map[string]string{opSelectorKey: opSel}
 	}
 
-	forgeTenantWithLabels := func(name string, labels map[string]string) *clv1alpha1.Tenant {
-		return &clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
+	forgeTenantWithLabels := func(name string, labels map[string]string) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
 	}
 
 	BeforeEach(func() {
@@ -73,7 +73,7 @@ var _ = Describe("Mutating webhook", func() {
 
 		When("the request is valid", func() {
 			BeforeEach(func() {
-				testTenant := clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: "test-tenant"}}
+				testTenant := clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: "test-tenant"}}
 				request = forgeRequest(admissionv1.Create, &testTenant, nil)
 				labels, _, _ := mutatingWH.EnforceTenantLabels(ctx, &request, nil)
 				testTenant.SetLabels(labels)
@@ -88,7 +88,7 @@ var _ = Describe("Mutating webhook", func() {
 
 	Describe("The TenantLabeler.EnforceTenantLabels method", func() {
 		type EnforceLabelsCase struct {
-			newTenant, oldTenant *clv1alpha1.Tenant
+			newTenant, oldTenant *clv1alpha2.Tenant
 			operation            admissionv1.Operation
 			expectedLabels       map[string]string
 			expectedWarnings     []string
@@ -127,7 +127,7 @@ var _ = Describe("Mutating webhook", func() {
 			When("operation is issued against the service tenant", func() {
 				WhenBody(EnforceLabelsCase{
 					operation:        admissionv1.Create,
-					newTenant:        forgeTenantWithLabels(clv1alpha1.SVCTenantName, map[string]string{opSelectorKey: "something-not-nil"}),
+					newTenant:        forgeTenantWithLabels(clv1alpha2.SVCTenantName, map[string]string{opSelectorKey: "something-not-nil"}),
 					expectedLabels:   map[string]string{opSelectorKey: ""},
 					expectedWarnings: []string{"operator selector label must not be present on service tenant and has been removed"},
 				})
@@ -173,7 +173,7 @@ var _ = Describe("Mutating webhook", func() {
 				var expectedErr error
 				WhenBody(EnforceLabelsCase{
 					operation:     admissionv1.Update,
-					newTenant:     &clv1alpha1.Tenant{},
+					newTenant:     &clv1alpha2.Tenant{},
 					oldTenant:     nil,
 					expectedError: expectedErr,
 					beforeEach:    func(elc *EnforceLabelsCase) { _, elc.expectedError = mutatingWH.DecodeTenant(runtime.RawExtension{}) },

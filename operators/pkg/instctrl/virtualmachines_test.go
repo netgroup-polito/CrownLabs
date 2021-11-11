@@ -32,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -48,7 +47,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		instance    clv1alpha2.Instance
 		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
-		tenant      clv1alpha1.Tenant
+		tenant      clv1alpha2.Tenant
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -90,7 +89,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				},
 			},
 			&clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace}},
-			&clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}},
+			&clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}},
 		)
 
 		instance = clv1alpha2.Instance{
@@ -120,7 +119,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			},
 		}
 
-		tenant = clv1alpha1.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
+		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
 		objectName = forge.NamespacedName(&instance)
 
