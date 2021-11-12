@@ -2,16 +2,16 @@ import { FC, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableTemplate from '../TableTemplate/TableTemplate';
-import { Template, Workspace } from '../../../utils';
+import { Template, User, Workspace } from '../../../utils';
 import TableWorkspaceRow from './TableWorkspaceRow';
 
 export interface ITableWorkspaceProps {
   workspaces: Array<Workspace>;
-  //viewMode: WorkspaceRole;
+  user: User;
 }
 
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
-  const { workspaces /* , viewMode */ } = props;
+  const { workspaces, user } = props;
   const [expandedId, setExpandedId] = useState(['']);
 
   const handleAccordion = (expanded: boolean, record: Workspace) => {
@@ -70,9 +70,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
           ),
           // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: record => (
-            <TableTemplate
-              templates={record.templates!} /* viewMode={viewMode} */
-            />
+            <TableTemplate templates={record.templates!} user={user} />
           ),
         }}
       />

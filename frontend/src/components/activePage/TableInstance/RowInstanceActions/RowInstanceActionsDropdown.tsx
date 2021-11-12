@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import { Instance } from '../../../../utils';
 import {
+  EnvironmentType,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -21,7 +22,6 @@ import { DropDownAction, setInstanceRunning } from '../../../../utilsLogic';
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
   fileManager?: boolean;
-  hasSSHKeys?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
@@ -29,9 +29,10 @@ export interface IRowInstanceActionsDropdownProps {
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, hasSSHKeys, extended, setSshModal } = props;
+  const { instance, fileManager, extended, setSshModal } = props;
 
-  const { status, persistent, url, name, tenantNamespace } = instance;
+  const { status, persistent, url, name, tenantNamespace, environmentType } =
+    instance;
 
   const font20px = { fontSize: '20px' };
 
@@ -111,6 +112,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     }
   };
 
+  const sshDisabled =
+    status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+
   return (
     <Dropdown
       trigger={['click']}
@@ -136,7 +140,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               {menuText}
             </Menu.Item>
           )}
-          {extended && (hasSSHKeys || fileManager) && (
+          {extended && (!sshDisabled || fileManager) && (
             <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
           )}
           {extended && fileManager && (
@@ -149,11 +153,11 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               File Manager
             </Menu.Item>
           )}
-          {extended && hasSSHKeys && (
+          {extended && !sshDisabled && (
             <Menu.Item
               key="ssh"
               className="flex items-center xl:hidden"
-              disabled={status !== 'VmiReady'}
+              disabled={sshDisabled}
               icon={<CodeOutlined style={font20px} />}
             >
               SSH
@@ -174,7 +178,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       <Button
         className={`${
           extended
-            ? hasSSHKeys || fileManager
+            ? !sshDisabled || fileManager
               ? 'xl:hidden'
               : 'sm:hidden'
             : 'xs:hidden'

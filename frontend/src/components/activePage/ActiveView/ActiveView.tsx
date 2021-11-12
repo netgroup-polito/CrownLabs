@@ -2,14 +2,13 @@ import { FC, useState } from 'react';
 import { Space, Col, Input } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
-import { WorkspaceRole } from '../../../utils';
+import { User, WorkspaceRole } from '../../../utils';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 
 const { Search } = Input;
 export interface IActiveViewProps {
-  userId: string;
-  tenantNamespace: string;
+  user: User;
   workspaces: Array<{
     prettyName: string;
     role: WorkspaceRole;
@@ -20,7 +19,7 @@ export interface IActiveViewProps {
 }
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
-  const { managerView, userId, tenantNamespace, workspaces } = props;
+  const { managerView, user, workspaces } = props;
   const [searchField, setSearchField] = useState('');
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
     WorkspaceRole.user
@@ -61,16 +60,15 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
         {currentView === WorkspaceRole.manager && managerView ? (
           <TableWorkspaceLogic
             workspaces={workspaces}
-            userId={userId}
-            tenantNamespace={tenantNamespace}
+            user={user}
             filter={searchField}
           />
         ) : (
           <TableInstanceLogic
             showGuiIcon={true}
+            user={user}
             viewMode={currentView}
             extended={true}
-            tenantNamespace={tenantNamespace}
           />
         )}
       </Box>

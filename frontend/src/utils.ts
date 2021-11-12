@@ -5,6 +5,7 @@ export enum WorkspaceRole {
   user = 'user',
   manager = 'manager',
 }
+export type User = { tenantId: string; tenantNamespace: string };
 export type BadgeSize = 'small' | 'middle' | 'large';
 export type BoxHeaderSize = 'small' | 'middle' | 'large';
 export type Workspace = {

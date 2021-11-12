@@ -1,10 +1,9 @@
 import { FetchPolicy } from '@apollo/client';
-import { FC, useState, useEffect, useContext } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { Spin } from 'antd';
-import { WorkspaceRole } from '../../../utils';
+import { User, WorkspaceRole } from '../../../utils';
 import './TableInstance.less';
 import TableInstance from './TableInstance';
-import { AuthContext } from '../../../contexts/AuthContext';
 import {
   useOwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
@@ -23,14 +22,14 @@ export interface ITableInstanceLogicProps {
   viewMode: WorkspaceRole;
   showGuiIcon: boolean;
   extended: boolean;
-  tenantNamespace: string;
+  user: User;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
-  const { tenantNamespace, viewMode, extended, showGuiIcon } = props;
-  const { userId } = useContext(AuthContext);
+  const { viewMode, extended, showGuiIcon, user } = props;
+  const { tenantNamespace, tenantId } = user;
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
 
   const {
@@ -44,9 +43,11 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   });
 
   const { data: sshKeysResult } = useSshKeysQuery({
-    variables: { tenantId: userId ?? '' },
+    variables: { tenantId: tenantId ?? '' },
     notifyOnNetworkStatusChange: true,
   });
+
+  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   useEffect(() => {
     if (!loadingInstances) {
@@ -93,17 +94,17 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
         },
       });
     }
-  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
+  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
   const instances = dataInstances?.instanceList?.instances?.map((i, n) =>
-    getInstances(i!, n, userId!, tenantNamespace)
+    getInstances(i!, n, tenantId, tenantNamespace)
   );
 
   return !loadingInstances && !errorInstances && dataInstances && instances ? (
     <TableInstance
       showGuiIcon={showGuiIcon}
       viewMode={viewMode}
-      hasSSHKeys={!!sshKeysResult?.tenant?.spec?.publicKeys?.length}
+      hasSSHKeys={hasSSHKeys}
       instances={instances}
       extended={extended}
     />

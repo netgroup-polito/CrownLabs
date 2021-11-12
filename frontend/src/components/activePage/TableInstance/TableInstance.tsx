@@ -36,7 +36,6 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     });
   };
 
-  const data = instances;
   return (
     <>
       <div
@@ -48,7 +47,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       >
         <Table
           className="rowInstance-bg-color"
-          dataSource={data}
+          dataSource={instances}
           showHeader={false}
           pagination={false}
           size={'middle'}
