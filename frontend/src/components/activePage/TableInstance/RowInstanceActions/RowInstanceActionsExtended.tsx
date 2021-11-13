@@ -1,9 +1,11 @@
 import { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Upload } from 'antd';
+import { Popover, Tooltip, Upload, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { VmStatus } from '../../../../utils';
 import { EnvironmentType } from '../../../../generated-types';
+
+const { Text } = Typography;
 
 const getSSHTooltipText = (
   hasSSHKeys: boolean,
@@ -47,7 +49,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong> {ip}
+        <strong>IP:</strong> <Text copyable>{ip}</Text>
       </p>
       <p className="m-0 lg:hidden">
         <strong>Created:</strong> {time} ago
