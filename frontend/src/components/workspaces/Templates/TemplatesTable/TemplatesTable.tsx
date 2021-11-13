@@ -1,5 +1,5 @@
 /* eslint-disable react/no-multi-comp */
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Table } from 'antd';
 import { TemplatesTableRow } from '../TemplatesTableRow';
 import { RightOutlined } from '@ant-design/icons';
@@ -91,7 +91,9 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           });
     };
    */
-  const [expandedId, setExpandedId] = useState(['']);
+  const [expandedId, setExpandedId] = useState([
+    window.sessionStorage.getItem('prevExpandedIdDashboard') ?? '',
+  ]);
 
   const expandRow = (
     activeInstances: number,
@@ -99,11 +101,19 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     create: boolean
   ) => {
     if (activeInstances) {
+      let expandedIdTmp: string;
       if (!create)
-        expandedId[0] === rowId ? setExpandedId(['']) : setExpandedId([rowId]);
-      else setExpandedId([rowId]);
+        expandedId[0] === rowId
+          ? (expandedIdTmp = '')
+          : (expandedIdTmp = `${rowId}`);
+      else expandedIdTmp = `${rowId}`;
+      setExpandedId([expandedIdTmp]);
     }
   };
+
+  useEffect(() => {
+    window.sessionStorage.setItem('prevExpandedIdDashboard', `${expandedId}`);
+  }, [expandedId]);
 
   const handleAccordion = (expanded: boolean, record: Template) => {
     expanded ? setExpandedId([record.id]) : setExpandedId(['']);

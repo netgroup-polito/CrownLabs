@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Col } from 'antd';
 import { WorkspaceContainer } from '../WorkspaceContainer';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
@@ -15,8 +15,14 @@ export interface IDashboardProps {
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
-  const [selectedWsId, setSelectedWs] = useState(-1);
+  const [selectedWsId, setSelectedWs] = useState(
+    parseInt(window.sessionStorage.getItem('prevWs') ?? '-1')
+  );
   const { tenantNamespace, workspaces } = props;
+
+  useEffect(() => {
+    window.sessionStorage.setItem('prevWs', `${selectedWsId}`);
+  }, [selectedWsId]);
 
   return (
     <>

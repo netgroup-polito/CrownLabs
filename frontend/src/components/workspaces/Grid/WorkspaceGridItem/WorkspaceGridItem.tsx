@@ -11,6 +11,7 @@ export interface IWorkspaceGridItemProps {
 
 const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
   const { id, title, isActive, onClick } = props;
+
   return (
     <Row className="sm:px-0 md:px-4">
       <Col span={24} className="flex justify-center pb-2">
