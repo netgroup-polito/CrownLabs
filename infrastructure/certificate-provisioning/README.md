@@ -61,9 +61,10 @@ In the following, both types of challenges are configured and made available. In
         --install --create-namespace --values configurations/cert-manager-values.yaml
     ```
 
-2. Create the `ClusterIssuer` resources, which operate as an interface to request the issuance of digital certificates. In the following, two different resources are created, respectively for development (`letsencrypt-staging`) and production (`letsencrypt-production`). Indeed, the latter is associated with stricter rate limits [[3]](https://letsencrypt.org/docs/rate-limits/):
+2. Create the `ClusterIssuer` resources, which operate as an interface to request the issuance of digital certificates. In the following, three different resources are created, respectively for self-signed certificates, development (`letsencrypt-staging`) and production (`letsencrypt-production`). Indeed, the latter is associated with stricter rate limits [[3]](https://letsencrypt.org/docs/rate-limits/):
 
     ```sh
+    kubectl create -f configurations/self-signed.yaml
     kubectl create -f configurations/lets-encrypt-issuer-staging.yaml
     kubectl create -f configurations/lets-encrypt-issuer-production.yaml
     ```

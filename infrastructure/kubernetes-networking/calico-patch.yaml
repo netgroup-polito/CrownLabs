@@ -11,3 +11,9 @@
           env:
           - name: CALICO_IPV4POOL_CIDR
             value: "172.16.0.0/16"
+          - name: CALICO_IPV4POOL_IPIP
+            value: Never
+          - name: CALICO_IPV4POOL_VXLAN
+            value: Never
+          - name: IP_AUTODETECTION_METHOD
+            value: skip-interface=liqo.*
