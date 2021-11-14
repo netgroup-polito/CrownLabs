@@ -30,30 +30,36 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
 
   const currentName = routes.find(r => r.path === currentPath)?.name || '';
 
-  const buttons = routes.map((b, i) => (
-    <Link
-      target={b.path.includes('http') ? '_blank' : ''}
-      key={i}
-      to={{ pathname: b.path }}
-    >
-      <Button
-        onClick={() => setShow(false)}
-        ghost={currentPath !== b.path}
-        className={
-          'w-full flex justify-center my-3 ' +
-          (routes.length <= 4
-            ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-            : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-          (currentPath !== b.path ? ' navbar-button ' : '')
-        }
-        size="large"
-        type={currentPath !== b.path ? 'default' : 'primary'}
-        shape="round"
+  const buttons = routes.map((b, i) => {
+    const isExtLink = b.path.indexOf('http') === 0;
+    return (
+      <Link
+        target={isExtLink ? '_blank' : ''}
+        key={i}
+        to={{ pathname: isExtLink ? '' : b.path }}
+        rel={isExtLink ? 'noopener noreferrer' : ''}
       >
-        {b.name}
-      </Button>
-    </Link>
-  ));
+        <Button
+          onClick={() =>
+            isExtLink ? window.open(b.path, '_blank') : setShow(false)
+          }
+          ghost={currentPath !== b.path}
+          className={
+            'w-full flex justify-center my-3 ' +
+            (routes.length <= 4
+              ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+              : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
+            (currentPath !== b.path ? ' navbar-button ' : '')
+          }
+          size="large"
+          type={currentPath !== b.path ? 'default' : 'primary'}
+          shape="round"
+        >
+          {b.name}
+        </Button>
+      </Link>
+    );
+  });
 
   return (
     <>
