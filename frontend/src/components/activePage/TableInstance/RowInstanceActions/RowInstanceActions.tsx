@@ -70,6 +70,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             <RowInstanceActionsExtended
               setSshModal={setSshModal}
               time={getTime()}
+              viewMode={viewMode}
               instance={instance}
             />
             <Text className="hidden lg:block" strong>

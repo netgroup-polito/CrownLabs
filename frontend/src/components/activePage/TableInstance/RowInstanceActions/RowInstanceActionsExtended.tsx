@@ -2,7 +2,7 @@ import { FC, SetStateAction } from 'react';
 import { Popover, Tooltip, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
-import { Instance } from '../../../../utils';
+import { Instance, WorkspaceRole } from '../../../../utils';
 import { EnvironmentType } from '../../../../generated-types';
 
 const { Text } = Typography;
@@ -32,14 +32,16 @@ const getFileManagerTooltipText = (
 export interface IRowInstanceActionsExtendedProps {
   instance: Instance;
   time: string;
+  viewMode: WorkspaceRole;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
-  const { instance, time, setSshModal } = props;
-  const { ip, environmentType, status, templatePrettyName, url } = instance;
+  const { instance, time, viewMode, setSshModal } = props;
+  const { ip, environmentType, status, templatePrettyName, url, name } =
+    instance;
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
@@ -50,25 +52,28 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong> <Text copyable>{ip}</Text>
+        <strong>IP:</strong> <Text copyable>{ip ?? 'unknown'}</Text>
       </p>
+      {viewMode === WorkspaceRole.manager && (
+        <p className="m-0 lg:hidden">
+          <strong>Name:</strong> {name ?? 'unknown'}
+        </p>
+      )}
       <p className="m-0 lg:hidden">
-        <strong>Created:</strong> {time} ago
+        <strong>Created:</strong> {time ?? 'unknown'} ago
       </p>
-      <p className="m-0 md:hidden">
-        <strong>Template:</strong> {templatePrettyName}
-      </p>
+      {viewMode !== WorkspaceRole.manager && (
+        <p className="m-0 md:hidden">
+          <strong>Template:</strong> {templatePrettyName ?? 'unknown'}
+        </p>
+      )}
     </>
   );
   return (
     <>
       <div className="inline-flex border-box justify-center">
         <Popover placement="top" content={infoContent} trigger="click">
-          <Button
-            shape="circle"
-            className="hidden sm:block mr-3"
-            disabled={status !== 'VmiReady'}
-          >
+          <Button shape="circle" className="hidden sm:block mr-3">
             <InfoOutlined />
           </Button>
         </Popover>

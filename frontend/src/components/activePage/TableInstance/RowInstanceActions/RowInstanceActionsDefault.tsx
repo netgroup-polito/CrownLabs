@@ -95,8 +95,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             Connect
           </Button>
         </div>
-      </Tooltip>
-      <Tooltip placement="top" title={titleFromStatus()}>
         <div
           className={` hidden ${
             extended

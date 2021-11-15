@@ -102,7 +102,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         setSshModal(true);
         break;
       case DropDownAction.upload:
-        // TODO: Something to add
+        window.open(`${url}/mydrive/files`, '_blank');
         break;
       case DropDownAction.destroy_all:
         // TODO: Popconfirm not work maybe we should use a modal for the confirmation
@@ -114,6 +114,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+
+  const fileManagerDisabled =
+    status !== 'VmiReady' || environmentType === EnvironmentType.VirtualMachine;
 
   return (
     <Dropdown
@@ -140,14 +143,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               {menuText}
             </Menu.Item>
           )}
-          {extended && (!sshDisabled || fileManager) && (
+          {extended && (!sshDisabled || !fileManagerDisabled) && (
             <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
           )}
-          {extended && fileManager && (
+          {extended && (
             <Menu.Item
               key="upload"
               className="flex items-center xl:hidden"
-              disabled={status !== 'VmiReady'}
+              disabled={fileManagerDisabled}
               icon={<FolderOpenOutlined style={font20px} />}
             >
               File Manager
