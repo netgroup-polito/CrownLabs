@@ -45,7 +45,7 @@ type AuthorizedKeysEntry struct {
 
 // Decompose converts a string into an AuthorizedKeysEntry object.
 func Decompose(entry string) (AuthorizedKeysEntry, error) {
-	entryComponents := strings.Split(entry, string(" "))
+	entryComponents := strings.SplitN(entry, string(" "), 3)
 	if len(entryComponents) == 3 {
 		return AuthorizedKeysEntry{
 			Algo: entryComponents[0],
@@ -59,7 +59,7 @@ func Decompose(entry string) (AuthorizedKeysEntry, error) {
 
 // Create converts a string and an id into an AuthorizedKeysEntry object.
 func Create(entry, id string) (AuthorizedKeysEntry, error) {
-	entryComponents := strings.Split(entry, string(" "))
+	entryComponents := strings.SplitN(entry, string(" "), 3)
 	if len(entryComponents) == 3 || len(entryComponents) == 2 {
 		return AuthorizedKeysEntry{
 			Algo: entryComponents[0],
@@ -81,6 +81,7 @@ func decomposeAndPurgeEntries(keys []string, tenantID string) []string {
 	for i, key := range keys {
 		entry, err := Decompose(key)
 		if err != nil {
+			klog.Warningf("Skipping key %s: %s", key, err.Error())
 			continue
 		}
 		if entry.ID == tenantID {
@@ -99,6 +100,7 @@ func composeAndMarkEntries(keys, tenantKeys []string, tenantID string) []string 
 	for i := range tenantKeys {
 		entry, err := Create(tenantKeys[i], tenantID)
 		if err != nil {
+			klog.Warningf("Skipping key %s: %s", tenantKeys[i], err.Error())
 			continue
 		}
 		keys = append(keys, entry.Compose())
