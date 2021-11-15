@@ -205,7 +205,7 @@ export const getManagerInstances = (
   const { environmentList, templateName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
-  const [{ guiEnabled, persistent }] = environmentList;
+  const [{ guiEnabled, persistent, environmentType }] = environmentList;
   const { firstName, lastName } =
     spec?.tenantCrownlabsPolitoItTenantRef?.tenantWrapper
       ?.itPolitoCrownlabsV1alpha1Tenant?.spec!;
@@ -219,6 +219,7 @@ export const getManagerInstances = (
     persistent: persistent,
     idTemplate: name,
     templatePrettyName: templateName,
+    environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,

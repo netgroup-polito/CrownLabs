@@ -1,8 +1,8 @@
 import { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Upload, Typography } from 'antd';
+import { Popover, Tooltip, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
-import { VmStatus } from '../../../../utils';
+import { Instance } from '../../../../utils';
 import { EnvironmentType } from '../../../../generated-types';
 
 const { Text } = Typography;
@@ -18,31 +18,34 @@ const getSSHTooltipText = (
   return 'Show SSH connection instructions';
 };
 
+const getFileManagerTooltipText = (
+  isInstanceReady: boolean,
+  environmentType: EnvironmentType
+) => {
+  if (environmentType === EnvironmentType.VirtualMachine)
+    return 'Virtual Machine does not support File Management (yet!)';
+  if (!isInstanceReady)
+    return 'Instance must be ready in order to manage this Container files';
+  return 'File Manager';
+};
+
 export interface IRowInstanceActionsExtendedProps {
-  ip: string;
+  instance: Instance;
   time: string;
-  templateName: string;
-  environmentType?: EnvironmentType;
-  status: VmStatus;
-  fileManager?: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
-  const {
-    ip,
-    time,
-    templateName,
-    environmentType,
-    status,
-    fileManager,
-    setSshModal,
-  } = props;
+  const { instance, time, setSshModal } = props;
+  const { ip, environmentType, status, templatePrettyName, url } = instance;
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+
+  const fileManagerDisabled =
+    status !== 'VmiReady' || environmentType === EnvironmentType.VirtualMachine;
 
   const infoContent = (
     <>
@@ -53,7 +56,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         <strong>Created:</strong> {time} ago
       </p>
       <p className="m-0 md:hidden">
-        <strong>Template:</strong> {templateName}
+        <strong>Template:</strong> {templatePrettyName}
       </p>
     </>
   );
@@ -71,11 +74,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(
-            status === 'VmiReady',
-            environmentType!
-            //isOwnedInstance
-          )}
+          title={getSSHTooltipText(status === 'VmiReady', environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -90,28 +89,27 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             </Button>
           </span>
         </Tooltip>
-
-        {fileManager && (
-          <Tooltip placement="top" title={'File Manager'}>
-            <Upload name="file">
-              <span
-                className={`${
-                  status !== 'VmiReady' ? 'cursor-not-allowed' : ''
-                }`}
-              >
-                <Button
-                  shape="circle"
-                  className={`hidden mr-3 xl:inline-block ${
-                    status !== 'VmiReady' ? 'pointer-events-none' : ''
-                  }`}
-                  disabled={status !== 'VmiReady'}
-                >
-                  <FolderOpenOutlined />
-                </Button>
-              </span>
-            </Upload>
-          </Tooltip>
-        )}
+        <Tooltip
+          title={getFileManagerTooltipText(
+            status === 'VmiReady',
+            environmentType!
+          )}
+        >
+          <span
+            className={`${fileManagerDisabled ? 'cursor-not-allowed' : ''}`}
+          >
+            <Button
+              shape="circle"
+              className={`hidden mr-3 xl:inline-block ${
+                fileManagerDisabled ? 'pointer-events-none' : ''
+              }`}
+              disabled={fileManagerDisabled}
+              onClick={() => window.open(`${url}/mydrive/files`, '_blank')}
+            >
+              <FolderOpenOutlined />
+            </Button>
+          </span>
+        </Tooltip>
       </div>
     </>
   );

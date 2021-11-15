@@ -96,28 +96,36 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           </Button>
         </div>
       </Tooltip>
-      <Tooltip placement="top" title={'Connect'}>
-        <Button
-          className={`hidden pointer-events-none ${
+      <Tooltip placement="top" title={titleFromStatus()}>
+        <div
+          className={` hidden ${
             extended
               ? `sm:block ${
                   viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
                 }`
               : 'xs:block sm:hidden'
-          } block flex items-center`}
-          with="link"
-          type={classFromProps()}
-          shape="circle"
-          size="middle"
-          onClick={() => window.open(url!, '_blank')}
-          disabled={status !== 'VmiReady'}
-          icon={
-            <ExportOutlined
-              className="flex justify-center items-center"
-              style={font22px}
-            />
-          }
-        />
+          } block flex items-center ${
+            status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''
+          }`}
+        >
+          <Button
+            className={`${
+              status !== 'VmiReady' || !gui ? 'pointer-events-none' : ''
+            }`}
+            with="link"
+            type={classFromProps()}
+            shape="circle"
+            size="middle"
+            onClick={() => window.open(url!, '_blank')}
+            disabled={status !== 'VmiReady' || !gui}
+            icon={
+              <ExportOutlined
+                className="flex justify-center items-center"
+                style={font22px}
+              />
+            }
+          />
+        </div>
       </Tooltip>
     </>
   );
