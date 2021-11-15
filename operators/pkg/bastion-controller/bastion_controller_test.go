@@ -82,7 +82,8 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 
 		PublicKeysTenant1 = []string{
 			"ssh-ed25519 publicKeyString_1 comment_1",
-			"ssh-rsa publicKeyString_2",
+			"ssh-ed25519 publicKeyString_2 comment_2 with spaces",
+			"ssh-rsa publicKeyString_3",
 			"invalid_entry",
 		}
 		PublicKeysTenant2 = []string{
