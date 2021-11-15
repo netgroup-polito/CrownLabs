@@ -15,7 +15,7 @@ const { Content } = Layout;
 
 type routeDescriptor = {
   route: RouteData;
-  content: ReactNode;
+  content?: ReactNode;
 };
 
 export interface IAppLayoutProps {
@@ -40,15 +40,17 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
         />
         <Content className="flex">
           <Switch>
-            {routes.map(r => (
-              <Route exact key={r.route.path} path={r.route.path}>
-                <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                  <Col span={0} lg={1} xxl={2}></Col>
-                  {r.content}
-                  <Col span={0} lg={1} xxl={2}></Col>
-                </Row>
-              </Route>
-            ))}
+            {routes.map(r =>
+              r.content ? (
+                <Route exact key={r.route.path} path={r.route.path}>
+                  <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                    <Col span={0} lg={1} xxl={2}></Col>
+                    {r.content}
+                    <Col span={0} lg={1} xxl={2}></Col>
+                  </Row>
+                </Route>
+              ) : null
+            )}
           </Switch>
         </Content>
         <div className="left-TooltipButton">
