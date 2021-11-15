@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
 import { Spin } from 'antd';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
-import { WorkspaceRole } from '../../../utils';
+import { User, WorkspaceRole } from '../../../utils';
 import {
   UpdatedInstancesLabelSelectorSubscriptionResult,
   useInstancesLabelSelectorQuery,
@@ -26,8 +26,7 @@ import {
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 export interface ITableWorkspaceLogicProps {
-  userId: string;
-  tenantNamespace: string;
+  user: User;
   workspaces: Array<{
     prettyName: string;
     role: WorkspaceRole;
@@ -38,7 +37,8 @@ export interface ITableWorkspaceLogicProps {
 }
 
 const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
-  const { workspaces, userId, tenantNamespace, filter } = props;
+  const { workspaces, user, filter } = props;
+  const { tenantId, tenantNamespace } = user;
   const [dataInstances, setDataInstances] =
     useState<InstancesLabelSelectorQuery>();
 
@@ -106,7 +106,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
+  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
   const instancesMapped = dataInstances?.instanceList?.instances
     ?.map(getManagerInstances)
@@ -117,7 +117,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   const workspacesMapped = getWorkspacesMapped(templatesMapped, workspaces);
 
   return !loadingInstances && !errorInstances && templatesMapped ? (
-    <TableWorkspace workspaces={workspacesMapped} />
+    <TableWorkspace workspaces={workspacesMapped} user={user} />
   ) : (
     <div className="flex justify-center h-full items-center">
       {loadingInstances ? (

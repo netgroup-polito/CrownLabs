@@ -4,11 +4,12 @@ import ActiveView from '../ActiveView/ActiveView';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { updatedTenant } from '../../../graphql-components/subscription';
 import { TenantQuery, useTenantQuery } from '../../../generated-types';
-import { WorkspaceRole } from '../../../utils';
+import { User, WorkspaceRole } from '../../../utils';
 
 const ActiveViewLogic: FC<{}> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const [data, setData] = useState<TenantQuery>();
+  const [user, setUser] = useState<User>();
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
@@ -30,6 +31,15 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
     }
   }, [subscribeToMore, loading, userId]);
 
+  useEffect(() => {
+    if (!loading && data) {
+      setUser({
+        tenantId: userId!,
+        tenantNamespace: data!.tenant?.status?.personalNamespace?.name!,
+      });
+    }
+  }, [data, loading, userId]);
+
   const workspaces =
     data?.tenant?.spec?.workspaces?.map(workspace => {
       const { spec, status } =
@@ -43,12 +53,15 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
       };
     }) || [];
 
-  return !loading && data && !error ? (
+  const managerWorkspaces = workspaces?.filter(
+    ws => ws.role === WorkspaceRole.manager
+  );
+
+  return !loading && data && !error && user ? (
     <ActiveView
-      userId={userId!}
-      tenantNamespace={data.tenant?.status?.personalNamespace?.name!}
-      managerView={true}
-      workspaces={workspaces?.filter(ws => ws.role === WorkspaceRole.manager)}
+      user={user}
+      managerView={managerWorkspaces.length > 0}
+      workspaces={managerWorkspaces}
     />
   ) : (
     <div className="h-full w-full flex justify-center items-center">

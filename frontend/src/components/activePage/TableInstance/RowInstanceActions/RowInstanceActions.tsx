@@ -21,7 +21,8 @@ export interface IRowInstanceActionsProps {
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
 
-  const { ip, status, persistent } = instance;
+  const { ip, status, persistent, templatePrettyName, environmentType } =
+    instance;
 
   const [sshModal, setSshModal] = useState(false);
 
@@ -68,10 +69,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             }`}
           >
             <RowInstanceActionsExtended
-              hasSSHKeys={hasSSHKeys}
               setSshModal={setSshModal}
-              templateName={instance.templatePrettyName!}
-              environmentType={instance.environmentType}
+              templateName={templatePrettyName!}
+              environmentType={environmentType}
               ip={ip}
               time={getTime()}
               status={status}
@@ -102,25 +102,22 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           />
           <RowInstanceActionsDropdown
             instance={instance}
-            hasSSHKeys={hasSSHKeys}
             setSshModal={setSshModal}
             fileManager={fileManager}
             extended={extended}
           />
         </div>
       </div>
-      {hasSSHKeys && (
-        <Modal
-          title="SSH Connection"
-          visible={sshModal}
-          onOk={() => setSshModal(false)}
-          onCancel={() => setSshModal(false)}
-          footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
-          centered
-        >
-          <SSHModalContent instanceIp={instance.ip} />
-        </Modal>
-      )}
+      <Modal
+        title="SSH Connection"
+        visible={sshModal}
+        onOk={() => setSshModal(false)}
+        onCancel={() => setSshModal(false)}
+        footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
+        centered
+      >
+        <SSHModalContent instanceIp={instance.ip} hasSSHKeys={hasSSHKeys!} />
+      </Modal>
     </>
   );
 };

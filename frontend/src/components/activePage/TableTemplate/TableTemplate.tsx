@@ -2,19 +2,31 @@ import { FC, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
-import { Instance, Template, WorkspaceRole } from '../../../utils';
+import { Instance, Template, User, WorkspaceRole } from '../../../utils';
 import TableTemplateRow from './TableTemplateRow';
 import './TableTemplate.less';
-import { useDeleteInstanceMutation } from '../../../generated-types';
+import {
+  useDeleteInstanceMutation,
+  useSshKeysQuery,
+} from '../../../generated-types';
 
 export interface ITableTemplateProps {
   templates: Array<Template>;
+  user: User;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
-  const { templates } = props;
+  const { templates, user } = props;
+  const { tenantId } = user;
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
+
+  const { data: sshKeysResult } = useSshKeysQuery({
+    variables: { tenantId: tenantId ?? '' },
+    notifyOnNetworkStatusChange: true,
+  });
+
+  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   const [expandedId, setExpandedId] = useState(['']);
   const handleAccordion = (expanded: boolean, record: Template) => {
@@ -88,6 +100,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               viewMode={WorkspaceRole.manager}
               extended={true}
               instances={instances as Instance[]}
+              hasSSHKeys={hasSSHKeys}
             />
           ),
         }}
