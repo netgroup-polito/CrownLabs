@@ -212,6 +212,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           {role === 'manager' ? (
             <TemplatesTableRowSettings
               id={id}
+              createInstance={createInstance}
               editTemplate={editTemplate}
               deleteTemplate={() => {
                 refetchInstancesLabelSelector()
