@@ -10,11 +10,12 @@ import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewL
 
 function App() {
   const { userId } = useContext(AuthContext);
+
   return (
     <ThemeContextProvider>
       <AppLayout
         TooltipButtonLink={
-          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-user=' +
+          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
           userId
         }
         TooltipButtonData={{

@@ -22,6 +22,7 @@ const TableWorkspaceRow: FC<ITableWorkspaceRowProps> = ({ ...props }) => {
           {title}
         </Text>
         <Button
+          disabled={true}
           type="ghost"
           shape="circle"
           size="middle"

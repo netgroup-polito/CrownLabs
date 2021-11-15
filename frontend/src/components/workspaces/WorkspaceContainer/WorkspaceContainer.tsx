@@ -123,8 +123,9 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
           left: role === 'manager' && (
             <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users">
+              <Tooltip title="Manage users - SOON">
                 <Button
+                  disabled={true}
                   type="primary"
                   shape="circle"
                   size="large"

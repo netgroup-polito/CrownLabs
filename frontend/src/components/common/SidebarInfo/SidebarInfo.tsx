@@ -78,7 +78,7 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
         <p className="mb-2">
           Do not install on your laptop the tools required by your subjects:
           connect to your remote environment, with{' '}
-          <b>everithing already set up</b>.
+          <b>everything already set up</b>.
         </p>
       </div>
       <List
@@ -100,7 +100,7 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
             icon: <GithubOutlined style={{ fontSize: '25px' }} />,
             title: 'GitHub',
             link: 'https://github.com/netgroup-polito/CrownLabs',
-            linktext: 'netgroup-polito/Crownlabs',
+            linktext: 'netgroup-polito/CrownLabs',
           },
           {
             icon: <SlackOutlined style={{ fontSize: '25px' }} />,
@@ -111,7 +111,7 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
           {
             icon: <MailOutlined style={{ fontSize: '25px' }} />,
             title: 'Email',
-            link: 'crownlabs@polito.it',
+            link: 'mailto:crownlabs@polito.it',
             linktext: 'crownlabs@polito.it',
           },
           {
