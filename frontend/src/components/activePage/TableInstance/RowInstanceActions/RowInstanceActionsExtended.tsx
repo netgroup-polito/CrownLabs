@@ -52,7 +52,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong> <Text copyable>{ip ?? 'unknown'}</Text>
+        <strong>IP:</strong> <Text copyable={!!ip}>{ip ?? 'unknown'}</Text>
       </p>
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0 lg:hidden">
