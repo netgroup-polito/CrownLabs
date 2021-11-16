@@ -28,6 +28,9 @@ export default gql`
             }
           }
         }
+        metadata {
+          tenantId: name
+        }
         status {
           personalNamespace {
             name

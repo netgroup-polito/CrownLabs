@@ -26,6 +26,7 @@ export default gql`
         }
         metadata {
           id: name
+          namespace
         }
       }
     }

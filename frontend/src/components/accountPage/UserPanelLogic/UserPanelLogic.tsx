@@ -62,6 +62,7 @@ function UserPanelLogic() {
           patchJson: getTenantPatchJson({
             publicKeys: newKeys,
           }),
+          manager: 'frontend-tenant-new-keys',
         },
       });
       setPublicKeys(newKeys);

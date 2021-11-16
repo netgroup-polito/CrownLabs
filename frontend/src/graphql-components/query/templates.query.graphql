@@ -18,6 +18,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
       }
       metadata {
         id: name
+        namespace
       }
     }
   }

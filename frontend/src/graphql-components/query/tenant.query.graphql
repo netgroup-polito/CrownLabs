@@ -23,6 +23,9 @@ query tenant($tenantId: String!) {
         }
       }
     }
+    metadata {
+      tenantId: name
+    }
     status {
       personalNamespace {
         name

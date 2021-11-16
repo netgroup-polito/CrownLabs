@@ -372,6 +372,7 @@ export const setInstanceRunning = async (
         instanceId: string;
         tenantNamespace: string;
         patchJson: string;
+        manager: string;
       }>
     >
   ) => Promise<
@@ -384,6 +385,7 @@ export const setInstanceRunning = async (
         instanceId: instance.name,
         tenantNamespace: instance.tenantNamespace!,
         patchJson: getInstancePatchJson({ running }),
+        manager: 'frontend-instance-running',
       },
     });
   } catch {
@@ -401,6 +403,7 @@ export const setInstancePrettyname = async (
         instanceId: string;
         tenantNamespace: string;
         patchJson: string;
+        manager: string;
       }>
     >
   ) => Promise<
@@ -413,6 +416,7 @@ export const setInstancePrettyname = async (
         instanceId: instance.name,
         tenantNamespace: instance.tenantNamespace!,
         patchJson: getInstancePatchJson({ prettyName }),
+        manager: 'frontend-instance-pretty-name',
       },
     });
   } catch {
