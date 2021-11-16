@@ -110,6 +110,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
       </div>
       <Modal
         title="SSH Connection"
+        bodyStyle={{ padding: '12px' }}
         visible={sshModal}
         onOk={() => setSshModal(false)}
         onCancel={() => setSshModal(false)}

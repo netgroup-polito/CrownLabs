@@ -24,6 +24,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   const { data: sshKeysResult } = useSshKeysQuery({
     variables: { tenantId: tenantId ?? '' },
     notifyOnNetworkStatusChange: true,
+    fetchPolicy: 'network-only',
   });
 
   const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
