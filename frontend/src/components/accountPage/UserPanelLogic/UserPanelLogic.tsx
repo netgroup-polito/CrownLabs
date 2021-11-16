@@ -34,6 +34,7 @@ function UserPanelLogic() {
   const { data, loading, error } = useSshKeysQuery({
     variables: { tenantId: userId ?? '' },
     notifyOnNetworkStatusChange: true,
+    fetchPolicy: 'network-only',
   });
 
   useEffect(() => {
