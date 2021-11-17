@@ -346,11 +346,14 @@ export const notifyStatus = (
   }
 };
 
-export const filterId = (instance: Instance, search: string) => {
+export const filterUser = (instance: Instance, search: string) => {
   if (!search) {
     return true;
   }
-  return instance.tenantId && instance.tenantId.includes(search);
+  const composedString = `${
+    instance.tenantId
+  }${instance.tenantDisplayName!.replace(/\s+/g, '')}`.toLowerCase();
+  return composedString.includes(search);
 };
 
 export enum DropDownAction {

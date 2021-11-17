@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Popover, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import {
   ExclamationCircleOutlined,
@@ -85,11 +85,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
       />
     </Tooltip>
   ) : (
-    <Popover
-      placement="top"
-      title={'No Actions Available'}
-      content={'Current instance Status: ' + status}
-    >
+    <Tooltip placement="top" title={'Current instance Status: ' + status}>
       <div className="cursor-not-allowed">
         <Button
           className={`hidden pointer-events-none ${
@@ -108,7 +104,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
           }
         />
       </div>
-    </Popover>
+    </Tooltip>
   );
 };
 

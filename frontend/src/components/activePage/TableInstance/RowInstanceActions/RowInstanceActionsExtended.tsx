@@ -22,11 +22,14 @@ const getFileManagerTooltipText = (
   isInstanceReady: boolean,
   environmentType: EnvironmentType
 ) => {
-  if (environmentType === EnvironmentType.VirtualMachine)
-    return 'Virtual Machine does not support File Management (yet!)';
-  if (!isInstanceReady)
-    return 'Instance must be ready in order to manage this Container files';
-  return 'File Manager';
+  if (environmentType === EnvironmentType.VirtualMachine) {
+    return 'Drive';
+  }
+  if (environmentType === EnvironmentType.Container) {
+    if (!isInstanceReady)
+      return 'Instance must be ready in order to manage this Container files';
+    else return 'File Manager';
+  }
 };
 
 export interface IRowInstanceActionsExtendedProps {
@@ -54,24 +57,35 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
 
   const fileManagerDisabled =
-    status !== 'VmiReady' || environmentType === EnvironmentType.VirtualMachine;
+    status !== 'VmiReady' && environmentType === EnvironmentType.Container;
 
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong> <Text copyable={!!ip}>{ip ?? 'unknown'}</Text>
+        <strong>IP:</strong>{' '}
+        <Text type="warning" copyable={!!ip}>
+          {ip ?? 'unknown'}
+        </Text>
       </p>
       {viewMode === WorkspaceRole.manager && (
+        <p className="m-0">
+          <strong>Name: </strong>
+          <Text italic>{name}</Text>
+        </p>
+      )}
+      {viewMode === WorkspaceRole.manager && (
         <p className="m-0 lg:hidden">
-          <strong>Name:</strong> {prettyName || name}
+          <strong>PrettyName:</strong>{' '}
+          <Text italic>{prettyName ?? 'unknown'}</Text>
         </p>
       )}
       <p className="m-0 lg:hidden">
-        <strong>Created:</strong> {time ?? 'unknown'} ago
+        <strong>Created:</strong> {time ?? 'unknown'} <Text italic>ago</Text>
       </p>
       {viewMode !== WorkspaceRole.manager && (
         <p className="m-0 md:hidden">
-          <strong>Template:</strong> {templatePrettyName ?? 'unknown'}
+          <strong>Template:</strong>{' '}
+          <Text italic>{templatePrettyName ?? 'unknown'}</Text>
         </p>
       )}
     </>
@@ -116,7 +130,11 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                 fileManagerDisabled ? 'pointer-events-none' : ''
               }`}
               disabled={fileManagerDisabled}
-              href={`${url}/mydrive/files`}
+              href={
+                environmentType === EnvironmentType.Container
+                  ? `${url}/mydrive/files`
+                  : 'https://crownlabs.polito.it/cloud'
+              }
               target="_blank"
             >
               <FolderOpenOutlined />

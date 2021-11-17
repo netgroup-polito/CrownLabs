@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
 import { Spin } from 'antd';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
-import { User, WorkspaceRole } from '../../../utils';
+import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
 import {
   UpdatedInstancesLabelSelectorSubscriptionResult,
   useInstancesLabelSelectorQuery,
@@ -16,7 +16,6 @@ import {
   replaceK8sObject,
 } from '../../../k8sUtils';
 import {
-  filterId,
   getManagerInstances,
   getTemplatesMapped,
   getWorkspacesMapped,
@@ -110,7 +109,13 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
 
   const instancesMapped = dataInstances?.instanceList?.instances
     ?.map(getManagerInstances)
-    .filter(instance => filterId(instance, filter));
+    .filter(instance =>
+      multiStringIncludes(
+        filter,
+        instance.tenantId!,
+        instance.tenantDisplayName!
+      )
+    );
 
   const templatesMapped = getTemplatesMapped(instancesMapped!);
 

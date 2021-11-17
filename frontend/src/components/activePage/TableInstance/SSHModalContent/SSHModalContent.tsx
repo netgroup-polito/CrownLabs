@@ -23,7 +23,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
             Connect to your remote instance via the following command:
           </Text>
 
-          <Text code copyable className="flex justify-center">
+          <Text type="warning" code copyable className="flex justify-center">
             {/* FIXME: use netlab username for older VMs, retrieve the correct username
             from the VM's creation timestamp */}
             {`ssh -J bastion@ssh.crownlabs.polito.it crownlabs@${instanceIp}`}
