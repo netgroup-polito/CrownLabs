@@ -15,5 +15,6 @@ spec:
       targetPort: ssh-alt
       protocol: TCP
       name: ssh-alt
+  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
   selector:
     {{- include "bastion-operator.selectorLabels" . | nindent 4 }}
