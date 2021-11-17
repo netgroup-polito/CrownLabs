@@ -201,7 +201,6 @@ export const getManagerInstances = (
   index: number
 ) => {
   const { metadata, spec, status } = instance!;
-  const { tenantNamespace } = metadata! as any;
   const { environmentList, templateName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
@@ -225,7 +224,7 @@ export const getManagerInstances = (
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantId,
-    tenantNamespace: tenantNamespace,
+    tenantNamespace: metadata?.namespace,
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceId: namespace.replace(/^workspace-/, ''),
     running: spec?.running,
@@ -334,7 +333,8 @@ export const notifyStatus = (
               <Button
                 type="success"
                 size="small"
-                onClick={() => window.open(instance.status?.url!, '_blank')}
+                href={instance.status?.url!}
+                target="_blank"
               >
                 Connect
               </Button>

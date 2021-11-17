@@ -89,7 +89,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             type={classFromProps()}
             shape="round"
             size={'middle'}
-            onClick={() => window.open(url!, '_blank')}
+            href={url!}
+            target="_blank"
             disabled={status !== 'VmiReady' || !gui}
           >
             Connect
@@ -114,7 +115,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             type={classFromProps()}
             shape="circle"
             size="middle"
-            onClick={() => window.open(url!, '_blank')}
+            href={url!}
+            target="_blank"
             disabled={status !== 'VmiReady' || !gui}
             icon={
               <ExportOutlined

@@ -29,6 +29,13 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
     <Col span={24} lg={22} xxl={20}>
       <Box
         header={{
+          center: !managerView && (
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-2xl text-lg text-center mb-0">
+                <b>Active Instances</b>
+              </p>
+            </div>
+          ),
           size: 'middle',
           right: managerView && (
             <div className="h-full flex justify-center items-center pr-10">
@@ -44,7 +51,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             <div className="h-full flex justify-center items-center pl-10">
               <Search
                 className="hidden sm:block"
-                placeholder="Filter by user ID"
+                placeholder="Search User"
                 onChange={event => {
                   setSearchField(event.target.value);
                 }}

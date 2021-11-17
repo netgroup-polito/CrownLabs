@@ -40,8 +40,15 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
-  const { ip, environmentType, status, templatePrettyName, url, name } =
-    instance;
+  const {
+    ip,
+    environmentType,
+    status,
+    templatePrettyName,
+    url,
+    name,
+    prettyName,
+  } = instance;
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
@@ -56,7 +63,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
       </p>
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0 lg:hidden">
-          <strong>Name:</strong> {name ?? 'unknown'}
+          <strong>Name:</strong> {prettyName || name}
         </p>
       )}
       <p className="m-0 lg:hidden">
@@ -109,7 +116,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                 fileManagerDisabled ? 'pointer-events-none' : ''
               }`}
               disabled={fileManagerDisabled}
-              onClick={() => window.open(`${url}/mydrive/files`, '_blank')}
+              href={`${url}/mydrive/files`}
+              target="_blank"
             >
               <FolderOpenOutlined />
             </Button>
