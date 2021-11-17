@@ -61,6 +61,7 @@ http {
           # Set default document served on root
           index  vnc.html;
           gzip_static on;
+          sub_filter '<head>' '<head><base href="https://$host/instance/">';
       }
 
       # Define healthz endpoint for Prometheus
