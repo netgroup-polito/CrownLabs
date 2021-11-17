@@ -72,6 +72,13 @@ function getQueryField(queryObj, targetField) {
   return objTarget;
 }
 
+function getUid() {
+  const head = Date.now().toString(36);
+  const tail = Math.random().toString(36).substr(2);
+
+  return head + tail;
+}
+
 module.exports = {
   capitalizeType,
   uncapitalizeType,
@@ -79,4 +86,5 @@ module.exports = {
   graphqlQueryRegistry,
   graphqlLogger,
   getQueryField,
+  getUid,
 };
