@@ -46,7 +46,7 @@ export interface ITemplatesTableRowProps {
       Record<string, any>
     >
   >;
-  expandRow: (activeInstances: number, rowId: string, create: boolean) => void;
+  expandRow: (value: string, create: boolean) => void;
 }
 
 const convertInG = (s: string) =>
@@ -87,7 +87,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         setTimeout(() => {
           setCreateDisabled(false);
         }, 400);
-        expandRow(1, id, true);
+        expandRow(id, true);
       })
       .catch(() => setCreateDisabled(false));
   };
@@ -149,7 +149,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       <div className="w-full flex justify-between py-0">
         <div
           className="flex w-full items-center cursor-pointer"
-          onClick={() => expandRow(activeInstances, id, false)}
+          onClick={() => expandRow(id, false)}
         >
           <Space size={'middle'}>
             <div className="flex items-center">
@@ -229,7 +229,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               <Button
                 onClick={() => {
                   createInstance(id)
-                    .then(() => expandRow(1, id, true))
+                    .then(() => expandRow(id, true))
                     .catch(() => null);
                 }}
                 className="xs:hidden block"
