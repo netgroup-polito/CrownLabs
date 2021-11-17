@@ -41,7 +41,6 @@ export type VmStatus =
   | 'CreationLoopBackoff'; //the environment has encountered a temporary error during creation.
 export type Instance = {
   id: number;
-  //idName: string;
   gui?: boolean;
   idTemplate?: string;
   templatePrettyName?: string;
@@ -59,3 +58,9 @@ export type Instance = {
   workspaceId?: string;
   running?: boolean;
 };
+
+export function multiStringIncludes(needle: string, ...haystack: string[]) {
+  for (const str of haystack)
+    if (str.toLocaleLowerCase().includes(needle)) return true;
+  return false;
+}

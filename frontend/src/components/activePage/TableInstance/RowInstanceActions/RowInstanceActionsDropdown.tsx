@@ -102,7 +102,10 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         setSshModal(true);
         break;
       case DropDownAction.upload:
-        // TODO: Something to add
+        environmentType === EnvironmentType.Container &&
+          window.open(`${url}/mydrive/files`, '_blank');
+        environmentType === EnvironmentType.VirtualMachine &&
+          window.open('https://crownlabs.polito.it/cloud', '_blank');
         break;
       case DropDownAction.destroy_all:
         // TODO: Popconfirm not work maybe we should use a modal for the confirmation
@@ -114,6 +117,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+
+  const fileManagerDisabled =
+    status !== 'VmiReady' && environmentType === EnvironmentType.Container;
 
   return (
     <Dropdown
@@ -140,28 +146,29 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               {menuText}
             </Menu.Item>
           )}
-          {extended && (!sshDisabled || fileManager) && (
-            <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
-          )}
-          {extended && fileManager && (
-            <Menu.Item
-              key="upload"
-              className="flex items-center xl:hidden"
-              disabled={status !== 'VmiReady'}
-              icon={<FolderOpenOutlined style={font20px} />}
-            >
-              File Manager
-            </Menu.Item>
-          )}
-          {extended && !sshDisabled && (
-            <Menu.Item
-              key="ssh"
-              className="flex items-center xl:hidden"
-              disabled={sshDisabled}
-              icon={<CodeOutlined style={font20px} />}
-            >
-              SSH
-            </Menu.Item>
+          <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
+          {extended && (
+            <>
+              <Menu.Item
+                key="ssh"
+                className="flex items-center xl:hidden"
+                disabled={sshDisabled}
+                icon={<CodeOutlined style={font20px} />}
+              >
+                SSH
+              </Menu.Item>
+              <Menu.Item
+                key="upload"
+                className="flex items-center xl:hidden"
+                disabled={fileManagerDisabled}
+                icon={<FolderOpenOutlined style={font20px} />}
+              >
+                {environmentType === EnvironmentType.Container
+                  ? 'File Manager'
+                  : environmentType === EnvironmentType.VirtualMachine &&
+                    'Drive'}
+              </Menu.Item>
+            </>
           )}
           <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
           <Menu.Item

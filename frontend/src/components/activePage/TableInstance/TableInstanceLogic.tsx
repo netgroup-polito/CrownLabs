@@ -1,6 +1,6 @@
 import { FetchPolicy } from '@apollo/client';
 import { FC, useState, useEffect } from 'react';
-import { Spin } from 'antd';
+import { Spin, Empty } from 'antd';
 import { User, WorkspaceRole } from '../../../utils';
 import './TableInstance.less';
 import TableInstance from './TableInstance';
@@ -18,6 +18,8 @@ import {
   matchK8sObject,
   replaceK8sObject,
 } from '../../../k8sUtils';
+import { Link } from 'react-router-dom';
+import Button from 'antd-button-color';
 export interface ITableInstanceLogicProps {
   viewMode: WorkspaceRole;
   showGuiIcon: boolean;
@@ -97,18 +99,37 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     }
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
-  const instances = dataInstances?.instanceList?.instances?.map((i, n) =>
-    getInstances(i!, n, tenantId, tenantNamespace)
-  );
+  const instances =
+    dataInstances?.instanceList?.instances?.map((i, n) =>
+      getInstances(i!, n, tenantId, tenantNamespace)
+    ) || [];
 
-  return !loadingInstances && !errorInstances && dataInstances && instances ? (
-    <TableInstance
-      showGuiIcon={showGuiIcon}
-      viewMode={viewMode}
-      hasSSHKeys={hasSSHKeys}
-      instances={instances}
-      extended={extended}
-    />
+  return !loadingInstances && !errorInstances && dataInstances ? (
+    instances.length ? (
+      <TableInstance
+        showGuiIcon={showGuiIcon}
+        viewMode={viewMode}
+        hasSSHKeys={hasSSHKeys}
+        instances={instances}
+        extended={extended}
+      />
+    ) : (
+      <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5 ">
+        <div className="w-full pb-10 flex justify-center">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={false} />
+        </div>
+        <p className="text-xl xs:text-3xl text-center px-5 xs:px-24">
+          No running instances
+        </p>
+        <div className="w-full pb-10 flex justify-center">
+          <Link to="/">
+            <Button type="primary" shape="round" size="large">
+              Create Instance
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
   ) : (
     <>
       <div className="flex justify-center h-full items-center">

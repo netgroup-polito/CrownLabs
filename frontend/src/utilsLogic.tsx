@@ -201,11 +201,10 @@ export const getManagerInstances = (
   index: number
 ) => {
   const { metadata, spec, status } = instance!;
-  const { tenantNamespace } = metadata! as any;
   const { environmentList, templateName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
-  const [{ guiEnabled, persistent }] = environmentList;
+  const [{ guiEnabled, persistent, environmentType }] = environmentList;
   const { firstName, lastName } =
     spec?.tenantCrownlabsPolitoItTenantRef?.tenantWrapper
       ?.itPolitoCrownlabsV1alpha1Tenant?.spec!;
@@ -219,12 +218,13 @@ export const getManagerInstances = (
     persistent: persistent,
     idTemplate: name,
     templatePrettyName: templateName,
+    environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantId,
-    tenantNamespace: tenantNamespace,
+    tenantNamespace: metadata?.namespace,
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceId: namespace.replace(/^workspace-/, ''),
     running: spec?.running,
@@ -333,7 +333,8 @@ export const notifyStatus = (
               <Button
                 type="success"
                 size="small"
-                onClick={() => window.open(instance.status?.url!, '_blank')}
+                href={instance.status?.url!}
+                target="_blank"
               >
                 Connect
               </Button>
@@ -345,11 +346,14 @@ export const notifyStatus = (
   }
 };
 
-export const filterId = (instance: Instance, search: string) => {
+export const filterUser = (instance: Instance, search: string) => {
   if (!search) {
     return true;
   }
-  return instance.tenantId && instance.tenantId.includes(search);
+  const composedString = `${
+    instance.tenantId
+  }${instance.tenantDisplayName!.replace(/\s+/g, '')}`.toLowerCase();
+  return composedString.includes(search);
 };
 
 export enum DropDownAction {

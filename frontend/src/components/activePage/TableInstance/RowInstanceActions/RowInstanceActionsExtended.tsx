@@ -1,8 +1,8 @@
 import { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Upload, Typography } from 'antd';
+import { Popover, Tooltip, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
-import { VmStatus } from '../../../../utils';
+import { Instance, WorkspaceRole } from '../../../../utils';
 import { EnvironmentType } from '../../../../generated-types';
 
 const { Text } = Typography;
@@ -18,64 +18,89 @@ const getSSHTooltipText = (
   return 'Show SSH connection instructions';
 };
 
+const getFileManagerTooltipText = (
+  isInstanceReady: boolean,
+  environmentType: EnvironmentType
+) => {
+  if (environmentType === EnvironmentType.VirtualMachine) {
+    return 'Drive';
+  }
+  if (environmentType === EnvironmentType.Container) {
+    if (!isInstanceReady)
+      return 'Instance must be ready in order to manage this Container files';
+    else return 'File Manager';
+  }
+};
+
 export interface IRowInstanceActionsExtendedProps {
-  ip: string;
+  instance: Instance;
   time: string;
-  templateName: string;
-  environmentType?: EnvironmentType;
-  status: VmStatus;
-  fileManager?: boolean;
+  viewMode: WorkspaceRole;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
+  const { instance, time, viewMode, setSshModal } = props;
   const {
     ip,
-    time,
-    templateName,
     environmentType,
     status,
-    fileManager,
-    setSshModal,
-  } = props;
+    templatePrettyName,
+    url,
+    name,
+    prettyName,
+  } = instance;
 
   const sshDisabled =
     status !== 'VmiReady' || environmentType === EnvironmentType.Container;
 
+  const fileManagerDisabled =
+    status !== 'VmiReady' && environmentType === EnvironmentType.Container;
+
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong> <Text copyable>{ip}</Text>
+        <strong>IP:</strong>{' '}
+        <Text type="warning" copyable={!!ip}>
+          {ip ?? 'unknown'}
+        </Text>
       </p>
+      {viewMode === WorkspaceRole.manager && (
+        <p className="m-0">
+          <strong>Name: </strong>
+          <Text italic>{name}</Text>
+        </p>
+      )}
+      {viewMode === WorkspaceRole.manager && (
+        <p className="m-0 lg:hidden">
+          <strong>PrettyName:</strong>{' '}
+          <Text italic>{prettyName ?? 'unknown'}</Text>
+        </p>
+      )}
       <p className="m-0 lg:hidden">
-        <strong>Created:</strong> {time} ago
+        <strong>Created:</strong> {time ?? 'unknown'} <Text italic>ago</Text>
       </p>
-      <p className="m-0 md:hidden">
-        <strong>Template:</strong> {templateName}
-      </p>
+      {viewMode !== WorkspaceRole.manager && (
+        <p className="m-0 md:hidden">
+          <strong>Template:</strong>{' '}
+          <Text italic>{templatePrettyName ?? 'unknown'}</Text>
+        </p>
+      )}
     </>
   );
   return (
     <>
       <div className="inline-flex border-box justify-center">
         <Popover placement="top" content={infoContent} trigger="click">
-          <Button
-            shape="circle"
-            className="hidden sm:block mr-3"
-            disabled={status !== 'VmiReady'}
-          >
+          <Button shape="circle" className="hidden sm:block mr-3">
             <InfoOutlined />
           </Button>
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(
-            status === 'VmiReady',
-            environmentType!
-            //isOwnedInstance
-          )}
+          title={getSSHTooltipText(status === 'VmiReady', environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -90,28 +115,32 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             </Button>
           </span>
         </Tooltip>
-
-        {fileManager && (
-          <Tooltip placement="top" title={'File Manager'}>
-            <Upload name="file">
-              <span
-                className={`${
-                  status !== 'VmiReady' ? 'cursor-not-allowed' : ''
-                }`}
-              >
-                <Button
-                  shape="circle"
-                  className={`hidden mr-3 xl:inline-block ${
-                    status !== 'VmiReady' ? 'pointer-events-none' : ''
-                  }`}
-                  disabled={status !== 'VmiReady'}
-                >
-                  <FolderOpenOutlined />
-                </Button>
-              </span>
-            </Upload>
-          </Tooltip>
-        )}
+        <Tooltip
+          title={getFileManagerTooltipText(
+            status === 'VmiReady',
+            environmentType!
+          )}
+        >
+          <span
+            className={`${fileManagerDisabled ? 'cursor-not-allowed' : ''}`}
+          >
+            <Button
+              shape="circle"
+              className={`hidden mr-3 xl:inline-block ${
+                fileManagerDisabled ? 'pointer-events-none' : ''
+              }`}
+              disabled={fileManagerDisabled}
+              href={
+                environmentType === EnvironmentType.Container
+                  ? `${url}/mydrive/files`
+                  : 'https://crownlabs.polito.it/cloud'
+              }
+              target="_blank"
+            >
+              <FolderOpenOutlined />
+            </Button>
+          </span>
+        </Tooltip>
       </div>
     </>
   );

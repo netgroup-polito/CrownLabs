@@ -10,7 +10,7 @@ const UserPanelContainer: FC<IUserPanelContainerProps> = props => {
         size: 'middle',
         center: (
           <div className="h-full flex justify-center items-center px-5">
-            <p className="md:text-2xl text-2xl text-center mb-0">
+            <p className="md:text-2xl text-lg text-center mb-0">
               <b>User Panel</b>
             </p>
           </div>

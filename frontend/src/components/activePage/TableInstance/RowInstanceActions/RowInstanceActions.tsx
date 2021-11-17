@@ -21,8 +21,7 @@ export interface IRowInstanceActionsProps {
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
 
-  const { ip, status, persistent, templatePrettyName, environmentType } =
-    instance;
+  const { persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
 
@@ -70,12 +69,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           >
             <RowInstanceActionsExtended
               setSshModal={setSshModal}
-              templateName={templatePrettyName!}
-              environmentType={environmentType}
-              ip={ip}
               time={getTime()}
-              status={status}
-              fileManager={fileManager}
+              viewMode={viewMode}
+              instance={instance}
             />
             <Text className="hidden lg:block" strong>
               {getTime()}
@@ -110,7 +106,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
       </div>
       <Modal
         title="SSH Connection"
-        bodyStyle={{ padding: '12px' }}
+        width={550}
         visible={sshModal}
         onOk={() => setSshModal(false)}
         onCancel={() => setSshModal(false)}

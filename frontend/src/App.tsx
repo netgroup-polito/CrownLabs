@@ -7,15 +7,21 @@ import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
+import { useTenantQuery } from './generated-types';
 
 function App() {
   const { userId } = useContext(AuthContext);
+
+  const { data } = useTenantQuery({
+    variables: { tenantId: userId ?? '' },
+  });
+
   return (
     <ThemeContextProvider>
       <AppLayout
         TooltipButtonLink={
-          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-user=' +
-          userId
+          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
+          data?.tenant?.status?.personalNamespace?.name!
         }
         TooltipButtonData={{
           tooltipPlacement: 'left',
