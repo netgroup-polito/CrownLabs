@@ -2,26 +2,21 @@ import './App.css';
 import AppLayout from './components/common/AppLayout';
 import ThemeContextProvider from './contexts/ThemeContext';
 import { BarChartOutlined } from '@ant-design/icons';
-import { AuthContext } from './contexts/AuthContext';
 import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
-import { useTenantQuery } from './generated-types';
+import { TenantContext } from './graphql-components/tenantContext/TenantContext';
 
 function App() {
-  const { userId } = useContext(AuthContext);
-
-  const { data } = useTenantQuery({
-    variables: { tenantId: userId ?? '' },
-  });
+  const { data: tenantData } = useContext(TenantContext);
 
   return (
     <ThemeContextProvider>
       <AppLayout
         TooltipButtonLink={
           'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
-          data?.tenant?.status?.personalNamespace?.name!
+          tenantData?.tenant?.status?.personalNamespace?.name!
         }
         TooltipButtonData={{
           tooltipPlacement: 'left',
