@@ -135,6 +135,10 @@ bastion-operator:
     repositorySidecar: crownlabs/bastion-operator
   rbacResourcesName: crownlabs-bastion-operator
   serviceAnnotations: {}
+  service:
+    type: LoadBalancer
+    port: 22
+    externalTrafficPolicy: Cluster
 
 image-list:
   replicaCount: 1

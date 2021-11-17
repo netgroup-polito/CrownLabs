@@ -74,6 +74,7 @@ resources:
 service:
   type: LoadBalancer
   port: 22
+  externalTrafficPolicy: Cluster
 
 
 sshKeysSecret:
