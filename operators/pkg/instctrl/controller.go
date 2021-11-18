@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -144,7 +143,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	// Retrieve the tenant associated with the current instance.
 	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
-	var tenant clv1alpha1.Tenant
+	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
 		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, template.Name)

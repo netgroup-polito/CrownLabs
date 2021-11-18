@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var (
@@ -40,7 +40,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
-	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
+	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
 	var err error
 	decoder, err = admission.NewDecoder(scheme)
 	Expect(err).ToNot(HaveOccurred())
@@ -51,13 +51,13 @@ func TestTenantWebHooks(t *testing.T) {
 	RunSpecs(t, "Forge Suite")
 }
 
-func serializeTenant(t *clv1alpha1.Tenant) runtime.RawExtension {
+func serializeTenant(t *clv1alpha2.Tenant) runtime.RawExtension {
 	data, err := json.Marshal(t)
 	Expect(err).ToNot(HaveOccurred())
 	return runtime.RawExtension{Raw: data}
 }
 
-func forgeRequest(op admissionv1.Operation, newTenant, oldTenant *clv1alpha1.Tenant) admission.Request {
+func forgeRequest(op admissionv1.Operation, newTenant, oldTenant *clv1alpha2.Tenant) admission.Request {
 	req := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{Operation: op}}
 	if newTenant != nil {
 		req.Object = serializeTenant(newTenant)

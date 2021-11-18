@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -79,7 +79,7 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 	}
 
 	// enforce empty operator on svc tenant
-	if req.Name == clv1alpha1.SVCTenantName {
+	if req.Name == clv1alpha2.SVCTenantName {
 		if labels[tl.opSelectorKey] != "" {
 			labels[tl.opSelectorKey] = ""
 			log.Info("attempted adding operator selector labels to svc tenant")
@@ -130,7 +130,7 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 }
 
 // CreatePatchResponse creates and admission response with the given tenant.
-func (tl *TenantLabeler) CreatePatchResponse(ctx context.Context, req *admission.Request, tenant *clv1alpha1.Tenant) admission.Response {
+func (tl *TenantLabeler) CreatePatchResponse(ctx context.Context, req *admission.Request, tenant *clv1alpha2.Tenant) admission.Response {
 	marshaledTenant, err := json.Marshal(tenant)
 	if err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "patch response creation failed")

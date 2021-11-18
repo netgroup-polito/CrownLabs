@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -45,15 +45,15 @@ func (twh *TenantWebhook) InjectDecoder(d *admission.Decoder) error {
 }
 
 // DecodeTenant decodes the tenant from the incoming request.
-func (twh *TenantWebhook) DecodeTenant(obj runtime.RawExtension) (tenant *clv1alpha1.Tenant, err error) {
-	tenant = &clv1alpha1.Tenant{}
+func (twh *TenantWebhook) DecodeTenant(obj runtime.RawExtension) (tenant *clv1alpha2.Tenant, err error) {
+	tenant = &clv1alpha2.Tenant{}
 	err = twh.decoder.DecodeRaw(obj, tenant)
 	return
 }
 
 // GetClusterTenant retrieves the tenant from the cluster given the name.
-func (twh *TenantWebhook) GetClusterTenant(ctx context.Context, name string) (tenant *clv1alpha1.Tenant, err error) {
-	tenant = &clv1alpha1.Tenant{}
+func (twh *TenantWebhook) GetClusterTenant(ctx context.Context, name string) (tenant *clv1alpha2.Tenant, err error) {
+	tenant = &clv1alpha2.Tenant{}
 	err = twh.Client.Get(ctx, types.NamespacedName{Name: name}, tenant)
 	return
 }

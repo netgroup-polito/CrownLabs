@@ -12,7 +12,7 @@ webhooks:
   - v1
   rules:
   - apiGroups:   ["crownlabs.polito.it"]
-    apiVersions: ["v1alpha1"]
+    apiVersions: ["v1alpha2"]
     operations:  ["CREATE","UPDATE"]
     resources:   ["tenants"]
     scope:       "Cluster"
@@ -20,7 +20,7 @@ webhooks:
     service:
       name: {{ include "tenant-operator.webhookname" . }}
       namespace: {{ .Release.Namespace }}
-      path: /mutate-v1alpha1-tenant
+      path: /mutate-v1alpha2-tenant
       port: 443
   sideEffects: None
 {{ end }}

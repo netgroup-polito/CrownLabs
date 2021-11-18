@@ -12,29 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:validation:Enum=manager;user
+
+// WorkspaceUserRole is an enumeration of the different roles that can be
+// associated to a Tenant in a Workspace.
+type WorkspaceUserRole string
+
+const (
+	// Manager -> a Tenant with Manager role can interact with all the environments
+	// (i.e. VMs) in a Workspace, as well as add new Tenants to the Workspace.
+	Manager WorkspaceUserRole = "manager"
+	// User -> a Tenant with User role can only interact with his/her own
+	// environments (e.g. VMs) within that Workspace.
+	User WorkspaceUserRole = "user"
+
+	// SVCTenantName -> name of a system/service tenant to which other resources might belong.
+	SVCTenantName string = "service-tenant"
+)
+
 // TenantWorkspaceEntry contains the information regarding one of the Workspaces
 // the Tenant is subscribed to, including his/her role.
 type TenantWorkspaceEntry struct {
-	// The reference to the Workspace resource the Tenant is subscribed to.
-	WorkspaceRef v1alpha2.GenericRef `json:"workspaceRef"`
+	// The Workspace the Tenant is subscribed to.
+	Name string `json:"name"`
 
 	// The role of the Tenant in the context of the Workspace.
-	Role v1alpha2.WorkspaceUserRole `json:"role"`
-
-	// The number of the group the Tenant belongs to. Empty means no group.
-	GroupNumber uint `json:"groupNumber,omitempty"`
+	Role WorkspaceUserRole `json:"role"`
 }
 
 // TenantSpec is the specification of the desired state of the Tenant.
@@ -53,6 +66,8 @@ type TenantSpec struct {
 
 	// The list of the Workspaces the Tenant is subscribed to, along with his/her
 	// role in each of them.
+	// +listType=map
+	// +listMapKey=name
 	Workspaces []TenantWorkspaceEntry `json:"workspaces,omitempty"`
 
 	// The list of the SSH public keys associated with the Tenant. These will be
@@ -66,8 +81,37 @@ type TenantSpec struct {
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 }
 
+// TenantStatus reflects the most recently observed status of the Tenant.
+type TenantStatus struct {
+	// The namespace containing all CrownLabs related objects of the Tenant.
+	// This is the namespace that groups his/her own Instances, together with
+	// all the accessory resources (e.g. RBACs, resource quotas, network policies,
+	// ...) created by the tenant-operator.
+	PersonalNamespace NameCreated `json:"personalNamespace"`
+
+	// The namespace that can be freely used by the Tenant to play with Kubernetes.
+	// This namespace is created only if the .spec.CreateSandbox flag is true.
+	SandboxNamespace NameCreated `json:"sandboxNamespace"`
+
+	// The list of Workspaces that are throwing errors during subscription.
+	// This mainly happens if .spec.Workspaces contains references to Workspaces
+	// which do not exist.
+	FailingWorkspaces []string `json:"failingWorkspaces"`
+
+	// The list of the subscriptions to external services (e.g. Keycloak,
+	// Nextcloud, ...), indicating for each one whether it succeeded or an error
+	// occurred.
+	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
+
+	// Whether all subscriptions and resource creations succeeded or an error
+	// occurred. In case of errors, the other status fields provide additional
+	// information about which problem occurred.
+	Ready bool `json:"ready"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:resource:scope="Cluster"
 // +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
 // +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
@@ -81,8 +125,8 @@ type Tenant struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   TenantSpec            `json:"spec,omitempty"`
-	Status v1alpha2.TenantStatus `json:"status,omitempty"`
+	Spec   TenantSpec   `json:"spec,omitempty"`
+	Status TenantStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -97,6 +141,9 @@ type TenantList struct {
 func init() {
 	SchemeBuilder.Register(&Tenant{}, &TenantList{})
 }
+
+// Hub is to enable conversion webhook.
+func (*Tenant) Hub() {}
 
 // SetupWebhookWithManager setups the webhook with the given manager.
 func (r *Tenant) SetupWebhookWithManager(mgr ctrl.Manager) error {

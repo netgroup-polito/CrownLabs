@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -82,7 +82,7 @@ func (tv *TenantValidator) Handle(ctx context.Context, req admission.Request) ad
 }
 
 // HandleSelfEdit checks every field but public keys for changes through DeepEqual.
-func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTenant *clv1alpha1.Tenant) admission.Response {
+func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTenant *clv1alpha2.Tenant) admission.Response {
 	log := ctrl.LoggerFrom(ctx)
 	newTenant.Spec.PublicKeys = nil
 	oldTenant.Spec.PublicKeys = nil
@@ -96,14 +96,14 @@ func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTen
 }
 
 // HandleWorkspaceEdit checks that changes made to the workspaces have been made by a valid manager, then checks other fields not to have been modified through DeepEqual.
-func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, oldTenant, manager *clv1alpha1.Tenant) admission.Response {
+func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, oldTenant, manager *clv1alpha2.Tenant) admission.Response {
 	log := ctrl.LoggerFrom(ctx)
 
 	workspacesDiff := CalculateWorkspacesDiff(newTenant, oldTenant)
 	managerWorkspaces := mapFromWorkspacesList(manager)
 
 	for ws, changed := range workspacesDiff {
-		if changed && managerWorkspaces[ws] != clv1alpha1.Manager {
+		if changed && managerWorkspaces[ws] != clv1alpha2.Manager {
 			log.Info("denied: unexpected tenant spec change", "not-a-manager-for", ws)
 			return admission.Denied("you are not a manager for workspace <" + ws + ">")
 		}
@@ -120,28 +120,28 @@ func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, o
 	return admission.Allowed("")
 }
 
-func calculateWorkspacesOneWayDiff(a, b *clv1alpha1.Tenant, changes map[string]bool) map[string]bool {
+func calculateWorkspacesOneWayDiff(a, b *clv1alpha2.Tenant, changes map[string]bool) map[string]bool {
 	aAsMap := mapFromWorkspacesList(a)
 	for _, v := range b.Spec.Workspaces {
-		if aAsMap[v.WorkspaceRef.Name] != v.Role {
-			changes[v.WorkspaceRef.Name] = true
+		if aAsMap[v.Name] != v.Role {
+			changes[v.Name] = true
 		}
 	}
 	return changes
 }
 
 // CalculateWorkspacesDiff returns the list of workspaces that are different between two tenants.
-func CalculateWorkspacesDiff(a, b *clv1alpha1.Tenant) map[string]bool {
+func CalculateWorkspacesDiff(a, b *clv1alpha2.Tenant) map[string]bool {
 	changes := calculateWorkspacesOneWayDiff(a, b, map[string]bool{})
 
 	return calculateWorkspacesOneWayDiff(b, a, changes)
 }
 
-func mapFromWorkspacesList(tenant *clv1alpha1.Tenant) map[string]clv1alpha1.WorkspaceUserRole {
-	wss := make(map[string]clv1alpha1.WorkspaceUserRole, len(tenant.Spec.Workspaces))
+func mapFromWorkspacesList(tenant *clv1alpha2.Tenant) map[string]clv1alpha2.WorkspaceUserRole {
+	wss := make(map[string]clv1alpha2.WorkspaceUserRole, len(tenant.Spec.Workspaces))
 
 	for _, v := range tenant.Spec.Workspaces {
-		wss[v.WorkspaceRef.Name] = v.Role
+		wss[v.Name] = v.Role
 	}
 
 	return wss

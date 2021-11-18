@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 
-	crownlabsalpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsalpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Bastion controller - creating two tenants", func() {
@@ -90,13 +90,13 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 			"ssh-rsa abcdefghi comment",
 		}
 
-		tenant1 := &crownlabsalpha1.Tenant{}
-		tenant2 := &crownlabsalpha1.Tenant{}
+		tenant1 := &crownlabsalpha2.Tenant{}
+		tenant2 := &crownlabsalpha2.Tenant{}
 
 		// create or update tenant in order to reset the specs
 
 		if err1 := k8sClient.Get(context.Background(), tenant1LookupKey, tenant1); err1 != nil {
-			tenant1 = &crownlabsalpha1.Tenant{
+			tenant1 = &crownlabsalpha2.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
 					Kind:       "Tenant",
@@ -104,11 +104,11 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: NameTenant1,
 				},
-				Spec: crownlabsalpha1.TenantSpec{
+				Spec: crownlabsalpha2.TenantSpec{
 					FirstName:  "Mario",
 					LastName:   "Rossi",
 					Email:      "mario.rossi@fakemail.com",
-					Workspaces: []crownlabsalpha1.TenantWorkspaceEntry{},
+					Workspaces: []crownlabsalpha2.TenantWorkspaceEntry{},
 					PublicKeys: PublicKeysTenant1,
 				},
 			}
@@ -118,7 +118,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 			Expect(k8sClient.Update(ctx, tenant1)).Should(Succeed())
 		}
 
-		updatedTenant1 := &crownlabsalpha1.Tenant{}
+		updatedTenant1 := &crownlabsalpha2.Tenant{}
 
 		Eventually(func() []string {
 			err := k8sClient.Get(ctx, tenant1LookupKey, updatedTenant1)
@@ -129,7 +129,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 		}, timeout, interval).Should(Equal(PublicKeysTenant1))
 
 		if err2 := k8sClient.Get(context.Background(), tenant2LookupKey, tenant2); err2 != nil {
-			tenant2 = &crownlabsalpha1.Tenant{
+			tenant2 = &crownlabsalpha2.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
 					Kind:       "Tenant",
@@ -137,11 +137,11 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: NameTenant2,
 				},
-				Spec: crownlabsalpha1.TenantSpec{
+				Spec: crownlabsalpha2.TenantSpec{
 					FirstName:  "Fabio",
 					LastName:   "Bianchi",
 					Email:      "fabio.bianchi@fakemail.com",
-					Workspaces: []crownlabsalpha1.TenantWorkspaceEntry{},
+					Workspaces: []crownlabsalpha2.TenantWorkspaceEntry{},
 					PublicKeys: PublicKeysTenant2,
 				},
 			}
@@ -151,7 +151,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 			Expect(k8sClient.Update(ctx, tenant2)).Should(Succeed())
 		}
 
-		updatedTenant2 := &crownlabsalpha1.Tenant{}
+		updatedTenant2 := &crownlabsalpha2.Tenant{}
 
 		Eventually(func() []string {
 			err := k8sClient.Get(ctx, tenant2LookupKey, updatedTenant2)
@@ -185,7 +185,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 	Context("When updating the keys of the one tenant", func() {
 		BeforeEach(func() {
 
-			createdTenant := &crownlabsalpha1.Tenant{}
+			createdTenant := &crownlabsalpha2.Tenant{}
 
 			Eventually(func() []string {
 				err := k8sClient.Get(ctx, tenant1LookupKey, createdTenant)
@@ -206,7 +206,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 				return k8sClient.Update(ctx, createdTenant)
 			})).Should(Succeed())
 
-			updatedTenant := &crownlabsalpha1.Tenant{}
+			updatedTenant := &crownlabsalpha2.Tenant{}
 
 			Eventually(func() []string {
 				err := k8sClient.Get(ctx, tenant1LookupKey, updatedTenant)
@@ -228,7 +228,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 
 	Context("When deleting a Tenant", func() {
 		BeforeEach(func() {
-			Expect(k8sClient.Delete(ctx, &crownlabsalpha1.Tenant{
+			Expect(k8sClient.Delete(ctx, &crownlabsalpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: NameTenant1,
 				},

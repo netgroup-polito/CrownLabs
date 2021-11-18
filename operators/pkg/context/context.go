@@ -22,7 +22,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -57,13 +56,13 @@ func TemplateFrom(ctx context.Context) *clv1alpha2.Template {
 }
 
 // TenantInto returns a copy of the context and the respective logger with the given tenant embedded.
-func TenantInto(ctx context.Context, tenant *clv1alpha1.Tenant) (context.Context, logr.Logger) {
+func TenantInto(ctx context.Context, tenant *clv1alpha2.Tenant) (context.Context, logr.Logger) {
 	return objectInto(ctx, tenantKey, tenant)
 }
 
 // TenantFrom retrieves the tenant object from the given context.
-func TenantFrom(ctx context.Context) *clv1alpha1.Tenant {
-	return ctx.Value(tenantKey).(*clv1alpha1.Tenant)
+func TenantFrom(ctx context.Context) *clv1alpha2.Tenant {
+	return ctx.Value(tenantKey).(*clv1alpha2.Tenant)
 }
 
 // EnvironmentInto returns a copy of the context and the respective logger with the given environment embedded.

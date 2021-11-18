@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
 )
 
@@ -50,7 +51,7 @@ var _ = Describe("Tenant controller", func() {
 		tnName          = "mariorossi"
 		tnFirstName     = "mariò"
 		tnLastName      = "ròssì verdò"
-		tnWorkspaces    = []crownlabsv1alpha1.TenantWorkspaceEntry{{WorkspaceRef: crownlabsv1alpha1.GenericRef{Name: "ws1"}, Role: crownlabsv1alpha1.User}}
+		tnWorkspaces    = []crownlabsv1alpha2.TenantWorkspaceEntry{{Name: "ws1", Role: crownlabsv1alpha2.User}}
 		tnEmail         = "mario.rossi@email.com"
 		userID          = "userID"
 		tr              = true
@@ -187,7 +188,7 @@ var _ = Describe("Tenant controller", func() {
 		Expect(k8sClient.Create(ctx, ws)).Should(Succeed())
 
 		By("By creating a tenant")
-		tn := &crownlabsv1alpha1.Tenant{
+		tn := &crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
 				Kind:       "Tenant",
@@ -197,7 +198,7 @@ var _ = Describe("Tenant controller", func() {
 				Namespace: tnNamespace,
 				Labels:    map[string]string{targetLabelKey: targetLabelValue},
 			},
-			Spec: crownlabsv1alpha1.TenantSpec{
+			Spec: crownlabsv1alpha2.TenantSpec{
 				FirstName:  tnFirstName,
 				LastName:   tnLastName,
 				Email:      tnEmail,
@@ -208,7 +209,7 @@ var _ = Describe("Tenant controller", func() {
 
 		By("By checking that the tenant has been created")
 		tnLookupKey := types.NamespacedName{Name: tnName, Namespace: tnNamespace}
-		createdTn := &crownlabsv1alpha1.Tenant{}
+		createdTn := &crownlabsv1alpha2.Tenant{}
 
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
@@ -227,7 +228,7 @@ var _ = Describe("Tenant controller", func() {
 				return false
 			}
 			// check if external subscriptions has been correctly updated
-			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha1.SubscrOk || tn.Status.Subscriptions["nextcloud"] != crownlabsv1alpha1.SubscrOk {
+			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha2.SubscrOk || tn.Status.Subscriptions["nextcloud"] != crownlabsv1alpha2.SubscrOk {
 				return false
 			}
 			// check if workspace inconsistence has been correctly updated
@@ -235,7 +236,7 @@ var _ = Describe("Tenant controller", func() {
 				return false
 			}
 			// check if labels have been correctly updated
-			if tn.Labels[wsLabelKey] != string(crownlabsv1alpha1.User) {
+			if tn.Labels[wsLabelKey] != string(crownlabsv1alpha2.User) {
 				return false
 			}
 			if tn.Labels["crownlabs.polito.it/first-name"] != "mari" {

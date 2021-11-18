@@ -31,7 +31,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	tenantv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	tenantwh "github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -43,15 +44,16 @@ var (
 
 const (
 	// ValidatingWebhookPath -> path on which the validating webhook will be bound. Has to match the one set in the ValidatingWebhookConfiguration.
-	ValidatingWebhookPath = "/validate-v1alpha1-tenant"
+	ValidatingWebhookPath = "/validate-v1alpha2-tenant"
 	// MutatingWebhookPath -> path on which the mutating webhook will be bound. Has to match the one set in the MutatingWebhookConfiguration.
-	MutatingWebhookPath = "/mutate-v1alpha1-tenant"
+	MutatingWebhookPath = "/mutate-v1alpha2-tenant"
 )
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = tenantv1alpha1.AddToScheme(scheme)
+	_ = clv1alpha1.AddToScheme(scheme)
+	_ = clv1alpha2.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -127,6 +129,15 @@ func main() {
 	})
 	if err != nil {
 		log.Error(err, "Unable to create manager")
+		os.Exit(1)
+	}
+
+	if err = (&clv1alpha1.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Error(err, "unable to create conversion webhook", "webhook", "Tenant")
+		os.Exit(1)
+	}
+	if err = (&clv1alpha2.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Error(err, "unable to create conversion webhook", "webhook", "Tenant")
 		os.Exit(1)
 	}
 

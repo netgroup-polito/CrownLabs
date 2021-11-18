@@ -24,7 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -131,9 +131,9 @@ func (r *InstanceReconciler) GetPublicKeys(ctx context.Context) ([]string, error
 	// Retrieve the template associated with the instance to retrieve the name of the workspace.
 	template := clctx.TemplateFrom(ctx)
 	workspaceName := template.Spec.WorkspaceRef.Name
-	labelSelector := map[string]string{clv1alpha1.WorkspaceLabelPrefix + workspaceName: string(clv1alpha1.Manager)}
+	labelSelector := map[string]string{clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager)}
 
-	var managers clv1alpha1.TenantList
+	var managers clv1alpha2.TenantList
 	if err := r.List(ctx, &managers, client.MatchingLabels(labelSelector)); err != nil {
 		log.Error(err, "failed to retrieve managers for workspace", "workspace", workspaceName, "selector", labelSelector)
 		return nil, err
