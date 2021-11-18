@@ -1,7 +1,7 @@
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-apiserver
+  name: apiserver
   namespace: kube-system
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
@@ -15,17 +15,19 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     cert-manager.io/cluster-issuer: letsencrypt-production
-  labels:
-    use-dns01-solver: "true"
 spec:
+  ingressClassName: nginx-external
   rules:
   - host: apiserver.crownlabs.polito.it
     http:
       paths:
       - backend:
-          serviceName: apiserver-svc
-          servicePort: 6443
+          service:
+            name: apiserver
+            port:
+              number: 6443
         path: /
+        pathType: Prefix
   tls:
   - hosts:
     - apiserver.crownlabs.polito.it
