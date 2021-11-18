@@ -48,7 +48,7 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		defer r.ReconcileDeferHook()
 	}
 
-	klog.Info("reconciling bastion")
+	klog.Infof("reconciling bastion [tenant=%s]", req.NamespacedName.Name)
 
 	tenant := &crownlabsalpha2.Tenant{}
 	deleted := false
