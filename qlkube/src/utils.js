@@ -24,9 +24,9 @@ const graphqlQueryRegistry = {
   async requestDidStart(requestContext) {
     if (requestContext.request.operationName !== 'IntrospectionQuery')
       graphqlLogger(
-        `[i]Request started:\n[+] Variables: ${JSON.stringify(
+        `[i] Request started (Variables: ${JSON.stringify(
           requestContext.request.variables
-        )}\n[+] Query: ${requestContext.request.operationName}`
+        )}, Query: ${requestContext.request.operationName})`
       );
   },
 };
