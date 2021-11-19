@@ -2,7 +2,7 @@ import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
-import { Instance, Template, User, WorkspaceRole } from '../../../utils';
+import { Template, User, WorkspaceRole } from '../../../utils';
 import TableTemplateRow from './TableTemplateRow';
 import './TableTemplate.less';
 import {
@@ -17,6 +17,12 @@ export interface ITableTemplateProps {
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
+  showAdvanced: boolean;
+  handleManagerSorting: (
+    sortingType: string,
+    sorting: number,
+    sortingTemplate: string
+  ) => void;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
@@ -27,6 +33,8 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     expandAll,
     setCollapseAll,
     setExpandAll,
+    handleManagerSorting,
+    showAdvanced,
   } = props;
   const { tenantId } = user;
   const [expandedId, setExpandedId] = useState(
@@ -138,8 +146,10 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               showGuiIcon={false}
               viewMode={WorkspaceRole.manager}
               extended={true}
-              instances={instances as Instance[]}
+              instances={instances}
               hasSSHKeys={hasSSHKeys}
+              handleManagerSorting={handleManagerSorting}
+              showAdvanced={showAdvanced}
             />
           ),
         }}

@@ -74,12 +74,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
 
           {viewMode === 'manager' ? (
             <div className="flex items-center gap-4">
-              <Text>{tenantId}</Text>
-              <Text className="hidden lg:w-32 xl:w-max md:block" ellipsis>
+              <Text className="w-32">{tenantId}</Text>
+              <Text className="hidden w-max lg:w-32 2xl:w-40 md:block" ellipsis>
                 {tenantDisplayName}
               </Text>
               <Text
-                className="hidden md:w-40 xl:w-48 2xl:w-max lg:block"
+                className="hidden lg:w-32 xl:w-40 2xl:w-max lg:block"
                 ellipsis
               >
                 {prettyName ?? name}

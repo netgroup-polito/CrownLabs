@@ -17,23 +17,23 @@ const ViewModeButton: FC<IViewModeButtonProps> = ({ ...props }) => {
       onChange={e => setCurrentView(e.target.value)}
     >
       <Radio.Button
-        className="hidden sm:inline-block"
+        className="hidden lg:inline-block"
         value={WorkspaceRole.user}
       >
         Personal
       </Radio.Button>
       <Radio.Button
-        className="hidden sm:inline-block"
+        className="hidden lg:inline-block"
         value={WorkspaceRole.manager}
       >
         Managed
       </Radio.Button>
-      <Radio.Button className="sm:hidden" value={'user'}>
+      <Radio.Button className="lg:hidden" value={'user'}>
         <Tooltip placement="top" title={'Personal'}>
           <UserOutlined />
         </Tooltip>
       </Radio.Button>
-      <Radio.Button className="sm:hidden" value={'manager'}>
+      <Radio.Button className="lg:hidden" value={'manager'}>
         <Tooltip placement="top" title={'Managed'}>
           <TeamOutlined />
         </Tooltip>

@@ -7,6 +7,7 @@ import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import Button from 'antd-button-color';
 import { DeleteOutlined } from '@ant-design/icons';
+import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -15,10 +16,26 @@ export interface ITableInstanceProps {
   hasSSHKeys?: boolean;
   showGuiIcon: boolean;
   extended: boolean;
+  showAdvanced?: boolean;
+  handleSorting?: (sortingType: string, sorting: number) => void;
+  handleManagerSorting?: (
+    sortingType: string,
+    sorting: number,
+    sortingTemplate: string
+  ) => void;
 }
 
 const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
-  const { instances, viewMode, extended, hasSSHKeys, showGuiIcon } = props;
+  const {
+    instances,
+    viewMode,
+    extended,
+    hasSSHKeys,
+    showGuiIcon,
+    showAdvanced,
+    handleSorting,
+    handleManagerSorting,
+  } = props;
 
   const [now, setNow] = useState(new Date());
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
@@ -45,6 +62,28 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             : ''
         }`}
       >
+        {extended && showAdvanced && (
+          <Table
+            className="rowInstance-bg-color h-10"
+            dataSource={[{}]}
+            showHeader={false}
+            pagination={false}
+          >
+            <Column
+              title="Header"
+              key="header"
+              className="p-0"
+              render={() => (
+                <RowInstanceHeader
+                  viewMode={viewMode}
+                  handleSorting={handleSorting!}
+                  handleManagerSorting={handleManagerSorting!}
+                  templatePrettyName={instances[0].templatePrettyName!}
+                />
+              )}
+            />
+          </Table>
+        )}
         <Table
           className="rowInstance-bg-color"
           dataSource={instances}
@@ -61,7 +100,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               extended
                 ? viewMode === WorkspaceRole.user
                   ? 'w-5/6 sm:w-2/3 lg:w-3/5 xl:w-1/2 2xl:w-5/12'
-                  : 'w-3/5 sm:w-2/3 lg:w-1/2 xl:w-1/2'
+                  : 'w-1/2 md:w-2/3 lg:w-7/12 xl:w-1/2'
                 : 'w-2/3 md:w-3/4'
             }
             title="Instance Title"
@@ -80,7 +119,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               extended
                 ? viewMode === WorkspaceRole.user
                   ? 'w-1/6 sm:w-1/3 lg:w-2/5 xl:w-1/2 2xl:w-7/12'
-                  : 'w-2/5 sm:w-1/3 lg:w-1/2 xl:w-1/2'
+                  : 'w-1/2 md:w-1/3 lg:w-5/12 xl:w-1/2'
                 : 'w-1/3 md:w-1/4'
             }
             title="Instance Actions"

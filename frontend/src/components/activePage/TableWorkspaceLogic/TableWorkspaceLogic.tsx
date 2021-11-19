@@ -37,6 +37,7 @@ export interface ITableWorkspaceLogicProps {
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
+  showAdvanced: boolean;
 }
 
 const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
@@ -48,10 +49,28 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     expandAll,
     setExpandAll,
     setCollapseAll,
+    showAdvanced,
   } = props;
+
   const { tenantId, tenantNamespace } = user;
+  const [sortingData, setSortingData] = useState<
+    Array<{
+      sortingType: string;
+      sorting: number;
+      sortingTemplate: string;
+    }>
+  >([]);
   const [dataInstances, setDataInstances] =
     useState<InstancesLabelSelectorQuery>();
+
+  const handleManagerSorting = (
+    sortingType: string,
+    sorting: number,
+    sortingTemplate: string
+  ) => {
+    const old = sortingData.filter(d => d.sortingTemplate !== sortingTemplate);
+    setSortingData([...old, { sortingTemplate, sorting, sortingType }]);
+  };
 
   const label = `crownlabs.polito.it/workspace in (${workspaces
     .map(({ id }) => id)
@@ -129,7 +148,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       )
     );
 
-  const templatesMapped = getTemplatesMapped(instancesMapped!);
+  const templatesMapped = getTemplatesMapped(instancesMapped!, sortingData!);
 
   const workspacesMapped = getWorkspacesMapped(templatesMapped, workspaces);
 
@@ -141,6 +160,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       expandAll={expandAll}
       setCollapseAll={setCollapseAll}
       setExpandAll={setExpandAll}
+      showAdvanced={showAdvanced}
+      handleManagerSorting={handleManagerSorting}
     />
   ) : (
     <div className="flex justify-center h-full items-center">

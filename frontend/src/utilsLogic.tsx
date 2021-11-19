@@ -231,12 +231,34 @@ export const getManagerInstances = (
   } as Instance;
 };
 
-export const getTemplatesMapped = (instances: Instance[]) => {
+export const getTemplatesMapped = (
+  instances: Instance[],
+  sortingData: Array<{
+    sortingType: string;
+    sorting: number;
+    sortingTemplate: string;
+  }>
+) => {
+  //const { sorting, sortingType, sortingTemplate } = sortingData;
   return Array.from(new Set(instances?.map(i => i.templatePrettyName))).map(
     t => {
+      // Find all instances with Template Name === t
       const instancesFiltered = instances?.filter(
         ({ templatePrettyName: tpn }) => tpn === t
       );
+
+      // Find sorting data for Template Name === t
+      const sortDataTmp = sortingData.find(s => s.sortingTemplate === t);
+
+      // If sorting data exist fot Template Name = t => sort instances
+      let instancesSorted;
+      if (sortDataTmp) {
+        const { sorting, sortingType } = sortDataTmp;
+        instancesSorted = instancesFiltered.sort((a, b) =>
+          sorter(a, b, sortingType as keyof Instance, sorting)
+        );
+      }
+
       const [{ idTemplate, gui, persistent, workspaceId }] = instancesFiltered!;
       return {
         id: idTemplate,
@@ -244,7 +266,7 @@ export const getTemplatesMapped = (instances: Instance[]) => {
         gui,
         persistent,
         resources: { cpu: 0, memory: '', disk: '' },
-        instances: instancesFiltered,
+        instances: instancesSorted || instancesFiltered,
         workspaceId,
       } as Template;
     }
@@ -355,6 +377,26 @@ export const filterUser = (instance: Instance, search: string) => {
   }${instance.tenantDisplayName!.replace(/\s+/g, '')}`.toLowerCase();
   return composedString.includes(search);
 };
+
+export function makeListToggler<T>(
+  setList: (value: SetStateAction<T[]>) => void
+): (value: T) => void {
+  return (value: T) => {
+    setList(list =>
+      list.includes(value) ? list.filter(v => v !== value) : [...list, value]
+    );
+  };
+}
+
+export function sorter<T>(a: T, b: T, key: keyof T, value: number): number {
+  const valA = a[key];
+  const valB = b[key];
+  let result = 1;
+  if (typeof valA === 'string' && typeof valB === 'string') {
+    result = valA?.toLowerCase()! < valB?.toLowerCase()! ? 1 : -1;
+  }
+  return value === 1 ? result : result * -1;
+}
 
 export enum DropDownAction {
   start = 'start',

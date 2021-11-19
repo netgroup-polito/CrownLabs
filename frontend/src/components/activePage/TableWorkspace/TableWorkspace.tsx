@@ -12,6 +12,12 @@ export interface ITableWorkspaceProps {
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
+  showAdvanced: boolean;
+  handleManagerSorting: (
+    sortingType: string,
+    sorting: number,
+    sortingTemplate: string
+  ) => void;
 }
 
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
@@ -22,6 +28,8 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     expandAll,
     setCollapseAll,
     setExpandAll,
+    showAdvanced,
+    handleManagerSorting,
   } = props;
   const [expandedId, setExpandedId] = useState(
     window.sessionStorage
@@ -111,6 +119,8 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
               expandAll={expandAll}
               setCollapseAll={setCollapseAll}
               setExpandAll={setExpandAll}
+              handleManagerSorting={handleManagerSorting}
+              showAdvanced={showAdvanced}
             />
           ),
         }}
