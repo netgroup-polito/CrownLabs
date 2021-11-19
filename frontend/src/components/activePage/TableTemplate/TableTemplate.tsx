@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
@@ -65,6 +65,14 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
       ),
     },
   ];
+
+  useEffect(() => {
+    window.sessionStorage.setItem(
+      'prevExpandedIdActivePageTemplate',
+      expandedId.join(',')
+    );
+  }, [expandedId]);
+
   return (
     <div
       className={`rowInstance-bg-color ${

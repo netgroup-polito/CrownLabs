@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableTemplate from '../TableTemplate/TableTemplate';
@@ -12,7 +12,11 @@ export interface ITableWorkspaceProps {
 
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   const { workspaces, user } = props;
-  const [expandedId, setExpandedId] = useState(['']);
+  const [expandedId, setExpandedId] = useState(
+    window.sessionStorage
+      .getItem('prevExpandedIdActivePageWorkspace')
+      ?.split(',') ?? ['']
+  );
 
   const expandRow = (rowId: string) => {
     expandedId.includes(rowId)
@@ -44,6 +48,13 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       ),
     },
   ];
+
+  useEffect(() => {
+    window.sessionStorage.setItem(
+      'prevExpandedIdActivePageWorkspace',
+      expandedId.join(',')
+    );
+  }, [expandedId]);
 
   return (
     <div
