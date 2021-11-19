@@ -14,12 +14,10 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   const { workspaces, user } = props;
   const [expandedId, setExpandedId] = useState(['']);
 
-  const handleAccordion = (expanded: boolean, record: Workspace) => {
-    setExpandedId([expanded ? record.id : '']);
-  };
-
   const expandRow = (rowId: string) => {
-    expandedId[0] === rowId ? setExpandedId(['']) : setExpandedId([rowId]);
+    expandedId.includes(rowId)
+      ? setExpandedId(old => old.filter(id => id !== rowId))
+      : setExpandedId(old => [...old, rowId]);
   };
 
   const getActives = (templates?: Template[]) => {
@@ -58,7 +56,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
         dataSource={workspaces}
         pagination={false}
         showHeader={false}
-        onExpand={handleAccordion}
+        onExpand={(expanded, ws) => expandRow(ws.id)}
         expandable={{
           expandedRowKeys: expandedId,
           // eslint-disable-next-line react/no-multi-comp
