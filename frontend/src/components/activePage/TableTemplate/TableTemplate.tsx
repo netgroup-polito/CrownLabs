@@ -18,6 +18,7 @@ export interface ITableTemplateProps {
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   const { templates, user } = props;
   const { tenantId } = user;
+  const [expandedId, setExpandedId] = useState(['']);
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
@@ -29,13 +30,10 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
 
   const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
-  const [expandedId, setExpandedId] = useState(['']);
-  const handleAccordion = (expanded: boolean, record: Template) => {
-    setExpandedId(expanded ? [record.id] : ['']);
-  };
-
   const expandRow = (rowId: string) => {
-    expandedId[0] === rowId ? setExpandedId(['']) : setExpandedId([rowId]);
+    expandedId.includes(rowId)
+      ? setExpandedId(old => old.filter(id => id !== rowId))
+      : setExpandedId(old => [...old, rowId]);
   };
 
   const destroyAll = (templateId: string) => {
@@ -84,7 +82,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         dataSource={templates}
         pagination={false}
         showHeader={false}
-        onExpand={handleAccordion}
+        onExpand={(expanded, ws) => expandRow(ws.id)}
         expandable={{
           expandedRowKeys: expandedId,
           // eslint-disable-next-line react/no-multi-comp
