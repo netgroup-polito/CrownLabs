@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableTemplate from '../TableTemplate/TableTemplate';
@@ -8,11 +8,34 @@ import TableWorkspaceRow from './TableWorkspaceRow';
 export interface ITableWorkspaceProps {
   workspaces: Array<Workspace>;
   user: User;
+  collapseAll: boolean;
+  expandAll: boolean;
+  setCollapseAll: Dispatch<SetStateAction<boolean>>;
+  setExpandAll: Dispatch<SetStateAction<boolean>>;
 }
 
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
-  const { workspaces, user } = props;
-  const [expandedId, setExpandedId] = useState(['']);
+  const {
+    workspaces,
+    user,
+    collapseAll,
+    expandAll,
+    setCollapseAll,
+    setExpandAll,
+  } = props;
+  const [expandedId, setExpandedId] = useState(
+    window.sessionStorage
+      .getItem('prevExpandedIdActivePageWorkspace')
+      ?.split(',') ?? []
+  );
+
+  const expandWorkspace = () => {
+    setExpandedId(workspaces.map(ws => ws.id));
+  };
+
+  const collapseWorkspace = () => {
+    setExpandedId([]);
+  };
 
   const expandRow = (rowId: string) => {
     expandedId.includes(rowId)
@@ -45,6 +68,19 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     },
   ];
 
+  useEffect(() => {
+    window.sessionStorage.setItem(
+      'prevExpandedIdActivePageWorkspace',
+      expandedId.join(',')
+    );
+  }, [expandedId]);
+
+  useEffect(() => {
+    if (collapseAll) collapseWorkspace();
+    if (expandAll) expandWorkspace();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapseAll, expandAll]);
+
   return (
     <div
       className={`rowInstance-bg-color cl-table flex-grow flex-wrap content-between py-0 overflow-auto scrollbar`}
@@ -68,7 +104,14 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
           ),
           // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: record => (
-            <TableTemplate templates={record.templates!} user={user} />
+            <TableTemplate
+              templates={record.templates!}
+              user={user}
+              collapseAll={collapseAll}
+              expandAll={expandAll}
+              setCollapseAll={setCollapseAll}
+              setExpandAll={setExpandAll}
+            />
           ),
         }}
       />

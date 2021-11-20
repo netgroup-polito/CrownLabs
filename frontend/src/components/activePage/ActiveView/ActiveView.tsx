@@ -1,10 +1,12 @@
-import { FC, useState } from 'react';
-import { Space, Col, Input } from 'antd';
+import { FC, useEffect, useState } from 'react';
+import { Space, Col, Input, Tooltip } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
 import { User, WorkspaceRole } from '../../../utils';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
+import Button from 'antd-button-color';
+import { FullscreenExitOutlined, FullscreenOutlined } from '@ant-design/icons';
 
 const { Search } = Input;
 export interface IActiveViewProps {
@@ -20,10 +22,17 @@ export interface IActiveViewProps {
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const { managerView, user, workspaces } = props;
+  const [expandAll, setExpandAll] = useState(false);
+  const [collapseAll, setCollapseAll] = useState(false);
   const [searchField, setSearchField] = useState('');
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
-    WorkspaceRole.user
+    (window.sessionStorage.getItem('prevViewActivePage') as WorkspaceRole) ??
+      WorkspaceRole.user
   );
+
+  useEffect(() => {
+    window.sessionStorage.setItem('prevViewActivePage', currentView);
+  }, [currentView]);
 
   return (
     <Col span={24} lg={22} xxl={20}>
@@ -48,7 +57,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             </div>
           ),
           left: currentView === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10">
+            <div className="h-full flex justify-center items-center pl-10 gap-4">
               <Search
                 className="hidden sm:block"
                 placeholder="Search User"
@@ -60,6 +69,54 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
                 }}
                 enterButton
               />
+              <Button
+                className="hidden xl:block"
+                type="primary"
+                shape="round"
+                size="middle"
+                icon={<FullscreenOutlined />}
+                onClick={() => {
+                  setExpandAll(true);
+                }}
+              >
+                Expand
+              </Button>
+              <Button
+                className="hidden xl:block"
+                type="dark"
+                shape="round"
+                size="middle"
+                icon={<FullscreenExitOutlined />}
+                onClick={() => {
+                  setCollapseAll(true);
+                }}
+              >
+                Collapse
+              </Button>
+              <Tooltip title="Expand All" placement="top">
+                <Button
+                  className="xl:hidden"
+                  type="primary"
+                  shape="circle"
+                  size="middle"
+                  icon={<FullscreenOutlined />}
+                  onClick={() => {
+                    setExpandAll(true);
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title="Collapse All" placement="top">
+                <Button
+                  className="xl:hidden"
+                  type="dark"
+                  shape="circle"
+                  size="middle"
+                  icon={<FullscreenExitOutlined />}
+                  onClick={() => {
+                    setCollapseAll(true);
+                  }}
+                />
+              </Tooltip>
             </div>
           ),
         }}
@@ -69,6 +126,10 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             workspaces={workspaces}
             user={user}
             filter={searchField}
+            collapseAll={collapseAll}
+            expandAll={expandAll}
+            setCollapseAll={setCollapseAll}
+            setExpandAll={setExpandAll}
           />
         ) : (
           <TableInstanceLogic

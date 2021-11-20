@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, SetStateAction, Dispatch } from 'react';
 import { Spin } from 'antd';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
 import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
@@ -33,10 +33,22 @@ export interface ITableWorkspaceLogicProps {
     id: string;
   }>;
   filter: string;
+  collapseAll: boolean;
+  expandAll: boolean;
+  setCollapseAll: Dispatch<SetStateAction<boolean>>;
+  setExpandAll: Dispatch<SetStateAction<boolean>>;
 }
 
 const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
-  const { workspaces, user, filter } = props;
+  const {
+    workspaces,
+    user,
+    filter,
+    collapseAll,
+    expandAll,
+    setExpandAll,
+    setCollapseAll,
+  } = props;
   const { tenantId, tenantNamespace } = user;
   const [dataInstances, setDataInstances] =
     useState<InstancesLabelSelectorQuery>();
@@ -122,7 +134,14 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   const workspacesMapped = getWorkspacesMapped(templatesMapped, workspaces);
 
   return !loadingInstances && !errorInstances && templatesMapped ? (
-    <TableWorkspace workspaces={workspacesMapped} user={user} />
+    <TableWorkspace
+      workspaces={workspacesMapped}
+      user={user}
+      collapseAll={collapseAll}
+      expandAll={expandAll}
+      setCollapseAll={setCollapseAll}
+      setExpandAll={setExpandAll}
+    />
   ) : (
     <div className="flex justify-center h-full items-center">
       {loadingInstances ? (

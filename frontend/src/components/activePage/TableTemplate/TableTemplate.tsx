@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
@@ -13,12 +13,27 @@ import {
 export interface ITableTemplateProps {
   templates: Array<Template>;
   user: User;
+  collapseAll: boolean;
+  expandAll: boolean;
+  setCollapseAll: Dispatch<SetStateAction<boolean>>;
+  setExpandAll: Dispatch<SetStateAction<boolean>>;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
-  const { templates, user } = props;
+  const {
+    templates,
+    user,
+    collapseAll,
+    expandAll,
+    setCollapseAll,
+    setExpandAll,
+  } = props;
   const { tenantId } = user;
-  const [expandedId, setExpandedId] = useState(['']);
+  const [expandedId, setExpandedId] = useState(
+    window.sessionStorage
+      .getItem(`prevExpandedIdActivePageTemplate-${templates[0].workspaceId}`)
+      ?.split(',') ?? []
+  );
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
@@ -29,6 +44,16 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   });
 
   const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
+
+  const expandTemplate = () => {
+    setExpandedId(templates.map(t => t.id));
+    setExpandAll(false);
+  };
+
+  const collapseTemplate = () => {
+    setExpandedId([]);
+    setCollapseAll(false);
+  };
 
   const expandRow = (rowId: string) => {
     expandedId.includes(rowId)
@@ -65,6 +90,21 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
       ),
     },
   ];
+
+  useEffect(() => {
+    window.sessionStorage.setItem(
+      `prevExpandedIdActivePageTemplate-${templates[0].workspaceId}`,
+      expandedId.join(',')
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedId]);
+
+  useEffect(() => {
+    if (collapseAll) collapseTemplate();
+    if (expandAll) expandTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapseAll, expandAll]);
+
   return (
     <div
       className={`rowInstance-bg-color ${
