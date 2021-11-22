@@ -3,6 +3,7 @@ import { Story, Meta } from '@storybook/react';
 import { MemoryRouter, Route } from 'react-router-dom';
 import ThemeContextProvider from '../../../contexts/ThemeContext';
 import { Layout, Skeleton } from 'antd';
+import { LinkPosition } from '../../../utils';
 
 export default {
   title: 'Components/common/Navbar',
@@ -39,10 +40,22 @@ export const Default = Template.bind({});
 Default.args = {
   logoutHandler: () => null,
   routes: [
-    { path: '/', name: 'Dashboard' },
-    { path: '/active', name: 'Active' },
-    { path: 'https://nextcloud.com/', name: 'Drive' },
-    { path: '/account', name: 'Account' },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/', name: 'Dashboard' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/active', name: 'Active' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: 'https://nextcloud.com/', name: 'Drive' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/account', name: 'Account' },
+    },
   ],
 };
 
@@ -51,14 +64,32 @@ export const Extra = Template.bind({});
 Extra.args = {
   logoutHandler: () => null,
   routes: [
-    { path: '/', name: 'Dashboard' },
-    { path: '/active', name: 'Active' },
-    { path: 'https://nextcloud.com/', name: 'Drive' },
-    { path: '/account', name: 'Account' },
-    { path: 'https://grafana.com', name: 'Grafana' },
     {
-      path: 'https://ticketing.crownlabs.polito.it/',
-      name: 'Ticketing',
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/', name: 'Dashboard' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/active', name: 'Active' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: 'https://nextcloud.com/', name: 'Drive' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: '/account', name: 'Account' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: { path: 'https://grafana.com', name: 'Grafana' },
+    },
+    {
+      linkPosition: LinkPosition.NavbarButton,
+      route: {
+        path: 'https://ticketing.crownlabs.polito.it/',
+        name: 'Ticketing',
+      },
     },
   ],
 };

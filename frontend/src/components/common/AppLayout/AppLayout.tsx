@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from 'react';
+import { FC, useState } from 'react';
 import { Layout, Row, Col } from 'antd';
 import Navbar from '../Navbar';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
@@ -6,20 +6,15 @@ import { logout } from '../../../contexts/AuthContext';
 import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
 import './AppLayout.less';
-import { RouteData } from '../Navbar/Navbar';
 import { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import { PUBLIC_URL } from '../../../env';
 import { InfoOutlined } from '@ant-design/icons';
+import { RouteDescriptor } from '../../../utils';
 
 const { Content } = Layout;
 
-type routeDescriptor = {
-  route: RouteData;
-  content?: ReactNode;
-};
-
 export interface IAppLayoutProps {
-  routes: Array<routeDescriptor>;
+  routes: Array<RouteDescriptor>;
   TooltipButtonData?: TooltipButtonData;
   TooltipButtonLink?: string;
   transparentNavbar?: boolean;
@@ -35,7 +30,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
       <Layout className="h-full">
         <Navbar
           logoutHandler={logout}
-          routes={routes.map(r => r.route)}
+          routes={routes}
           transparent={transparentNavbar}
         />
         <Content className="flex">
@@ -57,7 +52,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
           <TooltipButton
             TooltipButtonData={{
               tooltipTitle: 'Show CrownLabs infos',
-              tooltipPlacement: 'rightBottom',
+              tooltipPlacement: 'right',
               type: 'primary',
               icon: <InfoOutlined style={{ fontSize: '22px' }} />,
             }}

@@ -5,6 +5,7 @@ import UserInfo from '../UserInfo/UserInfo';
 import SSHKeysTable from '../SSHKeysTable';
 import Modal from 'antd/lib/modal/Modal';
 import SSHKeysForm from '../SSHKeysForm';
+import { generateAvatarUrl } from '../../../utils';
 
 const { TabPane } = Tabs;
 export interface IUserPanelProps {
@@ -33,16 +34,6 @@ const UserPanel: FC<IUserPanelProps> = props => {
     if (await props.onAddKey?.(newKey)) {
       closeModal();
     }
-  };
-  const stringHash = (s: string) => {
-    return s.split('').reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-  };
-
-  const generateAvatarUrl = (style: string, seed: string) => {
-    return `https://avatars.dicebear.com/api/${style}/${stringHash(seed)}.svg`;
   };
 
   return (

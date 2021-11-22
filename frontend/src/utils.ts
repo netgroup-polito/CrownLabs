@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, ReactNode, SetStateAction } from 'react';
 import { EnvironmentType } from './generated-types';
 
 export const AV_SSKey = 'prevViewActivePage';
@@ -61,6 +61,34 @@ export type Instance = {
   timeStamp?: string;
   workspaceId?: string;
   running?: boolean;
+};
+
+export enum LinkPosition {
+  MenuButton,
+  NavbarButton,
+}
+
+export const generateAvatarUrl = (style: string, seed: string) => {
+  return `https://avatars.dicebear.com/api/${style}/${stringHash(seed)}.svg`;
+};
+
+export const stringHash = (s: string) => {
+  return s.split('').reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+};
+
+export type RouteData = {
+  name: string;
+  path: string;
+  navbarMenuIcon?: ReactNode;
+};
+
+export type RouteDescriptor = {
+  route: RouteData;
+  content?: ReactNode;
+  linkPosition: LinkPosition;
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
