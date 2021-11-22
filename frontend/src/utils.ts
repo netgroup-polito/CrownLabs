@@ -1,3 +1,4 @@
+import { Dispatch, SetStateAction } from 'react';
 import { EnvironmentType } from './generated-types';
 
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
@@ -63,4 +64,24 @@ export function multiStringIncludes(needle: string, ...haystack: string[]) {
   for (const str of haystack)
     if (str.toLocaleLowerCase().includes(needle)) return true;
   return false;
+}
+
+/**
+ * Create a callback that can be used to set a list state, by toggling the presence of the list of a given value.
+ * @param setList the setter for the list
+ * @param create specify if the returned function is used to create a new instance or not
+ * @returns a callback which accepts a value and toggles the presence of that value in the list
+ */
+export function makeListToggler<T>(
+  setList: Dispatch<SetStateAction<Array<T>>>
+): (value: T, create: boolean) => void {
+  return (value: T, create: boolean) => {
+    setList(list =>
+      list.includes(value)
+        ? create
+          ? list
+          : list.filter(v => v !== value)
+        : [...list, value]
+    );
+  };
 }

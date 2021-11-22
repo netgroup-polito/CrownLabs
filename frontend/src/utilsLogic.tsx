@@ -378,16 +378,6 @@ export const filterUser = (instance: Instance, search: string) => {
   return composedString.includes(search);
 };
 
-export function makeListToggler<T>(
-  setList: (value: SetStateAction<T[]>) => void
-): (value: T) => void {
-  return (value: T) => {
-    setList(list =>
-      list.includes(value) ? list.filter(v => v !== value) : [...list, value]
-    );
-  };
-}
-
 export function sorter<T>(a: T, b: T, key: keyof T, value: number): number {
   const valA = a[key];
   const valB = b[key];

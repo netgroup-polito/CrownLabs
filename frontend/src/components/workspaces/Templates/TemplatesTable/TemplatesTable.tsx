@@ -4,7 +4,7 @@ import { Table } from 'antd';
 import { TemplatesTableRow } from '../TemplatesTableRow';
 import { RightOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { Template, WorkspaceRole } from '../../../../utils';
+import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
 import './TemplatesTable.less';
 import {
   CreateInstanceMutation,
@@ -72,52 +72,24 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
-          expandRow={expandRow}
+          expandRow={listToggler}
         />
       ),
     },
   ];
 
-  /**
-   * Handle to manage accordion effect, it's possible to allow multiple row expansion (no accordion effect) by switching
-   * handleAccordion() function with the following code
-    { expanded
-        ? setExpanedId(expandedId => {
-            expandedId.push(record.id);
-            return expandedId;
-          })
-        : setExpanedId(expandedId => {
-            return expandedId.filter(id => id !== record.id);
-          });
-    };
-   */
-  const [expandedId, setExpandedId] = useState([
-    window.sessionStorage.getItem('prevExpandedIdDashboard') ?? '',
-  ]);
+  const [expandedId, setExpandedId] = useState(
+    window.sessionStorage.getItem('prevExpandedIdDashboard')?.split(',') ?? []
+  );
 
-  const expandRow = (
-    activeInstances: number,
-    rowId: string,
-    create: boolean
-  ) => {
-    if (activeInstances) {
-      let expandedIdTmp: string;
-      if (!create)
-        expandedId[0] === rowId
-          ? (expandedIdTmp = '')
-          : (expandedIdTmp = `${rowId}`);
-      else expandedIdTmp = `${rowId}`;
-      setExpandedId([expandedIdTmp]);
-    }
-  };
+  const listToggler = makeListToggler<string>(setExpandedId);
 
   useEffect(() => {
-    window.sessionStorage.setItem('prevExpandedIdDashboard', `${expandedId}`);
+    window.sessionStorage.setItem(
+      'prevExpandedIdDashboard',
+      expandedId.join(',')
+    );
   }, [expandedId]);
-
-  const handleAccordion = (expanded: boolean, record: Template) => {
-    expanded ? setExpandedId([record.id]) : setExpandedId(['']);
-  };
 
   return (
     <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
@@ -128,7 +100,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
         columns={columns}
         dataSource={templates}
         pagination={false}
-        onExpand={handleAccordion}
+        onExpand={(expanded, record) => listToggler(`${record.id}`, false)}
         expandable={{
           rowExpandable: record => !!record.instances.length,
           expandedRowKeys: expandedId,
