@@ -1,47 +1,18 @@
-import { FC, useContext, useState, useEffect } from 'react';
+import { FC, useContext } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
-import { AuthContext } from '../../../contexts/AuthContext';
-import { updatedTenant } from '../../../graphql-components/subscription';
-import { TenantQuery, useTenantQuery } from '../../../generated-types';
-import { User, WorkspaceRole } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 
 const ActiveViewLogic: FC<{}> = ({ ...props }) => {
-  const { userId } = useContext(AuthContext);
-  const [data, setData] = useState<TenantQuery>();
-  const [user, setUser] = useState<User>();
-
-  const { loading, error, subscribeToMore } = useTenantQuery({
-    variables: { tenantId: userId ?? '' },
-    onCompleted: setData,
-    fetchPolicy: 'network-only',
-  });
-
-  useEffect(() => {
-    if (!loading) {
-      subscribeToMore({
-        variables: { tenantId: userId ?? '' },
-        document: updatedTenant,
-        updateQuery: (prev, { subscriptionData: { data } }) => {
-          if (!data) return prev;
-          setData(data);
-          return data;
-        },
-      });
-    }
-  }, [subscribeToMore, loading, userId]);
-
-  useEffect(() => {
-    if (!loading && data) {
-      setUser({
-        tenantId: userId!,
-        tenantNamespace: data!.tenant?.status?.personalNamespace?.name!,
-      });
-    }
-  }, [data, loading, userId]);
+  const {
+    data: tenantData,
+    loading: tenantLoading,
+    error: tenantError,
+  } = useContext(TenantContext);
 
   const workspaces =
-    data?.tenant?.spec?.workspaces?.map(workspace => {
+    tenantData?.tenant?.spec?.workspaces?.map(workspace => {
       const { spec, status } =
         workspace?.workspaceRef?.workspaceWrapper
           ?.itPolitoCrownlabsV1alpha1Workspace!;
@@ -57,9 +28,12 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
     ws => ws.role === WorkspaceRole.manager
   );
 
-  return !loading && data && !error && user ? (
+  return !tenantLoading && tenantData && !tenantError ? (
     <ActiveView
-      user={user}
+      user={{
+        tenantId: tenantData.tenant?.metadata?.tenantId!,
+        tenantNamespace: tenantData!.tenant?.status?.personalNamespace?.name!,
+      }}
       managerView={managerWorkspaces.length > 0}
       workspaces={managerWorkspaces}
     />
