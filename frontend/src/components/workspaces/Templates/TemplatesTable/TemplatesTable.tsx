@@ -2,7 +2,7 @@
 import { FC, useEffect } from 'react';
 import { Table } from 'antd';
 import { TemplatesTableRow } from '../TemplatesTableRow';
-import { RightOutlined } from '@ant-design/icons';
+import { CaretRightOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
 import './TemplatesTable.less';
@@ -107,7 +107,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) =>
             record.instances.length ? (
-              <RightOutlined
+              <CaretRightOutlined
+                className="transition-icon"
                 onClick={e => onExpand(record, e)}
                 rotate={expanded ? 90 : 0}
               />
