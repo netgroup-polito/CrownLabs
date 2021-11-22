@@ -1,5 +1,5 @@
 import {
-  ItPolitoCrownlabsV1alpha1Tenant,
+  ItPolitoCrownlabsV1alpha2Tenant,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
   Role,
@@ -53,28 +53,20 @@ function getTemplatePatchJson(
   });
 }
 
-function getTenantPatchJson(
-  spec: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    publicKeys?: string[];
-  },
+function getTenantPatchJson(spec: {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  publicKeys?: string[];
   workspaces?: {
     role: Role;
     name: string;
-  }[]
-): string {
-  let patchJson: ItPolitoCrownlabsV1alpha1Tenant = {
+  }[];
+}): string {
+  let patchJson: ItPolitoCrownlabsV1alpha2Tenant = {
     kind: 'Tenant',
     apiVersion: 'crownlabs.polito.it/v1alpha1',
-    spec: {
-      ...spec,
-      workspaces: workspaces?.map(({ role, name }) => ({
-        role,
-        workspaceRef: { name },
-      })),
-    },
+    spec,
   };
   return JSON.stringify(patchJson);
 }

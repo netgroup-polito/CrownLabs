@@ -1,5 +1,5 @@
 query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
-  tenants: itPolitoCrownlabsV1alpha1TenantList(labelSelector: $labels) {
+  tenants: itPolitoCrownlabsV1alpha2TenantList(labelSelector: $labels) {
     items {
       metadata {
         tenantId: name
@@ -10,9 +10,7 @@ query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
         email
         workspaces @include(if: $retrieveWorkspaces) {
           role
-          workspaceRef {
-            name
-          }
+          name
         }
       }
     }
