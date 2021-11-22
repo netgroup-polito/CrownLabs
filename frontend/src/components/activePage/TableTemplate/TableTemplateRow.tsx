@@ -40,7 +40,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
   return (
     <>
       <div
-        className="w-full flex justify-between pr-2"
+        className="w-full flex justify-between pr-2 cursor-pointer"
         onClick={e => {
           expandRow(id);
         }}

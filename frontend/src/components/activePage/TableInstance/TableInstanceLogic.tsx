@@ -1,7 +1,7 @@
 import { FetchPolicy } from '@apollo/client';
 import { FC, useState, useEffect } from 'react';
 import { Spin, Empty } from 'antd';
-import { User, WorkspaceRole } from '../../../utils';
+import { Instance, User, WorkspaceRole } from '../../../utils';
 import './TableInstance.less';
 import TableInstance from './TableInstance';
 import {
@@ -12,7 +12,7 @@ import {
   useSshKeysQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
-import { getInstances, notifyStatus } from '../../../utilsLogic';
+import { getInstances, notifyStatus, sorter } from '../../../utilsLogic';
 import {
   comparePrettyName,
   matchK8sObject,
@@ -33,6 +33,14 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { viewMode, extended, showGuiIcon, user } = props;
   const { tenantNamespace, tenantId } = user;
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
+  const [sortingData, setSortingData] = useState<{
+    sortingType: string;
+    sorting: number;
+  }>({ sortingType: '', sorting: 0 });
+
+  const handleSorting = (sortingType: string, sorting: number) => {
+    setSortingData({ sortingType, sorting });
+  };
 
   const {
     loading: loadingInstances,
@@ -100,45 +108,58 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
   const instances =
-    dataInstances?.instanceList?.instances?.map((i, n) =>
-      getInstances(i!, n, tenantId, tenantNamespace)
-    ) || [];
+    dataInstances?.instanceList?.instances
+      ?.map((i, n) => getInstances(i!, n, tenantId, tenantNamespace))
+      .sort((a, b) =>
+        sorter(
+          a,
+          b,
+          sortingData.sortingType as keyof Instance,
+          sortingData.sorting
+        )
+      ) || [];
 
-  return !loadingInstances && !errorInstances && dataInstances ? (
-    instances.length ? (
-      <TableInstance
-        showGuiIcon={showGuiIcon}
-        viewMode={viewMode}
-        hasSSHKeys={hasSSHKeys}
-        instances={instances}
-        extended={extended}
-      />
-    ) : (
-      <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5 ">
-        <div className="w-full pb-10 flex justify-center">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={false} />
-        </div>
-        <p className="text-xl xs:text-3xl text-center px-5 xs:px-24">
-          No running instances
-        </p>
-        <div className="w-full pb-10 flex justify-center">
-          <Link to="/">
-            <Button type="primary" shape="round" size="large">
-              Create Instance
-            </Button>
-          </Link>
-        </div>
-      </div>
-    )
-  ) : (
+  return (
     <>
-      <div className="flex justify-center h-full items-center">
-        {loadingInstances ? (
-          <Spin size="large" spinning={loadingInstances} />
+      {!loadingInstances && !errorInstances && dataInstances ? (
+        instances.length ? (
+          <TableInstance
+            showGuiIcon={showGuiIcon}
+            viewMode={viewMode}
+            hasSSHKeys={hasSSHKeys}
+            instances={instances}
+            extended={extended}
+            handleSorting={handleSorting}
+            showAdvanced={true}
+          />
         ) : (
-          <>{errorInstances && <p>{errorInstances.message}</p>}</>
-        )}
-      </div>
+          <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5 ">
+            <div className="w-full pb-10 flex justify-center">
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={false} />
+            </div>
+            <p className="text-xl xs:text-3xl text-center px-5 xs:px-24">
+              No running instances
+            </p>
+            <div className="w-full pb-10 flex justify-center">
+              <Link to="/">
+                <Button type="primary" shape="round" size="large">
+                  Create Instance
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )
+      ) : (
+        <>
+          <div className="flex justify-center h-full items-center">
+            {loadingInstances ? (
+              <Spin size="large" spinning={loadingInstances} />
+            ) : (
+              <>{errorInstances && <p>{errorInstances.message}</p>}</>
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 };

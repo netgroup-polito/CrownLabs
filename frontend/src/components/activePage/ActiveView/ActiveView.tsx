@@ -1,12 +1,17 @@
 import { FC, useEffect, useState } from 'react';
-import { Space, Col, Input, Tooltip } from 'antd';
+import { Space, Col, Input, Tooltip, Checkbox, Popover } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
 import { User, WorkspaceRole } from '../../../utils';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Button from 'antd-button-color';
-import { FullscreenExitOutlined, FullscreenOutlined } from '@ant-design/icons';
+import {
+  CloseOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
 
 const { Search } = Input;
 export interface IActiveViewProps {
@@ -25,10 +30,13 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
   const [searchField, setSearchField] = useState('');
+  const [searchPopover, setSearchPopover] = useState(false);
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
-    (window.sessionStorage.getItem('prevViewActivePage') as WorkspaceRole) ??
-      WorkspaceRole.user
+    managerView
+      ? (window.sessionStorage.getItem('prevViewActivePage') as WorkspaceRole)
+      : WorkspaceRole.user
   );
+  const [showAdvanced, setShowAdvanced] = useState(true);
 
   useEffect(() => {
     window.sessionStorage.setItem('prevViewActivePage', currentView);
@@ -38,12 +46,64 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
     <Col span={24} lg={22} xxl={20}>
       <Box
         header={{
-          center: !managerView && (
+          center: !managerView ? (
             <div className="h-full flex justify-center items-center px-5">
               <p className="md:text-2xl text-lg text-center mb-0">
                 <b>Active Instances</b>
               </p>
             </div>
+          ) : (
+            managerView &&
+            currentView === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center gap-4 px-5">
+                <Button
+                  className="hidden xl:block"
+                  type="primary"
+                  shape="round"
+                  size="middle"
+                  icon={<FullscreenOutlined />}
+                  onClick={() => setExpandAll(true)}
+                >
+                  Expand
+                </Button>
+                <Button
+                  className="hidden xl:block"
+                  type="dark"
+                  shape="round"
+                  size="middle"
+                  icon={<FullscreenExitOutlined />}
+                  onClick={() => setCollapseAll(true)}
+                >
+                  Collapse
+                </Button>
+                <Tooltip title="Expand All" placement="top">
+                  <Button
+                    className="xl:hidden"
+                    type="primary"
+                    shape="circle"
+                    size="middle"
+                    icon={<FullscreenOutlined />}
+                    onClick={() => setExpandAll(true)}
+                  />
+                </Tooltip>
+                <Tooltip title="Collapse All" placement="top">
+                  <Button
+                    className="xl:hidden"
+                    type="dark"
+                    shape="circle"
+                    size="middle"
+                    icon={<FullscreenExitOutlined />}
+                    onClick={() => setCollapseAll(true)}
+                  />
+                </Tooltip>
+                <Checkbox
+                  checked={showAdvanced}
+                  onChange={e => setShowAdvanced(e.target.checked)}
+                >
+                  <strong>Show Sorter</strong>
+                </Checkbox>
+              </div>
+            )
           ),
           size: 'middle',
           right: managerView && (
@@ -56,67 +116,42 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               </Space>
             </div>
           ),
-          left: currentView === WorkspaceRole.manager && (
+          left: managerView && currentView === WorkspaceRole.manager && (
             <div className="h-full flex justify-center items-center pl-10 gap-4">
               <Search
-                className="hidden sm:block"
+                allowClear
+                className="hidden md:block"
                 placeholder="Search User"
-                onChange={event => {
-                  setSearchField(event.target.value);
-                }}
-                onSearch={value => {
-                  setSearchField(value);
-                }}
+                onChange={event => setSearchField(event.target.value)}
+                onSearch={value => setSearchField(value)}
                 enterButton
               />
-              <Button
-                className="hidden xl:block"
-                type="primary"
-                shape="round"
-                size="middle"
-                icon={<FullscreenOutlined />}
-                onClick={() => {
-                  setExpandAll(true);
-                }}
+              <Popover
+                className="block md:hidden"
+                content={
+                  <div className="flex justify-center gap-4">
+                    <Search
+                      placeholder="Search User"
+                      onChange={event => setSearchField(event.target.value)}
+                      onSearch={value => setSearchField(value)}
+                      allowClear
+                      enterButton
+                    />
+                  </div>
+                }
+                placement="right"
+                trigger="click"
+                visible={searchPopover}
+                onVisibleChange={() => setSearchPopover(old => !old)}
               >
-                Expand
-              </Button>
-              <Button
-                className="hidden xl:block"
-                type="dark"
-                shape="round"
-                size="middle"
-                icon={<FullscreenExitOutlined />}
-                onClick={() => {
-                  setCollapseAll(true);
-                }}
-              >
-                Collapse
-              </Button>
-              <Tooltip title="Expand All" placement="top">
                 <Button
-                  className="xl:hidden"
-                  type="primary"
+                  type={searchPopover ? 'danger' : 'primary'}
                   shape="circle"
                   size="middle"
-                  icon={<FullscreenOutlined />}
-                  onClick={() => {
-                    setExpandAll(true);
-                  }}
+                  icon={!searchPopover ? <SearchOutlined /> : <CloseOutlined />}
+                  onClick={() => setExpandAll(true)}
                 />
-              </Tooltip>
-              <Tooltip title="Collapse All" placement="top">
-                <Button
-                  className="xl:hidden"
-                  type="dark"
-                  shape="circle"
-                  size="middle"
-                  icon={<FullscreenExitOutlined />}
-                  onClick={() => {
-                    setCollapseAll(true);
-                  }}
-                />
-              </Tooltip>
+              </Popover>
             </div>
           ),
         }}
@@ -130,6 +165,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             expandAll={expandAll}
             setCollapseAll={setCollapseAll}
             setExpandAll={setExpandAll}
+            showAdvanced={showAdvanced}
           />
         ) : (
           <TableInstanceLogic
