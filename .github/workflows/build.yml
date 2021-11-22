@@ -79,9 +79,6 @@ jobs:
           # InstanceSet tools
           - instanceset-landing
 
-          # The current dashboard
-          - dashboard
-
           # The new frontend
           - frontend-app
           - frontend-storybook
@@ -130,10 +127,6 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=instanceset-landing
-
-          # The current dashboard
-          - component: dashboard
-            context: ./dashboard/dashboard
 
           # The new frontend
           - component: frontend-app
@@ -185,9 +178,6 @@ jobs:
           ref: ${{ needs.configure.outputs.ref }}
           submodules: true
           persist-credentials: false
-
-      - name: Prepare Environment for Dashboard
-        run: cp -r ./dashboard/views ./dashboard/dashboard/src
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
