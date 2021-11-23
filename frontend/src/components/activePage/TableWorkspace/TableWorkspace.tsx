@@ -2,7 +2,7 @@ import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableTemplate from '../TableTemplate/TableTemplate';
-import { Template, User, Workspace } from '../../../utils';
+import { AVID_SSKey, Template, User, Workspace } from '../../../utils';
 import TableWorkspaceRow from './TableWorkspaceRow';
 
 export interface ITableWorkspaceProps {
@@ -32,9 +32,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     handleManagerSorting,
   } = props;
   const [expandedId, setExpandedId] = useState(
-    window.sessionStorage
-      .getItem('prevExpandedIdActivePageWorkspace')
-      ?.split(',') ?? []
+    window.sessionStorage.getItem(`${AVID_SSKey}Workspace`)?.split(',') ?? []
   );
 
   const expandWorkspace = () => {
@@ -78,7 +76,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
 
   useEffect(() => {
     window.sessionStorage.setItem(
-      'prevExpandedIdActivePageWorkspace',
+      `${AVID_SSKey}Workspace`,
       expandedId.join(',')
     );
   }, [expandedId]);

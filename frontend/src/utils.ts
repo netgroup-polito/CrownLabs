@@ -1,6 +1,9 @@
 import { Dispatch, SetStateAction } from 'react';
 import { EnvironmentType } from './generated-types';
 
+export const AV_SSKey = 'prevViewActivePage';
+export const AVID_SSKey = 'prevExpandedIdViewActivePage';
+export const DV_SSKey = 'prevViewActivePage';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = 'user',
