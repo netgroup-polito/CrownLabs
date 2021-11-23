@@ -151,7 +151,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           className="flex w-full items-center cursor-pointer"
           onClick={() => expandRow(id, false)}
         >
-          <Space size={'middle'}>
+          <Space size="middle">
             <div className="flex items-center">
               {gui ? (
                 <DesktopOutlined
@@ -184,8 +184,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             </div>
           </Space>
         </div>
-        <Space size={'small'}>
-          <Badge value={activeInstances} size={'small'} className="mx-2" />
+        <Space size="small">
+          <Badge value={activeInstances} size="small" className="mx-2" />
           <Tooltip
             placement="left"
             title={
@@ -200,12 +200,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               </>
             }
           >
-            <Button
-              with="link"
-              type={'warning'}
-              size={'middle'}
-              className={'px-0'}
-            >
+            <Button with="link" type="warning" size="middle" className="px-0">
               Info
             </Button>
           </Tooltip>
@@ -225,7 +220,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               }}
             />
           ) : (
-            <Tooltip placement="top" title={'Create Instance'}>
+            <Tooltip placement="top" title="Create Instance">
               <Button
                 onClick={() => {
                   createInstance(id)
@@ -246,7 +241,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             disabled={createDisabled}
             type="primary"
             shape="round"
-            size={'middle'}
+            size="middle"
           >
             Create
           </Button>

@@ -90,7 +90,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           dataSource={instances}
           showHeader={false}
           pagination={false}
-          size={'middle'}
+          size="middle"
           rowClassName={
             viewMode === 'user' && extended ? '' : 'rowInstance-bg-color'
           }

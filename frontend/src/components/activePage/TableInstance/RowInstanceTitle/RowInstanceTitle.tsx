@@ -69,7 +69,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
   return (
     <>
       <div className="w-full flex justify-start items-center pl-4">
-        <Space size={'middle'}>
+        <Space size="middle">
           <RowInstanceStatus status={status} />
 
           {viewMode === 'manager' ? (

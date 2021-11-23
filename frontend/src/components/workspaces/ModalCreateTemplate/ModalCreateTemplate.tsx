@@ -459,7 +459,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                     htmlType="submit"
                     type="primary"
                     shape="round"
-                    size={'middle'}
+                    size="middle"
                   >
                     {template ? 'Modify' : 'Create'}
                   </Button>
@@ -471,7 +471,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 htmlType="submit"
                 type="primary"
                 shape="round"
-                size={'middle'}
+                size="middle"
                 loading={loading}
               >
                 {!loading && (template ? 'Modify' : 'Create')}

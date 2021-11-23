@@ -4,6 +4,9 @@ import { WorkspaceContainer } from '../WorkspaceContainer';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceRole } from '../../../utils';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
+
+const dashboard = new SessionValue(StorageKeys.Dashboard_View, '-1');
 export interface IDashboardProps {
   tenantNamespace: string;
   workspaces: Array<{
@@ -15,13 +18,11 @@ export interface IDashboardProps {
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
-  const [selectedWsId, setSelectedWs] = useState(
-    parseInt(window.sessionStorage.getItem('prevWs') ?? '-1')
-  );
+  const [selectedWsId, setSelectedWs] = useState(parseInt(dashboard.get()));
   const { tenantNamespace, workspaces } = props;
 
   useEffect(() => {
-    window.sessionStorage.setItem('prevWs', `${selectedWsId}`);
+    dashboard.set(String(selectedWsId));
   }, [selectedWsId]);
 
   return (

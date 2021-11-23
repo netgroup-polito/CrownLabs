@@ -45,7 +45,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
   };
 
   return status === 'VmiReady' ? (
-    <Tooltip placement="top" title={'Pause'}>
+    <Tooltip placement="top" title="Pause">
       <Button
         loading={disabled}
         className={`hidden ${
@@ -58,7 +58,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         disabled={disabled}
         icon={
           <PauseCircleOutlined
-            className={'flex justify-center items-center'}
+            className="flex justify-center items-center"
             style={font22px}
           />
         }
@@ -66,7 +66,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
       />
     </Tooltip>
   ) : status === 'VmiOff' ? (
-    <Tooltip placement="top" title={'Start'}>
+    <Tooltip placement="top" title="Start">
       <Button
         loading={disabled}
         className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
@@ -77,7 +77,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         disabled={disabled}
         icon={
           <PlayCircleOutlined
-            className={'flex justify-center items-center'}
+            className="flex justify-center items-center"
             style={font22px}
           />
         }
@@ -98,7 +98,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
           disabled={true}
           icon={
             <ExclamationCircleOutlined
-              className={'flex justify-center items-center'}
+              className="flex justify-center items-center"
               style={font22px}
             />
           }

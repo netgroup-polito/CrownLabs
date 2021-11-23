@@ -28,13 +28,13 @@ const ViewModeButton: FC<IViewModeButtonProps> = ({ ...props }) => {
       >
         Managed
       </Radio.Button>
-      <Radio.Button className="lg:hidden" value={'user'}>
-        <Tooltip placement="top" title={'Personal'}>
+      <Radio.Button className="lg:hidden" value="user">
+        <Tooltip placement="top" title="Personal">
           <UserOutlined />
         </Tooltip>
       </Radio.Button>
-      <Radio.Button className="lg:hidden" value={'manager'}>
-        <Tooltip placement="top" title={'Managed'}>
+      <Radio.Button className="lg:hidden" value="manager">
+        <Tooltip placement="top" title="Managed">
           <TeamOutlined />
         </Tooltip>
       </Radio.Button>
