@@ -12,7 +12,7 @@ export default gql`
           workspaces {
             role
             workspaceId: name
-            workspaceWrapper {
+            workspaceWrapperTenantV1alpha2 {
               itPolitoCrownlabsV1alpha1Workspace {
                 spec {
                   workspaceName: prettyName
