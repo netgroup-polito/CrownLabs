@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { Space, Col, Input, Tooltip, Checkbox, Popover } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
-import { User, WorkspaceRole } from '../../../utils';
+import { AV_SSKey, User, WorkspaceRole } from '../../../utils';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Button from 'antd-button-color';
@@ -33,14 +33,22 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [searchPopover, setSearchPopover] = useState(false);
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
     managerView
-      ? (window.sessionStorage.getItem('prevViewActivePage') as WorkspaceRole)
+      ? (window.sessionStorage.getItem(`${AV_SSKey}`) as WorkspaceRole) ??
+          WorkspaceRole.user
       : WorkspaceRole.user
   );
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(
+    !managerView ||
+      window.localStorage.getItem(`${AV_SSKey}Headers`) !== 'false'
+  );
 
   useEffect(() => {
-    window.sessionStorage.setItem('prevViewActivePage', currentView);
+    window.sessionStorage.setItem(`${AV_SSKey}`, currentView);
   }, [currentView]);
+
+  useEffect(() => {
+    window.localStorage.setItem(`${AV_SSKey}Headers`, String(showAdvanced));
+  }, [showAdvanced]);
 
   return (
     <Col span={24} lg={22} xxl={20}>
@@ -68,7 +76,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
                 </Button>
                 <Button
                   className="hidden xl:block"
-                  type="dark"
+                  type="primary"
                   shape="round"
                   size="middle"
                   icon={<FullscreenExitOutlined />}
@@ -100,7 +108,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
                   checked={showAdvanced}
                   onChange={e => setShowAdvanced(e.target.checked)}
                 >
-                  <strong>Show Sorter</strong>
+                  <strong>Show Headers</strong>
                 </Checkbox>
               </div>
             )

@@ -69,7 +69,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
       </p>
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0">
-          <strong>Name: </strong>
+          <strong>Instance ID: </strong>
           <Text italic>{name}</Text>
         </p>
       )}

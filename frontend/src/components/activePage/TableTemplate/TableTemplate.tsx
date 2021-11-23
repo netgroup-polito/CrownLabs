@@ -2,7 +2,7 @@ import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
-import { Template, User, WorkspaceRole } from '../../../utils';
+import { AVID_SSKey, Template, User, WorkspaceRole } from '../../../utils';
 import TableTemplateRow from './TableTemplateRow';
 import './TableTemplate.less';
 import {
@@ -39,7 +39,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   const { tenantId } = user;
   const [expandedId, setExpandedId] = useState(
     window.sessionStorage
-      .getItem(`prevExpandedIdActivePageTemplate-${templates[0].workspaceId}`)
+      .getItem(`${AVID_SSKey}Template-${templates[0].workspaceId}`)
       ?.split(',') ?? []
   );
 
@@ -101,7 +101,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
 
   useEffect(() => {
     window.sessionStorage.setItem(
-      `prevExpandedIdActivePageTemplate-${templates[0].workspaceId}`,
+      `${AVID_SSKey}Template-${templates[0].workspaceId}`,
       expandedId.join(',')
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,14 +114,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   }, [collapseAll, expandAll]);
 
   return (
-    <div
-      className={`rowInstance-bg-color ${
-        //viewMode === 'user'
-        //? 'cl-table flex-grow flex-wrap content-between py-0 overflow-auto scrollbar'
-        //:
-        ''
-      }`}
-    >
+    <div className="rowInstance-bg-color">
       <Table
         /* className="rowInstance-bg-color" */
         rowKey={record => record.id}
