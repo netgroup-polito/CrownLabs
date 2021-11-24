@@ -28,9 +28,73 @@ function checkMetadata(metadataItemA, metadataItemB) {
   );
 }
 
-function checkLabelSelector(subVar, payloadVar) {
-  // TODO: check on LabelSelector
-  return true;
+function splitLabelSelector(labelSelector) {
+  let key;
+  let values = [];
+
+  /*
+   * Split labelSelector into key and values
+   * First case: label selector into the form "crownlabs.polito.it/workspace=sid"
+   * Second case: label selector into the form "crownlabs.polito.it/workspace in (sid)"
+   */
+  if (labelSelector.includes('=')) {
+    let [sel0, sel1] = labelSelector.split('=').map(s => s.trim());
+    key = sel0;
+    values.push(sel1);
+  }
+
+  if (labelSelector.includes(' in ')) {
+    let [sel0, sel1] = labelSelector
+      .replaceAll('(', ' ')
+      .replaceAll(')', ' ')
+      .split(/\s+in\s+/)
+      .map(s => s.trim());
+    key = sel0;
+    values = sel1.split(',').map(v => v.trim());
+  }
+
+  return { key, values };
+}
+
+function checkLabelSelector(subVar, payloadVar, ruid) {
+  let { labels } = payloadVar;
+  let { labelSelector } = subVar;
+  let result = false;
+
+  graphqlLogger(
+    `[i] (${ruid}) Perform check on ${JSON.stringify(
+      labels
+    )} labels with ${labelSelector} label selector`
+  );
+
+  /*
+   * No labelSelector, so all resources are watched
+   */
+  if (!labelSelector) {
+    graphqlLogger(
+      `[i] (${ruid}) The result of the check is true due to empty labelSelector`
+    );
+    return true;
+  }
+  /*
+   * The resource has no labels, so no match
+   */
+  if (!labels) {
+    graphqlLogger(
+      `[i] (${ruid}) The result of the check is false due to empty labels`
+    );
+    return false;
+  }
+
+  const { key, values } = splitLabelSelector(labelSelector);
+
+  for (const k in labels) {
+    if (k.includes(key) && values.includes(labels[k])) result = true;
+  }
+
+  graphqlLogger(`[i] (${ruid}) The result of the check is ${result}`);
+
+  return result;
 }
 
 function overrideSubQueryList(queryName) {
@@ -404,16 +468,15 @@ function decorateLabelsSubscription(
               return false;
             }
 
-            if (!checkLabelSelector(variables, payload.apiObj.metadata)) {
-              // TODO: checkLablesSelector
+            if (!checkLabelSelector(variables, payload.apiObj.metadata, ruid)) {
               graphqlLogger(
                 `[i] (${ruid}) Check on labels about subscription: ${
                   info.fieldName
                 } with ${JSON.stringify(
                   variables
-                )} variables and payload with ${
+                )} variables and payload with ${JSON.stringify(
                   payload.apiObj.metadata.labels
-                } labels not passed`
+                )} labels not passed`
               );
               return false;
             }
