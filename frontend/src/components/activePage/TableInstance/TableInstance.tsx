@@ -68,6 +68,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             dataSource={[{}]}
             showHeader={false}
             pagination={false}
+            rowClassName=""
           >
             <Column
               title="Header"

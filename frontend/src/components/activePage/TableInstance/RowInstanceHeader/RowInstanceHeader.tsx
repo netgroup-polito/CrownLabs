@@ -84,10 +84,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
   };
 
   return (
-    <div
-      className="w-100 flex justify-between items-center h-10 "
-      style={{ backgroundColor: '#262525', borderBottom: 'solid #000000 1px' }}
-    >
+    <div className="w-100 flex justify-between items-center h-10 rowHeader-bg-color">
       <div
         className={
           viewMode === WorkspaceRole.user
