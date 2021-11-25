@@ -176,7 +176,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                     </>
                   }
                 >
-                  <div className="text-green-500 ml-3 flex items-center">
+                  <div className="success-color-fg ml-3 flex items-center">
                     <SvgInfinite width="22px" />
                   </div>
                 </Tooltip>

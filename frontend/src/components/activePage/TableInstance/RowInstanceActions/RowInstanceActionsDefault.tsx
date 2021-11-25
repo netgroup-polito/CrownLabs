@@ -28,13 +28,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const classFromProps = () => {
-    if (extended) {
-      return 'primary';
-    } else {
-      if (status === 'VmiReady' && gui) {
-        return 'success';
-      } else return 'primary';
-    }
+    if (extended) return 'primary';
+    if (status === 'VmiReady' && gui) return 'success';
+    return 'primary';
+  };
+
+  const classFromPropsMobile = () => {
+    if (extended) return 'link';
+    if (status === 'VmiReady' && gui) return 'success';
+    return 'primary';
   };
 
   const font22px = { fontSize: '22px' };
@@ -58,9 +60,11 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           onCancel={e => e?.stopPropagation()}
         >
           <Button
-            className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
-            type="danger"
-            with="link"
+            type="link"
+            danger
+            className={`hidden ${
+              extended ? 'sm:block' : 'xs:block'
+            } py-0 border-0`}
             shape="circle"
             size="middle"
             icon={
@@ -110,9 +114,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           <Button
             className={`${
               status !== 'VmiReady' || !gui ? 'pointer-events-none' : ''
-            } flex items-center justify-center p-0`}
-            with="link"
-            type={classFromProps()}
+            } flex items-center justify-center p-0 border-0`}
+            with={!extended ? 'link' : undefined}
+            type={classFromPropsMobile()}
             shape="circle"
             size="middle"
             href={url!}

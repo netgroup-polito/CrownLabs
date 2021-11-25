@@ -1,10 +1,16 @@
-tr.rowInstance-bg-color > td {
-  background-color: #1d1d1d !important;
+.rowHeader-bg-color {
+  background-color: #262525;
+  border-bottom: solid #000000 1px;
 }
 
-.body.light {
+body.light {
   tr.rowInstance-bg-color > td {
-    background-color: #ffffff !important;
+    background-color: #fafafa !important;
+  }
+
+  .rowHeader-bg-color {
+    background-color: #f1f1f1;
+    border-bottom: solid #f1f1f1 1px;
   }
 }
 
@@ -14,18 +20,3 @@ tr.rowInstance-bg-color > td {
     100vh - var(--box-ext-height, 344px)
   ); //465px if we want to add a Box footer
 }
-
-/* .cl-templates-table{
-  min-height: 171px;  
-  height: calc(100vh - var(--box-ext-height, 320px)); //465px if we want to add a Box footer
-}
-
-tr.ant-table-expanded-row > td {
-  background-color: #141414 !important;
-}
-
-body.light {
-  tr.ant-table-expanded-row > td {
-    background-color: #ffffff !important;
-  }
-} */
