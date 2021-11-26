@@ -1,12 +1,13 @@
 import './App.css';
 import AppLayout from './components/common/AppLayout';
 import ThemeContextProvider from './contexts/ThemeContext';
-import { BarChartOutlined } from '@ant-design/icons';
+import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
-import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import { TenantContext } from './graphql-components/tenantContext/TenantContext';
+import { LinkPosition } from './utils';
+import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -33,17 +34,32 @@ function App() {
           {
             route: { name: 'Dashboard', path: '/' },
             content: <DashboardLogic />,
+            linkPosition: LinkPosition.NavbarButton,
           },
           {
             route: { name: 'Active', path: '/active' },
             content: <ActiveViewLogic />,
+            linkPosition: LinkPosition.NavbarButton,
           },
           {
             route: { name: 'Drive', path: 'https://crownlabs.polito.it/cloud' },
+            linkPosition: LinkPosition.NavbarButton,
           },
           {
-            route: { name: 'Account', path: '/account' },
+            route: {
+              name: 'Support',
+              path: 'https://support.crownlabs.polito.it/',
+            },
+            linkPosition: LinkPosition.NavbarButton,
+          },
+          {
+            route: {
+              name: 'Manage account',
+              path: '/account',
+              navbarMenuIcon: <UserOutlined />,
+            },
             content: <UserPanelLogic />,
+            linkPosition: LinkPosition.MenuButton,
           },
         ]}
       />

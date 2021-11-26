@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { Layout, Drawer } from 'antd';
+import { FC, useContext } from 'react';
+import { Layout, Drawer, Tooltip, Divider, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { MenuOutlined } from '@ant-design/icons';
 import { Link, useLocation } from 'react-router-dom';
@@ -8,64 +8,94 @@ import ThemeSwitcher from '../../misc/ThemeSwitcher';
 import './Navbar.less';
 import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
+import { LinkPosition, RouteData, RouteDescriptor } from '../../../utils';
+import NavbarMenu from './NavbarMenu';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 
 const Header = Layout.Header;
-
-type RouteData = {
-  name: string;
-  path: string;
-};
+const { Title } = Typography;
 
 export interface INavbarProps {
-  routes: Array<RouteData>;
+  routes: Array<RouteDescriptor>;
   transparent?: boolean;
   logoutHandler: () => void;
 }
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent, logoutHandler } = props;
+  const routesData = routes.map(r => r.route);
+  const { data } = useContext(TenantContext);
   const [show, setShow] = useState(false);
 
   const currentPath = useLocation().pathname;
 
-  const currentName = routes.find(r => r.path === currentPath)?.name || '';
+  const currentName = routesData.find(r => r.path === currentPath)?.name || '';
 
   const buttons = routes.map((b, i) => {
-    const isExtLink = b.path.indexOf('http') === 0;
-    return (
-      <Link
-        target={isExtLink ? '_blank' : ''}
-        key={i}
-        to={{ pathname: isExtLink ? '' : b.path }}
-        rel={isExtLink ? 'noopener noreferrer' : ''}
-      >
-        <Button
-          onClick={() =>
-            isExtLink ? window.open(b.path, '_blank') : setShow(false)
-          }
-          ghost={currentPath !== b.path}
-          className={
-            'w-full flex justify-center my-3 ' +
-            (routes.length <= 4
-              ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-              : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-            (currentPath !== b.path ? ' navbar-button ' : '')
-          }
-          size="large"
-          type={currentPath !== b.path ? 'default' : 'primary'}
-          shape="round"
-        >
-          {b.name}
-        </Button>
-      </Link>
-    );
+    const routeData = b.route;
+    const isExtLink = routeData.path.indexOf('http') === 0;
+    return {
+      linkPosition: b.linkPosition,
+      content:
+        routeData.name !== 'Support' ? (
+          <Link
+            target={isExtLink ? '_blank' : ''}
+            key={i}
+            to={{ pathname: isExtLink ? '' : routeData.path }}
+            rel={isExtLink ? 'noopener noreferrer' : ''}
+          >
+            <Button
+              onClick={() =>
+                isExtLink
+                  ? window.open(routeData.path, '_blank')
+                  : setShow(false)
+              }
+              ghost={currentPath !== routeData.path}
+              className={
+                'w-full flex justify-center my-3 ' +
+                (routes.length <= 4
+                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
+                (currentPath !== routeData.path ? ' navbar-button ' : '')
+              }
+              size="large"
+              type={currentPath !== routeData.path ? 'default' : 'primary'}
+              shape="round"
+            >
+              {routeData.name}
+            </Button>
+          </Link>
+        ) : (
+          <Tooltip title="Coming soon" placement="bottom">
+            <span
+              className={
+                'cursor-not-allowed w-full flex justify-center my-3 ' +
+                (routes.length <= 4
+                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48')
+              }
+            >
+              <Button
+                ghost
+                disabled
+                className="pointer-events-none w-full flex justify-center navbar-button"
+                size="large"
+                type="default"
+                shape="round"
+              >
+                {routeData.name}
+              </Button>
+            </span>
+          </Tooltip>
+        ),
+    };
   });
 
   return (
     <>
       <Header
         className={
-          'flex h-auto px-6 justify-between ' +
+          'flex h-auto pr-6 pl-8 justify-between ' +
           (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
         }
       >
@@ -88,7 +118,9 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             (routes.length > 4 ? 'lg:flex' : 'md:flex')
           }
         >
-          {buttons}
+          {buttons
+            .filter(b => b.linkPosition === LinkPosition.NavbarButton)
+            .map(b => b.content)}
         </div>
         <div
           className={
@@ -97,6 +129,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           }
         >
           {buttons
+            .map(b => b.content)
             .filter((x, i) => (i < 2 ? x : null))
             .map((b, i) => (
               <div key={i} className="w-28  mr-3">
@@ -119,11 +152,12 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             }
           >
             <ThemeSwitcher />
+            <Divider className="ml-4 mr-0" type="vertical" />
 
-            <LogoutButton
-              className=" justify-end"
-              iconStyle={{ fontSize: '24px' }}
-              logoutHandler={logoutHandler}
+            <NavbarMenu
+              routes={routes
+                .filter(r => r.linkPosition === LinkPosition.MenuButton)
+                .map(r => r.route)}
             />
           </div>
           <Button
@@ -156,13 +190,18 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         <div className="px-4 mt-2">
           <div className="flex mb-6 justify-between items-center">
             <ThemeSwitcher />
+            <Title
+              className="mb-0"
+              level={5}
+            >{`${data?.tenant?.metadata?.tenantId}`}</Title>
             <LogoutButton
               logoutHandler={logoutHandler}
               iconStyle={{ fontSize: '24px' }}
+              buttonStyle={{ width: '48px' }}
               className="justify-end"
             />
           </div>
-          {buttons}
+          {buttons.map(x => x.content)}
         </div>
       </Drawer>
     </>
