@@ -34,7 +34,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
-	tenantwh "github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -89,6 +89,7 @@ func main() {
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
+	enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -101,14 +102,10 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 	log := ctrl.Log.WithName("setup")
 
-	if targetLabel == "" ||
-		kcURL == "" || kcTnOpUser == "" || kcTnOpPsw == "" ||
-		kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" ||
-		ncURL == "" || ncTnOpUser == "" || ncTnOpPsw == "" {
-		log.Error(errors.New("missing parameters"), "Initialization failed")
+	if targetLabel == "" {
+		log.Error(errors.New("missing targetLabel parameter"), "Initialization failed")
 		os.Exit(1)
 	}
-
 	targetLabelKeyValue := strings.Split(targetLabel, "=")
 	if len(targetLabelKeyValue) != 2 {
 		log.Error(errors.New("target label format error"), "Initialization failed")
@@ -131,36 +128,52 @@ func main() {
 		log.Error(err, "Unable to create manager")
 		os.Exit(1)
 	}
+	if enableWH == nil {
+		if err = (&clv1alpha1.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
+			log.Error(err, "Unable to create conversion webhook", "webhook", "Tenant")
+			os.Exit(1)
+		}
+		if err = (&clv1alpha2.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
+			log.Error(err, "Unable to create conversion webhook", "webhook", "Tenant")
+			os.Exit(1)
+		}
 
-	if err = (&clv1alpha1.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Error(err, "unable to create conversion webhook", "webhook", "Tenant")
-		os.Exit(1)
-	}
-	if err = (&clv1alpha2.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Error(err, "unable to create conversion webhook", "webhook", "Tenant")
-		os.Exit(1)
-	}
-
-	hookServer := mgr.GetWebhookServer()
-	webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
-	hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
-	hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantLabeler(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue))
-
-	kcA, err := controllers.NewKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
-	if err != nil {
-		log.Error(err, "Unable to setup keycloak")
-		os.Exit(1)
+		hookServer := mgr.GetWebhookServer()
+		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
+		hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
+		hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantLabeler(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue))
+	} else {
+		log.Info("Webhook set up: operation skipped")
 	}
 
-	go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
+	var kcA *controllers.KcActor
+	if kcURL == "" {
+		log.Info("Skipping client initialization, as empty target URL", "client", "keycloak")
+	} else {
+		if kcTnOpUser == "" || kcTnOpPsw == "" ||
+			kcLoginRealm == "" || kcTargetRealm == "" || kcTargetClient == "" {
+			log.Error(errors.New("missing keycloak parameters"), "Initialization failed")
+			os.Exit(1)
+		}
+		go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
+	}
 
-	httpClient := resty.New().SetCookieJar(nil)
-	NcA := controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
+	var NcA *controllers.NcActor
+	if ncURL == "" {
+		log.Info("Skipping client initialization, as empty target URL", "client", "nextcloud")
+	} else {
+		if ncTnOpUser == "" || ncTnOpPsw == "" {
+			log.Error(errors.New("missing nextcloud parameters"), "Initialization failed")
+			os.Exit(1)
+		}
+		httpClient := resty.New().SetCookieJar(nil)
+		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
+	}
 	if err = (&controllers.TenantReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		KcA:              kcA,
-		NcA:              &NcA,
+		NcA:              NcA,
 		TargetLabelKey:   targetLabelKey,
 		TargetLabelValue: targetLabelValue,
 		Concurrency:      maxConcurrentReconciles,
