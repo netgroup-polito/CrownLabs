@@ -18,15 +18,15 @@ const DashboardLogic: FC<{}> = () => {
         workspaces={
           tenantData?.tenant?.spec?.workspaces?.map(workspace => {
             return {
-              workspaceId: workspace?.workspaceRef?.workspaceWrapper
+              workspaceId: workspace?.workspaceWrapperTenantV1alpha2
                 ?.itPolitoCrownlabsV1alpha1Workspace?.spec
                 ?.workspaceName as string,
               role: WorkspaceRole[workspace?.role!],
               workspaceNamespace:
-                workspace?.workspaceRef?.workspaceWrapper
+                workspace?.workspaceWrapperTenantV1alpha2
                   ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
                   ?.workspaceNamespace!,
-              workspaceName: workspace?.workspaceRef?.workspaceId!,
+              workspaceName: workspace?.workspaceId!,
             };
           }) ?? []
         }

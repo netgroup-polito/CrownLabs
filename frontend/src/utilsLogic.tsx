@@ -206,8 +206,8 @@ export const getManagerInstances = (
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
   const [{ guiEnabled, persistent, environmentType }] = environmentList;
   const { firstName, lastName } =
-    spec?.tenantCrownlabsPolitoItTenantRef?.tenantWrapper
-      ?.itPolitoCrownlabsV1alpha1Tenant?.spec!;
+    spec?.tenantCrownlabsPolitoItTenantRef?.tenantV1alpha2Wrapper
+      ?.itPolitoCrownlabsV1alpha2Tenant?.spec!;
   const { tenantId } = spec?.tenantCrownlabsPolitoItTenantRef as any;
   const { name, namespace } = spec?.templateCrownlabsPolitoItTemplateRef as any;
   return {

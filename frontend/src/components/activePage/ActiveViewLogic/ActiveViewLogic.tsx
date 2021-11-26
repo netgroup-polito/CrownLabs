@@ -13,14 +13,14 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(workspace => {
+      const { workspaceWrapperTenantV1alpha2, workspaceId, role } = workspace!;
       const { spec, status } =
-        workspace?.workspaceRef?.workspaceWrapper
-          ?.itPolitoCrownlabsV1alpha1Workspace!;
+        workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace!;
       return {
         prettyName: spec?.workspaceName as string,
-        role: WorkspaceRole[workspace?.role!],
+        role: WorkspaceRole[role!],
         namespace: status?.namespace?.workspaceNamespace!,
-        id: workspace?.workspaceRef?.workspaceId!,
+        id: workspaceId!,
       };
     }) || [];
 

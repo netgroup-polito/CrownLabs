@@ -22,8 +22,8 @@ export default gql`
           prettyName
           tenantCrownlabsPolitoItTenantRef {
             tenantId: name
-            tenantWrapper {
-              itPolitoCrownlabsV1alpha1Tenant {
+            tenantV1alpha2Wrapper {
+              itPolitoCrownlabsV1alpha2Tenant {
                 spec {
                   firstName
                   lastName

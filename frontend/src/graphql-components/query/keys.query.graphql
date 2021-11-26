@@ -1,5 +1,5 @@
 query sshKeys($tenantId: String!) {
-  tenant: itPolitoCrownlabsV1alpha1Tenant(name: $tenantId) {
+  tenant: itPolitoCrownlabsV1alpha2Tenant(name: $tenantId) {
     metadata {
       tenantId: name
     }
