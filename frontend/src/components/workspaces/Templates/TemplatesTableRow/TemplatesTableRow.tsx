@@ -1,23 +1,24 @@
-import { FC, useContext, useState } from 'react';
-import { Space, Tooltip } from 'antd';
-import Button from 'antd-button-color';
-import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import {
-  DesktopOutlined,
   CodeOutlined,
+  DesktopOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import Badge from '../../../common/Badge';
-import { Resources, WorkspaceRole } from '../../../../utils';
+import { Space, Tooltip } from 'antd';
+import Button from 'antd-button-color';
+import { FetchResult } from 'apollo-link';
+import { FC, useContext, useState } from 'react';
+import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   CreateInstanceMutation,
   DeleteTemplateMutation,
+  useInstancesLabelSelectorQuery,
 } from '../../../../generated-types';
-import { FetchResult } from 'apollo-link';
-import { ModalAlert } from '../../../common/ModalAlert';
-import { useInstancesLabelSelectorQuery } from '../../../../generated-types';
-import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
 import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
+import { Resources, WorkspaceRole } from '../../../../utils';
+import Badge from '../../../common/Badge';
+import { ModalAlert } from '../../../common/ModalAlert';
+import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 
 export interface ITemplatesTableRowProps {
   id: string;
@@ -27,6 +28,7 @@ export interface ITemplatesTableRowProps {
   role: WorkspaceRole;
   resources: Resources;
   activeInstances: number;
+  totalInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (
     id: string
@@ -64,6 +66,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     role,
     resources,
     activeInstances,
+    totalInstances,
     createInstance,
     editTemplate,
     deleteTemplate,
@@ -72,9 +75,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   } = props;
 
   const { refreshClock } = useContext(TenantContext);
-
+  const { apolloErrorCatcher } = useContext(ErrorContext);
   const { refetch: refetchInstancesLabelSelector } =
     useInstancesLabelSelectorQuery({
+      onError: apolloErrorCatcher,
       variables: { labels: `crownlabs.polito.it/template=${id}` },
     });
 
@@ -95,6 +99,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       })
       .catch(() => setCreateDisabled(false));
   };
+
+  //TODO this value will be retrieved with a query
+  const InstancesLimit = 5;
 
   return (
     <>
@@ -226,11 +233,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           ) : (
             <Tooltip placement="top" title="Create Instance">
               <Button
-                onClick={() => {
-                  createInstance(id)
-                    .then(() => expandRow(id, true))
-                    .catch(() => null);
-                }}
+                onClick={createInstanceHandler}
                 className="xs:hidden block"
                 with="link"
                 type="primary"
@@ -239,16 +242,46 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               />
             </Tooltip>
           )}
-          <Button
-            onClick={createInstanceHandler}
-            className="hidden xs:block"
-            disabled={createDisabled}
-            type="primary"
-            shape="round"
-            size="middle"
-          >
-            Create
-          </Button>
+          {InstancesLimit === totalInstances ? (
+            <Tooltip
+              overlayClassName="w-44"
+              title={
+                <>
+                  <div className="text-center">
+                    You have <b>reached your limit</b> of {InstancesLimit}{' '}
+                    instances
+                  </div>
+                  <div className="text-center mt-2">
+                    Please <b>delete</b> an instance to create a new one
+                  </div>
+                </>
+              }
+            >
+              <span className="cursor-not-allowed">
+                <Button
+                  onClick={createInstanceHandler}
+                  className="hidden xs:block pointer-events-none"
+                  disabled={totalInstances === InstancesLimit || createDisabled}
+                  type="primary"
+                  shape="round"
+                  size={'middle'}
+                >
+                  Create
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button
+              onClick={createInstanceHandler}
+              className="hidden xs:block"
+              disabled={totalInstances === InstancesLimit || createDisabled}
+              type="primary"
+              shape="round"
+              size={'middle'}
+            >
+              Create
+            </Button>
+          )}
         </Space>
       </div>
     </>

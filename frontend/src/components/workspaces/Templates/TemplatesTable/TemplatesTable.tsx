@@ -17,6 +17,7 @@ import { TenantContext } from '../../../../graphql-components/tenantContext/Tena
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
+  totalInstances: number;
   tenantNamespace: string;
   workspaceNamespace: string;
   templates: Array<Template>;
@@ -45,6 +46,7 @@ export interface ITemplatesTableProps {
 
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
+    totalInstances,
     templates,
     role,
     editTemplate,
@@ -72,6 +74,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           resources={record.resources}
           role={role}
           activeInstances={record.instances ? record.instances.length : 0}
+          totalInstances={totalInstances}
           editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}

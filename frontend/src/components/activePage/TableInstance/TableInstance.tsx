@@ -1,15 +1,16 @@
-import { FC, useContext, useState } from 'react';
-import { Table } from 'antd';
-import { Instance, WorkspaceRole } from '../../../utils';
-import { useDeleteInstanceMutation } from '../../../generated-types';
-import './TableInstance.less';
-import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
-import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
-import Button from 'antd-button-color';
 import { DeleteOutlined } from '@ant-design/icons';
-import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
+import { Table } from 'antd';
+import Button from 'antd-button-color';
+import { FC, useContext, useState } from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { Instance, WorkspaceRole } from '../../../utils';
 import { ModalAlert } from '../../common/ModalAlert';
+import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
+import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
+import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
+import './TableInstance.less';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -41,7 +42,10 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
 
   const { now } = useContext(TenantContext);
   const [showAlert, setShowAlert] = useState(false);
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const destroyAll = () => {
     instances.forEach(instance => {

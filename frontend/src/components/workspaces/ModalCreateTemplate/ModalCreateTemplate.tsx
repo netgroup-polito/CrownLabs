@@ -1,4 +1,4 @@
-import { useState, useEffect, FC } from 'react';
+import { useState, useEffect, FC, useContext } from 'react';
 import {
   Modal,
   Slider,
@@ -14,6 +14,7 @@ import {
   useWorkspaceTemplatesQuery,
 } from '../../../generated-types';
 import { FetchResult } from 'apollo-link';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
@@ -192,12 +193,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setShow(false);
   };
 
+  const { apolloErrorCatcher } = useContext(ErrorContext);
   const {
     data: dataFetchTemplates,
     error: errorFetchTemplates,
     loading: loadingFetchTemplates,
     refetch: refetchTemplates,
   } = useWorkspaceTemplatesQuery({
+    onError: apolloErrorCatcher,
     variables: { workspaceNamespace },
   });
 
@@ -232,8 +235,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 templatename: undefined,
               });
             })
-            //TODO add error handler
-            .catch(err => null);
+            .catch(apolloErrorCatcher);
         }}
         initialValues={{
           templatename: formTemplate.name,

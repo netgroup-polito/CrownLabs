@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Layout, Row, Col } from 'antd';
+import { Layout, Row, Col, Result } from 'antd';
 import Navbar from '../Navbar';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { logout } from '../../../contexts/AuthContext';
@@ -46,6 +46,15 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
                 </Route>
               ) : null
             )}
+            <Route>
+              <div className="flex justify-center items-center w-full">
+                <Result
+                  status="404"
+                  title="404"
+                  subTitle="Sorry, the page you visited does not exist."
+                />
+              </div>
+            </Route>
           </Switch>
         </Content>
         <div className="left-TooltipButton">

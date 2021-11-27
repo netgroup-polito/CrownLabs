@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useContext, useState } from 'react';
 import { UserSwitchOutlined, PlusOutlined } from '@ant-design/icons';
 import Button from 'antd-button-color';
 import Box from '../../common/Box';
@@ -13,6 +13,7 @@ import {
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import { Image, Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { Tooltip } from 'antd';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -64,12 +65,16 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     workspace: { role, title, workspaceNamespace, workspaceName },
   } = props;
 
-  const [createTemplateMutation, { loading }] = useCreateTemplateMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const [show, setShow] = useState(false);
 
   const { data: dataImages, refetch: refetchImages } = useImagesQuery({
     variables: {},
+    onError: apolloErrorCatcher,
   });
 
   const submitHandler = (t: Template) =>

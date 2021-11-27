@@ -1,14 +1,12 @@
-import { FC, PropsWithChildren, useEffect, useState } from 'react';
-import { useContext } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
-import { ApolloProvider } from '@apollo/react-hooks';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { ApolloProvider } from '@apollo/react-hooks';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { ApolloClient } from 'apollo-client';
+import { ApolloLink, split } from 'apollo-link';
 import { HttpLink } from 'apollo-link-http';
 import { WebSocketLink } from 'apollo-link-ws';
-import { ApolloLink, split } from 'apollo-link';
-
+import { FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
 
 const httpUri = REACT_APP_CROWNLABS_GRAPHQL_URL;

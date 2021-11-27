@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import { Typography, Space, Tooltip } from 'antd';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import { DesktopOutlined, CodeOutlined } from '@ant-design/icons';
@@ -6,6 +6,8 @@ import { WorkspaceRole, Instance } from '../../../../utils';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import { useApplyInstanceMutation } from '../../../../generated-types';
 import { setInstancePrettyname } from '../../../../utilsLogic';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { ApolloError } from 'apollo-client';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {
@@ -31,7 +33,10 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
   const [edit, setEdit] = useState(false);
   const [title, setTitle] = useState(prettyName || name);
   const [invalid, setInvalid] = useState(false);
-  const [applyInstanceMutation] = useApplyInstanceMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [applyInstanceMutation] = useApplyInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const mutateInstancePrettyname = async (title: string) => {
     if (title.length < 5) {
@@ -46,8 +51,8 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
           applyInstanceMutation
         );
         if (result) setTimeout(setEdit, 400, false);
-      } catch {
-        // TODO: properly handle errors
+      } catch (err) {
+        apolloErrorCatcher(err as ApolloError);
       }
     }
   };

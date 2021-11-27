@@ -198,10 +198,12 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         <div className="px-4 mt-2">
           <div className="flex mb-6 justify-between items-center">
             <ThemeSwitcher />
-            <Title
-              className="mb-0"
-              level={5}
-            >{`${data?.tenant?.metadata?.tenantId}`}</Title>
+            {data?.tenant && (
+              <Title
+                className="mb-0"
+                level={5}
+              >{`${data?.tenant?.metadata?.tenantId}`}</Title>
+            )}
             <LogoutButton
               logoutHandler={logoutHandler}
               iconStyle={{ fontSize: '24px' }}
