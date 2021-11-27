@@ -3,18 +3,22 @@
 import { ApolloError } from 'apollo-client';
 import {
   Component,
+  createContext,
   Dispatch,
+  FC,
+  PropsWithChildren,
   ReactNode,
   SetStateAction,
   useEffect,
+  useState,
 } from 'react';
-import { createContext, FC, PropsWithChildren, useState } from 'react';
-import RenderErrorAlert from './RenderErrorAlert';
+import { ErrorHandler } from './ErrorHandler';
+import RenderErrorHandler from './RenderErrorHandler/RenderErrorHandler';
 import {
   CustomError,
   ErrorTypes,
-  SupportedError,
   hasRenderingError,
+  SupportedError,
 } from './utils';
 
 interface IErrorContext {
@@ -86,11 +90,8 @@ const ErrorContextProvider: FC<PropsWithChildren<{}>> = props => {
     );
   };
 
-  const getNextError = (): CustomError => {
-    const r = errorsQueue[0];
-    setErrorsQueue(old => old.slice(1));
-    return r;
-  };
+  const getNextError = () => setErrorsQueue(old => old.slice(1));
+
   const flushRenderError = () => {
     setErrorsQueue(old =>
       old.filter(e => e.getType() !== ErrorTypes.RenderError)
@@ -106,6 +107,14 @@ const ErrorContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const apolloErrorCatcher = makeErrorCatcher(ErrorTypes.ApolloError);
 
+  const filteredErrorQueue = errorsQueue.filter(
+    e => e.getType() !== ErrorTypes.RenderError
+  );
+
+  const renderErrorQueue = errorsQueue.filter(
+    e => e.getType() === ErrorTypes.RenderError
+  );
+
   return (
     <ErrorContext.Provider
       value={{
@@ -119,7 +128,16 @@ const ErrorContextProvider: FC<PropsWithChildren<{}>> = props => {
       }}
     >
       <ErrorBoundary makeErrorCatcher={makeErrorCatcher}>
-        {!hasRenderingError(errorsQueue) ? children : <RenderErrorAlert />}
+        <ErrorHandler
+          errorsQueue={filteredErrorQueue}
+          show={filteredErrorQueue.length > 0}
+          dismiss={getNextError}
+        />
+        {!hasRenderingError(errorsQueue) ? (
+          children
+        ) : (
+          <RenderErrorHandler errors={renderErrorQueue} />
+        )}
       </ErrorBoundary>
     </ErrorContext.Provider>
   );

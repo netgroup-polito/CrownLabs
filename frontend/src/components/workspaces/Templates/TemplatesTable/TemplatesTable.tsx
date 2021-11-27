@@ -1,19 +1,18 @@
 /* eslint-disable react/no-multi-comp */
-import { FC, useContext, useEffect } from 'react';
-import { Table } from 'antd';
-import { TemplatesTableRow } from '../TemplatesTableRow';
 import { CaretRightOutlined } from '@ant-design/icons';
-import { useState } from 'react';
-import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
-import './TemplatesTable.less';
+import { Table } from 'antd';
+import { FetchResult } from 'apollo-link';
+import { FC, useContext, useEffect, useState } from 'react';
 import {
   CreateInstanceMutation,
   DeleteTemplateMutation,
 } from '../../../../generated-types';
-import { FetchResult } from 'apollo-link';
-import TableInstance from '../../../activePage/TableInstance/TableInstance';
-import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
+import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
+import { SessionValue, StorageKeys } from '../../../../utilsStorage';
+import TableInstance from '../../../activePage/TableInstance/TableInstance';
+import { TemplatesTableRow } from '../TemplatesTableRow';
+import './TemplatesTable.less';
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {

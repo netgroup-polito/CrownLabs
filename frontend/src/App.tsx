@@ -11,7 +11,6 @@ import { LinkPosition } from './utils';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
-
   return (
     <ThemeContextProvider>
       <AppLayout
