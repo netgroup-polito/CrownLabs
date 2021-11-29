@@ -93,10 +93,15 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	})
 
 	Describe("The forge.PVCSpec function", func() {
-		var spec corev1.PersistentVolumeClaimSpec
+		var (
+			spec         corev1.PersistentVolumeClaimSpec
+			storageClass string
+		)
+
+		BeforeEach(func() { storageClass = "" })
 
 		JustBeforeEach(func() {
-			spec = forge.PVCSpec(&environment)
+			spec = forge.PVCSpec(&environment, &forge.ContainerEnvOpts{StorageClassName: storageClass})
 		})
 
 		It("Should set the correct access mode", func() {
@@ -104,6 +109,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 		It("Should set the correct resources", func() {
 			Expect(spec.Resources.Requests.Storage()).To(PointTo(Equal(environment.Resources.Disk)))
+		})
+		It("Should leave the storage class name unset", func() {
+			Expect(spec.StorageClassName).To(BeNil())
+		})
+
+		When("A custom storage class is specified", func() {
+			BeforeEach(func() { storageClass = "foo" })
+			It("Should set the storage class name", func() {
+				Expect(spec.StorageClassName).To(PointTo(Equal("foo")))
+			})
 		})
 	})
 

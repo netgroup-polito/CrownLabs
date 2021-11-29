@@ -285,7 +285,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The PVC should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.Spec).To(Equal(forge.PVCSpec(&environment)))
+				Expect(pvc.Spec).To(Equal(forge.PVCSpec(&environment, &forge.ContainerEnvOpts{})))
 			})
 		})
 
