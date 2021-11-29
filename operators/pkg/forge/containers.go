@@ -58,21 +58,31 @@ type ContainerEnvOpts struct {
 	WebsockifyImg        string
 	MyDriveImgAndTag     string
 	ContentDownloaderImg string
+	StorageClassName     string
 }
 
 // PVCSpec forges a ReadWriteOnce PersistentVolumeClaimSpec
 // with requests set as in environment.Resources.Disk.
-func PVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSpec {
+func PVCSpec(environment *clv1alpha2.Environment, opts *ContainerEnvOpts) corev1.PersistentVolumeClaimSpec {
 	return corev1.PersistentVolumeClaimSpec{
 		AccessModes: []corev1.PersistentVolumeAccessMode{
 			corev1.ReadWriteOnce,
 		},
+		StorageClassName: PVCStorageClassName(opts),
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceStorage: environment.Resources.Disk,
 			},
 		},
 	}
+}
+
+// PVCStorageClassName returns the storage class configured as option, or nil if empty.
+func PVCStorageClassName(opts *ContainerEnvOpts) *string {
+	if opts.StorageClassName != "" {
+		return pointer.String(opts.StorageClassName)
+	}
+	return nil
 }
 
 // PodSecurityContext forges a PodSecurityContext
