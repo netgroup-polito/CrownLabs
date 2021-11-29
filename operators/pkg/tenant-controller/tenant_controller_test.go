@@ -170,6 +170,12 @@ var _ = Describe("Tenant controller", func() {
 	It("Should create the related resources when creating a tenant", func() {
 		ctx := context.Background()
 
+		SampleResourceQuota := crownlabsv1alpha1.WorkspaceResourceQuota{
+			CPU:       *resource.NewQuantity(15, resource.DecimalSI),
+			Memory:    *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI),
+			Instances: 5,
+		}
+
 		By("By creating a workspace")
 		ws := &crownlabsv1alpha1.Workspace{
 			TypeMeta: metav1.TypeMeta{
@@ -183,6 +189,7 @@ var _ = Describe("Tenant controller", func() {
 			},
 			Spec: crownlabsv1alpha1.WorkspaceSpec{
 				PrettyName: wsPrettyName,
+				Quota:      SampleResourceQuota,
 			},
 		}
 		Expect(k8sClient.Create(ctx, ws)).Should(Succeed())
@@ -295,7 +302,7 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	By("By checking that the resource quota has a correct spec")
 	limitCPU, _ := resource.ParseQuantity("15")
 	limitMem, _ := resource.ParseQuantity("25Gi")
-	reqCPU, _ := resource.ParseQuantity("10")
+	reqCPU, _ := resource.ParseQuantity("15")
 	reqMem, _ := resource.ParseQuantity("25Gi")
 	instanceCount, _ := resource.ParseQuantity("5")
 	Expect(createdRq.Spec.Hard["limits.cpu"]).Should(Equal(limitCPU))

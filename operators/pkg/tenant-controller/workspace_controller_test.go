@@ -78,6 +78,9 @@ var _ = Describe("Workspace controller", func() {
 			},
 			Spec: crownlabsv1alpha1.WorkspaceSpec{
 				PrettyName: wsPrettyName,
+				Quota: crownlabsv1alpha1.WorkspaceResourceQuota{
+					Instances: 1,
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, ws)).Should(Succeed())

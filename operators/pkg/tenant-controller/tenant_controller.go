@@ -25,18 +25,22 @@ import (
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 const (
@@ -131,6 +135,15 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
+	tenantExistingWorkspaces, workspaces, err := r.checkValidWorkspaces(ctx, &tn)
+
+	if err != nil {
+		retrigErr = err
+	}
+
+	// update resource quota in the status of the tenant after checking validity of workspaces.
+	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
+
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 	nsOk, err := r.createOrUpdateClusterResources(ctx, &tn, nsName)
 	if nsOk {
@@ -149,24 +162,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.PersonalNamespace.Name = ""
 		retrigErr = err
 		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
-	}
-
-	// check validity of workspaces in tenant
-	tenantExistingWorkspaces := []crownlabsv1alpha2.TenantWorkspaceEntry{}
-	tn.Status.FailingWorkspaces = []string{}
-	// check every workspace of a tenant
-	for _, tnWs := range tn.Spec.Workspaces {
-		wsLookupKey := types.NamespacedName{Name: tnWs.Name, Namespace: ""}
-		var ws crownlabsv1alpha1.Workspace
-		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
-			// if there was a problem, add the workspace to the status of the tenant
-			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.Name, tn.Name, err)
-			retrigErr = err
-			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.Name)
-			tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
-		} else {
-			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
-		}
 	}
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
@@ -237,8 +232,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Tenant{}).
-		WithEventFilter(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue)).
+		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue))).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
 		Owns(&v1.Namespace{}).
@@ -247,6 +241,8 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&netv1.NetworkPolicy{}).
+		Watches(&source.Kind{Type: &crownlabsv1alpha1.Workspace{}},
+			handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Concurrency,
 		}).
@@ -278,6 +274,29 @@ func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) er
 	return retErr
 }
 
+// checkValidWorkspaces check validity of workspaces in tenant.
+func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownlabsv1alpha2.Tenant) ([]crownlabsv1alpha2.TenantWorkspaceEntry, []crownlabsv1alpha1.Workspace, error) {
+	tenantExistingWorkspaces := []crownlabsv1alpha2.TenantWorkspaceEntry{}
+	workspaces := []crownlabsv1alpha1.Workspace{}
+	tn.Status.FailingWorkspaces = []string{}
+	var err error
+	// check every workspace of a tenant
+	for _, tnWs := range tn.Spec.Workspaces {
+		wsLookupKey := types.NamespacedName{Name: tnWs.Name}
+		var ws crownlabsv1alpha1.Workspace
+		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
+			// if there was a problem, add the workspace to the status of the tenant
+			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.Name, tn.Name, err)
+			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.Name)
+			tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
+		} else {
+			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
+			workspaces = append(workspaces, ws)
+		}
+	}
+	return tenantExistingWorkspaces, workspaces, err
+}
+
 // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
@@ -296,7 +315,9 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
 	}
 	rqOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rq, func() error {
-		r.updateTnResQuota(&rq)
+		rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
+		rq.Spec.Hard = forge.TenantResourceQuotaSpec(&tn.Status.Quota)
+
 		return ctrl.SetControllerReference(tn, &rq, r.Scheme)
 	})
 	if err != nil {
@@ -373,21 +394,6 @@ func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 	ns.Labels["crownlabs.polito.it/name"] = tnName
 	ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
-}
-
-// updateTnResQuota updates the tenant resource quota.
-func (r *TenantReconciler) updateTnResQuota(rq *v1.ResourceQuota) {
-	rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
-
-	resourceList := make(v1.ResourceList)
-
-	resourceList["limits.cpu"] = *resource.NewQuantity(15, resource.DecimalSI)
-	resourceList["limits.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
-	resourceList["requests.cpu"] = *resource.NewQuantity(10, resource.DecimalSI)
-	resourceList["requests.memory"] = *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI)
-	resourceList["count/instances.crownlabs.polito.it"] = *resource.NewQuantity(5, resource.DecimalSI)
-
-	rq.Spec.Hard = resourceList
 }
 
 func (r *TenantReconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
@@ -611,4 +617,19 @@ func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string
 	labels[r.TargetLabelKey] = r.TargetLabelValue
 	labels["crownlabs.polito.it/managed-by"] = "tenant"
 	return labels
+}
+
+func (r *TenantReconciler) workspaceToEnrolledTenants(o client.Object) []reconcile.Request {
+	var enqueues []reconcile.Request
+	var tenants crownlabsv1alpha2.TenantList
+	if err := r.List(context.Background(), &tenants, client.HasLabels{
+		fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, o.GetName()),
+	}); err != nil {
+		klog.Errorf("Error when retrieving tenants enrolled in %s -> %s", o.GetName(), err)
+		return nil
+	}
+	for idx := range tenants.Items {
+		enqueues = append(enqueues, reconcile.Request{NamespacedName: types.NamespacedName{Name: tenants.Items[idx].GetName()}})
+	}
+	return enqueues
 }

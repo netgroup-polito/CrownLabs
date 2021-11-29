@@ -165,7 +165,7 @@ func main() {
 		go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 	}
 
-	var NcA *controllers.NcActor
+	var NcA controllers.NcHandler
 	if ncURL == "" {
 		log.Info("Skipping client initialization, as empty target URL", "client", "nextcloud")
 	} else {
