@@ -89,6 +89,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             />
           )}
           <RowInstanceActionsDefault
+            setSshModal={setSshModal}
             extended={extended}
             instance={instance}
             viewMode={viewMode}
