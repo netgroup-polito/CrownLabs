@@ -25,11 +25,11 @@ export interface IUserListProps {
 }
 
 const UserList: FC<IUserListProps> = props => {
-  const [showUserListModal, setshowUserListModal] = useState(false);
+  const [showUserListModal, setShowUserListModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [fileError, setFileError] = useState<string>('');
 
-  const closeModal = () => setshowUserListModal(false);
+  const closeModal = () => setShowUserListModal(false);
 
   const onCsvUploaded = (fileInfo: any) => {
     if (fileInfo.file.status === 'removed') {
@@ -101,7 +101,7 @@ const UserList: FC<IUserListProps> = props => {
           }) => (
             <div style={{ padding: 8 }}>
               <Input
-                placeholder="Search by Userid"
+                placeholder="Search by User ID"
                 onChange={e =>
                   setSelectedKeys(e.target.value ? [e.target.value] : [])
                 }
@@ -197,7 +197,7 @@ const UserList: FC<IUserListProps> = props => {
       <Row className="flex justify-end mt-4">
         <Button
           type="primary"
-          onClick={() => setshowUserListModal(true)}
+          onClick={() => setShowUserListModal(true)}
           className="m-1"
         >
           <PlusOutlined />

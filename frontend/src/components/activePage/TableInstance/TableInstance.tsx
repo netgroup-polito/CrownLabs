@@ -155,7 +155,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               icon={<DeleteOutlined />}
               onClick={e => e.stopPropagation()}
             >
-              Destory All
+              Destroy All
             </Button>
           </Popconfirm>
         </div>
