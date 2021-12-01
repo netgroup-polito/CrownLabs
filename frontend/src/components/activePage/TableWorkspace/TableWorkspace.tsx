@@ -104,6 +104,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
           // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) => (
             <CaretRightOutlined
+              className="transition-icon"
               onClick={e => onExpand(record, e)}
               rotate={expanded ? 90 : 0}
             />

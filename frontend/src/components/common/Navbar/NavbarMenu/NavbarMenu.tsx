@@ -39,7 +39,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
   return (
     <div className="flex justify-center items-center">
       <Dropdown
-        overlayClassName="pr-2"
+        overlayClassName="pt-1 pr-2 2xl:pr-0"
         visible={visible}
         onVisibleChange={handleVisibleChange}
         placement="bottomCenter"

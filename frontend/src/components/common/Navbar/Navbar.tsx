@@ -24,7 +24,11 @@ export interface INavbarProps {
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent, logoutHandler } = props;
   const routesData = routes.map(r => r.route);
-  const { data } = useContext(TenantContext);
+  const {
+    data,
+    loading: tenantLoading,
+    error: tenantError,
+  } = useContext(TenantContext);
   const [show, setShow] = useState(false);
 
   const currentPath = useLocation().pathname;
@@ -152,13 +156,17 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             }
           >
             <ThemeSwitcher />
-            <Divider className="ml-4 mr-0" type="vertical" />
 
-            <NavbarMenu
-              routes={routes
-                .filter(r => r.linkPosition === LinkPosition.MenuButton)
-                .map(r => r.route)}
-            />
+            {!tenantLoading && !tenantError && (
+              <>
+                <Divider className="ml-4 mr-0" type="vertical" />
+                <NavbarMenu
+                  routes={routes
+                    .filter(r => r.linkPosition === LinkPosition.MenuButton)
+                    .map(r => r.route)}
+                />
+              </>
+            )}
           </div>
           <Button
             className={
