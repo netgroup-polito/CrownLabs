@@ -89,6 +89,7 @@ export type RouteDescriptor = {
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
+  needle = needle.toLowerCase();
   for (const str of haystack)
     if (str.toLocaleLowerCase().includes(needle)) return true;
   return false;

@@ -71,7 +71,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
                   </div>
                   <div className="text-center">
                     Your files won't be deleted in case of an internal
-                    misservice of CrownLabs.
+                    disservice of CrownLabs.
                   </div>
                 </>
               }
