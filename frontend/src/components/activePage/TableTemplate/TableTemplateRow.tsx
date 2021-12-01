@@ -45,15 +45,15 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           expandRow(id);
         }}
       >
-        <Space size={'middle'}>
+        <Space size="middle">
           {gui ? (
             <DesktopOutlined
-              className={'primary-color-fg'}
+              className="primary-color-fg"
               style={{ fontSize: '24px' }}
             />
           ) : (
             <CodeOutlined
-              className={'primary-color-fg'}
+              className="primary-color-fg"
               style={{ fontSize: '24px' }}
             />
           )}
@@ -118,7 +118,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
             onClick={e => e.stopPropagation()}
             icon={
               <MoreOutlined
-                className={'flex items-center'}
+                className="flex items-center"
                 style={{ fontSize: '20px' }}
               />
             }
@@ -130,7 +130,7 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
         show={showAlert}
         alertMessage="ATTENTION"
         alertDescription={`Are you sure do you want to destroy all the instances in ${name}. This operation is dangerous and irreversible!`}
-        alertType={'error'}
+        alertType="error"
         buttons={[
           <Button
             type="danger"

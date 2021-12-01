@@ -43,7 +43,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
   return (
     <>
-      <Tooltip placement="top" title={'Destroy'}>
+      <Tooltip placement="top" title="Destroy">
         <Popconfirm
           placement="left"
           title="Are you sure to delete?"

@@ -2,9 +2,11 @@ import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableTemplate from '../TableTemplate/TableTemplate';
-import { AVID_SSKey, Template, User, Workspace } from '../../../utils';
+import { Template, User, Workspace } from '../../../utils';
 import TableWorkspaceRow from './TableWorkspaceRow';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
 
+const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
   workspaces: Array<Workspace>;
   user: User;
@@ -31,9 +33,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     showAdvanced,
     handleManagerSorting,
   } = props;
-  const [expandedId, setExpandedId] = useState(
-    window.sessionStorage.getItem(`${AVID_SSKey}Workspace`)?.split(',') ?? []
-  );
+  const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
 
   const expandWorkspace = () => {
     setExpandedId(workspaces.map(ws => ws.id));
@@ -75,10 +75,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   ];
 
   useEffect(() => {
-    window.sessionStorage.setItem(
-      `${AVID_SSKey}Workspace`,
-      expandedId.join(',')
-    );
+    expandedWS.set(expandedId.join(','));
   }, [expandedId]);
 
   useEffect(() => {
@@ -94,7 +91,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       <Table
         rowKey={record => record.id}
         columns={columns}
-        size={'middle'}
+        size="middle"
         dataSource={workspaces}
         pagination={false}
         showHeader={false}

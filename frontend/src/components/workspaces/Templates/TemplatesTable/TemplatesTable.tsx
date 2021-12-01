@@ -12,7 +12,9 @@ import {
 } from '../../../../generated-types';
 import { FetchResult } from 'apollo-link';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
+import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 
+const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
   tenantNamespace: string;
   workspaceNamespace: string;
@@ -78,23 +80,18 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     },
   ];
 
-  const [expandedId, setExpandedId] = useState(
-    window.sessionStorage.getItem('prevExpandedIdDashboard')?.split(',') ?? []
-  );
+  const [expandedId, setExpandedId] = useState(expandedT.get().split(','));
 
   const listToggler = makeListToggler<string>(setExpandedId);
 
   useEffect(() => {
-    window.sessionStorage.setItem(
-      'prevExpandedIdDashboard',
-      expandedId.join(',')
-    );
+    expandedT.set(expandedId.join(','));
   }, [expandedId]);
 
   return (
     <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
       <Table
-        size={'middle'}
+        size="middle"
         showHeader={false}
         rowKey={record => record.id}
         columns={columns}

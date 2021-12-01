@@ -62,7 +62,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP:</strong>{' '}
+        <strong>IP: </strong>
         <Text type="warning" copyable={!!ip}>
           {ip ?? 'unknown'}
         </Text>
@@ -75,16 +75,16 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
       )}
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0 lg:hidden">
-          <strong>PrettyName:</strong>{' '}
+          <strong>PrettyName: </strong>
           <Text italic>{prettyName ?? 'unknown'}</Text>
         </p>
       )}
       <p className="m-0 lg:hidden">
-        <strong>Created:</strong> {time ?? 'unknown'} <Text italic>ago</Text>
+        <strong>Created: </strong> {time ?? 'unknown'} <Text italic>ago</Text>
       </p>
       {viewMode !== WorkspaceRole.manager && (
         <p className="m-0 md:hidden">
-          <strong>Template:</strong>{' '}
+          <strong>Template: </strong>
           <Text italic>{templatePrettyName ?? 'unknown'}</Text>
         </p>
       )}

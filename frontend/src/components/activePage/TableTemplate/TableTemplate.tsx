@@ -2,14 +2,16 @@ import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 import TableInstance from '../TableInstance/TableInstance';
-import { AVID_SSKey, Template, User, WorkspaceRole } from '../../../utils';
+import { Template, User, WorkspaceRole } from '../../../utils';
 import TableTemplateRow from './TableTemplateRow';
 import './TableTemplate.less';
 import {
   useDeleteInstanceMutation,
   useSshKeysQuery,
 } from '../../../generated-types';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
 
+const expandedT = new SessionValue(StorageKeys.Active_ID_T, '');
 export interface ITableTemplateProps {
   templates: Array<Template>;
   user: User;
@@ -38,9 +40,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   } = props;
   const { tenantId } = user;
   const [expandedId, setExpandedId] = useState(
-    window.sessionStorage
-      .getItem(`${AVID_SSKey}Template-${templates[0].workspaceId}`)
-      ?.split(',') ?? []
+    expandedT.get(templates[0].workspaceId).split(',')
   );
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
@@ -100,10 +100,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   ];
 
   useEffect(() => {
-    window.sessionStorage.setItem(
-      `${AVID_SSKey}Template-${templates[0].workspaceId}`,
-      expandedId.join(',')
-    );
+    expandedT.set(expandedId.join(','), templates[0].workspaceId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedId]);
 
@@ -119,7 +116,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         /* className="rowInstance-bg-color" */
         rowKey={record => record.id}
         columns={columns}
-        size={'middle'}
+        size="middle"
         dataSource={templates}
         pagination={false}
         showHeader={false}

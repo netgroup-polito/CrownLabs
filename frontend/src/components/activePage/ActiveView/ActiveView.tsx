@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { Space, Col, Input, Tooltip, Checkbox, Popover } from 'antd';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
 import Box from '../../common/Box';
-import { AV_SSKey, User, WorkspaceRole } from '../../../utils';
+import { User, WorkspaceRole } from '../../../utils';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Button from 'antd-button-color';
@@ -12,6 +12,10 @@ import {
   FullscreenOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
+
+const view = new SessionValue(StorageKeys.Active_View, WorkspaceRole.user);
+const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
 
 const { Search } = Input;
 export interface IActiveViewProps {
@@ -32,22 +36,18 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [searchField, setSearchField] = useState('');
   const [searchPopover, setSearchPopover] = useState(false);
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
-    managerView
-      ? (window.sessionStorage.getItem(`${AV_SSKey}`) as WorkspaceRole) ??
-          WorkspaceRole.user
-      : WorkspaceRole.user
+    managerView ? (view.get() as WorkspaceRole) : WorkspaceRole.user
   );
   const [showAdvanced, setShowAdvanced] = useState(
-    !managerView ||
-      window.localStorage.getItem(`${AV_SSKey}Headers`) !== 'false'
+    !managerView || advanced.get() !== 'false'
   );
 
   useEffect(() => {
-    window.sessionStorage.setItem(`${AV_SSKey}`, currentView);
+    view.set(currentView);
   }, [currentView]);
 
   useEffect(() => {
-    window.localStorage.setItem(`${AV_SSKey}Headers`, String(showAdvanced));
+    advanced.set(String(showAdvanced));
   }, [showAdvanced]);
 
   return (
