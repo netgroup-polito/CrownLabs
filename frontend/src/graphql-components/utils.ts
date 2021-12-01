@@ -65,7 +65,7 @@ function getTenantPatchJson(spec: {
 }): string {
   let patchJson: ItPolitoCrownlabsV1alpha2Tenant = {
     kind: 'Tenant',
-    apiVersion: 'crownlabs.polito.it/v1alpha1',
+    apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec,
   };
   return JSON.stringify(patchJson);
