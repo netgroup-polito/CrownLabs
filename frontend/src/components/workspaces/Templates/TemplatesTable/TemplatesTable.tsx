@@ -1,5 +1,5 @@
 /* eslint-disable react/no-multi-comp */
-import { FC, useEffect } from 'react';
+import { FC, useContext, useEffect } from 'react';
 import { Table } from 'antd';
 import { TemplatesTableRow } from '../TemplatesTableRow';
 import { CaretRightOutlined } from '@ant-design/icons';
@@ -13,6 +13,7 @@ import {
 import { FetchResult } from 'apollo-link';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
 import { SessionValue, StorageKeys } from '../../../../utilsStorage';
+import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
@@ -52,6 +53,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     createInstance,
   } = props;
 
+  const { hasSSHKeys } = useContext(TenantContext);
   /**
    * Our Table has just one column which render all rows using a component TemplateTableRow
    */
@@ -122,6 +124,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
               viewMode={WorkspaceRole.user}
               extended={false}
               instances={template.instances}
+              hasSSHKeys={hasSSHKeys}
             />
           ),
         }}

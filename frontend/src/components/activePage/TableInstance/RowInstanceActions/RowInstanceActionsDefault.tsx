@@ -23,17 +23,17 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
   const titleFromStatus = () => {
     if (!connectDisabled) {
-      return gui ? 'Connect to this Instance' : `Connect by SSH`;
+      return gui ? 'Connect to the GUI' : `Connect through SSH`;
     } else
       return (
         <>
           <div>
-            <b>{'Connection unavailable:'}</b>
+            <b>{'Impossible to connect:'}</b>
           </div>
           <div>
             {environmentType === EnvironmentType.Container
-              ? 'Container does not support yet SSH connection'
-              : `Status: ${status}`}
+              ? 'Containers do not support SSH connection yet'
+              : `The instance is ${status}`}
           </div>
         </>
       );
@@ -56,9 +56,14 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const connectDisabled =
-    status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+    status !== 'VmiReady' ||
+    (environmentType === EnvironmentType.Container && !gui);
 
   const font22px = { fontSize: '22px' };
+
+  const connectOptions = gui
+    ? { href: url!, target: '_blank' }
+    : { onClick: () => setSshModal(true), ghost: true };
 
   return (
     <>
@@ -105,32 +110,16 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               : 'sm:block '
           } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
-          {gui ? (
-            <Button
-              className={`${connectDisabled ? 'pointer-events-none' : ''}`}
-              type={classFromProps()}
-              shape="round"
-              size="middle"
-              href={url!}
-              target="_blank"
-              disabled={connectDisabled}
-            >
-              Connect
-            </Button>
-          ) : (
-            <Button
-              className={`${connectDisabled ? 'pointer-events-none' : ''}`}
-              onClick={() => setSshModal(true)}
-              type={classFromProps()}
-              shape="round"
-              ghost
-              size="middle"
-              target="_blank"
-              disabled={connectDisabled}
-            >
-              Connect
-            </Button>
-          )}
+          <Button
+            className={`${connectDisabled ? 'pointer-events-none' : ''}`}
+            type={classFromProps()}
+            shape="round"
+            size="middle"
+            {...connectOptions}
+            disabled={connectDisabled}
+          >
+            Connect
+          </Button>
         </div>
         <div
           className={`hidden ${
@@ -143,46 +132,23 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             connectDisabled ? 'cursor-not-allowed' : ''
           }`}
         >
-          {gui ? (
-            <Button
-              className={`${
-                connectDisabled ? 'pointer-events-none' : ''
-              } flex items-center justify-center p-0 border-0`}
-              with={!extended ? 'link' : undefined}
-              type={classFromPropsMobile()}
-              shape="circle"
-              size="middle"
-              href={url!}
-              target="_blank"
-              disabled={connectDisabled}
-              icon={
-                <ExportOutlined
-                  className="flex items-center justify-center"
-                  style={font22px}
-                />
-              }
-            />
-          ) : (
-            <Button
-              className={`${
-                connectDisabled ? 'pointer-events-none' : ''
-              } flex items-center justify-center p-0 border-0`}
-              with={!extended ? 'link' : undefined}
-              type={classFromPropsMobile()}
-              shape="circle"
-              size="middle"
-              ghost
-              href={url!}
-              target="_blank"
-              disabled={connectDisabled}
-              icon={
-                <ExportOutlined
-                  className="flex items-center justify-center"
-                  style={font22px}
-                />
-              }
-            />
-          )}
+          <Button
+            className={`${
+              connectDisabled ? 'pointer-events-none' : ''
+            } flex items-center justify-center p-0 border-0`}
+            with={!extended ? 'link' : undefined}
+            type={classFromPropsMobile()}
+            shape="circle"
+            size="middle"
+            {...connectOptions}
+            disabled={connectDisabled}
+            icon={
+              <ExportOutlined
+                className="flex items-center justify-center"
+                style={font22px}
+              />
+            }
+          />
         </div>
       </Tooltip>
     </>

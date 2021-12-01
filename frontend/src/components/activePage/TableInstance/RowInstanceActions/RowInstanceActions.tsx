@@ -49,6 +49,8 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     return 'now';
   };
 
+  const fieldsDropdown = { instance, setSshModal, fileManager, extended };
+
   return (
     <>
       <div
@@ -82,6 +84,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
               : 'lg:w-2/3 xl:w-1/2'
           } ${extended ? 'pr-2' : ''}`}
         >
+          {!extended && <RowInstanceActionsDropdown {...fieldsDropdown} />}
           {persistent && (
             <RowInstanceActionsPersistent
               instance={instance}
@@ -94,12 +97,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
             instance={instance}
             viewMode={viewMode}
           />
-          <RowInstanceActionsDropdown
-            instance={instance}
-            setSshModal={setSshModal}
-            fileManager={fileManager}
-            extended={extended}
-          />
+          {extended && <RowInstanceActionsDropdown {...fieldsDropdown} />}
         </div>
       </div>
       <Modal
