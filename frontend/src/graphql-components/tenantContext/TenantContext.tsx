@@ -20,6 +20,7 @@ interface ITenantContext {
   loading?: boolean;
   error?: ApolloError;
   hasSSHKeys: boolean;
+  now: Date;
 }
 
 export const TenantContext = createContext<ITenantContext>({
@@ -27,12 +28,14 @@ export const TenantContext = createContext<ITenantContext>({
   loading: undefined,
   error: undefined,
   hasSSHKeys: false,
+  now: new Date(),
 });
 
 const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
   const { userId } = useContext(AuthContext);
   const { children } = props;
 
+  const [now, setNow] = useState(new Date());
   const [data, setData] = useState<TenantQuery>();
 
   const { data: sshKeysResult } = useSshKeysQuery({
@@ -60,10 +63,15 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     });
   }, [subscribeToMore, loading, userId]);
 
+  useEffect(() => {
+    const timerHandler = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timerHandler);
+  }, []);
+
   const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   return (
-    <TenantContext.Provider value={{ data, loading, error, hasSSHKeys }}>
+    <TenantContext.Provider value={{ data, loading, error, hasSSHKeys, now }}>
       {children}
     </TenantContext.Provider>
   );

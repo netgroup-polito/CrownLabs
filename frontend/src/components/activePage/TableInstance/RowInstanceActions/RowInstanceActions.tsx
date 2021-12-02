@@ -26,34 +26,27 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const [sshModal, setSshModal] = useState(false);
 
   const getTime = () => {
+    if (!instance.timeStamp) return 'unknown';
     const timeStamp = new Date(instance.timeStamp!);
-    if (timeStamp) {
-      // Get Delta time
-      let delta = (now.getTime() - timeStamp.getTime()) / 1000;
-      // Get Years
-      const years = Math.floor(delta / (86400 * 365));
-      // Get Days
-      delta -= years * (86400 * 365);
-      const days = Math.floor(delta / 86400);
-      // Get hours
-      delta -= days * 86400;
-      const hours = Math.floor(delta / 3600) % 24;
-      // Get Minutes
-      delta -= hours * 3600;
-      const minutes = Math.floor(delta / 60) % 60;
+    // Get Delta time
+    let delta = (now.getTime() - timeStamp.getTime()) / 1000;
+    // Get Years
+    const years = Math.floor(delta / (86400 * 365));
+    // Get Days
+    delta -= years * (86400 * 365);
+    const days = Math.floor(delta / 86400);
+    // Get hours
+    delta -= days * 86400;
+    const hours = Math.floor(delta / 3600) % 24;
+    // Get Minutes
+    delta -= hours * 3600;
+    const minutes = Math.floor(delta / 60) % 60;
 
-      if (years !== 0) {
-        return years + 'y ' + days + 'd';
-      } else if (days !== 0) {
-        return days + 'd ' + hours + 'h';
-      } else if (hours !== 0) {
-        return hours + 'h ' + minutes + 'm';
-      } else if (minutes !== 0) {
-        return minutes + 'm';
-      } else return 'now';
-    } else {
-      return 'unknown';
-    }
+    if (years) return years + 'y ' + days + 'd';
+    if (days) return days + 'd ' + hours + 'h';
+    if (hours) return hours + 'h ' + minutes + 'm';
+    if (minutes) return minutes + 'm';
+    return 'now';
   };
 
   return (
