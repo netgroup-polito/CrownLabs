@@ -1,5 +1,5 @@
-import { FC, useContext } from 'react';
-import { Popconfirm, Table } from 'antd';
+import { FC, useContext, useState } from 'react';
+import { Table } from 'antd';
 import { Instance, WorkspaceRole } from '../../../utils';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import './TableInstance.less';
@@ -9,6 +9,7 @@ import Button from 'antd-button-color';
 import { DeleteOutlined } from '@ant-design/icons';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { ModalAlert } from '../../common/ModalAlert';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -39,6 +40,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
   } = props;
 
   const { now } = useContext(TenantContext);
+  const [showAlert, setShowAlert] = useState(false);
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
   const destroyAll = () => {
@@ -139,24 +141,38 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       </div>
       {extended && viewMode === WorkspaceRole.user && (
         <div className="w-full pt-5 flex justify-center ">
-          <Popconfirm
-            placement="left"
-            title="You are about to delete all VMs in this. Are you sure?"
-            okText="Yes"
-            cancelText="No"
-            onConfirm={destroyAll}
-            onCancel={e => e?.stopPropagation()}
+          <Button
+            type="danger"
+            shape="round"
+            size="large"
+            icon={<DeleteOutlined />}
+            onClick={e => {
+              e.stopPropagation();
+              setShowAlert(true);
+            }}
           >
-            <Button
-              type="danger"
-              shape="round"
-              size="large"
-              icon={<DeleteOutlined />}
-              onClick={e => e.stopPropagation()}
-            >
-              Destroy All
-            </Button>
-          </Popconfirm>
+            Destroy All
+          </Button>
+          <ModalAlert
+            headTitle="Destroy All"
+            show={showAlert}
+            alertMessage="Warning"
+            alertDescription="This operation will delete all your instances and it is not reversible. Do you want to continue?"
+            alertType="warning"
+            buttons={[
+              <Button
+                type="danger"
+                shape="round"
+                size="middle"
+                icon={<DeleteOutlined />}
+                className="border-0"
+                onClick={() => destroyAll()}
+              >
+                Destroy All
+              </Button>,
+            ]}
+            setShow={setShowAlert}
+          />
         </div>
       )}
     </>
