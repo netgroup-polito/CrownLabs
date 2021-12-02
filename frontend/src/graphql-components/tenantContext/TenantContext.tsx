@@ -8,19 +8,25 @@ import {
   useState,
 } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import { TenantQuery, useTenantQuery } from '../../generated-types';
+import {
+  TenantQuery,
+  useSshKeysQuery,
+  useTenantQuery,
+} from '../../generated-types';
 import { updatedTenant } from '../subscription';
 
 interface ITenantContext {
   data?: TenantQuery;
   loading?: boolean;
   error?: ApolloError;
+  hasSSHKeys: boolean;
 }
 
 export const TenantContext = createContext<ITenantContext>({
   data: undefined,
   loading: undefined,
   error: undefined,
+  hasSSHKeys: false,
 });
 
 const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
@@ -28,6 +34,12 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
   const { children } = props;
 
   const [data, setData] = useState<TenantQuery>();
+
+  const { data: sshKeysResult } = useSshKeysQuery({
+    variables: { tenantId: userId ?? '' },
+    notifyOnNetworkStatusChange: true,
+    fetchPolicy: 'network-only',
+  });
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
@@ -48,8 +60,10 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     });
   }, [subscribeToMore, loading, userId]);
 
+  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
+
   return (
-    <TenantContext.Provider value={{ data, loading, error }}>
+    <TenantContext.Provider value={{ data, loading, error, hasSSHKeys }}>
       {children}
     </TenantContext.Provider>
   );
