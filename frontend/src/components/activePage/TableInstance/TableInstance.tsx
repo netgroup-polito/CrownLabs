@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useContext } from 'react';
 import { Popconfirm, Table } from 'antd';
 import { Instance, WorkspaceRole } from '../../../utils';
 import { useDeleteInstanceMutation } from '../../../generated-types';
@@ -8,6 +8,7 @@ import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import Button from 'antd-button-color';
 import { DeleteOutlined } from '@ant-design/icons';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -37,10 +38,8 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     handleManagerSorting,
   } = props;
 
-  const [now, setNow] = useState(new Date());
+  const { now } = useContext(TenantContext);
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
-
-  setInterval(() => setNow(new Date()), 60000);
 
   const destroyAll = () => {
     instances.forEach(instance => {
