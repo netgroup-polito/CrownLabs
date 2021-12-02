@@ -427,6 +427,11 @@ func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 }
 
 func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
+	// KcA could be nil for local testing skipping the keycloak subscription
+	if r.KcA == nil {
+		klog.Warningf("Skipping creation/update of tenant %v in keycloak", tn.GetName())
+		return nil
+	}
 	userID, currentUserEmail, err := r.KcA.getUserInfo(ctx, tn.Name)
 	if err != nil {
 		klog.Errorf("Error when checking if keycloak user %s existed for creation/update -> %s", tn.Name, err)
@@ -459,6 +464,11 @@ func genKcUserRoleNames(workspaces []crownlabsv1alpha2.TenantWorkspaceEntry) []s
 }
 
 func (r *TenantReconciler) handleNextcloudSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
+	// NcA could be nil for local testing skipping the nextcloud subscription
+	if r.NcA == nil {
+		klog.Warningf("Skipping creation/update of tenant %v in nextcloud", tn.GetName())
+		return nil
+	}
 	// independently of the existence of the nexctloud secret for the nextcloud credentials of the user, need to know the displayname of the user, in order to update it if necessary
 	ncUsername := genNcUsername(tn.Name)
 	expectedDisplayname := genNcDisplayname(tn.Spec.FirstName, tn.Spec.LastName)
