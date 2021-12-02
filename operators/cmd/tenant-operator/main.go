@@ -155,6 +155,13 @@ func main() {
 			log.Error(errors.New("missing keycloak parameters"), "Initialization failed")
 			os.Exit(1)
 		}
+
+		kcA, err = controllers.NewKcActor(kcURL, kcTnOpUser, kcTnOpPsw, kcTargetRealm, kcTargetClient, kcLoginRealm)
+		if err != nil {
+			log.Error(err, "Unable to setup keycloak")
+			os.Exit(1)
+		}
+
 		go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 	}
 
