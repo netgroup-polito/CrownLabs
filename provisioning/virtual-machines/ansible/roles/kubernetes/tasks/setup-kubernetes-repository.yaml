@@ -14,4 +14,4 @@
 
 - name: Set kubernetes version
   set_fact:
-    k8s_version: 1.19.3-00
+    k8s_version: 1.22.4-00
