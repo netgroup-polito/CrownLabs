@@ -133,3 +133,8 @@ issues:
         - stylecheck
       # Excluding, as many packages are currently affected by this
       text: "ST1003: should not use underscores in package names"
+
+    # Exclude the following linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gosec

@@ -45,7 +45,7 @@ func MakeTenantValidator(c client.Client, webhookBypassGroups []string) *webhook
 
 // Handle admits a tenant if user is editing its own tenant or a user is adding/removing workspaces
 // they own to/from another user - this method is used by controller runtime.
-func (tv *TenantValidator) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic,hugeParam // the signature of this method is imposed by controller runtime.
+func (tv *TenantValidator) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic // the signature of this method is imposed by controller runtime.
 	log := ctrl.LoggerFrom(ctx).WithName("validator").WithValues("username", req.UserInfo.Username, "tenant", req.Name)
 
 	log.V(utils.LogDebugLevel).Info("processing admission request", "groups", strings.Join(req.UserInfo.Groups, ","))

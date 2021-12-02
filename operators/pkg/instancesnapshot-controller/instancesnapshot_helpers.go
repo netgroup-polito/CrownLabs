@@ -129,7 +129,7 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context
 	}
 
 	var backoff int32 = 2
-	imagetag := fmt.Sprint(time.Now().Format("20060102t150405"))
+	imagetag := time.Now().Format("20060102t150405")
 	// Volume name does not accept dots, replace them with dashes
 	volumename := strings.ReplaceAll(isnap.Spec.Instance.Name, ".", "-")
 	imagedir := utils.ParseDockerDirectory(instance.Spec.Tenant.Name)
