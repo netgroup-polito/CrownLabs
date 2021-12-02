@@ -45,7 +45,7 @@ func MakeTenantLabeler(c client.Client, webhookBypassGroups []string, opSelector
 }
 
 // Handle on TenantLabeler adds operator selector labels to new tenants and prevents possible changes - this method is used by controller runtime.
-func (tl *TenantLabeler) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic,hugeParam // the signature of this method is imposed by controller runtime.
+func (tl *TenantLabeler) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic // the signature of this method is imposed by controller runtime.
 	log := ctrl.LoggerFrom(ctx).WithName("labeler").WithValues("username", req.UserInfo.Username, "tenant", req.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 

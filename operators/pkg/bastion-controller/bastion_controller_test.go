@@ -17,7 +17,6 @@ package bastion_controller
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -54,7 +53,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 	// this function checks if the keys are properly placed in the file.
 	checkFile := func() (bool, error) {
 
-		data, err := ioutil.ReadFile(testFile)
+		data, err := os.ReadFile(testFile)
 		if err != nil {
 			return false, err
 		}

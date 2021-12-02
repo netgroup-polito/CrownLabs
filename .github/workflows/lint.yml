@@ -22,7 +22,7 @@ jobs:
       - name: Check linting
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.41.1
+          version: v1.43.0
           working-directory: operators
           args: --timeout=600s
 

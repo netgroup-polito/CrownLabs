@@ -104,7 +104,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 			// Since we don't have to retry, validation failed
 			// Add the event and stop reconciliation since the request is not valid.
-			r.EventsRecorder.Event(isnap, "Warning", "ValidationError", fmt.Sprintf("%s", err1))
+			r.EventsRecorder.Event(isnap, "Warning", "ValidationError", err1.Error())
 			return ctrl.Result{}, nil
 		}
 		// Job successfully created

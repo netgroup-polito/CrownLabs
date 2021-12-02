@@ -17,7 +17,6 @@ package bastion_controller
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -63,7 +62,7 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if _, err := os.Stat(r.AuthorizedKeysPath); err == nil {
 		// if the file exists, read the whole file in a []byte
-		data, err := ioutil.ReadFile(r.AuthorizedKeysPath)
+		data, err := os.ReadFile(r.AuthorizedKeysPath)
 		if err != nil {
 			klog.Errorf("unable to read the file authorized_keys: %v", err)
 			return ctrl.Result{}, err
@@ -88,7 +87,7 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	defer closeFile(f)
 
 	if len(keys) > 0 {
-		_, err = f.Write([]byte(strings.Join(keys, string("\n"))))
+		_, err = f.WriteString(strings.Join(keys, string("\n")))
 		if err != nil {
 			klog.Errorf("unable to write to authorized_keys: %v", err)
 			return ctrl.Result{}, nil
