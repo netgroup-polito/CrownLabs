@@ -1,26 +1,26 @@
-import { FC, useState, useEffect, SetStateAction, Dispatch } from 'react';
+import { FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
-import TableWorkspace from '../TableWorkspace/TableWorkspace';
-import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
+import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
 import {
-  UpdatedInstancesLabelSelectorSubscriptionResult,
-  useInstancesLabelSelectorQuery,
   InstancesLabelSelectorQuery,
   UpdatedInstancesLabelSelectorDocument,
+  UpdatedInstancesLabelSelectorSubscriptionResult,
   UpdateType,
+  useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
-import { FetchPolicy } from '@apollo/client';
 import {
   comparePrettyName,
   matchK8sObject,
   replaceK8sObject,
 } from '../../../k8sUtils';
+import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
 import {
   getManagerInstances,
   getTemplatesMapped,
   getWorkspacesMapped,
   notifyStatus,
 } from '../../../utilsLogic';
+import TableWorkspace from '../TableWorkspace/TableWorkspace';
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
@@ -155,7 +155,6 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   return !loadingInstances && !errorInstances && templatesMapped ? (
     <TableWorkspace
       workspaces={workspacesMapped}
-      user={user}
       collapseAll={collapseAll}
       expandAll={expandAll}
       setCollapseAll={setCollapseAll}

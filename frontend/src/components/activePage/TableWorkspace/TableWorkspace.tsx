@@ -1,15 +1,14 @@
-import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
-import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
-import TableTemplate from '../TableTemplate/TableTemplate';
-import { Template, User, Workspace } from '../../../utils';
-import TableWorkspaceRow from './TableWorkspaceRow';
+import { Table } from 'antd';
+import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
+import { Template, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
+import TableTemplate from '../TableTemplate/TableTemplate';
+import TableWorkspaceRow from './TableWorkspaceRow';
 
 const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
   workspaces: Array<Workspace>;
-  user: User;
   collapseAll: boolean;
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
@@ -25,7 +24,6 @@ export interface ITableWorkspaceProps {
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   const {
     workspaces,
-    user,
     collapseAll,
     expandAll,
     setCollapseAll,
@@ -110,7 +108,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
           expandedRowRender: record => (
             <TableTemplate
               templates={record.templates!}
-              user={user}
               collapseAll={collapseAll}
               expandAll={expandAll}
               setCollapseAll={setCollapseAll}

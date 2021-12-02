@@ -1,20 +1,24 @@
-import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
-import { Table } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
-import TableInstance from '../TableInstance/TableInstance';
-import { Template, User, WorkspaceRole } from '../../../utils';
-import TableTemplateRow from './TableTemplateRow';
-import './TableTemplate.less';
+import { Table } from 'antd';
 import {
-  useDeleteInstanceMutation,
-  useSshKeysQuery,
-} from '../../../generated-types';
+  Dispatch,
+  FC,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { useDeleteInstanceMutation } from '../../../generated-types';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { Template, WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
+import TableInstance from '../TableInstance/TableInstance';
+import './TableTemplate.less';
+import TableTemplateRow from './TableTemplateRow';
 
 const expandedT = new SessionValue(StorageKeys.Active_ID_T, '');
 export interface ITableTemplateProps {
   templates: Array<Template>;
-  user: User;
   collapseAll: boolean;
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
@@ -30,7 +34,6 @@ export interface ITableTemplateProps {
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   const {
     templates,
-    user,
     collapseAll,
     expandAll,
     setCollapseAll,
@@ -38,20 +41,12 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     handleManagerSorting,
     showAdvanced,
   } = props;
-  const { tenantId } = user;
+  const { hasSSHKeys } = useContext(TenantContext);
   const [expandedId, setExpandedId] = useState(
     expandedT.get(templates[0].workspaceId).split(',')
   );
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
-
-  const { data: sshKeysResult } = useSshKeysQuery({
-    variables: { tenantId: tenantId ?? '' },
-    notifyOnNetworkStatusChange: true,
-    fetchPolicy: 'network-only',
-  });
-
-  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   const expandTemplate = () => {
     setExpandedId(templates.map(t => t.id));

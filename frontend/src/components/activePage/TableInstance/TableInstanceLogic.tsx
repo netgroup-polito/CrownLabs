@@ -1,25 +1,25 @@
 import { FetchPolicy } from '@apollo/client';
-import { FC, useState, useEffect } from 'react';
-import { Spin, Empty } from 'antd';
-import { Instance, User, WorkspaceRole } from '../../../utils';
-import './TableInstance.less';
-import TableInstance from './TableInstance';
+import { Empty, Spin } from 'antd';
+import Button from 'antd-button-color';
+import { FC, useContext, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  useOwnedInstancesQuery,
-  UpdatedOwnedInstancesSubscriptionResult,
   OwnedInstancesQuery,
+  UpdatedOwnedInstancesSubscriptionResult,
   UpdateType,
-  useSshKeysQuery,
+  useOwnedInstancesQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
-import { getInstances, notifyStatus, sorter } from '../../../utilsLogic';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 import {
   comparePrettyName,
   matchK8sObject,
   replaceK8sObject,
 } from '../../../k8sUtils';
-import { Link } from 'react-router-dom';
-import Button from 'antd-button-color';
+import { Instance, User, WorkspaceRole } from '../../../utils';
+import { getInstances, notifyStatus, sorter } from '../../../utilsLogic';
+import TableInstance from './TableInstance';
+import './TableInstance.less';
 export interface ITableInstanceLogicProps {
   viewMode: WorkspaceRole;
   showGuiIcon: boolean;
@@ -32,6 +32,7 @@ const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { viewMode, extended, showGuiIcon, user } = props;
   const { tenantNamespace, tenantId } = user;
+  const { hasSSHKeys } = useContext(TenantContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
@@ -51,14 +52,6 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     onCompleted: setDataInstances,
     fetchPolicy: fetchPolicy_networkOnly,
   });
-
-  const { data: sshKeysResult } = useSshKeysQuery({
-    variables: { tenantId: tenantId ?? '' },
-    notifyOnNetworkStatusChange: true,
-    fetchPolicy: 'network-only',
-  });
-
-  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   useEffect(() => {
     if (!loadingInstances) {
