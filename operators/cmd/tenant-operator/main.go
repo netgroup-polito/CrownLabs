@@ -128,7 +128,7 @@ func main() {
 		log.Error(err, "Unable to create manager")
 		os.Exit(1)
 	}
-	if enableWH == nil {
+	if *enableWH {
 		if err = (&clv1alpha1.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
 			log.Error(err, "Unable to create conversion webhook", "webhook", "Tenant")
 			os.Exit(1)
