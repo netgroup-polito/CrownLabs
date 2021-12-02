@@ -31,8 +31,15 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 }) => {
   const { instance, fileManager, extended, setSshModal } = props;
 
-  const { status, persistent, url, name, tenantNamespace, environmentType } =
-    instance;
+  const {
+    status,
+    persistent,
+    url,
+    name,
+    tenantNamespace,
+    environmentType,
+    gui,
+  } = instance;
 
   const font20px = { fontSize: '20px' };
 
@@ -88,7 +95,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         persistent && mutateInstanceStatus(false);
         break;
       case DropDownAction.connect:
-        window.open(url!, '_blank');
+        gui ? window.open(url!, '_blank') : setSshModal(true);
         break;
       case DropDownAction.destroy:
         deleteInstanceMutation({
@@ -107,9 +114,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         environmentType === EnvironmentType.VirtualMachine &&
           window.open('https://crownlabs.polito.it/cloud', '_blank');
         break;
-      case DropDownAction.destroy_all:
-        // TODO: Popconfirm not work maybe we should use a modal for the confirmation
-        break;
       default:
         break;
     }
@@ -121,17 +125,24 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const fileManagerDisabled =
     status !== 'VmiReady' && environmentType === EnvironmentType.Container;
 
+  const connectDisabled =
+    status !== 'VmiReady' ||
+    (environmentType === EnvironmentType.Container && !gui);
+
   return (
     <Dropdown
       trigger={['click']}
       overlay={
         <Menu onClick={({ key }) => dropdownHandler(key as DropDownAction)}>
           <Menu.Item
-            disabled={status !== 'VmiReady'}
+            disabled={connectDisabled}
             key="connect"
             className={`flex items-center sm:hidden ${
-              status === 'VmiReady' &&
-              (extended ? 'primary-color-fg' : 'success-color-fg')
+              !connectDisabled
+                ? extended
+                  ? 'primary-color-fg'
+                  : 'success-color-fg xs:hidden'
+                : 'pointer-events-none'
             }`}
             icon={<ExportOutlined style={font20px} />}
           >
@@ -140,40 +151,39 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           {persistent && (
             <Menu.Item
               key={menuKey}
-              className="flex items-center sm:hidden"
+              className={`flex items-center ${
+                extended ? ' sm:hidden' : 'xs:hidden'
+              }`}
               icon={menuIcon}
             >
               {menuText}
             </Menu.Item>
           )}
-          <Menu.Divider className={`${extended ? 'sm:hidden' : 'hidden'}`} />
-          {extended && (
-            <>
-              <Menu.Item
-                key="ssh"
-                className="flex items-center xl:hidden"
-                disabled={sshDisabled}
-                icon={<CodeOutlined style={font20px} />}
-              >
-                SSH
-              </Menu.Item>
-              <Menu.Item
-                key="upload"
-                className="flex items-center xl:hidden"
-                disabled={fileManagerDisabled}
-                icon={<FolderOpenOutlined style={font20px} />}
-              >
-                {environmentType === EnvironmentType.Container
-                  ? 'File Manager'
-                  : environmentType === EnvironmentType.VirtualMachine &&
-                    'Drive'}
-              </Menu.Item>
-            </>
-          )}
+          <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
+          <Menu.Item
+            key="ssh"
+            className={`flex items-center ${extended ? 'xl:hidden' : ''} `}
+            disabled={sshDisabled}
+            icon={<CodeOutlined style={font20px} />}
+          >
+            SSH
+          </Menu.Item>
+          <Menu.Item
+            key="upload"
+            className={`flex items-center ${extended ? 'xl:hidden' : ''} `}
+            disabled={fileManagerDisabled}
+            icon={<FolderOpenOutlined style={font20px} />}
+          >
+            {environmentType === EnvironmentType.Container
+              ? 'File Manager'
+              : environmentType === EnvironmentType.VirtualMachine && 'Drive'}
+          </Menu.Item>
           <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
           <Menu.Item
             key="destroy"
-            className="flex items-center sm:hidden"
+            className={`flex items-center ${
+              extended ? ' sm:hidden' : 'xs:hidden'
+            }`}
             danger
             icon={<DeleteOutlined style={font20px} />}
           >
@@ -188,7 +198,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             ? !sshDisabled || fileManager
               ? 'xl:hidden'
               : 'sm:hidden'
-            : 'xs:hidden'
+            : ''
         } flex justify-center`}
         type="default"
         with="link"

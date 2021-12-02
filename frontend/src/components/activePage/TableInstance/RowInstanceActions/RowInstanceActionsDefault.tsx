@@ -1,45 +1,69 @@
-import { FC } from 'react';
+import { FC, SetStateAction } from 'react';
 import { Tooltip, Popconfirm } from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Instance, WorkspaceRole } from '../../../../utils';
 import { useDeleteInstanceMutation } from '../../../../generated-types';
+import { EnvironmentType } from '../../../../generated-types';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
   viewMode: WorkspaceRole;
+  setSshModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, instance, viewMode } = props;
-  const { url, status, gui, name, tenantNamespace } = instance;
+  const { extended, instance, viewMode, setSshModal } = props;
+  const { url, status, gui, name, tenantNamespace, environmentType } = instance;
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
   const titleFromStatus = () => {
-    if (status === 'VmiReady') {
-      return gui
-        ? 'Connect to this Instance'
-        : `This instance hasn't any GUI to connect`;
-    } else return `Connection unavailable - Status: ` + status;
+    if (!connectDisabled) {
+      return gui ? 'Connect to the GUI' : `Connect through SSH`;
+    } else
+      return (
+        <>
+          <div>
+            <b>{'Impossible to connect:'}</b>
+          </div>
+          <div>
+            {environmentType === EnvironmentType.Container
+              ? 'Containers do not support SSH connection yet'
+              : `The instance is ${status}`}
+          </div>
+        </>
+      );
   };
 
   const classFromProps = () => {
-    if (extended) return 'primary';
-    if (status === 'VmiReady' && gui) return 'success';
+    if (!connectDisabled) {
+      if (extended) return 'primary';
+      else return 'success';
+    }
     return 'primary';
   };
 
   const classFromPropsMobile = () => {
-    if (extended) return 'link';
-    if (status === 'VmiReady' && gui) return 'success';
-    return 'primary';
+    if (!connectDisabled) {
+      if (extended) return 'link';
+      else return 'success';
+    }
+    return 'link';
   };
 
+  const connectDisabled =
+    status !== 'VmiReady' ||
+    (environmentType === EnvironmentType.Container && !gui);
+
   const font22px = { fontSize: '22px' };
+
+  const connectOptions = gui
+    ? { href: url!, target: '_blank' }
+    : { onClick: () => setSshModal(true), ghost: true };
 
   return (
     <>
@@ -84,18 +108,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
                 ? 'xl:block'
                 : 'lg:block'
               : 'sm:block '
-          } ${status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''}`}
+          } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
           <Button
-            className={`${
-              status !== 'VmiReady' || !gui ? 'pointer-events-none' : ''
-            }`}
+            className={`${connectDisabled ? 'pointer-events-none' : ''}`}
             type={classFromProps()}
             shape="round"
             size="middle"
-            href={url!}
-            target="_blank"
-            disabled={status !== 'VmiReady' || !gui}
+            {...connectOptions}
+            disabled={connectDisabled}
           >
             Connect
           </Button>
@@ -108,20 +129,19 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
                 }`
               : 'xs:block sm:hidden'
           } block flex items-center ${
-            status !== 'VmiReady' || !gui ? 'cursor-not-allowed' : ''
+            connectDisabled ? 'cursor-not-allowed' : ''
           }`}
         >
           <Button
             className={`${
-              status !== 'VmiReady' || !gui ? 'pointer-events-none' : ''
+              connectDisabled ? 'pointer-events-none' : ''
             } flex items-center justify-center p-0 border-0`}
             with={!extended ? 'link' : undefined}
             type={classFromPropsMobile()}
             shape="circle"
             size="middle"
-            href={url!}
-            target="_blank"
-            disabled={status !== 'VmiReady' || !gui}
+            {...connectOptions}
+            disabled={connectDisabled}
             icon={
               <ExportOutlined
                 className="flex items-center justify-center"
