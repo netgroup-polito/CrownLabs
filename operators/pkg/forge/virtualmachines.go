@@ -69,7 +69,6 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, environment *clv1
 	return virtv1.VirtualMachineInstanceSpec{
 		Domain:                        VirtualMachineDomain(environment),
 		Volumes:                       Volumes(instance, environment),
-		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: pointer.Int64(terminationGracePeriod),
 	}
