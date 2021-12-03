@@ -7,8 +7,9 @@
 MetalLB can be easily installed and configured with Helm:
 
 ```bash
-helm repo add metallb https://metallb.github.io/metallb --namespace metallb-system \
-    --install --create-namespace --values metallb-values.yaml
+helm repo add metallb https://metallb.github.io/metallb
+helm upgrade --install metallb metallb/metallb --namespace metallb-system \
+    --create-namespace --values metallb-values.yaml
 ```
 
 Among the different configurations, the [values file](./metallb-values.yaml) specifies the set of address pools managed by MetalLB, along with the announce mode (i.e., Layer2 or BGP).
