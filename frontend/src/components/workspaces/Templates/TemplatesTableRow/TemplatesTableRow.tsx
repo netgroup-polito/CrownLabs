@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useContext, useState } from 'react';
 import { Space, Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
@@ -17,6 +17,7 @@ import { FetchResult } from 'apollo-link';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { useInstancesLabelSelectorQuery } from '../../../../generated-types';
 import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
+import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
 
 export interface ITemplatesTableRowProps {
   id: string;
@@ -70,6 +71,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     expandRow,
   } = props;
 
+  const { refreshClock } = useContext(TenantContext);
+
   const { refetch: refetchInstancesLabelSelector } =
     useInstancesLabelSelectorQuery({
       variables: { labels: `crownlabs.polito.it/template=${id}` },
@@ -84,6 +87,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     setCreateDisabled(true);
     createInstance(id)
       .then(() => {
+        refreshClock();
         setTimeout(() => {
           setCreateDisabled(false);
         }, 400);
