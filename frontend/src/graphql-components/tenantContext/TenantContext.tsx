@@ -21,6 +21,7 @@ interface ITenantContext {
   error?: ApolloError;
   hasSSHKeys: boolean;
   now: Date;
+  refreshClock: () => void;
 }
 
 export const TenantContext = createContext<ITenantContext>({
@@ -29,6 +30,7 @@ export const TenantContext = createContext<ITenantContext>({
   error: undefined,
   hasSSHKeys: false,
   now: new Date(),
+  refreshClock: () => null,
 });
 
 const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
@@ -68,10 +70,14 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     return () => clearInterval(timerHandler);
   }, []);
 
+  const refreshClock = () => setNow(new Date());
+
   const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
 
   return (
-    <TenantContext.Provider value={{ data, loading, error, hasSSHKeys, now }}>
+    <TenantContext.Provider
+      value={{ data, loading, error, hasSSHKeys, now, refreshClock }}
+    >
       {children}
     </TenantContext.Provider>
   );

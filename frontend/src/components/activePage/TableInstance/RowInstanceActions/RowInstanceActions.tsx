@@ -42,6 +42,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     delta -= hours * 3600;
     const minutes = Math.floor(delta / 60) % 60;
 
+    if (years < 0 || days < 0 || hours < 0 || minutes < 0) return 'now';
     if (years) return years + 'y ' + days + 'd';
     if (days) return days + 'd ' + hours + 'h';
     if (hours) return hours + 'h ' + minutes + 'm';
