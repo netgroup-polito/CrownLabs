@@ -4,6 +4,10 @@ port 2222
 PasswordAuthentication no
 PubkeyAuthentication yes
 
+# Close the connection if the client does not respond for 3 minutes (60s*3) 
+ClientAliveCountMax 3
+ClientAliveInterval 60
+
 # We need this otherwise sshd will raise ownership issues about the file updated from the sidecar
 StrictModes no
 
