@@ -1,10 +1,12 @@
-import { FC, SetStateAction } from 'react';
-import { Tooltip, Popconfirm } from 'antd';
+import { FC, SetStateAction, useState } from 'react';
+import { Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Instance, WorkspaceRole } from '../../../../utils';
 import { useDeleteInstanceMutation } from '../../../../generated-types';
 import { EnvironmentType } from '../../../../generated-types';
+import { ModalAlert } from '../../../common/ModalAlert';
+import Text from 'antd/lib/typography/Text';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
@@ -17,7 +19,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
   const { extended, instance, viewMode, setSshModal } = props;
-  const { url, status, gui, name, tenantNamespace, environmentType } = instance;
+  const {
+    prettyName,
+    url,
+    status,
+    gui,
+    name,
+    tenantNamespace,
+    environmentType,
+  } = instance;
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation();
 
@@ -65,40 +75,69 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     ? { href: url!, target: '_blank' }
     : { onClick: () => setSshModal(true), ghost: true };
 
+  const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+
   return (
     <>
-      <Tooltip placement="top" title="Destroy">
-        <Popconfirm
-          placement="left"
-          title="Are you sure to delete?"
-          okText="Yes"
-          cancelText="No"
-          onConfirm={() =>
-            deleteInstanceMutation({
-              variables: {
-                instanceId: name,
-                tenantNamespace: tenantNamespace!,
-              },
-            })
-          }
-          onCancel={e => e?.stopPropagation()}
-        >
+      <ModalAlert
+        headTitle="Confirm Instance deletion"
+        message={
+          <Text>
+            Do you really want to delete <b>{prettyName}</b> ?
+          </Text>
+        }
+        description={`Instance ID: ${name}`}
+        type="warning"
+        buttons={[
           <Button
-            type="link"
-            danger
-            className={`hidden ${
-              extended ? 'sm:block' : 'xs:block'
-            } py-0 border-0`}
-            shape="circle"
-            size="middle"
-            icon={
-              <DeleteOutlined
-                className="flex justify-center items-center"
-                style={font22px}
-              />
+            key={0}
+            shape="round"
+            className="mr-2 w-24"
+            type="primary"
+            onClick={() => setShowDeleteModalConfirm(false)}
+          >
+            Close
+          </Button>,
+          <Button
+            key={1}
+            shape="round"
+            className="ml-2 w-24"
+            type="danger"
+            onClick={() =>
+              deleteInstanceMutation({
+                variables: {
+                  instanceId: name,
+                  tenantNamespace: tenantNamespace!,
+                },
+              })
+                .then(() => setShowDeleteModalConfirm(false))
+                //TODO manage error
+                .catch(() => null)
             }
-          />
-        </Popconfirm>
+          >
+            Delete
+          </Button>,
+        ]}
+        show={showDeleteModalConfirm}
+        setShow={setShowDeleteModalConfirm}
+      />
+      <Tooltip placement="top" title="Destroy">
+        <Button
+          onClick={() => setShowDeleteModalConfirm(true)}
+          type="link"
+          danger
+          className={`hidden ${
+            extended ? 'sm:block' : 'xs:block'
+          } py-0 border-0`}
+          shape="circle"
+          size="middle"
+          icon={
+            <DeleteOutlined
+              className="flex justify-center items-center"
+              style={font22px}
+            />
+          }
+        />
       </Tooltip>
       <Tooltip placement="top" title={titleFromStatus()}>
         <div

@@ -20,9 +20,9 @@ const Template: Story<IModalAlertProps> = args => <ModalAlert {...args} />;
 export const Loading = Template.bind({});
 Loading.args = {
   headTitle: 'Loading modal',
-  alertType: 'warning',
-  alertMessage: 'CrownLabs is creating your vm ...',
-  alertDescription:
+  type: 'warning',
+  message: 'CrownLabs is creating your vm ...',
+  description:
     'Please remember to turn off your VM in the active section when you don’t need it anymore.',
   buttons: [
     <Button key={0} type="primary" shape="round" size={'middle'}>
@@ -41,9 +41,9 @@ Loading.args = {
 export const Ready = Template.bind({});
 Ready.args = {
   headTitle: 'Ready modal',
-  alertType: 'success',
-  alertMessage: 'your VM is ready',
-  alertDescription:
+  type: 'success',
+  message: 'your VM is ready',
+  description:
     'Please remember to turn off your VM in the active section when you don’t need it anymore.',
   buttons: [
     <Button key={0} type="success" shape="round" size={'middle'}>
@@ -55,9 +55,9 @@ Ready.args = {
 export const Exit = Template.bind({});
 Exit.args = {
   headTitle: 'Wait before going out',
-  alertType: 'error',
-  alertMessage: 'You have some VM still running',
-  alertDescription: 'Please turn off your VM if you don’t need it anymore',
+  type: 'error',
+  message: 'You have some VM still running',
+  description: 'Please turn off your VM if you don’t need it anymore',
   buttons: [
     <Button ghost type="primary" shape="round" size={'middle'}>
       Exit
