@@ -826,10 +826,10 @@ defaultBackend:
 
   resources: # {}
     limits:
-      cpu: 100m
+      cpu: 500m
       memory: 20Mi
     requests:
-      cpu: 10m
+      cpu: 50m
       memory: 20Mi
 
   extraVolumeMounts: []
