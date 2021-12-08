@@ -45,6 +45,7 @@ spec:
             - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
             - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
+            - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
           ports:
             - name: metrics

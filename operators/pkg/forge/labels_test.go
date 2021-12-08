@@ -36,6 +36,7 @@ var _ = Describe("Labels forging", func() {
 		environmentName   = "control-plane"
 		statusCheckURL    = "https://some/url"
 		componentName     = "crownlabs-component"
+		sandboxName       = "sandbox"
 	)
 
 	Describe("The forge.InstanceLabels function", func() {
@@ -263,6 +264,67 @@ var _ = Describe("Labels forging", func() {
 			})
 
 			JustBeforeEach(func() { forge.InstanceObjectLabels(input, &instance) })
+			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
+	})
+
+	Describe("The forge.SandboxObjectLabels function", func() {
+
+		type ObjectLabelsCase struct {
+			Input          map[string]string
+			ExpectedOutput map[string]string
+		}
+
+		DescribeTable("Correctly populates the labels set",
+			func(c ObjectLabelsCase) {
+				Expect(forge.SandboxObjectLabels(c.Input, tenantName)).To(Equal(c.ExpectedOutput))
+			},
+			Entry("When the input labels map is nil", ObjectLabelsCase{
+				Input: nil,
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/type":       sandboxName,
+					"crownlabs.polito.it/tenant":     tenantName,
+				},
+			}),
+			Entry("When the input labels map already contains the expected values", ObjectLabelsCase{
+				Input: map[string]string{
+					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/type":       sandboxName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/type":       sandboxName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+			}),
+			Entry("When the input labels map contains only part of the expected values", ObjectLabelsCase{
+				Input: map[string]string{
+					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/type":       sandboxName,
+					"user/key":                       "user/value",
+				},
+				ExpectedOutput: map[string]string{
+					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/type":       sandboxName,
+					"crownlabs.polito.it/tenant":     tenantName,
+					"user/key":                       "user/value",
+				},
+			}),
+		)
+
+		Context("Checking side effects", func() {
+			var input, expectedInput map[string]string
+
+			BeforeEach(func() {
+				input = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+			})
+
+			JustBeforeEach(func() { forge.SandboxObjectLabels(input, sandboxName) })
 			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
 		})
 	})

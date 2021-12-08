@@ -36,6 +36,15 @@ var (
 
 	// CapMemory -> The cap amount of RAM memory that can be requested by a Tenant.
 	CapMemory = *resource.NewScaledQuantity(50, resource.Giga)
+
+	// SandboxCPUQuota -> The maximum amount of CPU cores that can be used by a sandbox namespace.
+	SandboxCPUQuota = *resource.NewQuantity(4, resource.DecimalSI)
+
+	// SandboxRequestCPUQuota -> The maximum amount of CPU cores that can be requested by a sandbox namespace.
+	SandboxRequestCPUQuota = *resource.NewQuantity(2, resource.DecimalSI)
+
+	// SandboxMemoryQuota -> The maximum amount of RAM memory that can be used by a sandbox namespace.
+	SandboxMemoryQuota = *resource.NewScaledQuantity(8, resource.Giga)
 )
 
 // TenantResourceList forges the Tenant Resource Quota as the value defined in TenantSpec, if any, otherwise it keeps the sum of all quota for each workspace.
@@ -68,5 +77,15 @@ func TenantResourceQuotaSpec(quota *clv1alpha2.TenantResourceQuota) corev1.Resou
 		corev1.ResourceRequestsCPU:    quota.CPU,
 		corev1.ResourceRequestsMemory: quota.Memory,
 		InstancesCountKey:             *resource.NewQuantity(int64(quota.Instances), resource.DecimalSI),
+	}
+}
+
+// SandboxResourceQuotaSpec forges the Resource Quota spec for sandbox namespaces.
+func SandboxResourceQuotaSpec() corev1.ResourceList {
+	return corev1.ResourceList{
+		corev1.ResourceLimitsCPU:      SandboxCPUQuota,
+		corev1.ResourceLimitsMemory:   SandboxMemoryQuota,
+		corev1.ResourceRequestsCPU:    SandboxRequestCPUQuota,
+		corev1.ResourceRequestsMemory: SandboxMemoryQuota,
 	}
 }

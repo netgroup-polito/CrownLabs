@@ -18,6 +18,7 @@ configurations:
     user: username
     pass: password
   maxConcurrentReconciles: 1
+  sandboxClusterRole: crownlabs-sandbox
 
 image:
   repository: crownlabs/tenant-operator
