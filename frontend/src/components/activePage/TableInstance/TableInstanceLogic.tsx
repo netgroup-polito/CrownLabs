@@ -15,7 +15,7 @@ import { TenantContext } from '../../../graphql-components/tenantContext/TenantC
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 import { Instance, User, WorkspaceRole } from '../../../utils';
 import {
-  getSubObjType,
+  getSubObjTypeK8s,
   makeGuiInstance,
   notifyStatus,
   sorter,
@@ -79,7 +79,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             const found = instances.find(matchK8sObject(instance, false));
-            objType = getSubObjType(found, instance, updateType);
+            objType = getSubObjTypeK8s(found, instance, updateType);
             switch (objType) {
               case SubObjType.Deletion:
                 instances = instances.filter(matchK8sObject(instance, true));
@@ -131,7 +131,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
   const instances =
     dataInstances?.instanceList?.instances
-      ?.map((i, n) => makeGuiInstance(i, tenantId))
+      ?.map(i => makeGuiInstance(i, tenantId))
       .sort((a, b) =>
         sorter(
           a,

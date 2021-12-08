@@ -50,7 +50,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   } = props;
   const { hasSSHKeys } = useContext(TenantContext);
   const [expandedId, setExpandedId] = useState(
-    expandedT.get(templates[0].workspaceId).split(',')
+    expandedT.get(templates[0].workspaceName).split(',')
   );
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
@@ -105,7 +105,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   ];
 
   useEffect(() => {
-    expandedT.set(expandedId.join(','), templates[0].workspaceId);
+    expandedT.set(expandedId.join(','), templates[0].workspaceName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expandedId]);
 

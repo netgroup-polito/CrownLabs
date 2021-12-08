@@ -10,8 +10,9 @@ export type BadgeSize = 'small' | 'middle' | 'large';
 export type User = { tenantId: string; tenantNamespace: string };
 export type BoxHeaderSize = 'small' | 'middle' | 'large';
 export type Workspace = {
-  id: string;
-  title: string;
+  name: string;
+  namespace: string;
+  prettyName: string;
   role: WorkspaceRole;
   templates?: Array<Template>;
 };
@@ -27,7 +28,8 @@ export type Template = {
   persistent: boolean;
   resources: Resources;
   instances: Array<Instance>;
-  workspaceId: string;
+  workspaceName: string;
+  workspaceNamespace: string;
 };
 
 export type Instance = {
@@ -48,7 +50,7 @@ export type Instance = {
   url: string | null;
   myDriveUrl: string;
   timeStamp: string;
-  workspaceId: string;
+  workspaceName: string;
   running: boolean;
 };
 

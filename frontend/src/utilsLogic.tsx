@@ -20,8 +20,7 @@ import {
   WorkspaceTemplatesQuery,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
-import { matchK8sObject, replaceK8sObject } from './k8sUtils';
-import { Instance, Template, WorkspaceRole } from './utils';
+import { Instance, Template, Workspace, WorkspaceRole } from './utils';
 
 type Nullable<T> = T | null | undefined;
 
@@ -58,10 +57,13 @@ export const makeGuiTemplate = (
       memory: environment?.resources?.memory ?? '',
       disk: environment?.resources?.disk ?? '',
     },
-    workspaceId:
+    workspaceName:
       tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
     instances: [],
-  };
+    workspaceNamespace:
+      'workspace-' +
+        tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
+  } as Template;
 };
 interface TemplatesSubscriptionData {
   subscriptionData: { data: WorkspaceTemplatesQuery };
@@ -150,14 +152,16 @@ export const makeGuiInstance = (
     environmentList: [],
     prettyName: '',
   };
-  const { name: templateName } =
-    spec?.templateCrownlabsPolitoItTemplateRef as any;
+  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name as any;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
   const myDrive = status?.myDriveUrl ?? '';
 
+  const instanceID = tenantNamespace + '/' + metadata?.name;
+
   return {
+    id: instanceID,
     name: name,
     prettyName: prettyName,
     gui: guiEnabled,
@@ -180,17 +184,35 @@ export const makeGuiInstance = (
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
-    workspaceId: getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
+    workspaceName:
+      getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
     running: running,
   } as Instance;
+};
+
+export const makeWorkspace = (workspace: Nullable<WorkspacesListItem>) => {
+  if (!workspace) {
+    throw new Error('getInstances() error: a required parameter is undefined');
+  }
+
+  const { name, role, workspaceWrapperTenantV1alpha2 } = workspace;
+  const { spec, status } =
+    workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace ?? {};
+
+  return {
+    name: name,
+    namespace: status?.namespace?.name,
+    prettyName: spec?.prettyName,
+    role: WorkspaceRole[role!],
+    templates: [],
+  } as Workspace;
 };
 interface InstancesSubscriptionData {
   subscriptionData: { data: OwnedInstancesQuery };
 }
 export const updateQueryOwnedInstancesQuery = (
   setDataInstances: Dispatch<SetStateAction<Instance[]>>,
-  userId: string,
-  tenantNamespace: string
+  userId: string
 ) => {
   return (
     prev: OwnedInstancesQuery,
@@ -201,50 +223,28 @@ export const updateQueryOwnedInstancesQuery = (
 
     if (!data?.updateInstance?.instance) return prev;
 
-    const { instance, updateType } = data?.updateInstance;
+    const { instance: instanceK8s, updateType } = data?.updateInstance;
     let notify = false;
 
-    if (prev.instanceList?.instances) {
-      let instances = [...prev.instanceList.instances];
-      const found = instances.find(matchK8sObject(instance, false));
-      const objType = getSubObjType(found, instance, updateType);
+    setDataInstances(old => {
+      const instance = makeGuiInstance(instanceK8s, userId);
+      const found = old.find(i => i.id === instance.id);
+      const objType = getSubObjTypeCustom(found, instance, updateType);
       switch (objType) {
         case SubObjType.Deletion:
-          instances = instances.filter(matchK8sObject(instance, true));
-          setDataInstances(old =>
-            old?.filter(i => i?.name !== instance?.metadata?.name)
-          );
+          old = old.filter(i => i.id !== instance.id);
           notify = false;
           break;
         case SubObjType.Addition:
-          instances = [...instances, instance];
-          setDataInstances(old =>
-            !old.find(i => i.name === instance?.metadata?.name)
-              ? [...old, makeGuiInstance(instance, userId)]
-              : old
-          );
+          old = !old.find(i => i.id === instance.id) ? [...old, instance] : old;
           notify = true;
           break;
         case SubObjType.PrettyName:
-          instances = instances.map(replaceK8sObject(instance));
-          setDataInstances(old =>
-            old?.map(i =>
-              i.name === instance?.metadata?.name ?? ''
-                ? makeGuiInstance(instance, userId)
-                : i
-            )
-          );
+          old = old?.map(i => (i.id === instance.id ? instance : i));
           notify = false;
           break;
         case SubObjType.UpdatedInfo:
-          instances = instances.map(replaceK8sObject(instance));
-          setDataInstances(old =>
-            old?.map(i =>
-              i.name === instance?.metadata?.name ?? ''
-                ? makeGuiInstance(instance, userId)
-                : i
-            )
-          );
+          old = old?.map(i => (i.id === instance.id ? instance : i));
           notify = true;
           break;
         case SubObjType.Drop:
@@ -253,16 +253,36 @@ export const updateQueryOwnedInstancesQuery = (
         default:
           break;
       }
-      prev.instanceList.instances = [...instances];
-    }
 
-    if (notify) notifyStatus(instance.status?.phase, instance, updateType);
+      if (notify)
+        notifyStatus(instanceK8s.status?.phase, instanceK8s, updateType);
+
+      return old;
+    });
 
     return prev;
   };
 };
 
-export const getSubObjType = (
+export const getSubObjTypeCustom = (
+  oldObj: Nullable<Instance>,
+  newObj: Instance,
+  uType: Nullable<UpdateType>
+) => {
+  if (uType === UpdateType.Deleted) return SubObjType.Deletion;
+  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
+  const { running: newRunning, status: newStatus } = newObj;
+  if (oldObj) {
+    if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
+    if (oldStatus !== newStatus || oldRunning !== newRunning) {
+      return SubObjType.UpdatedInfo;
+    }
+    return SubObjType.Drop;
+  }
+  return SubObjType.Addition;
+};
+
+export const getSubObjTypeK8s = (
   oldObj: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
   newObj: ItPolitoCrownlabsV1alpha2Instance,
   uType: Nullable<UpdateType>
@@ -291,7 +311,7 @@ export const joinInstancesAndTemplates = (
   templates.map(t => ({
     ...t,
     instances: instances.filter(
-      i => i.templateId === makeTemplateKey(t.id, t.workspaceId)
+      i => i.templateId === makeTemplateKey(t.id, t.workspaceName)
     ),
   }));
 
@@ -344,7 +364,7 @@ export const getManagerInstances = (
     tenantId: tenantName,
     tenantNamespace: tenantNamespace,
     tenantDisplayName: `${firstName}\n${lastName}`,
-    workspaceId: workspaceName,
+    workspaceName: workspaceName,
     running: spec?.running,
   } as Instance;
 };
@@ -375,7 +395,7 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceId, templatePrettyName }] =
+    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
       instancesFiltered;
     return {
       id: templateId,
@@ -384,26 +404,20 @@ export const getTemplatesMapped = (
       persistent,
       resources: { cpu: 0, memory: '', disk: '' },
       instances: instancesSorted || instancesFiltered,
-      workspaceId,
+      workspaceName,
+      workspaceNamespace: 'workspace-' + workspaceName,
     };
   });
 };
 
 export const getWorkspacesMapped = (
   templates: Template[],
-  workspaces: Array<{
-    prettyName: string;
-    role: WorkspaceRole;
-    namespace: string;
-    id: string;
-  }>
+  workspaces: Workspace[]
 ) => {
   return workspaces
     .map(ws => ({
-      id: ws.id,
-      title: ws.prettyName,
-      role: ws.role,
-      templates: templates.filter(({ workspaceId: id }) => id === ws.id),
+      ...ws,
+      templates: templates.filter(t => t.workspaceName === ws.name),
     }))
     .filter(ws => ws.templates.length);
 };

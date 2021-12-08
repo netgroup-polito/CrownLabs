@@ -17,10 +17,10 @@ import {
   useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
+import { multiStringIncludes, User, Workspace } from '../../../utils';
 import {
   getManagerInstances,
-  getSubObjType,
+  getSubObjTypeK8s,
   getTemplatesMapped,
   getWorkspacesMapped,
   notifyStatus,
@@ -32,12 +32,7 @@ const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 export interface ITableWorkspaceLogicProps {
   user: User;
-  workspaces: Array<{
-    prettyName: string;
-    role: WorkspaceRole;
-    namespace: string;
-    id: string;
-  }>;
+  workspaces: Array<Workspace>;
   filter: string;
   showAdvanced: boolean;
   showCheckbox: boolean;
@@ -47,6 +42,7 @@ export interface ITableWorkspaceLogicProps {
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
   setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
+  setSelectedPersistent: Dispatch<SetStateAction<boolean>>;
   selectiveDestroy: string[];
   selectToDestroy: (instanceId: string) => void;
 }
@@ -66,6 +62,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     setDestroySelectedTrigger,
     selectToDestroy,
     selectiveDestroy,
+    setSelectedPersistent,
   } = props;
 
   const { tenantId, tenantNamespace } = user;
@@ -89,7 +86,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   };
 
   const labels = `crownlabs.polito.it/workspace in (${workspaces
-    .map(({ id }) => id)
+    .map(({ name }) => name)
     .join(',')})`;
 
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
@@ -129,7 +126,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             const found = instances.find(matchK8sObject(instance, false));
-            objType = getSubObjType(found, instance, updateType);
+            objType = getSubObjTypeK8s(found, instance, updateType);
 
             switch (objType) {
               case SubObjType.Deletion:
@@ -204,6 +201,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       setDestroySelectedTrigger={setDestroySelectedTrigger}
       selectiveDestroy={selectiveDestroy}
       selectToDestroy={selectToDestroy}
+      setSelectedPersistent={setSelectedPersistent}
     />
   ) : (
     <div className="flex justify-center h-full items-center">

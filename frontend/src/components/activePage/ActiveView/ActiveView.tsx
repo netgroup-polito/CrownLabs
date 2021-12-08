@@ -1,11 +1,9 @@
-import { DeleteOutlined } from '@ant-design/icons';
 import { Col, Space } from 'antd';
-import Button from 'antd-button-color';
 import { FC, useEffect, useState } from 'react';
-import { User, WorkspaceRole } from '../../../utils';
+import { User, Workspace, WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import Box from '../../common/Box';
-import { ModalAlert } from '../../common/ModalAlert';
+import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Toolbox from '../Toolbox/Toolbox';
@@ -16,12 +14,7 @@ const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
 
 export interface IActiveViewProps {
   user: User;
-  workspaces: Array<{
-    prettyName: string;
-    role: WorkspaceRole;
-    namespace: string;
-    id: string;
-  }>;
+  workspaces: Array<Workspace>;
   managerView: boolean;
 }
 
@@ -40,6 +33,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   );
   const [showCheckbox, setShowCheckbox] = useState(false);
   const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
+  const [selectedPersistent, setSelectedPersistent] = useState<boolean>(false);
 
   const selectToDestroy = (instanceId: string) => {
     selectiveDestroy.includes(instanceId)
@@ -70,28 +64,14 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
 
   return (
     <Col span={24} lg={22} xxl={20}>
-      <ModalAlert
-        headTitle="Destroy Selected"
+      <ModalGroupDeletion
+        view={WorkspaceRole.manager}
+        persistent={selectedPersistent}
+        selective={true}
+        instanceList={selectiveDestroy}
         show={showAlert}
-        message="ATTENTION"
-        description={`Are you sure do you want to destroy the ${selectiveDestroy.length} selected instances. This operation is dangerous and irreversible!`}
-        type="error"
-        buttons={[
-          <Button
-            type="danger"
-            shape="round"
-            size="middle"
-            icon={<DeleteOutlined />}
-            className="border-0"
-            onClick={() => {
-              setDestroySelectedTrigger(true);
-              setShowAlert(false);
-            }}
-          >
-            Destroy Selected
-          </Button>,
-        ]}
         setShow={setShowAlert}
+        destroy={() => setDestroySelectedTrigger(true)}
       />
       <Box
         header={{
@@ -149,6 +129,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               setDestroySelectedTrigger={setDestroySelectedTrigger}
               selectiveDestroy={selectiveDestroy}
               selectToDestroy={selectToDestroy}
+              setSelectedPersistent={setSelectedPersistent}
             />
           </div>
         ) : (

@@ -1,30 +1,24 @@
-import { FC, useContext, useState } from 'react';
-import { UserSwitchOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import { Modal, Tooltip } from 'antd';
 import Button from 'antd-button-color';
-import Box from '../../common/Box';
-import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
-import { WorkspaceRole } from '../../../utils';
+import { FC, useContext, useState } from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
   ImagesQuery,
   useCreateTemplateMutation,
   useImagesQuery,
 } from '../../../generated-types';
+import { Workspace } from '../../../utils';
+import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
+import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import { Image, Template } from '../ModalCreateTemplate/ModalCreateTemplate';
-import { Tooltip, Modal } from 'antd';
-import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
+import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
-  workspace: {
-    id: number;
-    title: string;
-    role: WorkspaceRole;
-    workspaceNamespace: string;
-    workspaceName: string;
-  };
+  workspace: Workspace;
 }
 
 const getImages = (dataImages: ImagesQuery) => {
@@ -65,7 +59,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const {
     tenantNamespace,
-    workspace: { role, title, workspaceNamespace, workspaceName },
+    workspace: {
+      role,
+      name: workspaceName,
+      namespace: workspaceNamespace,
+      prettyName: workspacePrettyName,
+    },
   } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -125,7 +124,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           center: (
             <div className="h-full flex justify-center items-center px-5">
               <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{title}</b>
+                <b>{workspacePrettyName}</b>
               </p>
             </div>
           ),
@@ -168,7 +167,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         />
         <Modal
           destroyOnClose={true}
-          title={`Users in ${title} `}
+          title={`Users in ${workspacePrettyName} `}
           width="800px"
           visible={showUserListModal}
           footer={null}
