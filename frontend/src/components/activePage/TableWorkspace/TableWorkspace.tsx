@@ -32,6 +32,7 @@ export interface ITableWorkspaceProps {
   ) => void;
   destroySelectedTrigger: boolean;
   setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
+  setSelectedPersistent: Dispatch<SetStateAction<boolean>>;
   selectiveDestroy: string[];
   selectToDestroy: (instanceId: string) => void;
 }
@@ -51,6 +52,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     setDestroySelectedTrigger,
     selectiveDestroy,
     selectToDestroy,
+    setSelectedPersistent,
   } = props;
   const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -60,7 +62,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   });
 
   const expandWorkspace = () => {
-    setExpandedId(workspaces.map(ws => ws.id));
+    setExpandedId(workspaces.map(ws => ws.name));
   };
 
   const collapseWorkspace = () => {
@@ -98,16 +100,27 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       title: 'Template',
       key: 'template',
       // eslint-disable-next-line react/no-multi-comp
-      render: ({ title, templates, id }: Workspace) => (
+      render: ({ prettyName, templates, name }: Workspace) => (
         <TableWorkspaceRow
-          title={title}
-          id={id}
+          title={prettyName}
+          id={name}
           nActive={getActives(templates)}
           expandRow={expandRow}
         />
       ),
     },
   ];
+
+  useEffect(() => {
+    const persistent =
+      (instances &&
+        instances.filter(
+          i => selectiveDestroy.includes(i.id) && i.persistent
+        )) ||
+      [];
+    setSelectedPersistent(persistent.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectiveDestroy]);
 
   useEffect(() => {
     expandedWS.set(expandedId.join(','));
@@ -132,13 +145,13 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       className={`rowInstance-bg-color cl-table flex-grow flex-wrap content-between py-0 overflow-auto scrollbar`}
     >
       <Table
-        rowKey={record => record.id}
+        rowKey={record => record.name}
         columns={columns}
         size="middle"
         dataSource={workspaces}
         pagination={false}
         showHeader={false}
-        onExpand={(expanded, ws) => expandRow(ws.id)}
+        onExpand={(expanded, ws) => expandRow(ws.name)}
         expandable={{
           expandedRowKeys: expandedId,
           // eslint-disable-next-line react/no-multi-comp

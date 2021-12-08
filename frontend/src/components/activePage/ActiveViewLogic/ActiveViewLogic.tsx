@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { makeWorkspace } from '../../../utilsLogic';
 
 const ActiveViewLogic: FC<{}> = ({ ...props }) => {
   const {
@@ -12,17 +13,7 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
   } = useContext(TenantContext);
 
   const workspaces =
-    tenantData?.tenant?.spec?.workspaces?.map(workspace => {
-      const { workspaceWrapperTenantV1alpha2, name, role } = workspace!;
-      const { spec, status } =
-        workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace!;
-      return {
-        prettyName: spec?.prettyName as string,
-        role: WorkspaceRole[role!],
-        namespace: status?.namespace?.name!,
-        id: name!,
-      };
-    }) || [];
+    tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
 
   const managerWorkspaces = workspaces?.filter(
     ws => ws.role === WorkspaceRole.manager

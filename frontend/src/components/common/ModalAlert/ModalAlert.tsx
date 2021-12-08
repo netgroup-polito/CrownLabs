@@ -1,16 +1,31 @@
-import React, { FC, ReactNode } from 'react';
-import { Modal, Alert, AlertProps } from 'antd';
+import React, { Dispatch, FC, ReactNode, SetStateAction } from 'react';
+import { Modal, Alert, AlertProps, Checkbox } from 'antd';
 
 export interface IModalAlertProps extends AlertProps {
   headTitle: ReactNode;
   show: boolean;
   buttons: Array<React.ReactNode>;
   setShow: (status: boolean) => void;
+  checkbox?: {
+    confirmCheckbox: boolean;
+    setConfirmCheckbox: Dispatch<SetStateAction<boolean>>;
+    checkboxLabel: string;
+  };
 }
 
 const ModalAlert: FC<IModalAlertProps> = ({ ...props }) => {
-  const { headTitle, show, type, message, description, buttons, setShow } =
-    props;
+  const {
+    headTitle,
+    show,
+    type,
+    message,
+    description,
+    buttons,
+    setShow,
+    checkbox,
+  } = props;
+
+  const { confirmCheckbox, setConfirmCheckbox, checkboxLabel } = checkbox || {};
 
   return (
     <Modal
@@ -21,7 +36,16 @@ const ModalAlert: FC<IModalAlertProps> = ({ ...props }) => {
       onCancel={() => setShow(false)}
     >
       <Alert message={message} description={description} type={type} showIcon />
-
+      {checkbox && (
+        <div className="flex justify-center mt-3">
+          <Checkbox
+            checked={confirmCheckbox}
+            onChange={() => setConfirmCheckbox!(old => !old)}
+          >
+            {checkboxLabel}
+          </Checkbox>
+        </div>
+      )}
       <div className="flex justify-center mt-6">{buttons}</div>
     </Modal>
   );

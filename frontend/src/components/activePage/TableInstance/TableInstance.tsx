@@ -6,7 +6,7 @@ import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 import { Instance, WorkspaceRole } from '../../../utils';
-import { ModalAlert } from '../../common/ModalAlert';
+import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
@@ -54,15 +54,19 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
   });
 
   const destroyAll = () => {
-    instances.forEach(instance => {
-      deleteInstanceMutation({
-        variables: {
-          instanceId: instance.name,
-          tenantNamespace: instance.tenantNamespace!,
-        },
+    instances
+      .filter(i => i.persistent === false)
+      .forEach(instance => {
+        deleteInstanceMutation({
+          variables: {
+            instanceId: instance.name,
+            tenantNamespace: instance.tenantNamespace!,
+          },
+        });
       });
-    });
   };
+
+  const disabled = !instances.find(i => i.persistent === false);
 
   // Filtering from all instances that ones which are included in the "selectiveDestroy" IDs list
   const selectedIn = instances.filter(i => selectiveDestroy?.includes(i.id));
@@ -101,6 +105,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             showHeader={false}
             pagination={false}
             rowClassName=""
+            rowKey={i => 1}
           >
             <Column
               title="Header"
@@ -188,28 +193,18 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               e.stopPropagation();
               setShowAlert(true);
             }}
+            disabled={disabled}
           >
             Destroy All
           </Button>
-          <ModalAlert
-            headTitle="Destroy All"
+          <ModalGroupDeletion
+            view={WorkspaceRole.user}
+            persistent={!!instances.find(i => i.persistent === true)}
+            selective={false}
+            instanceList={instances.map(i => i.id)}
             show={showAlert}
-            message="Warning"
-            description="This operation will delete all your instances and it is not reversible. Do you want to continue?"
-            type="warning"
-            buttons={[
-              <Button
-                type="danger"
-                shape="round"
-                size="middle"
-                icon={<DeleteOutlined />}
-                className="border-0"
-                onClick={() => destroyAll()}
-              >
-                Destroy All
-              </Button>,
-            ]}
             setShow={setShowAlert}
+            destroy={destroyAll}
           />
         </div>
       )}

@@ -1,17 +1,17 @@
-import { FC, useState } from 'react';
-import { Space, Menu, Dropdown, Typography, Tooltip } from 'antd';
-import Button from 'antd-button-color';
 import {
-  DeleteOutlined,
-  MoreOutlined,
-  DesktopOutlined,
   CodeOutlined,
+  DeleteOutlined,
+  DesktopOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
-import Badge from '../../common/Badge';
-import { ModalAlert } from '../../common/ModalAlert';
+import { Dropdown, Menu, Space, Tooltip, Typography } from 'antd';
+import Button from 'antd-button-color';
+import { FC, useState } from 'react';
 import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
-import { Template } from '../../../utils';
+import { Template, WorkspaceRole } from '../../../utils';
 import { DropDownAction } from '../../../utilsLogic';
+import Badge from '../../common/Badge';
+import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 
 const { Text } = Typography;
 export interface ITableTemplateRowProps {
@@ -125,25 +125,17 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           />
         </Dropdown>
       </div>
-      <ModalAlert
-        headTitle="Destroy All"
+      <ModalGroupDeletion
+        view={WorkspaceRole.manager}
+        persistent={
+          !!template.instances.filter(i => i.persistent === true).length
+        }
+        groupName={template.name}
+        selective={false}
+        instanceList={template.instances.map(i => i.id)}
         show={showAlert}
-        message="ATTENTION"
-        description={`Are you sure do you want to destroy all the instances in ${name}. This operation is dangerous and irreversible!`}
-        type="error"
-        buttons={[
-          <Button
-            type="danger"
-            shape="round"
-            size="middle"
-            icon={<DeleteOutlined />}
-            className="border-0"
-            onClick={() => destroyAll()}
-          >
-            Destroy All
-          </Button>,
-        ]}
         setShow={setShowAlert}
+        destroy={destroyAll}
       />
     </>
   );

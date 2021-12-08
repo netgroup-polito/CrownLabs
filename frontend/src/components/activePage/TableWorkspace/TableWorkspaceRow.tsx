@@ -1,7 +1,5 @@
-import { FC } from 'react';
 import { Space, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { UserSwitchOutlined } from '@ant-design/icons';
+import { FC } from 'react';
 import Badge from '../../common/Badge';
 
 const { Text } = Typography;
@@ -24,14 +22,6 @@ const TableWorkspaceRow: FC<ITableWorkspaceRowProps> = ({ ...props }) => {
         <Text className="font-bold w-48 xs:w-56 sm:w-max" ellipsis>
           {title}
         </Text>
-        <Button
-          disabled={true}
-          type="ghost"
-          shape="circle"
-          size="middle"
-          className="mr-2"
-          icon={<UserSwitchOutlined />}
-        />
       </Space>
     </div>
   );

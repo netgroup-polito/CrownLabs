@@ -70,7 +70,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     useInstancesLabelSelectorQuery({
       onError: apolloErrorCatcher,
       variables: {
-        labels: `crownlabs.polito.it/template=${template.id},crownlabs.polito.it/workspace=${template.workspaceId}`,
+        labels: `crownlabs.polito.it/template=${template.id},crownlabs.polito.it/workspace=${template.workspaceName}`,
       },
       skip: true,
       fetchPolicy: 'network-only',

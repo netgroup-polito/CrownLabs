@@ -73,8 +73,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         },
         updateQuery: updateQueryOwnedInstancesQuery(
           setDataInstances,
-          userId ?? '',
-          tenantNamespace
+          userId ?? ''
         ),
       });
       return unsubscribe;
@@ -113,7 +112,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       const unsubscribe = subscribeToMoreTemplates({
         onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: updatedWorkspaceTemplates,
-        variables: { workspaceNamespace: `${workspaceNamespace}` },
+        variables: { workspaceNamespace },
         updateQuery: updateQueryWorkspaceTemplatesQuery(setDataTemplate),
       });
       return unsubscribe;

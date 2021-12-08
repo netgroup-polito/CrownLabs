@@ -1,20 +1,15 @@
-import { FC, useEffect, useState } from 'react';
 import { Col } from 'antd';
+import { FC, useEffect, useState } from 'react';
+import { Workspace } from '../../../utils';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
+import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceContainer } from '../WorkspaceContainer';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
-import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
-import { WorkspaceRole } from '../../../utils';
-import { SessionValue, StorageKeys } from '../../../utilsStorage';
 
 const dashboard = new SessionValue(StorageKeys.Dashboard_View, '-1');
 export interface IDashboardProps {
   tenantNamespace: string;
-  workspaces: Array<{
-    workspaceId: string;
-    role: WorkspaceRole;
-    workspaceNamespace: string;
-    workspaceName: string;
-  }>;
+  workspaces: Array<Workspace>;
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
@@ -31,9 +26,9 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
         <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar">
           <WorkspaceGrid
             selectedWs={selectedWsId}
-            workspaceItems={workspaces.map((wk, idx) => ({
+            workspaceItems={workspaces.map((ws, idx) => ({
               id: idx,
-              title: wk.workspaceId,
+              title: ws.prettyName,
             }))}
             onClick={setSelectedWs}
           />
@@ -48,13 +43,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
         {selectedWsId !== -1 ? (
           <WorkspaceContainer
             tenantNamespace={tenantNamespace}
-            workspace={{
-              id: selectedWsId,
-              role: workspaces[selectedWsId].role,
-              title: workspaces[selectedWsId].workspaceId,
-              workspaceNamespace: workspaces[selectedWsId].workspaceNamespace,
-              workspaceName: workspaces[selectedWsId].workspaceName,
-            }}
+            workspace={workspaces[selectedWsId]}
           />
         ) : (
           <WorkspaceWelcome />
