@@ -459,3 +459,7 @@ export const setInstancePrettyname = async (
     return false;
   }
 };
+
+export const workspaceGetName = (ws: any): string =>
+  ws?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.spec
+    ?.workspaceName!;

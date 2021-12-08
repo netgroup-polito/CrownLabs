@@ -114,3 +114,6 @@ export function makeListToggler<T>(
     );
   };
 }
+
+export const JSON_StringifyAndParse = (obj: any) =>
+  JSON.parse(JSON.stringify(obj));

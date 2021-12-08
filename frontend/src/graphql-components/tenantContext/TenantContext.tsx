@@ -13,6 +13,8 @@ import {
   useSshKeysQuery,
   useTenantQuery,
 } from '../../generated-types';
+import { JSON_StringifyAndParse } from '../../utils';
+import { workspaceGetName } from '../../utilsLogic';
 import { updatedTenant } from '../subscription';
 
 interface ITenantContext {
@@ -48,7 +50,12 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
-    onCompleted: setData,
+    onCompleted: d => {
+      d!.tenant!.spec?.workspaces!.sort((a, b) =>
+        workspaceGetName(a).localeCompare(workspaceGetName(b))
+      );
+      setData(JSON_StringifyAndParse(d));
+    },
     fetchPolicy: 'network-only',
   });
 
@@ -59,7 +66,10 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
       document: updatedTenant,
       updateQuery: (prev, { subscriptionData: { data } }) => {
         if (!data) return prev;
-        setData(data);
+        data!.tenant!.spec?.workspaces!.sort((a, b) =>
+          workspaceGetName(a).localeCompare(workspaceGetName(b))
+        );
+        setData(JSON_StringifyAndParse(data));
         return data;
       },
     });
