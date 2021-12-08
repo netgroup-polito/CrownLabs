@@ -31,7 +31,7 @@ export type Template = {
 };
 
 export type Instance = {
-  id: number;
+  id: string;
   gui: boolean;
   templateId: string;
   templateName: string;

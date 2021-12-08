@@ -8,11 +8,13 @@ import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Button from 'antd-button-color';
 import {
   CloseOutlined,
+  DeleteOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
+import { ModalAlert } from '../../common/ModalAlert';
 
 const view = new SessionValue(StorageKeys.Active_View, WorkspaceRole.user);
 const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
@@ -33,6 +35,8 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const { managerView, user, workspaces } = props;
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
+  const [destroySelectedTrigger, setDestroySelectedTrigger] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
   const [searchField, setSearchField] = useState('');
   const [searchPopover, setSearchPopover] = useState(false);
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
@@ -41,6 +45,15 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [showAdvanced, setShowAdvanced] = useState(
     !managerView || advanced.get() !== 'false'
   );
+  const [showCheckbox, setShowCheckbox] = useState(false);
+
+  const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
+
+  const selectToDestroy = (instanceId: string) => {
+    selectiveDestroy.includes(instanceId)
+      ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
+      : setSelectiveDestroy(old => [...old, instanceId]);
+  };
 
   useEffect(() => {
     view.set(currentView);
@@ -52,6 +65,26 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
 
   return (
     <Col span={24} lg={22} xxl={20}>
+      <ModalAlert
+        headTitle="Destroy Selected"
+        show={showAlert}
+        message="ATTENTION"
+        description={`Are you sure do you want to destroy the ${selectiveDestroy.length} selected instances. This operation is dangerous and irreversible!`}
+        type="error"
+        buttons={[
+          <Button
+            type="danger"
+            shape="round"
+            size="middle"
+            icon={<DeleteOutlined />}
+            className="border-0"
+            onClick={() => setDestroySelectedTrigger(true)}
+          >
+            Destroy Selected
+          </Button>,
+        ]}
+        setShow={setShowAlert}
+      />
       <Box
         header={{
           center: !managerView ? (
@@ -110,6 +143,26 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
                 >
                   <strong>Show Headers</strong>
                 </Checkbox>
+                <Checkbox
+                  checked={showCheckbox}
+                  onChange={e => setShowCheckbox(e.target.checked)}
+                >
+                  <strong>Show Checkbox</strong>
+                </Checkbox>
+                <Button
+                  className="hidden xl:block"
+                  type="primary"
+                  ghost
+                  shape="round"
+                  size="middle"
+                  icon={<DeleteOutlined />}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowAlert(true);
+                  }}
+                >
+                  Destroy Selected{` (${selectiveDestroy.length})`}
+                </Button>
               </div>
             )
           ),
@@ -174,6 +227,11 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             setCollapseAll={setCollapseAll}
             setExpandAll={setExpandAll}
             showAdvanced={showAdvanced}
+            showCheckbox={showCheckbox}
+            destroySelectedTrigger={destroySelectedTrigger}
+            setDestroySelectedTrigger={setDestroySelectedTrigger}
+            selectiveDestroy={selectiveDestroy}
+            selectToDestroy={selectToDestroy}
           />
         ) : (
           <TableInstanceLogic

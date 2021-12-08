@@ -39,11 +39,16 @@ export interface ITableWorkspaceLogicProps {
     id: string;
   }>;
   filter: string;
+  showAdvanced: boolean;
+  showCheckbox: boolean;
   collapseAll: boolean;
   expandAll: boolean;
+  destroySelectedTrigger: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
-  showAdvanced: boolean;
+  setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
+  selectiveDestroy: string[];
+  selectToDestroy: (instanceId: string) => void;
 }
 
 const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
@@ -56,6 +61,11 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     setExpandAll,
     setCollapseAll,
     showAdvanced,
+    showCheckbox,
+    destroySelectedTrigger,
+    setDestroySelectedTrigger,
+    selectToDestroy,
+    selectiveDestroy,
   } = props;
 
   const { tenantId, tenantNamespace } = user;
@@ -158,29 +168,38 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
-  const instancesMapped = dataInstances?.instanceList?.instances
-    ?.map(getManagerInstances)
-    .filter(instance =>
-      multiStringIncludes(
-        filter,
-        instance.tenantId!,
-        instance.tenantDisplayName!
-      )
-    );
+  const instancesMapped =
+    dataInstances?.instanceList?.instances?.map(getManagerInstances);
 
-  const templatesMapped = getTemplatesMapped(instancesMapped!, sortingData!);
+  const instancesFiltered = instancesMapped
+    ? instancesMapped.filter(instance =>
+        multiStringIncludes(
+          filter,
+          instance.tenantId!,
+          instance.tenantDisplayName!
+        )
+      )
+    : [];
+
+  const templatesMapped = getTemplatesMapped(instancesFiltered, sortingData!);
 
   const workspacesMapped = getWorkspacesMapped(templatesMapped, workspaces);
 
   return !loadingInstances && !errorInstances && templatesMapped ? (
     <TableWorkspace
+      instances={instancesMapped!}
       workspaces={workspacesMapped}
       collapseAll={collapseAll}
       expandAll={expandAll}
       setCollapseAll={setCollapseAll}
       setExpandAll={setExpandAll}
       showAdvanced={showAdvanced}
+      showCheckbox={showCheckbox}
       handleManagerSorting={handleManagerSorting}
+      destroySelectedTrigger={destroySelectedTrigger}
+      setDestroySelectedTrigger={setDestroySelectedTrigger}
+      selectiveDestroy={selectiveDestroy}
+      selectToDestroy={selectToDestroy}
     />
   ) : (
     <div className="flex justify-center h-full items-center">

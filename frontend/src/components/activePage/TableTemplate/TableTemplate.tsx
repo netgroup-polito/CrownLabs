@@ -25,11 +25,14 @@ export interface ITableTemplateProps {
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
   showAdvanced: boolean;
+  showCheckbox: boolean;
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
     sortingTemplate: string
   ) => void;
+  selectiveDestroy?: string[];
+  selectToDestroy?: (instanceId: string) => void;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
@@ -41,12 +44,24 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     setExpandAll,
     handleManagerSorting,
     showAdvanced,
+    showCheckbox,
+    selectToDestroy,
+    selectiveDestroy,
   } = props;
   const { hasSSHKeys } = useContext(TenantContext);
   const [expandedId, setExpandedId] = useState(
     expandedT.get(templates[0].workspaceId).split(',')
   );
   const { apolloErrorCatcher } = useContext(ErrorContext);
+
+  /* const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
+  console.log(selectiveDestroy);
+
+  const selectToDestroy = (instanceId: string) => {
+    selectiveDestroy.includes(instanceId)
+      ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
+      : setSelectiveDestroy(old => [...old, instanceId]);
+  }; */
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
@@ -140,6 +155,9 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               hasSSHKeys={hasSSHKeys}
               handleManagerSorting={handleManagerSorting}
               showAdvanced={showAdvanced}
+              showCheckbox={showCheckbox}
+              selectiveDestroy={selectiveDestroy}
+              selectToDestroy={selectToDestroy}
             />
           ),
         }}
