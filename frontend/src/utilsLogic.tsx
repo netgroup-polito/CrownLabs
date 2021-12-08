@@ -219,13 +219,41 @@ export const updateQueryOwnedInstancesQuery = (
       notifyStatus(
         instance?.status?.phase ?? '',
         instance ?? {},
-        updateType ?? UpdateType.Added,
-        tenantNamespace,
-        WorkspaceRole.user
+        updateType ?? UpdateType.Added
       );
 
     return prev;
   };
+};
+
+export enum SubObjType {
+  Deletion,
+  UpdatedInfo,
+  PrettyName,
+  Addition,
+  Drop,
+}
+
+export const getSubObjType = (
+  oldObj: ItPolitoCrownlabsV1alpha2Instance,
+  newObj: ItPolitoCrownlabsV1alpha2Instance,
+  uType: UpdateType
+) => {
+  if (uType === UpdateType.Deleted) return SubObjType.Deletion;
+  const { spec: oldSpec, status: oldStatus } = oldObj;
+  const { spec: newSpec, status: newStatus } = newObj;
+  if (newObj) {
+    if (oldSpec?.prettyName !== newSpec?.prettyName)
+      return SubObjType.PrettyName;
+    if (
+      oldStatus?.phase !== newStatus?.phase ||
+      oldSpec?.running !== newSpec?.running
+    ) {
+      return SubObjType.UpdatedInfo;
+    }
+    return SubObjType.Drop;
+  }
+  return SubObjType.Addition;
 };
 
 export const joinInstancesAndTemplates = (
@@ -353,77 +381,72 @@ export const getWorkspacesMapped = (
 export const makeTemplateKey = (tid: Nullable<string>, wid: string) =>
   `${tid}-${wid}`;
 
+const makeNotificationContent = (
+  templateName: string,
+  instanceName: string,
+  status: string,
+  instanceUrl?: string
+) => {
+  return {
+    message: templateName,
+    description: (
+      <>
+        <div>
+          Instance Name:
+          <i> {instanceName}</i>
+        </div>
+        <div>
+          Status:
+          <i>
+            {status === Phase.Ready
+              ? ' started'
+              : status === Phase.Off && ' stopped'}
+          </i>
+        </div>
+      </>
+    ),
+    btn: instanceUrl && (
+      <Button type="success" size="small" href={instanceUrl!} target="_blank">
+        Connect
+      </Button>
+    ),
+  };
+};
+
 export const notifyStatus = (
   status: string,
   instance: ItPolitoCrownlabsV1alpha2Instance,
-  updateType: UpdateType,
-  tenantNamespace: string,
-  role: WorkspaceRole
+  updateType: UpdateType
 ) => {
   if (updateType === UpdateType.Deleted) {
-    const { tenantNamespace: tnm } = instance.metadata as any;
-    if (tnm === tenantNamespace || role === WorkspaceRole.user) {
-      notification.warning({
-        message: instance.spec?.prettyName || instance.metadata?.name,
-        description: `Instance deleted`,
-      });
-    }
+    notification.warning({
+      message: instance.spec?.prettyName || instance.metadata?.name,
+      description: `Instance deleted`,
+    });
   } else {
-    const { tenantNamespace: tnm } = instance.metadata as any;
     const { templateName } = instance.spec?.templateCrownlabsPolitoItTemplateRef
       ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec as any;
-    const content = (status: string) => {
-      return {
-        message: templateName,
-        description: (
-          <>
-            <div>
-              Instance Name:
-              <i> {instance.spec?.prettyName || instance.metadata?.name}</i>
-            </div>
-            <div>
-              Status:
-              <i>
-                {status === Phase.Ready
-                  ? ' started'
-                  : status === Phase.Off && ' stopped'}
-              </i>
-            </div>
-          </>
-        ),
-      };
-    };
     switch (status) {
       case Phase.Off:
-        if (
-          !instance.spec?.running &&
-          (tnm === tenantNamespace || role === WorkspaceRole.user)
-        ) {
-          notification.warning({
-            ...content(status),
-          });
-        }
+        !instance.spec?.running &&
+          notification.warning(
+            makeNotificationContent(
+              templateName,
+              instance.spec?.prettyName || instance.metadata?.name!,
+              status
+            )
+          );
         break;
       case Phase.Ready:
-        if (
-          instance.status?.url &&
-          instance.spec?.running &&
-          (tnm === tenantNamespace || role === WorkspaceRole.user)
-        ) {
-          notification.success({
-            ...content(status),
-            btn: instance.status?.url && (
-              <Button
-                type="success"
-                size="small"
-                href={instance.status?.url}
-                target="_blank"
-              >
-                Connect
-              </Button>
-            ),
-          });
-        }
+        instance.spec?.running &&
+          notification.success(
+            makeNotificationContent(
+              templateName,
+              instance.spec?.prettyName || instance.metadata?.name!,
+              status,
+              instance.status?.url!
+            )
+          );
         break;
     }
   }

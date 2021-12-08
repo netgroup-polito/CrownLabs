@@ -1,13 +1,13 @@
-import { FC, useContext, useEffect, useState } from 'react';
-import { Typography, Space, Tooltip } from 'antd';
-import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
-import { DesktopOutlined, CodeOutlined } from '@ant-design/icons';
-import { WorkspaceRole, Instance } from '../../../../utils';
-import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
-import { useApplyInstanceMutation } from '../../../../generated-types';
-import { setInstancePrettyname } from '../../../../utilsLogic';
-import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
+import { Space, Typography } from 'antd';
 import { ApolloError } from 'apollo-client';
+import { FC, useContext, useEffect, useState } from 'react';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { useApplyInstanceMutation } from '../../../../generated-types';
+import { Instance, WorkspaceRole } from '../../../../utils';
+import { setInstancePrettyname } from '../../../../utilsLogic';
+import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
+import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {
@@ -32,28 +32,22 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
 
   const [edit, setEdit] = useState(false);
   const [title, setTitle] = useState(prettyName || name);
-  const [invalid, setInvalid] = useState(false);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
 
   const mutateInstancePrettyname = async (title: string) => {
-    if (title.length < 5) {
-      setInvalid(true);
-    } else {
-      setTitle(title);
-      setInvalid(false);
-      try {
-        const result = await setInstancePrettyname(
-          title,
-          instance,
-          applyInstanceMutation
-        );
-        if (result) setTimeout(setEdit, 400, false);
-      } catch (err) {
-        apolloErrorCatcher(err as ApolloError);
-      }
+    setTitle(title);
+    try {
+      const result = await setInstancePrettyname(
+        title,
+        instance,
+        applyInstanceMutation
+      );
+      if (result) setTimeout(setEdit, 400, false);
+    } catch (err) {
+      apolloErrorCatcher(err as ApolloError);
     }
   };
 
@@ -108,22 +102,20 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 </div>
               )}
 
-              <Tooltip visible={invalid} title="Title must be at least 5 char">
-                <Text
-                  editable={{
-                    tooltip: 'Click to Edit',
-                    editing: edit,
-                    autoSize: { maxRows: 1 },
-                    onChange: value => handleEdit(value),
-                    onCancel: cancelEdit,
-                  }}
-                  className="w-32 lg:w-40 p-0 m-0"
-                  onClick={() => setEdit(true)}
-                  ellipsis
-                >
-                  {title}
-                </Text>
-              </Tooltip>
+              <Text
+                editable={{
+                  tooltip: 'Click to Edit',
+                  editing: edit,
+                  autoSize: { maxRows: 1 },
+                  onChange: value => handleEdit(value),
+                  onCancel: cancelEdit,
+                }}
+                className="w-32 lg:w-40 p-0 m-0"
+                onClick={() => setEdit(true)}
+                ellipsis
+              >
+                {title}
+              </Text>
               {extended && (
                 <Text
                   className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
