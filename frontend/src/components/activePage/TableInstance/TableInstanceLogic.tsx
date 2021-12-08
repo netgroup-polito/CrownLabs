@@ -118,7 +118,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
   const instances =
     dataInstances?.instanceList?.instances
-      ?.map((i, n) => makeGuiInstance(i ?? {}, tenantId, tenantNamespace))
+      ?.map((i, n) => makeGuiInstance(i, tenantId))
       .sort((a, b) =>
         sorter(
           a,
