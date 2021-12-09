@@ -19,7 +19,7 @@ import {
   replaceK8sObject,
 } from '../../../k8sUtils';
 import { Instance, User, WorkspaceRole } from '../../../utils';
-import { getInstances, notifyStatus, sorter } from '../../../utilsLogic';
+import { makeGuiInstance, notifyStatus, sorter } from '../../../utilsLogic';
 import TableInstance from './TableInstance';
 import './TableInstance.less';
 export interface ITableInstanceLogicProps {
@@ -118,7 +118,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
   const instances =
     dataInstances?.instanceList?.instances
-      ?.map((i, n) => getInstances(i!, n, tenantId, tenantNamespace))
+      ?.map((i, n) => makeGuiInstance(i ?? {}, tenantId, tenantNamespace))
       .sort((a, b) =>
         sorter(
           a,

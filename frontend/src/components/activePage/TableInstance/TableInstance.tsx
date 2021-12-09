@@ -99,7 +99,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           rowClassName={
             viewMode === 'user' && extended ? '' : 'rowInstance-bg-color'
           }
-          rowKey={record => record.id + record.idTemplate!}
+          rowKey={record => record.id + (record.templateId || '')}
         >
           <Column
             className={

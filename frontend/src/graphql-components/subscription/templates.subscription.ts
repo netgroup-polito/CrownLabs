@@ -23,6 +23,9 @@ export default gql`
               memory
             }
           }
+          workspaceCrownlabsPolitoItWorkspaceRef {
+            name
+          }
         }
         metadata {
           name

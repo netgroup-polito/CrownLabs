@@ -205,7 +205,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               ? 'xl:hidden'
               : 'sm:hidden'
             : ''
-        } flex justify-center`}
+        } flex justify-center items-center`}
         type="default"
         with="link"
         shape="circle"

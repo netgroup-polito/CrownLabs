@@ -19,8 +19,8 @@ import {
 import { Instance, Template, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
-  getInstances,
-  getTemplate,
+  makeGuiInstance,
+  makeGuiTemplate,
   joinInstancesAndTemplates,
   updateQueryOwnedInstancesQuery,
   updateQueryWorkspaceTemplatesQuery,
@@ -31,6 +31,7 @@ import { TemplatesTable } from '../TemplatesTable';
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
   workspaceNamespace: string;
+  workspaceName: string;
   role: WorkspaceRole;
 }
 
@@ -40,7 +41,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
-  const { tenantNamespace, workspaceNamespace, role } = props;
+  const { tenantNamespace, workspaceNamespace, workspaceName, role } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
@@ -53,9 +54,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
     onCompleted: data =>
       setDataInstances(
-        data.instanceList?.instances?.map((i, n) =>
-          getInstances(i!, n, userId!, tenantNamespace)
-        )!
+        data.instanceList?.instances
+          ?.map(i => makeGuiInstance(i, userId, tenantNamespace))
+          .sort((a, b) =>
+            (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
+          ) ?? []
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -70,7 +73,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         },
         updateQuery: updateQueryOwnedInstancesQuery(
           setDataInstances,
-          userId!,
+          userId ?? '',
           tenantNamespace
         ),
       });
@@ -91,14 +94,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onCompleted: data =>
       setDataTemplate(
         data.templateList?.templates?.map(t =>
-          getTemplate({
-            original: t!,
+          makeGuiTemplate({
+            original: t ?? {},
             alias: {
-              id: t?.metadata?.name!,
-              name: t?.spec?.prettyName!,
+              id: t?.metadata?.name ?? '',
+              name: t?.spec?.prettyName ?? '',
             },
           })
-        )!
+        ) ?? []
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -137,19 +140,22 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       variables: {
         templateId,
         tenantNamespace,
-        tenantId: userId!,
+        tenantId: userId ?? '',
         workspaceNamespace,
       },
     }).then(i => {
       setDataInstances(old =>
-        !old.find(x => x.name === i.data?.createdInstance?.metadata?.name!)
+        !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
           ? [
               ...old,
-              getInstances(
-                i.data?.createdInstance!,
-                old.length,
-                userId!,
-                tenantNamespace
+              makeGuiInstance(
+                i.data?.createdInstance ?? {},
+                userId ?? '',
+                tenantNamespace,
+                {
+                  templateName: templateId,
+                  workspaceName: workspaceName,
+                }
               ),
             ]
           : old
