@@ -72,9 +72,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           if (!data?.updateInstance?.instance) return prev;
 
           const { instance, updateType } = data?.updateInstance;
-          //const { namespace: ns } = instance.metadata!;
           let notify = false;
-          //const matchNS = ns === tenantNamespace;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
@@ -83,7 +81,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
             switch (objType) {
               case SubObjType.Deletion:
                 instances = instances.filter(matchK8sObject(instance, true));
-                notify = true;
+                notify = false;
                 break;
               case SubObjType.Addition:
                 instances = [...instances, instance];

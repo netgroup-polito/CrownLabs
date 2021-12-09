@@ -122,7 +122,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
             switch (objType) {
               case SubObjType.Deletion:
                 instances = instances.filter(matchK8sObject(instance, true));
-                notify = true;
+                notify = false;
                 break;
               case SubObjType.Addition:
                 instances = [...instances, instance];
