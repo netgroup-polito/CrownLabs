@@ -143,7 +143,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       !errorFetchTemplates &&
       !loadingFetchTemplates &&
       dataFetchTemplates?.templateList?.templates
-        ?.map(t => t?.spec?.name)
+        ?.map(t => t?.spec?.prettyName)
         .includes(formTemplate.name.trim())
     ) {
       setValid(old => {

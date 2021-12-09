@@ -10,7 +10,7 @@ mutation applyTenant(
     applicationApplyPatchYamlInput: $patchJson
   ) {
     metadata {
-      tenantId: name
+      name
     }
     spec {
       firstName

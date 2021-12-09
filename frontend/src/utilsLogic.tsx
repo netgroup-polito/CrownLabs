@@ -11,6 +11,7 @@ import {
   UpdatedOwnedInstancesSubscriptionResult,
   UpdatedWorkspaceTemplatesSubscriptionResult,
   UpdateType,
+  WorkspacesListItem2,
   WorkspaceTemplatesQuery,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
@@ -58,17 +59,17 @@ export const updateQueryWorkspaceTemplatesQuery = (
     if (prev.templateList?.templates) {
       if (updateType === UpdateType.Deleted) {
         setDataTemplate(old =>
-          old.filter(t => t.id !== template.metadata?.id!)
+          old.filter(t => t.id !== template.metadata?.name!)
         );
       } else if (updateType === UpdateType.Modified) {
         setDataTemplate(old =>
           old.map(t =>
-            t.id === template.metadata?.id
+            t.id === template.metadata?.name
               ? getTemplate({
                   original: template,
                   alias: {
-                    id: template.metadata.id!,
-                    name: template.spec?.name!,
+                    id: template.metadata.name!,
+                    name: template.spec?.prettyName!,
                   },
                 })
               : t
@@ -81,8 +82,8 @@ export const updateQueryWorkspaceTemplatesQuery = (
             getTemplate({
               original: template,
               alias: {
-                id: template.metadata?.id!,
-                name: template.spec?.name!,
+                id: template.metadata?.name!,
+                name: template.spec?.prettyName!,
               },
             })!,
           ].sort((a, b) => a.id.localeCompare(b.id))
@@ -100,7 +101,7 @@ export const getInstances = (
   tenantNamespace: string
 ) => {
   const { metadata, spec, status } = instance!;
-  const { environmentList, templateName } = spec
+  const { environmentList, prettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
   const [{ guiEnabled, persistent, environmentType }] = environmentList;
@@ -111,7 +112,7 @@ export const getInstances = (
     gui: guiEnabled,
     persistent: persistent,
     idTemplate: spec?.templateCrownlabsPolitoItTemplateRef?.name!,
-    templatePrettyName: templateName,
+    templatePrettyName: prettyName,
     environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
@@ -201,32 +202,33 @@ export const getManagerInstances = (
   index: number
 ) => {
   const { metadata, spec, status } = instance!;
-  const { environmentList, templateName } = spec
+  const { environmentList, prettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec! as any;
   const [{ guiEnabled, persistent, environmentType }] = environmentList;
   const { firstName, lastName } =
     spec?.tenantCrownlabsPolitoItTenantRef?.tenantV1alpha2Wrapper
       ?.itPolitoCrownlabsV1alpha2Tenant?.spec!;
-  const { tenantId } = spec?.tenantCrownlabsPolitoItTenantRef as any;
-  const { name, namespace } = spec?.templateCrownlabsPolitoItTemplateRef as any;
+  const { name: tenantName } = spec?.tenantCrownlabsPolitoItTenantRef as any;
+  const { name: templateName, namespace: templateNamespace } =
+    spec?.templateCrownlabsPolitoItTemplateRef as any;
   return {
     id: index,
     name: metadata?.name,
     prettyName: spec?.prettyName,
     gui: guiEnabled,
     persistent: persistent,
-    idTemplate: name,
-    templatePrettyName: templateName,
+    idTemplate: templateName,
+    templatePrettyName: prettyName,
     environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
-    tenantId: tenantId,
+    tenantId: tenantName,
     tenantNamespace: metadata?.namespace,
     tenantDisplayName: `${firstName}\n${lastName}`,
-    workspaceId: namespace.replace(/^workspace-/, ''),
+    workspaceId: templateNamespace.replace(/^workspace-/, ''),
     running: spec?.running,
   } as Instance;
 };
@@ -459,3 +461,7 @@ export const setInstancePrettyname = async (
     return false;
   }
 };
+
+export const workspaceGetName = (ws: WorkspacesListItem2): string =>
+  ws?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.spec
+    ?.prettyName!;

@@ -13,14 +13,14 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(workspace => {
-      const { workspaceWrapperTenantV1alpha2, workspaceId, role } = workspace!;
+      const { workspaceWrapperTenantV1alpha2, name, role } = workspace!;
       const { spec, status } =
         workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace!;
       return {
-        prettyName: spec?.workspaceName as string,
+        prettyName: spec?.prettyName as string,
         role: WorkspaceRole[role!],
-        namespace: status?.namespace?.workspaceNamespace!,
-        id: workspaceId!,
+        namespace: status?.namespace?.name!,
+        id: name!,
       };
     }) || [];
 
@@ -31,7 +31,7 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
   return !tenantLoading && tenantData && !tenantError ? (
     <ActiveView
       user={{
-        tenantId: tenantData.tenant?.metadata?.tenantId!,
+        tenantId: tenantData.tenant?.metadata?.name!,
         tenantNamespace: tenantData!.tenant?.status?.personalNamespace?.name!,
       }}
       managerView={managerWorkspaces.length > 0}

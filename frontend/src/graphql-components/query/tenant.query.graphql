@@ -6,15 +6,15 @@ query tenant($tenantId: String!) {
       lastName
       workspaces {
         role
-        workspaceId: name
+        name
         workspaceWrapperTenantV1alpha2 {
           itPolitoCrownlabsV1alpha1Workspace {
             spec {
-              workspaceName: prettyName
+              prettyName
             }
             status {
               namespace {
-                workspaceNamespace: name
+                name
               }
             }
           }
@@ -22,7 +22,7 @@ query tenant($tenantId: String!) {
       }
     }
     metadata {
-      tenantId: name
+      name
     }
     status {
       personalNamespace {

@@ -114,3 +114,5 @@ export function makeListToggler<T>(
     );
   };
 }
+
+export const JSONDeepCopy = <T>(obj: T) => JSON.parse(JSON.stringify(obj)) as T;

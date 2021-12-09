@@ -21,7 +21,7 @@ export default gql`
           running
           prettyName
           tenantCrownlabsPolitoItTenantRef {
-            tenantId: name
+            name
             tenantV1alpha2Wrapper {
               itPolitoCrownlabsV1alpha2Tenant {
                 spec {
@@ -37,8 +37,8 @@ export default gql`
             templateWrapper {
               itPolitoCrownlabsV1alpha2Template {
                 spec {
-                  templateName: prettyName
-                  templateDescription: description
+                  prettyName
+                  description
                   environmentList {
                     guiEnabled
                     persistent

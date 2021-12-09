@@ -20,13 +20,13 @@ const DashboardLogic: FC<{}> = () => {
             return {
               workspaceId: workspace?.workspaceWrapperTenantV1alpha2
                 ?.itPolitoCrownlabsV1alpha1Workspace?.spec
-                ?.workspaceName as string,
+                ?.prettyName as string,
               role: WorkspaceRole[workspace?.role!],
               workspaceNamespace:
                 workspace?.workspaceWrapperTenantV1alpha2
                   ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace
-                  ?.workspaceNamespace!,
-              workspaceName: workspace?.workspaceId!,
+                  ?.name!,
+              workspaceName: workspace?.name!,
             };
           }) ?? []
         }

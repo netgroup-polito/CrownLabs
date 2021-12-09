@@ -34,7 +34,7 @@ mutation createTemplate(
     }
   ) {
     spec {
-      name: prettyName
+      prettyName
       description
       environmentList {
         guiEnabled
@@ -47,7 +47,7 @@ mutation createTemplate(
       }
     }
     metadata {
-      id: name
+      name
       namespace
     }
   }

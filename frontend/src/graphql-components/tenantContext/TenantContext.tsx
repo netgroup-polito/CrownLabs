@@ -15,6 +15,8 @@ import {
   useSshKeysQuery,
   useTenantQuery,
 } from '../../generated-types';
+import { JSONDeepCopy } from '../../utils';
+import { workspaceGetName } from '../../utilsLogic';
 import { updatedTenant } from '../subscription';
 
 interface ITenantContext {
@@ -52,7 +54,12 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
-    onCompleted: setData,
+    onCompleted: d => {
+      d!.tenant!.spec?.workspaces!.sort((a, b) =>
+        workspaceGetName(a!).localeCompare(workspaceGetName(b!))
+      );
+      setData(JSONDeepCopy(d));
+    },
     fetchPolicy: 'network-only',
     onError: apolloErrorCatcher,
   });
