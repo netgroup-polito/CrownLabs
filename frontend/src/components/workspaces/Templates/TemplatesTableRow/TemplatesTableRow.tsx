@@ -100,9 +100,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     <>
       <ModalAlert
         headTitle={name}
-        alertMessage="Cannot delete this template"
-        alertDescription="A template with active instances cannot be deleted. Please delete al the instances associated with this template."
-        alertType="warning"
+        message="Cannot delete this template"
+        description="A template with active instances cannot be deleted. Please delete al the instances associated with this template."
+        type="warning"
         buttons={[
           <Button
             key={0}
@@ -119,9 +119,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       />
       <ModalAlert
         headTitle={name}
-        alertMessage="Delete template"
-        alertDescription="Do you really want to delete this template?"
-        alertType="warning"
+        message="Delete template"
+        description="Do you really want to delete this template?"
+        type="warning"
         buttons={[
           <Button
             key={0}

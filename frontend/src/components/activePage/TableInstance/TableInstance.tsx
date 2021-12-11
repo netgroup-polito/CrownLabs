@@ -156,9 +156,9 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           <ModalAlert
             headTitle="Destroy All"
             show={showAlert}
-            alertMessage="Warning"
-            alertDescription="This operation will delete all your instances and it is not reversible. Do you want to continue?"
-            alertType="warning"
+            message="Warning"
+            description="This operation will delete all your instances and it is not reversible. Do you want to continue?"
+            type="warning"
             buttons={[
               <Button
                 type="danger"

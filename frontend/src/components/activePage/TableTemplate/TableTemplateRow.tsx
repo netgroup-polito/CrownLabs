@@ -128,9 +128,9 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
       <ModalAlert
         headTitle="Destroy All"
         show={showAlert}
-        alertMessage="ATTENTION"
-        alertDescription={`Are you sure do you want to destroy all the instances in ${name}. This operation is dangerous and irreversible!`}
-        alertType="error"
+        message="ATTENTION"
+        description={`Are you sure do you want to destroy all the instances in ${name}. This operation is dangerous and irreversible!`}
+        type="error"
         buttons={[
           <Button
             type="danger"
