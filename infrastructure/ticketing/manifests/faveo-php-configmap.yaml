@@ -6,9 +6,9 @@ data:
     APP_URL=https://ticketing.crownlabs.polito.it
     APP_KEY=base64:edcbeW2vK8rIuavnG7lF4OM1qAUfOoG6vin5ZucJUug=
     DB_TYPE=mysql
-    DB_HOST="faveo-db"
+    DB_HOST="faveo-db-mysql-master"
     DB_PORT="3306"
-    DB_DATABASE="faveo"
+    DB_DATABASE=<insert db name here>
     DB_USERNAME=<insert db username here>
     DB_PASSWORD=<insert db password here>
     ADMIN_USERNAME=<insert admin username here>
