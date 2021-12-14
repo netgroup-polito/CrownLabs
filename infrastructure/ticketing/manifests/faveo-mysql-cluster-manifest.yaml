@@ -1,28 +1,18 @@
-apiVersion: kubedb.com/v1alpha2
-kind: MySQL
+apiVersion: mysql.presslabs.org/v1alpha1
+kind: MysqlCluster
 metadata:
   name: faveo-db
   namespace: crownlabs-ticketing
 spec:
   replicas: 3
-  topology:
-    mode: GroupReplication
-    group:
-      name: "c82b2207-b254-43b4-b7a7-215aaf16ade0"
-  version: "8.0.23-v1"
-  storageType: Durable
-  storage:
-    storageClassName: "rook-ceph-block"
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 10Gi
-  podTemplate:
-    spec:
-      env:
-      - name: MYSQL_DATABASE
-        value: faveo
-    metadata:
-      annotations:
-        backup.velero.io/backup-volumes: data
+  secretName: faveo-db-auth
+  volumeSpec:
+    persistentVolumeClaim:
+      storageClassName: "rook-ceph-block"
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+  podSpec:
+    annotations:
+      backup.velero.io/backup-volumes: data
