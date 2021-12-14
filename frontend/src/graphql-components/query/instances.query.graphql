@@ -22,8 +22,8 @@ query ownedInstances($tenantNamespace: String!) {
           templateWrapper {
             itPolitoCrownlabsV1alpha2Template {
               spec {
-                templateName: prettyName
-                templateDescription: description
+                prettyName
+                description
                 environmentList {
                   guiEnabled
                   persistent

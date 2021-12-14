@@ -11,15 +11,15 @@ export default gql`
           lastName
           workspaces {
             role
-            workspaceId: name
+            name
             workspaceWrapperTenantV1alpha2 {
               itPolitoCrownlabsV1alpha1Workspace {
                 spec {
-                  workspaceName: prettyName
+                  prettyName
                 }
                 status {
                   namespace {
-                    workspaceNamespace: name
+                    name
                   }
                 }
               }
@@ -27,7 +27,7 @@ export default gql`
           }
         }
         metadata {
-          tenantId: name
+          name
         }
         status {
           personalNamespace {

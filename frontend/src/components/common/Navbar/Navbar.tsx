@@ -202,7 +202,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               <Title
                 className="mb-0"
                 level={5}
-              >{`${data?.tenant?.metadata?.tenantId}`}</Title>
+              >{`${data?.tenant?.metadata?.name}`}</Title>
             )}
             <LogoutButton
               logoutHandler={logoutHandler}

@@ -15,7 +15,7 @@ query instancesLabelSelector($labels: String) {
         running
         prettyName
         tenantCrownlabsPolitoItTenantRef {
-          tenantId: name
+          name
           tenantV1alpha2Wrapper {
             itPolitoCrownlabsV1alpha2Tenant {
               spec {
@@ -31,8 +31,8 @@ query instancesLabelSelector($labels: String) {
           templateWrapper {
             itPolitoCrownlabsV1alpha2Template {
               spec {
-                templateName: prettyName
-                templateDescription: description
+                prettyName
+                description
                 environmentList {
                   guiEnabled
                   persistent

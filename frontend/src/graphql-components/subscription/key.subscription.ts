@@ -6,7 +6,7 @@ export default gql`
       updateType
       updatedKeys: payload {
         metadata {
-          tenantId: name
+          name
         }
         spec {
           email

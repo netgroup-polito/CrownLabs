@@ -17,7 +17,7 @@ export interface INavbarMenuProps {
 const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
   const { routes } = props;
   const { data } = useContext(TenantContext);
-  const tenantId = data?.tenant?.metadata?.tenantId!;
+  const tenantId = data?.tenant?.metadata?.name!;
   const currentPath = useLocation().pathname;
 
   const [visible, setVisible] = useState(false);

@@ -94,8 +94,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           getTemplate({
             original: t!,
             alias: {
-              id: t?.metadata?.id!,
-              name: t?.spec?.name!,
+              id: t?.metadata?.name!,
+              name: t?.spec?.prettyName!,
             },
           })
         )!

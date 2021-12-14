@@ -12,7 +12,7 @@ export default gql`
       updateType
       template: payload {
         spec {
-          name: prettyName
+          prettyName
           description
           environmentList {
             guiEnabled
@@ -25,7 +25,7 @@ export default gql`
           }
         }
         metadata {
-          id: name
+          name
           namespace
         }
       }

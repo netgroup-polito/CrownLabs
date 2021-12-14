@@ -4,7 +4,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
   ) {
     templates: items {
       spec {
-        name: prettyName
+        prettyName
         description
         environmentList {
           guiEnabled
@@ -17,7 +17,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
         }
       }
       metadata {
-        id: name
+        name
         namespace
       }
     }

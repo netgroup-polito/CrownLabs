@@ -30,8 +30,8 @@ export default gql`
             templateWrapper {
               itPolitoCrownlabsV1alpha2Template {
                 spec {
-                  templateName: prettyName
-                  templateDescription: description
+                  prettyName
+                  description
                   environmentList {
                     guiEnabled
                     persistent
