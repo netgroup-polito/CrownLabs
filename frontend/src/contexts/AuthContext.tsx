@@ -3,6 +3,7 @@ import {
   createContext,
   FC,
   PropsWithChildren,
+  useContext,
   useEffect,
   useState,
 } from 'react';
@@ -11,6 +12,8 @@ import {
   REACT_APP_CROWNLABS_OIDC_CLIENT_ID,
   REACT_APP_CROWNLABS_OIDC_REALM,
 } from '../env';
+import { ErrorContext } from '../errorHandling/ErrorContext';
+import { ErrorTypes } from '../errorHandling/utils';
 interface IAuthContext {
   isLoggedIn: boolean;
   token?: string;
@@ -36,32 +39,39 @@ const AuthContextProvider: FC<PropsWithChildren<{}>> = props => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userId, setUserId] = useState<undefined | string>(undefined);
   const [token, setToken] = useState<undefined | string>(undefined);
+  const { makeErrorCatcher, setExecLogin, execLogin } =
+    useContext(ErrorContext);
+
   useEffect(() => {
-    kc.init({ onLoad: 'login-required' })
-      .then((authenticated: boolean) => {
-        if (authenticated) {
-          setIsLoggedIn(true);
-          setToken(kc.idToken);
-        } else {
-          setIsLoggedIn(false);
-          setToken(undefined);
-          setUserId(undefined);
-        }
-        kc.loadUserInfo()
-          .then((res: any) => {
-            setUserId(res.preferred_username);
-          })
-          .catch(err => {
-            console.error('Error when getting user info', err);
-          });
-      })
-      .catch(err => {
-        console.error('Failed to initialize keycloak', err);
-      });
-  }, []);
+    if (execLogin) {
+      kc.init({ onLoad: 'login-required' })
+        .then((authenticated: boolean) => {
+          if (authenticated) {
+            setIsLoggedIn(true);
+            setToken(kc.idToken);
+          } else {
+            setIsLoggedIn(false);
+            setToken(undefined);
+            setUserId(undefined);
+          }
+          kc.loadUserInfo()
+            .then((res: any) => setUserId(res.preferred_username))
+            .catch(makeErrorCatcher(ErrorTypes.KeycloakError));
+        })
+        .catch(makeErrorCatcher(ErrorTypes.KeycloakError))
+        .finally(() => setExecLogin(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setExecLogin, execLogin]);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, token, userId }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        token,
+        userId,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

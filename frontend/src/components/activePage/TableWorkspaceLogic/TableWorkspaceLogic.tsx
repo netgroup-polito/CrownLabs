@@ -1,6 +1,15 @@
 import { FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
-import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
+import {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { ErrorTypes } from '../../../errorHandling/utils';
 import {
   InstancesLabelSelectorQuery,
   UpdatedInstancesLabelSelectorDocument,
@@ -76,6 +85,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     .map(({ id }) => id)
     .join(',')})`;
 
+  const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
+    useContext(ErrorContext);
   const {
     loading: loadingInstances,
     error: errorInstances,
@@ -85,12 +96,14 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       labels: label,
     },
     onCompleted: setDataInstances,
+    onError: apolloErrorCatcher,
     fetchPolicy: fetchPolicy_networkOnly,
   });
 
   useEffect(() => {
-    if (!loadingInstances) {
-      subscribeToMoreInstances({
+    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
+      const unsubscribe = subscribeToMoreInstances({
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: UpdatedInstancesLabelSelectorDocument,
         variables: {
           tenantNamespace,
@@ -134,6 +147,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           return prev;
         },
       });
+      return unsubscribe;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);

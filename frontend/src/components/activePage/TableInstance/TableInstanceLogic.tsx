@@ -3,6 +3,8 @@ import { Empty, Spin } from 'antd';
 import Button from 'antd-button-color';
 import { FC, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { ErrorTypes } from '../../../errorHandling/utils';
 import {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
@@ -31,6 +33,8 @@ const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { viewMode, extended, showGuiIcon, user } = props;
+  const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
+    useContext(ErrorContext);
   const { tenantNamespace, tenantId } = user;
   const { hasSSHKeys } = useContext(TenantContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
@@ -51,11 +55,13 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     variables: { tenantNamespace },
     onCompleted: setDataInstances,
     fetchPolicy: fetchPolicy_networkOnly,
+    onError: apolloErrorCatcher,
   });
 
   useEffect(() => {
-    if (!loadingInstances) {
-      subscribeToMoreInstances({
+    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
+      const unsubscribe = subscribeToMoreInstances({
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: updatedOwnedInstances,
         variables: { tenantNamespace },
         updateQuery: (prev, { subscriptionData }) => {
@@ -97,8 +103,18 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           return newItem;
         },
       });
+      return unsubscribe;
     }
-  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
+  }, [
+    loadingInstances,
+    subscribeToMoreInstances,
+    tenantNamespace,
+    tenantId,
+    errorsQueue.length,
+    errorInstances,
+    apolloErrorCatcher,
+    makeErrorCatcher,
+  ]);
 
   const instances =
     dataInstances?.instanceList?.instances

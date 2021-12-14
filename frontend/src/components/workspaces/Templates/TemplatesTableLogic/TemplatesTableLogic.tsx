@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
+
 import { useContext, useEffect, useState } from 'react';
 import { FC } from 'react';
 import { AuthContext } from '../../../../contexts/AuthContext';
@@ -10,11 +11,13 @@ import {
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
 } from '../../../../generated-types';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   updatedOwnedInstances,
   updatedWorkspaceTemplates,
 } from '../../../../graphql-components/subscription';
 import { Instance, Template, WorkspaceRole } from '../../../../utils';
+import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   getInstances,
   getTemplate,
@@ -35,6 +38,8 @@ const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
+  const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
+    useContext(ErrorContext);
   const { tenantNamespace, workspaceNamespace, role } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
@@ -45,6 +50,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     subscribeToMore: subscribeToMoreInstances,
   } = useOwnedInstancesQuery({
     variables: { tenantNamespace },
+    onError: apolloErrorCatcher,
     onCompleted: data =>
       setDataInstances(
         data.instanceList?.instances?.map((i, n) =>
@@ -55,8 +61,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   useEffect(() => {
-    if (!loadingInstances) {
-      subscribeToMoreInstances({
+    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
+      const unsubscribe = subscribeToMoreInstances({
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: updatedOwnedInstances,
         variables: {
           tenantNamespace,
@@ -67,6 +74,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           tenantNamespace
         ),
       });
+      return unsubscribe;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
@@ -79,6 +87,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     subscribeToMore: subscribeToMoreTemplates,
   } = useWorkspaceTemplatesQuery({
     variables: { workspaceNamespace },
+    onError: apolloErrorCatcher,
     onCompleted: data =>
       setDataTemplate(
         data.templateList?.templates?.map(t =>
@@ -95,18 +104,33 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   useEffect(() => {
-    if (!loadingTemplate) {
-      subscribeToMoreTemplates({
+    if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
+      const unsubscribe = subscribeToMoreTemplates({
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: updatedWorkspaceTemplates,
         variables: { workspaceNamespace: `${workspaceNamespace}` },
         updateQuery: updateQueryWorkspaceTemplatesQuery(setDataTemplate),
       });
+      return unsubscribe;
     }
-  }, [loadingTemplate, subscribeToMoreTemplates, userId, workspaceNamespace]);
+  }, [
+    errorTemplate,
+    errorsQueue.length,
+    loadingTemplate,
+    subscribeToMoreTemplates,
+    userId,
+    workspaceNamespace,
+    apolloErrorCatcher,
+    makeErrorCatcher,
+  ]);
 
-  const [createInstanceMutation] = useCreateInstanceMutation();
+  const [createInstanceMutation] = useCreateInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
   const [deleteTemplateMutation, { loading: loadingDeleteTemplateMutation }] =
-    useDeleteTemplateMutation();
+    useDeleteTemplateMutation({
+      onError: apolloErrorCatcher,
+    });
 
   const createInstance = (templateId: string) =>
     createInstanceMutation({
@@ -145,6 +169,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       templates &&
       dataInstances ? (
         <TemplatesTable
+          totalInstances={dataInstances.length}
           tenantNamespace={tenantNamespace}
           workspaceNamespace={workspaceNamespace}
           templates={templates}

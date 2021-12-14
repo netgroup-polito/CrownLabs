@@ -1,4 +1,4 @@
-import { FC, SetStateAction, useState } from 'react';
+import { FC, SetStateAction, useContext, useState } from 'react';
 import { Dropdown, Menu } from 'antd';
 import Button from 'antd-button-color';
 import {
@@ -18,6 +18,7 @@ import {
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { DropDownAction, setInstanceRunning } from '../../../../utilsLogic';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -44,8 +45,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const font20px = { fontSize: '20px' };
 
   const [disabled, setDisabled] = useState(false);
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
-  const [applyInstanceMutation] = useApplyInstanceMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
+  const [applyInstanceMutation] = useApplyInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {

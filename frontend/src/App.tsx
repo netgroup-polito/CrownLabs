@@ -1,13 +1,13 @@
-import './App.css';
-import AppLayout from './components/common/AppLayout';
-import ThemeContextProvider from './contexts/ThemeContext';
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
-import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
+import './App.css';
+import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
+import AppLayout from './components/common/AppLayout';
+import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
+import ThemeContextProvider from './contexts/ThemeContext';
 import { TenantContext } from './graphql-components/tenantContext/TenantContext';
 import { LinkPosition } from './utils';
-import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -33,12 +33,12 @@ function App() {
         routes={[
           {
             route: { name: 'Dashboard', path: '/' },
-            content: <DashboardLogic />,
+            content: <DashboardLogic key="/" />,
             linkPosition: LinkPosition.NavbarButton,
           },
           {
             route: { name: 'Active', path: '/active' },
-            content: <ActiveViewLogic />,
+            content: <ActiveViewLogic key="/active" />,
             linkPosition: LinkPosition.NavbarButton,
           },
           {
@@ -58,7 +58,7 @@ function App() {
               path: '/account',
               navbarMenuIcon: <UserOutlined />,
             },
-            content: <UserPanelLogic />,
+            content: <UserPanelLogic key="/account" />,
             linkPosition: LinkPosition.MenuButton,
           },
         ]}

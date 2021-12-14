@@ -8,6 +8,7 @@ import {
   useEffect,
   useState,
 } from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 import { Template, WorkspaceRole } from '../../../utils';
@@ -45,8 +46,11 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   const [expandedId, setExpandedId] = useState(
     expandedT.get(templates[0].workspaceId).split(',')
   );
+  const { apolloErrorCatcher } = useContext(ErrorContext);
 
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const expandTemplate = () => {
     setExpandedId(templates.map(t => t.id));

@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useContext, useState } from 'react';
 import { Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import {
@@ -9,6 +9,8 @@ import {
 import { Instance } from '../../../../utils';
 import { useApplyInstanceMutation } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { ApolloError } from '@apollo/client';
 
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
@@ -26,7 +28,10 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
 
   const [disabled, setDisabled] = useState(false);
 
-  const [applyInstanceMutation] = useApplyInstanceMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [applyInstanceMutation] = useApplyInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {
@@ -38,8 +43,8 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
           applyInstanceMutation
         );
         if (result) setTimeout(setDisabled, 400, false);
-      } catch {
-        // TODO: properly handle errors
+      } catch (err) {
+        apolloErrorCatcher(err as ApolloError);
       }
     }
   };

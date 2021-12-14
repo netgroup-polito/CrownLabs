@@ -5,16 +5,19 @@ import App from './App';
 import AuthContextProvider from './contexts/AuthContext';
 import ApolloClientSetup from './graphql-components/apolloClientSetup/ApolloClientSetup';
 import TenantContextProvider from './graphql-components/tenantContext/TenantContext';
+import ErrorContextProvider from './errorHandling/ErrorContext';
 
 ReactDOM.render(
   <React.StrictMode>
-    <AuthContextProvider>
-      <ApolloClientSetup>
-        <TenantContextProvider>
-          <App />
-        </TenantContextProvider>
-      </ApolloClientSetup>
-    </AuthContextProvider>
+    <ErrorContextProvider>
+      <AuthContextProvider>
+        <ApolloClientSetup>
+          <TenantContextProvider>
+            <App />
+          </TenantContextProvider>
+        </ApolloClientSetup>
+      </AuthContextProvider>
+    </ErrorContextProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );

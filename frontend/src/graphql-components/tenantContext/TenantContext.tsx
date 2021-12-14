@@ -8,6 +8,8 @@ import {
   useState,
 } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
+import { ErrorContext } from '../../errorHandling/ErrorContext';
+import { ErrorTypes } from '../../errorHandling/utils';
 import {
   TenantQuery,
   useSshKeysQuery,
@@ -45,25 +47,39 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     notifyOnNetworkStatusChange: true,
     fetchPolicy: 'network-only',
   });
+  const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
+    useContext(ErrorContext);
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
     onCompleted: setData,
     fetchPolicy: 'network-only',
+    onError: apolloErrorCatcher,
   });
 
   useEffect(() => {
-    if (loading) return;
-    subscribeToMore({
-      variables: { tenantId: userId ?? '' },
-      document: updatedTenant,
-      updateQuery: (prev, { subscriptionData: { data } }) => {
-        if (!data) return prev;
-        setData(data);
-        return data;
-      },
-    });
-  }, [subscribeToMore, loading, userId]);
+    if (!loading && !error && !errorsQueue.length) {
+      const unsubscribe = subscribeToMore({
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
+        variables: { tenantId: userId ?? '' },
+        document: updatedTenant,
+        updateQuery: (prev, { subscriptionData: { data } }) => {
+          if (!data) return prev;
+          setData(data);
+          return data;
+        },
+      });
+      return unsubscribe;
+    }
+  }, [
+    subscribeToMore,
+    loading,
+    userId,
+    errorsQueue.length,
+    error,
+    apolloErrorCatcher,
+    makeErrorCatcher,
+  ]);
 
   useEffect(() => {
     const timerHandler = setInterval(() => setNow(new Date()), 60000);

@@ -1,12 +1,15 @@
-import { FC, SetStateAction, useState } from 'react';
+import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import Button from 'antd-button-color';
-import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
-import { Instance, WorkspaceRole } from '../../../../utils';
-import { useDeleteInstanceMutation } from '../../../../generated-types';
-import { EnvironmentType } from '../../../../generated-types';
-import { ModalAlert } from '../../../common/ModalAlert';
 import Text from 'antd/lib/typography/Text';
+import { FC, SetStateAction, useContext, useState } from 'react';
+import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import {
+  EnvironmentType,
+  useDeleteInstanceMutation,
+} from '../../../../generated-types';
+import { Instance, WorkspaceRole } from '../../../../utils';
+import { ModalAlert } from '../../../common/ModalAlert';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
@@ -29,7 +32,10 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     environmentType,
   } = instance;
 
-  const [deleteInstanceMutation] = useDeleteInstanceMutation();
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const titleFromStatus = () => {
     if (!connectDisabled) {
