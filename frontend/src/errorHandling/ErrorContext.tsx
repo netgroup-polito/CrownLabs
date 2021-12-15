@@ -78,8 +78,13 @@ const ErrorContextProvider: FC<PropsWithChildren<{}>> = props => {
       setExecLogin(true);
   }, [errorsQueue]);
 
-  const dispatchError = (err: CustomError) =>
-    setErrorsQueue(old => [err, ...old]);
+  const dispatchError = (err: CustomError) => {
+    setErrorsQueue(old =>
+      !old.find(e => e.getErrorMessage() === err.getErrorMessage())
+        ? [err, ...old]
+        : [...old]
+    );
+  };
 
   const getNextError = (): CustomError => {
     const r = errorsQueue[0];
