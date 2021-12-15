@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -36,6 +36,8 @@ const (
 	ClassContainer EnvironmentType = "Container"
 	// ClassVM -> the environment is constituted by a Virtual Machine.
 	ClassVM EnvironmentType = "VirtualMachine"
+	// ClassCloudVM -> the environment is constituited by a Virtual Machine started from cloud images downloaded from HTTP URL.
+	ClassCloudVM EnvironmentType = "CloudVM"
 
 	// ModeStandard -> Normal operation (authentication, ssh, files access).
 	ModeStandard EnvironmentMode = "Standard"
@@ -81,8 +83,8 @@ type Environment struct {
 	// The VM or container to be started when instantiating the environment.
 	Image string `json:"image"`
 
-	// The type of environment to be instantiated, among VirtualMachine and
-	// Container.
+	// The type of environment to be instantiated, among VirtualMachine,
+	// Container and CloudVM.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true

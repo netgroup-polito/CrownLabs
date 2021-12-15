@@ -89,7 +89,7 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	}
 
 	// Check if the environment is a persistent VM.
-	if env.EnvironmentType != crownlabsv1alpha2.ClassVM || !env.Persistent {
+	if (env.EnvironmentType != crownlabsv1alpha2.ClassVM && env.EnvironmentType != crownlabsv1alpha2.ClassCloudVM) || !env.Persistent {
 		return false, fmt.Errorf("environment %s is not a persistent VM. It is not possible to complete the InstanceSnapshot %s",
 			env.Name, isnap.Name)
 	}

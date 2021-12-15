@@ -70,7 +70,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance.Status.IP = service.Spec.ClusterIP
 
 	// No need to create ingress resources in case of gui-less VMs.
-	if environment.EnvironmentType == clv1alpha2.ClassVM && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
 		return nil
 	}
 
@@ -102,7 +102,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance.Status.URL = "https://" + host + forge.IngressInstancePath(instance)
 
 	// No need to create the file-browser ingress resource in case of VM or restricted modes.
-	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.Mode != clv1alpha2.ModeStandard {
+	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.Mode != clv1alpha2.ModeStandard {
 		return nil
 	}
 

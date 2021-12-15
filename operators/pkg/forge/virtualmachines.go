@@ -222,17 +222,29 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 	}
 }
 
+// DataVolumeSourceForge forges the DataVolumeSource for DataVolumeTemplate.
+func DataVolumeSourceForge(environment *clv1alpha2.Environment) cdiv1beta1.DataVolumeSource {
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+		return cdiv1beta1.DataVolumeSource{
+			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
+				URL: environment.Image,
+			},
+		}
+	}
+	return cdiv1beta1.DataVolumeSource{
+		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
+			URL:       urlDockerPrefix + environment.Image,
+			SecretRef: cdiSecretName,
+		},
+	}
+}
+
 // DataVolumeTemplate forges the DataVolume template associated with a given environment.
 func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
 	return virtv1.DataVolumeTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: cdiv1beta1.DataVolumeSpec{
-			Source: cdiv1beta1.DataVolumeSource{
-				Registry: &cdiv1beta1.DataVolumeSourceRegistry{
-					URL:       urlDockerPrefix + environment.Image,
-					SecretRef: cdiSecretName,
-				},
-			},
+			Source: DataVolumeSourceForge(environment),
 			PVC: &corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 				Resources: corev1.ResourceRequirements{

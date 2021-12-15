@@ -281,6 +281,26 @@ var _ = Describe("Generation of the exposition environment", func() {
 			})
 		})
 
+		Context("The environment is CloudVM-based", func() {
+			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+			Context("The environment has a GUI", func() {
+				BeforeEach(func() { environment.GuiEnabled = true })
+
+				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
+				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
+			})
+
+			Context("The environment has not a GUI", func() {
+				BeforeEach(func() { environment.GuiEnabled = false })
+
+				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+				Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
+				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
+			})
+		})
+
 		Context("The environment is Container-based", func() {
 			BeforeEach(func() {
 				environment.EnvironmentType = clv1alpha2.ClassContainer
