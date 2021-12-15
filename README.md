@@ -46,15 +46,9 @@ For more information regarding the CrownLabs backend, as well as for the deploym
 ## Frontend Dashboard
 
 The frontend dashboard is the component responsible for providing access to the CrownLabs custom resources through an easy to use graphical interface.
-It allows final users to spawn new environments, as well as to define new templates.
-Additionally, privileged users can create, update and delete both tenant and workspace resources, effectively managing the permissions granted to access the system.
-
-The CrownLabs dashboard builds on top of [LiqoDash](https://github.com/liqotech/dashboard), a dynamic and general purpose dashboard designed to display and interact with Kubernetes resources.
-Specifically, it can be thought as a graphical `kubectl`, which directly interacts with the Kubernetes API server and provides access to both native and custom resources (i.e. those defined through CRDs).
-
-CrownLabs also leverages the possibility offered by the LiqoDash to easily create custom views, hence providing a more tailored interface for the specific use-case (e.g. display the available templates and start an instance of a given environment).
-Additionally, authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
-
+It allows final users to explore the workspaces they are enrolled in, spawn new environments, and connect to their instances.
+Additionally, privileged users can create, update and delete both templates and tenant resources, effectively managing the available environments and the permissions granted to access the system.
+Authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
 
 # Installation
 

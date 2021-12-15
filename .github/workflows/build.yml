@@ -176,7 +176,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ needs.configure.outputs.ref }}
-          submodules: true
           persist-credentials: false
 
       - name: Set up Docker Buildx

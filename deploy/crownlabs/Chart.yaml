@@ -20,11 +20,6 @@ version: 0.1.4
 icon: https://crownlabs.polito.it/images/logo.svg
 
 dependencies:
-- name: dashboard
-  version: "0.1.0"
-  repository: file://../../dashboard/deploy/dashboard
-  condition: dashboard.enabled
-
 - name: frontend-app
   version: "0.1.0"
   repository: file://../../frontend/deploy/frontend-app
