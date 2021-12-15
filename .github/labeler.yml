@@ -2,7 +2,6 @@ sig/api:
   - operators/**/*
 
 sig/ui:
-  - dashboard/**/*
   - frontend/**/*
 
 sig/operations:

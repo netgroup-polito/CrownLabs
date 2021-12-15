@@ -1,7 +1,4 @@
 dependencies:
-- name: dashboard
-  repository: file://../../dashboard/deploy/dashboard
-  version: 0.1.0
 - name: frontend-app
   repository: file://../../frontend/deploy/frontend-app
   version: 0.1.0

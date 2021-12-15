@@ -7,19 +7,6 @@ global:
 
 createClusterRoles: true
 
-dashboard:
-  replicaCount: 1
-  image:
-    repository: crownlabs/dashboard
-  ingress:
-    hostname: crownlabs.example.com
-  configurations:
-    oidc:
-      clientId: k8s
-      clientSecret: <client-secret>
-      realm: <realm>
-      providerUrl: https://auth.example.com/auth/realms/crownlabs
-
 frontend-app:
   replicaCount: 1
   image:
