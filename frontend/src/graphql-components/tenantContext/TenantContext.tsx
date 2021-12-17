@@ -12,6 +12,7 @@ import { ErrorContext } from '../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../errorHandling/utils';
 import {
   TenantQuery,
+  UpdatedTenantSubscription,
   useSshKeysQuery,
   useTenantQuery,
 } from '../../generated-types';
@@ -71,8 +72,9 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
         variables: { tenantId: userId ?? '' },
         document: updatedTenant,
         updateQuery: (prev, { subscriptionData: { data } }) => {
+          const dataCasted = data as UpdatedTenantSubscription;
           if (!data) return prev;
-          setData(data);
+          setData(dataCasted.updatedTenant as TenantQuery);
           return data;
         },
       });
