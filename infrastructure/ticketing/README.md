@@ -12,7 +12,7 @@ Here we assume that exists a namespace in K8S cluster called **crownlabs-ticketi
 Now we can proceed by installing Faveo helpdesk by applying the following manifests:
 * [mysql-secret.yaml](manifests/mysql-secret.yaml), it will create the `faveo-db-auth` secret, which contains custom encoded values for `DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`;
 * [faveo-mysql-cluster-manifest.yaml](manifests/faveo-mysql-cluster-manifest.yaml), to expose a mysql instance for the database, this needs the `faveo-db-auth` secret to be already applied in the namespace;
-* [faveo-ingress.yaml](manifests/faveo-ingress.yaml), to expose faveo on Internet, it will be available [here](https://ticketing.crownlabs.polito.it);
+* [faveo-ingress.yaml](manifests/faveo-ingress.yaml), to expose faveo on Internet, it will be available [here](https://support.crownlabs.polito.it);
 * [faveo-php-configmap.yaml](manifests/faveo-php-configmap.yaml), which contains environment variables for faveo, the following parameters have to be configured
     * `DB_DATABASE` insert here the database name, it can be retrieved from the `faveo-db-auth` secret
     * `DB_USERNAME` insert here the username of the database owner, it can be retrieved from the `faveo-db-auth` secret

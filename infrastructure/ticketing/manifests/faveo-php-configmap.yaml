@@ -3,7 +3,7 @@ data:
   .env: |
     APP_DEBUG=false
     APP_BUGSNAG=true
-    APP_URL=https://ticketing.crownlabs.polito.it
+    APP_URL=https://support.crownlabs.polito.it
     APP_KEY=base64:edcbeW2vK8rIuavnG7lF4OM1qAUfOoG6vin5ZucJUug=
     DB_TYPE=mysql
     DB_HOST="faveo-db-mysql-master"
