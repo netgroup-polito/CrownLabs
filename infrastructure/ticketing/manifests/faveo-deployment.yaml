@@ -42,7 +42,7 @@ spec:
             path: .env
       initContainers:
       - name: init-faveo
-        image: crownlabs/faveo:v1.11.1-crown
+        image: crownlabs/faveo:v1.11.2-crown
         command: ["/bin/sh","-c"]
         args: ["php artisan migrate --force && php artisan db:seed --force || true"]
         volumeMounts:
@@ -50,7 +50,7 @@ spec:
           mountPath: /usr/share/nginx/.env
           subPath: .env
       containers:
-      - image: crownlabs/faveo:v1.11.1-crown
+      - image: crownlabs/faveo:v1.11.2-crown
         name: faveo
         ports:
         - containerPort: 80
