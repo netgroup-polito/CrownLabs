@@ -1,16 +1,15 @@
-import { FC, useContext } from 'react';
-import { Layout, Drawer, Tooltip, Divider, Typography } from 'antd';
-import Button from 'antd-button-color';
 import { MenuOutlined } from '@ant-design/icons';
+import { Divider, Drawer, Layout, Typography } from 'antd';
+import Button from 'antd-button-color';
+import { FC, useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { LinkPosition, RouteData, RouteDescriptor } from '../../../utils';
 import ThemeSwitcher from '../../misc/ThemeSwitcher';
-import './Navbar.less';
 import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
-import { LinkPosition, RouteData, RouteDescriptor } from '../../../utils';
+import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 
 const Header = Layout.Header;
 const { Title } = Typography;
@@ -40,58 +39,33 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
     const isExtLink = routeData.path.indexOf('http') === 0;
     return {
       linkPosition: b.linkPosition,
-      content:
-        routeData.name !== 'Support' ? (
-          <Link
-            target={isExtLink ? '_blank' : ''}
-            key={i}
-            to={{ pathname: isExtLink ? '' : routeData.path }}
-            rel={isExtLink ? 'noopener noreferrer' : ''}
+      content: (
+        <Link
+          target={isExtLink ? '_blank' : ''}
+          key={i}
+          to={{ pathname: isExtLink ? '' : routeData.path }}
+          rel={isExtLink ? 'noopener noreferrer' : ''}
+        >
+          <Button
+            onClick={() =>
+              isExtLink ? window.open(routeData.path, '_blank') : setShow(false)
+            }
+            ghost={currentPath !== routeData.path}
+            className={
+              'w-full flex justify-center my-3 ' +
+              (routes.length <= 4
+                ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+                : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
+              (currentPath !== routeData.path ? ' navbar-button ' : '')
+            }
+            size="large"
+            type={currentPath !== routeData.path ? 'default' : 'primary'}
+            shape="round"
           >
-            <Button
-              onClick={() =>
-                isExtLink
-                  ? window.open(routeData.path, '_blank')
-                  : setShow(false)
-              }
-              ghost={currentPath !== routeData.path}
-              className={
-                'w-full flex justify-center my-3 ' +
-                (routes.length <= 4
-                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-                (currentPath !== routeData.path ? ' navbar-button ' : '')
-              }
-              size="large"
-              type={currentPath !== routeData.path ? 'default' : 'primary'}
-              shape="round"
-            >
-              {routeData.name}
-            </Button>
-          </Link>
-        ) : (
-          <Tooltip title="Coming soon" placement="bottom">
-            <span
-              className={
-                'cursor-not-allowed w-full flex justify-center my-3 ' +
-                (routes.length <= 4
-                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48')
-              }
-            >
-              <Button
-                ghost
-                disabled
-                className="pointer-events-none w-full flex justify-center navbar-button"
-                size="large"
-                type="default"
-                shape="round"
-              >
-                {routeData.name}
-              </Button>
-            </span>
-          </Tooltip>
-        ),
+            {routeData.name}
+          </Button>
+        </Link>
+      ),
     };
   });
 
