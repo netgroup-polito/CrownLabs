@@ -43,7 +43,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
           </Text>
           <Text className="flex justify-center">
             <Link to="/account">
-              <Button type="primary" shape="round">
+              <Button className="mt-3" type="primary" shape="round">
                 Go to Account
               </Button>
             </Link>

@@ -13,7 +13,6 @@ import { ErrorTypes } from '../../errorHandling/utils';
 import {
   TenantQuery,
   UpdatedTenantSubscription,
-  useSshKeysQuery,
   useTenantQuery,
 } from '../../generated-types';
 import { JSONDeepCopy } from '../../utils';
@@ -45,11 +44,6 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
   const [now, setNow] = useState(new Date());
   const [data, setData] = useState<TenantQuery>();
 
-  const { data: sshKeysResult } = useSshKeysQuery({
-    variables: { tenantId: userId ?? '' },
-    notifyOnNetworkStatusChange: true,
-    fetchPolicy: 'network-only',
-  });
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
 
@@ -97,11 +91,10 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const refreshClock = () => setNow(new Date());
 
-  const hasSSHKeys = !!sshKeysResult?.tenant?.spec?.publicKeys?.length;
-
+  const hasSSHKeys = !!data?.tenant?.spec?.publicKeys?.length;
   return (
     <TenantContext.Provider
-      value={{ data, loading, error, hasSSHKeys, now, refreshClock }}
+      value={{ data, loading, error, now, refreshClock, hasSSHKeys }}
     >
       {children}
     </TenantContext.Provider>

@@ -15,6 +15,24 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
       dataSource={sshKeys}
       expandedRowRender={record => <p>{record.key}</p>}
       style={{ maxWidth: '800px' }}
+      locale={{
+        emptyText: (
+          <div>
+            <div>It seems that you don't have any SSH key registered</div>
+            <div>
+              If you don't know how to generate and upload a new key follow{` `}
+              <a
+                target="_blank"
+                rel="noreferrer"
+                href="https://crownlabs.polito.it/resources/crownlabs_ssh/"
+              >
+                this guide
+              </a>
+              .
+            </div>
+          </div>
+        ),
+      }}
     >
       <Column title="Name" dataIndex="name" width={100} />
       <Column title="Key" dataIndex="key" ellipsis={true} width={240} />

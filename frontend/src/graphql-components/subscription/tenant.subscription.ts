@@ -25,6 +25,7 @@ export default gql`
               }
             }
           }
+          publicKeys
         }
         metadata {
           name

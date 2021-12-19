@@ -45,7 +45,7 @@ export type EnvironmentListListItem = {
   __typename?: 'EnvironmentListListItem';
   /** Options to customize container startup */
   containerStartupOptions?: Maybe<ContainerStartupOptions>;
-  /** The type of environment to be instantiated, among VirtualMachine and Container. */
+  /** The type of environment to be instantiated, among VirtualMachine, Container and CloudVM. */
   environmentType?: Maybe<EnvironmentType>;
   /** Whether the environment is characterized by a graphical desktop or not. */
   guiEnabled?: Maybe<Scalars['Boolean']>;
@@ -65,7 +65,7 @@ export type EnvironmentListListItem = {
 export type EnvironmentListListItemInput = {
   /** Options to customize container startup */
   containerStartupOptions?: Maybe<ContainerStartupOptionsInput>;
-  /** The type of environment to be instantiated, among VirtualMachine and Container. */
+  /** The type of environment to be instantiated, among VirtualMachine, Container and CloudVM. */
   environmentType: EnvironmentType;
   /** Whether the environment is characterized by a graphical desktop or not. */
   guiEnabled?: Maybe<Scalars['Boolean']>;
@@ -100,7 +100,8 @@ export type EnvironmentRefInput = {
 
 export enum EnvironmentType {
   VirtualMachine = 'VirtualMachine',
-  Container = 'Container'
+  Container = 'Container',
+  CloudVm = 'CloudVM'
 }
 
 /** ImageListItem describes a single VM image. */
@@ -1656,7 +1657,7 @@ export type NamespaceInput = {
   name?: Maybe<Scalars['String']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quotas, network policies, ...) created by the tenant-operator. */
+/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
 export type PersonalNamespace = {
   __typename?: 'PersonalNamespace';
   /** Whether the creation succeeded or not. */
@@ -1665,7 +1666,7 @@ export type PersonalNamespace = {
   name?: Maybe<Scalars['String']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quotas, network policies, ...) created by the tenant-operator. */
+/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
 export type PersonalNamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean'];
@@ -2093,6 +2094,69 @@ export type QueryReadCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   resourceVersion?: Maybe<Scalars['String']>;
 };
 
+/** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+export type Quota = {
+  __typename?: 'Quota';
+  /** The maximum amount of CPU which can be used by this Tenant. */
+  cpu?: Maybe<Scalars['String']>;
+  /** The maximum number of concurrent instances which can be created by this Tenant. */
+  instances?: Maybe<Scalars['Int']>;
+  /** The maximum amount of RAM memory which can be used by this Tenant. */
+  memory?: Maybe<Scalars['String']>;
+};
+
+/** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
+export type Quota2 = {
+  __typename?: 'Quota2';
+  /** The maximum amount of CPU which can be used by this Tenant. */
+  cpu?: Maybe<Scalars['String']>;
+  /** The maximum number of concurrent instances which can be created by this Tenant. */
+  instances?: Maybe<Scalars['Int']>;
+  /** The maximum amount of RAM memory which can be used by this Tenant. */
+  memory?: Maybe<Scalars['String']>;
+};
+
+/** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
+export type Quota2Input = {
+  /** The maximum amount of CPU which can be used by this Tenant. */
+  cpu: Scalars['String'];
+  /** The maximum number of concurrent instances which can be created by this Tenant. */
+  instances: Scalars['Int'];
+  /** The maximum amount of RAM memory which can be used by this Tenant. */
+  memory: Scalars['String'];
+};
+
+/** The amount of resources associated with this workspace, and inherited by enrolled tenants. */
+export type Quota3 = {
+  __typename?: 'Quota3';
+  /** The maximum amount of CPU required by this Workspace. */
+  cpu?: Maybe<Scalars['String']>;
+  /** The maximum number of concurrent instances required by this Workspace. */
+  instances?: Maybe<Scalars['Int']>;
+  /** The maximum amount of RAM memory required by this Workspace. */
+  memory?: Maybe<Scalars['String']>;
+};
+
+/** The amount of resources associated with this workspace, and inherited by enrolled tenants. */
+export type Quota3Input = {
+  /** The maximum amount of CPU required by this Workspace. */
+  cpu: Scalars['String'];
+  /** The maximum number of concurrent instances required by this Workspace. */
+  instances: Scalars['Int'];
+  /** The maximum amount of RAM memory required by this Workspace. */
+  memory: Scalars['String'];
+};
+
+/** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+export type QuotaInput = {
+  /** The maximum amount of CPU which can be used by this Tenant. */
+  cpu: Scalars['String'];
+  /** The maximum number of concurrent instances which can be created by this Tenant. */
+  instances: Scalars['Int'];
+  /** The maximum amount of RAM memory which can be used by this Tenant. */
+  memory: Scalars['String'];
+};
+
 /** The amount of computational resources associated with the environment. */
 export type Resources = {
   __typename?: 'Resources';
@@ -2162,6 +2226,8 @@ export type Spec2 = {
   lastName?: Maybe<Scalars['String']>;
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']>>>;
+  /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+  quota?: Maybe<Quota>;
   /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItem>>>;
 };
@@ -2178,6 +2244,8 @@ export type Spec2Input = {
   lastName: Scalars['String'];
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']>>>;
+  /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+  quota?: Maybe<QuotaInput>;
   /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItemInput>>>;
 };
@@ -2187,12 +2255,16 @@ export type Spec3 = {
   __typename?: 'Spec3';
   /** The human-readable name of the Workspace. */
   prettyName?: Maybe<Scalars['String']>;
+  /** The amount of resources associated with this workspace, and inherited by enrolled tenants. */
+  quota?: Maybe<Quota3>;
 };
 
 /** WorkspaceSpec is the specification of the desired state of the Workspace. */
 export type Spec3Input = {
   /** The human-readable name of the Workspace. */
   prettyName: Scalars['String'];
+  /** The amount of resources associated with this workspace, and inherited by enrolled tenants. */
+  quota: Quota3Input;
 };
 
 /** InstanceSpec is the specification of the desired state of the Instance. */
@@ -2283,6 +2355,8 @@ export type Spec7 = {
   lastName?: Maybe<Scalars['String']>;
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']>>>;
+  /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+  quota?: Maybe<Quota>;
   /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItem2>>>;
 };
@@ -2299,6 +2373,8 @@ export type Spec7Input = {
   lastName: Scalars['String'];
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']>>>;
+  /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
+  quota?: Maybe<QuotaInput>;
   /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItem2Input>>>;
 };
@@ -2316,8 +2392,10 @@ export type Status = {
   __typename?: 'Status';
   /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
   failingWorkspaces?: Maybe<Array<Maybe<Scalars['String']>>>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quotas, network policies, ...) created by the tenant-operator. */
+  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
   personalNamespace?: Maybe<PersonalNamespace>;
+  /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
+  quota?: Maybe<Quota2>;
   /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
   ready?: Maybe<Scalars['Boolean']>;
   /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
@@ -2393,8 +2471,10 @@ export type Status4Input = {
 export type StatusInput = {
   /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
   failingWorkspaces: Array<Maybe<Scalars['String']>>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quotas, network policies, ...) created by the tenant-operator. */
+  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
   personalNamespace: PersonalNamespaceInput;
+  /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
+  quota?: Maybe<Quota2Input>;
   /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
   ready: Scalars['Boolean'];
   /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
@@ -2703,13 +2783,6 @@ export type InstancesLabelSelectorQueryVariables = Exact<{
 
 export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', name?: Maybe<string>, tenantV1alpha2Wrapper?: Maybe<{ __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }>>> }> };
 
-export type SshKeysQueryVariables = Exact<{
-  tenantId: Scalars['String'];
-}>;
-
-
-export type SshKeysQuery = { __typename?: 'Query', tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, publicKeys?: Maybe<Array<Maybe<string>>> }> }> };
-
 export type WorkspaceTemplatesQueryVariables = Exact<{
   workspaceNamespace: Scalars['String'];
 }>;
@@ -2722,7 +2795,7 @@ export type TenantQueryVariables = Exact<{
 }>;
 
 
-export type TenantQuery = { __typename?: 'Query', tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, workspaces?: Maybe<Array<Maybe<{ __typename?: 'WorkspacesListItem2', role?: Maybe<Role>, name?: Maybe<string>, workspaceWrapperTenantV1alpha2?: Maybe<{ __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: Maybe<{ __typename?: 'Spec3', prettyName?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status2', namespace?: Maybe<{ __typename?: 'Namespace', name?: Maybe<string> }> }> }> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status', personalNamespace?: Maybe<{ __typename?: 'PersonalNamespace', name?: Maybe<string> }> }> }> };
+export type TenantQuery = { __typename?: 'Query', tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, publicKeys?: Maybe<Array<Maybe<string>>>, workspaces?: Maybe<Array<Maybe<{ __typename?: 'WorkspacesListItem2', role?: Maybe<Role>, name?: Maybe<string>, workspaceWrapperTenantV1alpha2?: Maybe<{ __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: Maybe<{ __typename?: 'Spec3', prettyName?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status2', namespace?: Maybe<{ __typename?: 'Namespace', name?: Maybe<string> }> }> }> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status', personalNamespace?: Maybe<{ __typename?: 'PersonalNamespace', name?: Maybe<string> }> }> }> };
 
 export type TenantsQueryVariables = Exact<{
   labels?: Maybe<Scalars['String']>;
@@ -2747,13 +2820,6 @@ export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
 
 export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, tenantCrownlabsPolitoItTenantRef?: Maybe<{ __typename?: 'TenantCrownlabsPolitoItTenantRef', name?: Maybe<string>, tenantV1alpha2Wrapper?: Maybe<{ __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', firstName?: Maybe<string>, lastName?: Maybe<string> }> }> }> }>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }> }> };
 
-export type UpdatedSshKeysSubscriptionVariables = Exact<{
-  tenantId: Scalars['String'];
-}>;
-
-
-export type UpdatedSshKeysSubscription = { __typename?: 'Subscription', updatedTenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: Maybe<UpdateType>, updatedKeys?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, publicKeys?: Maybe<Array<Maybe<string>>> }> }> }> };
-
 export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
   workspaceNamespace: Scalars['String'];
   templateId?: Maybe<Scalars['String']>;
@@ -2767,7 +2833,7 @@ export type UpdatedTenantSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: Maybe<UpdateType>, tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, workspaces?: Maybe<Array<Maybe<{ __typename?: 'WorkspacesListItem2', role?: Maybe<Role>, name?: Maybe<string>, workspaceWrapperTenantV1alpha2?: Maybe<{ __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: Maybe<{ __typename?: 'Spec3', prettyName?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status2', namespace?: Maybe<{ __typename?: 'Namespace', name?: Maybe<string> }> }> }> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status', personalNamespace?: Maybe<{ __typename?: 'PersonalNamespace', name?: Maybe<string> }> }> }> }> };
+export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: Maybe<UpdateType>, tenant?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: Maybe<{ __typename?: 'Spec7', email?: Maybe<string>, firstName?: Maybe<string>, lastName?: Maybe<string>, publicKeys?: Maybe<Array<Maybe<string>>>, workspaces?: Maybe<Array<Maybe<{ __typename?: 'WorkspacesListItem2', role?: Maybe<Role>, name?: Maybe<string>, workspaceWrapperTenantV1alpha2?: Maybe<{ __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: Maybe<{ __typename?: 'Spec3', prettyName?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status2', namespace?: Maybe<{ __typename?: 'Namespace', name?: Maybe<string> }> }> }> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status', personalNamespace?: Maybe<{ __typename?: 'PersonalNamespace', name?: Maybe<string> }> }> }> }> };
 
 
 export const ApplyInstanceDocument = gql`
@@ -3422,55 +3488,6 @@ export function useInstancesLabelSelectorLazyQuery(baseOptions?: Apollo.LazyQuer
 export type InstancesLabelSelectorQueryHookResult = ReturnType<typeof useInstancesLabelSelectorQuery>;
 export type InstancesLabelSelectorLazyQueryHookResult = ReturnType<typeof useInstancesLabelSelectorLazyQuery>;
 export type InstancesLabelSelectorQueryResult = Apollo.QueryResult<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>;
-export const SshKeysDocument = gql`
-    query sshKeys($tenantId: String!) {
-  tenant: itPolitoCrownlabsV1alpha2Tenant(name: $tenantId) {
-    metadata {
-      name
-    }
-    spec {
-      email
-      firstName
-      lastName
-      publicKeys
-    }
-  }
-}
-    `;
-export type SshKeysComponentProps = Omit<ApolloReactComponents.QueryComponentOptions<SshKeysQuery, SshKeysQueryVariables>, 'query'> & ({ variables: SshKeysQueryVariables; skip?: boolean; } | { skip: boolean; });
-
-    export const SshKeysComponent = (props: SshKeysComponentProps) => (
-      <ApolloReactComponents.Query<SshKeysQuery, SshKeysQueryVariables> query={SshKeysDocument} {...props} />
-    );
-    
-
-/**
- * __useSshKeysQuery__
- *
- * To run a query within a React component, call `useSshKeysQuery` and pass it any options that fit your needs.
- * When your component renders, `useSshKeysQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useSshKeysQuery({
- *   variables: {
- *      tenantId: // value for 'tenantId'
- *   },
- * });
- */
-export function useSshKeysQuery(baseOptions: Apollo.QueryHookOptions<SshKeysQuery, SshKeysQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<SshKeysQuery, SshKeysQueryVariables>(SshKeysDocument, options);
-      }
-export function useSshKeysLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<SshKeysQuery, SshKeysQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<SshKeysQuery, SshKeysQueryVariables>(SshKeysDocument, options);
-        }
-export type SshKeysQueryHookResult = ReturnType<typeof useSshKeysQuery>;
-export type SshKeysLazyQueryHookResult = ReturnType<typeof useSshKeysLazyQuery>;
-export type SshKeysQueryResult = Apollo.QueryResult<SshKeysQuery, SshKeysQueryVariables>;
 export const WorkspaceTemplatesDocument = gql`
     query workspaceTemplates($workspaceNamespace: String!) {
   templateList: itPolitoCrownlabsV1alpha2TemplateList(
@@ -3558,6 +3575,7 @@ export const TenantDocument = gql`
           }
         }
       }
+      publicKeys
     }
     metadata {
       name
@@ -3815,53 +3833,6 @@ export function useUpdatedInstancesLabelSelectorSubscription(baseOptions?: Apoll
       }
 export type UpdatedInstancesLabelSelectorSubscriptionHookResult = ReturnType<typeof useUpdatedInstancesLabelSelectorSubscription>;
 export type UpdatedInstancesLabelSelectorSubscriptionResult = Apollo.SubscriptionResult<UpdatedInstancesLabelSelectorSubscription>;
-export const UpdatedSshKeysDocument = gql`
-    subscription updatedSshKeys($tenantId: String!) {
-  updatedTenant: itPolitoCrownlabsV1alpha2TenantUpdate(name: $tenantId) {
-    updateType
-    updatedKeys: payload {
-      metadata {
-        name
-      }
-      spec {
-        email
-        firstName
-        lastName
-        publicKeys
-      }
-    }
-  }
-}
-    `;
-export type UpdatedSshKeysComponentProps = Omit<ApolloReactComponents.SubscriptionComponentOptions<UpdatedSshKeysSubscription, UpdatedSshKeysSubscriptionVariables>, 'subscription'>;
-
-    export const UpdatedSshKeysComponent = (props: UpdatedSshKeysComponentProps) => (
-      <ApolloReactComponents.Subscription<UpdatedSshKeysSubscription, UpdatedSshKeysSubscriptionVariables> subscription={UpdatedSshKeysDocument} {...props} />
-    );
-    
-
-/**
- * __useUpdatedSshKeysSubscription__
- *
- * To run a query within a React component, call `useUpdatedSshKeysSubscription` and pass it any options that fit your needs.
- * When your component renders, `useUpdatedSshKeysSubscription` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useUpdatedSshKeysSubscription({
- *   variables: {
- *      tenantId: // value for 'tenantId'
- *   },
- * });
- */
-export function useUpdatedSshKeysSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedSshKeysSubscription, UpdatedSshKeysSubscriptionVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<UpdatedSshKeysSubscription, UpdatedSshKeysSubscriptionVariables>(UpdatedSshKeysDocument, options);
-      }
-export type UpdatedSshKeysSubscriptionHookResult = ReturnType<typeof useUpdatedSshKeysSubscription>;
-export type UpdatedSshKeysSubscriptionResult = Apollo.SubscriptionResult<UpdatedSshKeysSubscription>;
 export const UpdatedWorkspaceTemplatesDocument = gql`
     subscription updatedWorkspaceTemplates($workspaceNamespace: String!, $templateId: String) {
   updatedTemplate: itPolitoCrownlabsV1alpha2TemplateUpdate(
@@ -3949,6 +3920,7 @@ export const UpdatedTenantDocument = gql`
             }
           }
         }
+        publicKeys
       }
       metadata {
         name
