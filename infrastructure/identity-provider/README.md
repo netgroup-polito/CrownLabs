@@ -7,8 +7,7 @@ This brief guide presents how to install Keycloak in HA in a K8S cluster with a 
 
 More info at [Keycloak's website](https://www.keycloak.org).
 
-**If you want to connect to the CrownLabs cluster, jump to the [Accessing using Keycloak as authentication server](#accessing-k8s-cluster-using-keycloak-as-authentication-server) section.**
-
+**If you want to connect to the CrownLabs cluster, jump to the [dedicated documentation page](https://crownlabs.polito.it/resources/sandbox/).**
 
 ## Pre-requisites
 Here we assume that the following operators are installed and configured in the K8s cluster:
@@ -99,92 +98,6 @@ In order to customize the different email templates, proceed as follows:
 
 ## Configure K8S api-server to be used with Keycloak
 Please follow the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) to allow the K8s Api-server to exploit the running Keycloak instance as identity provider.
-
-
-## Accessing K8S cluster using Keycloak as authentication server
-In order to start interacting with your Kubernetes cluster, you will use a command line tool called **kubectl**. You will need to install (1) `kubectl` on your local machine, and (2) the **kubelogin** plugin (also known as kubectl `oidc-login`), to enable the OIDC authentication.
-
-A **kubeconfig** file is a file used to configure access to Kubernetes when used in conjunction with the kubectl commandline tool.
-
-For more details on how kubeconfig and kubectl work together, see the [Kubernetes documentation](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/).
-
-### Pre-requisite
-You should have kubectl installed at a version compatible to your cluster.
-
-
-#### Krew
-First, you should install [Krew](https://krew.sigs.k8s.io/), which facilitates the use of kubectl plugins.
-Here there is the commands for Linux (Bash/Zsh):
-
-```
-(
- set -x; cd "$(mktemp -d)" &&
- OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
- ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" &&
- KREW="krew-${OS}_${ARCH}" &&
- curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
- tar zxvf "${KREW}.tar.gz" &&
- ./"${KREW}" install krew
-)
- ```
-Other configurations are available on the krew official documentation.
-In addition you have to enable krew by adding the following to your PATH:
-```
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-```
-
-To make persistent this modification, you should add permanently the previous configuration to your `bashrc/zshrc`.
-
-
-## OIDC-Login
-First we have to install OIDC login plugin, which enables a single sign on (SSO) to a Kubernetes cluster and other development tools:
-```
-kubectl krew install oidc-login
-```
-
-Now, we can proceed to use your cluster.
-
-
-## Login
-Once, you have created your user in your Keycloak instance, you can configure `oidc-login` by setting your credentials.
-This could be done in two different ways:
-
-1. You can use a redirect via-browser to login by putting your user/password in the Identity Provider website and store only the temporary token in your `kubeconfig`.
-2. (or) You can set your username and password directly in `kubeconfig` using the option `--skip-open-browser`.
-
-```
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: < ca.crt of the API Server >
-    server: https://__Your_API_Server_Address__
-  name: kubernetes
-contexts:
-- context:
-    cluster: kubernetes
-    namespace: default
-    user: oidc
-  name: kubernetes
-current-context: kubernetes
-kind: Config
-preferences: {}
-users:
-- name: oidc
-  user:
-    exec:
-      apiVersion: client.authentication.k8s.io/v1beta1
-      args:
-      - oidc-login
-      - get-token
-      - --oidc-issuer-url=https://__Keycloak_ingress__/auth/realms/crownlabs
-      - --oidc-client-id=k8s
-      - --oidc-client-secret=xxx-xxx-xxx-xxx
-      - --skip-open-browser # This will prevent browser redirection
-      - --username=<Username>
-      - --password=<Password>
-      command: kubectl
-      env: null
-```
 
 ## User Instances Authentication
 
