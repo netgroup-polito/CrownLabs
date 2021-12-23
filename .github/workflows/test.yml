@@ -138,7 +138,13 @@ jobs:
 
           # Trigger a failure in case the diff is not empty
           exit ${exit_code}
-
+      - name: Log the error if the diff is not empty (in case the comment cannot be generated)
+        run: |
+          echo "The generated artifacts appear to be out-of-date."
+          echo
+          echo "Here it is an excerpt of the diff:"
+          echo "${{ steps.git-diff.outputs.diff }}"
+        if: failure()
       - name: Issue a comment in case the diff is not empty
         uses: peter-evans/create-or-update-comment@v1
         with:

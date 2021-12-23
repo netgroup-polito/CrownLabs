@@ -147,7 +147,8 @@ export type EnvironmentRefInput = {
 export enum EnvironmentType {
   VirtualMachine = 'VirtualMachine',
   Container = 'Container',
-  CloudVm = 'CloudVM'
+  CloudVm = 'CloudVM',
+  Standalone = 'Standalone'
 }
 
 /** ImageListItem describes a single VM image. */

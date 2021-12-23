@@ -31,6 +31,8 @@ const (
 	IngressGUINameSuffix = "gui"
 	// IngressMyDriveNameSuffix -> the suffix added to the name of the ingress targeting the environment "MyDrive".
 	IngressMyDriveNameSuffix = "mydrive"
+	// IngressStandaloneSuffix -> the suffix added to the path of the ingress targeting the standalone application.
+	IngressStandaloneSuffix = "app"
 
 	// IngressDefaultCertificateName -> the name of the secret containing the crownlabs certificate.
 	IngressDefaultCertificateName = "crownlabs-ingress-secret"
@@ -42,6 +44,8 @@ const (
 
 	// WebsockifyRewriteEndpoint -> endpoint of the websocketed vnc server.
 	WebsockifyRewriteEndpoint = "/websockify"
+	// StandaloneRewriteEndpoint -> endpoint of the standalone application.
+	StandaloneRewriteEndpoint = "/$2"
 )
 
 // IngressSpec forges the specification of a Kubernetes Ingress resource.
@@ -71,15 +75,17 @@ func IngressSpec(host, path, certificateName, serviceName, servicePort string) n
 
 // IngressGUIAnnotations receives in input a set of annotations and returns the updated set including
 // the ones associated with the ingress targeting the environment GUI.
-func IngressGUIAnnotations(annotations map[string]string) map[string]string {
+func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[string]string) map[string]string {
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-
-	annotations["nginx.ingress.kubernetes.io/rewrite-target"] = WebsockifyRewriteEndpoint
+	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
+	} else if environment.EnvironmentType == clv1alpha2.ClassContainer {
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = WebsockifyRewriteEndpoint
+	}
 	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "3600"
 	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = "3600"
-
 	return annotations
 }
 
@@ -126,17 +132,48 @@ func HostName(baseHostName string, mode clv1alpha2.EnvironmentMode) string {
 	return baseHostName
 }
 
-// IngressInstancePath returns the path of the ingress targeting the environment.
-func IngressInstancePath(instance *clv1alpha2.Instance) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v", IngressInstancePrefix, instance.UID), "/")
-}
-
-// IngressVNCGUIPath returns the path of the ingress targeting the environment GUI vnc.
-func IngressVNCGUIPath(instance *clv1alpha2.Instance) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressVNCGUIPathSuffix), "/")
-}
-
 // IngressMyDrivePath returns the path of the ingress targeting the environment "MyDrive".
 func IngressMyDrivePath(instance *clv1alpha2.Instance) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressMyDrivePathSuffix), "/")
+	return fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressMyDrivePathSuffix)
+}
+
+// IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
+func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+	switch environment.EnvironmentType {
+	case clv1alpha2.ClassStandalone:
+		if environment.RewriteURL {
+			return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix+"(/|$)(.*)"), "/")
+		}
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix), "/")
+	case clv1alpha2.ClassContainer, clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressVNCGUIPathSuffix), "/")
+	}
+	return ""
+}
+
+// IngressGUICleanPath returns the path of the ingress targeting the environment GUI vnc or Standalone, without the url-rewrite's regex.
+func IngressGUICleanPath(instance *clv1alpha2.Instance) string {
+	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix), "/")
+}
+
+// IngressGuiStatusURL returns the path of the ingress targeting the environment.
+func IngressGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
+	switch environment.EnvironmentType {
+	case clv1alpha2.ClassStandalone:
+		return fmt.Sprintf("https://%v%v/%v/%v/", host, IngressInstancePrefix, instance.UID, IngressStandaloneSuffix)
+	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+		return fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+	}
+	return ""
+}
+
+// IngressGUIName returns the name of the ingress resource.
+func IngressGUIName(environment *clv1alpha2.Environment) string {
+	switch environment.EnvironmentType {
+	case clv1alpha2.ClassStandalone:
+		return IngressStandaloneSuffix
+	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+		return IngressGUINameSuffix
+	}
+	return ""
 }

@@ -25,6 +25,12 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
+func addNginxProxyTimeoutAnnotations(annotations map[string]string, timeout string) map[string]string {
+	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = timeout
+	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = timeout
+	return annotations
+}
+
 var _ = Describe("Ingresses", func() {
 
 	Describe("The forge.IngressSpec function", func() {
@@ -78,50 +84,106 @@ var _ = Describe("Ingresses", func() {
 	Describe("The forge.IngressGUIAnnotations function", func() {
 
 		type InstanceGUIAnnotationsCase struct {
-			Input          map[string]string
+			Annotations    map[string]string
 			ExpectedOutput map[string]string
+			Environment    clv1alpha2.Environment
 		}
 
-		DescribeTable("Correctly populates the annotations set",
-			func(c InstanceGUIAnnotationsCase) {
-				Expect(forge.IngressGUIAnnotations(c.Input)).To(Equal(c.ExpectedOutput))
-			},
-			Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-				Input: nil,
-				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
+		When("EnvironmentType is ClassStandalone", func() {
+
+			DescribeTable("Correctly populates the annotations set",
+				func(c InstanceGUIAnnotationsCase) {
+					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
 				},
-			}),
-			Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
-				Input: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-					"user/key": "user/value",
+				Entry("When the input annotations map is nil and RewriteURL false", InstanceGUIAnnotationsCase{
+					Annotations:    nil,
+					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
+				}),
+				Entry("When the input annotations map is nil and RewriteURL true", InstanceGUIAnnotationsCase{
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+					}, "3600"),
+				}),
+				Entry("When the input labels map already contains the expected values and RewriteURL false", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains only part of the expected values and RewriteURL false", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map already contains the expected values and RewriteURL true", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains only part of the expected values and RewriteURL true", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+			)
+		})
+
+		When("EnvironmentType is not ClassStandalone", func() {
+			DescribeTable("Correctly populates the annotations set",
+				func(c InstanceGUIAnnotationsCase) {
+					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
 				},
-				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-					"user/key": "user/value",
-				},
-			}),
-			Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
-				Input: map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-					"user/key": "user/value",
-				},
-				ExpectedOutput: map[string]string{
-					"nginx.ingress.kubernetes.io/rewrite-target":     "/websockify",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout": "3600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout": "3600",
-					"user/key": "user/value",
-				},
-			}),
-		)
+				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
+					}, "3600"),
+				}),
+				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+			)
+		})
 	})
 
 	Describe("The forge.IngressMyDriveAnnotations function", func() {
@@ -136,44 +198,34 @@ var _ = Describe("Ingresses", func() {
 			},
 			Entry("When the input annotations map is nil", InstanceMyDriveAnnotationsCase{
 				Input: nil,
-				ExpectedOutput: map[string]string{
+				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
 					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
-				},
+				}, "600"),
 			}),
 			Entry("When the input labels map already contains the expected values", InstanceMyDriveAnnotationsCase{
-				Input: map[string]string{
+				Input: addNginxProxyTimeoutAnnotations(map[string]string{
 					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
 					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
 					"user/key": "user/value",
-				},
-				ExpectedOutput: map[string]string{
+				}, "600"),
+				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
 					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
 					"user/key": "user/value",
-				},
+				}, "600"),
 			}),
 			Entry("When the input labels map contains only part of the expected values", InstanceMyDriveAnnotationsCase{
-				Input: map[string]string{
+				Input: addNginxProxyTimeoutAnnotations(map[string]string{
 					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
 					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
 					"user/key": "user/value",
-				},
-				ExpectedOutput: map[string]string{
+				}, "600"),
+				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
 					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"nginx.ingress.kubernetes.io/proxy-read-timeout":       "600",
-					"nginx.ingress.kubernetes.io/proxy-send-timeout":       "600",
 					"user/key": "user/value",
-				},
+				}, "600"),
 			}),
 		)
 	})
@@ -225,14 +277,18 @@ var _ = Describe("Ingresses", func() {
 
 	Describe("The forge.Ingress*Path functions", func() {
 		var (
-			instance clv1alpha2.Instance
-			path     string
+			instance    clv1alpha2.Instance
+			path        string
+			statusPath  string
+			GUIName     string
+			environment clv1alpha2.Environment
 		)
 
 		const (
 			instanceName      = "kubernetes-0000"
 			instanceNamespace = "tenant-tester"
 			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+			host              = "crownlabs.example.com"
 		)
 
 		BeforeEach(func() {
@@ -270,38 +326,101 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		Describe("The forge.IngressInstancePath function", func() {
+		Describe("The forge.IngressGUIPath function", func() {
 			JustBeforeEach(func() {
-				path = forge.IngressInstancePath(&instance)
+				path = forge.IngressGUIPath(&instance, &environment)
 			})
-
-			Context("The instance has no special configurations", func() {
-				It("Should generate a path based on the instance UID", func() {
-					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID))
+			When("EnvironmentType is ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassStandalone
+				})
+				When("Rewrite is true", func() {
+					BeforeEach(func() {
+						environment.RewriteURL = true
+					})
+					Context("The instance has no special configurations", func() {
+						It("Should generate a path based on the instance UID", func() {
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app(/|$)(.*)"))
+						})
+					})
+				})
+				When("Rewrite is false", func() {
+					BeforeEach(func() {
+						environment.RewriteURL = false
+					})
+					Context("The instance has no special configurations", func() {
+						It("Should generate a path based on the instance UID", func() {
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
+						})
+					})
 				})
 			})
-		})
 
-		Describe("The forge.IngressVNCGUIPath function", func() {
-			JustBeforeEach(func() {
-				path = forge.IngressVNCGUIPath(&instance)
-			})
-
-			Context("The instance has no special configurations", func() {
-				It("Should generate a path based on the instance UID", func() {
-					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/vnc"))
+			When("EnvironmentType is not ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+				})
+				Context("The instance has no special configurations", func() {
+					It("Should generate a path based on the instance UID", func() {
+						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/vnc"))
+					})
 				})
 			})
+
 		})
 
 		Describe("The forge.IngressMyDrivePath function", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				path = forge.IngressMyDrivePath(&instance)
 			})
-
 			Context("The instance has no special configurations", func() {
 				It("Should generate a path based on the instance UID", func() {
 					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/mydrive"))
+				})
+			})
+		})
+
+		Describe("The forge.IngressGuiStatusURL function", func() {
+			JustBeforeEach(func() {
+				statusPath = forge.IngressGuiStatusURL(host, &environment, &instance)
+			})
+			When("EnvironmentType is ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassStandalone
+				})
+				It("Should generate a path based on the instance UID and /app at the end", func() {
+					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
+				})
+			})
+			When("EnvironmentType is not ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+				})
+				It("Should generate a path based on the instance UID", func() {
+					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/"))
+				})
+			})
+		})
+
+		Describe("The forge.IngressGUIName function", func() {
+			JustBeforeEach(func() {
+				GUIName = forge.IngressGUIName(&environment)
+			})
+			When("EnvironmentType is ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassStandalone
+				})
+
+				It("Should generate a path based on the instance UID and /app at the end", func() {
+					Expect(GUIName).To(BeIdenticalTo("app"))
+				})
+			})
+			When("EnvironmentType is not ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+				})
+				It("Should generate a path based on the instance UID", func() {
+					Expect(GUIName).To(BeIdenticalTo("gui"))
 				})
 			})
 		})

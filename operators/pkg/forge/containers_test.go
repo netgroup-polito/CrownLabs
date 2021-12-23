@@ -220,14 +220,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec corev1.PodSpec
 
 		type PodSpecContainersCase struct {
-			Mode           clv1alpha2.EnvironmentMode
-			ExpectedOutput func(*clv1alpha2.Instance, *clv1alpha2.Environment) []corev1.Container
+			Mode            clv1alpha2.EnvironmentMode
+			EnvironmentType clv1alpha2.EnvironmentType
+			ExpectedOutput  func(*clv1alpha2.Instance, *clv1alpha2.Environment) []corev1.Container
 		}
 
 		ContainersWhenBody := func(psc PodSpecContainersCase) func() {
 			return func() {
 				BeforeEach(func() {
 					environment.Mode = psc.Mode
+					environment.EnvironmentType = psc.EnvironmentType
 				})
 				It("Should set the correct containers", func() {
 					Expect(spec.Containers).To(ConsistOf(psc.ExpectedOutput(&instance, &environment)))
@@ -247,39 +249,113 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(spec.AutomountServiceAccountToken).To(PointTo(BeFalse()))
 		})
 
-		When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-			Mode: clv1alpha2.ModeStandard,
-			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-				return []corev1.Container{
-					forge.WebsockifyContainer(&opts, &environment),
-					forge.XVncContainer(&opts),
-					forge.MyDriveContainer(i, &opts, myDriveMountPath),
-					forge.AppContainer(i, e, myDriveMountPath),
-				}
-			},
-		}))
+		When("the environment type is Standalone", func() {
+			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
+				Mode:            clv1alpha2.ModeStandard,
+				EnvironmentType: clv1alpha2.ClassStandalone,
+				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+					return []corev1.Container{
+						forge.StandaloneContainer(i, e, myDriveMountPath),
+						forge.MyDriveContainer(i, &opts, myDriveMountPath),
+					}
+				},
+			}))
+		})
 
-		When("the environment mode is Exercise", ContainersWhenBody(PodSpecContainersCase{
-			Mode: clv1alpha2.ModeExercise,
-			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-				return []corev1.Container{
-					forge.WebsockifyContainer(&opts, &environment),
-					forge.XVncContainer(&opts),
-					forge.AppContainer(i, e, myDriveMountPath),
-				}
-			},
-		}))
+		When("the environment type is Container", func() {
+			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
+				Mode:            clv1alpha2.ModeStandard,
+				EnvironmentType: clv1alpha2.ClassContainer,
+				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+					return []corev1.Container{
+						forge.WebsockifyContainer(&opts, &environment),
+						forge.XVncContainer(&opts),
+						forge.MyDriveContainer(i, &opts, myDriveMountPath),
+						forge.AppContainer(i, e, myDriveMountPath),
+					}
+				},
+			}))
 
-		When("the environment mode is Exam", ContainersWhenBody(PodSpecContainersCase{
-			Mode: clv1alpha2.ModeExam,
-			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-				return []corev1.Container{
-					forge.WebsockifyContainer(&opts, &environment),
-					forge.XVncContainer(&opts),
-					forge.AppContainer(i, e, myDriveMountPath),
+			When("the environment mode is Exercise", ContainersWhenBody(PodSpecContainersCase{
+				Mode:            clv1alpha2.ModeExercise,
+				EnvironmentType: clv1alpha2.ClassContainer,
+				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+					return []corev1.Container{
+						forge.WebsockifyContainer(&opts, &environment),
+						forge.XVncContainer(&opts),
+						forge.AppContainer(i, e, myDriveMountPath),
+					}
+				},
+			}))
+
+			When("the environment mode is Exam", ContainersWhenBody(PodSpecContainersCase{
+				Mode:            clv1alpha2.ModeExam,
+				EnvironmentType: clv1alpha2.ClassContainer,
+				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+					return []corev1.Container{
+						forge.WebsockifyContainer(&opts, &environment),
+						forge.XVncContainer(&opts),
+						forge.AppContainer(i, e, myDriveMountPath),
+					}
+				},
+			}))
+		})
+	})
+
+	Describe("The forge.StandaloneContainer function forges a standalone container", func() {
+		var actual, expected corev1.Container
+
+		JustBeforeEach(func() {
+			actual = forge.StandaloneContainer(&instance, &environment, myDriveMountPath)
+		})
+
+		It("Should set container port", func() {
+			Expect(actual.Ports).To(Equal([]corev1.ContainerPort{{
+				Name:          "gui",
+				ContainerPort: int32(6080),
+				Protocol:      corev1.ProtocolTCP},
+			}))
+		})
+
+		When("RewriteURL is true", func() {
+			var probe *corev1.Probe
+			BeforeEach(func() {
+				probe = forge.ContainerProbe()
+				probe.Handler.HTTPGet = &corev1.HTTPGetAction{
+					Port: intstr.FromString("gui"),
+					Path: "/",
 				}
-			},
-		}))
+				environment.RewriteURL = true
+			})
+			It("ReadinessProbe URL is /", func() {
+				Expect(actual.ReadinessProbe).To(Equal(probe))
+			})
+		})
+
+		When("RewriteURL is false", func() {
+			var probe *corev1.Probe
+			BeforeEach(func() {
+				probe = forge.ContainerProbe()
+				probe.Handler.HTTPGet = &corev1.HTTPGetAction{
+					Port: intstr.FromString("gui"),
+					Path: forge.IngressGUIPath(&instance, &environment),
+				}
+				environment.RewriteURL = false
+			})
+			It("ReadinessProbe URL is "+forge.IngressGUIPath(&instance, &environment), func() {
+				Expect(actual.ReadinessProbe).To(Equal(probe))
+			})
+
+		})
+
+		It("Should set the env variables", func() {
+			expected.Name = envName
+			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_BASE_PATH", forge.IngressGUICleanPath(&instance))
+			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_LISTEN_PORT", "6080")
+			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
+			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+			Expect(actual.Env).To(ConsistOf(expected.Env))
+		})
 	})
 
 	Describe("The forge.WebsockifyContainer function forges a websockify sidecar container", func() {
@@ -299,7 +375,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Resources).To(Equal(expected.Resources))
 		})
 		It("Should set the tcp port exposition", func() {
-			forge.AddTCPPortToContainer(&expected, "vnc", 6080)
+			forge.AddTCPPortToContainer(&expected, "gui", 6080)
 			forge.AddTCPPortToContainer(&expected, "metrics", 9090)
 			Expect(actual.Ports).To(Equal(expected.Ports))
 		})
@@ -307,7 +383,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Env).To(BeEmpty())
 		})
 		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessTCPProbe(&expected, "vnc")
+			forge.SetContainerReadinessTCPProbe(&expected, "gui")
 			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
 		})
 

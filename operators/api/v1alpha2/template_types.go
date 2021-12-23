@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -32,12 +32,14 @@ type EnvironmentType string
 type EnvironmentMode string
 
 const (
-	// ClassContainer -> the environment is constituted by a Docker container.
+	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
 	ClassContainer EnvironmentType = "Container"
 	// ClassVM -> the environment is constituted by a Virtual Machine.
 	ClassVM EnvironmentType = "VirtualMachine"
 	// ClassCloudVM -> the environment is constituited by a Virtual Machine started from cloud images downloaded from HTTP URL.
 	ClassCloudVM EnvironmentType = "CloudVM"
+	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
+	ClassStandalone EnvironmentType = "Standalone"
 
 	// ModeStandard -> Normal operation (authentication, ssh, files access).
 	ModeStandard EnvironmentMode = "Standard"
@@ -84,7 +86,7 @@ type Environment struct {
 	Image string `json:"image"`
 
 	// The type of environment to be instantiated, among VirtualMachine,
-	// Container and CloudVM.
+	// Container, CloudVM and Standalone.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true
@@ -105,6 +107,10 @@ type Environment struct {
 
 	// The mode associated with the environment (Standard, Exam, Exercise)
 	Mode EnvironmentMode `json:"mode,omitempty"`
+
+	// +kubebuilder:default=false
+	// Whether the environment needs the URL Rewrite or not.
+	RewriteURL bool `json:"rewriteURL,omitempty"`
 
 	// Options to customize container startup
 	ContainerStartupOptions *ContainerStartupOpts `json:"containerStartupOptions,omitempty"`

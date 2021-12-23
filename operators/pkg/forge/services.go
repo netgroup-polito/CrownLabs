@@ -36,7 +36,7 @@ const (
 	// SSHPortName -> the name of the port the SSH daemon is exposed to.
 	SSHPortName = "ssh"
 	// GUIPortName -> the name of the port the NoVNC service is exposed to.
-	GUIPortName = "vnc"
+	GUIPortName = "gui"
 	// MyDrivePortName -> the name of the port the "MyDrive" service is exposed to.
 	MyDrivePortName = "mydrive"
 	// XVncPortName -> the name of the port through which the X server is accessible through VNC.
@@ -55,19 +55,19 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
 	}
 
-	// Add the desktop port only if enabled.
+	// Add the GUI port only if enabled.
 	if environment.GuiEnabled {
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 
-	// Additional container ports
+	// Add the "MyDrive" port only if the environment is a container or standalone.
+	if (environment.EnvironmentType == clv1alpha2.ClassStandalone || environment.EnvironmentType == clv1alpha2.ClassContainer) && environment.Mode == clv1alpha2.ModeStandard {
+		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
+	}
+
+	// Add the Metrics port only for container
 	if environment.EnvironmentType == clv1alpha2.ClassContainer {
 		ports = append(ports, serviceSpecTCPPort(MetricsPortName, MetricsPortNumber))
-
-		// Add the "MyDrive" port for standard instances.
-		if environment.Mode == clv1alpha2.ModeStandard {
-			ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
-		}
 	}
 
 	spec := corev1.ServiceSpec{

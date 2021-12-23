@@ -120,6 +120,76 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
 	})
 
+	StandaloneContainerIt := func(namespacedNameSuffix string, persistent bool) {
+		It("Should correctly reconcile the instance", func() {
+			Expect(RunReconciler()).To(Succeed())
+
+			Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
+
+			By("Asserting the deployment has been created with no replicas", func() {
+				var deploy appsv1.Deployment
+				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+				Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+			})
+
+			if persistent {
+				By("Asserting the PVC has been created", func() {
+					var pvc corev1.PersistentVolumeClaim
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &pvc)).To(Succeed())
+				})
+			}
+
+			By("Asserting the exposition resources aren't present", func() {
+				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(FailBecauseNotFound())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+			})
+
+			By("Setting the instance to running", func() {
+				instance.Spec.Running = true
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				Expect(RunReconciler()).To(Succeed())
+			})
+
+			By("Asserting the right exposition resources exist", func() {
+				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
+			})
+
+			By("Asserting the state is coherent", func() {
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
+			})
+
+			By("Asserting the deployment has been created", func() {
+				var deploy appsv1.Deployment
+				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
+				Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+			})
+		})
+	}
+
+	Context("The instance is standalone based", func() {
+		When("the environment is persistent", func() {
+			BeforeEach(func() {
+				testName = "test-standalone-persistent"
+				environment.Persistent = true
+				environment.EnvironmentType = clv1alpha2.ClassStandalone
+				runInstance = false
+			})
+
+			StandaloneContainerIt(forge.IngressStandaloneSuffix, true)
+		})
+		When("the environment is NOT persistent", func() {
+			BeforeEach(func() {
+				testName = "test-standalone-not-persistent"
+				environment.EnvironmentType = clv1alpha2.ClassStandalone
+				runInstance = false
+			})
+			StandaloneContainerIt(forge.IngressStandaloneSuffix, false)
+		})
+	})
+
 	Context("The instance is container based", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() {
@@ -128,51 +198,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				environment.EnvironmentType = clv1alpha2.ClassContainer
 				runInstance = false
 			})
-
-			It("Should correctly reconcile the instance", func() {
-				Expect(RunReconciler()).To(Succeed())
-
-				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
-
-				By("Asserting the deployment has been created", func() {
-					var deploy appsv1.Deployment
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
-				})
-
-				By("Asserting the PVC has been created", func() {
-					var pvc corev1.PersistentVolumeClaim
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &pvc)).To(Succeed())
-				})
-
-				By("Asserting the exposition resources aren't present", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
-				})
-
-				By("Setting the instance to running", func() {
-					instance.Spec.Running = true
-					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
-					Expect(RunReconciler()).To(Succeed())
-				})
-
-				By("Asserting the right exposition resources exist", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
-				})
-
-				By("Asserting the state is coherent", func() {
-					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
-				})
-
-				By("Asserting the deployment has been created", func() {
-					var deploy appsv1.Deployment
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
-				})
-			})
+			StandaloneContainerIt(forge.IngressGUINameSuffix, true)
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
@@ -180,46 +206,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				environment.EnvironmentType = clv1alpha2.ClassContainer
 				runInstance = false
 			})
-
-			It("Should correctly reconcile the instance", func() {
-				Expect(RunReconciler()).To(Succeed())
-
-				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
-
-				By("Asserting the deployment has been created with no replicas", func() {
-					var deploy appsv1.Deployment
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
-				})
-
-				By("Asserting the exposition resources aren't present", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
-				})
-
-				By("Setting the instance to running", func() {
-					instance.Spec.Running = true
-					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
-					Expect(RunReconciler()).To(Succeed())
-				})
-
-				By("Asserting the right exposition resources exist", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
-				})
-
-				By("Asserting the state is coherent", func() {
-					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
-				})
-
-				By("Asserting the deployment has been created", func() {
-					var deploy appsv1.Deployment
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
-				})
-			})
+			StandaloneContainerIt(forge.IngressGUINameSuffix, false)
 		})
 	})
 
