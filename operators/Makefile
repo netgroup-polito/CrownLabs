@@ -1,5 +1,3 @@
-SHELL := /bin/bash -O globstar
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -49,11 +47,11 @@ ifeq (, $(shell which addlicense))
 endif
 
 # Run go fmt and gci against code
-fmt: gci
+fmt: gci addlicense
 	go mod tidy
 	go fmt ./...
 	find $(pwd) -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci -local github.com/netgroup-polito/CrownLabs -w {} \;
-	addlicense -l apache -c "Politecnico di Torino" -y "2020-$(shell date +%Y)" **/*.go
+	find . -type f -name '*.go' -exec addlicense -l apache -c "Politecnico di Torino" -y "2020-$(shell date +%Y)" {} \;
 
 # Run go vet against code
 vet:
