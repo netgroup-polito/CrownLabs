@@ -15,6 +15,7 @@ export default gql`
           name
           namespace
           creationTimestamp
+          labels
         }
         status {
           ip

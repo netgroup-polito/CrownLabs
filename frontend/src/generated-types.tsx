@@ -2642,7 +2642,7 @@ export type CreateInstanceMutationVariables = Exact<{
 }>;
 
 
-export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }> };
+export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string>, labels?: Maybe<any> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }> };
 
 export type CreateTemplateMutationVariables = Exact<{
   workspaceId: Scalars['String'];
@@ -2694,7 +2694,7 @@ export type OwnedInstancesQueryVariables = Exact<{
 }>;
 
 
-export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }>>> }> };
+export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string>, labels?: Maybe<any> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }>>> }> };
 
 export type InstancesLabelSelectorQueryVariables = Exact<{
   labels?: Maybe<Scalars['String']>;
@@ -2715,7 +2715,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, resources?: Maybe<{ __typename?: 'Resources', cpu?: Maybe<number>, disk?: Maybe<string>, memory?: Maybe<string> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string> }> }>>> }> };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates?: Maybe<Array<Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, resources?: Maybe<{ __typename?: 'Resources', cpu?: Maybe<number>, disk?: Maybe<string>, memory?: Maybe<string> }> }>>>, workspaceCrownlabsPolitoItWorkspaceRef?: Maybe<{ __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name?: Maybe<string> }> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string> }> }>>> }> };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String'];
@@ -2738,7 +2738,7 @@ export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }> }> };
+export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: Maybe<UpdateType>, instance?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string>, creationTimestamp?: Maybe<string>, labels?: Maybe<any> }>, status?: Maybe<{ __typename?: 'Status3', ip?: Maybe<string>, phase?: Maybe<string>, url?: Maybe<string> }>, spec?: Maybe<{ __typename?: 'Spec4', running?: Maybe<boolean>, prettyName?: Maybe<string>, templateCrownlabsPolitoItTemplateRef?: Maybe<{ __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name?: Maybe<string>, namespace?: Maybe<string>, templateWrapper?: Maybe<{ __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, environmentType?: Maybe<EnvironmentType> }>>> }> }> }> }> }> }> }> };
 
 export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
   labels?: Maybe<Scalars['String']>;
@@ -2760,7 +2760,7 @@ export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: Maybe<UpdateType>, template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, resources?: Maybe<{ __typename?: 'Resources', cpu?: Maybe<number>, disk?: Maybe<string>, memory?: Maybe<string> }> }>>> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string> }> }> }> };
+export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: Maybe<UpdateType>, template?: Maybe<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: Maybe<{ __typename?: 'Spec6', prettyName?: Maybe<string>, description?: Maybe<string>, environmentList?: Maybe<Array<Maybe<{ __typename?: 'EnvironmentListListItem', guiEnabled?: Maybe<boolean>, persistent?: Maybe<boolean>, resources?: Maybe<{ __typename?: 'Resources', cpu?: Maybe<number>, disk?: Maybe<string>, memory?: Maybe<string> }> }>>>, workspaceCrownlabsPolitoItWorkspaceRef?: Maybe<{ __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name?: Maybe<string> }> }>, metadata?: Maybe<{ __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMetaV2', name?: Maybe<string>, namespace?: Maybe<string> }> }> }> };
 
 export type UpdatedTenantSubscriptionVariables = Exact<{
   tenantId: Scalars['String'];
@@ -2951,6 +2951,7 @@ export const CreateInstanceDocument = gql`
       name
       namespace
       creationTimestamp
+      labels
     }
     status {
       ip
@@ -3271,6 +3272,7 @@ export const OwnedInstancesDocument = gql`
         name
         namespace
         creationTimestamp
+        labels
       }
       status {
         ip
@@ -3487,6 +3489,9 @@ export const WorkspaceTemplatesDocument = gql`
             memory
           }
         }
+        workspaceCrownlabsPolitoItWorkspaceRef {
+          name
+        }
       }
       metadata {
         name
@@ -3666,6 +3671,7 @@ export const UpdatedOwnedInstancesDocument = gql`
         name
         namespace
         creationTimestamp
+        labels
       }
       status {
         ip
@@ -3875,6 +3881,9 @@ export const UpdatedWorkspaceTemplatesDocument = gql`
             disk
             memory
           }
+        }
+        workspaceCrownlabsPolitoItWorkspaceRef {
+          name
         }
       }
       metadata {

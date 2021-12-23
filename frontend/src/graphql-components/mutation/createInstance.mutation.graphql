@@ -27,6 +27,7 @@ mutation createInstance(
       name
       namespace
       creationTimestamp
+      labels
     }
     status {
       ip

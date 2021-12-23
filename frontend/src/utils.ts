@@ -27,7 +27,7 @@ export type Template = {
   persistent: boolean;
   resources: Resources;
   instances: Array<Instance>;
-  workspaceId?: string;
+  workspaceId: string;
 };
 
 export type VmStatus =
@@ -43,7 +43,8 @@ export type VmStatus =
 export type Instance = {
   id: number;
   gui?: boolean;
-  idTemplate?: string;
+  templateId: string;
+  templateName?: string;
   templatePrettyName?: string;
   persistent?: boolean;
   tenantId?: string;
@@ -56,7 +57,7 @@ export type Instance = {
   status: VmStatus;
   url: string | null;
   timeStamp?: string;
-  workspaceId?: string;
+  workspaceId: string;
   running?: boolean;
 };
 

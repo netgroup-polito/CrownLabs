@@ -1,3 +1,4 @@
+# Write your query or mutation here
 query ownedInstances($tenantNamespace: String!) {
   instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
     namespace: $tenantNamespace
@@ -7,6 +8,7 @@ query ownedInstances($tenantNamespace: String!) {
         name
         namespace
         creationTimestamp
+        labels
       }
       status {
         ip

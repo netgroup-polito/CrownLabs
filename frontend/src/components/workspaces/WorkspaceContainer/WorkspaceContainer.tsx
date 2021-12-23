@@ -161,6 +161,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           tenantNamespace={tenantNamespace}
           role={role}
           workspaceNamespace={workspaceNamespace}
+          workspaceName={workspaceName}
         />
       </Box>
     </>
