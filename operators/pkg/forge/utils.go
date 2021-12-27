@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -82,4 +83,20 @@ func canonicalName(name string) string {
 // RandomInstancePrettyName generates a random name of 2 capitalized words.
 func RandomInstancePrettyName() string {
 	return strings.Title(petname.Generate(2, " "))
+}
+
+// CapResourceQuantity compares a resource.Quantity value with a given cap and returns the lower.
+func CapResourceQuantity(quantity, capQuantity resource.Quantity) resource.Quantity {
+	if quantity.Cmp(capQuantity) < 0 {
+		return quantity
+	}
+	return capQuantity
+}
+
+// CapIntegerQuantity compares an unsigned integer value with a given cap and returns the lower.
+func CapIntegerQuantity(quantity, capQuantity uint32) uint32 {
+	if quantity < capQuantity {
+		return quantity
+	}
+	return capQuantity
 }

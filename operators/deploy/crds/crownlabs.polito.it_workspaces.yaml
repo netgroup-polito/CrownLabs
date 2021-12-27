@@ -53,8 +53,39 @@ spec:
               prettyName:
                 description: The human-readable name of the Workspace.
                 type: string
+              quota:
+                description: The amount of resources associated with this workspace,
+                  and inherited by enrolled tenants.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU required by this Workspace.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  instances:
+                    description: The maximum number of concurrent instances required
+                      by this Workspace.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory required by this
+                      Workspace.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - instances
+                - memory
+                type: object
             required:
             - prettyName
+            - quota
             type: object
           status:
             description: WorkspaceStatus reflects the most recently observed status

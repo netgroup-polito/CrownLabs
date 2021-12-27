@@ -81,6 +81,38 @@ spec:
                 items:
                   type: string
                 type: array
+              quota:
+                description: The amount of resources associated with this Tenant,
+                  if defined it overrides the one computed from the workspaces the
+                  tenant is enrolled in.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU which can be used by this
+                      Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  instances:
+                    description: The maximum number of concurrent instances which
+                      can be created by this Tenant.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory which can be used
+                      by this Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - instances
+                - memory
+                type: object
               workspaces:
                 description: The list of the Workspaces the Tenant is subscribed to,
                   along with his/her role in each of them.
@@ -139,7 +171,7 @@ spec:
                 description: The namespace containing all CrownLabs related objects
                   of the Tenant. This is the namespace that groups his/her own Instances,
                   together with all the accessory resources (e.g. RBACs, resource
-                  quotas, network policies, ...) created by the tenant-operator.
+                  quota, network policies, ...) created by the tenant-operator.
                 properties:
                   created:
                     description: Whether the creation succeeded or not.
@@ -149,6 +181,38 @@ spec:
                     type: string
                 required:
                 - created
+                type: object
+              quota:
+                description: The amount of resources associated with this Tenant,
+                  either inherited from the Workspaces in which he/she is enrolled,
+                  or manually overridden.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU which can be used by this
+                      Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  instances:
+                    description: The maximum number of concurrent instances which
+                      can be created by this Tenant.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory which can be used
+                      by this Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - instances
+                - memory
                 type: object
               ready:
                 description: Whether all subscriptions and resource creations succeeded
@@ -259,6 +323,38 @@ spec:
                 items:
                   type: string
                 type: array
+              quota:
+                description: The amount of resources associated with this Tenant,
+                  if defined it overrides the one computed from the workspaces the
+                  tenant is enrolled in.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU which can be used by this
+                      Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  instances:
+                    description: The maximum number of concurrent instances which
+                      can be created by this Tenant.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory which can be used
+                      by this Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - instances
+                - memory
+                type: object
               workspaces:
                 description: The list of the Workspaces the Tenant is subscribed to,
                   along with his/her role in each of them.
@@ -304,7 +400,7 @@ spec:
                 description: The namespace containing all CrownLabs related objects
                   of the Tenant. This is the namespace that groups his/her own Instances,
                   together with all the accessory resources (e.g. RBACs, resource
-                  quotas, network policies, ...) created by the tenant-operator.
+                  quota, network policies, ...) created by the tenant-operator.
                 properties:
                   created:
                     description: Whether the creation succeeded or not.
@@ -314,6 +410,38 @@ spec:
                     type: string
                 required:
                 - created
+                type: object
+              quota:
+                description: The amount of resources associated with this Tenant,
+                  either inherited from the Workspaces in which he/she is enrolled,
+                  or manually overridden.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU which can be used by this
+                      Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  instances:
+                    description: The maximum number of concurrent instances which
+                      can be created by this Tenant.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory which can be used
+                      by this Tenant.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - cpu
+                - instances
+                - memory
                 type: object
               ready:
                 description: Whether all subscriptions and resource creations succeeded

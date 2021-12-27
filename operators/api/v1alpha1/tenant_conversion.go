@@ -32,6 +32,7 @@ func (src *Tenant) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.LastName = src.Spec.LastName
 	dst.Spec.PublicKeys = src.Spec.PublicKeys
 	dst.Spec.Workspaces = make([]v1alpha2.TenantWorkspaceEntry, len(src.Spec.Workspaces))
+	dst.Spec.Quota = src.Spec.Quota
 	for i, w := range src.Spec.Workspaces {
 		dst.Spec.Workspaces[i].Name = w.WorkspaceRef.Name
 		dst.Spec.Workspaces[i].Role = w.Role
@@ -55,6 +56,7 @@ func (dst *Tenant) ConvertFrom(srcRaw conversion.Hub) error {
 	dst.Spec.LastName = src.Spec.LastName
 	dst.Spec.PublicKeys = src.Spec.PublicKeys
 	dst.Spec.Workspaces = make([]TenantWorkspaceEntry, len(src.Spec.Workspaces))
+	dst.Spec.Quota = src.Spec.Quota
 	for i, w := range src.Spec.Workspaces {
 		dst.Spec.Workspaces[i].WorkspaceRef.Name = w.Name
 		dst.Spec.Workspaces[i].Role = w.Role

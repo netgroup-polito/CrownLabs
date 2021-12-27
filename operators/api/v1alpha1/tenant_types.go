@@ -64,6 +64,9 @@ type TenantSpec struct {
 	// Whether a sandbox namespace should be created to allow the Tenant play
 	// with Kubernetes.
 	CreateSandbox bool `json:"createSandbox,omitempty"`
+
+	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
+	Quota *v1alpha2.TenantResourceQuota `json:"quota,omitempty"`
 }
 
 // +kubebuilder:object:root=true
