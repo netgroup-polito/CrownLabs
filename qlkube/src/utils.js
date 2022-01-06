@@ -38,9 +38,7 @@ function getTimestamp() {
 }
 
 function graphqlLogger(msg) {
-  if (process.env.DEBUG) {
-    console.log(`(${getTimestamp()}) ${msg}`);
-  }
+  console.log(`(${getTimestamp()}) ${msg}`);
 }
 
 /**
