@@ -16,10 +16,8 @@ export interface ISidebarInfoProps {
   position: 'left' | 'right';
   show: boolean;
 }
-
 const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
   const { setShow, show, position } = props;
-
   return (
     <Drawer
       headerStyle={{

@@ -8,6 +8,8 @@ import { WebSocketLink } from 'apollo-link-ws';
 import { FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
+import { hasRenderingError } from '../../errorHandling/utils';
+import { ErrorContext } from '../../errorHandling/ErrorContext';
 
 const httpUri = REACT_APP_CROWNLABS_GRAPHQL_URL;
 const wsUri = httpUri.replace(/^http?/, 'ws') + '/subscription';
@@ -19,6 +21,7 @@ export interface Definition {
 const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
   const { children } = props;
   const { token, isLoggedIn } = useContext(AuthContext);
+  const { errorsQueue } = useContext(ErrorContext);
   const [apolloClient, setApolloClient] = useState<any>('');
 
   useEffect(() => {
@@ -63,7 +66,7 @@ const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
   }, [token]);
   return (
     <>
-      {isLoggedIn && apolloClient && (
+      {(isLoggedIn || hasRenderingError(errorsQueue)) && apolloClient && (
         <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
       )}
     </>

@@ -1,14 +1,12 @@
+import { CaretDownOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Dropdown, Menu, Space } from 'antd';
 import Button from 'antd-button-color';
-
 import { FC, useContext, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { logout } from '../../../../contexts/AuthContext';
 import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
 import { generateAvatarUrl } from '../../../../utils';
 import { RouteData } from '../Navbar';
-import { useLocation } from 'react-router-dom';
-import { CaretDownOutlined, LogoutOutlined } from '@ant-design/icons';
 
 export interface INavbarMenuProps {
   routes: Array<RouteData>;

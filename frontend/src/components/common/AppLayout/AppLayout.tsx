@@ -1,15 +1,15 @@
+import { InfoOutlined } from '@ant-design/icons';
+import { Col, Layout, Result, Row } from 'antd';
 import { FC, useState } from 'react';
-import { Layout, Row, Col, Result } from 'antd';
-import Navbar from '../Navbar';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { logout } from '../../../contexts/AuthContext';
+import { PUBLIC_URL } from '../../../env';
+import { RouteDescriptor } from '../../../utils';
+import Navbar from '../Navbar';
 import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
-import './AppLayout.less';
 import { TooltipButtonData } from '../TooltipButton/TooltipButton';
-import { PUBLIC_URL } from '../../../env';
-import { InfoOutlined } from '@ant-design/icons';
-import { RouteDescriptor } from '../../../utils';
+import './AppLayout.less';
 
 const { Content } = Layout;
 
@@ -24,7 +24,6 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   const [sideLeftShow, setSideLeftShow] = useState(false);
   const { routes, transparentNavbar, TooltipButtonData, TooltipButtonLink } =
     props;
-
   return (
     <BrowserRouter basename={PUBLIC_URL}>
       <Layout className="h-full">
