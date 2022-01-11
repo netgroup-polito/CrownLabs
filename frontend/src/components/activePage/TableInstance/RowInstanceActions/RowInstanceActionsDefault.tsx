@@ -6,6 +6,7 @@ import { FC, SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
+  Phase,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { Instance, WorkspaceRole } from '../../../../utils';
@@ -44,12 +45,24 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       return (
         <>
           <div>
-            <b>{'Impossible to connect:'}</b>
-          </div>
-          <div>
-            {environmentType === EnvironmentType.Container
-              ? 'Containers do not support SSH connection yet'
-              : `The instance is ${status}`}
+            {status === Phase.ResourceQuotaExceeded ? (
+              <div>
+                <b>You have reached your limit of resources</b>
+                <br />
+                Please delete an instance to create a new one
+              </div>
+            ) : (
+              <div>
+                <div>
+                  <b>{'Impossible to connect:'}</b>
+                </div>
+                <div>
+                  {environmentType === EnvironmentType.Container
+                    ? 'Containers do not support SSH connection yet'
+                    : `The instance is ${status}`}
+                </div>
+              </div>
+            )}
           </div>
         </>
       );
@@ -72,7 +85,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const connectDisabled =
-    status !== 'VmiReady' ||
+    status !== Phase.VmiReady ||
     (environmentType === EnvironmentType.Container && !gui);
 
   const font22px = { fontSize: '22px' };

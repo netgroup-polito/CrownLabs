@@ -21,6 +21,7 @@ import (
 	"k8s.io/utils/pointer"
 	virtv1 "kubevirt.io/client-go/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
@@ -83,7 +84,15 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	}
 	log.V(utils.FromResult(res)).Info("virtualmachine enforced", "virtualmachine", klog.KObj(&vm), "result", res)
 
-	phase := r.RetrievePhaseFromVM(&vm)
+	// It is necessary to retrieve the VMI object associated with the VM (if any), to correctly detect the ResourceQuotaExceeded phase.
+	// VM and VMI are characterized by the same resource name.
+	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMeta(instance)}
+	if err = r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
+		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
+		return err
+	}
+	phase := r.RetrievePhaseFromVM(&vm, &vmi)
+
 	if phase != instance.Status.Phase {
 		log.Info("phase changed", "virtualmachine", klog.KObj(&vm),
 			"previous", string(instance.Status.Phase), "current", string(phase))

@@ -177,6 +177,7 @@ spec:
                 - ""
                 - Importing
                 - Starting
+                - ResourceQuotaExceeded
                 - Running
                 - VmiReady
                 - Stopping

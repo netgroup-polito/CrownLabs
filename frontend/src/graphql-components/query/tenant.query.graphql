@@ -29,6 +29,11 @@ query tenant($tenantId: String!) {
       personalNamespace {
         name
       }
+      quota {
+        cpu
+        instances
+        memory
+      }
     }
   }
 }

@@ -35,6 +35,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
@@ -246,9 +249,20 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
-		Owns(&virtv1.VirtualMachineInstance{}).
+		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
+		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
+		Watches(&source.Kind{Type: &virtv1.VirtualMachineInstance{}}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
 		Complete(r)
+}
+
+// vmiToInstance returns a reconcile request for the instance associated with the given VMI object.
+func (r *InstanceReconciler) vmiToInstance(o client.Object) []reconcile.Request {
+	if instance, found := forge.InstanceNameFromLabels(o.GetLabels()); found {
+		return []reconcile.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: instance}}}
+	}
+
+	return nil
 }

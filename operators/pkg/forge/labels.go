@@ -128,3 +128,10 @@ func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
 	}
 	return strconv.FormatBool(false)
 }
+
+// InstanceNameFromLabels receives in input a set of labels and returns the instance name, if any.
+func InstanceNameFromLabels(labels map[string]string) (string, bool) {
+	// if labelInstanceKey is present instance will receive the associated value and found will be set to true.
+	instance, found := labels[labelInstanceKey]
+	return instance, found
+}

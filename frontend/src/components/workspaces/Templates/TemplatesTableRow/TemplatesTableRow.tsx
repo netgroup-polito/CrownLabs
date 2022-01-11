@@ -64,7 +64,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     expandRow,
   } = props;
 
-  const { refreshClock } = useContext(TenantContext);
+  const { data, refreshClock } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const { refetch: refetchInstancesLabelSelector } =
     useInstancesLabelSelectorQuery({
@@ -92,8 +92,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       .catch(() => setCreateDisabled(false));
   };
 
-  //TODO this value will be retrieved with a query
-  const InstancesLimit = 5;
+  const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
   return (
     <>
@@ -242,13 +241,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               />
             </Tooltip>
           )}
-          {InstancesLimit === totalInstances ? (
+          {instancesLimit === totalInstances ? (
             <Tooltip
               overlayClassName="w-44"
               title={
                 <>
                   <div className="text-center">
-                    You have <b>reached your limit</b> of {InstancesLimit}{' '}
+                    You have <b>reached your limit</b> of {instancesLimit}{' '}
                     instances
                   </div>
                   <div className="text-center mt-2">
@@ -261,7 +260,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 <Button
                   onClick={createInstanceHandler}
                   className="hidden xs:block pointer-events-none"
-                  disabled={totalInstances === InstancesLimit || createDisabled}
+                  disabled={totalInstances === instancesLimit || createDisabled}
                   type="primary"
                   shape="round"
                   size={'middle'}
@@ -274,7 +273,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <Button
               onClick={createInstanceHandler}
               className="hidden xs:block"
-              disabled={totalInstances === InstancesLimit || createDisabled}
+              disabled={totalInstances === instancesLimit || createDisabled}
               type="primary"
               shape="round"
               size={'middle'}

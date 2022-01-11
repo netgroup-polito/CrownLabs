@@ -15,6 +15,8 @@
 package instctrl
 
 import (
+	"strings"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	virtv1 "kubevirt.io/client-go/api/v1"
@@ -23,9 +25,12 @@ import (
 )
 
 // RetrievePhaseFromVM converts the VM phase to the corresponding one of the instance.
-func (r *InstanceReconciler) RetrievePhaseFromVM(vm *virtv1.VirtualMachine) clv1alpha2.EnvironmentPhase {
+func (r *InstanceReconciler) RetrievePhaseFromVM(vm *virtv1.VirtualMachine, vmi *virtv1.VirtualMachineInstance) clv1alpha2.EnvironmentPhase {
 	switch vm.Status.PrintableStatus {
 	case virtv1.VirtualMachineStatusStarting:
+		if isResourceQuotaExceededForVMI(vmi) {
+			return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+		}
 		return clv1alpha2.EnvironmentPhaseStarting
 	case virtv1.VirtualMachineStatusProvisioning:
 		return clv1alpha2.EnvironmentPhaseImporting
@@ -56,6 +61,9 @@ func (r *InstanceReconciler) RetrievePhaseFromVMI(vmi *virtv1.VirtualMachineInst
 
 	switch vmi.Status.Phase {
 	case virtv1.Pending:
+		if isResourceQuotaExceededForVMI(vmi) {
+			return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+		}
 		return clv1alpha2.EnvironmentPhaseStarting
 	case virtv1.Scheduling:
 		return clv1alpha2.EnvironmentPhaseStarting
@@ -96,6 +104,9 @@ func (r *InstanceReconciler) RetrievePhaseFromDeployment(deployment *appsv1.Depl
 	case deployment.Status.ReadyReplicas:
 		return clv1alpha2.EnvironmentPhaseReady
 	default:
+		if isResourceQuotaExceededForDeployment(deployment) {
+			return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+		}
 		return clv1alpha2.EnvironmentPhaseStarting
 	}
 }
@@ -108,5 +119,25 @@ func isVMIReady(vmi *virtv1.VirtualMachineInstance) bool {
 		}
 	}
 
+	return false
+}
+
+// isResourceQuotaExceededForVMI checks if VMI exceedes resource quota, depending on its conditions.
+func isResourceQuotaExceededForVMI(vmi *virtv1.VirtualMachineInstance) bool {
+	for _, condition := range vmi.Status.Conditions {
+		if condition.Type == virtv1.VirtualMachineInstanceSynchronized && condition.Status == corev1.ConditionFalse && condition.Reason == "FailedCreate" {
+			return strings.Contains(condition.Message, "exceeded quota")
+		}
+	}
+	return false
+}
+
+// isResourceQuotaExceededForDeployment checks if deployment exceedes resource quota, depending on its conditions.
+func isResourceQuotaExceededForDeployment(deployment *appsv1.Deployment) bool {
+	for _, condition := range deployment.Status.Conditions {
+		if condition.Type == appsv1.DeploymentReplicaFailure && condition.Status == corev1.ConditionTrue && condition.Reason == "FailedCreate" {
+			return strings.Contains(condition.Message, "exceeded quota")
+		}
+	}
 	return false
 }
