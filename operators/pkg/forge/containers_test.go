@@ -135,6 +135,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct RunAsUser", func() {
 			Expect(psc.RunAsUser).To(PointTo(BeNumerically("==", 1010)))
 		})
+		It("Should set the correct FsGroup", func() {
+			Expect(psc.FSGroup).To(PointTo(BeNumerically("==", 1010)))
+		})
 		It("Should set the correct RunAsNonRoot", func() {
 			Expect(psc.RunAsNonRoot).To(PointTo(BeTrue()))
 		})
