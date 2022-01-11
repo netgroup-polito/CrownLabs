@@ -91,6 +91,7 @@ func PodSecurityContext() *corev1.PodSecurityContext {
 	return &corev1.PodSecurityContext{
 		RunAsUser:    pointer.Int64(CrownLabsUserID),
 		RunAsGroup:   pointer.Int64(CrownLabsUserID),
+		FSGroup:      pointer.Int64(CrownLabsUserID),
 		RunAsNonRoot: pointer.Bool(true),
 	}
 }
