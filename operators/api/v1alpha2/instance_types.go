@@ -18,6 +18,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +kubebuilder:validation:Enum="";"Importing";"Starting";"Running";"VmiReady";"Stopping";"VmiOff";"Failed";"CreationLoopBackoff"
+
 // EnvironmentPhase is an enumeration of the different phases associated with
 // an instance of a given environment template.
 type EnvironmentPhase string
@@ -47,6 +49,18 @@ const (
 	EnvironmentPhaseCreationLoopBackoff EnvironmentPhase = "CreationLoopBackoff"
 )
 
+// InstanceCustomizationUrls specifies optional urls for advanced integration features.
+type InstanceCustomizationUrls struct {
+	// URL from which GET the archive to be extracted into Template.ContainerStartupOptions.ContentPath. This field, if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
+	ContentOrigin string `json:"contentOrigin,omitempty"`
+
+	// URL to which POST an archive with the contents found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
+	ContentDestination string `json:"contentDestination,omitempty"`
+
+	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output an ISO_8601 compliant date/time of the expected instance termination time.
+	StatusCheck string `json:"statusCheck,omitempty"`
+}
+
 // InstanceSpec is the specification of the desired state of the Instance.
 type InstanceSpec struct {
 	// The reference to the Template to be instantiated.
@@ -73,6 +87,9 @@ type InstanceSpec struct {
 	// in order to more easily identify the instance.
 	// +kubebuilder:validation:Optional
 	PrettyName string `json:"prettyName"`
+
+	// Optional urls for advanced integration features.
+	CustomizationUrls InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
 }
 
 // InstanceStatus reflects the most recently observed status of the Instance.
