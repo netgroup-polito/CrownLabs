@@ -129,13 +129,13 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 		Containers: []corev1.Container{
 			WebsockifyContainer(opts),
 			XVncContainer(opts),
-			AppContainer(environment, driveMountPath),
+			AppContainer(instance, environment, driveMountPath),
 		},
 		Volumes:                       ContainerVolumes(instance, environment),
 		SecurityContext:               PodSecurityContext(),
 		AutomountServiceAccountToken:  pointer.Bool(false),
 		TerminationGracePeriodSeconds: pointer.Int64(containersTerminationGracePeriod),
-		InitContainers:                InitContainers(environment, opts),
+		InitContainers:                InitContainers(instance, environment, opts),
 	}
 
 	if environment.Mode == clv1alpha2.ModeStandard {
@@ -181,12 +181,12 @@ func MyDriveContainer(instance *clv1alpha2.Instance, opts *ContainerEnvOpts, mou
 }
 
 // AppContainer forges the main application container of the environment.
-func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
+func AppContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
 	appContainer := GenericContainer(environment.Name, environment.Image)
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
-	if NeedsContainerVolume(environment) {
+	if NeedsContainerVolume(instance, environment) {
 		AddContainerVolumeMount(&appContainer, MyDriveName, volumeMountPath)
 	}
 	if environment.ContainerStartupOptions != nil {
@@ -196,20 +196,20 @@ func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string) c
 }
 
 // InitContainers forges the list of initcontainers for the container based environment.
-func InitContainers(env *clv1alpha2.Environment, opts *ContainerEnvOpts) []corev1.Container {
-	if NeedsInitContainer(env) {
-		return []corev1.Container{ContentDownloaderInitContainer(env.ContainerStartupOptions, opts)}
+func InitContainers(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) []corev1.Container {
+	if check, origin := NeedsInitContainer(instance, environment); check {
+		return []corev1.Container{ContentDownloaderInitContainer(origin, opts)}
 	}
 	return nil
 }
 
 // ContentDownloaderInitContainer forges a Container to be used as initContainer for downloading and decompressing an archive file into the <MyDriveName> volume.
-func ContentDownloaderInitContainer(csOpts *clv1alpha2.ContainerStartupOpts, ceOpts *ContainerEnvOpts) corev1.Container {
+func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOpts) corev1.Container {
 	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentDownloaderImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentDownloader, 0.5, 1, 256, 1024)
 	// MyDriveDefaultMountPath as mount point ensures a fixed path just for the download, it will likely be different in the application container
 	AddContainerVolumeMount(&contentDownloader, MyDriveName, MyDriveDefaultMountPath)
-	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", csOpts.SourceArchiveURL)
+	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", contentOrigin)
 	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", MyDriveDefaultMountPath)
 	return contentDownloader
 }
@@ -341,7 +341,7 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty
 // list in case the environment is not standard and not persistent.
 func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) []corev1.Volume {
-	if !NeedsContainerVolume(environment) {
+	if !NeedsContainerVolume(instance, environment) {
 		return nil
 	}
 	return []corev1.Volume{ContainerVolume(MyDriveName, NamespacedName(instance).Name, environment)}
@@ -370,14 +370,20 @@ func ContainerVolume(volumeName, claimName string, environment *clv1alpha2.Envir
 }
 
 // NeedsContainerVolume returns true in the cases in which a volume mount could be needed.
-func NeedsContainerVolume(env *clv1alpha2.Environment) bool {
-	return env.Mode == clv1alpha2.ModeStandard || env.Persistent || NeedsInitContainer(env)
+func NeedsContainerVolume(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) bool {
+	needsInit, _ := NeedsInitContainer(instance, environment)
+	return environment.Mode == clv1alpha2.ModeStandard || environment.Persistent || needsInit
 }
 
 // NeedsInitContainer returns true if the environment requires an initcontainer in order to be prepopulated.
-func NeedsInitContainer(environment *clv1alpha2.Environment) bool {
-	cso := environment.ContainerStartupOptions
-	return cso != nil && cso.SourceArchiveURL != ""
+func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (value bool, contentOrigin string) {
+	if icu := instance.Spec.CustomizationUrls; icu != nil && icu.ContentOrigin != "" {
+		return true, icu.ContentOrigin
+	}
+	if cso := environment.ContainerStartupOptions; cso != nil && cso.SourceArchiveURL != "" {
+		return true, cso.SourceArchiveURL
+	}
+	return false, ""
 }
 
 // MyDriveMountPath returns the path on which mounting the myDrive volume.
