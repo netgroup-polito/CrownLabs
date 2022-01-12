@@ -1,11 +1,9 @@
 import { Spin } from 'antd';
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
-import {
-  useApplyTenantMutation,
-  useSshKeysQuery,
-} from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { useApplyTenantMutation } from '../../../generated-types';
+import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserPanel from '../UserPanel';
 import UserPanelContainer from '../UserPanelContainer/UserPanelContainer';
@@ -29,24 +27,13 @@ const getKeyName = (sshKey: string) => {
 function UserPanelLogic() {
   const { userId } = useContext(AuthContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const [publicKeys, setPublicKeys] = useState<string[]>([]);
 
   const [applyTenantMutation] = useApplyTenantMutation({
     onError: apolloErrorCatcher,
   });
 
-  const { data, loading, error } = useSshKeysQuery({
-    variables: { tenantId: userId ?? '' },
-    notifyOnNetworkStatusChange: true,
-    fetchPolicy: 'network-only',
-    onError: apolloErrorCatcher,
-  });
-
-  useEffect(() => {
-    if (!loading) {
-      setPublicKeys((data?.tenant?.spec?.publicKeys as string[]) || []);
-    }
-  }, [loading, data]);
+  const { data, error, loading } = useContext(TenantContext);
+  const publicKeys = data?.tenant?.spec?.publicKeys?.map(k => k ?? '') ?? [];
 
   const tenantSpec = data?.tenant?.spec;
 
@@ -70,7 +57,6 @@ function UserPanelLogic() {
           manager: 'frontend-tenant-new-keys',
         },
       });
-      setPublicKeys(newKeys);
     } catch (error) {
       return false;
     }

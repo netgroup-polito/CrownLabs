@@ -20,6 +20,7 @@ query tenant($tenantId: String!) {
           }
         }
       }
+      publicKeys
     }
     metadata {
       name
