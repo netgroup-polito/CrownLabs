@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+{{- with .Values.ingressAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+  name: {{ include "exam-agent.fullname" . }}
+spec:
+  rules:
+  - host: {{ .Values.exposition.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ include "exam-agent.fullname" . }}
+            port:
+              name: api
+        path:  {{ .Values.exposition.basePath }}
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .Values.exposition.host }}
+    secretName:  {{ include "exam-agent.fullname" . }}-ingress-cert

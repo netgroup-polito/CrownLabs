@@ -60,6 +60,11 @@ dependencies:
   repository: file://../../operators/deploy/delete-stale-instances
   condition: delete-stale-instances.enabled
 
+- name: exam-agent
+  version: "0.1.0"
+  repository: file://../../operators/deploy/exam-agent
+  condition: exam-agent.enabled
+
 - name: policies
   version: "0.1.0"
   repository: file://../../policies/
