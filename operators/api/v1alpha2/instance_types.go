@@ -89,7 +89,7 @@ type InstanceSpec struct {
 	PrettyName string `json:"prettyName"`
 
 	// Optional urls for advanced integration features.
-	CustomizationUrls InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
+	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
 }
 
 // InstanceStatus reflects the most recently observed status of the Instance.

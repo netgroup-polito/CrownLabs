@@ -59,6 +59,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		portName             = "some-port"
 		portNum              = 1234
 		httpPath             = "/some/path"
+		httpPathAlternative  = "/some/different/path"
 	)
 
 	// test aware constants (are tested against code)
@@ -254,7 +255,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					forge.WebsockifyContainer(&opts),
 					forge.XVncContainer(&opts),
 					forge.MyDriveContainer(i, &opts, myDriveMountPath),
-					forge.AppContainer(e, myDriveMountPath),
+					forge.AppContainer(i, e, myDriveMountPath),
 				}
 			},
 		}))
@@ -265,7 +266,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				return []corev1.Container{
 					forge.WebsockifyContainer(&opts),
 					forge.XVncContainer(&opts),
-					forge.AppContainer(e, myDriveMountPath),
+					forge.AppContainer(i, e, myDriveMountPath),
 				}
 			},
 		}))
@@ -276,7 +277,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				return []corev1.Container{
 					forge.WebsockifyContainer(&opts),
 					forge.XVncContainer(&opts),
-					forge.AppContainer(e, myDriveMountPath),
+					forge.AppContainer(i, e, myDriveMountPath),
 				}
 			},
 		}))
@@ -379,7 +380,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		Context("Has to set the general parameters", func() {
 			JustBeforeEach(func() {
-				actual = forge.AppContainer(&environment, myDriveMountPath)
+				actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
 			})
 
 			It("Should set the correct container name and image", func() {
@@ -423,7 +424,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&environment, myDriveMountPath)
+						actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
 					})
 
 					It("Should return the correct startup args", func() {
@@ -453,12 +454,12 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual []corev1.Container
 
 		JustBeforeEach(func() {
-			actual = forge.InitContainers(&environment, &opts)
+			actual = forge.InitContainers(&instance, &environment, &opts)
 		})
 
 		type InitContainersCase struct {
 			StartupOpts    *clv1alpha2.ContainerStartupOpts
-			ExpectedOutput func(*clv1alpha2.Environment) []corev1.Container
+			ExpectedOutput func(*clv1alpha2.Instance, *clv1alpha2.Environment) []corev1.Container
 		}
 
 		WhenBody := func(c InitContainersCase) func() {
@@ -468,27 +469,28 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				})
 
 				It("Should return the correct volumeSource", func() {
-					Expect(actual).To(Equal(c.ExpectedOutput(&environment)))
+					Expect(actual).To(Equal(c.ExpectedOutput(&instance, &environment)))
 				})
 			}
 		}
 
 		When("ContainerStartupOpts is nil", WhenBody(InitContainersCase{
 			StartupOpts: nil,
-			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
+			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 				return nil
 			},
 		}))
 		When("no archive source is specified", WhenBody(InitContainersCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{},
-			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
+			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 				return nil
 			},
 		}))
 		When("an archive source is specified", WhenBody(InitContainersCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.Container {
-				return []corev1.Container{forge.ContentDownloaderInitContainer(e.ContainerStartupOptions, &opts)}
+			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+				_, val := forge.NeedsInitContainer(i, e)
+				return []corev1.Container{forge.ContentDownloaderInitContainer(val, &opts)}
 			},
 		}))
 	})
@@ -496,10 +498,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.ContentDownloaderInitContainer function forges the initContainer for volume pre-population", func() {
 		const containerName = "content-downloader"
 		var actual, expected corev1.Container
-		csOpts := &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath}
 
 		JustBeforeEach(func() {
-			actual = forge.ContentDownloaderInitContainer(csOpts, &opts)
+			actual = forge.ContentDownloaderInitContainer(httpPath, &opts)
 		})
 
 		It("Should set the correct container name and image", func() {
@@ -854,7 +855,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				})
 
 				It("Should return the correct value", func() {
-					Expect(forge.NeedsContainerVolume(&environment)).To(Equal(c.ExpectedOutput))
+					Expect(forge.NeedsContainerVolume(&instance, &environment)).To(Equal(c.ExpectedOutput))
 				})
 			}
 		}
@@ -891,33 +892,66 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 	Describe("The forge.NeedsInitContainer function", func() {
 		type NeedsInitContainerCase struct {
-			StartupOpts    *clv1alpha2.ContainerStartupOpts
-			ExpectedOutput bool
+			StartupOpts          *clv1alpha2.ContainerStartupOpts
+			InstCustomOpts       *clv1alpha2.InstanceCustomizationUrls
+			ExpectedOutputVal    bool
+			ExpectedOutputOrigin string
 		}
 
 		WhenBody := func(c NeedsInitContainerCase) func() {
 			return func() {
 				BeforeEach(func() {
 					environment.ContainerStartupOptions = c.StartupOpts
+					instance.Spec.CustomizationUrls = c.InstCustomOpts
 				})
 
-				It("Should return the correct value", func() {
-					Expect(forge.NeedsInitContainer(&environment)).To(Equal(c.ExpectedOutput))
+				It("Should return the correct values", func() {
+					val, origin := forge.NeedsInitContainer(&instance, &environment)
+					Expect(val).To(Equal(c.ExpectedOutputVal))
+					Expect(origin).To(Equal(c.ExpectedOutputOrigin))
 				})
 			}
 		}
 
-		When("ContainerStartupOpts is nil", WhenBody(NeedsInitContainerCase{
-			StartupOpts:    nil,
-			ExpectedOutput: false,
+		When("No origin is provided", WhenBody(NeedsInitContainerCase{
+			StartupOpts:          nil,
+			InstCustomOpts:       nil,
+			ExpectedOutputVal:    false,
+			ExpectedOutputOrigin: "",
 		}))
-		When("no source archive is specified", WhenBody(NeedsInitContainerCase{
-			StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
-			ExpectedOutput: false,
-		}))
-		When("a source archive is specified", WhenBody(NeedsInitContainerCase{
-			StartupOpts:    &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			ExpectedOutput: true,
+		Context("no instance custom options are provided", func() {
+			When("no source archive is specified in the template", WhenBody(NeedsInitContainerCase{
+				StartupOpts:          &clv1alpha2.ContainerStartupOpts{},
+				InstCustomOpts:       nil,
+				ExpectedOutputVal:    false,
+				ExpectedOutputOrigin: "",
+			}))
+			When("a source archive is specified in the template", WhenBody(NeedsInitContainerCase{
+				StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+				InstCustomOpts:       nil,
+				ExpectedOutputVal:    true,
+				ExpectedOutputOrigin: httpPath,
+			}))
+		})
+		Context("no template custom options are provied", func() {
+			When("no source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
+				StartupOpts:          nil,
+				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{},
+				ExpectedOutputVal:    false,
+				ExpectedOutputOrigin: "",
+			}))
+			When("a source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
+				StartupOpts:          nil,
+				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPath},
+				ExpectedOutputVal:    true,
+				ExpectedOutputOrigin: httpPath,
+			}))
+		})
+		When("both template and instance custom options are provided", WhenBody(NeedsInitContainerCase{
+			StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
+			InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPathAlternative},
+			ExpectedOutputVal:    true,
+			ExpectedOutputOrigin: httpPathAlternative,
 		}))
 	})
 
