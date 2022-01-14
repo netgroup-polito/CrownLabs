@@ -388,13 +388,25 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		Context("The DataVolumeTemplate is forged", func() {
-			It("Should have the correct name", func() {
-				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
+
+			When("Environment type is VM", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
+
+				It("Should target the correct image registry", func() {
+					Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(BeIdenticalTo("docker://" + image))
+				})
 			})
 
-			It("Should target the correct image registry", func() {
-				Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(
-					BeIdenticalTo("docker://" + image))
+			When("Environment type is CloudVM", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+				It("Should target the correct http url", func() {
+					Expect(dataVolumeTemplate.Spec.Source.HTTP.URL).To(BeIdenticalTo(image))
+				})
+			})
+
+			It("Should have the correct name", func() {
+				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
 			})
 
 			It("Should request the correct disk size", func() {

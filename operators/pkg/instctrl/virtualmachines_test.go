@@ -287,86 +287,95 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	Context("The environment is persistent", func() {
 		BeforeEach(func() { environment.Persistent = true })
 
-		When("the VM is not yet present", func() {
-			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
-
-			It("The VM should be present and have the common attributes", func() {
-				Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-				Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
-				Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
-			})
-
-			It("The VM should be present and have the expected specs", func() {
-				Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-				// Here we overwrite the VM resources, since they would have a different representation due to the
-				// marshaling/unmarshaling process. Still, the correctness of the value is already checked with the
-				// appropriate test case. Additionally, we also overwrite the running value, which is checked in a
-				// different It clause.
-				vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
-				vm.Spec.Running = nil
-				Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &environment)))
-			})
-
-			It("The VM should be present and with the running flag set", func() {
-				Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-				Expect(*vm.Spec.Running).To(BeTrue())
-			})
-
-			It("Should leave the instance phase unset", func() {
-				Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
-			})
-		})
-
-		WhenVMAlreadyPresentCase := func(running bool) {
+		ContextBody := func(envType clv1alpha2.EnvironmentType) {
 			BeforeEach(func() {
-				existing := virtv1.VirtualMachine{
-					ObjectMeta: forge.NamespacedNameToObjectMeta(objectName),
-					Spec:       virtv1.VirtualMachineSpec{Running: pointer.Bool(running)},
-					Status:     virtv1.VirtualMachineStatus{PrintableStatus: virtv1.VirtualMachineStatusRunning},
-				}
-				existing.SetCreationTimestamp(metav1.NewTime(time.Now()))
-				clientBuilder.WithObjects(&existing)
+				environment.EnvironmentType = envType
 			})
 
-			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+			When("the VM is not yet present", func() {
+				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
-			It("The VM should still be present and have the common attributes", func() {
-				Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-				Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
-				Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
-			})
+				It("The VM should be present and have the common attributes", func() {
+					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
 
-			It("The VM should still be present and have unmodified specs", func() {
-				Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-				// Here we overwrite the running value, as it is checked in a different It clause.
-				vm.Spec.Running = nil
-				Expect(vmi.Spec).To(Equal(virtv1.VirtualMachineInstanceSpec{}))
-			})
-
-			It("Should set the correct instance phase", func() {
-				Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
-			})
-
-			Context("The instance is running", func() {
-				BeforeEach(func() { instance.Spec.Running = true })
+				It("The VM should be present and have the expected specs", func() {
+					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					// Here we overwrite the VM resources, since they would have a different representation due to the
+					// marshaling/unmarshaling process. Still, the correctness of the value is already checked with the
+					// appropriate test case. Additionally, we also overwrite the running value, which is checked in a
+					// different It clause.
+					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
+					vm.Spec.Running = nil
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &environment)))
+				})
 
 				It("The VM should be present and with the running flag set", func() {
 					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
 					Expect(*vm.Spec.Running).To(BeTrue())
 				})
-			})
 
-			Context("The instance is not running", func() {
-				BeforeEach(func() { instance.Spec.Running = false })
-
-				It("The VM should be present and with the running flag not set", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-					Expect(*vm.Spec.Running).To(BeFalse())
+				It("Should leave the instance phase unset", func() {
+					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
 			})
+
+			WhenVMAlreadyPresentCase := func(running bool) {
+				BeforeEach(func() {
+					existing := virtv1.VirtualMachine{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectName),
+						Spec:       virtv1.VirtualMachineSpec{Running: pointer.Bool(running)},
+						Status:     virtv1.VirtualMachineStatus{PrintableStatus: virtv1.VirtualMachineStatusRunning},
+					}
+					existing.SetCreationTimestamp(metav1.NewTime(time.Now()))
+					clientBuilder.WithObjects(&existing)
+				})
+
+				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+				It("The VM should still be present and have the common attributes", func() {
+					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+
+				It("The VM should still be present and have unmodified specs", func() {
+					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					// Here we overwrite the running value, as it is checked in a different It clause.
+					vm.Spec.Running = nil
+					Expect(vmi.Spec).To(Equal(virtv1.VirtualMachineInstanceSpec{}))
+				})
+
+				It("Should set the correct instance phase", func() {
+					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
+				})
+
+				Context("The instance is running", func() {
+					BeforeEach(func() { instance.Spec.Running = true })
+
+					It("The VM should be present and with the running flag set", func() {
+						Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+						Expect(*vm.Spec.Running).To(BeTrue())
+					})
+				})
+
+				Context("The instance is not running", func() {
+					BeforeEach(func() { instance.Spec.Running = false })
+
+					It("The VM should be present and with the running flag not set", func() {
+						Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+						Expect(*vm.Spec.Running).To(BeFalse())
+					})
+				})
+			}
+
+			When("the VM is already present and it is running", func() { WhenVMAlreadyPresentCase(true) })
+			When("the VM is already present and it is not running", func() { WhenVMAlreadyPresentCase(false) })
 		}
 
-		When("the VM is already present and it is running", func() { WhenVMAlreadyPresentCase(true) })
-		When("the VM is already present and it is not running", func() { WhenVMAlreadyPresentCase(false) })
+		Context("The environment type is VirtualMachine", func() { ContextBody(clv1alpha2.ClassVM) })
+		Context("The environment type is CloudVM", func() { ContextBody(clv1alpha2.ClassCloudVM) })
 	})
 })

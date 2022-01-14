@@ -105,10 +105,11 @@ spec:
                       type: object
                     environmentType:
                       description: The type of environment to be instantiated, among
-                        VirtualMachine and Container.
+                        VirtualMachine, Container and CloudVM.
                       enum:
                       - VirtualMachine
                       - Container
+                      - CloudVM
                       type: string
                     guiEnabled:
                       default: true

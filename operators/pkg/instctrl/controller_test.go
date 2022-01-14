@@ -225,62 +225,69 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	Context("The instance is VM based", func() {
 		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-vm-persistent"
-				environment.Persistent = true
-				runInstance = false
-			})
-
-			It("Should correctly reconcile the instance", func() {
-				Expect(RunReconciler()).To(Succeed())
-
-				// Check the status phase is unset since it's retrieved from the VM (and the kubervirt operator is not available in the test env)
-				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
-
-				By("Asserting the VM has been created", func() {
-					var vm virtv1.VirtualMachine
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-					Expect(vm.Spec.Running).To(PointTo(BeFalse()))
+			ContextBody := func(envType clv1alpha2.EnvironmentType, name string) {
+				BeforeEach(func() {
+					testName = name
+					environment.Persistent = true
+					runInstance = false
+					environment.EnvironmentType = envType
 				})
 
-				By("Asserting the cloudinit secret has been created", func() {
-					var secret corev1.Secret
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
-				})
-
-				By("Asserting the exposition resources aren't present", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
-				})
-
-				By("Setting the instance to running", func() {
-					instance.Spec.Running = true
-					Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				It("Should correctly reconcile the instance", func() {
 					Expect(RunReconciler()).To(Succeed())
-				})
 
-				By("Asserting the right exposition resources exist", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
-				})
+					// Check the status phase is unset since it's retrieved from the VM (and the kubervirt operator is not available in the test env)
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
 
-				By("Asserting the state is coherent", func() {
-					var vm virtv1.VirtualMachine
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-					vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
-					Expect(k8sClient.Update(ctx, &vm))
-					Expect(RunReconciler()).To(Succeed())
-					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
-				})
+					By("Asserting the VM has been created", func() {
+						var vm virtv1.VirtualMachine
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+						Expect(vm.Spec.Running).To(PointTo(BeFalse()))
+					})
 
-				By("Asserting the VM spec has been changed", func() {
-					var vm virtv1.VirtualMachine
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-					Expect(vm.Spec.Running).To(PointTo(BeTrue()))
+					By("Asserting the cloudinit secret has been created", func() {
+						var secret corev1.Secret
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
+					})
+
+					By("Asserting the exposition resources aren't present", func() {
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+					})
+
+					By("Setting the instance to running", func() {
+						instance.Spec.Running = true
+						Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+						Expect(RunReconciler()).To(Succeed())
+					})
+
+					By("Asserting the right exposition resources exist", func() {
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
+					})
+
+					By("Asserting the state is coherent", func() {
+						var vm virtv1.VirtualMachine
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+						vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
+						Expect(k8sClient.Update(ctx, &vm))
+						Expect(RunReconciler()).To(Succeed())
+						Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
+					})
+
+					By("Asserting the VM spec has been changed", func() {
+						var vm virtv1.VirtualMachine
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
+						Expect(vm.Spec.Running).To(PointTo(BeTrue()))
+					})
 				})
-			})
+			}
+
+			Context("The environment type is VirtualMachine", func() { ContextBody(clv1alpha2.ClassVM, "test-vm-persistent") })
+			Context("The environment type is CloudVM", func() { ContextBody(clv1alpha2.ClassCloudVM, "test-cloudvm-persistent") })
+
 		})
 
 		When("the environment is NOT persistent", func() {

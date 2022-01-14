@@ -195,7 +195,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		}
 
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
-		case clv1alpha2.ClassVM:
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(ctx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
