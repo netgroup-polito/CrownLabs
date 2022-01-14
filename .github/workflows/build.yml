@@ -79,6 +79,9 @@ jobs:
           # InstanceSet tools
           - instanceset-landing
 
+          # Exams agent
+          - examagent
+
           # The new frontend
           - frontend-app
           - frontend-storybook
@@ -127,6 +130,12 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=instanceset-landing
+
+          # CrownLabs Exams Agent
+          - component: examagent
+            context: ./operators
+            dockerfile: ./operators/build/golang-common/Dockerfile
+            build-args: COMPONENT=examagent
 
           # The new frontend
           - component: frontend-app
