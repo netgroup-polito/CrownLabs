@@ -89,7 +89,7 @@ function checkLabelSelector(subVar, payloadVar, ruid) {
   const { key, values } = splitLabelSelector(labelSelector);
 
   for (const k in labels) {
-    if (k.includes(key) && values.includes(labels[k])) result = true;
+    if (k === key && values.includes(labels[k])) result = true;
   }
 
   graphqlLogger(`[i] (${ruid}) The result of the check is ${result}`);
