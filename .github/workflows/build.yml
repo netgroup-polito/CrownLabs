@@ -97,6 +97,7 @@ jobs:
           - tigervnc
           - websockify
           - content-downloader
+          - content-uploader
           - pycharm
           - blender
           - blender-lts
@@ -152,7 +153,9 @@ jobs:
           - component: websockify
             context: ./provisioning/containers/gui-common/websockify
           - component: content-downloader
-            context: ./provisioning/containers/content-downloader
+            context: ./provisioning/containers/exams/content-downloader
+          - component: content-uploader
+            context: ./provisioning/containers/exams/content-uploader
           - component: pycharm
             context: ./provisioning/containers/pycharm
           - component: blender
