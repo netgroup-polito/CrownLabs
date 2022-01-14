@@ -7,7 +7,6 @@ import {
   Exact,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
-  Maybe,
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   UpdatedWorkspaceTemplatesSubscriptionResult,
@@ -18,8 +17,9 @@ import {
 import { getInstancePatchJson } from './graphql-components/utils';
 import { Instance, Template, WorkspaceRole } from './utils';
 
+type Nullable<T> = T | null | undefined;
 interface ItPolitoCrownlabsV1alpha2TemplateAlias {
-  original: ItPolitoCrownlabsV1alpha2Template;
+  original: Nullable<ItPolitoCrownlabsV1alpha2Template>;
   alias: {
     name: string;
     id: string;
@@ -28,6 +28,11 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias
 ): Template => {
+  if (!tq.original) {
+    throw new Error(
+      'makeGuiTemplate() error: a required parameter is undefined'
+    );
+  }
   const environment = (tq.original.spec?.environmentList ?? [])[0];
   return {
     id: tq.alias.id ?? '',
@@ -85,12 +90,12 @@ export const updateQueryWorkspaceTemplatesQuery = (
           [
             ...old,
             makeGuiTemplate({
-              original: template ?? {},
+              original: template,
               alias: {
                 id: template?.metadata?.name ?? '',
                 name: template?.spec?.prettyName ?? '',
               },
-            }) ?? {},
+            }),
           ].sort((a, b) => a.id.localeCompare(b.id))
         );
       }
@@ -111,33 +116,38 @@ export const getInstanceLabels = (
 ): InstanceLabels | undefined => i.metadata?.labels as InstanceLabels;
 
 export const makeGuiInstance = (
-  instance?: Maybe<ItPolitoCrownlabsV1alpha2Instance>,
+  instance?: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
   userId?: string,
-  tenantNamespace?: string,
   optional?: {
     workspaceName: string;
     templateName: string;
   }
 ) => {
-  if (!instance || !userId || !tenantNamespace) {
+  if (!instance || !userId) {
     throw new Error('getInstances() error: a required parameter is undefined');
   }
+
   const { metadata, spec, status } = instance;
-  const { environmentList, prettyName } = spec
+  const { name, namespace: tenantNamespace } = metadata ?? {};
+  const { running, prettyName } = spec ?? {};
+  const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
     environmentList: [],
     prettyName: '',
   };
+  const { name: templateName } =
+    spec?.templateCrownlabsPolitoItTemplateRef as any;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+
   return {
-    name: metadata?.name,
-    prettyName: spec?.prettyName,
+    name: name,
+    prettyName: prettyName,
     gui: guiEnabled,
     persistent: persistent,
-    templatePrettyName: prettyName,
-    templateName: spec?.templateCrownlabsPolitoItTemplateRef?.name ?? '',
+    templatePrettyName: templatePrettyName,
+    templateName: templateName ?? '',
     templateId: makeTemplateKey(
       getInstanceLabels(instance)?.crownlabsPolitoItTemplate ??
         optional?.templateName ??
@@ -146,7 +156,6 @@ export const makeGuiInstance = (
         optional?.workspaceName ??
         ''
     ),
-    workspaceId: getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
     environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
@@ -154,7 +163,8 @@ export const makeGuiInstance = (
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
-    running: spec?.running,
+    workspaceId: getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
+    running: running,
   } as Instance;
 };
 interface InstancesSubscriptionData {
@@ -191,14 +201,14 @@ export const updateQueryOwnedInstancesQuery = (
             )
               isPrettyNameUpdate = false;
             return i.name === instance?.metadata?.name ?? ''
-              ? makeGuiInstance(instance, userId, tenantNamespace)
+              ? makeGuiInstance(instance, userId)
               : i;
           })
         );
       } else if (updateType === UpdateType.Added) {
         setDataInstances(old =>
           !old.find(i => i.name === instance?.metadata?.name)
-            ? [...old, makeGuiInstance(instance ?? {}, userId, tenantNamespace)]
+            ? [...old, makeGuiInstance(instance, userId)]
             : old
         );
       }
@@ -231,43 +241,51 @@ export const joinInstancesAndTemplates = (
 //Utilities for active page only
 
 export const getManagerInstances = (
-  instance: ItPolitoCrownlabsV1alpha2Instance | null,
+  instance: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
   index: number
 ) => {
-  const { metadata, spec, status } = instance ?? {};
-  const { environmentList, prettyName } =
-    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-      ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
+  if (!instance) {
+    throw new Error('getInstances() error: a required parameter is undefined');
+  }
+
+  const { metadata, spec, status } = instance;
+
+  // Template Info
+  const {
+    templateWrapper,
+    name: templateName,
+    namespace: templateNamespace,
+  } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
+  const { prettyName: templatePrettyname, environmentList } =
+    templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+
+  // Tenant Info
+  const { namespace: tenantNamespace } = metadata ?? {};
+  const { name: tenantName, tenantV1alpha2Wrapper } =
+    spec?.tenantCrownlabsPolitoItTenantRef ?? {};
   const { firstName, lastName } =
-    spec?.tenantCrownlabsPolitoItTenantRef?.tenantV1alpha2Wrapper
-      ?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
-  const { name: tenantName } = spec?.tenantCrownlabsPolitoItTenantRef ?? {};
-  const { name: templateName, namespace: templateNamespace } =
-    spec?.templateCrownlabsPolitoItTemplateRef ?? {};
+    tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
+  const workspaceName = (templateNamespace ?? '').replace(/^workspace-/, '');
+
   return {
     id: index,
     name: metadata?.name,
     prettyName: spec?.prettyName,
     gui: guiEnabled,
     persistent: persistent,
-    templatePrettyName: prettyName,
-    templateName: templateName,
-    //TODO: use lables
-    templateId: makeTemplateKey(
-      templateName ?? '',
-      (templateNamespace ?? '').replace(/^workspace-/, '')
-    ),
+    templateId: makeTemplateKey(templateName, workspaceName),
+    templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
-    tenantNamespace: metadata?.namespace,
+    tenantNamespace: tenantNamespace,
     tenantDisplayName: `${firstName}\n${lastName}`,
-    workspaceId: (templateNamespace ?? '').replace(/^workspace-/, ''),
+    workspaceId: workspaceName,
     running: spec?.running,
   } as Instance;
 };
@@ -280,39 +298,36 @@ export const getTemplatesMapped = (
     sortingTemplate: string;
   }>
 ) => {
-  //const { sorting, sortingType, sortingTemplate } = sortingData;
-  return Array.from(new Set(instances?.map(i => i.templatePrettyName))).map(
-    t => {
-      // Find all instances with Template Name === t
-      const instancesFiltered = instances?.filter(
-        ({ templatePrettyName: tpn }) => tpn === t
+  return Array.from(new Set(instances?.map(i => i.templateId))).map(t => {
+    // Find all instances with KEY[Template ID + Workspace ID] === t
+    const instancesFiltered = instances?.filter(
+      ({ templateId: tid }) => tid === t
+    );
+
+    // Find sorting data for instances with KEY[Template ID + Workspace ID] === t
+    const sortDataTmp = sortingData.find(s => s.sortingTemplate === t);
+
+    // If sorting data exist for instances with KEY[Template ID + Workspace ID] === t => sort instances
+    let instancesSorted;
+    if (sortDataTmp) {
+      const { sorting, sortingType } = sortDataTmp;
+      instancesSorted = instancesFiltered.sort((a, b) =>
+        sorter(a, b, sortingType as keyof Instance, sorting)
       );
-
-      // Find sorting data for Template Name === t
-      const sortDataTmp = sortingData.find(s => s.sortingTemplate === t);
-
-      // If sorting data exist fot Template Name = t => sort instances
-      let instancesSorted;
-      if (sortDataTmp) {
-        const { sorting, sortingType } = sortDataTmp;
-        instancesSorted = instancesFiltered.sort((a, b) =>
-          sorter(a, b, sortingType as keyof Instance, sorting)
-        );
-      }
-
-      const [{ templateName, gui, persistent, workspaceId }] =
-        instancesFiltered;
-      return {
-        id: templateName,
-        name: t,
-        gui,
-        persistent,
-        resources: { cpu: 0, memory: '', disk: '' },
-        instances: instancesSorted || instancesFiltered,
-        workspaceId,
-      } as Template;
     }
-  );
+
+    const [{ templateId, gui, persistent, workspaceId, templatePrettyName }] =
+      instancesFiltered;
+    return {
+      id: templateId,
+      name: templatePrettyName,
+      gui,
+      persistent,
+      resources: { cpu: 0, memory: '', disk: '' },
+      instances: instancesSorted || instancesFiltered,
+      workspaceId,
+    };
+  });
 };
 
 export const getWorkspacesMapped = (
@@ -334,7 +349,8 @@ export const getWorkspacesMapped = (
     .filter(ws => ws.templates.length);
 };
 
-export const makeTemplateKey = (tid: string, wid: string) => `${tid}-${wid}`;
+export const makeTemplateKey = (tid: Nullable<string>, wid: string) =>
+  `${tid}-${wid}`;
 
 export const notifyStatus = (
   status: string,

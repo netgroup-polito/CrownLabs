@@ -42,23 +42,23 @@ export type VmStatus =
   | 'CreationLoopBackoff'; //the environment has encountered a temporary error during creation.
 export type Instance = {
   id: number;
-  gui?: boolean;
+  gui: boolean;
   templateId: string;
-  templateName?: string;
-  templatePrettyName?: string;
-  persistent?: boolean;
-  tenantId?: string;
-  tenantDisplayName?: string;
-  tenantNamespace?: string;
-  environmentType?: EnvironmentType;
+  templateName: string;
+  templatePrettyName: string;
+  persistent: boolean;
+  tenantId: string;
+  tenantDisplayName: string;
+  tenantNamespace: string;
+  environmentType: EnvironmentType;
   name: string;
-  prettyName?: string;
+  prettyName: string;
   ip: string;
   status: VmStatus;
   url: string | null;
-  timeStamp?: string;
+  timeStamp: string;
   workspaceId: string;
-  running?: boolean;
+  running: boolean;
 };
 
 export enum LinkPosition {

@@ -58,6 +58,8 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     });
   };
 
+  const [{ templateId }] = instances;
+
   return (
     <>
       <div
@@ -84,7 +86,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                   viewMode={viewMode}
                   handleSorting={handleSorting!}
                   handleManagerSorting={handleManagerSorting!}
-                  templatePrettyName={instances[0].templatePrettyName!}
+                  templateKey={templateId}
                 />
               )}
             />

@@ -55,7 +55,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onCompleted: data =>
       setDataInstances(
         data.instanceList?.instances
-          ?.map(i => makeGuiInstance(i, userId, tenantNamespace))
+          ?.map(i => makeGuiInstance(i, userId))
           .sort((a, b) =>
             (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
           ) ?? []
@@ -148,15 +148,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
           ? [
               ...old,
-              makeGuiInstance(
-                i.data?.createdInstance ?? {},
-                userId ?? '',
-                tenantNamespace,
-                {
-                  templateName: templateId,
-                  workspaceName: workspaceName,
-                }
-              ),
+              makeGuiInstance(i.data?.createdInstance, userId, {
+                templateName: templateId,
+                workspaceName: workspaceName,
+              }),
             ]
           : old
       );

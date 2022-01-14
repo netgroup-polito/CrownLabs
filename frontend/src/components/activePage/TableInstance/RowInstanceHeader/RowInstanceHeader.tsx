@@ -11,8 +11,7 @@ import {
 const { Text } = Typography;
 export interface IRowInstanceHeaderProps {
   viewMode: WorkspaceRole;
-  showGuiIcon?: boolean;
-  templatePrettyName: string;
+  templateKey: string;
   handleSorting: (sortingType: string, sorting: number) => void;
   handleManagerSorting: (
     sortingType: string,
@@ -26,7 +25,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
     viewMode,
     handleSorting,
     handleManagerSorting,
-    templatePrettyName: tpn,
+    templateKey: tkey,
   } = props;
   const [prettyNameOrder, setPrettyNameOrder] = useState(0);
   const [templatePrettyNameOrder, setTemplatePrettyNameOrder] = useState(0);
@@ -55,7 +54,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
   const selectOrder = (key: sortKey) => {
     setSort(key);
     viewMode === WorkspaceRole.manager
-      ? handleManagerSorting(key, varByKey[key], tpn)
+      ? handleManagerSorting(key, varByKey[key], tkey)
       : handleSorting(key, varByKey[key]);
   };
 

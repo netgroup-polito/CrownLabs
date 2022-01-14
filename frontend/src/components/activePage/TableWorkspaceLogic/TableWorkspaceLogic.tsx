@@ -81,7 +81,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     setSortingData([...old, { sortingTemplate, sorting, sortingType }]);
   };
 
-  const label = `crownlabs.polito.it/workspace in (${workspaces
+  const labels = `crownlabs.polito.it/workspace in (${workspaces
     .map(({ id }) => id)
     .join(',')})`;
 
@@ -93,7 +93,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     subscribeToMore: subscribeToMoreInstances,
   } = useInstancesLabelSelectorQuery({
     variables: {
-      labels: label,
+      labels,
     },
     onCompleted: setDataInstances,
     onError: apolloErrorCatcher,
@@ -105,9 +105,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       const unsubscribe = subscribeToMoreInstances({
         onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: UpdatedInstancesLabelSelectorDocument,
-        variables: {
-          tenantNamespace,
-        },
+        variables: { labels },
         updateQuery: (prev, { subscriptionData }) => {
           const { data } =
             subscriptionData as UpdatedInstancesLabelSelectorSubscriptionResult;
