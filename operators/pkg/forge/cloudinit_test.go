@@ -32,6 +32,15 @@ var _ = Describe("CloudInit userdata generation", func() {
 
 			expected = `
 #cloud-config
+users:
+    - name: crownlabs
+      lock_passwd: false
+      passwd: $6$rounds=4096$tBS1sNBpnw6feehB$lS9b7VKH6WMAFOB0SrHCgjD2BKs9CegDe51EiMRWbxQeCVnoGL4u0jNaRsYhvVoBFaRlXZkNsxfFhXvCBaNeQ.
+      sudo: ALL=(ALL) NOPASSWD:ALL
+      ssh_authorized_keys:
+        - tenant-key-1
+        - tenant-key-2
+      shell: /bin/bash
 network:
     version: 2
     id0:
