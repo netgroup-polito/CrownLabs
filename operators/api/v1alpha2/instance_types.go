@@ -57,7 +57,7 @@ type InstanceCustomizationUrls struct {
 	// URL to which POST an archive with the contents found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
 	ContentDestination string `json:"contentDestination,omitempty"`
 
-	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output an ISO_8601 compliant date/time of the expected instance termination time.
+	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output a JSON with a `deadline` field containing a ISO_8601 compliant date/time string of the expected instance termination time. See instautoctrl.StatusCheckResponse for exact definition.
 	StatusCheck string `json:"statusCheck,omitempty"`
 }
 
@@ -92,6 +92,18 @@ type InstanceSpec struct {
 	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
 }
 
+// InstanceAutomationStatus reflects the status of the instance's automation (termination and submission).
+type InstanceAutomationStatus struct {
+	// The last time the Instance desired status was checked.
+	LastCheckTime metav1.Time `json:"lastCheckTime,omitempty"`
+
+	// The (possibly expected) termination time of the Instance.
+	TerminationTime metav1.Time `json:"terminationTime,omitempty"`
+
+	// The time the Instance content submission has been completed.
+	SubmissionTime metav1.Time `json:"submissionTime,omitempty"`
+}
+
 // InstanceStatus reflects the most recently observed status of the Instance.
 type InstanceStatus struct {
 	// The current status Instance, with reference to the associated environment
@@ -116,6 +128,9 @@ type InstanceStatus struct {
 	// The amount of time the Instance required to become ready for the first time
 	// upon creation.
 	InitialReadyTime string `json:"initialReadyTime,omitempty"`
+
+	// Timestamps of the Instance automation phases (check, termination and submission).
+	Automation InstanceAutomationStatus `json:"automation,omitempty"`
 }
 
 // +kubebuilder:object:root=true

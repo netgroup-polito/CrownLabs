@@ -18,6 +18,7 @@ import (
 	"flag"
 	"os"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +36,7 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
@@ -62,12 +64,17 @@ func main() {
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
+	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
 
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 	webdavSecret := flag.String("webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
+
+	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
+	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
+	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
+
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.NextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -97,7 +104,7 @@ func main() {
 	log := ctrl.Log.WithName("setup")
 
 	whiteListMap := parseMap(*namespaceWhiteList)
-	log.Info("restricting reconciled namespaces", "labels", namespaceWhiteList)
+	log.Info("restricting reconciled namespaces", "labels", *namespaceWhiteList)
 
 	// Configure the manager
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
@@ -113,13 +120,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
+
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
 	if err = (&instctrl.InstanceReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		NamespaceWhitelist: nsWhitelist,
 		WebdavSecretName:   *webdavSecret,
 		ServiceUrls:        svcUrls,
 		ContainerEnvOpts:   containerEnvOpts,
@@ -135,10 +144,25 @@ func main() {
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceSnapshotCtrl),
-		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		NamespaceWhitelist: nsWhitelist,
 		ContainersSnapshot: instSnapOpts,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
+		os.Exit(1)
+	}
+
+	// Configure the Instance termination controller
+	instanceTermination := "InstanceTermination"
+	if err := (&instautoctrl.InstanceTerminationReconciler{
+		Client:                      mgr.GetClient(),
+		Scheme:                      mgr.GetScheme(),
+		EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
+		NamespaceWhitelist:          nsWhitelist,
+		Concurrency:                 *maxConcurrentTerminationReconciles,
+		StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
+		InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "unable to create controller", "controller", instanceTermination)
 		os.Exit(1)
 	}
 

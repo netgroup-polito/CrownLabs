@@ -26,6 +26,10 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
+  automation:
+    maxConcurrentTerminationReconciles: 1
+    terminationStatusCheckTimeout: "3s"
+    terminationStatusCheckInterval: "2m"
 
 image:
   repository: crownlabs/instance-operator

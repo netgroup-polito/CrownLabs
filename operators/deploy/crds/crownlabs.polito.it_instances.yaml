@@ -79,8 +79,10 @@ spec:
                     description: URL which is periodically checked (with a GET request)
                       to determine automatic instance shutdown. Should return any
                       2xx status code if the instance has to keep running, any 4xx
-                      otherwise. In case of 2xx response, it should output an ISO_8601
-                      compliant date/time of the expected instance termination time.
+                      otherwise. In case of 2xx response, it should output a JSON
+                      with a `deadline` field containing a ISO_8601 compliant date/time
+                      string of the expected instance termination time. See instautoctrl.StatusCheckResponse
+                      for exact definition.
                     type: string
                 type: object
               prettyName:
@@ -134,6 +136,24 @@ spec:
             description: InstanceStatus reflects the most recently observed status
               of the Instance.
             properties:
+              automation:
+                description: Timestamps of the Instance automation phases (check,
+                  termination and submission).
+                properties:
+                  lastCheckTime:
+                    description: The last time the Instance desired status was checked.
+                    format: date-time
+                    type: string
+                  submissionTime:
+                    description: The time the Instance content submission has been
+                      completed.
+                    format: date-time
+                    type: string
+                  terminationTime:
+                    description: The (possibly expected) termination time of the Instance.
+                    format: date-time
+                    type: string
+                type: object
               initialReadyTime:
                 description: The amount of time the Instance required to become ready
                   for the first time upon creation.

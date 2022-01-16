@@ -28,12 +28,19 @@ const (
 	labelTenantKey     = "crownlabs.polito.it/tenant"
 	labelPersistentKey = "crownlabs.polito.it/persistent"
 
+	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
+	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
+	// InstanceSubmitterSelectorLabel -> label for Instances which have to be submitted.
+	InstanceSubmitterSelectorLabel = "crownlabs.polito.it/instance-submission-requested"
+	// InstanceSubmitterConfirmationLabel -> label for Instances that have been submitted.
+	InstanceSubmitterConfirmationLabel = "crownlabs.polito.it/instance-submission-completed"
+
 	labelManagedByValue = "instance"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
 // along with a boolean value indicating whether an update should be performed.
-func InstanceLabels(labels map[string]string, template *clv1alpha2.Template) (map[string]string, bool) {
+func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, instCustomizationUrls *clv1alpha2.InstanceCustomizationUrls) (map[string]string, bool) {
 	labels = deepCopyLabels(labels)
 	update := false
 
@@ -41,6 +48,10 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template) (ma
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
 	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
+
+	if instCustomizationUrls != nil && instCustomizationUrls.StatusCheck != "" && labels[InstanceTerminationSelectorLabel] == "" {
+		update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
+	}
 
 	return labels, update
 }
@@ -64,6 +75,14 @@ func InstanceSelectorLabels(instance *clv1alpha2.Instance) map[string]string {
 		labelTemplateKey: instance.Spec.Template.Name,
 		labelTenantKey:   instance.Spec.Tenant.Name,
 	}
+}
+
+// InstanceAutomationLabelsOnTermination returns a set of labels to be set on an instance when it is terminated.
+func InstanceAutomationLabelsOnTermination(labels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+	labels[InstanceTerminationSelectorLabel] = strconv.FormatBool(false)
+	labels[InstanceSubmitterSelectorLabel] = strconv.FormatBool(true)
+	return labels
 }
 
 // deepCopyLabels creates a copy of the labels map.
