@@ -37,7 +37,6 @@ RUN useradd -ms /bin/bash -u ${UID} $USER
 
 # Copy PyCharm pre-configuration (PyCharm configuration and consent options on license and usage stats)
 COPY config $HOME/.config/JetBrains/PyCharmCE${PYCHARM_VERSION}
-COPY java "$HOME/.java/.userPrefs/jetbrains/_!(!!cg\"p!(}!}@\"j!(k!|w\"w!'8!b!\"p!':!e@=="
 COPY local $HOME/.local/share/JetBrains/consentOptions
 
 # Set permissions on user home
