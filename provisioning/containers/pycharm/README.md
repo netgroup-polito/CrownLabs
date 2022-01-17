@@ -12,7 +12,6 @@ This allows the software to work out-of-the-box, without any splash screen (e.g.
 The required files are located in the following directories:
 
 - [config](config/): it contains three files for the (1) IDE theme, (2) window size, and (3) '_show tips on startup_' settings, which are copied in the container `~/.config` directory.
-- [java](java/): it contains one file for the license agreement consent, which is copied in the container `~/.java` directory
 - [local](local/): it contains one file for the IDE usage statistics consent, which is copied in the container `~/.local` directory
 
 Once this preparation is done, the `pycharm.sh` script is executed with an optional `PROJECT_DIR` parameter that, if set, points to a Python project root directory to further simplify the user experience.
