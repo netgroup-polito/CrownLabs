@@ -76,9 +76,6 @@ jobs:
           - tenant-operator
           - bastion-operator
 
-          # InstanceSet tools
-          - instanceset-landing
-
           # Exams agent
           - examagent
 
@@ -124,12 +121,6 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=bastion-operator
-
-          # InstanceSet components
-          - component: instanceset-landing
-            context: ./operators
-            dockerfile: ./operators/build/golang-common/Dockerfile
-            build-args: COMPONENT=instanceset-landing
 
           # CrownLabs Exams Agent
           - component: examagent

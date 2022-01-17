@@ -35,7 +35,7 @@ type options struct {
 	ipNets           []*net.IPNet
 }
 
-// Options object holds all the instanceset parameters.
+// Options object holds all the examagent parameters.
 var Options options
 
 // Initialize flags and associate each parameter to the given options object.
@@ -56,7 +56,7 @@ func (o *options) Parse() error {
 	flag.Parse()
 
 	if o.Namespace == "" {
-		return errors.New("missing argument: templates-namespace")
+		return errors.New("missing argument: namespace")
 	}
 
 	if o.AllowedIPs == "" {
