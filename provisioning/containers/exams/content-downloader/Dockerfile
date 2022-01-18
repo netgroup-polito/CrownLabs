@@ -17,5 +17,7 @@ RUN apt-get update && \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+USER $USER
+
 ENTRYPOINT /entrypoint.sh
 
