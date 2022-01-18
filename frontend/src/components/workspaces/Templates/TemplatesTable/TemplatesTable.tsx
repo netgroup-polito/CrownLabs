@@ -66,13 +66,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
       // eslint-disable-next-line react/no-multi-comp
       render: (record: Template) => (
         <TemplatesTableRow
-          id={record.id}
-          name={record.name}
-          gui={record.gui}
-          persistent={record.persistent}
-          resources={record.resources}
+          template={record}
           role={role}
-          activeInstances={record.instances ? record.instances.length : 0}
           totalInstances={totalInstances}
           editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
