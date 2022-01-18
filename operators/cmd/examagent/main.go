@@ -59,7 +59,7 @@ func main() {
 	http.Handle(TemplateEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
 	http.Handle(TemplatesEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
 
-	log.Info("CrownLabs Exam Agent starterd", "bind", examagent.Options.ListenerAddr)
+	log.Info("CrownLabs Exam Agent started", "bind", examagent.Options.ListenerAddr)
 	log.Error(http.ListenAndServe(examagent.Options.ListenerAddr, nil), "unable to start http server")
 }
 
