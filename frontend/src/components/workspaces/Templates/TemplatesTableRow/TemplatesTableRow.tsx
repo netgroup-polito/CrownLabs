@@ -15,19 +15,14 @@ import {
   useInstancesLabelSelectorQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
-import { Resources, WorkspaceRole } from '../../../../utils';
+import { Template, WorkspaceRole } from '../../../../utils';
 import Badge from '../../../common/Badge';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 
 export interface ITemplatesTableRowProps {
-  id: string;
-  name: string;
-  gui: boolean;
-  persistent: boolean;
+  template: Template;
   role: WorkspaceRole;
-  resources: Resources;
-  activeInstances: number;
   totalInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (
@@ -59,13 +54,8 @@ const convertInG = (s: string) =>
 
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const {
-    id,
-    name,
-    gui,
-    persistent,
+    template,
     role,
-    resources,
-    activeInstances,
     totalInstances,
     createInstance,
     editTemplate,
@@ -79,7 +69,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const { refetch: refetchInstancesLabelSelector } =
     useInstancesLabelSelectorQuery({
       onError: apolloErrorCatcher,
-      variables: { labels: `crownlabs.polito.it/template=${id}` },
+      variables: {
+        labels: `crownlabs.polito.it/template=${template.id},crownlabs.polito.it/workspace=${template.workspaceId}`,
+      },
+      skip: true,
+      fetchPolicy: 'network-only',
     });
 
   const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
@@ -89,13 +83,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
   const createInstanceHandler = () => {
     setCreateDisabled(true);
-    createInstance(id)
+    createInstance(template.id)
       .then(() => {
         refreshClock();
-        setTimeout(() => {
-          setCreateDisabled(false);
-        }, 400);
-        expandRow(id, true);
+        setTimeout(setCreateDisabled, 400, false);
+        expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
   };
@@ -106,7 +98,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   return (
     <>
       <ModalAlert
-        headTitle={name}
+        headTitle={template.name}
         message="Cannot delete this template"
         description="A template with active instances cannot be deleted. Please delete al the instances associated with this template."
         type="warning"
@@ -125,7 +117,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         setShow={setShowDeleteModalNotPossible}
       />
       <ModalAlert
-        headTitle={name}
+        headTitle={template.name}
         message="Delete template"
         description="Do you really want to delete this template?"
         type="warning"
@@ -146,7 +138,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             type="danger"
             loading={deleteTemplateLoading}
             onClick={() =>
-              deleteTemplate(id)
+              deleteTemplate(template.id)
                 .then(() => setShowDeleteModalConfirm(false))
                 .catch(err => null)
             }
@@ -160,19 +152,19 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       <div className="w-full flex justify-between py-0">
         <div
           className="flex w-full items-center cursor-pointer"
-          onClick={() => expandRow(id, false)}
+          onClick={() => expandRow(template.id, false)}
         >
           <Space size="middle">
             <div className="flex items-center">
-              {gui ? (
+              {template.gui ? (
                 <DesktopOutlined
                   style={{ fontSize: '24px', color: '#1c7afd' }}
                 />
               ) : (
                 <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
               )}
-              <label className="ml-3 cursor-pointer">{name}</label>
-              {persistent && (
+              <label className="ml-3 cursor-pointer">{template.name}</label>
+              {template.persistent && (
                 <Tooltip
                   title={
                     <>
@@ -196,16 +188,24 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           </Space>
         </div>
         <Space size="small">
-          <Badge value={activeInstances} size="small" className="mx-2" />
+          <Badge
+            value={template.instances.length}
+            size="small"
+            className="mx-2"
+          />
           <Tooltip
             placement="left"
             title={
               <>
-                <div>CPU: {resources.cpu || 'unavailable'} Core</div>
-                <div>RAM: {convertInG(resources.memory) || 'unavailable'}B</div>
+                <div>CPU: {template.resources.cpu || 'unavailable'} Core</div>
                 <div>
-                  {persistent
-                    ? ` DISK: ${convertInG(resources.disk) || 'unavailable'}B`
+                  RAM: {convertInG(template.resources.memory) || 'unavailable'}B
+                </div>
+                <div>
+                  {template.persistent
+                    ? ` DISK: ${
+                        convertInG(template.resources.disk) || 'unavailable'
+                      }B`
                     : ``}
                 </div>
               </>
@@ -217,7 +217,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           </Tooltip>
           {role === 'manager' ? (
             <TemplatesTableRowSettings
-              id={id}
+              id={template.id}
               createInstance={createInstance}
               editTemplate={editTemplate}
               deleteTemplate={() => {
