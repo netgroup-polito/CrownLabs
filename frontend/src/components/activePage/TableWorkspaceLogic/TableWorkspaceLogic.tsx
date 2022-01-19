@@ -117,7 +117,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             const found = instances.find(matchK8sObject(instance, false));
-            const objType = getSubObjType(found!, instance, updateType!);
+            const objType = getSubObjType(found, instance, updateType);
 
             switch (objType) {
               case SubObjType.Deletion:
@@ -146,7 +146,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           }
 
           if (notify && matchNS)
-            notifyStatus(instance.status?.phase!, instance, updateType!);
+            notifyStatus(instance.status?.phase, instance, updateType);
 
           const newItem = { ...prev };
           setDataInstances(newItem);
