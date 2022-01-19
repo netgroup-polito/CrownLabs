@@ -46,10 +46,7 @@ func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
 // CheckSelectorLabel checks if the given namespace belongs to the whitelisted namespaces where to perform reconciliation.
 func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceName string, matchLabels map[string]string) (bool, error) {
 	ns := corev1.Namespace{}
-	namespaceLookupKey := types.NamespacedName{
-		Name:      namespaceName,
-		Namespace: "",
-	}
+	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
 
 	// It performs reconciliation only if the InstanceSnapshot belongs to whitelisted namespaces
 	// by checking the existence of keys in the namespace of the InstanceSnapshot.
@@ -59,7 +56,7 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 			return false, nil
 		}
 	} else {
-		return false, fmt.Errorf("error when retrieving the InstanceSnapshot namespace -> %w", err)
+		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)
 	}
 
 	ctrl.LoggerFrom(ctx).V(LogDebugLevel).Info("selector labels met")
@@ -76,4 +73,10 @@ func MatchOneInStringSlices(a, b []string) bool {
 		}
 	}
 	return false
+}
+
+// CheckSingleLabel checks if the instance has the label and value.
+func CheckSingleLabel(obj client.Object, label, value string) bool {
+	labels := obj.GetLabels()
+	return labels != nil && labels[label] == value
 }
