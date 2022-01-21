@@ -20,10 +20,12 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -88,6 +90,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			XVncImg:              "x-vnc-img",
 			WebsockifyImg:        "wsfy-img",
 			ContentDownloaderImg: "cont-dler-img",
+			ContentUploaderImg:   "cont-uplr-img",
 			MyDriveImgAndTag:     "fb-img:tag",
 		}
 		container = corev1.Container{}
@@ -525,6 +528,72 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct environment variables", func() {
 			forge.AddEnvVariableToContainer(&expected, "SOURCE_ARCHIVE", httpPath)
 			forge.AddEnvVariableToContainer(&expected, "DESTINATION_PATH", myDriveMountPath)
+			Expect(actual.Env).To(ConsistOf(expected.Env))
+		})
+	})
+
+	Describe("The forge.SubmissionJobSpec function forges the JobSpec for a submission job", func() {
+		var actual batchv1.JobSpec
+
+		BeforeEach(func() {
+			environment.Persistent = true
+			instance.Spec.CustomizationUrls = &clv1alpha2.InstanceCustomizationUrls{
+				ContentDestination: httpPath,
+			}
+		})
+
+		JustBeforeEach(func() {
+			actual = forge.SubmissionJobSpec(&instance, &environment, &opts)
+		})
+
+		It("should return the correct podSpecification", func() {
+			Expect(actual).To(Equal(batchv1.JobSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							forge.ContentUploaderJobContainer(httpPath, instance.Name, &opts),
+						},
+						Volumes:                      forge.ContainerVolumes(&instance, &environment),
+						SecurityContext:              forge.PodSecurityContext(),
+						AutomountServiceAccountToken: pointer.Bool(false),
+						RestartPolicy:                corev1.RestartPolicyOnFailure,
+					},
+				},
+			}))
+		})
+	})
+
+	Describe("The forge.ContentUploaderJobContainer function forges a container for content submission", func() {
+		const containerName = "content-uploader"
+		var actual, expected corev1.Container
+
+		JustBeforeEach(func() {
+			actual = forge.ContentUploaderJobContainer(httpPath, instanceName, &opts)
+		})
+
+		It("Should set the correct container name and image", func() {
+			// PodSecurityContext setting is checked by GenericContainer specific tests
+			Expect(actual.Name).To(Equal(containerName))
+			Expect(actual.Image).To(Equal("cont-uplr-img:tag"))
+		})
+		It("Should set the correct resources", func() {
+			forge.SetContainerResources(&expected, 0.5, 1, 256, 1024)
+			Expect(actual.Resources).To(Equal(expected.Resources))
+		})
+		It("Should NOT set container ports", func() {
+			Expect(actual.Ports).To(BeEmpty())
+		})
+		It("Should NOT set readiness probes", func() {
+			Expect(actual.ReadinessProbe).To(BeNil())
+		})
+		It("Should set the volume mount", func() {
+			forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
+			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
+		})
+		It("Should set the correct environment variables", func() {
+			forge.AddEnvVariableToContainer(&expected, "SOURCE_PATH", myDriveMountPath)
+			forge.AddEnvVariableToContainer(&expected, "DESTINATION_URL", httpPath)
+			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})

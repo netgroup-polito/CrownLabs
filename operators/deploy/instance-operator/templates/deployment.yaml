@@ -43,6 +43,7 @@ spec:
             - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
+            - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
             - "--container-env-mydrive-img-and-tag={{ .Values.configurations.containerEnvironmentOptions.mydriveImageAndTag }}"
             - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
             - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
@@ -50,6 +51,7 @@ spec:
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
             - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
+            - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
             - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
             - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
           ports:
