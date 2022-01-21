@@ -257,11 +257,11 @@ var _ = Describe("Ingresses", func() {
 				}),
 				Entry("when the mode is Exam", HostNameCase{
 					Mode:           clv1alpha2.ModeExam,
-					ExpectedOutput: "exams." + baseHost,
+					ExpectedOutput: "exam." + baseHost,
 				}),
 				Entry("when the mode is Exercise", HostNameCase{
 					Mode:           clv1alpha2.ModeExercise,
-					ExpectedOutput: "exercises." + baseHost,
+					ExpectedOutput: "exercise." + baseHost,
 				}),
 				Entry("when the mode is invalid/unset", HostNameCase{
 					Mode:           "",

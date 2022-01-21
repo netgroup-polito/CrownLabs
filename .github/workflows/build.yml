@@ -153,9 +153,9 @@ jobs:
           - component: websockify
             context: ./provisioning/containers/gui-common/websockify
           - component: content-downloader
-            context: ./provisioning/containers/exams/content-downloader
+            context: ./provisioning/containers/utils/content-downloader
           - component: content-uploader
-            context: ./provisioning/containers/exams/content-uploader
+            context: ./provisioning/containers/utils/content-uploader
           - component: pycharm
             context: ./provisioning/containers/pycharm
           - component: blender
