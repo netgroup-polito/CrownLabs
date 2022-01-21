@@ -20,4 +20,4 @@ zip "/tmp/$FILENAME.zip" -r "$SOURCE_PATH"
 
 
 echo "Uploading archive..."
-curl -v -X POST -F "binfile=@\"/tmp/$FILENAME.zip\"" -F "filename=$FILENAME.zip" "$DESTINATION_URL"
+curl -v --fail --request POST --form "binfile=@\"/tmp/$FILENAME.zip\"" --form "filename=$FILENAME.zip" "$DESTINATION_URL"
