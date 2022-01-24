@@ -43,7 +43,6 @@ type InstanceTerminationReconciler struct {
 	EventsRecorder              record.EventRecorder
 	Scheme                      *runtime.Scheme
 	NamespaceWhitelist          metav1.LabelSelector
-	Concurrency                 int
 	StatusCheckRequestTimeout   time.Duration
 	InstanceStatusCheckInterval time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
@@ -53,12 +52,12 @@ type InstanceTerminationReconciler struct {
 }
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
-func (r *InstanceTerminationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InstanceTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Named("instance-termination").
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: r.Concurrency,
+			MaxConcurrentReconciles: concurrency,
 		}).
 		Complete(r)
 }
@@ -70,10 +69,11 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
+	dbgLog := log.V(utils.LogDebugLevel)
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	if log.V(4).Enabled() {
+	if dbgLog.Enabled() {
 		defer tracer.Log()
 	} else {
 		defer tracer.LogIfLong(r.StatusCheckRequestTimeout / 2)
@@ -92,7 +92,7 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	// Skip if the instance has not to be terminated.
 	if !utils.CheckSingleLabel(&instance, forge.InstanceTerminationSelectorLabel, strconv.FormatBool(true)) {
-		log.V(utils.LogDebugLevel).Info("skipping instance", "reason", "label selector not matching", "label", forge.InstanceTerminationSelectorLabel)
+		dbgLog.Info("skipping instance", "reason", "label selector not matching", "label", forge.InstanceTerminationSelectorLabel)
 		return ctrl.Result{}, nil
 	}
 
@@ -115,18 +115,19 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 	tracer.Step("status checked checked")
 
 	if terminate {
-		err := r.TerminateInstance(ctx, &instance)
+		err := r.TerminateInstance(ctrl.LoggerInto(ctx, dbgLog), &instance)
 		if err != nil {
 			err = fmt.Errorf("failed terminating instance: %w", err)
 		} else {
 			tracer.Step("instance terminated")
+			log.Info("instance terminated")
 		}
 		return ctrl.Result{}, err
 	}
 
 	tracer.Step("instance requeued")
 
-	log.V(utils.LogDebugLevel).Info("requeueing instance")
+	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: r.InstanceStatusCheckInterval}, nil
 }
 
@@ -179,7 +180,23 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
 	log.Info("terminating instance")
 
-	instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels()))
+	submissionRequired := false
+
+	environment, err := RetrieveEnvironment(ctx, r.Client, instance)
+	if err != nil {
+		log.Info("failed retrieving environment", "error", err)
+		return err
+	}
+
+	if err := CheckEnvironmentValidity(instance, environment); err != nil {
+		log.Info("instance not eligible for submission", "error", err)
+	} else {
+		submissionRequired = true
+		log.Info("submission required")
+	}
+
+	instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), submissionRequired))
+
 	instance.Spec.Running = false
 
 	return r.Update(ctx, instance)

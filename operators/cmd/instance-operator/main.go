@@ -74,6 +74,7 @@ func main() {
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
+	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.NextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
@@ -83,6 +84,7 @@ func main() {
 	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvOpts.WebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
+	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
 	flag.StringVar(&containerEnvOpts.MyDriveImgAndTag, "container-env-mydrive-img-and-tag", "filebrowser/filebrowser:latest", "The image name and tag for the filebrowser image (sidecar for gui-based file manager)")
 	flag.StringVar(&containerEnvOpts.StorageClassName, "container-storage-class-name", "", "The storage class name for persistent container environments (empty = default)")
 
@@ -132,8 +134,7 @@ func main() {
 		WebdavSecretName:   *webdavSecret,
 		ServiceUrls:        svcUrls,
 		ContainerEnvOpts:   containerEnvOpts,
-		Concurrency:        *maxConcurrentReconciles,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
 	}
@@ -158,11 +159,23 @@ func main() {
 		Scheme:                      mgr.GetScheme(),
 		EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
 		NamespaceWhitelist:          nsWhitelist,
-		Concurrency:                 *maxConcurrentTerminationReconciles,
 		StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
 		InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceTermination)
+		os.Exit(1)
+	}
+
+	// Configure the Instance submission controller
+	instanceSubmission := "InstanceSubmission"
+	if err := (&instautoctrl.InstanceSubmissionReconciler{
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		EventsRecorder:     mgr.GetEventRecorderFor(instanceSubmission),
+		ContainerEnvOpts:   containerEnvOpts,
+		NamespaceWhitelist: nsWhitelist,
+	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", instanceSubmission)
 		os.Exit(1)
 	}
 

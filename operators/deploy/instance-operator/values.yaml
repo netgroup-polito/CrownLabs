@@ -17,6 +17,7 @@ configurations:
     websockifyImage: crownlabs/websockify
     xVncImage: crownlabs/tigervnc
     contentDownloaderImage: crownlabs/content-downloader
+    contentUploaderImage: crownlabs/content-uploader
     mydriveImageAndTag: filebrowser/filebrowser:latest
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
@@ -30,6 +31,7 @@ configurations:
     maxConcurrentTerminationReconciles: 1
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m"
+    maxConcurrentSubmissionReconciles: 1
 
 image:
   repository: crownlabs/instance-operator

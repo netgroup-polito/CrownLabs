@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +40,8 @@ const (
 	MyDriveName = "mydrive"
 	// ContentDownloaderName -> name of the downloader initcontainer.
 	ContentDownloaderName = "content-downloader"
+	// ContentUploaderName -> name of the uploader initcontainer.
+	ContentUploaderName = "content-uploader"
 	// MyDriveDefaultMountPath -> default path for the user files accessible through the mydrive.
 	MyDriveDefaultMountPath = "/mydrive"
 	// MyDriveDBPath -> default path for the filebrowser internal database file.
@@ -58,6 +61,7 @@ type ContainerEnvOpts struct {
 	WebsockifyImg        string
 	MyDriveImgAndTag     string
 	ContentDownloaderImg string
+	ContentUploaderImg   string
 	StorageClassName     string
 }
 
@@ -145,6 +149,23 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 	return spec
 }
 
+// SubmissionJobSpec returns the job spec for the submission job.
+func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) batchv1.JobSpec {
+	return batchv1.JobSpec{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					ContentUploaderJobContainer(instance.Spec.CustomizationUrls.ContentDestination, instance.Name, opts),
+				},
+				Volumes:                      ContainerVolumes(instance, environment),
+				SecurityContext:              PodSecurityContext(),
+				AutomountServiceAccountToken: pointer.Bool(false),
+				RestartPolicy:                corev1.RestartPolicyOnFailure,
+			},
+		},
+	}
+}
+
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
 // to the VNC server.
 func WebsockifyContainer(opts *ContainerEnvOpts) corev1.Container {
@@ -212,6 +233,17 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", contentOrigin)
 	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", MyDriveDefaultMountPath)
 	return contentDownloader
+}
+
+// ContentUploaderJobContainer forges a Container to be used within a Job to compress and upload an archive file from the <MyDriveName> volume.
+func ContentUploaderJobContainer(contentDestination, filename string, ceOpts *ContainerEnvOpts) corev1.Container {
+	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentUploaderImg, ceOpts.ImagesTag))
+	SetContainerResources(&contentUploader, 0.5, 1, 256, 1024)
+	AddContainerVolumeMount(&contentUploader, MyDriveName, MyDriveDefaultMountPath)
+	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", MyDriveDefaultMountPath)
+	AddEnvVariableToContainer(&contentUploader, "DESTINATION_URL", contentDestination)
+	AddEnvVariableToContainer(&contentUploader, "FILENAME", filename)
+	return contentUploader
 }
 
 // GenericContainer forges a Container specification with a restrictive security context.

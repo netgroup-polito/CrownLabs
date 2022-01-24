@@ -49,7 +49,6 @@ type InstanceReconciler struct {
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
 	WebdavSecretName   string
-	Concurrency        int
 	ServiceUrls        ServiceUrls
 	ContainerEnvOpts   forge.ContainerEnvOpts
 
@@ -241,7 +240,7 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 }
 
 // SetupWithManager registers a new controller for Instance resources.
-func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
@@ -249,7 +248,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&virtv1.VirtualMachineInstance{}).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: r.Concurrency,
+			MaxConcurrentReconciles: concurrency,
 		}).
 		Complete(r)
 }

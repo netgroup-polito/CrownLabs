@@ -27,13 +27,14 @@ const (
 	labelTemplateKey   = "crownlabs.polito.it/template"
 	labelTenantKey     = "crownlabs.polito.it/tenant"
 	labelPersistentKey = "crownlabs.polito.it/persistent"
+	labelComponentKey  = "crownlabs.polito.it/component"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
-	// InstanceSubmitterSelectorLabel -> label for Instances which have to be submitted.
-	InstanceSubmitterSelectorLabel = "crownlabs.polito.it/instance-submission-requested"
-	// InstanceSubmitterConfirmationLabel -> label for Instances that have been submitted.
-	InstanceSubmitterConfirmationLabel = "crownlabs.polito.it/instance-submission-completed"
+	// InstanceSubmissionSelectorLabel -> label for Instances which have to be submitted.
+	InstanceSubmissionSelectorLabel = "crownlabs.polito.it/instance-submission-requested"
+	// InstanceSubmissionCompletedLabel -> label for Instances that have been submitted.
+	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
 
 	labelManagedByValue = "instance"
 )
@@ -78,11 +79,26 @@ func InstanceSelectorLabels(instance *clv1alpha2.Instance) map[string]string {
 }
 
 // InstanceAutomationLabelsOnTermination returns a set of labels to be set on an instance when it is terminated.
-func InstanceAutomationLabelsOnTermination(labels map[string]string) map[string]string {
+func InstanceAutomationLabelsOnTermination(labels map[string]string, submissionRequired bool) map[string]string {
 	labels = deepCopyLabels(labels)
 	labels[InstanceTerminationSelectorLabel] = strconv.FormatBool(false)
-	labels[InstanceSubmitterSelectorLabel] = strconv.FormatBool(true)
+	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(submissionRequired)
 	return labels
+}
+
+// InstanceAutomationLabelsOnSubmission returns a set of labels to be set on an instance when it is submitted.
+func InstanceAutomationLabelsOnSubmission(labels map[string]string, submissionSucceded bool) map[string]string {
+	labels = deepCopyLabels(labels)
+	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(false)
+	labels[InstanceSubmissionCompletedLabel] = strconv.FormatBool(submissionSucceded)
+	return labels
+}
+
+// InstanceComponentLabels returns a set of labels to be set on an instance component when it is created.
+func InstanceComponentLabels(instance *clv1alpha2.Instance, componentName string) map[string]string {
+	return InstanceObjectLabels(map[string]string{
+		labelComponentKey: componentName,
+	}, instance)
 }
 
 // deepCopyLabels creates a copy of the labels map.

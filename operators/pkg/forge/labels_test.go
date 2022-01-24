@@ -15,8 +15,6 @@
 package forge_test
 
 import (
-	"strconv"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -37,6 +35,7 @@ var _ = Describe("Labels forging", func() {
 		workspaceName     = "netgroup"
 		environmentName   = "control-plane"
 		statusCheckURL    = "https://some/url"
+		componentName     = "crownlabs-component"
 	)
 
 	Describe("The forge.InstanceLabels function", func() {
@@ -302,39 +301,107 @@ var _ = Describe("Labels forging", func() {
 
 	Describe("The forge.InstanceAutomationLabelsOnTermination function", func() {
 		type AutomationLabelsOnTerminationCase struct {
-			Input          map[string]string
-			ExpectedOutput map[string]string
+			Input                 map[string]string
+			InputSubmissionNeeded bool
+			ExpectedOutput        map[string]string
 		}
-
 		DescribeTable("Correctly populates the labels set",
 			func(c AutomationLabelsOnTerminationCase) {
-				Expect(forge.InstanceAutomationLabelsOnTermination(c.Input)).To(Equal(c.ExpectedOutput))
+				Expect(forge.InstanceAutomationLabelsOnTermination(c.Input, c.InputSubmissionNeeded)).To(Equal(c.ExpectedOutput))
 			},
 			Entry("When the input labels map is nil", AutomationLabelsOnTerminationCase{
-				Input: nil,
+				Input:                 nil,
+				InputSubmissionNeeded: true,
 				ExpectedOutput: map[string]string{
-					forge.InstanceTerminationSelectorLabel: strconv.FormatBool(false),
-					forge.InstanceSubmitterSelectorLabel:   strconv.FormatBool(true),
+					forge.InstanceTerminationSelectorLabel: "false",
+					forge.InstanceSubmissionSelectorLabel:  "true",
+				},
+			}),
+			Entry("When the submission is not needed", AutomationLabelsOnTerminationCase{
+				Input:                 nil,
+				InputSubmissionNeeded: false,
+				ExpectedOutput: map[string]string{
+					forge.InstanceTerminationSelectorLabel: "false",
+					forge.InstanceSubmissionSelectorLabel:  "false",
 				},
 			}),
 			Entry("When the input labels map contains other values", AutomationLabelsOnTerminationCase{
-				Input: map[string]string{
-					"some-key": "some-value",
-				},
+				Input:                 map[string]string{"some-key": "some-value"},
+				InputSubmissionNeeded: true,
 				ExpectedOutput: map[string]string{
 					"some-key":                             "some-value",
-					forge.InstanceTerminationSelectorLabel: strconv.FormatBool(false),
-					forge.InstanceSubmitterSelectorLabel:   strconv.FormatBool(true),
+					forge.InstanceTerminationSelectorLabel: "false",
+					forge.InstanceSubmissionSelectorLabel:  "true",
 				},
 			}),
 			Entry("When the input labels map is already compliant", AutomationLabelsOnTerminationCase{
 				Input: map[string]string{
-					forge.InstanceTerminationSelectorLabel: strconv.FormatBool(false),
-					forge.InstanceSubmitterSelectorLabel:   strconv.FormatBool(true),
+					forge.InstanceTerminationSelectorLabel: "false",
+					forge.InstanceSubmissionSelectorLabel:  "true",
 				},
+				InputSubmissionNeeded: true,
 				ExpectedOutput: map[string]string{
-					forge.InstanceTerminationSelectorLabel: strconv.FormatBool(false),
-					forge.InstanceSubmitterSelectorLabel:   strconv.FormatBool(true),
+					forge.InstanceTerminationSelectorLabel: "false",
+					forge.InstanceSubmissionSelectorLabel:  "true",
+				},
+			}),
+		)
+		Context("Checking side effects", func() {
+			var input, expectedInput map[string]string
+			BeforeEach(func() {
+				input = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
+			})
+			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnTermination(input, true) })
+			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
+	})
+
+	Describe("The forge.InstanceAutomationLabelsOnSubmission function", func() {
+		type AutomationLabelsOnSubmissionCase struct {
+			Input                  map[string]string
+			InputSubmissionSuccess bool
+			ExpectedOutput         map[string]string
+		}
+
+		DescribeTable("Correctly populates the labels set",
+			func(c AutomationLabelsOnSubmissionCase) {
+				Expect(forge.InstanceAutomationLabelsOnSubmission(c.Input, c.InputSubmissionSuccess)).To(Equal(c.ExpectedOutput))
+			},
+			Entry("When the input labels map contains other values", AutomationLabelsOnSubmissionCase{
+				Input:                  map[string]string{"some-key": "some-value"},
+				InputSubmissionSuccess: true,
+				ExpectedOutput: map[string]string{
+					"some-key":                             "some-value",
+					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.InstanceSubmissionCompletedLabel: "true",
+				},
+			}),
+			Entry("When the input labels map is nil", AutomationLabelsOnSubmissionCase{
+				Input:                  nil,
+				InputSubmissionSuccess: true,
+				ExpectedOutput: map[string]string{
+					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.InstanceSubmissionCompletedLabel: "true",
+				},
+			}),
+			Entry("When the input labels map is already compliant", AutomationLabelsOnSubmissionCase{
+				Input: map[string]string{
+					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.InstanceSubmissionCompletedLabel: "true",
+				},
+				InputSubmissionSuccess: true,
+				ExpectedOutput: map[string]string{
+					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.InstanceSubmissionCompletedLabel: "true",
+				},
+			}),
+			Entry("When the submission is not successful", AutomationLabelsOnSubmissionCase{
+				Input:                  nil,
+				InputSubmissionSuccess: false,
+				ExpectedOutput: map[string]string{
+					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.InstanceSubmissionCompletedLabel: "false",
 				},
 			}),
 		)
@@ -347,8 +414,36 @@ var _ = Describe("Labels forging", func() {
 				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
 			})
 
-			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnTermination(input) })
+			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnSubmission(input, false) })
 			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
+	})
+
+	Describe("The forge.InstanceComponentLabels function", func() {
+		var instance clv1alpha2.Instance
+
+		BeforeEach(func() {
+			instance = clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
+				Spec: clv1alpha2.InstanceSpec{
+					Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
+					Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+				},
+			}
+		})
+
+		Context("The component labels are generated", func() {
+			It("Should be a superset of the object labels", func() {
+				componentLabels := forge.InstanceComponentLabels(&instance, componentName)
+				objectLabels := forge.InstanceObjectLabels(nil, &instance)
+				for key, value := range objectLabels {
+					Expect(componentLabels).To(HaveKeyWithValue(key, value))
+				}
+			})
+
+			It("Should contain the component label", func() {
+				Expect(forge.InstanceComponentLabels(&instance, componentName)).To(HaveKeyWithValue("crownlabs.polito.it/component", componentName))
+			})
 		})
 	})
 })

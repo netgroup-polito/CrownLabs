@@ -16,8 +16,8 @@ if [ -z "$FILENAME"  ]; then
 fi
 
 echo "Compressing archive..."
-zip "/tmp/$FILENAME.zip" -r "$SOURCE_PATH"
-
+cd "$SOURCE_PATH"
+zip "/tmp/$FILENAME.zip" -r .
 
 echo "Uploading archive..."
 curl -v --fail --request POST --form "binfile=@\"/tmp/$FILENAME.zip\"" --form "filename=$FILENAME.zip" "$DESTINATION_URL"
