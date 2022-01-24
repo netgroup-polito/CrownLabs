@@ -36,6 +36,7 @@ type TemplateHandler struct {
 type TemplateAdapter struct {
 	Name       string      `json:"name"`
 	PrettyName string      `json:"prettyName"`
+	Persistent bool        `json:"persistent"`
 	CreatedAt  metav1.Time `json:"createdAt"`
 }
 
@@ -59,11 +60,20 @@ func (th *TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	agentTemplates := make([]TemplateAdapter, len(templates.Items))
+
 	for i := range templates.Items {
+		persistent := false
+		for ei := range templates.Items[i].Spec.EnvironmentList {
+			if templates.Items[i].Spec.EnvironmentList[ei].Persistent {
+				persistent = true
+				break
+			}
+		}
 		agentTemplates[i] = TemplateAdapter{
 			Name:       templates.Items[i].Name,
 			PrettyName: templates.Items[i].Spec.PrettyName,
 			CreatedAt:  templates.Items[i].CreationTimestamp,
+			Persistent: persistent,
 		}
 	}
 
