@@ -108,6 +108,9 @@ type Environment struct {
 
 	// Options to customize container startup
 	ContainerStartupOptions *ContainerStartupOpts `json:"containerStartupOptions,omitempty"`
+
+	// Name of the storage class to be used for the persistent volume (when needed)
+	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

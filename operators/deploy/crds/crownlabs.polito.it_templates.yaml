@@ -187,6 +187,10 @@ spec:
                       - memory
                       - reservedCPUPercentage
                       type: object
+                    storageClassName:
+                      description: Name of the storage class to be used for the persistent
+                        volume (when needed)
+                      type: string
                   required:
                   - environmentType
                   - image
