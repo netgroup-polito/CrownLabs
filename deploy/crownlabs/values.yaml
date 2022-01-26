@@ -145,3 +145,15 @@ delete-stale-instances:
   configurations:
     dryRun: true
     schedule: "*/15 * * * *"
+
+exam-agent:
+  replicaCount: 1
+  configurations:
+    allowedIPs: ""
+    targetNamespace: "crownlabs-exam"
+  exposition:
+    host: exams.crownlabs.polito.it
+    basePath: "/api"
+  image:
+    repository: crownlabs/exam-agent
+    pullPolicy: IfNotPresent

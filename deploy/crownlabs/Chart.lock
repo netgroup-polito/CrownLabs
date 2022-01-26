@@ -23,6 +23,9 @@ dependencies:
 - name: delete-stale-instances
   repository: file://../../operators/deploy/delete-stale-instances
   version: 0.1.0
+- name: exam-agent
+  repository: file://../../operators/deploy/exam-agent
+  version: 0.1.0
 - name: policies
   repository: file://../../policies/
   version: 0.1.0
