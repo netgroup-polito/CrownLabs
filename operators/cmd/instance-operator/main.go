@@ -86,7 +86,6 @@ func main() {
 	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
 	flag.StringVar(&containerEnvOpts.MyDriveImgAndTag, "container-env-mydrive-img-and-tag", "filebrowser/filebrowser:latest", "The image name and tag for the filebrowser image (sidecar for gui-based file manager)")
-	flag.StringVar(&containerEnvOpts.StorageClassName, "container-storage-class-name", "", "The storage class name for persistent container environments (empty = default)")
 
 	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
 	flag.StringVar(&instSnapOpts.RegistrySecretName, "vm-registry-secret", "", "The name of the secret for the VM registry")
