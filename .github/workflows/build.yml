@@ -77,7 +77,7 @@ jobs:
           - bastion-operator
 
           # Exams agent
-          - examagent
+          - exam-agent
 
           # The new frontend
           - frontend-app
@@ -124,7 +124,7 @@ jobs:
             build-args: COMPONENT=bastion-operator
 
           # CrownLabs Exams Agent
-          - component: examagent
+          - component: exam-agent
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=examagent
