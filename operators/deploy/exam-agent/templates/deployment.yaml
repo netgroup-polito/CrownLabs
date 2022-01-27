@@ -34,7 +34,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ include "exam-agent.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--templates-namespace={{ .Values.configurations.targetNamespace }}"
+            - "--namespace={{ .Values.configurations.targetNamespace }}"
             - "--allowed-ips={{ .Values.configurations.allowedIPs }}"
             - "--base-path={{ .Values.exposition.basePath }}"
           ports:
