@@ -47,7 +47,7 @@ func HTTPGet(ctx context.Context, url string, timeout time.Duration) (statusCode
 	log.Info("performing request")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return resp.StatusCode, nil, err
+		return -1, nil, err
 	}
 
 	log.Info("reading response")
