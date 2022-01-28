@@ -111,9 +111,9 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, nil
 		case err == nil && jobStatus.Succeeded > 0: // the job has been completed successfully
 			if jobStatus.CompletionTime != nil {
-				instance.Status.Automation.TerminationTime = *jobStatus.CompletionTime
+				instance.Status.Automation.SubmissionTime = *jobStatus.CompletionTime
 			} else {
-				instance.Status.Automation.TerminationTime = metav1.Now()
+				instance.Status.Automation.SubmissionTime = metav1.Now()
 			}
 			if err := r.Status().Update(ctx, &instance); err != nil {
 				log.Error(err, "failed updating instance status")
