@@ -8,7 +8,7 @@ spec:
     rules:
     - alert: VeleroBackupPartialFailures
       annotations:
-        message: Velero backup {{ $labels.schedule }} has {{ $value | humanizePercentage }} partialy failed backups.
+        message: Velero backup {{ $labels.schedule }} has {{ $value | humanizePercentage }} partially failed backups.
       expr: |-
         velero_backup_partial_failure_total{schedule!=""} > 1
       for: 15m

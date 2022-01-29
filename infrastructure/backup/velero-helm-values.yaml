@@ -6,7 +6,7 @@
 # enabling restic). Required.
 image:
   repository: velero/velero
-  tag: v1.6.0
+  tag: v1.7.1
   # Digest value example: sha256:d238835e151cec91c6a811fe3a89a66d3231d9f64d09e5f3c49552672d271f38.
   # If used, it will take precedence over the image.tag.
   # digest:
@@ -40,19 +40,26 @@ podLabels: {}
 resources:
   requests:
     cpu: 500m
-    memory: 128Mi
+    memory: 512Mi
   limits:
     cpu: 1000m
-    memory: 1024Mi
+    memory: 2048Mi
 
 # Configure the dnsPolicy of the Velero deployment
 # See: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
 dnsPolicy: ClusterFirst
 
 # Init containers to add to the Velero deployment's pod spec. At least one plugin provider image is required.
+# If the value is a string then it is evaluated as a template.
 initContainers:
+  # - name: velero-plugin-for-csi
+  #   image: velero/velero-plugin-for-csi:v0.2.0
+  #   imagePullPolicy: IfNotPresent
+  #   volumeMounts:
+  #     - mountPath: /target
+  #       name: plugins
   - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.2.0
+    image: velero/velero-plugin-for-aws:v1.3.0
     imagePullPolicy: IfNotPresent
     volumeMounts:
     - mountPath: /target
@@ -117,10 +124,13 @@ metrics:
 kubectl:
   image:
     repository: docker.io/bitnami/kubectl
-    tag: 1.21.1
     # Digest value example: sha256:d238835e151cec91c6a811fe3a89a66d3231d9f64d09e5f3c49552672d271f38.
     # If used, it will take precedence over the kubectl.image.tag.
     # digest:
+    # kubectl image tag. If used, it will take precedence over the cluster Kubernetes version.
+    # tag: 1.16.15
+  # Resource requests/limits to specify for the upgrade/cleanup job. Optional
+  resources: {}
   # Annotations to set for the upgrade/cleanup job. Optional.
   annotations: {}
   # Labels to set for the upgrade/cleanup job. Optional.
@@ -224,6 +234,7 @@ configuration:
   extraEnvVars: {}
 
   # Comma separated list of velero feature flags. default: empty
+  # features: EnableCSI
   features:
 
   # Set log-level for Velero pod. Default: info. Other options: debug, warning, error, fatal, panic.
@@ -234,6 +245,9 @@ configuration:
 
   # Set true for backup all pod volumes without having to apply annotation on the pod when used restic Default: false. Other option: false.
   defaultVolumesToRestic:
+
+  # How often 'restic prune' is run for restic repositories by default. Default: 168h. Optional.
+  defaultResticPruneFrequency:
 
 ##
 ## End of backup/snapshot location settings.
@@ -262,9 +276,9 @@ serviceAccount:
 # should contain credentials for the cloud provider IAM account you've
 # set up for Velero.
 credentials:
-  # Whether a secret should be used as the source of IAM account
-  # credentials. Set to false if, for example, using kube2iam or
-  # kiam to provide IAM credentials for the Velero pod.
+  # Whether a secret should be used. Set to false if, for examples:
+  # - using kube2iam or kiam to provide AWS IAM credentials instead of providing the key file. (AWS only)
+  # - using workload identity instead of providing the key file. (GCP only)
   useSecret: true
   # Name of the secret to create if `useSecret` is true and `existingSecret` is empty
   name: velero-s3-credentials
@@ -323,6 +337,11 @@ restic:
   # labels to set for the Restic daemonset. Optional.
   labels: {}
 
+  # will map /scratch to emptyDir. Set to false and specify your own volume
+  # via extraVolumes and extraVolumeMounts that maps to /scratch
+  # if you don't want to use emptyDir.
+  useScratchEmptyDir: true
+
   # Extra volumes for the Restic daemonset. Optional.
   extraVolumes: []
 
@@ -351,11 +370,13 @@ restic:
 # Eg:
 # schedules:
 #   mybackup:
+#     disabled: false
 #     labels:
 #       myenv: foo
 #     annotations:
 #       myenv: foo
 #     schedule: "0 0 * * *"
+#     useOwnerReferencesInBackup: true
 #     template:
 #       ttl: "240h"
 #       includedNamespaces:
@@ -376,7 +397,7 @@ schedules:
 #       velero.io/plugin-config: ""
 #       velero.io/restic: RestoreItemAction
 #     data:
-#       image: velero/velero-restic-restore-helper:v1.6.0
+#       image: velero/velero-restic-restore-helper:v1.7.1
 configMaps: {}
 
 ##
