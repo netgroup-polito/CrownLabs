@@ -15,7 +15,6 @@
 package examagent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -78,8 +77,7 @@ func (th *TemplateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(agentTemplates); err != nil {
+	if err := WriteJSON(w, agentTemplates); err != nil {
 		th.Log.Error(err, "unable to encode templates")
 
 		w.WriteHeader(http.StatusInternalServerError)

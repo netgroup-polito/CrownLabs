@@ -18,17 +18,18 @@ package examagent
 
 import (
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,15 +39,15 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
-//go:embed redirecting.html
-var httpPageStartingUp string
-
 // InstanceAdapter represents an Instance within the examagent.
 type InstanceAdapter struct {
 	ID                string                               `json:"id"`
 	Template          string                               `json:"template"`
 	Running           *bool                                `json:"running,omitempty"`
 	CustomizationUrls clv1alpha2.InstanceCustomizationUrls `json:"customizationUrls"`
+	Phase             string                               `json:"phase"`
+	URL               string                               `json:"url,omitempty"`
+	Labels            map[string]string                    `json:"labels"`
 }
 
 // InstanceHandler is the handler for the InstanceAdapter.
@@ -92,37 +93,45 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 
 	if err := ih.Client.Get(r.Context(), forge.NamespacedName(inst), inst); err != nil {
 		if errors.IsNotFound(err) {
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, "Not found")
 			log.Error(err, "instance not found")
+			WriteError(w, r, log, http.StatusNotFound, "The requested Instance does not exist.")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Error retrieving Instance")
 		log.Error(err, "error retrieving instance")
+		WriteError(w, r, log, http.StatusInternalServerError, "Cannot retrieve the requested instance.")
 		return
 	}
 
 	log = log.WithValues("phase", inst.Status.Phase)
 
-	if inst.Status.Phase == clv1alpha2.EnvironmentPhaseReady {
+	if !AcceptsHTML(r) {
+		if err := WriteJSON(w, AdapterFromInstance(inst)); err != nil {
+			log.Error(err, "cannot encode instance")
+			WriteError(w, r, log, http.StatusInternalServerError, "Cannot encode the requested instance.")
+		}
+		log.Info("sent JSON instance")
+		return
+	}
+
+	switch inst.Status.Phase {
+	case clv1alpha2.EnvironmentPhaseReady:
 		log.Info("redirecting", "url", inst.Status.URL)
 		http.Redirect(w, r, inst.Status.URL, http.StatusFound)
-		return
-	}
-
-	if inst.Status.Phase == clv1alpha2.EnvironmentPhaseFailed || inst.Status.Phase == clv1alpha2.EnvironmentPhaseCreationLoopBackoff {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Something went wrong. Please retry later")
+	case clv1alpha2.EnvironmentPhaseOff:
+		log.Error(fmt.Errorf("instance off"), "invalid phase")
+		WriteError(w, r, log, http.StatusGone, "The requested Instance is not running.")
+	case clv1alpha2.EnvironmentPhaseFailed, clv1alpha2.EnvironmentPhaseCreationLoopBackoff:
 		log.Error(fmt.Errorf("instance failed"), "invalid phase")
-		return
+		WriteError(w, r, log, http.StatusInternalServerError, "Something went wrong.")
+	default:
+		log.Info("sending starting-up page")
+
+		w.Header().Add("refresh", "5")
+		w.WriteHeader(http.StatusCreated)
+		if err := WriteStartupPage(w); err != nil {
+			log.Error(err, "error rendering startup page")
+		}
 	}
-
-	log.Info("sending starting-up page")
-
-	w.Header().Add("refresh", "5")
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, httpPageStartingUp)
 }
 
 // HandlePut handles the PUT request for a InstanceAdapter api call.
@@ -148,6 +157,7 @@ func (ih *InstanceHandler) HandlePut(w http.ResponseWriter, r *http.Request, log
 
 	op, err := ctrl.CreateOrUpdate(r.Context(), ih.Client, instance, func() error {
 		instance.Spec = InstanceSpecFromAdapter(&adapter)
+		instance.SetLabels(labels.Merge(instance.GetLabels(), adapter.Labels))
 		return nil
 	})
 
@@ -160,8 +170,6 @@ func (ih *InstanceHandler) HandlePut(w http.ResponseWriter, r *http.Request, log
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-
 	switch op {
 	case ctrlutil.OperationResultCreated:
 		w.WriteHeader(http.StatusCreated)
@@ -173,7 +181,7 @@ func (ih *InstanceHandler) HandlePut(w http.ResponseWriter, r *http.Request, log
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	if err := json.NewEncoder(w).Encode(AdapterFromInstance(instance)); err != nil {
+	if err := WriteJSON(w, AdapterFromInstance(instance)); err != nil {
 		fmt.Fprint(w, op)
 		log.Error(err, "operation complete but cannot encode instance")
 		return
@@ -183,9 +191,20 @@ func (ih *InstanceHandler) HandlePut(w http.ResponseWriter, r *http.Request, log
 
 // HandleGetAll handles the GET request for all the instances.
 func (ih *InstanceHandler) HandleGetAll(w http.ResponseWriter, r *http.Request, log logr.Logger) {
+	if err := Options.CheckAllowedIP(r.Header.Get(XForwardedFor)); err != nil {
+		log.Error(err, "unauthorized")
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Forbidden")
+		return
+	}
+
+	clientOptions := []client.ListOption{client.InNamespace(Options.Namespace)}
+	if r.URL.Query().Encode() != "" {
+		clientOptions = append(clientOptions, client.MatchingLabels(ValuesToMap(r.URL.Query())))
+	}
+
 	var instances clv1alpha2.InstanceList
-	// get all the instances in the namespace
-	if err := ih.Client.List(r.Context(), &instances, client.InNamespace(Options.Namespace)); err != nil {
+	if err := ih.Client.List(r.Context(), &instances, clientOptions...); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "Error retrieving instances")
 		log.Error(err, "error retrieving instances")
@@ -197,8 +216,7 @@ func (ih *InstanceHandler) HandleGetAll(w http.ResponseWriter, r *http.Request, 
 		adapters[i] = *AdapterFromInstance(&instances.Items[i])
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(adapters); err != nil {
+	if err := WriteJSON(w, adapters); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "Internal server error")
 		log.Error(err, "cannot encode instances")
@@ -274,10 +292,31 @@ func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 
 // AdapterFromInstance creates an InstanceAdapter from a given Instance.
 func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
-	return &InstanceAdapter{
-		ID:                inst.Name,
-		Template:          inst.Spec.Template.Name,
-		Running:           pointer.Bool(inst.Spec.Running),
-		CustomizationUrls: *inst.Spec.CustomizationUrls,
+	adapter := &InstanceAdapter{
+		ID:       inst.Name,
+		Template: inst.Spec.Template.Name,
+		Running:  pointer.Bool(inst.Spec.Running),
+		URL:      inst.Status.URL,
+		Phase:    string(inst.Status.Phase),
+		Labels:   inst.GetLabels(),
 	}
+
+	if inst.Spec.CustomizationUrls != nil {
+		adapter.CustomizationUrls = *inst.Spec.CustomizationUrls
+	}
+
+	return adapter
+}
+
+// ValuesToMap converts a url.Values to a map[string]string. In case of duplicate keys, the first value is used; in case of no values or empty first value, "true" is set automatically as a value.
+func ValuesToMap(values url.Values) map[string]string {
+	result := make(map[string]string)
+	for key, value := range values {
+		if len(value) > 0 && value[0] != "" {
+			result[key] = value[0]
+		} else {
+			result[key] = "true"
+		}
+	}
+	return result
 }

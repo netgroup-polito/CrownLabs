@@ -25,7 +25,8 @@ fullnameOverride: ""
 
 deploymentAnnotations: {}
 podAnnotations: {}
-ingressAnnotations: {}
+ingressAnnotations:
+  nginx.ingress.kubernetes.io/custom-http-errors: "418"
 
 podSecurityContext: {}
   # fsGroup: 2000
