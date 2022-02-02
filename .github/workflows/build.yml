@@ -93,7 +93,6 @@ jobs:
           - img-exporter
 
           # Laboratory environments
-          - novnc
           - tigervnc
           - websockify
           - content-downloader
@@ -146,8 +145,6 @@ jobs:
             context: ./qlkube
 
           # Laboratory environments
-          - component: novnc
-            context: ./provisioning/containers/gui-common/novnc
           - component: tigervnc
             context: ./provisioning/containers/gui-common/tigervnc
           - component: websockify

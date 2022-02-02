@@ -1,0 +1,117 @@
+// Copyright 2020-2022 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+// Websockify - go version
+// Original version at https://github.com/novnc/websockify-other/tree/master/golang
+
+import (
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"sync/atomic"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func forwardtcp(wsconn *websocket.Conn, conn net.Conn) {
+	var tcpbuffer [1024]byte
+	defer wsconn.Close()
+	defer conn.Close()
+	for {
+		n, err := conn.Read(tcpbuffer[0:])
+		if err != nil {
+			log.Println("tcp read error:", err)
+			return
+		}
+
+		if err := wsconn.WriteMessage(websocket.BinaryMessage, tcpbuffer[0:n]); err != nil {
+			log.Println("ws write error:", err)
+			return
+		}
+	}
+}
+
+func forwardweb(wsconn *websocket.Conn, conn net.Conn) {
+	defer wsconn.Close()
+	defer conn.Close()
+	for {
+		_, buffer, err := wsconn.ReadMessage()
+		if err != nil {
+			log.Println("ws read error:", err)
+			return
+		}
+
+		if _, err := conn.Write(buffer); err != nil {
+			log.Println("tcp write error: ", err)
+			return
+		}
+	}
+}
+
+func (h *NoVncHandler) serveWs(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("upgrade:", err)
+		return
+	}
+	vnc, err := net.Dial("tcp", h.TargetSocket)
+	if err != nil {
+		log.Println("vnc dial:", err)
+		_ = ws.Close()
+		return
+	}
+
+	ip := r.Header.Get(headerXForwardedFor)
+	connID := atomic.AddUint32(&h.connectionsCount, 1)
+
+	metric := makeLatencyObserver(ip, fmt.Sprint(connID))
+
+	log.Printf("Incoming websocket connection from IP=%s", ip)
+	go forwardtcp(ws, vnc)
+	go forwardweb(ws, vnc)
+	go h.pingCycle(ws, metric)
+}
+
+func (h *NoVncHandler) pingCycle(wsconn *websocket.Conn, metric prometheus.Observer) {
+	// set pong handler
+	lastPing := time.Now()
+	wsconn.SetPongHandler(func(data string) error {
+		latency := time.Since(lastPing)
+		metric.Observe(float64(latency.Milliseconds()))
+		log.Printf("ping latency: %s", latency)
+		return nil
+	})
+
+	ticker := time.NewTicker(h.PingInterval)
+	for lastPing = range ticker.C {
+		err := wsconn.WriteControl(websocket.PingMessage, nil, time.Now().Add(h.PingInterval))
+		if err != nil {
+			log.Println("ping error:", err)
+			ticker.Stop()
+		}
+	}
+}
