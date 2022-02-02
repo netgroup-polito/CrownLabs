@@ -25,7 +25,7 @@ controller:
   # Use an existing PSP instead of creating one
   existingPsp: ""
 
- # Configures the controller container name
+  # Configures the controller container name
   containerName: controller
 
   # Configures the ports the nginx-controller listens on
@@ -35,6 +35,8 @@ controller:
 
   # Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/
   config: # {}
+    worker-processes: "10"
+    worker-shutdown-timeout: 3600s
     custom-http-errors: 400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417,418,421,422,423,424,425,426,428,429,431,451,500,501,502,503,504,505,506,507,508,510,511
 
 
@@ -345,10 +347,10 @@ controller:
   resources:
     limits:
       cpu: 2000m
-      memory: 4Gi
+      memory: 10240Mi
     requests:
       cpu: 200m
-      memory: 256Mi
+      memory: 2048Mi
 
   # Mutually exclusive with keda autoscaling
   autoscaling:
