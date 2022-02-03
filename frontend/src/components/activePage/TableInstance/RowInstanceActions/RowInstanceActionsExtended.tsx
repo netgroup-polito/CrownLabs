@@ -3,7 +3,7 @@ import { Popover, Tooltip, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { Instance, WorkspaceRole } from '../../../../utils';
-import { EnvironmentType } from '../../../../generated-types';
+import { EnvironmentType, Phase } from '../../../../generated-types';
 
 const { Text } = Typography;
 
@@ -54,10 +54,10 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   } = instance;
 
   const sshDisabled =
-    status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+    status !== Phase.VmiReady || environmentType === EnvironmentType.Container;
 
   const fileManagerDisabled =
-    status !== 'VmiReady' && environmentType === EnvironmentType.Container;
+    status !== Phase.VmiReady && environmentType === EnvironmentType.Container;
 
   const infoContent = (
     <>
@@ -100,7 +100,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === 'VmiReady', environmentType!)}
+          title={getSSHTooltipText(status === Phase.VmiReady, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -117,7 +117,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Tooltip>
         <Tooltip
           title={getFileManagerTooltipText(
-            status === 'VmiReady',
+            status === Phase.VmiReady,
             environmentType!
           )}
         >

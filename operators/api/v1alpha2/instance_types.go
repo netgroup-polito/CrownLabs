@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="";"Importing";"Starting";"Running";"VmiReady";"Stopping";"VmiOff";"Failed";"CreationLoopBackoff"
+// +kubebuilder:validation:Enum="";"Importing";"Starting";"ResourceQuotaExceeded";"Running";"VmiReady";"Stopping";"VmiOff";"Failed";"CreationLoopBackoff"
 
 // EnvironmentPhase is an enumeration of the different phases associated with
 // an instance of a given environment template.
@@ -31,6 +31,8 @@ const (
 	EnvironmentPhaseImporting EnvironmentPhase = "Importing"
 	// EnvironmentPhaseStarting -> the environment is starting.
 	EnvironmentPhaseStarting EnvironmentPhase = "Starting"
+	// EnvironmentPhaseResourceQuotaExceeded -> the environment could not start because the resource quota is exceeded.
+	EnvironmentPhaseResourceQuotaExceeded EnvironmentPhase = "ResourceQuotaExceeded"
 	// EnvironmentPhaseRunning -> the environment is running, but not yet ready.
 	EnvironmentPhaseRunning EnvironmentPhase = "Running"
 	// EnvironmentPhaseReady -> the environment is ready to be accessed.

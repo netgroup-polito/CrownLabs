@@ -47,7 +47,7 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(ctx context.Context) er
 		}
 	}
 
-	return r.enforceConainer(ctx)
+	return r.enforceContainer(ctx)
 }
 
 // enforcePVC enforces the presence of the instance persistent storage
@@ -75,9 +75,9 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	return nil
 }
 
-// enforceConainer enforces the actual deployment
+// enforceContainer enforces the actual deployment
 // which contains all the container based instance components.
-func (r *InstanceReconciler) enforceConainer(ctx context.Context) error {
+func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)

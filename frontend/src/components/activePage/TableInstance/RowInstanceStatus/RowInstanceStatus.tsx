@@ -7,10 +7,10 @@ import {
   WarningOutlined,
   PauseCircleOutlined,
 } from '@ant-design/icons';
-import { VmStatus } from '../../../../utils';
+import { Phase } from '../../../../generated-types';
 
 export interface IRowInstanceStatusProps {
-  status: VmStatus;
+  status: Phase;
 }
 
 const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
@@ -18,12 +18,16 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   const font20px = { fontSize: '20px' };
   const statusIcon = {
+    Unknown: <WarningOutlined className="warning-color-fg" style={font20px} />,
     CreationLoopBackoff: (
       <WarningOutlined className="warning-color-fg" style={font20px} />
     ),
     Running: <LoadingOutlined className="warning-color-fg" style={font20px} />,
     Importing: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
+    ),
+    ResourceQuotaExceeded: (
+      <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
     VmiReady: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
@@ -40,7 +44,7 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={status}>{statusIcon[status || 'Starting']}</Tooltip>
+      <Tooltip title={status}>{statusIcon[status || Phase.Starting]}</Tooltip>
     </div>
   );
 };

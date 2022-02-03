@@ -14,6 +14,7 @@ import {
 import { Instance } from '../../../../utils';
 import {
   EnvironmentType,
+  Phase,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -89,7 +90,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const { menuKey, menuIcon, menuText } =
     statusComponents[
-      status === 'VmiReady' || status === 'VmiOff' ? status : 'Other'
+      status === Phase.VmiReady || status === Phase.VmiOff ? status : 'Other'
     ];
 
   const dropdownHandler = (key: DropDownAction) => {
@@ -126,13 +127,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const sshDisabled =
-    status !== 'VmiReady' || environmentType === EnvironmentType.Container;
+    status !== Phase.VmiReady || environmentType === EnvironmentType.Container;
 
   const fileManagerDisabled =
-    status !== 'VmiReady' && environmentType === EnvironmentType.Container;
+    status !== Phase.VmiReady && environmentType === EnvironmentType.Container;
 
   const connectDisabled =
-    status !== 'VmiReady' ||
+    status !== Phase.VmiReady ||
     (environmentType === EnvironmentType.Container && !gui);
 
   return (
