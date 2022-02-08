@@ -22,10 +22,21 @@ import (
 
 // userdata is a helper structure to marshal the userdata configuration.
 type userdata struct {
+	Users             []user      `yaml:"users"`
 	Network           network     `yaml:"network"`
 	Mounts            [][]string  `yaml:"mounts"`
 	WriteFiles        []writefile `yaml:"write_files"`
 	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys,omitempty"`
+}
+
+// user is a helper structure to marshal the userdata configuration to configure users.
+type user struct {
+	Name              string   `yaml:"name"`
+	LockPasswd        bool     `yaml:"lock_passwd"`
+	Passwd            string   `yaml:"passwd"`
+	Sudo              string   `yaml:"sudo"`
+	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty"`
+	Shell             string   `yaml:"shell"`
 }
 
 // network is a helper structure to marshal the userdata configuration to configure the network subsystem.
@@ -49,6 +60,16 @@ type writefile struct {
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
 func CloudInitUserData(nextcloudBaseURL, webdavUsername, webdavPassword string, publicKeys []string) ([]byte, error) {
 	config := userdata{
+		Users: []user{{
+			Name:       "crownlabs",
+			LockPasswd: false,
+			// The hash of the password ("crownlabs").
+			// You can generate this hash via: "mkpasswd --method=SHA-512 --rounds=4096".
+			Passwd:            "$6$rounds=4096$tBS1sNBpnw6feehB$lS9b7VKH6WMAFOB0SrHCgjD2BKs9CegDe51EiMRWbxQeCVnoGL4u0jNaRsYhvVoBFaRlXZkNsxfFhXvCBaNeQ.",
+			Sudo:              "ALL=(ALL) NOPASSWD:ALL",
+			SSHAuthorizedKeys: publicKeys,
+			Shell:             "/bin/bash",
+		}},
 		Network: network{
 			Version: 2,
 			ID0:     interf{DHCP4: true},
