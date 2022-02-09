@@ -446,4 +446,41 @@ var _ = Describe("Labels forging", func() {
 			})
 		})
 	})
+
+	Describe("The forge.MonitorableServiceLabels function", func() {
+		const (
+			externalLabel = "external-annotation"
+			externalValue = "external-value"
+		)
+		expectedResult := map[string]string{
+			"crownlabs.polito.it/metrics-enabled": "true",
+		}
+		It("Should set the correct values", func() {
+			Expect(forge.MonitorableServiceLabels(nil)).To(Equal(expectedResult))
+		})
+		It("Should override incorrect values", func() {
+			Expect(forge.MonitorableServiceLabels(map[string]string{
+				"crownlabs.polito.it/metrics-enabled": "NOP",
+			})).To(Equal(expectedResult))
+		})
+		It("Should not alter original values", func() {
+			Expect(forge.MonitorableServiceLabels(map[string]string{
+				externalLabel: externalValue,
+			})).To(Equal(map[string]string{
+				"crownlabs.polito.it/metrics-enabled": "true",
+				externalLabel:                         externalValue,
+			}))
+		})
+
+		Context("Checking side effects", func() {
+			var input, expectedInput map[string]string
+			BeforeEach(func() {
+				input = map[string]string{externalLabel: externalValue}
+				expectedInput = map[string]string{externalLabel: externalValue}
+			})
+
+			JustBeforeEach(func() { forge.MonitorableServiceLabels(input) })
+			It("The original annotations map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
+		})
+	})
 })

@@ -130,7 +130,7 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 
 	spec := corev1.PodSpec{
 		Containers: []corev1.Container{
-			WebsockifyContainer(opts),
+			WebsockifyContainer(opts, environment),
 			XVncContainer(opts),
 			AppContainer(instance, environment, driveMountPath),
 		},
@@ -167,11 +167,14 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
 // to the VNC server.
-func WebsockifyContainer(opts *ContainerEnvOpts) corev1.Container {
+func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment) corev1.Container {
 	websockifyContainer := GenericContainer(WebsockifyName, fmt.Sprintf("%s:%s", opts.WebsockifyImg, opts.ImagesTag))
 	SetContainerResources(&websockifyContainer, 0.01, 0.1, 30, 100)
 	AddTCPPortToContainer(&websockifyContainer, GUIPortName, GUIPortNumber)
-	AddEnvVariableToContainer(&websockifyContainer, "WS_PORT", fmt.Sprint(GUIPortNumber))
+	AddTCPPortToContainer(&websockifyContainer, MetricsPortName, MetricsPortNumber)
+	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
+	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
+	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(environment.Mode == clv1alpha2.ModeStandard))
 	SetContainerReadinessTCPProbe(&websockifyContainer, GUIPortName)
 	return websockifyContainer
 }

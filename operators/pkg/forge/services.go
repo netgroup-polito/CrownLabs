@@ -30,6 +30,8 @@ const (
 	MyDrivePortNumber = 8080
 	// XVncPortNumber -> the port in the container in which the X server is accessible through VNC.
 	XVncPortNumber = 5900
+	// MetricsPortNumber -> the port in the container in which the metrics server is accessible.
+	MetricsPortNumber = 9090
 
 	// SSHPortName -> the name of the port the SSH daemon is exposed to.
 	SSHPortName = "ssh"
@@ -39,6 +41,8 @@ const (
 	MyDrivePortName = "mydrive"
 	// XVncPortName -> the name of the port through which the X server is accessible through VNC.
 	XVncPortName = "xvnc"
+	// MetricsPortName -> the name of the port through which the metrics are exposed.
+	MetricsPortName = "metrics"
 )
 
 // ServiceSpec forges the specification of a Kubernetes Service resource providing
@@ -56,9 +60,14 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 
-	// Add the "MyDrive" port only if the environment is a container.
-	if environment.EnvironmentType == clv1alpha2.ClassContainer && environment.Mode == clv1alpha2.ModeStandard {
-		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
+	// Additional container ports
+	if environment.EnvironmentType == clv1alpha2.ClassContainer {
+		ports = append(ports, serviceSpecTCPPort(MetricsPortName, MetricsPortNumber))
+
+		// Add the "MyDrive" port for standard instances.
+		if environment.Mode == clv1alpha2.ModeStandard {
+			ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
+		}
 	}
 
 	spec := corev1.ServiceSpec{

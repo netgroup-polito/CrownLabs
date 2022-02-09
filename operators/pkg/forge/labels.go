@@ -21,13 +21,14 @@ import (
 )
 
 const (
-	labelManagedByKey  = "crownlabs.polito.it/managed-by"
-	labelInstanceKey   = "crownlabs.polito.it/instance"
-	labelWorkspaceKey  = "crownlabs.polito.it/workspace"
-	labelTemplateKey   = "crownlabs.polito.it/template"
-	labelTenantKey     = "crownlabs.polito.it/tenant"
-	labelPersistentKey = "crownlabs.polito.it/persistent"
-	labelComponentKey  = "crownlabs.polito.it/component"
+	labelManagedByKey   = "crownlabs.polito.it/managed-by"
+	labelInstanceKey    = "crownlabs.polito.it/instance"
+	labelWorkspaceKey   = "crownlabs.polito.it/workspace"
+	labelTemplateKey    = "crownlabs.polito.it/template"
+	labelTenantKey      = "crownlabs.polito.it/tenant"
+	labelPersistentKey  = "crownlabs.polito.it/persistent"
+	labelComponentKey   = "crownlabs.polito.it/component"
+	labelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -91,6 +92,13 @@ func InstanceAutomationLabelsOnSubmission(labels map[string]string, submissionSu
 	labels = deepCopyLabels(labels)
 	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(false)
 	labels[InstanceSubmissionCompletedLabel] = strconv.FormatBool(submissionSucceded)
+	return labels
+}
+
+// MonitorableServiceLabels returns adds a label for a service so that it is monitored by the Instance ServiceMonitor.
+func MonitorableServiceLabels(labels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+	labels[labelMetricsEnabled] = strconv.FormatBool(true)
 	return labels
 }
 
