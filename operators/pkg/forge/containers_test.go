@@ -573,6 +573,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		It("should return the correct podSpecification", func() {
 			Expect(actual).To(Equal(batchv1.JobSpec{
+				BackoffLimit: pointer.Int32Ptr(forge.SubmissionJobMaxRetries),
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{

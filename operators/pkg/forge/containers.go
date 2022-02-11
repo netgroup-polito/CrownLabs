@@ -50,6 +50,8 @@ const (
 	HealthzEndpoint = "/healthz"
 	// CrownLabsUserID -> used as UID and GID for containers security context.
 	CrownLabsUserID = int64(1010)
+	// SubmissionJobMaxRetries -> max number of retries for submission jobs.
+	SubmissionJobMaxRetries = 10
 
 	containersTerminationGracePeriod = 10
 )
@@ -151,6 +153,7 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 // SubmissionJobSpec returns the job spec for the submission job.
 func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) batchv1.JobSpec {
 	return batchv1.JobSpec{
+		BackoffLimit: pointer.Int32(SubmissionJobMaxRetries),
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
