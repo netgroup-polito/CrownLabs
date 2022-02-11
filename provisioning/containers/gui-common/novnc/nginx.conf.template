@@ -2,9 +2,8 @@
 
 worker_processes  auto;
 
-# Logging & pid location
-error_log  /var/log/nginx/error.log warn;
-pid        /var/run/nginx.pid;
+# Save pid into /tmp to fix errors when running as non-root
+pid        /tmp/nginx.pid;
 
 # Workers configuration
 events {
@@ -34,24 +33,9 @@ http {
     # Should be tested if there is any appreciable difference on a real scenario
     #gzip  on;
 
-    # Set websockify destination for the reverse-proxy
-    upstream websockify {
-        server ${WEBSOCKIFY_HOST}:${WEBSOCKIFY_PORT};
-    }
-
     # Actual server configuration
     server {
       listen       ${HTTP_PORT}; # Server port
-
-      # Reverse proxy configuration to forward 
-      # requests on /websockify to the actual websockify
-      location /websockify {
-          proxy_pass http://websockify;
-          proxy_http_version 1.1;
-          proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection "Upgrade";
-          proxy_set_header Host $host;
-      }
       
       # Serve noVNC client files on server root
       location / {

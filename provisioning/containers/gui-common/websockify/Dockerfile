@@ -1,19 +1,24 @@
-# Multi-stage build for Websockify (C version), cleanup & add non-root user
 
-# Builder container
-FROM alpine:3.12.1 AS builder
+FROM golang:1.17 as builder
+WORKDIR /tmp/builder
 
-# Install build tools
-RUN apk add git openssl-dev musl-dev gcc make
+COPY go.mod ./go.mod
+COPY go.sum ./go.sum
+RUN  go mod download
 
-# Clone repo & compile
-RUN git clone https://github.com/novnc/websockify-other.git /wsckfy
-RUN cd /wsckfy/c && make
+COPY . ./
 
+ENV HTML_DATA=novnc
+RUN bash ./prepare-novnc.sh
 
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$(go env GOARCH) go build -ldflags="-s -w" .
 
-# Final container
-FROM alpine:3.12.1
+FROM alpine:3.14
+
+RUN apk update && \
+    apk add --no-cache ca-certificates && \
+    update-ca-certificates && \
+    rm -rf /var/cache/apk/*
 
 ARG UID=1010
 ARG USER=crownlabs
@@ -21,13 +26,10 @@ ARG USER=crownlabs
 RUN adduser -D -H -u ${UID} -s /sbin/nologin ${USER}
 
 # Copy compiled binary from builder container
-COPY --from=builder /wsckfy/c/websockify /bin/websockify
+COPY --from=builder /tmp/builder/websockify /usr/bin/websockify
 
 # Configure default VNC endpoint
-ENV VNC_SERVER=localhost \
-    VNC_PORT=5900 \
-    WS_PORT=8888 \
-    USER=${USER}
+ENV USER=${USER}
 
 EXPOSE ${WS_PORT}
 
@@ -35,4 +37,4 @@ EXPOSE ${WS_PORT}
 USER ${USER}
 
 # Start websockify
-CMD websockify $WS_PORT $VNC_SERVER:$VNC_PORT
+ENTRYPOINT ["/usr/bin/websockify"]

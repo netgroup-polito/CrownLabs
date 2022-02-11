@@ -15,9 +15,7 @@ For the sake of completeness, graphical containers do not require a Desktop Envi
 The current implementation leverages three containers, each one contained in the following sub-folders:
 
 - [X VNC server](tigervnc/): container that creates X VNC plus Fluxbox (window manager), providing the basic graphical environment.
-- [Websockify](websockify/): container that encapsulates the protocol used by the VNC server into a websocket.
-- [Webserver](novnc/): container that creates an `nginx` web server. This is used when a new web client connects to the remote environment to deliver the Javascript package containing the noVNC code to the web client (which shows the remote desktop on the web browser and encapsulates the VNC protocol in a websocket). In addition, this web server acts as _reverse-proxy_ for incoming websocket connections (which contain the VNC protocol) in order to redirect them to _websockify_, i.e., the component that extracts the VNC protocol from the websocket and delivers the resulting messages to the VNC server.
-
+- [Websockify](websockify/): container that encapsulates the protocol used by the VNC server into a websocket and serves the noVNC client files. When a new web client connects to the remote environment, websockify delivers the Javascript package containing the noVNC code to the web client (which shows the remote desktop on the web browser and encapsulates the VNC protocol in a websocket). Once the user's browser loaded the noVNC client, a connection towards the same websockify instance is issued and the remote desktop connection takes place.
 
 ### X VNC Server
 
@@ -46,27 +44,6 @@ See [the original repository](https://github.com/novnc/websockify) for further i
 This container has been designed to be executed as a sidecar inside the same pod of the VNC server without any further configuration.
 However, it could be executed in other contexts as well by setting the necessary environment variables, if needed.
 
-In CrownLabs, we use the [C version of Websockify](https://github.com/novnc/websockify-other) in order to provide a more efficient (in terms of space, memory and cpu usage) implementation.
+In CrownLabs, a custom implementation is used, derived from the go version available in the [Websockify-other repository](https://github.com/novnc/websockify-other) in order to provide a more efficient (in terms of space, memory and cpu usage) and customized component.
 
-Compared to the python version, the C version does not include a static web server, which is used to host the web application that connects to Websockify in order to reach the actual server running in the backend.
-
-Since this functionality is still required, the next component (Webserver) is used to provide such web application (the actual noVNC client) to the user's browser.
-
-
-### Webserver
-
-The C version of Websockify decribed above does not include any web server.
-Although not strictly needed at run-time (the Websockify software translates websockets connections into normal sockets without the necessity of any other component), a web server is still required when the client begins its connection to the remote desktop.
-In fact, when the client connect to TCP port where the remote desktop server is listening to, it has to download all the required (HTML5) code that implements the VNC client running in the browser, such as the [noVNC](https://novnc.com/) project.
-Without noVNC, the browser has no way to show the remote display, nor to send/receive the proper VNC commands through the established websocket.
-
-This container consists of an `nginx` server hosting the noVNC release files, in which the necessary configuration settings are dynamically injected.
-This approach allows to directly use the release archive provided by the noVNC team, without the need to maintain a forked repository.
-
-In the context of CrownLabs, this container can be used in two ways:
-- as a sidecar inside the final application pod running the VNC server
-- as a disjoint deployment, decoupled from the final application pod running the VNC server
-
-In the first case, this container is tightly bounded to the VNC server, hence creating a pod that directly accepts (multiple) websocket connections, resulting in a simpler management of the Kubernetes ingress controller.
-
-In the second case, this container can be instantated _once_ in the entire datacenter, serving all the VNC-based containers. This results in a more efficient use of resources, but it requires the ingress controller to be able to multiplex the websocket connection towards the correct service.
+Customizations include connections logging and Prometheus metrics regaring the number of connections and the latency measured within such connections.

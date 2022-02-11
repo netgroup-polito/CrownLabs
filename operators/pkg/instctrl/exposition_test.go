@@ -193,7 +193,9 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				It("Should be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+						Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+					}
 					Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -226,7 +228,9 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				It("Should still be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+						Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+					}
 					Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 

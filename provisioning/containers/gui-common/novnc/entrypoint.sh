@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-# Finalize config
 envsubst "\$WEBSOCKIFY_HOST \$WEBSOCKIFY_PORT \$HTTP_PORT" \
     < /etc/nginx/nginx.conf.template \
     > /etc/nginx/nginx.conf

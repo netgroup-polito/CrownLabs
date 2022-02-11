@@ -58,7 +58,12 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			service.Spec = forge.ServiceSpec(instance, environment)
 		}
 
-		service.SetLabels(forge.InstanceObjectLabels(service.GetLabels(), instance))
+		labels := forge.InstanceObjectLabels(service.GetLabels(), instance)
+		if environment.EnvironmentType == clv1alpha2.ClassContainer {
+			labels = forge.MonitorableServiceLabels(labels)
+		}
+		service.SetLabels(labels)
+
 		return ctrl.SetControllerReference(instance, &service, r.Scheme)
 	})
 

@@ -16,6 +16,8 @@
 package forge_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -209,7 +211,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, &opts)))
 		})
-
 		It("Should set the correct selector", func() {
 			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
 		})
@@ -250,7 +251,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Mode: clv1alpha2.ModeStandard,
 			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 				return []corev1.Container{
-					forge.WebsockifyContainer(&opts),
+					forge.WebsockifyContainer(&opts, &environment),
 					forge.XVncContainer(&opts),
 					forge.MyDriveContainer(i, &opts, myDriveMountPath),
 					forge.AppContainer(i, e, myDriveMountPath),
@@ -262,7 +263,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Mode: clv1alpha2.ModeExercise,
 			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 				return []corev1.Container{
-					forge.WebsockifyContainer(&opts),
+					forge.WebsockifyContainer(&opts, &environment),
 					forge.XVncContainer(&opts),
 					forge.AppContainer(i, e, myDriveMountPath),
 				}
@@ -273,7 +274,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Mode: clv1alpha2.ModeExam,
 			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 				return []corev1.Container{
-					forge.WebsockifyContainer(&opts),
+					forge.WebsockifyContainer(&opts, &environment),
 					forge.XVncContainer(&opts),
 					forge.AppContainer(i, e, myDriveMountPath),
 				}
@@ -284,7 +285,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.WebsockifyContainer function forges a websockify sidecar container", func() {
 		var actual, expected corev1.Container
 		JustBeforeEach(func() {
-			actual = forge.WebsockifyContainer(&opts)
+			expected = corev1.Container{}
+			actual = forge.WebsockifyContainer(&opts, &environment)
 		})
 
 		It("Should set the correct container name and image", func() {
@@ -298,15 +300,43 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 		It("Should set the tcp port exposition", func() {
 			forge.AddTCPPortToContainer(&expected, "vnc", 6080)
+			forge.AddTCPPortToContainer(&expected, "metrics", 9090)
 			Expect(actual.Ports).To(Equal(expected.Ports))
 		})
-		It("Should set the env variable", func() {
-			forge.AddEnvVariableToContainer(&expected, "WS_PORT", "6080")
-			Expect(actual.Env).To(Equal(expected.Env))
+		It("Should set no environment variables", func() {
+			Expect(actual.Env).To(BeEmpty())
 		})
 		It("Should set the readiness probe", func() {
 			forge.SetContainerReadinessTCPProbe(&expected, "vnc")
 			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
+		})
+
+		When("the environment mode is Standard", func() {
+			BeforeEach(func() {
+				instance.UID = instanceName
+				environment.Mode = clv1alpha2.ModeStandard
+			})
+			It("Should set the correct arguments", func() {
+				Expect(actual.Args).To(ConsistOf([]string{
+					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
+					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
+					"--show-controls=true",
+				}))
+			})
+		})
+
+		When("the environment mode is non Standard", func() {
+			BeforeEach(func() {
+				instance.UID = instanceName
+				environment.Mode = clv1alpha2.ModeExercise
+			})
+			It("Should set the correct arguments", func() {
+				Expect(actual.Args).To(ConsistOf([]string{
+					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
+					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
+					"--show-controls=false",
+				}))
+			})
 		})
 	})
 
