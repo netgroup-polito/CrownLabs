@@ -20,7 +20,14 @@ cd "$SOURCE_PATH"
 zip "/tmp/$FILENAME.zip" -r .
 
 echo "Uploading archive..."
-HTTP_CODE=$(curl -v --request --fail POST --form "binfile=@\"/tmp/$FILENAME.zip\"" --form "filename=$FILENAME.zip" "$DESTINATION_URL" --write-out "%{http_code}")
+HTTP_CODE=$(curl -v --request POST -o /tmp/response --form "binfile=@\"/tmp/$FILENAME.zip\"" --form "filename=$FILENAME.zip" "$DESTINATION_URL" --write-out "%{http_code}")
+
+if [ -f "/tmp/response" ]; then
+  echo "Response:"
+  cat "/tmp/response"
+else 
+  echo "No response"
+fi
 
 # return non zero if HTTP_CODE is less than 200 or greater equal than 300
 if [ "$HTTP_CODE" -lt "200" ] || [ "$HTTP_CODE" -ge "300" ]; then
