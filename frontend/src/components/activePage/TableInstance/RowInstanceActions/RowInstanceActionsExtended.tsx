@@ -54,10 +54,10 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   } = instance;
 
   const sshDisabled =
-    status !== Phase.VmiReady || environmentType === EnvironmentType.Container;
+    status !== Phase.Ready || environmentType === EnvironmentType.Container;
 
   const fileManagerDisabled =
-    status !== Phase.VmiReady && environmentType === EnvironmentType.Container;
+    status !== Phase.Ready && environmentType === EnvironmentType.Container;
 
   const infoContent = (
     <>
@@ -100,7 +100,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === Phase.VmiReady, environmentType!)}
+          title={getSSHTooltipText(status === Phase.Ready, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -117,7 +117,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Tooltip>
         <Tooltip
           title={getFileManagerTooltipText(
-            status === Phase.VmiReady,
+            status === Phase.Ready,
             environmentType!
           )}
         >
