@@ -36,7 +36,21 @@
 
 - name: Upgrade all packages
   apt:
-    upgrade: 'yes'
+    upgrade: "yes"
+
+# tasks for installing desktop environment
+- name: Prevent installation of unnecessary packages
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ unnecessary_packages }}"
+  when: install_desktop_environment is defined and install_desktop_environment == "true"
+
+- name: Install xubuntu-desktop
+  apt:
+    name: xubuntu-desktop
+    state: present
+  when: install_desktop_environment is defined and install_desktop_environment == "true"
 
 # Not the best ansible way to solve this problem
 # but it seems to achieve the intended purpose
@@ -88,6 +102,6 @@
   lineinfile:
     path: /etc/sudoers
     state: present
-    regexp: '^%sudo'
-    line: '%sudo ALL=(ALL) NOPASSWD:ALL'
-    validate: 'visudo -cf %s'
+    regexp: "^%sudo"
+    line: "%sudo ALL=(ALL) NOPASSWD:ALL"
+    validate: "visudo -cf %s"
