@@ -162,9 +162,6 @@ func init() {
 	SchemeBuilder.Register(&Tenant{}, &TenantList{})
 }
 
-// Hub is to enable conversion webhook.
-func (*Tenant) Hub() {}
-
 // SetupWebhookWithManager setups the webhook with the given manager.
 func (r *Tenant) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
