@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="";"Importing";"Starting";"ResourceQuotaExceeded";"Running";"VmiReady";"Stopping";"VmiOff";"Failed";"CreationLoopBackoff"
+// +kubebuilder:validation:Enum="";"Importing";"Starting";"ResourceQuotaExceeded";"Running";"Ready";"Stopping";"Off";"Failed";"CreationLoopBackoff"
 
 // EnvironmentPhase is an enumeration of the different phases associated with
 // an instance of a given environment template.
@@ -36,15 +36,13 @@ const (
 	// EnvironmentPhaseRunning -> the environment is running, but not yet ready.
 	EnvironmentPhaseRunning EnvironmentPhase = "Running"
 	// EnvironmentPhaseReady -> the environment is ready to be accessed.
-	// TODO: update the value to Ready once no more needed for backward compatibility
 	// with the current CrownLabs dashboard.
-	EnvironmentPhaseReady EnvironmentPhase = "VmiReady"
+	EnvironmentPhaseReady EnvironmentPhase = "Ready"
 	// EnvironmentPhaseStopping -> the environment is being stopped.
 	EnvironmentPhaseStopping EnvironmentPhase = "Stopping"
 	// EnvironmentPhaseOff -> the environment is currently shut down.
-	// TODO: update the value to Off once no more needed for backward compatibility
 	// with the current CrownLabs dashboard.
-	EnvironmentPhaseOff EnvironmentPhase = "VmiOff"
+	EnvironmentPhaseOff EnvironmentPhase = "Off"
 	// EnvironmentPhaseFailed -> the environment has failed, and cannot be restarted.
 	EnvironmentPhaseFailed EnvironmentPhase = "Failed"
 	// EnvironmentPhaseCreationLoopBackoff -> the environment has encountered a temporary error during creation.

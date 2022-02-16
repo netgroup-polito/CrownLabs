@@ -29,15 +29,13 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
     ResourceQuotaExceeded: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    VmiReady: (
+    Ready: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
     ),
     Failed: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    VmiOff: (
-      <PauseCircleOutlined className="warning-color-fg" style={font20px} />
-    ),
+    Off: <PauseCircleOutlined className="warning-color-fg" style={font20px} />,
     Starting: <LoadingOutlined className="warning-color-fg" style={font20px} />,
     Stopping: <LoadingOutlined className="warning-color-fg" style={font20px} />,
   };

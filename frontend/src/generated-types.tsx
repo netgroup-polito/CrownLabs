@@ -1726,9 +1726,9 @@ export enum Phase {
   Starting = 'Starting',
   ResourceQuotaExceeded = 'ResourceQuotaExceeded',
   Running = 'Running',
-  VmiReady = 'VmiReady',
+  Ready = 'Ready',
   Stopping = 'Stopping',
-  VmiOff = 'VmiOff',
+  Off = 'Off',
   Failed = 'Failed',
   CreationLoopBackoff = 'CreationLoopBackoff'
 }

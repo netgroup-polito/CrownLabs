@@ -179,9 +179,9 @@ spec:
                 - Starting
                 - ResourceQuotaExceeded
                 - Running
-                - VmiReady
+                - Ready
                 - Stopping
-                - VmiOff
+                - "Off"
                 - Failed
                 - CreationLoopBackoff
                 type: string

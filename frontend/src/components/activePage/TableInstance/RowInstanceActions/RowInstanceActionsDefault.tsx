@@ -85,7 +85,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const connectDisabled =
-    status !== Phase.VmiReady ||
+    status !== Phase.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
 
   const font22px = { fontSize: '22px' };

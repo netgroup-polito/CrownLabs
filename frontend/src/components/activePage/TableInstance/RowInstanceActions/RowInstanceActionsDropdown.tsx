@@ -71,12 +71,12 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const statusComponents = {
-    VmiReady: {
+    Ready: {
       menuKey: 'stop',
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
     },
-    VmiOff: {
+    Off: {
       menuKey: 'start',
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
@@ -90,7 +90,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const { menuKey, menuIcon, menuText } =
     statusComponents[
-      status === Phase.VmiReady || status === Phase.VmiOff ? status : 'Other'
+      status === Phase.Ready || status === Phase.Off ? status : 'Other'
     ];
 
   const dropdownHandler = (key: DropDownAction) => {
@@ -127,13 +127,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const sshDisabled =
-    status !== Phase.VmiReady || environmentType === EnvironmentType.Container;
+    status !== Phase.Ready || environmentType === EnvironmentType.Container;
 
   const fileManagerDisabled =
-    status !== Phase.VmiReady && environmentType === EnvironmentType.Container;
+    status !== Phase.Ready && environmentType === EnvironmentType.Container;
 
   const connectDisabled =
-    status !== Phase.VmiReady ||
+    status !== Phase.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
 
   return (

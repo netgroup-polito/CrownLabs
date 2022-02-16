@@ -49,7 +49,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
     }
   };
 
-  return status === Phase.VmiReady || status === Phase.ResourceQuotaExceeded ? (
+  return status === Phase.Ready || status === Phase.ResourceQuotaExceeded ? (
     <Tooltip placement="top" title="Pause">
       <Button
         loading={disabled}
@@ -70,7 +70,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         onClick={() => mutateInstanceStatus(false)}
       />
     </Tooltip>
-  ) : status === Phase.VmiOff ? (
+  ) : status === Phase.Off ? (
     <Tooltip placement="top" title="Start">
       <Button
         loading={disabled}

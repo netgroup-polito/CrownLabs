@@ -5,6 +5,7 @@ import { Dispatch, SetStateAction } from 'react';
 import {
   ApplyInstanceMutation,
   Exact,
+  Phase,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
   OwnedInstancesQuery,
@@ -383,9 +384,9 @@ export const notifyStatus = (
             <div>
               Status:
               <i>
-                {status === 'VmiReady'
+                {status === Phase.Ready
                   ? ' started'
-                  : status === 'VmiOff' && ' stopped'}
+                  : status === Phase.Off && ' stopped'}
               </i>
             </div>
           </>
@@ -393,7 +394,7 @@ export const notifyStatus = (
       };
     };
     switch (status) {
-      case 'VmiOff':
+      case Phase.Off:
         if (
           !instance.spec?.running &&
           (tnm === tenantNamespace || role === WorkspaceRole.user)
@@ -403,7 +404,7 @@ export const notifyStatus = (
           });
         }
         break;
-      case 'VmiReady':
+      case Phase.Ready:
         if (
           instance.status?.url &&
           instance.spec?.running &&
