@@ -108,26 +108,32 @@ jobs:
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=instance-operator
+            harbor-project: crownlabs-core
           - component: crownlabs-image-list
             context: ./operators
             dockerfile: ./operators/build/crownlabs-image-list/Dockerfile
+            harbor-project: crownlabs-core
           - component: delete-stale-instances
             context: ./operators
             dockerfile: ./operators/build/delete-stale-instances/Dockerfile
+            harbor-project: crownlabs-core
           - component: tenant-operator
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=tenant-operator
+            harbor-project: crownlabs-core
           - component: bastion-operator
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=bastion-operator
+            harbor-project: crownlabs-core
 
           # CrownLabs Exams Agent
           - component: exam-agent
             context: ./operators
             dockerfile: ./operators/build/golang-common/Dockerfile
             build-args: COMPONENT=examagent
+            harbor-project: crownlabs-core
 
           # The new frontend
           - component: frontend-app
@@ -135,44 +141,57 @@ jobs:
             build-args: |
               BUILD_TARGET=app
               SUBROUTE=/app
+            harbor-project: crownlabs-core
           - component: frontend-storybook
             context: ./frontend
             build-args: |
               BUILD_TARGET=storybook
               SUBROUTE=/
+            harbor-project: crownlabs-core
 
           # qlkube - graphQL for k8s
           - component:  qlkube
             context: ./qlkube
+            harbor-project: crownlabs-core
 
           # Laboratory environments
           - component: novnc
             context: ./provisioning/containers/gui-common/novnc
+            harbor-project: crownlabs-container-envs-tools
           - component: tigervnc
             context: ./provisioning/containers/gui-common/tigervnc
+            harbor-project: crownlabs-container-envs-tools
           - component: websockify
             context: ./provisioning/containers/gui-common/websockify
+            harbor-project: crownlabs-container-envs-tools
           - component: content-downloader
             context: ./provisioning/containers/utils/content-downloader
+            harbor-project: crownlabs-container-envs-tools
           - component: content-uploader
             context: ./provisioning/containers/utils/content-uploader
+            harbor-project: crownlabs-container-envs-tools
           - component: pycharm
             context: ./provisioning/containers/pycharm
+            harbor-project: crownlabs-container-envs
           - component: blender
             context: ./provisioning/containers/blender
+            harbor-project: crownlabs-container-envs
           - component: blender-lts
             context: ./provisioning/containers/blender
             build-args: |
               BLENDER_VERSION_MAJOR=2.83
               BLENDER_VERSION_MINOR=13
+            harbor-project: crownlabs-container-envs
 
           # SSH bastion
           - component: ssh-bastion
             context: ./operators/build/ssh-bastion
+            harbor-project: crownlabs-core
 
           # img-exporter image for InstanceSnapshot
           - component: img-exporter
             context: ./operators/build/img-exporter
+            harbor-project: crownlabs-vm-envs-tools
 
     steps:
       - name: Checkout
@@ -204,6 +223,14 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
         if: needs.configure.outputs.repo-push == 'true'
 
+      - name: Login to Harbor
+        uses: docker/login-action@v1
+        with:
+          registry: https://${{ secrets.HARBOR_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_REGISTRY_USERNAME }}
+          password: ${{ secrets.HARBOR_REGISTRY_PASSWORD }}
+        if: needs.configure.outputs.repo-push == 'true'
+
       - name: Configure the build-push-action parameters
         id: parameters
         env:
@@ -220,23 +247,18 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           tags: |
-            ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:latest
+            ${{ secrets.HARBOR_REGISTRY_URL }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
             ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
           build-args: ${{ matrix.build-args }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-
-      # Temporary fix, to prevent the cache from continuing growing
-      # https://github.com/docker/build-push-action/issues/252
-      # https://github.com/moby/buildkit/issues/1896
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
+          # Temporary fix, to prevent the cache from continuing growing
+          # https://github.com/docker/build-push-action/issues/252
+          # https://github.com/moby/buildkit/issues/1896
+          cache-from: type=gha, scope=${{ github.workflow }}
+          cache-to: type=gha, scope=${{ github.workflow }}
+          
   trigger-events-master:
     name: Trigger events upon successful push to master
     runs-on: ubuntu-latest
