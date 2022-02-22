@@ -249,7 +249,7 @@ make run-tenant
 
 For a deeper definition go to
 
-- `Tenant` [GoLang code version](./api/v1alpha1/tenant_types.go)
+- `Tenant` [GoLang code version](./api/v1alpha2/tenant_types.go)
 - `Tenant` [YAML version](./deploy/crds/crownlabs.polito.it_tenants.yaml)
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)

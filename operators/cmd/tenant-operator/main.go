@@ -129,15 +129,6 @@ func main() {
 		os.Exit(1)
 	}
 	if *enableWH {
-		if err = (&clv1alpha1.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
-			log.Error(err, "Unable to create conversion webhook", "webhook", "Tenant")
-			os.Exit(1)
-		}
-		if err = (&clv1alpha2.Tenant{}).SetupWebhookWithManager(mgr); err != nil {
-			log.Error(err, "Unable to create conversion webhook", "webhook", "Tenant")
-			os.Exit(1)
-		}
-
 		hookServer := mgr.GetWebhookServer()
 		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
 		hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
