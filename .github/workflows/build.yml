@@ -235,9 +235,11 @@ jobs:
         id: parameters
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          HARBOR_REGISTRY_URL: ${{ secrets.HARBOR_REGISTRY_URL }}
         run: |
           echo "::set-output name=repo-owner::${DOCKER_USERNAME:-crownlabs}"
           echo "::set-output name=repo-name::${{ matrix.component }}${{ needs.configure.outputs.repo-suffix }}"
+          echo "::set-output name=harbor-registry::${HARBOR_REGISTRY_URL:-harbor.local}"
 
           [[ -n "${{ matrix.dockerfile }}" ]] && \
             echo "::set-output name=dockerfile::${{ matrix.dockerfile }}" || \
@@ -247,7 +249,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           tags: |
-            ${{ secrets.HARBOR_REGISTRY_URL }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+            ${{ steps.parameters.outputs.harbor-registry }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
             ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
