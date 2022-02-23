@@ -64,25 +64,23 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     });
   };
 
-  const checked = !!instances.filter(i => selectiveDestroy?.includes(i.id))
-    .length;
+  // Filtering from all instances that ones which are included in the "selectiveDestroy" IDs list
+  const selectedIn = instances.filter(i => selectiveDestroy?.includes(i.id));
 
-  const indeterminate =
-    instances.filter(i => selectiveDestroy?.includes(i.id)).length !==
-      instances.length && checked;
+  const checked = !!selectedIn.length;
+
+  const indeterminate = selectedIn.length !== instances.length && checked;
 
   const selectGroup = () => {
-    if (checked) {
-      if (indeterminate) {
-        const tmp = instances.filter(i => !selectiveDestroy?.includes(i.id));
-        tmp.forEach(i => selectToDestroy!(i.id));
-      } else {
-        const tmp = instances.filter(i => selectiveDestroy?.includes(i.id));
-        tmp.forEach(i => selectToDestroy!(i.id));
-      }
-    } else {
-      instances.forEach(i => selectToDestroy!(i.id));
-    }
+    // Protect from group selection if selectToDestroy is not defined
+    if (!selectToDestroy) return;
+    // remap each instance to its ID
+    let instIds = instances.map(({ id }) => id);
+    // Check if some instance in the List is already selected
+    // (Remember each TableInstance represents a grouped list of instances that belong to a single Template)
+    if (checked)
+      instIds.filter(i => indeterminate !== selectiveDestroy?.includes(i));
+    instIds.forEach(selectToDestroy);
   };
 
   const [{ templateId }] = instances;
@@ -112,7 +110,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                 <RowInstanceHeader
                   viewMode={viewMode}
                   handleSorting={handleSorting!}
-                  showCheckbox={showCheckbox!}
+                  showCheckbox={showCheckbox || false}
                   handleManagerSorting={handleManagerSorting!}
                   templateKey={templateId}
                   checked={checked}

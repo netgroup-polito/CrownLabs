@@ -1,6 +1,15 @@
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
+import {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { useDeleteInstanceMutation } from '../../../generated-types';
 import { Instance, Template, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
@@ -44,6 +53,11 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     selectToDestroy,
   } = props;
   const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const expandWorkspace = () => {
     setExpandedId(workspaces.map(ws => ws.id));
@@ -68,17 +82,15 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     );
   };
 
-  const destroySelected = () => {
-    const instancesTmp = instances.filter(i => selectiveDestroy.includes(i.id));
-    instancesTmp.forEach(instance => {
-      //console.log(instance.id);
-      /* deleteInstanceMutation({
-        variables: {
-          tenantNamespace: instance.tenantNamespace!,
-          instanceId: instance.name,
-        },
-      }); */
-    });
+  const destroySelected = async () => {
+    const selection = instances.filter(i => selectiveDestroy.includes(i.id));
+    for (const { tenantNamespace, name: instanceId, id } of selection) {
+      await deleteInstanceMutation({
+        variables: { tenantNamespace, instanceId },
+      });
+      // Removing from selection list after deletion
+      selectToDestroy(id);
+    }
   };
 
   const columns = [

@@ -108,7 +108,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 checked={checked}
                 className="p-0"
                 indeterminate={indeterminate && checked}
-                onClick={() => selectGroup()}
+                onClick={selectGroup}
               />
             </div>
           )}

@@ -122,12 +122,14 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           const { instance, updateType } = data?.updateInstanceLabelSelector;
           const { namespace: ns } = instance.metadata!;
           let notify = false;
+          let newItem = prev;
+          let objType;
           const matchNS = ns === tenantNamespace;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             const found = instances.find(matchK8sObject(instance, false));
-            const objType = getSubObjType(found, instance, updateType);
+            objType = getSubObjType(found, instance, updateType);
 
             switch (objType) {
               case SubObjType.Deletion:
@@ -158,8 +160,10 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           if (notify && matchNS)
             notifyStatus(instance.status?.phase, instance, updateType);
 
-          const newItem = { ...prev };
-          setDataInstances(newItem);
+          if (objType !== SubObjType.Drop) {
+            newItem = { ...prev };
+            setDataInstances(newItem);
+          }
           return prev;
         },
       });
@@ -171,15 +175,15 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   const instancesMapped =
     dataInstances?.instanceList?.instances?.map(getManagerInstances);
 
-  const instancesFiltered = instancesMapped
-    ? instancesMapped.filter(instance =>
+  const instancesFiltered =
+    instancesMapped?.filter(
+      instance =>
         multiStringIncludes(
           filter,
           instance.tenantId!,
           instance.tenantDisplayName!
-        )
-      )
-    : [];
+        ) || selectiveDestroy.includes(instance.id)
+    ) || [];
 
   const templatesMapped = getTemplatesMapped(instancesFiltered, sortingData!);
 

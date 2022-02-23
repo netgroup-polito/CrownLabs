@@ -54,15 +54,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   );
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
-  /* const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
-  console.log(selectiveDestroy);
-
-  const selectToDestroy = (instanceId: string) => {
-    selectiveDestroy.includes(instanceId)
-      ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
-      : setSelectiveDestroy(old => [...old, instanceId]);
-  }; */
-
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
   });

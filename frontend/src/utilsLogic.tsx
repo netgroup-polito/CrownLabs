@@ -300,7 +300,6 @@ export const getManagerInstances = (
   if (!instance) {
     throw new Error('getInstances() error: a required parameter is undefined');
   }
-
   const { metadata, spec, status } = instance;
 
   // Template Info
@@ -457,8 +456,9 @@ export const notifyStatus = (
     const { name } = instance.metadata ?? {};
     const { prettyName } = instance.spec ?? {};
     const { url } = instance.status ?? {};
-    const { name: templateName } =
-      instance.spec?.templateCrownlabsPolitoItTemplateRef ?? {};
+    const { prettyName: templateName } =
+      instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+        ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
     switch (status) {
       case Phase.Off:

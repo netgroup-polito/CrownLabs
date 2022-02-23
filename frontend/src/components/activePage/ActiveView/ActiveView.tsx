@@ -1,25 +1,19 @@
+import { DeleteOutlined } from '@ant-design/icons';
+import { Col, Space } from 'antd';
+import Button from 'antd-button-color';
 import { FC, useEffect, useState } from 'react';
-import { Space, Col, Input, Tooltip, Checkbox, Popover } from 'antd';
-import ViewModeButton from './ViewModeButton/ViewModeButton';
-import Box from '../../common/Box';
 import { User, WorkspaceRole } from '../../../utils';
+import { SessionValue, StorageKeys } from '../../../utilsStorage';
+import Box from '../../common/Box';
+import { ModalAlert } from '../../common/ModalAlert';
 import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
-import Button from 'antd-button-color';
-import {
-  CloseOutlined,
-  DeleteOutlined,
-  FullscreenExitOutlined,
-  FullscreenOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
-import { SessionValue, StorageKeys } from '../../../utilsStorage';
-import { ModalAlert } from '../../common/ModalAlert';
+import Toolbox from '../Toolbox/Toolbox';
+import ViewModeButton from './ViewModeButton/ViewModeButton';
 
 const view = new SessionValue(StorageKeys.Active_View, WorkspaceRole.user);
 const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
 
-const { Search } = Input;
 export interface IActiveViewProps {
   user: User;
   workspaces: Array<{
@@ -38,7 +32,6 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [destroySelectedTrigger, setDestroySelectedTrigger] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [searchField, setSearchField] = useState('');
-  const [searchPopover, setSearchPopover] = useState(false);
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
     managerView ? (view.get() as WorkspaceRole) : WorkspaceRole.user
   );
@@ -46,13 +39,25 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
     !managerView || advanced.get() !== 'false'
   );
   const [showCheckbox, setShowCheckbox] = useState(false);
-
   const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
 
   const selectToDestroy = (instanceId: string) => {
     selectiveDestroy.includes(instanceId)
       ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
       : setSelectiveDestroy(old => [...old, instanceId]);
+  };
+
+  const deselectAll = () => setSelectiveDestroy([]);
+
+  const displayCheckbox = () => {
+    if (!showCheckbox) {
+      setShowCheckbox(true);
+    } else {
+      setShowCheckbox(() => {
+        deselectAll();
+        return false;
+      });
+    }
   };
 
   useEffect(() => {
@@ -78,7 +83,10 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             size="middle"
             icon={<DeleteOutlined />}
             className="border-0"
-            onClick={() => setDestroySelectedTrigger(true)}
+            onClick={() => {
+              setDestroySelectedTrigger(true);
+              setShowAlert(false);
+            }}
           >
             Destroy Selected
           </Button>,
@@ -94,77 +102,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               </p>
             </div>
           ) : (
-            managerView &&
-            currentView === WorkspaceRole.manager && (
-              <div className="h-full flex justify-center items-center gap-4 px-5">
-                <Button
-                  className="hidden xl:block"
-                  type="primary"
-                  shape="round"
-                  size="middle"
-                  icon={<FullscreenOutlined />}
-                  onClick={() => setExpandAll(true)}
-                >
-                  Expand
-                </Button>
-                <Button
-                  className="hidden xl:block"
-                  type="primary"
-                  shape="round"
-                  size="middle"
-                  icon={<FullscreenExitOutlined />}
-                  onClick={() => setCollapseAll(true)}
-                >
-                  Collapse
-                </Button>
-                <Tooltip title="Expand All" placement="top">
-                  <Button
-                    className="xl:hidden"
-                    type="primary"
-                    shape="circle"
-                    size="middle"
-                    icon={<FullscreenOutlined />}
-                    onClick={() => setExpandAll(true)}
-                  />
-                </Tooltip>
-                <Tooltip title="Collapse All" placement="top">
-                  <Button
-                    className="xl:hidden"
-                    type="dark"
-                    shape="circle"
-                    size="middle"
-                    icon={<FullscreenExitOutlined />}
-                    onClick={() => setCollapseAll(true)}
-                  />
-                </Tooltip>
-                <Checkbox
-                  checked={showAdvanced}
-                  onChange={e => setShowAdvanced(e.target.checked)}
-                >
-                  <strong>Show Headers</strong>
-                </Checkbox>
-                <Checkbox
-                  checked={showCheckbox}
-                  onChange={e => setShowCheckbox(e.target.checked)}
-                >
-                  <strong>Show Checkbox</strong>
-                </Checkbox>
-                <Button
-                  className="hidden xl:block"
-                  type="primary"
-                  ghost
-                  shape="round"
-                  size="middle"
-                  icon={<DeleteOutlined />}
-                  onClick={e => {
-                    e.stopPropagation();
-                    setShowAlert(true);
-                  }}
-                >
-                  Destroy Selected{` (${selectiveDestroy.length})`}
-                </Button>
-              </div>
-            )
+            ''
           ),
           size: 'middle',
           right: managerView && (
@@ -178,61 +116,41 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             </div>
           ),
           left: managerView && currentView === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10 gap-4">
-              <Search
-                allowClear
-                className="hidden md:block"
-                placeholder="Search User"
-                onChange={event => setSearchField(event.target.value)}
-                onSearch={value => setSearchField(value)}
-                enterButton
+            <div className="h-full flex justify-center items-center pl-6 gap-4">
+              <Toolbox
+                setSearchField={setSearchField}
+                setExpandAll={setExpandAll}
+                setCollapseAll={setCollapseAll}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+                showCheckbox={showCheckbox}
+                setShowCheckbox={displayCheckbox}
+                setShowAlert={setShowAlert}
+                selectiveDestroy={selectiveDestroy}
+                deselectAll={deselectAll}
               />
-              <Popover
-                className="block md:hidden"
-                content={
-                  <div className="flex justify-center gap-4">
-                    <Search
-                      placeholder="Search User"
-                      onChange={event => setSearchField(event.target.value)}
-                      onSearch={value => setSearchField(value)}
-                      allowClear
-                      enterButton
-                    />
-                  </div>
-                }
-                placement="right"
-                trigger="click"
-                visible={searchPopover}
-                onVisibleChange={() => setSearchPopover(old => !old)}
-              >
-                <Button
-                  type={searchPopover ? 'danger' : 'primary'}
-                  shape="circle"
-                  size="middle"
-                  icon={!searchPopover ? <SearchOutlined /> : <CloseOutlined />}
-                  onClick={() => setExpandAll(true)}
-                />
-              </Popover>
             </div>
           ),
         }}
       >
         {currentView === WorkspaceRole.manager && managerView ? (
-          <TableWorkspaceLogic
-            workspaces={workspaces}
-            user={user}
-            filter={searchField}
-            collapseAll={collapseAll}
-            expandAll={expandAll}
-            setCollapseAll={setCollapseAll}
-            setExpandAll={setExpandAll}
-            showAdvanced={showAdvanced}
-            showCheckbox={showCheckbox}
-            destroySelectedTrigger={destroySelectedTrigger}
-            setDestroySelectedTrigger={setDestroySelectedTrigger}
-            selectiveDestroy={selectiveDestroy}
-            selectToDestroy={selectToDestroy}
-          />
+          <div className="flex flex-col justify-start">
+            <TableWorkspaceLogic
+              workspaces={workspaces}
+              user={user}
+              filter={searchField}
+              collapseAll={collapseAll}
+              expandAll={expandAll}
+              setCollapseAll={setCollapseAll}
+              setExpandAll={setExpandAll}
+              showAdvanced={showAdvanced}
+              showCheckbox={showCheckbox}
+              destroySelectedTrigger={destroySelectedTrigger}
+              setDestroySelectedTrigger={setDestroySelectedTrigger}
+              selectiveDestroy={selectiveDestroy}
+              selectToDestroy={selectToDestroy}
+            />
+          </div>
         ) : (
           <TableInstanceLogic
             showGuiIcon={true}

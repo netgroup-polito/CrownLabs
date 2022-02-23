@@ -42,7 +42,9 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={status}>{statusIcon[status || Phase.Starting]}</Tooltip>
+      <Tooltip title={status || Phase.Starting}>
+        {statusIcon[status || Phase.Starting]}
+      </Tooltip>
     </div>
   );
 };
