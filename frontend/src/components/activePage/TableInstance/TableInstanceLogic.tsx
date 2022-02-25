@@ -8,18 +8,19 @@ import { ErrorTypes } from '../../../errorHandling/utils';
 import {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
-  UpdateType,
   useOwnedInstancesQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
 import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
-import {
-  comparePrettyName,
-  matchK8sObject,
-  replaceK8sObject,
-} from '../../../k8sUtils';
+import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 import { Instance, User, WorkspaceRole } from '../../../utils';
-import { makeGuiInstance, notifyStatus, sorter } from '../../../utilsLogic';
+import {
+  getSubObjType,
+  makeGuiInstance,
+  notifyStatus,
+  sorter,
+  SubObjType,
+} from '../../../utilsLogic';
 import TableInstance from './TableInstance';
 import './TableInstance.less';
 export interface ITableInstanceLogicProps {
@@ -71,32 +72,40 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           if (!data?.updateInstance?.instance) return prev;
 
           const { instance, updateType } = data?.updateInstance;
-          let isPrettyNameUpdate = false;
+          let notify = false;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
-            if (updateType === UpdateType.Deleted) {
-              instances = instances.filter(matchK8sObject(instance, true));
-            } else {
-              const found = instances.find(matchK8sObject(instance, false));
-              if (found) {
-                isPrettyNameUpdate = !comparePrettyName(found, instance);
-                instances = instances.map(replaceK8sObject(instance));
-              } else {
+            const found = instances.find(matchK8sObject(instance, false));
+            const objType = getSubObjType(found, instance, updateType);
+            switch (objType) {
+              case SubObjType.Deletion:
+                instances = instances.filter(matchK8sObject(instance, true));
+                notify = false;
+                break;
+              case SubObjType.Addition:
                 instances = [...instances, instance];
-              }
+                notify = true;
+                break;
+              case SubObjType.PrettyName:
+                instances = instances.map(replaceK8sObject(instance));
+                notify = false;
+                break;
+              case SubObjType.UpdatedInfo:
+                instances = instances.map(replaceK8sObject(instance));
+                notify = true;
+                break;
+              case SubObjType.Drop:
+                notify = false;
+                break;
+              default:
+                break;
             }
             prev.instanceList.instances = [...instances];
           }
 
-          !isPrettyNameUpdate &&
-            notifyStatus(
-              instance.status?.phase!,
-              instance,
-              updateType!,
-              tenantNamespace,
-              WorkspaceRole.user
-            );
+          if (notify)
+            notifyStatus(instance.status?.phase, instance, updateType);
 
           const newItem = { ...prev };
           setDataInstances(newItem);

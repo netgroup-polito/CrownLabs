@@ -14,20 +14,17 @@ import {
   InstancesLabelSelectorQuery,
   UpdatedInstancesLabelSelectorDocument,
   UpdatedInstancesLabelSelectorSubscriptionResult,
-  UpdateType,
   useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
-import {
-  comparePrettyName,
-  matchK8sObject,
-  replaceK8sObject,
-} from '../../../k8sUtils';
+import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 import { multiStringIncludes, User, WorkspaceRole } from '../../../utils';
 import {
   getManagerInstances,
+  getSubObjType,
   getTemplatesMapped,
   getWorkspacesMapped,
   notifyStatus,
+  SubObjType,
 } from '../../../utilsLogic';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
 
@@ -113,32 +110,43 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           if (!data?.updateInstanceLabelSelector?.instance) return prev;
 
           const { instance, updateType } = data?.updateInstanceLabelSelector;
-          let isPrettyNameUpdate = false;
+          const { namespace: ns } = instance.metadata!;
+          let notify = false;
+          const matchNS = ns === tenantNamespace;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
-            if (updateType === UpdateType.Deleted) {
-              instances = instances.filter(matchK8sObject(instance, true));
-            } else {
-              const found = instances.find(matchK8sObject(instance, false));
-              if (found) {
-                isPrettyNameUpdate = !comparePrettyName(found, instance);
-                instances = instances.map(replaceK8sObject(instance));
-              } else {
+            const found = instances.find(matchK8sObject(instance, false));
+            const objType = getSubObjType(found, instance, updateType);
+
+            switch (objType) {
+              case SubObjType.Deletion:
+                instances = instances.filter(matchK8sObject(instance, true));
+                notify = false;
+                break;
+              case SubObjType.Addition:
                 instances = [...instances, instance];
-              }
+                notify = true;
+                break;
+              case SubObjType.PrettyName:
+                instances = instances.map(replaceK8sObject(instance));
+                notify = false;
+                break;
+              case SubObjType.UpdatedInfo:
+                instances = instances.map(replaceK8sObject(instance));
+                notify = true;
+                break;
+              case SubObjType.Drop:
+                notify = false;
+                break;
+              default:
+                break;
             }
             prev.instanceList.instances = [...instances];
           }
 
-          !isPrettyNameUpdate &&
-            notifyStatus(
-              instance.status?.phase!,
-              instance,
-              updateType!,
-              tenantNamespace,
-              WorkspaceRole.manager
-            );
+          if (notify && matchNS)
+            notifyStatus(instance.status?.phase, instance, updateType);
 
           const newItem = { ...prev };
           setDataInstances(newItem);

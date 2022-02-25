@@ -12,13 +12,22 @@ import {
   UpdatedOwnedInstancesSubscriptionResult,
   UpdatedWorkspaceTemplatesSubscriptionResult,
   UpdateType,
-  WorkspacesListItem2,
+  WorkspacesListItem,
   WorkspaceTemplatesQuery,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import { Instance, Template, WorkspaceRole } from './utils';
+import { matchK8sObject, replaceK8sObject } from './k8sUtils';
 
 type Nullable<T> = T | null | undefined;
+
+export enum SubObjType {
+  Deletion,
+  UpdatedInfo,
+  PrettyName,
+  Addition,
+  Drop,
+}
 interface ItPolitoCrownlabsV1alpha2TemplateAlias {
   original: Nullable<ItPolitoCrownlabsV1alpha2Template>;
   alias: {
@@ -183,49 +192,89 @@ export const updateQueryOwnedInstancesQuery = (
     const { data } =
       subscriptionDataObject.subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
 
-    const { instance } = data?.updateInstance!;
-    let { updateType } = data?.updateInstance!;
+    if (!data?.updateInstance?.instance) return prev;
 
-    let isPrettyNameUpdate = false;
+    const { instance, updateType } = data?.updateInstance;
+    let notify = false;
+
     if (prev.instanceList?.instances) {
-      if (updateType === UpdateType.Deleted) {
-        setDataInstances(old =>
-          old?.filter(i => i?.name !== instance?.metadata?.name)
-        );
-      } else if (updateType === UpdateType.Modified) {
-        isPrettyNameUpdate = true;
-        setDataInstances(old =>
-          old?.map(i => {
-            if (
-              i.prettyName === instance?.spec?.prettyName &&
-              i.name === instance?.metadata?.name
+      let instances = [...prev.instanceList.instances];
+      const found = instances.find(matchK8sObject(instance, false));
+      const objType = getSubObjType(found, instance, updateType);
+      switch (objType) {
+        case SubObjType.Deletion:
+          instances = instances.filter(matchK8sObject(instance, true));
+          setDataInstances(old =>
+            old?.filter(i => i?.name !== instance?.metadata?.name)
+          );
+          notify = false;
+          break;
+        case SubObjType.Addition:
+          instances = [...instances, instance];
+          setDataInstances(old =>
+            !old.find(i => i.name === instance?.metadata?.name)
+              ? [...old, makeGuiInstance(instance, userId)]
+              : old
+          );
+          notify = true;
+          break;
+        case SubObjType.PrettyName:
+          instances = instances.map(replaceK8sObject(instance));
+          setDataInstances(old =>
+            old?.map(i =>
+              i.name === instance?.metadata?.name ?? ''
+                ? makeGuiInstance(instance, userId)
+                : i
             )
-              isPrettyNameUpdate = false;
-            return i.name === instance?.metadata?.name ?? ''
-              ? makeGuiInstance(instance, userId)
-              : i;
-          })
-        );
-      } else if (updateType === UpdateType.Added) {
-        setDataInstances(old =>
-          !old.find(i => i.name === instance?.metadata?.name)
-            ? [...old, makeGuiInstance(instance, userId)]
-            : old
-        );
+          );
+          notify = false;
+          break;
+        case SubObjType.UpdatedInfo:
+          instances = instances.map(replaceK8sObject(instance));
+          setDataInstances(old =>
+            old?.map(i =>
+              i.name === instance?.metadata?.name ?? ''
+                ? makeGuiInstance(instance, userId)
+                : i
+            )
+          );
+          notify = true;
+          break;
+        case SubObjType.Drop:
+          notify = false;
+          break;
+        default:
+          break;
       }
+      prev.instanceList.instances = [...instances];
     }
 
-    !isPrettyNameUpdate &&
-      notifyStatus(
-        instance?.status?.phase ?? '',
-        instance ?? {},
-        updateType ?? UpdateType.Added,
-        tenantNamespace,
-        WorkspaceRole.user
-      );
+    if (notify) notifyStatus(instance.status?.phase, instance, updateType);
 
     return prev;
   };
+};
+
+export const getSubObjType = (
+  oldObj: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  newObj: ItPolitoCrownlabsV1alpha2Instance,
+  uType: Nullable<UpdateType>
+) => {
+  if (uType === UpdateType.Deleted) return SubObjType.Deletion;
+  const { spec: oldSpec, status: oldStatus } = oldObj ?? {};
+  const { spec: newSpec, status: newStatus } = newObj;
+  if (oldObj) {
+    if (oldSpec?.prettyName !== newSpec?.prettyName)
+      return SubObjType.PrettyName;
+    if (
+      oldStatus?.phase !== newStatus?.phase ||
+      oldSpec?.running !== newSpec?.running
+    ) {
+      return SubObjType.UpdatedInfo;
+    }
+    return SubObjType.Drop;
+  }
+  return SubObjType.Addition;
 };
 
 export const joinInstancesAndTemplates = (
@@ -353,77 +402,75 @@ export const getWorkspacesMapped = (
 export const makeTemplateKey = (tid: Nullable<string>, wid: string) =>
   `${tid}-${wid}`;
 
-export const notifyStatus = (
-  status: string,
-  instance: ItPolitoCrownlabsV1alpha2Instance,
-  updateType: UpdateType,
-  tenantNamespace: string,
-  role: WorkspaceRole
+const makeNotificationContent = (
+  templateName: Nullable<string>,
+  instanceName: Nullable<string>,
+  status: Nullable<string>,
+  instanceUrl?: Nullable<string>
 ) => {
+  return {
+    message: templateName,
+    description: (
+      <>
+        <div>
+          Instance Name:
+          <i> {instanceName}</i>
+        </div>
+        <div>
+          Status:
+          <i>
+            {status === Phase.Ready
+              ? ' started'
+              : status === Phase.Off && ' stopped'}
+          </i>
+        </div>
+      </>
+    ),
+    btn: instanceUrl && (
+      <Button type="success" size="small" href={instanceUrl} target="_blank">
+        Connect
+      </Button>
+    ),
+  };
+};
+
+export const notifyStatus = (
+  status: Nullable<string>,
+  instance: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  updateType: Nullable<UpdateType>
+) => {
+  if (!instance) {
+    throw new Error('notifyStatus error: instance parameter is undefined');
+  }
   if (updateType === UpdateType.Deleted) {
-    const { tenantNamespace: tnm } = instance.metadata as any;
-    if (tnm === tenantNamespace || role === WorkspaceRole.user) {
-      notification.warning({
-        message: instance.spec?.prettyName || instance.metadata?.name,
-        description: `Instance deleted`,
-      });
-    }
+    notification.warning({
+      message: instance.spec?.prettyName || instance.metadata?.name,
+      description: `Instance deleted`,
+    });
   } else {
-    const { tenantNamespace: tnm } = instance.metadata as any;
-    const { templateName } = instance.spec?.templateCrownlabsPolitoItTemplateRef
-      ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec as any;
-    const content = (status: string) => {
-      return {
-        message: templateName,
-        description: (
-          <>
-            <div>
-              Instance Name:
-              <i> {instance.spec?.prettyName || instance.metadata?.name}</i>
-            </div>
-            <div>
-              Status:
-              <i>
-                {status === Phase.Ready
-                  ? ' started'
-                  : status === Phase.Off && ' stopped'}
-              </i>
-            </div>
-          </>
-        ),
-      };
-    };
+    const { name } = instance.metadata ?? {};
+    const { prettyName } = instance.spec ?? {};
+    const { url } = instance.status ?? {};
+    const { name: templateName } =
+      instance.spec?.templateCrownlabsPolitoItTemplateRef ?? {};
+
     switch (status) {
       case Phase.Off:
-        if (
-          !instance.spec?.running &&
-          (tnm === tenantNamespace || role === WorkspaceRole.user)
-        ) {
-          notification.warning({
-            ...content(status),
-          });
-        }
+        !instance.spec?.running &&
+          notification.warning(
+            makeNotificationContent(templateName, prettyName || name, status)
+          );
         break;
       case Phase.Ready:
-        if (
-          instance.status?.url &&
-          instance.spec?.running &&
-          (tnm === tenantNamespace || role === WorkspaceRole.user)
-        ) {
-          notification.success({
-            ...content(status),
-            btn: instance.status?.url && (
-              <Button
-                type="success"
-                size="small"
-                href={instance.status?.url}
-                target="_blank"
-              >
-                Connect
-              </Button>
-            ),
-          });
-        }
+        instance.spec?.running &&
+          notification.success(
+            makeNotificationContent(
+              templateName,
+              prettyName || name,
+              status,
+              url
+            )
+          );
         break;
     }
   }
@@ -461,7 +508,7 @@ export enum DropDownAction {
 
 export const setInstanceRunning = async (
   running: boolean,
-  instance: Instance,
+  instance: Nullable<Instance>,
   instanceMutation: (
     options?: MutationFunctionOptions<
       ApplyInstanceMutation,
@@ -476,11 +523,16 @@ export const setInstanceRunning = async (
     FetchResult<ApplyInstanceMutation, Record<string, any>, Record<string, any>>
   >
 ) => {
+  if (!instance) {
+    throw new Error(
+      'setInstanceRunning error: instance parameter is undefined'
+    );
+  }
   try {
     return await instanceMutation({
       variables: {
         instanceId: instance.name,
-        tenantNamespace: instance.tenantNamespace!,
+        tenantNamespace: instance.tenantNamespace,
         patchJson: getInstancePatchJson({ running }),
         manager: 'frontend-instance-running',
       },
@@ -492,7 +544,7 @@ export const setInstanceRunning = async (
 
 export const setInstancePrettyname = async (
   prettyName: string,
-  instance: Instance,
+  instance: Nullable<Instance>,
   instanceMutation: (
     options?: MutationFunctionOptions<
       ApplyInstanceMutation,
@@ -507,11 +559,16 @@ export const setInstancePrettyname = async (
     FetchResult<ApplyInstanceMutation, Record<string, any>, Record<string, any>>
   >
 ) => {
+  if (!instance) {
+    throw new Error(
+      'setInstancePrettyname error: instance parameter is undefined'
+    );
+  }
   try {
     return await instanceMutation({
       variables: {
         instanceId: instance.name,
-        tenantNamespace: instance.tenantNamespace!,
+        tenantNamespace: instance.tenantNamespace,
         patchJson: getInstancePatchJson({ prettyName }),
         manager: 'frontend-instance-pretty-name',
       },
@@ -521,6 +578,6 @@ export const setInstancePrettyname = async (
   }
 };
 
-export const workspaceGetName = (ws: WorkspacesListItem2): string =>
+export const workspaceGetName = (ws: WorkspacesListItem): string =>
   ws?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.spec
     ?.prettyName ?? '';
