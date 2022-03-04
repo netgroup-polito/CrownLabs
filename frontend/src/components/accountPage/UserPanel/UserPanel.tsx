@@ -14,22 +14,16 @@ export interface IUserPanelProps {
   username: string;
   email: string;
   sshKeys?: { name: string; key: string }[];
-  onDeleteKey?: (key: {
-    name: string;
-    key: string;
-  }) => boolean | Promise<boolean>;
-  onAddKey?: (key: { name: string; key: string }) => boolean | Promise<boolean>;
+  onDeleteKey: (key: { name: string; key: string }) => Promise<boolean>;
+  onAddKey: (key: { name: string; key: string }) => boolean | Promise<boolean>;
 }
 
 const UserPanel: FC<IUserPanelProps> = props => {
-  const { sshKeys, ...otherInfo } = props;
+  const { sshKeys, onDeleteKey, ...otherInfo } = props;
   const [showSSHModal, setShowSSHModal] = useState(false);
 
   const closeModal = () => setShowSSHModal(false);
 
-  const deleteKey = async (targetKey: { name: string; key: string }) => {
-    await props.onDeleteKey?.(targetKey);
-  };
   const addKey = async (newKey: { name: string; key: string }) => {
     if (await props.onAddKey?.(newKey)) {
       closeModal();
@@ -56,7 +50,7 @@ const UserPanel: FC<IUserPanelProps> = props => {
             <UserInfo {...otherInfo} />
           </TabPane>
           <TabPane tab="SSH Keys" key="2">
-            <SSHKeysTable sshKeys={sshKeys} onDeleteKey={deleteKey} />
+            <SSHKeysTable sshKeys={sshKeys} onDeleteKey={onDeleteKey} />
             <Button className="mt-3" onClick={() => setShowSSHModal(true)}>
               Add SSH key
             </Button>
