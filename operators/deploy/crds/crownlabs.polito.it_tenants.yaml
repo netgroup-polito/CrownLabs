@@ -113,6 +113,27 @@ spec:
                 - instances
                 - memory
                 type: object
+              resourceToken:
+                description: Contains the informations about resource token consumption
+                  for this Tenant.
+                properties:
+                  lastUpdated:
+                    description: Timestamp of last update of the token consumption
+                      counter for this Tenant.
+                    format: date-time
+                    type: string
+                  reserved:
+                    description: Total amount of token reserved for this Tenant.
+                    format: int32
+                    type: integer
+                  used:
+                    description: The counter of token usage for this Tenant.
+                    format: int32
+                    type: integer
+                required:
+                - reserved
+                - used
+                type: object
               workspaces:
                 description: The list of the Workspaces the Tenant is subscribed to,
                   along with his/her role in each of them.

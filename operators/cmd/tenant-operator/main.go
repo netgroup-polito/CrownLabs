@@ -192,6 +192,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Configure the ResourceCounter controller
+	if err = (&controllers.ResourceCounterReconciler{
+		Client: mgr.GetClient(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Error(err, "Unable to create controller", "controller", "ResourceCounter")
+		os.Exit(1)
+	}
+
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {

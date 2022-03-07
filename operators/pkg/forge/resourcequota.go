@@ -48,7 +48,14 @@ var (
 )
 
 // TenantResourceList forges the Tenant Resource Quota as the value defined in TenantSpec, if any, otherwise it keeps the sum of all quota for each workspace.
-func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.TenantResourceQuota) clv1alpha2.TenantResourceQuota {
+func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.TenantResourceQuota, finishedToken bool) clv1alpha2.TenantResourceQuota {
+	if finishedToken {
+		override = &clv1alpha2.TenantResourceQuota{
+			CPU:       *resource.NewQuantity(0, resource.DecimalSI),
+			Memory:    *resource.NewScaledQuantity(0, resource.Giga),
+			Instances: 0,
+		}
+	}
 	// if an override value is defined it is used as return parameter.
 	if override != nil {
 		return *override.DeepCopy()

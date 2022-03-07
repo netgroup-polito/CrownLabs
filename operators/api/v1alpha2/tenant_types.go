@@ -83,6 +83,9 @@ type TenantSpec struct {
 
 	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
 	Quota *TenantResourceQuota `json:"quota,omitempty"`
+
+	// Contains the informations about resource token consumption for this Tenant.
+	ResourceToken *TenantToken `json:"resourceToken,omitempty"`
 }
 
 // TenantResourceQuota defines resource quota for each Tenant.
@@ -96,6 +99,18 @@ type TenantResourceQuota struct {
 	// +kubebuilder:validation:Minimum:=0
 	// The maximum number of concurrent instances which can be created by this Tenant.
 	Instances uint32 `json:"instances"`
+}
+
+// TenantToken defines the struct for token informations of the Tenant.
+type TenantToken struct {
+	// The counter of token usage for this Tenant.
+	Used uint32 `json:"used"`
+
+	// Total amount of token reserved for this Tenant.
+	Reserved uint32 `json:"reserved"`
+
+	// Timestamp of last update of the token consumption counter for this Tenant.
+	TokenCounterLastUpdated metav1.Time `json:"lastUpdated,omitempty"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.

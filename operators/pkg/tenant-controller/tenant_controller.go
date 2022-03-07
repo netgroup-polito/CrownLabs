@@ -145,7 +145,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// update resource quota in the status of the tenant after checking validity of workspaces.
-	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
+	finishedToken := tn.Spec.ResourceToken != nil && tn.Spec.ResourceToken.Used >= tn.Spec.ResourceToken.Reserved
+	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota, finishedToken)
 
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 	nsOk, err := r.createOrUpdateClusterResources(ctx, &tn, nsName)

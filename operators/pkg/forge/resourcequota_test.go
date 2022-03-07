@@ -29,8 +29,30 @@ var _ = Describe("Resource quota spec forging", func() {
 
 	Describe("The forge.TenantResourceList function", func() {
 		var (
-			tenant clv1alpha2.Tenant
+			tenant    clv1alpha2.Tenant
+			nullQuota clv1alpha2.TenantResourceQuota
 		)
+		Describe("Forging the tenant resource quota when its token are finisced", func() {
+
+			BeforeEach(func() {
+				tenant = clv1alpha2.Tenant{}
+				nullQuota = clv1alpha2.TenantResourceQuota{
+					CPU:       *resource.NewQuantity(0, resource.DecimalSI),
+					Memory:    *resource.NewScaledQuantity(0, resource.Giga),
+					Instances: 0,
+				}
+			})
+
+			JustBeforeEach(func() {
+				tenant.Status.Quota = forge.TenantResourceList(nil, nil, true)
+			})
+
+			When("Forging resource quota in tenant status", func() {
+				It("It should be all set to zero because tenant has finished his token", func() {
+					Expect(tenant.Status.Quota).To(Equal(nullQuota))
+				})
+			})
+		})
 		Describe("Forging the tenant resource quota with a defined spec value", func() {
 
 			BeforeEach(func() {
@@ -46,7 +68,7 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(nil, tenant.Spec.Quota)
+				tenant.Status.Quota = forge.TenantResourceList(nil, tenant.Spec.Quota, false)
 			})
 
 			When("Forging resource quota in tenant status", func() {
@@ -82,7 +104,7 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(workspaces, tenant.Spec.Quota)
+				tenant.Status.Quota = forge.TenantResourceList(workspaces, tenant.Spec.Quota, false)
 			})
 
 			When("Forging resource quota in tenant status", func() {
