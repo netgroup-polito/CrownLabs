@@ -249,8 +249,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           tags: |
-            ${{ steps.parameters.outputs.harbor-registry }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
             ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
+          # ${{ steps.parameters.outputs.harbor-registry }}/${{ matrix.harbor-project }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
           push: ${{ needs.configure.outputs.repo-push }}
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
@@ -260,7 +260,7 @@ jobs:
           # https://github.com/moby/buildkit/issues/1896
           cache-from: type=gha, scope=${{ github.workflow }}
           cache-to: type=gha, scope=${{ github.workflow }}
-          
+
   trigger-events-master:
     name: Trigger events upon successful push to master
     runs-on: ubuntu-latest
