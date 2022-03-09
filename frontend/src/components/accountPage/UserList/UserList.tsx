@@ -1,240 +1,207 @@
 import { FC, useState } from 'react';
-import { Table, Button, Upload, Modal, Row, Typography, Input } from 'antd';
+import { Table, Modal, Row, Input, Spin } from 'antd';
+import Button from 'antd-button-color';
 import {
   UploadOutlined,
   PlusOutlined,
-  SearchOutlined,
+  DeleteOutlined,
+  SwapOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import Column from 'antd/lib/table/Column';
-import Papa from 'papaparse';
-import UserListForm from '../UserListForm';
-import ResetButton from './ResetButton';
-
-const Text = Typography.Text;
-
-export type User = {
-  key: Number;
-  userid: string;
-  name: string;
-  surname: string;
-  email: string;
-};
+import { Role } from '../../../generated-types';
+import { Tooltip } from 'antd';
+import UserListFormLogic from '../UserListFormLogic/UserListFormLogic';
+import { UserAccountPage, filterUser } from '../../../utils';
+import UploadProgressModal from '../UploadProgressModal/UploadProgressModal';
+import { SupportedError } from '../../../errorHandling/utils';
 
 export interface IUserListProps {
-  onAddUser: (users: User[]) => void;
+  onAddUser: (users: UserAccountPage[], workspaces: any[]) => Promise<boolean>;
+  onUpdateUser: (user: UserAccountPage, role: Role) => Promise<boolean>;
+  setAbortUploading: (value: boolean) => void;
+  setUploadingErrors: (errors: any[]) => void;
+  genericErrorCatcher: (err: SupportedError) => void;
+  refreshUserList: () => void;
+  abortUploading: boolean;
+  users: UserAccountPage[];
+  workspaceNamespace: string;
+  loading: boolean;
+  workspaceName: string;
+  uploadedNumber: number;
+  uploadedUserNumber: number;
+  uploadingErrors: any[];
 }
 
 const UserList: FC<IUserListProps> = props => {
-  const [showUserListModal, setShowUserListModal] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [fileError, setFileError] = useState<string>('');
+  const [showUserListModal, setshowUserListModal] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const closeModal = () => setshowUserListModal(false);
 
-  const closeModal = () => setShowUserListModal(false);
-
-  const onCsvUploaded = (fileInfo: any) => {
-    if (fileInfo.file.status === 'removed') {
-      setUsers([]);
-      return;
-    }
-
-    Papa.parse<any>(fileInfo.file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result, _) => {
-        for (const line of result.data) {
-          if (
-            !line['NOME'] ||
-            !(line['COGNOME - (*) Inserito dal docente'] || line['COGNOME']) ||
-            !line['MATRICOLA'] ||
-            !line['EMAIL']
-          ) {
-            setFileError(
-              'Invalid file format, must contain <MATRICOLA, NOME, COGNOME (o COGNOME - (*) Inserito dal docente), EMAIL>'
-            );
-            return;
-          }
-        }
-        setUsers(() => {
-          const users = result.data.map((user: any, index: Number) => {
-            return {
-              name: user['NOME'] ?? '',
-              surname:
-                user['COGNOME - (*) Inserito dal docente'] ??
-                user['COGNOME'] ??
-                '',
-              userid: user['MATRICOLA'] ?? '',
-              email: user['EMAIL'] ?? '',
-              key: index,
-            };
-          });
-          props.onAddUser(users);
-          return users;
-        });
-
-        setFileError('');
-      },
-    });
+  const handleSearch = (value: string) => {
+    setSearchText(value.toLowerCase());
   };
 
-  function makeFilter(field: string) {
-    return (value: any, record: any) =>
-      record[field]
-        ? record[field].toString().toLowerCase().includes(value.toLowerCase())
-        : '';
-  }
+  const handleChangeCurrentRole = (record: UserAccountPage) => {
+    const newRole =
+      record.currentRole === Role.Manager ? Role.User : Role.Manager;
+
+    props.onUpdateUser(record, newRole);
+  };
+
+  const handleAddUser = async (newUser: UserAccountPage, workspaces: any) =>
+    await props.onAddUser([newUser], workspaces);
 
   return (
     <>
-      <Table dataSource={users}>
-        <Column
-          title="User ID"
-          dataIndex="userid"
-          sorter={(a: User, b: User) => a.userid.localeCompare(b.userid)}
-          key="userid"
-          filterIcon={<SearchOutlined />}
-          onFilter={makeFilter('userid')}
-          filterDropdown={({
-            setSelectedKeys,
-            selectedKeys,
-            confirm,
-            clearFilters,
-          }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Search by User ID"
-                onChange={e =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                value={selectedKeys[0]}
-                onPressEnter={() => confirm()}
-              />
-              <ResetButton onClick={clearFilters} />
-            </div>
-          )}
-          width={120}
+      <Row className="flex justify-center m-4">
+        <Input.Search
+          placeholder="Search users"
+          style={{ width: 300 }}
+          onSearch={handleSearch}
+          enterButton
+          allowClear={true}
         />
-        <Column
-          title="Name"
-          dataIndex="name"
-          sorter={(a: User, b: User) => a.name.localeCompare(b.name)}
-          key="name"
-          filterIcon={<SearchOutlined />}
-          onFilter={makeFilter('name')}
-          filterDropdown={({
-            setSelectedKeys,
-            selectedKeys,
-            confirm,
-            clearFilters,
-          }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Search by Name"
-                onChange={e =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                value={selectedKeys[0]}
-                onPressEnter={() => confirm()}
-              />
-              <ResetButton onClick={clearFilters} />
-            </div>
-          )}
-          width={120}
-        />
-        <Column
-          title="Surname"
-          dataIndex="surname"
-          sorter={(a: User, b: User) => a.surname.localeCompare(b.surname)}
-          key="surname"
-          filterIcon={<SearchOutlined />}
-          onFilter={makeFilter('surname')}
-          filterDropdown={({
-            setSelectedKeys,
-            selectedKeys,
-            confirm,
-            clearFilters,
-          }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Search by Surname"
-                onChange={e =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                value={selectedKeys[0]}
-                onPressEnter={() => confirm()}
-              />
-              <ResetButton onClick={clearFilters} />
-            </div>
-          )}
-          width={120}
-        />
-        <Column
-          title="Email"
-          dataIndex="email"
-          filterIcon={<SearchOutlined />}
-          onFilter={makeFilter('email')}
-          filterDropdown={({
-            setSelectedKeys,
-            selectedKeys,
-            confirm,
-            clearFilters,
-          }) => (
-            <div style={{ padding: 8 }}>
-              <Input
-                placeholder="Search by Email"
-                onChange={e =>
-                  setSelectedKeys(e.target.value ? [e.target.value] : [])
-                }
-                value={selectedKeys[0]}
-                onPressEnter={() => confirm()}
-              />
-              <ResetButton onClick={clearFilters} />
-            </div>
-          )}
-          key="email"
-          width={120}
-        />
-      </Table>
-      <Row className="flex justify-end mt-4">
-        <Button
-          type="primary"
-          onClick={() => setShowUserListModal(true)}
-          className="m-1"
-        >
-          <PlusOutlined />
-        </Button>
-        <Upload
-          name="file"
-          beforeUpload={() => false}
-          accept=".csv"
-          onChange={onCsvUploaded}
-          fileList={[]}
-          maxCount={1}
-        >
-          <Button type="primary" className="m-1" icon={<UploadOutlined />}>
-            Add many from CSV
-          </Button>
-        </Upload>
-        {fileError && (
-          <Text className="m-2" type="danger">
-            {fileError}
-          </Text>
-        )}
       </Row>
-      <Modal
-        title="Add new User"
-        visible={showUserListModal}
-        footer={null}
-        onCancel={closeModal}
-      >
-        <UserListForm
-          onAddUser={newUser => {
-            setUsers(users => [...users, newUser]);
-            props.onAddUser([newUser]);
-            closeModal();
-          }}
+      <Spin spinning={props.loading}>
+        <Table
+          pagination={{ defaultPageSize: 10 }}
+          dataSource={
+            searchText !== ''
+              ? props.users.filter(user => filterUser(user, searchText))
+              : props.users.sort(
+                  (u1: UserAccountPage, u2: UserAccountPage) =>
+                    u1.currentRole?.localeCompare(u2.currentRole!) || 0
+                )
+          }
+          size="small"
+        >
+          <Column
+            title="User ID"
+            dataIndex="userid"
+            sorter={(a: UserAccountPage, b: UserAccountPage) =>
+              a.userid.localeCompare(b.userid)
+            }
+            key="userid"
+            width={170}
+          />
+          <Column
+            responsive={['md', 'lg']}
+            title="Name"
+            dataIndex="name"
+            sorter={(a: UserAccountPage, b: UserAccountPage) =>
+              a.name.localeCompare(b.name)
+            }
+            key="name"
+            width={120}
+          />
+          <Column
+            responsive={['md', 'lg']}
+            title="Surname"
+            dataIndex="surname"
+            sorter={(a: UserAccountPage, b: UserAccountPage) =>
+              a.surname.localeCompare(b.surname)
+            }
+            key="surname"
+            width={120}
+          />
+          <Column
+            responsive={['sm', 'md', 'lg']}
+            title="Email"
+            dataIndex="email"
+            ellipsis={true}
+            key="email"
+            width={150}
+          />
+          <Column
+            responsive={['md', 'lg']}
+            title={<>Role</>}
+            dataIndex="currentRole"
+            sorter={(a: UserAccountPage, b: UserAccountPage) =>
+              a.currentRole?.localeCompare(b.currentRole!) || 0
+            }
+            key="currentRole"
+            width={80}
+          />
+          <Column
+            title="Action"
+            key="x"
+            width={60}
+            render={(_: any, record: UserAccountPage) =>
+              props.users.length >= 1 ? (
+                <div className="flex justify-center">
+                  <Tooltip title="Swap role">
+                    <SwapOutlined
+                      className="mr-2"
+                      onClick={() => handleChangeCurrentRole(record)}
+                    />
+                  </Tooltip>
+
+                  <DeleteOutlined className="text-gray-700" />
+                </div>
+              ) : null
+            }
+          />
+        </Table>
+        <Row className="flex justify-between">
+          <Row className="flex justify-start mt-4">
+            <Button
+              type="primary"
+              onClick={props.refreshUserList}
+              className="m-1"
+            >
+              {' '}
+              Refresh <RedoOutlined />
+            </Button>
+          </Row>
+          <Row className="flex justify-end mt-4">
+            <Button
+              type="primary"
+              onClick={() => setshowUserListModal(true)}
+              className="m-1"
+            >
+              <PlusOutlined />
+            </Button>
+
+            <Button
+              type="primary"
+              className="m-1"
+              icon={<UploadOutlined />}
+              onClick={() => setShowUploadModal(true)}
+            >
+              Add from CSV
+            </Button>
+          </Row>
+        </Row>
+        <Modal
+          destroyOnClose={true}
+          title="Add new User"
+          visible={showUserListModal}
+          footer={null}
           onCancel={closeModal}
-        />
-      </Modal>
+        >
+          <UserListFormLogic
+            onAddUser={handleAddUser}
+            onCancel={closeModal}
+            workspaceNamespace={props.workspaceNamespace}
+            workspaceName={props.workspaceName}
+          />
+        </Modal>
+      </Spin>
+      <UploadProgressModal
+        onClose={() => setShowUploadModal(false)}
+        show={showUploadModal}
+        confirmUpload={props.onAddUser}
+        workspaceName={props.workspaceName}
+        uploadedNumber={props.uploadedNumber}
+        setAbortUploading={props.setAbortUploading}
+        abortUploading={props.abortUploading}
+        uploadingErrors={props.uploadingErrors}
+        setUploadingErrors={props.setUploadingErrors}
+        uploadedUserNumber={props.uploadedUserNumber}
+        genericErrorCatcher={props.genericErrorCatcher}
+      />
     </>
   );
 };

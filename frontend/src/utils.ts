@@ -1,13 +1,13 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
 import { EnvironmentType, Phase } from './generated-types';
-
+import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = 'user',
   manager = 'manager',
 }
-export type User = { tenantId: string; tenantNamespace: string };
 export type BadgeSize = 'small' | 'middle' | 'large';
+export type User = { tenantId: string; tenantNamespace: string };
 export type BoxHeaderSize = 'small' | 'middle' | 'large';
 export type Workspace = {
   id: string;
@@ -80,10 +80,10 @@ export type RouteDescriptor = {
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
-  needle = needle.toLowerCase();
-  for (const str of haystack)
-    if (str.toLocaleLowerCase().includes(needle)) return true;
-  return false;
+  needle = needle.toLowerCase().replace(/\s/g, '');
+  var concatenatedString = haystack.join('').toLowerCase().replace(/\s/g, '');
+
+  return concatenatedString.includes(needle);
 }
 
 /**
@@ -107,3 +107,27 @@ export function makeListToggler<T>(
 }
 
 export const JSONDeepCopy = <T>(obj: T) => JSON.parse(JSON.stringify(obj)) as T;
+
+export type UserAccountPage = {
+  key: string;
+  userid: string;
+  name: string;
+  surname: string;
+  email: string;
+  currentRole?: string;
+  workspaces?: { role: Role; name: string }[];
+};
+
+export function makeRandomDigits(value: number) {
+  return Math.random().toFixed(value).replace('0.', '');
+}
+
+export function filterUser(user: UserAccountPage, value: string) {
+  return multiStringIncludes(
+    value,
+    user.name,
+    user.surname,
+    user.userid,
+    user.userid
+  );
+}

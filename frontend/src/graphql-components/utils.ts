@@ -53,21 +53,27 @@ function getTemplatePatchJson(
   });
 }
 
-function getTenantPatchJson(spec: {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  publicKeys?: string[];
-  workspaces?: {
-    role: Role;
-    name: string;
-  }[];
-}): string {
+function getTenantPatchJson(
+  spec: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    publicKeys?: string[];
+    workspaces?: {
+      role: Role;
+      name: string;
+    }[];
+  },
+  name?: string
+): string {
   let patchJson: ItPolitoCrownlabsV1alpha2Tenant = {
     kind: 'Tenant',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec,
   };
+  if (name) {
+    patchJson.metadata = { name };
+  }
   return JSON.stringify(patchJson);
 }
 

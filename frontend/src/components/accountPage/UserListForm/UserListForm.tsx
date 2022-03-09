@@ -1,15 +1,22 @@
-import { Input, Form, Button, Row } from 'antd';
+import { Input, Form, Button, Row, AutoComplete, Select } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { FC, useState } from 'react';
-import { User } from '../UserList/UserList';
-
+import { UserAccountPage, filterUser } from '../../../utils';
+import { Role } from '../../../generated-types';
 export interface IUserListFormProps {
-  onAddUser: (newUser: User) => void;
+  onAddUser: (newUser: UserAccountPage, role: Role) => void;
   onCancel: () => void;
+  users: UserAccountPage[];
 }
 
+const { Option } = AutoComplete;
+
 const UserListForm: FC<IUserListFormProps> = props => {
-  const { onAddUser, onCancel } = props;
+  const { onAddUser, onCancel, users } = props;
   const [validForm, setValidForm] = useState<boolean>(false);
+  const [searched, setSearched] = useState<boolean>(false);
+  const [searchedText, setSearchedText] = useState<string>('');
+  const [role, setRole] = useState<Role>(Role.User);
   const [form] = Form.useForm();
 
   const cancelForm = () => {
@@ -18,31 +25,54 @@ const UserListForm: FC<IUserListFormProps> = props => {
   };
 
   // Used to disable Save button
-  const handleChange = async (_: any, user: User) => {
+  const handleChange = async (_: any, user: UserAccountPage) => {
     try {
-      if (user.userid && user.name && user.email && user.surname) {
-        await form.validateFields(['userid', 'name', 'surname', 'email']);
-        setValidForm(true);
-      } else {
-        setValidForm(false);
-        if (user.userid) await form.validateFields(['userid']);
-        if (user.email) await form.validateFields(['email']);
-        if (user.name) await form.validateFields(['name']);
-        if (user.surname) await form.validateFields(['surname']);
-      }
-    } catch (_) {
+      await form.validateFields(['userid']);
+      await form.validateFields(['email']);
+      await form.validateFields(['name']);
+      await form.validateFields(['surname']);
+      setValidForm(true);
+    } catch (e) {
       setValidForm(false);
     }
   };
 
-  const submitForm = (user: User) => {
-    onAddUser(user);
+  const submitForm = (user: any) => {
+    const { searchInput, ...newUser } = user;
+    onAddUser(newUser, role);
+    setSearched(false);
     form.resetFields();
   };
 
   const requiredFieldRule = {
     required: true,
     message: 'This field cannot be empty',
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchedText(value);
+
+    if (value === '') {
+      setSearched(false);
+      form.resetFields();
+    }
+  };
+
+  const handleSelect = (value: string) => {
+    setSearched(true);
+    const selectedUser: UserAccountPage = users.filter(
+      user => user.userid === value
+    )[0];
+
+    form.setFieldsValue({
+      searchInput: searchedText,
+      userid: selectedUser.userid,
+      name: selectedUser.name,
+      surname: selectedUser.surname,
+      email: selectedUser.email,
+      role: role,
+    });
+    handleChange(form, selectedUser);
   };
 
   return (
@@ -53,13 +83,40 @@ const UserListForm: FC<IUserListFormProps> = props => {
       onFinish={submitForm}
       onValuesChange={handleChange}
     >
+      <Form.Item name="searchInput" label={<SearchOutlined />}>
+        <AutoComplete
+          onSearch={handleSearch}
+          onSelect={handleSelect}
+          placeholder="Search user"
+          allowClear={true}
+        >
+          {searchedText === ''
+            ? users.map((user, key) => (
+                <Option key={key} value={user.userid}>
+                  <i className="mr-2"> {user.userid}</i>&ndash;
+                  <span className="ml-2">
+                    {user.name} {user.surname}
+                  </span>
+                </Option>
+              ))
+            : users
+                .filter(user => filterUser(user, searchedText))
+                .map((user, key) => (
+                  <Option key={key} value={user.userid}>
+                    <p>
+                      {user.userid} | {user.name} {user.surname}
+                    </p>
+                  </Option>
+                ))}
+        </AutoComplete>
+      </Form.Item>
       <Form.Item
         name="userid"
         label="User ID"
         validateTrigger="onBlur"
         rules={[requiredFieldRule]}
       >
-        <Input />
+        <Input disabled={searched} />
       </Form.Item>
       <Form.Item
         name="name"
@@ -67,7 +124,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
         validateTrigger="onBlur"
         rules={[requiredFieldRule]}
       >
-        <Input />
+        <Input disabled={searched} />
       </Form.Item>
       <Form.Item
         name="surname"
@@ -75,7 +132,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
         validateTrigger="onBlur"
         rules={[requiredFieldRule]}
       >
-        <Input />
+        <Input disabled={searched} />
       </Form.Item>
       <Form.Item
         name="email"
@@ -90,7 +147,13 @@ const UserListForm: FC<IUserListFormProps> = props => {
           requiredFieldRule,
         ]}
       >
-        <Input type="email" />
+        <Input type="email" disabled={searched} />
+      </Form.Item>
+      <Form.Item name="role" label="Role">
+        <Select defaultValue={Role.User} onChange={value => setRole(value)}>
+          <Select.Option value={Role.User}> User </Select.Option>
+          <Select.Option value={Role.Manager}> Manager </Select.Option>
+        </Select>
       </Form.Item>
       <Form.Item>
         <Row justify="end">
