@@ -78,13 +78,7 @@ jobs:
           persist-credentials: false
 
       - name: Check linting
-        uses: grantmcconnaughey/lintly-flake8-github-action@v1.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          failIf: any
-        env:
-          LINTLY_PR: ${{ github.event.pull_request.number }}
-          LINTLY_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        uses: TrueBrain/actions-flake8@v2
 
 
   markdown-lint:
