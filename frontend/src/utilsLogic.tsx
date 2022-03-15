@@ -106,7 +106,7 @@ export const updateQueryWorkspaceTemplatesQuery = (
                 name: template?.spec?.prettyName ?? '',
               },
             }),
-          ].sort((a, b) => a.id.localeCompare(b.id))
+          ].sort((a, b) => a.name.localeCompare(b.name))
         );
       }
     }

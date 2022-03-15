@@ -93,15 +93,17 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
     onCompleted: data =>
       setDataTemplate(
-        data.templateList?.templates?.map(t =>
-          makeGuiTemplate({
-            original: t ?? {},
-            alias: {
-              id: t?.metadata?.name ?? '',
-              name: t?.spec?.prettyName ?? '',
-            },
-          })
-        ) ?? []
+        data.templateList?.templates
+          ?.map(t =>
+            makeGuiTemplate({
+              original: t ?? {},
+              alias: {
+                id: t?.metadata?.name ?? '',
+                name: t?.spec?.prettyName ?? '',
+              },
+            })
+          )
+          .sort((a, b) => a.name.localeCompare(b.name)) ?? []
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
