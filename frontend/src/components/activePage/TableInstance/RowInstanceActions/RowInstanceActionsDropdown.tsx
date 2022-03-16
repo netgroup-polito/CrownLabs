@@ -41,6 +41,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     tenantNamespace,
     environmentType,
     gui,
+    myDriveUrl,
   } = instance;
 
   const font20px = { fontSize: '20px' };
@@ -116,8 +117,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         setSshModal(true);
         break;
       case DropDownAction.upload:
-        environmentType === EnvironmentType.Container &&
-          window.open(`${url}/mydrive/files`, '_blank');
+        (environmentType === EnvironmentType.Container ||
+          environmentType === EnvironmentType.Standalone) &&
+          window.open(`${myDriveUrl}/files`, '_blank');
         environmentType === EnvironmentType.VirtualMachine &&
           window.open('https://crownlabs.polito.it/cloud', '_blank');
         break;
@@ -127,14 +129,20 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const sshDisabled =
-    status !== Phase.Ready || environmentType === EnvironmentType.Container;
+    status !== Phase.Ready ||
+    environmentType === EnvironmentType.Container ||
+    environmentType === EnvironmentType.Standalone;
 
   const fileManagerDisabled =
-    status !== Phase.Ready && environmentType === EnvironmentType.Container;
+    status !== Phase.Ready &&
+    (environmentType === EnvironmentType.Container ||
+      environmentType === EnvironmentType.Standalone);
 
   const connectDisabled =
     status !== Phase.Ready ||
-    (environmentType === EnvironmentType.Container && !gui);
+    ((environmentType === EnvironmentType.Container ||
+      environmentType === EnvironmentType.Standalone) &&
+      !gui);
 
   return (
     <Dropdown
@@ -181,7 +189,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             disabled={fileManagerDisabled}
             icon={<FolderOpenOutlined style={font20px} />}
           >
-            {environmentType === EnvironmentType.Container
+            {environmentType === EnvironmentType.Container ||
+            environmentType === EnvironmentType.Standalone
               ? 'File Manager'
               : environmentType === EnvironmentType.VirtualMachine && 'Drive'}
           </Menu.Item>
