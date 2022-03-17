@@ -1,15 +1,18 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Popconfirm, Table } from 'antd';
+import { Table } from 'antd';
+import Button from 'antd-button-color';
 import Column from 'antd/lib/table/Column';
-import { FC } from 'react';
+import { FC, useState } from 'react';
+import { ModalAlert } from '../../common/ModalAlert';
 
 export interface ISSHKeysTableProps {
   sshKeys?: { name: string; key: string }[];
-  onDeleteKey?: (key: { name: string; key: string }) => void;
+  onDeleteKey: (key: { name: string; key: string }) => Promise<boolean>;
 }
 
 const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
-  const { sshKeys } = props;
+  const { sshKeys, onDeleteKey } = props;
+  const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   return (
     <Table
       dataSource={sshKeys}
@@ -42,13 +45,45 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
         width={60}
         render={(_: any, record: { name: string; key: string }) =>
           sshKeys?.length && (
-            <Popconfirm
-              className="flex justify-center"
-              title="Confirm deletion?"
-              onConfirm={() => props.onDeleteKey?.(record)}
-            >
-              <DeleteOutlined style={{ color: 'red' }} />
-            </Popconfirm>
+            <>
+              <ModalAlert
+                headTitle={record.name}
+                message="Delete ssh key"
+                description="Do you really want to delete this key?"
+                type="warning"
+                buttons={[
+                  <Button
+                    key={0}
+                    shape="round"
+                    className="mr-2 w-24"
+                    type="primary"
+                    onClick={() => setShowDeleteModalConfirm(false)}
+                  >
+                    Close
+                  </Button>,
+                  <Button
+                    key={1}
+                    shape="round"
+                    className="ml-2 w-24"
+                    type="danger"
+                    onClick={() =>
+                      onDeleteKey(record)
+                        .then(() => setShowDeleteModalConfirm(false))
+                        .catch(err => null)
+                    }
+                  >
+                    Delete
+                  </Button>,
+                ]}
+                show={showDeleteModalConfirm}
+                setShow={setShowDeleteModalConfirm}
+              />
+
+              <DeleteOutlined
+                onClick={() => setShowDeleteModalConfirm(true)}
+                style={{ color: 'red' }}
+              />
+            </>
           )
         }
       />
