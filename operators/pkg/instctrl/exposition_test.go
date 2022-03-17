@@ -97,7 +97,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
 		}
-		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard}
+		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard, EnvironmentType: clv1alpha2.ClassContainer}
 
 		serviceName = forge.NamespacedName(&instance)
 		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix)
@@ -153,12 +153,12 @@ var _ = Describe("Generation of the exposition environment", func() {
 	DescribeBodyParametersIngressGUI := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
-			return forge.IngressSpec(host, forge.IngressVNCGUIPath(inst),
+			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec:              netv1.IngressSpec{},
 		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.URL },
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v", host, instanceUID),
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/", host, instanceUID),
 	}
 
 	DescribeBodyParametersIngressMD := DescribeBodyParameters{

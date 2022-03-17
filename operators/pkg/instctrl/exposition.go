@@ -80,22 +80,26 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the ingress to access the environment GUI
+
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
 
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUINameSuffix)}
+	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUIName(environment))}
+
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
 		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 		if ingressGUI.CreationTimestamp.IsZero() {
-			ingressGUI.Spec = forge.IngressSpec(host, forge.IngressVNCGUIPath(instance),
+			ingressGUI.Spec = forge.IngressSpec(host, forge.IngressGUIPath(instance, environment),
 				forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
 		}
-
 		ingressGUI.SetLabels(forge.InstanceObjectLabels(ingressGUI.GetLabels(), instance))
-		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(ingressGUI.GetAnnotations()))
+
+		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
+
 		if environment.Mode == clv1alpha2.ModeStandard {
 			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		}
+
 		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
 	})
 
@@ -103,8 +107,9 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		log.Error(err, "failed to create object", "ingress", klog.KObj(&ingressGUI))
 		return err
 	}
+
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
-	instance.Status.URL = "https://" + host + forge.IngressInstancePath(instance)
+	instance.Status.URL = forge.IngressGuiStatusURL(host, environment, instance)
 
 	// No need to create the file-browser ingress resource in case of VM or restricted modes.
 	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.Mode != clv1alpha2.ModeStandard {

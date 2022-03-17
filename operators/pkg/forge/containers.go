@@ -128,25 +128,14 @@ func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 // PodSpec forges the pod specification for X-VNC based container instance,
 // conditionally includes the "myDrive" sidecar for standard mode environments.
 func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) corev1.PodSpec {
-	driveMountPath := MyDriveMountPath(environment)
-
 	spec := corev1.PodSpec{
-		Containers: []corev1.Container{
-			WebsockifyContainer(opts, environment),
-			XVncContainer(opts),
-			AppContainer(instance, environment, driveMountPath),
-		},
+		Containers:                    ContainersSpec(instance, environment, opts),
 		Volumes:                       ContainerVolumes(instance, environment),
 		SecurityContext:               PodSecurityContext(),
 		AutomountServiceAccountToken:  pointer.Bool(false),
 		TerminationGracePeriodSeconds: pointer.Int64(containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
 	}
-
-	if environment.Mode == clv1alpha2.ModeStandard {
-		spec.Containers = append(spec.Containers, MyDriveContainer(instance, opts, driveMountPath))
-	}
-
 	return spec
 }
 
@@ -166,6 +155,23 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 			},
 		},
 	}
+}
+
+// ContainersSpec returns the Containers obj based on Environment Type.
+func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) []corev1.Container {
+	var containers []corev1.Container
+	volumeMountPath := MyDriveMountPath(environment)
+	switch environment.EnvironmentType {
+	case clv1alpha2.ClassContainer:
+		containers = append(containers, WebsockifyContainer(opts, environment), XVncContainer(opts), AppContainer(instance, environment, volumeMountPath))
+	case clv1alpha2.ClassStandalone:
+		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath))
+	default:
+	}
+	if environment.Mode == clv1alpha2.ModeStandard {
+		containers = append(containers, MyDriveContainer(instance, opts, volumeMountPath))
+	}
+	return containers
 }
 
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
@@ -204,6 +210,23 @@ func MyDriveContainer(instance *clv1alpha2.Instance, opts *ContainerEnvOpts, mou
 	AddContainerArg(&mydriveContainer, "database", MyDriveDBPath)
 	AddContainerArg(&mydriveContainer, "baseurl", IngressMyDrivePath(instance))
 	return mydriveContainer
+}
+
+// StandaloneContainer forges the Standalone application container of the environment.
+func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
+	standaloneContainer := AppContainer(instance, environment, volumeMountPath)
+	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
+
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance))
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_LISTEN_PORT", strconv.Itoa(GUIPortNumber))
+
+	if environment.RewriteURL {
+		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, "/")
+	} else {
+		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, IngressGUIPath(instance, environment))
+	}
+
+	return standaloneContainer
 }
 
 // AppContainer forges the main application container of the environment.

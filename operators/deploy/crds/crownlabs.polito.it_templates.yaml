@@ -105,11 +105,12 @@ spec:
                       type: object
                     environmentType:
                       description: The type of environment to be instantiated, among
-                        VirtualMachine, Container and CloudVM.
+                        VirtualMachine, Container, CloudVM and Standalone.
                       enum:
                       - VirtualMachine
                       - Container
                       - CloudVM
+                      - Standalone
                       type: string
                     guiEnabled:
                       default: true
@@ -187,6 +188,11 @@ spec:
                       - memory
                       - reservedCPUPercentage
                       type: object
+                    rewriteURL:
+                      default: false
+                      description: Whether the environment needs the URL Rewrite or
+                        not.
+                      type: boolean
                     storageClassName:
                       description: Name of the storage class to be used for the persistent
                         volume (when needed)

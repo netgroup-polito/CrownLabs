@@ -202,7 +202,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
-		case clv1alpha2.ClassContainer:
+		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(ctx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err

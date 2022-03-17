@@ -8,6 +8,11 @@ kind: Namespace
 metadata:
   name: workspace-coffee
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-standalone
+---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
@@ -51,3 +56,79 @@ spec:
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee
   deleteAfter: 1h
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: vscode-python-proxyenabled
+  namespace: workspace-standalone
+spec:
+  prettyName: Visual Studio Code - Python (proxy enabled)
+  description: A template about vscode
+  environmentList:
+    - name: vscode-environment
+      environmentType: Standalone
+      mode: Standard
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.0
+      containerStartupOptions:
+        contentPath: /config/workspace
+        startupArgs:
+          - "false"
+          - "proxy"
+      resources:
+        cpu: 2
+        memory: 2G
+        reservedCPUPercentage: 25
+      rewriteURL: true
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: standalone
+  deleteAfter: 30d
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: vscode-c-cpp-persistent
+  namespace: workspace-standalone
+spec:
+  prettyName: vscode c-cpp persistent
+  description: A template about vscode
+  environmentList:
+    - name: vscode-environment
+      environmentType: Standalone
+      mode: Standard
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.0
+      containerStartupOptions:
+        contentPath: /config/workspace
+      resources:
+        cpu: 2
+        memory: 2G
+        disk: 4G
+        reservedCPUPercentage: 25
+      rewriteURL: true
+      persistent: true
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: standalone
+  deleteAfter: 30d
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: jupyterlab
+  namespace: workspace-standalone
+spec:
+  prettyName: jupyterlab
+  description: A template about vscode
+  environmentList:
+    - name: jupyterlab-environment
+      environmentType: Standalone
+      mode: Standard
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
+      containerStartupOptions:
+        contentPath: /home/crownlabs
+      resources:
+        cpu: 2
+        memory: 2G
+        reservedCPUPercentage: 25
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: standalone
+  deleteAfter: 30d

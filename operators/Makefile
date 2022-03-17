@@ -5,6 +5,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+DOMAIN="crownlabs.polito.it"
+
 gen: generate fmt vet manifests
 
 #run all tests
@@ -84,9 +86,15 @@ run-instance: generate
 	go run cmd/instance-operator/main.go\
 				--webdav-secret-name=nextcloud-credentials\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
-				--website-base-url=crownlabs.polito.it\
+				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
 				--nextcloud-base-url=crownlabs.polito.it/cloud
+
+#the double target below is used to set DOMAIN for local targets 
+#reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
+run-instance-local: DOMAIN="crownlabsfake.polito.it"
+run-instance-local: samples-local install-local run-instance
+	
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
@@ -100,9 +108,17 @@ run-tenant: generate
 				--nc-url=$(NEXTCLOUD_URL)\
 				--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)\
 				--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)
+				--enable-webhooks=false
 
-install-tenant: manifests
-	kubectl apply -f deploy/crds/crownlabs.polito.it_tenants.yaml -f deploy/crds/crownlabs.polito.it_workspaces.yaml
+install-local: manifests
+	kubectl apply -f deploy/crds
+	kubectl apply -f tests/crds
 
 python-dependencies:
 	pip3 install -r ./build/delete-stale-instances/requirements.txt
+
+samples-local:
+	kubectl apply -f ./samples/	
+
+clean-local:
+	kubectl delete -f ./samples/
