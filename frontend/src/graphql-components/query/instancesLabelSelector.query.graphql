@@ -10,6 +10,7 @@ query instancesLabelSelector($labels: String) {
         ip
         phase
         url
+        myDriveUrl
       }
       spec {
         running

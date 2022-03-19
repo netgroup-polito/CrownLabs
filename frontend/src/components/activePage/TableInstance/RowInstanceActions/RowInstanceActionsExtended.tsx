@@ -11,8 +11,10 @@ const getSSHTooltipText = (
   isInstanceReady: boolean,
   environmentType: EnvironmentType
 ) => {
+  if (environmentType === EnvironmentType.Standalone)
+    return 'Standalone applications do not support SSH connection (yet!)';
   if (environmentType === EnvironmentType.Container)
-    return 'Containers does not support SSH connection (yet!)';
+    return 'Containers do not support SSH connection (yet!)';
   if (!isInstanceReady)
     return 'Instance must be ready in order to connect through SSH';
   return 'Show SSH connection instructions';
@@ -48,16 +50,20 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     environmentType,
     status,
     templatePrettyName,
-    url,
     name,
     prettyName,
+    myDriveUrl,
   } = instance;
 
   const sshDisabled =
-    status !== Phase.Ready || environmentType === EnvironmentType.Container;
+    status !== Phase.Ready ||
+    environmentType === EnvironmentType.Container ||
+    environmentType === EnvironmentType.Standalone;
 
   const fileManagerDisabled =
-    status !== Phase.Ready && environmentType === EnvironmentType.Container;
+    status !== Phase.Ready &&
+    (environmentType === EnvironmentType.Container ||
+      environmentType === EnvironmentType.Standalone);
 
   const infoContent = (
     <>
@@ -131,8 +137,9 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               }`}
               disabled={fileManagerDisabled}
               href={
-                environmentType === EnvironmentType.Container
-                  ? `${url}/mydrive/files`
+                environmentType === EnvironmentType.Container ||
+                environmentType === EnvironmentType.Standalone
+                  ? `${myDriveUrl}/files`
                   : 'https://crownlabs.polito.it/cloud'
               }
               target="_blank"

@@ -5,10 +5,10 @@ import { Dispatch, SetStateAction } from 'react';
 import {
   ApplyInstanceMutation,
   Exact,
-  Phase,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
   OwnedInstancesQuery,
+  Phase,
   UpdatedOwnedInstancesSubscriptionResult,
   UpdatedWorkspaceTemplatesSubscriptionResult,
   UpdateType,
@@ -16,8 +16,8 @@ import {
   WorkspaceTemplatesQuery,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
-import { Instance, Template, WorkspaceRole } from './utils';
 import { matchK8sObject, replaceK8sObject } from './k8sUtils';
+import { Instance, Template, WorkspaceRole } from './utils';
 
 type Nullable<T> = T | null | undefined;
 
@@ -151,6 +151,8 @@ export const makeGuiInstance = (
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
+  const myDrive = status?.myDriveUrl ?? '';
+
   return {
     name: name,
     prettyName: prettyName,
@@ -170,6 +172,7 @@ export const makeGuiInstance = (
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
+    myDriveUrl: myDrive,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
@@ -319,6 +322,8 @@ export const getManagerInstances = (
     tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
   const workspaceName = (templateNamespace ?? '').replace(/^workspace-/, '');
 
+  const myDrive = status?.myDriveUrl ?? '';
+
   return {
     id: index,
     name: metadata?.name,
@@ -331,6 +336,7 @@ export const getManagerInstances = (
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
+    myDriveUrl: myDrive,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
     tenantNamespace: tenantNamespace,
