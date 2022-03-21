@@ -63,18 +63,17 @@ metadata:
   name: vscode-python-proxyenabled
   namespace: workspace-standalone
 spec:
-  prettyName: Visual Studio Code - Python (proxy enabled)
+  prettyName: Visual Studio Code - Python (marketplace disabled)
   description: A template about vscode
   environmentList:
     - name: vscode-environment
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.0
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.3
       containerStartupOptions:
         contentPath: /config/workspace
         startupArgs:
-          - "false"
-          - "proxy"
+          - "--disable-marketplace"
       resources:
         cpu: 2
         memory: 2G
@@ -96,7 +95,7 @@ spec:
     - name: vscode-environment
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.0
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
       containerStartupOptions:
         contentPath: /config/workspace
       resources:
@@ -122,7 +121,7 @@ spec:
     - name: jupyterlab-environment
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.3
       containerStartupOptions:
         contentPath: /home/crownlabs
       resources:
