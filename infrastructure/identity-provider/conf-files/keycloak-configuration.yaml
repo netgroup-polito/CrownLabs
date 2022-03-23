@@ -10,7 +10,7 @@ replicas: 3
 image:
   # The Keycloak image repository
   repository: docker.io/jboss/keycloak
-  # Overrides the Keycloak image tag whose default is the chart version
+  # Overrides the Keycloak image tag whose default is the chart appVersion
   tag: ""
   # The Keycloak image pull policy
   pullPolicy: IfNotPresent
@@ -47,10 +47,10 @@ serviceAccount:
   # Image pull secrets that are attached to the ServiceAccount
   imagePullSecrets: []
 
-# RBAC for KUBE_PING (HA)
 rbac:
   create: true
   rules:
+    # RBAC for KUBE_PING (HA)
     - apiGroups:
         - ""
       resources:
@@ -70,6 +70,12 @@ securityContext:
 
 # Additional init containers, e. g. for providing custom themes
 extraInitContainers: ""
+
+# When using service meshes which rely on a sidecar, it may be necessary to skip init containers altogether,
+# since the sidecar doesn't start until the init containers are done, and the sidecar may be required
+# for network access.
+# For example, Istio in strict mTLS mode prevents the pgchecker init container from ever completing
+skipInitContainers: false
 
 # Additional sidecar containers, e. g. for a database proxy, such as Google's cloudsql-proxy
 extraContainers: ""
@@ -163,6 +169,9 @@ affinity: |
 #                values:
 #                  - test
 #          topologyKey: failure-domain.beta.kubernetes.io/zone
+
+# Topology spread constraints template
+topologySpreadConstraints:
 
 # Node labels for Pod assignment
 nodeSelector: {}
@@ -327,6 +336,8 @@ service:
 ingress:
   # If `true`, an Ingress is created
   enabled: true
+    # The name of the Ingress Class associated with this ingress
+  ingressClassName: "nginx-external"
   # The Service port targeted by the Ingress
   servicePort: http
   # Ingress annotations
@@ -349,7 +360,8 @@ ingress:
       host: auth.crownlabs.polito.it
       # Paths for the host
       paths:
-        - /
+        - path: /
+          pathType: Prefix
   # TLS configuration
   tls:
     - hosts:
@@ -360,6 +372,8 @@ ingress:
   console:
     # If `true`, an Ingress is created for console path only
     enabled: false
+    # The name of Ingress Class associated with the console ingress only
+    ingressClassName: ""
     # Ingress annotations for console ingress only
     # Useful to set nginx.ingress.kubernetes.io/whitelist-source-range particularly
     annotations: {}
@@ -369,7 +383,8 @@ ingress:
         host: '{{ .Release.Name }}.keycloak.example.com'
         # Paths for the host
         paths:
-          - /auth/admin/
+          - path: /auth/admin/
+            pathType: Prefix
 
 ## Network policy configuration
 networkPolicy:
