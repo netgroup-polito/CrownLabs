@@ -89,6 +89,7 @@ func main() {
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
+	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
 	enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
 
 	klog.InitFlags(nil)
@@ -168,13 +169,14 @@ func main() {
 		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	}
 	if err = (&controllers.TenantReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		KcA:              kcA,
-		NcA:              NcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
-		Concurrency:      maxConcurrentReconciles,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		KcA:                kcA,
+		NcA:                NcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		SandboxClusterRole: *sandboxClusterRole,
+		Concurrency:        maxConcurrentReconciles,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)

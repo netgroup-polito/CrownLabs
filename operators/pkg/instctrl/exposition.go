@@ -19,10 +19,8 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
@@ -152,32 +150,17 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 
 	// Enforce service absence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
-	if err := r.enforceObjectAbsence(ctx, &service, "service"); err != nil {
+	if err := utils.EnforceObjectAbsence(ctx, r.Client, &service, "service"); err != nil {
 		return err
 	}
 
 	// Enforce gui ingress absence
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUINameSuffix)}
-	if err := r.enforceObjectAbsence(ctx, &ingressGUI, "ingress"); err != nil {
+	if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
 		return err
 	}
 
 	// Enforce file-browser ingress absence
 	ingressFB := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressMyDriveNameSuffix)}
-	return r.enforceObjectAbsence(ctx, &ingressFB, "ingress")
-}
-
-// enforceObjectAbsence deletes a Kubernetes object and prints the appropriate log messages, without failing if it does not exist.
-func (r *InstanceReconciler) enforceObjectAbsence(ctx context.Context, obj client.Object, kind string) error {
-	if err := r.Delete(ctx, obj); err != nil {
-		if !kerrors.IsNotFound(err) {
-			ctrl.LoggerFrom(ctx).Error(err, "failed to delete object", kind, klog.KObj(obj))
-			return err
-		}
-		ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel).Info("the object was already removed", kind, klog.KObj(obj))
-	} else {
-		ctrl.LoggerFrom(ctx).V(utils.LogInfoLevel).Info("object correctly removed", kind, klog.KObj(obj))
-	}
-
-	return nil
+	return utils.EnforceObjectAbsence(ctx, r.Client, &ingressFB, "ingress")
 }

@@ -15,6 +15,7 @@
 package forge
 
 import (
+	"fmt"
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -78,6 +79,11 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 // prevent issues with DNS style requirements.
 func canonicalName(name string) string {
 	return strings.ReplaceAll(name, ".", StringSeparator)
+}
+
+// CanonicalSandboxName returns a name given a tenant name.
+func CanonicalSandboxName(name string) string {
+	return fmt.Sprintf("sandbox-%s", canonicalName(name))
 }
 
 // RandomInstancePrettyName generates a random name of 2 capitalized words.

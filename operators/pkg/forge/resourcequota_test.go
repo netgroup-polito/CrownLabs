@@ -139,4 +139,27 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 		})
 	})
+
+	Describe("The forge.SandboxResourceQuotaSpec function", func() {
+		var (
+			spec corev1.ResourceList
+		)
+
+		JustBeforeEach(func() {
+			spec = forge.SandboxResourceQuotaSpec()
+		})
+
+		When("Forging the resource quota specifications", func() {
+			It("Should configure the correct amount of CPU requests and limits", func() {
+				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(*resource.NewQuantity(4, resource.DecimalSI)))
+				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(*resource.NewQuantity(2, resource.DecimalSI)))
+			})
+
+			It("Should configure the correct amount of memory requests and limits", func() {
+				Expect(spec[corev1.ResourceLimitsMemory]).To(Equal(*resource.NewScaledQuantity(8, resource.Giga)))
+				Expect(spec[corev1.ResourceRequestsMemory]).To(Equal(*resource.NewScaledQuantity(8, resource.Giga)))
+			})
+
+		})
+	})
 })

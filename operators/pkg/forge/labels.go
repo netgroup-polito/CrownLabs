@@ -29,6 +29,7 @@ const (
 	labelPersistentKey  = "crownlabs.polito.it/persistent"
 	labelComponentKey   = "crownlabs.polito.it/component"
 	labelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
+	labelTypeKey        = "crownlabs.polito.it/type"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -37,7 +38,9 @@ const (
 	// InstanceSubmissionCompletedLabel -> label for Instances that have been submitted.
 	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
 
-	labelManagedByValue = "instance"
+	labelManagedByInstanceValue = "instance"
+	labelManagedByTenantValue   = "tenant"
+	labelTypeSandboxValue       = "sandbox"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -46,7 +49,7 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	labels = deepCopyLabels(labels)
 	update := false
 
-	update = updateLabel(labels, labelManagedByKey, labelManagedByValue) || update
+	update = updateLabel(labels, labelManagedByKey, labelManagedByInstanceValue) || update
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
 	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
@@ -62,10 +65,21 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 func InstanceObjectLabels(labels map[string]string, instance *clv1alpha2.Instance) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	labels[labelManagedByKey] = labelManagedByValue
+	labels[labelManagedByKey] = labelManagedByInstanceValue
 	labels[labelInstanceKey] = instance.Name
 	labels[labelTemplateKey] = instance.Spec.Template.Name
 	labels[labelTenantKey] = instance.Spec.Tenant.Name
+
+	return labels
+}
+
+// SandboxObjectLabels receives in input a set of labels and the tenant name, returns the updated set.
+func SandboxObjectLabels(labels map[string]string, name string) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels[labelManagedByKey] = labelManagedByTenantValue
+	labels[labelTypeKey] = labelTypeSandboxValue
+	labels[labelTenantKey] = name
 
 	return labels
 }

@@ -51,12 +51,13 @@ const (
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	KcA              *KcActor
-	NcA              NcHandler
-	TargetLabelKey   string
-	TargetLabelValue string
-	Concurrency      int
+	Scheme             *runtime.Scheme
+	KcA                *KcActor
+	NcA                NcHandler
+	TargetLabelKey     string
+	TargetLabelValue   string
+	SandboxClusterRole string
+	Concurrency        int
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -66,6 +67,8 @@ type TenantReconciler struct {
 
 // Reconcile reconciles the state of a tenant resource.
 func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx, "tenant", req.NamespacedName.Name)
+	ctx = ctrl.LoggerInto(ctx, log)
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
@@ -187,6 +190,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	} else {
 		klog.Errorf("Could not handle nextcloud subscription for tenant %s -> namespace update for secret gave error", tn.Name)
 		tn.Status.Subscriptions["nextcloud"] = crownlabsv1alpha2.SubscrFailed
+	}
+
+	if err = r.EnforceSandboxResources(ctx, &tn); err != nil {
+		klog.Error("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
+		tn.Status.SandboxNamespace.Created = false
+		tnOpinternalErrors.WithLabelValues("tenant", "sandbox-resources").Inc()
+		return ctrl.Result{}, err
 	}
 
 	// place status value to ready if everything is fine, in other words, no need to reconcile
