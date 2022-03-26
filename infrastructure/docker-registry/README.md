@@ -12,7 +12,7 @@
 
 
 ## What is it
-From the [Docker Registry](https://docs.docker.com/registry/) official documentation: A Registry is a stateless, highly scalable server-side application that stores and lets you distribute Docker images. 
+From the [Docker Registry](https://docs.docker.com/registry/) official documentation: A Registry is a stateless, highly scalable server-side application that stores and lets you distribute Docker images.
 [Harbor](https://goharbor.io/) is an open source registry having a lot of features, such as an advanced UI, a vulnerability scanner, robot accounts and so on. For more information visit the official web page.
 
 ## Why do we need it?
@@ -40,9 +40,9 @@ To install Harbor, it is possible to leverage the [official Helm Chart](https://
   6. PVC that can be shared across nodes (i.e., with `ReadWriteMany` access mode) or external object storage
 
 ### Redis Configuration
-In our architecture we have a [Redis-Sentinel](https://redis.io/topics/sentinel) service, instead of [Redis Cluster](https://redis.io/topics/cluster-tutorial), because with this architecture Sentinel manages automatically the failover of the master.
+In our architecture we have a [Redis-Sentinel](https://redis.io/docs/manual/sentinel/) service, instead of [Redis Cluster](https://redis.io/docs/manual/scaling/), because with this architecture Sentinel manages automatically the failover of the master.
 To enable the `Redis-Sentinel ` architecture it is necessary to configure the following parameter in the redis file values (`redis-service-values.yaml`):
-```yaml 
+```yaml
   sentinel.enabled=true
 ```
 
@@ -83,4 +83,3 @@ helm upgrade harbor harbor/harbor --namespace harbor \
 ```
 Warning: credentials and secret parameters have been redacted from the values file stored in this repository.
 Look [here](https://github.com/goharbor/harbor-helm) for a complete configuration guide.
-
