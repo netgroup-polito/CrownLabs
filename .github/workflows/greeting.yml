@@ -25,7 +25,7 @@ jobs:
             * `/merge`:             Merge this PR into the master branch
             * `/hold`:              Adds hold label to prevent merging with /merge
             * `/unhold`:            Removes the hold label to allow merging with /merge
-            * `/deploy-staging`:    Deploy a staging environment to test this PR
+            * `/deploy-staging`:    Deploy a staging environment to test this PR (the `build-all` flag enables user environments building)
             * `/undeploy-staging`:  Manually undeploy the staging environment
 
             Make sure this PR appears in the **${{ github.event.repository.name }} changelog**, adding one of the following **labels**:
