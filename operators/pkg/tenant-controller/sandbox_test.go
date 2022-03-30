@@ -52,6 +52,9 @@ var _ = Describe("Sandbox", func() {
 		resQuotaNSname types.NamespacedName
 		sbResQuota     corev1.ResourceQuota
 
+		limitRangeNSname types.NamespacedName
+		sbLimitRange     corev1.LimitRange
+
 		ownerRef metav1.OwnerReference
 		err      error
 	)
@@ -70,11 +73,15 @@ var _ = Describe("Sandbox", func() {
 		sbResQuota = corev1.ResourceQuota{
 			ObjectMeta: forge.NamespacedNameToObjectMeta(resQuotaNSname),
 		}
+		sbLimitRange = corev1.LimitRange{
+			ObjectMeta: forge.NamespacedNameToObjectMeta(limitRangeNSname),
+		}
 
 		sbNamespace.SetCreationTimestamp(metav1.NewTime(time.Now()))
 		sbRoleBinding.SetCreationTimestamp(metav1.NewTime(time.Now()))
 		sbResQuota.SetCreationTimestamp(metav1.NewTime(time.Now()))
-		clientBuilder.WithObjects(&sbNamespace, &sbRoleBinding, &sbResQuota)
+		sbLimitRange.SetCreationTimestamp(metav1.NewTime(time.Now()))
+		clientBuilder.WithObjects(&sbNamespace, &sbRoleBinding, &sbResQuota, &sbLimitRange)
 	}
 
 	DescribeBodySandboxNamespacePresence := func() {
@@ -128,6 +135,22 @@ var _ = Describe("Sandbox", func() {
 			}
 		})
 	}
+	DescribeBodySandboxLimitRangePresence := func() {
+		It("Limit range should be present and have the expected labels", func() {
+			Expect(reconciler.Get(ctx, limitRangeNSname, &sbLimitRange)).To(Succeed())
+			for k, v := range forge.SandboxObjectLabels(nil, tenantName) {
+				Expect(sbLimitRange.GetLabels()).To(HaveKeyWithValue(k, v))
+			}
+			Expect(sbLimitRange.GetOwnerReferences()).To(ContainElement(ownerRef))
+		})
+
+		It("Role binding should be present and have the expected spec", func() {
+			Expect(reconciler.Get(ctx, limitRangeNSname, &sbLimitRange)).To(Succeed())
+			// The following asserts the correctness of a single field, leaving more thorough checks to the appropriate unit tests.
+			Expect(sbLimitRange.Spec.Limits).To(HaveLen(1))
+			Expect(sbLimitRange.Spec.Limits[0].Type).To(BeIdenticalTo(corev1.LimitTypeContainer))
+		})
+	}
 	DescribeBodySandboxNamespaceAbsence := func() {
 		It("Should set the sandbox status empty", func() {
 			Expect(tenant.Status.SandboxNamespace).To(BeIdenticalTo(clv1alpha2.NameCreated{Name: "", Created: false}))
@@ -163,9 +186,14 @@ var _ = Describe("Sandbox", func() {
 			Name:      "sandbox-resource-quota",
 			Namespace: sandboxNSname.Name,
 		}
+		limitRangeNSname = types.NamespacedName{
+			Name:      "sandbox-limit-range",
+			Namespace: sandboxNSname.Name,
+		}
 		sbNamespace = corev1.Namespace{}
 		sbRoleBinding = rbacv1.RoleBinding{}
 		sbResQuota = corev1.ResourceQuota{}
+		sbLimitRange = corev1.LimitRange{}
 	})
 
 	JustBeforeEach(func() {
@@ -186,6 +214,7 @@ var _ = Describe("Sandbox", func() {
 			Describe("Assessing the namespace presence", func() { DescribeBodySandboxNamespacePresence() })
 			Describe("Assessing the resource quota presence", func() { DescribeBodySandboxResourceQuotaPresence() })
 			Describe("Assessing the role binding presence", func() { DescribeBodySandboxRoleBindingPresence() })
+			Describe("Assessing the limit range presence", func() { DescribeBodySandboxLimitRangePresence() })
 		})
 
 		When("Sandbox resources are already present", func() {
@@ -197,6 +226,7 @@ var _ = Describe("Sandbox", func() {
 			Describe("Assessing the namespace presence", func() { DescribeBodySandboxNamespacePresence() })
 			Describe("Assessing the resource quota presence", func() { DescribeBodySandboxResourceQuotaPresence() })
 			Describe("Assessing the role binding presence", func() { DescribeBodySandboxRoleBindingPresence() })
+			Describe("Assessing the limit range presence", func() { DescribeBodySandboxLimitRangePresence() })
 		})
 	})
 

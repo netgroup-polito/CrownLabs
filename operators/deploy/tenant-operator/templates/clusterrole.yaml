@@ -10,7 +10,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
 - apiGroups: [""]
-  resources: ["namespaces", "resourcequotas", "secrets"]
+  resources: ["namespaces", "resourcequotas", "limitranges", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: ["rbac.authorization.k8s.io"]

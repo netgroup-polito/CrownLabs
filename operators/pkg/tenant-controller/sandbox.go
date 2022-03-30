@@ -86,6 +86,22 @@ func (r *TenantReconciler) enforceSandboxResourcesPresence(ctx context.Context, 
 	log.V(utils.FromResult(res)).Info("sandbox resource quota correctly enforced", "resource quota", klog.KObj(&resourceQuota), "result", res)
 	tenant.Status.SandboxNamespace.Created = true
 
+	// Enforce limit range presence
+	limitRange := corev1.LimitRange{
+		ObjectMeta: metav1.ObjectMeta{Name: "sandbox-limit-range", Namespace: sandboxnsName},
+	}
+	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &limitRange, func() error {
+		limitRange.SetLabels(forge.SandboxObjectLabels(resourceQuota.GetLabels(), tenant.Name))
+		limitRange.Spec = forge.SandboxLimitRangeSpec()
+		return ctrl.SetControllerReference(tenant, &limitRange, r.Scheme)
+	})
+	if err != nil {
+		log.Error(err, "failed to enforce resource", "limit range", klog.KObj(&limitRange))
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("sandbox limit range correctly enforced", "limit range", klog.KObj(&limitRange), "result", res)
+	tenant.Status.SandboxNamespace.Created = true
+
 	return err
 }
 
