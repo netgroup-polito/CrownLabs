@@ -100,14 +100,16 @@ func (r *ResourceCounterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 func increaseSecondsCounter(instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, template *clv1alpha2.Template) {
 	secondsOffset := uint32(0)
 
-	if tenant.Spec.ResourceToken.TokenCounterLastUpdated.After(instance.CreationTimestamp.Time) {
-		secondsOffset = uint32(v1.Now().Sub(tenant.Spec.ResourceToken.TokenCounterLastUpdated.Time).Seconds())
-	} else {
+	if v1.Now().Sub(instance.CreationTimestamp.Time).Seconds() < 5*60 {
 		secondsOffset = uint32(v1.Now().Sub(instance.CreationTimestamp.Time).Seconds())
+	} else {
+		secondsOffset = uint32(5 * 60)
 	}
-
 	// Currently, only instances composed of a single environment are supported.
-	tenant.Spec.ResourceToken.Used += secondsOffset * template.Spec.EnvironmentList[0].Resources.CPU
+	newTokenUsed := secondsOffset * template.Spec.EnvironmentList[0].Resources.CPU
+	tenant.Spec.ResourceToken.Used += newTokenUsed
+	// update metrics counter.
+	tnTokenConsumed.WithLabelValues(tenant.Name).Add(float64(newTokenUsed))
 }
 
 // forgeResourceToken creates the resourceToken field of the tenant with starting values.

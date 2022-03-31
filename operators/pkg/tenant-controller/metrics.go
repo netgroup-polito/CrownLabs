@@ -26,9 +26,16 @@ var (
 	},
 		[]string{"controller", "reason"},
 	)
+
+	tnTokenConsumed = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tenant_cpu_token_consumed",
+		Help: "The number of cpu token consumed by the tenant through the creation of new instances",
+	},
+		[]string{"name"},
+	)
 )
 
 func init() {
 	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(tnOpinternalErrors)
+	metrics.Registry.MustRegister(tnOpinternalErrors, tnTokenConsumed)
 }
