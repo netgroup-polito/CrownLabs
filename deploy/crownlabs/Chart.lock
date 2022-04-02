@@ -26,8 +26,5 @@ dependencies:
 - name: exam-agent
   repository: file://../../operators/deploy/exam-agent
   version: 0.1.0
-- name: policies
-  repository: file://../../policies/
-  version: 0.1.0
-digest: sha256:86459acf438793fc1f9ec34dfd8d32263c6996f02e8b7712eee73c12be6f4d4b
-generated: "2022-03-23T10:17:15.785619631+01:00"
+digest: sha256:5e61e140806766e46aa2014b018ba66c40653756b213e3ff042782b0d662a6a8
+generated: "2022-04-02T18:37:42.140831116+02:00"
