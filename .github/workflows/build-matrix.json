@@ -47,12 +47,6 @@
         "harbor-project": "crownlabs-core"
     },
     {
-        "component": "frontend-storybook",
-        "context": "./frontend",
-        "build-args": "BUILD_TARGET=storybook\nSUBROUTE=/",
-        "harbor-project": "crownlabs-core"
-    },
-    {
         "component": "qlkube",
         "context": "./qlkube",
         "harbor-project": "crownlabs-core"

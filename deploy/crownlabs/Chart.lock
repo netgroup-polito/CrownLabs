@@ -2,9 +2,6 @@ dependencies:
 - name: frontend-app
   repository: file://../../frontend/deploy/frontend-app
   version: 0.1.0
-- name: frontend-storybook
-  repository: file://../../frontend/deploy/frontend-storybook
-  version: 0.1.0
 - name: qlkube
   repository: file://../../qlkube/deploy/qlkube
   version: 0.1.0
