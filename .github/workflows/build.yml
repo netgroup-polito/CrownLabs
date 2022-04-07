@@ -37,7 +37,7 @@ jobs:
       - name: Configure
         id: configure
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           # The ref of the commit to checkout (do not use the merge commit if pull request)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -56,7 +56,7 @@ jobs:
             echo "::set-output name=repo-suffix::-dev"
 
           # Do not push the resulting images to DockerHub if triggered by a pull request or DockerHub credentials are not available
-          [[ "${{ github.event_name }}" == "pull_request" || -z $DOCKER_USERNAME ]] && \
+          [[ "${{ github.event_name }}" == "pull_request" || -z $DOCKER_PASSWORD ]] && \
             echo "::set-output name=repo-push::false" || \
             echo "::set-output name=repo-push::true"
 
