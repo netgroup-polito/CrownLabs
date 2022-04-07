@@ -21,13 +21,6 @@ frontend-app:
       clientId: <client-id>
       providerUrl: https://auth.example.com/auth/
 
-frontend-storybook:
-  replicaCount: 1
-  image:
-    repository: crownlabs/frontend-storybook
-  ingress:
-    hostname: storybook.crownlabs.example.com
-
 qlkube:
   replicaCount: 1
   image:

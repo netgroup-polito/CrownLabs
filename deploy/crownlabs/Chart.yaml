@@ -25,11 +25,6 @@ dependencies:
   repository: file://../../frontend/deploy/frontend-app
   condition: frontend-app.enabled
 
-- name: frontend-storybook
-  version: "0.1.0"
-  repository: file://../../frontend/deploy/frontend-storybook
-  condition: frontend-storybook.enabled
-
 - name: qlkube
   version: "0.1.0"
   repository: file://../../qlkube/deploy/qlkube

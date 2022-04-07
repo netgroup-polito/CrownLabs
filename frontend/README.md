@@ -16,21 +16,16 @@ yarn install
 # To run the app locally
 yarn start
 
-# To run the storybook locally
-yarn storybook
-
 # To build the app locally
 yarn build-app
 
-# To build the storybook locally
-yarn build-storybook
 ```
 
 After the setup is complete, if you start the app locally and see the apiserver url on the home page everything is working fine.
 
 ## Structure
 
-Our frontend is a [React](https://it.reactjs.org/) application. We use [antd](https://ant.design/) as the main component library and [Tailwind](https://tailwindcss.com/) utilities to handle specific css scenarios (padding and margin). We also use [Storybook](https://storybook.js.org/) to ease teamwork. We chose to use [Typescript](https://www.typescriptlang.org/) to have a bettere development experience.
+Our frontend is a [React](https://it.reactjs.org/) application. We use [antd](https://ant.design/) as the main component library and [Tailwind](https://tailwindcss.com/) utilities to handle specific css scenarios (padding and margin). We chose to use [Typescript](https://www.typescriptlang.org/) to have a bettere development experience.
 
 The application is made to be deployed using docker and can be hosted on a custom subroute. The application takes some environment variables, each needs to have the `REACT_APP_CROWNLABS` prefix. In order to define environment variables at container run-time they need to be defined on the `window` object in the `public/config.js` file.
 
@@ -49,7 +44,6 @@ The components are in `src/components`. The folder has subdirs, one for each pag
 Each component needs to have its own folder with the following structure, e.g. for an `Example` component:
 
 - `Example.tsx` - component definition
-- `Example.stories.ts` - storybook stories to show component usage
 - `Exmaple.css` - css specific code for component
 - `index.ts` - utility file to shorten component import statement in other files
 
@@ -106,22 +100,6 @@ Additionally:
     </Button>
   );
   ```
-
-#### Storybook
-
-Each storybook file needs to have the following structure:
-
-- import declarations
-- default export containing necessary story info (title, component, argTypes,...)
-- default component args declaration (use `someKeysOf` type function)
-- template declaration
-- component stories
-
-Additionally:
-
-- Include in the `title` of the default export the path to create a hierarchy for your components. The path should be `Components/${subComponentsFolders}/${ComponentName}`
-- If you component needs external contexts and/or side-loaded data. You can use [decorators](https://storybook.js.org/docs/react/writing-stories/decorators) in you stories to provide them
-
 ## Useful links
 
 - [Useful answer for deploying react app on subroute](https://stackoverflow.com/a/58508562/11143279)
