@@ -1,37 +1,63 @@
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import { Dispatch, FC, SetStateAction, useEffect, useState } from 'react';
-import { Template, Workspace } from '../../../utils';
+import {
+  Dispatch,
+  FC,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { useDeleteInstanceMutation } from '../../../generated-types';
+import { Instance, Template, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
 
 const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
+  instances: Array<Instance>;
   workspaces: Array<Workspace>;
   collapseAll: boolean;
   expandAll: boolean;
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
   showAdvanced: boolean;
+  showCheckbox: boolean;
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
     sortingTemplate: string
   ) => void;
+  destroySelectedTrigger: boolean;
+  setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
+  selectiveDestroy: string[];
+  selectToDestroy: (instanceId: string) => void;
 }
 
 const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   const {
+    instances,
     workspaces,
     collapseAll,
     expandAll,
     setCollapseAll,
     setExpandAll,
     showAdvanced,
+    showCheckbox,
     handleManagerSorting,
+    destroySelectedTrigger,
+    setDestroySelectedTrigger,
+    selectiveDestroy,
+    selectToDestroy,
   } = props;
   const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+
+  const [deleteInstanceMutation] = useDeleteInstanceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const expandWorkspace = () => {
     setExpandedId(workspaces.map(ws => ws.id));
@@ -54,6 +80,17 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
         0
       ) || 0
     );
+  };
+
+  const destroySelected = async () => {
+    const selection = instances.filter(i => selectiveDestroy.includes(i.id));
+    for (const { tenantNamespace, name: instanceId, id } of selection) {
+      await deleteInstanceMutation({
+        variables: { tenantNamespace, instanceId },
+      });
+      // Removing from selection list after deletion
+      selectToDestroy(id);
+    }
   };
 
   const columns = [
@@ -81,6 +118,14 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     if (expandAll) expandWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapseAll, expandAll]);
+
+  useEffect(() => {
+    if (destroySelectedTrigger) {
+      setDestroySelectedTrigger(false);
+      destroySelected();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destroySelectedTrigger]);
 
   return (
     <div
@@ -114,6 +159,9 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
               setExpandAll={setExpandAll}
               handleManagerSorting={handleManagerSorting}
               showAdvanced={showAdvanced}
+              showCheckbox={showCheckbox}
+              selectiveDestroy={selectiveDestroy}
+              selectToDestroy={selectToDestroy}
             />
           ),
         }}

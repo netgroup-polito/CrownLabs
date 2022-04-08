@@ -1,5 +1,5 @@
 import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
-import { Space, Typography } from 'antd';
+import { Checkbox, Space, Typography } from 'antd';
 import { ApolloError } from 'apollo-client';
 import { FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
@@ -15,10 +15,21 @@ export interface IRowInstanceTitleProps {
   extended: boolean;
   instance: Instance;
   showGuiIcon: boolean;
+  showCheckbox?: boolean;
+  selectiveDestroy?: string[];
+  selectToDestroy?: (instanceId: string) => void;
 }
 
 const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
-  const { viewMode, extended, instance, showGuiIcon } = props;
+  const {
+    viewMode,
+    extended,
+    instance,
+    showGuiIcon,
+    showCheckbox,
+    selectiveDestroy,
+    selectToDestroy,
+  } = props;
   const {
     name,
     prettyName,
@@ -67,8 +78,20 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
 
   return (
     <>
-      <div className="w-full flex justify-start items-center pl-4">
+      <div className="w-full flex justify-start items-center pl-2">
         <Space size="middle">
+          {viewMode === 'manager' &&
+            selectiveDestroy &&
+            selectToDestroy &&
+            showCheckbox && (
+              <div className="flex mr-2 items-center">
+                <Checkbox
+                  checked={selectiveDestroy.includes(instance.id)}
+                  className="p-0"
+                  onClick={() => selectToDestroy(instance.id)}
+                />
+              </div>
+            )}
           <RowInstanceStatus status={status} />
 
           {viewMode === 'manager' ? (

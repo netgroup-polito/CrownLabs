@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Typography } from 'antd';
+import { Checkbox, Typography } from 'antd';
 import { WorkspaceRole } from '../../../../utils';
 import {
   CaretDownOutlined,
@@ -18,6 +18,10 @@ export interface IRowInstanceHeaderProps {
     sorting: number,
     sortingTemplate: string
   ) => void;
+  showCheckbox: boolean;
+  checked: boolean;
+  selectGroup: () => void;
+  indeterminate: boolean;
 }
 
 const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
@@ -26,6 +30,10 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
     handleSorting,
     handleManagerSorting,
     templateKey: tkey,
+    showCheckbox,
+    checked,
+    selectGroup,
+    indeterminate,
   } = props;
   const [prettyNameOrder, setPrettyNameOrder] = useState(0);
   const [templatePrettyNameOrder, setTemplatePrettyNameOrder] = useState(0);
@@ -94,7 +102,21 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
         key="title"
       >
         <div className="w-full flex justify-start items-center">
-          <div className="flex items-center justify-center w-16">
+          {showCheckbox && (
+            <div className={`flex items-center justify-center w-12`}>
+              <Checkbox
+                checked={checked}
+                className="p-0"
+                indeterminate={indeterminate && checked}
+                onClick={selectGroup}
+              />
+            </div>
+          )}
+          <div
+            className={`flex items-center justify-center ${
+              showCheckbox ? 'w-14' : 'w-16'
+            }`}
+          >
             <Text strong>Status</Text>
           </div>
           {viewMode === WorkspaceRole.manager ? (

@@ -20,12 +20,15 @@ export interface ITableInstanceProps {
   showGuiIcon: boolean;
   extended: boolean;
   showAdvanced?: boolean;
+  showCheckbox?: boolean;
   handleSorting?: (sortingType: string, sorting: number) => void;
   handleManagerSorting?: (
     sortingType: string,
     sorting: number,
     sortingTemplate: string
   ) => void;
+  selectiveDestroy?: string[];
+  selectToDestroy?: (instanceId: string) => void;
 }
 
 const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
@@ -36,8 +39,11 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     hasSSHKeys,
     showGuiIcon,
     showAdvanced,
+    showCheckbox,
     handleSorting,
     handleManagerSorting,
+    selectiveDestroy,
+    selectToDestroy,
   } = props;
 
   const { now } = useContext(TenantContext);
@@ -56,6 +62,25 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         },
       });
     });
+  };
+
+  // Filtering from all instances that ones which are included in the "selectiveDestroy" IDs list
+  const selectedIn = instances.filter(i => selectiveDestroy?.includes(i.id));
+
+  const checked = !!selectedIn.length;
+
+  const indeterminate = selectedIn.length !== instances.length && checked;
+
+  const selectGroup = () => {
+    // Protect from group selection if selectToDestroy is not defined
+    if (!selectToDestroy) return;
+    // remap each instance to its ID
+    let instIds = instances.map(({ id }) => id);
+    // Check if some instance in the List is already selected
+    // (Remember each TableInstance represents a grouped list of instances that belong to a single Template)
+    if (checked)
+      instIds.filter(i => indeterminate !== selectiveDestroy?.includes(i));
+    instIds.forEach(selectToDestroy);
   };
 
   const [{ templateId }] = instances;
@@ -85,8 +110,12 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                 <RowInstanceHeader
                   viewMode={viewMode}
                   handleSorting={handleSorting!}
+                  showCheckbox={showCheckbox || false}
                   handleManagerSorting={handleManagerSorting!}
                   templateKey={templateId}
+                  checked={checked}
+                  selectGroup={selectGroup}
+                  indeterminate={indeterminate}
                 />
               )}
             />
@@ -118,7 +147,10 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                 viewMode={viewMode}
                 extended={extended}
                 instance={instance}
+                showCheckbox={showCheckbox}
                 showGuiIcon={showGuiIcon}
+                selectiveDestroy={selectiveDestroy}
+                selectToDestroy={selectToDestroy}
               />
             )}
           />

@@ -73,11 +73,13 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
           const { instance, updateType } = data?.updateInstance;
           let notify = false;
+          let newItem = prev;
+          let objType;
 
           if (prev.instanceList?.instances) {
             let instances = [...prev.instanceList.instances];
             const found = instances.find(matchK8sObject(instance, false));
-            const objType = getSubObjType(found, instance, updateType);
+            objType = getSubObjType(found, instance, updateType);
             switch (objType) {
               case SubObjType.Deletion:
                 instances = instances.filter(matchK8sObject(instance, true));
@@ -107,8 +109,10 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           if (notify)
             notifyStatus(instance.status?.phase, instance, updateType);
 
-          const newItem = { ...prev };
-          setDataInstances(newItem);
+          if (objType !== SubObjType.Drop) {
+            newItem = { ...prev };
+            setDataInstances(newItem);
+          }
           return newItem;
         },
       });

@@ -25,11 +25,14 @@ export interface ITableTemplateProps {
   setCollapseAll: Dispatch<SetStateAction<boolean>>;
   setExpandAll: Dispatch<SetStateAction<boolean>>;
   showAdvanced: boolean;
+  showCheckbox: boolean;
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
     sortingTemplate: string
   ) => void;
+  selectiveDestroy?: string[];
+  selectToDestroy?: (instanceId: string) => void;
 }
 
 const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
@@ -41,6 +44,9 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     setExpandAll,
     handleManagerSorting,
     showAdvanced,
+    showCheckbox,
+    selectToDestroy,
+    selectiveDestroy,
   } = props;
   const { hasSSHKeys } = useContext(TenantContext);
   const [expandedId, setExpandedId] = useState(
@@ -140,6 +146,9 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               hasSSHKeys={hasSSHKeys}
               handleManagerSorting={handleManagerSorting}
               showAdvanced={showAdvanced}
+              showCheckbox={showCheckbox}
+              selectiveDestroy={selectiveDestroy}
+              selectToDestroy={selectToDestroy}
             />
           ),
         }}
