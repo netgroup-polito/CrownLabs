@@ -1,5 +1,9 @@
+import {
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
 import { FetchResult, MutationFunctionOptions } from '@apollo/client';
-import { notification } from 'antd';
+import { message } from 'antd';
 import Button from 'antd-button-color';
 import { Dispatch, SetStateAction } from 'react';
 import {
@@ -413,29 +417,57 @@ const makeNotificationContent = (
   status: Nullable<string>,
   instanceUrl?: Nullable<string>
 ) => {
+  const font20px = { fontSize: '20px' };
   return {
-    message: templateName,
-    description: (
-      <>
-        <div>
-          Instance Name:
-          <i> {instanceName}</i>
+    content: (
+      <div className="flex justify-between items-start gap-1 p-1 w-72">
+        <div className="flex flex-none items-start ">
+          {status === Phase.Ready ? (
+            <CheckCircleOutlined
+              className="success-color-fg mr-3"
+              style={font20px}
+            />
+          ) : (
+            <ExclamationCircleOutlined
+              className="warning-color-fg mr-3"
+              style={font20px}
+            />
+          )}
         </div>
-        <div>
-          Status:
-          <i>
-            {status === Phase.Ready
-              ? ' started'
-              : status === Phase.Off && ' stopped'}
-          </i>
+        <div className="flex flex-grow flex-col items-start gap-1">
+          <div className="pr-1 flex justify-start">
+            <b> {templateName}</b>
+          </div>
+          <div className="pr-1 flex justify-start">
+            Instance Name:
+            <i> {instanceName}</i>
+          </div>
+          <div className="pr-1 flex justify-between w-full">
+            <div>
+              Status:
+              <i>
+                {status === Phase.Ready
+                  ? ' started'
+                  : status === Phase.Off && ' stopped'}
+              </i>
+            </div>
+            {instanceUrl && (
+              <Button
+                type="success"
+                size="small"
+                href={instanceUrl}
+                target="_blank"
+              >
+                Connect
+              </Button>
+            )}
+          </div>
         </div>
-      </>
+      </div>
     ),
-    btn: instanceUrl && (
-      <Button type="success" size="small" href={instanceUrl} target="_blank">
-        Connect
-      </Button>
-    ),
+    icon: <></>,
+    className: 'mr-6 flex justify-end',
+    duration: 5,
   };
 };
 
@@ -447,12 +479,7 @@ export const notifyStatus = (
   if (!instance) {
     throw new Error('notifyStatus error: instance parameter is undefined');
   }
-  if (updateType === UpdateType.Deleted) {
-    notification.warning({
-      message: instance.spec?.prettyName || instance.metadata?.name,
-      description: `Instance deleted`,
-    });
-  } else {
+  if (updateType !== UpdateType.Deleted) {
     const { name } = instance.metadata ?? {};
     const { prettyName } = instance.spec ?? {};
     const { url } = instance.status ?? {};
@@ -463,13 +490,13 @@ export const notifyStatus = (
     switch (status) {
       case Phase.Off:
         !instance.spec?.running &&
-          notification.warning(
+          message.warning(
             makeNotificationContent(templateName, prettyName || name, status)
           );
         break;
       case Phase.Ready:
         instance.spec?.running &&
-          notification.success(
+          message.success(
             makeNotificationContent(
               templateName,
               prettyName || name,
