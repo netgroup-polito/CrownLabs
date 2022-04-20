@@ -2,13 +2,14 @@
 shopt -s dotglob
 
 if [ ! -f "/config/workspace/.vscode/.startup" ]; then
+    rm -rf /config/workspace/*
     mkdir -p /config/workspace/.vscode/
-    rm -r /config/workspace
     cp -R /example_project/* /config/workspace
     echo "[Persistent Only Feature]" > /config/workspace/.vscode/.startup
     echo "If your CrownLabs instance is persistent, delete this file if you want to reset the workspace on next startup." >> /config/workspace/.vscode/.startup
 fi
 
+# Check if in the passed arguments is specified to disable workspace through the option --disable-marketplace
 for ARGUMENT in "$@"; do
     if [ "$ARGUMENT" == "--disable-marketplace" ] ; then
         export EXTENSIONS_GALLERY='{"serviceUrl": ""}'

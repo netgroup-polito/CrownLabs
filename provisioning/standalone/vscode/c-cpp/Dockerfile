@@ -12,30 +12,38 @@
 #RUN touch LICENSE.txt
 #RUN vsce package --yarn
 
+# Include base Dockerfile using dockerfile-plus
 INCLUDE+ ./base/Dockerfile
 
 ENV SUDO_FORCE_REMOVE yes
-ENV CPPTOOLS_VERSION=1.7.1
+ENV CPPTOOLS_VERSION=v1.9.8
+
 
 COPY ./c-cpp/project/main.c /example_project/main.c
 COPY ./c-cpp/project/main.cpp /example_project/main.cpp
 COPY ./c-cpp/project/vscode /example_project/.vscode
 COPY ./c-cpp/settings.json /config/data/User/settings.json
 
+# Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && apt-get install -y build-essential cmake gdb && \
     apt-get clean && \
     apt-get remove --autoremove --purge -y sudo apt --allow-remove-essential
 
-#This line can be used to retrieve the locally compiled package from the building stage
+# This line can be used to retrieve the locally compiled package from the building stage
 #COPY --from=builder /vscode-cpptools/Extension/cpptools-${CPPTOOLS_VERSION}-main.vsix ./cpptools-linux.vsix
+
+# Download c-cpp vscode extension
 ADD "https://github.com/microsoft/vscode-cpptools/releases/download/${CPPTOOLS_VERSION}/cpptools-linux.vsix" "./cpptools-linux.vsix"
 
-RUN chown -R crownlabs:crownlabs /config && \
-    chown -R crownlabs:crownlabs /example_project && \
-    chown crownlabs:crownlabs cpptools-linux.vsix && \
-    chmod 755 cpptools-linux.vsix
+# Setup permissions
+RUN chown -R $USER:$USER /config && \
+    chown -R $USER:$USER /example_project && \
+    chown $USER:$USER cpptools-linux.vsix && \
+    chmod 400 cpptools-linux.vsix
 
-USER crownlabs
+USER $USER
+
+# Install extensions
 RUN code-server --extensions-dir /config/extensions --install-extension cpptools-linux.vsix && \
     code-server --extensions-dir /config/extensions --install-extension formulahendry.code-runner
 ENTRYPOINT [ "/start.sh" ]
