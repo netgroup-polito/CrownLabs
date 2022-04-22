@@ -1,0 +1,16 @@
+{
+    "go.toolsManagement.autoUpdate": true,
+    "[go]": {
+        "editor.insertSpaces": false,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": false
+        },
+        "editor.suggest.snippetsPreventQuickSuggestions": false
+    },
+    "go.formatTool": "gofmt",
+    "go.lintTool": "golangci-lint",
+    "gopls": {
+        "build.experimentalWorkspaceModule": true
+    }
+}
