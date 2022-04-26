@@ -41,7 +41,6 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
       linkPosition: b.linkPosition,
       content: (
         <Link
-          target={isExtLink ? '_blank' : ''}
           key={i}
           to={{ pathname: isExtLink ? '' : routeData.path }}
           rel={isExtLink ? 'noopener noreferrer' : ''}
