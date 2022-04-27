@@ -36,7 +36,7 @@ var _ = Describe("Resource quota spec forging", func() {
 			BeforeEach(func() {
 				tenant = clv1alpha2.Tenant{
 					Spec: clv1alpha2.TenantSpec{
-						Quota: &clv1alpha2.TenantResourceQuota{
+						Quota: &clv1alpha2.TenantResourceQuotaData{
 							CPU:       *resource.NewQuantity(25, resource.DecimalSI),
 							Memory:    *resource.NewScaledQuantity(50, resource.Giga),
 							Instances: 6,
@@ -46,12 +46,13 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(nil, tenant.Spec.Quota)
+				resourceQuotaData := forge.TenantResourceList(nil, tenant.Spec.Quota)
+				tenant.Status.Quota.Limits = &resourceQuotaData
 			})
 
 			When("Forging resource quota in tenant status", func() {
 				It("It should forge tenant resource quota by overriding from the tenant spec", func() {
-					Expect(tenant.Status.Quota).To(Equal(*tenant.Spec.Quota))
+					Expect(*tenant.Status.Quota.Limits).To(Equal(*tenant.Spec.Quota))
 				})
 			})
 		})
@@ -82,20 +83,21 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(workspaces, tenant.Spec.Quota)
+				resourceQuotaData := forge.TenantResourceList(workspaces, tenant.Spec.Quota)
+				tenant.Status.Quota.Limits = &resourceQuotaData
 			})
 
 			When("Forging resource quota in tenant status", func() {
 				It("Should have total amount of CPU equal to the defined cap, because the sum for each workspace exceedes it", func() {
-					Expect(tenant.Status.Quota.CPU).To(Equal(*resource.NewQuantity(25, resource.DecimalSI)))
+					Expect(tenant.Status.Quota.Limits.CPU).To(Equal(*resource.NewQuantity(25, resource.DecimalSI)))
 				})
 
 				It("Should have total amount of memory equal to the sum for each workspace", func() {
-					Expect(tenant.Status.Quota.Memory).To(Equal(*resource.NewScaledQuantity(40, resource.Giga)))
+					Expect(tenant.Status.Quota.Limits.Memory).To(Equal(*resource.NewScaledQuantity(40, resource.Giga)))
 				})
 
 				It("Should have total number of instances equal to the sum for each workspace", func() {
-					Expect(tenant.Status.Quota.Instances).To(Equal(uint32(5)))
+					Expect(tenant.Status.Quota.Limits.Instances).To(Equal(uint32(5)))
 				})
 			})
 		})
@@ -109,33 +111,83 @@ var _ = Describe("Resource quota spec forging", func() {
 
 		BeforeEach(func() {
 			tenant = clv1alpha2.Tenant{
-				Spec: clv1alpha2.TenantSpec{
-					Quota: &clv1alpha2.TenantResourceQuota{
-						CPU:       *resource.NewQuantity(15, resource.DecimalSI),
-						Memory:    *resource.NewScaledQuantity(20, resource.Giga),
-						Instances: 3,
+				Status: clv1alpha2.TenantStatus{
+					Quota: clv1alpha2.TenantResourceQuota{
+						Limits: &clv1alpha2.TenantResourceQuotaData{
+							CPU:       *resource.NewQuantity(25, resource.DecimalSI),
+							Memory:    *resource.NewScaledQuantity(50, resource.Giga),
+							Instances: 3,
+						},
 					},
 				},
 			}
 		})
 
 		JustBeforeEach(func() {
-			spec = forge.TenantResourceQuotaSpec(&tenant.Status.Quota)
+			spec = forge.TenantResourceQuotaSpec(tenant.Status.Quota.Limits)
 		})
 
 		When("Forging the resource quota specifications", func() {
-			It("Should have total amount of CPU requests and limits equal to the ones associated with the Tenant", func() {
-				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(tenant.Status.Quota.CPU))
-				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(tenant.Status.Quota.CPU))
+
+			It("Should have total amount of CPU requests equal to the ones associated with the ResourceQuota", func() {
+				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(tenant.Status.Quota.Limits.CPU))
+				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(tenant.Status.Quota.Limits.CPU))
 			})
 
 			It("Should have total amount of memory requests and limits equal to the ones associated with the Tenant", func() {
-				Expect(spec[corev1.ResourceLimitsMemory]).To(Equal(tenant.Status.Quota.Memory))
-				Expect(spec[corev1.ResourceRequestsMemory]).To(Equal(tenant.Status.Quota.Memory))
+				Expect(spec[corev1.ResourceLimitsMemory]).To(Equal(tenant.Status.Quota.Limits.Memory))
+				Expect(spec[corev1.ResourceRequestsMemory]).To(Equal(tenant.Status.Quota.Limits.Memory))
 			})
 
 			It("Should have total number of instances equal to the one associated with the Tenant", func() {
-				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(int64(tenant.Status.Quota.Instances), resource.DecimalSI)))
+				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(int64(tenant.Status.Quota.Limits.Instances), resource.DecimalSI)))
+			})
+		})
+	})
+
+	Describe("The forge.TenantResourceQuotaStatusUsed function", func() {
+		var (
+			used          *clv1alpha2.TenantResourceQuotaData
+			expected      clv1alpha2.TenantResourceQuotaData
+			instances     clv1alpha2.InstanceList
+			resourceQuota corev1.ResourceQuota
+		)
+
+		BeforeEach(func() {
+			expected = clv1alpha2.TenantResourceQuotaData{
+				CPU:       *resource.NewQuantity(25, resource.DecimalSI),
+				Memory:    *resource.NewScaledQuantity(50000, resource.Mega),
+				Instances: 3,
+			}
+			instances = clv1alpha2.InstanceList{
+				Items: make([]clv1alpha2.Instance, 3),
+			}
+			resourceQuota = corev1.ResourceQuota{
+				Status: corev1.ResourceQuotaStatus{
+					Used: map[corev1.ResourceName]resource.Quantity{
+						corev1.ResourceLimitsCPU:    *resource.NewQuantity(25, resource.DecimalSI),
+						corev1.ResourceLimitsMemory: *resource.NewScaledQuantity(50, resource.Giga),
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			used = forge.TenantResourceQuotaStatusUsed(&resourceQuota, &instances)
+		})
+
+		When("Updating the status", func() {
+
+			It("Should have total amount of CPU requests equal to the ones associated with the ResourceQuota", func() {
+				Expect(used.CPU).To(Equal(expected.CPU))
+			})
+
+			It("Should have total amount of memory requests equal to the ones associated with the ResourceQuota", func() {
+				Expect(used.Memory).To(Equal(expected.Memory))
+			})
+
+			It("Should have total number of instances equal to the length of the instances list", func() {
+				Expect(used.Instances).To(Equal(expected.Instances))
 			})
 		})
 	})

@@ -34,3 +34,14 @@ spec:
     cpu: 6
     memory: "20Gi"
     instances: 4
+--- 
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: workspace-standalone
+spec:
+  prettyName: Standalone applications workspace
+  quota:
+    cpu: 8
+    memory: "15Gi"
+    instances: 5

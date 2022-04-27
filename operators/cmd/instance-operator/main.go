@@ -61,7 +61,7 @@ func main() {
 	svcUrls := instctrl.ServiceUrls{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 
-	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	metricsAddr := flag.String("metrics-addr", ":8088", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
@@ -112,7 +112,7 @@ func main() {
 		Scheme:                 scheme,
 		MetricsBindAddress:     *metricsAddr,
 		LeaderElection:         *enableLeaderElection,
-		HealthProbeBindAddress: ":8081",
+		HealthProbeBindAddress: ":8082",
 		LivenessEndpointName:   "/healthz",
 		ReadinessEndpointName:  "/ready",
 	})

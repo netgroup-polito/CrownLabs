@@ -145,7 +145,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// update resource quota in the status of the tenant after checking validity of workspaces.
-	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
+	tenantResourceQuotaData := forge.TenantResourceList(workspaces, tn.Spec.Quota)
+	tn.Status.Quota.Limits = &tenantResourceQuotaData
 
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 	nsOk, err := r.createOrUpdateClusterResources(ctx, &tn, nsName)
@@ -261,6 +262,12 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // handleDeletion deletes external resources of a tenant using a fail-fast:false strategy.
 func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
+	// KcA could be nil for local testing skipping the keycloak subscription
+	if r.KcA == nil {
+		klog.Warningf("Skipping creation/update of tenant %v in keycloak", tnName)
+		return nil
+	}
+
 	var retErr error
 	// delete keycloak user
 	if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
@@ -320,22 +327,29 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	}
 
 	var retErr error
+	// retrieve instances
+	instances := crownlabsv1alpha2.InstanceList{}
+	err = r.Client.List(ctx, &instances, &client.ListOptions{Namespace: nsName})
+	if err != nil {
+		klog.Errorf("Unable to retrieve instances")
+		retErr = err
+	}
 	// handle resource quota
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
 	}
 	rqOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
-		rq.Spec.Hard = forge.TenantResourceQuotaSpec(&tn.Status.Quota)
-
+		rq.Spec.Hard = forge.TenantResourceQuotaSpec(tn.Status.Quota.Limits)
+		tn.Status.Quota.Used = forge.TenantResourceQuotaStatusUsed(&rq, &instances)
 		return ctrl.SetControllerReference(tn, &rq, r.Scheme)
 	})
+
 	if err != nil {
 		klog.Errorf("Unable to create or update resource quota for tenant %s -> %s", tn.Name, err)
 		retErr = err
 	}
 	klog.Infof("Resource quota for tenant %s %s", tn.Name, rqOpRes)
-
 	// handle roleBinding (instance management)
 	rb := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-instances", Namespace: nsName}}
 	rbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &rb, func() error {

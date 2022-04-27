@@ -311,6 +311,8 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdRq.Spec.Hard["requests.memory"]).Should(Equal(reqMem))
 	Expect(createdRq.Spec.Hard["count/instances.crownlabs.polito.it"]).Should(Equal(instanceCount))
 
+	By("By checking that the tenant status used resource quotas have been correctly updated")
+
 	By("By checking that the role binding of the tenant has been created")
 	rbLookupKey := types.NamespacedName{Name: "crownlabs-manage-instances", Namespace: nsName}
 	createdRb := &rbacv1.RoleBinding{}

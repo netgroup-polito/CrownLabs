@@ -48,12 +48,12 @@ var (
 )
 
 // TenantResourceList forges the Tenant Resource Quota as the value defined in TenantSpec, if any, otherwise it keeps the sum of all quota for each workspace.
-func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.TenantResourceQuota) clv1alpha2.TenantResourceQuota {
+func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.TenantResourceQuotaData) clv1alpha2.TenantResourceQuotaData {
 	// if an override value is defined it is used as return parameter.
 	if override != nil {
 		return *override.DeepCopy()
 	}
-	var quota clv1alpha2.TenantResourceQuota
+	var quota clv1alpha2.TenantResourceQuotaData
 
 	// sum all quota for each existing workspace
 	for i := range workspaces {
@@ -70,13 +70,24 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 }
 
 // TenantResourceQuotaSpec forges the Resource Quota spec as the value defined in TenantStatus.
-func TenantResourceQuotaSpec(quota *clv1alpha2.TenantResourceQuota) corev1.ResourceList {
+func TenantResourceQuotaSpec(quota *clv1alpha2.TenantResourceQuotaData) corev1.ResourceList {
 	return corev1.ResourceList{
 		corev1.ResourceLimitsCPU:      quota.CPU,
 		corev1.ResourceLimitsMemory:   quota.Memory,
 		corev1.ResourceRequestsCPU:    quota.CPU,
 		corev1.ResourceRequestsMemory: quota.Memory,
 		InstancesCountKey:             *resource.NewQuantity(int64(quota.Instances), resource.DecimalSI),
+	}
+}
+
+// TenantResourceQuotaStatusUsed forges the Tenant quota status.
+func TenantResourceQuotaStatusUsed(rq *corev1.ResourceQuota, inst *clv1alpha2.InstanceList) *clv1alpha2.TenantResourceQuotaData {
+	mem := rq.Status.Used[corev1.ResourceLimitsMemory]
+	mem.SetScaled(mem.ScaledValue(resource.Mega), resource.Mega)
+	return &clv1alpha2.TenantResourceQuotaData{
+		CPU:       rq.Status.Used[corev1.ResourceLimitsCPU],
+		Memory:    mem,
+		Instances: uint32(len(inst.Items)),
 	}
 }
 

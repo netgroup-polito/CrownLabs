@@ -4,7 +4,12 @@ metadata:
   name: john.doe
   labels:
     reconcile: "true"
+    crownlabs.polito.it/operator-selector: local
 spec:
+  quota:
+    instances: 10
+    cpu: 20
+    memory: 50Gi
   firstName: John
   lastName: Doe
   email: jonh.doe@email.com

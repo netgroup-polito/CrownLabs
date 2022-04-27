@@ -82,11 +82,11 @@ type TenantSpec struct {
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
 	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
-	Quota *TenantResourceQuota `json:"quota,omitempty"`
+	Quota *TenantResourceQuotaData `json:"quota,omitempty"`
 }
 
-// TenantResourceQuota defines resource quota for each Tenant.
-type TenantResourceQuota struct {
+// TenantResourceQuotaData defines resource quota details.
+type TenantResourceQuotaData struct {
 	// The maximum amount of CPU which can be used by this Tenant.
 	CPU resource.Quantity `json:"cpu"`
 
@@ -96,6 +96,14 @@ type TenantResourceQuota struct {
 	// +kubebuilder:validation:Minimum:=0
 	// The maximum number of concurrent instances which can be created by this Tenant.
 	Instances uint32 `json:"instances"`
+}
+
+// TenantResourceQuota defines maximum and current resource quota for each Tenant.
+type TenantResourceQuota struct {
+	// The amount of used resources associated with this Tenant.
+	Used *TenantResourceQuotaData `json:"used,omitempty"`
+	// The amount of limits resources available to this Tenant.
+	Limits *TenantResourceQuotaData `json:"limits,omitempty"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.
