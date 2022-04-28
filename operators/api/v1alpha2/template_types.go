@@ -123,10 +123,9 @@ type Environment struct {
 // (i.e. CPU, RAM, ...) assigned to a certain environment.
 type EnvironmentResources struct {
 	// +kubebuilder:validation:Minimum:=1
-	// +kubebuilder:validation:Maximum:=8
 
 	// The maximum number of CPU cores made available to the environment
-	// (ranging between 1 and 8 cores). This maps to the 'limits' specified
+	// (at least 1 core). This maps to the 'limits' specified
 	// for the actual pod representing the environment.
 	CPU uint32 `json:"cpu"`
 

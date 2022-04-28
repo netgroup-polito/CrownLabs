@@ -145,11 +145,10 @@ spec:
                       properties:
                         cpu:
                           description: The maximum number of CPU cores made available
-                            to the environment (ranging between 1 and 8 cores). This
-                            maps to the 'limits' specified for the actual pod representing
-                            the environment.
+                            to the environment (at least 1 core). This maps to the
+                            'limits' specified for the actual pod representing the
+                            environment.
                           format: int32
-                          maximum: 8
                           minimum: 1
                           type: integer
                         disk:
