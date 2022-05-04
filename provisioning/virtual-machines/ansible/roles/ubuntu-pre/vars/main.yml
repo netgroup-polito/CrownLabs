@@ -18,6 +18,7 @@ unnecessary_packages:
 - doc-base
 - espeak
 - fonts-noto-cjk
+- gdm3
 - gigolo
 - gimp
 - gnome-accessibility-themes
