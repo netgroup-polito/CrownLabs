@@ -16,21 +16,15 @@ Having multiple Nextcloud server instances a memory caching is indispensable in 
 
 **Redis** is an excellent modern memcache to use for distributed caching, and as a key-value store for Transactional File Locking because it guarantees that cached objects are available for as long as they are needed.
 
-To run a Redis cluster we need the [KubeDB Operator](https://kubedb.com), which can be installed using Helm after having obtained a [licence for the community edition](https://license-issuer.appscode.com/):
+To install Redis we can use the [Helm Chart from Bitnami](https://github.com/bitnami/charts/tree/master/bitnami/redis).
 
 ```bash
-helm repo add appscode https://charts.appscode.com/stable/
+helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
-helm install --create-namespace -namespace kubedb kubedb appscode/kubedb \
-  --values=manifests/kubedb-values.yaml\
-  --version v2021.04.16 \
-  --set-file global.license=<license-file>
+
+helm upgrade --install --values redis-values.yaml redis-nextcloud bitnami/redis
 ```
 
-Then we install **redis** applying the [nextcloud-redis-cluster-manifest.yaml](manifests/nextcloud-redis-cluster-manifest.yaml):
-```bash
-kubectl create -n nextcloud -f redis-cluster-manifest.yaml
-```
 ## Postgres cluster
 
 Proceed installing the Postgres cluster, by applying the [nextcloud-postgres-cluster-manifest.yaml](manifests/nextcloud-postgres-cluster-manifest.yaml), which will be consumed by Nextcloud:
