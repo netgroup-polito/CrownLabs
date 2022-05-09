@@ -80,7 +80,12 @@ spec:
         - name: NEXTCLOUD_TRUSTED_DOMAINS
           value: "crownlabs.polito.it/cloud"
         - name: REDIS_HOST
-          value: redis-nextcloud
+          value: redis-nextcloud-master
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: redis-password
+              name: redis-nextcloud
         ports:
         - containerPort: 80
           name: http
