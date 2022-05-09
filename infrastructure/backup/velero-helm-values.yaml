@@ -6,7 +6,7 @@
 # enabling restic). Required.
 image:
   repository: velero/velero
-  tag: v1.7.1
+  tag: v1.8.1
   # Digest value example: sha256:d238835e151cec91c6a811fe3a89a66d3231d9f64d09e5f3c49552672d271f38.
   # If used, it will take precedence over the image.tag.
   # digest:
@@ -59,7 +59,7 @@ initContainers:
   #     - mountPath: /target
   #       name: plugins
   - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.3.0
+    image: velero/velero-plugin-for-aws:v1.4.1
     imagePullPolicy: IfNotPresent
     volumeMounts:
     - mountPath: /target
@@ -98,6 +98,32 @@ extraVolumes: []
 # Extra volumeMounts for the Velero deployment. Optional.
 extraVolumeMounts: []
 
+# Extra K8s manifests to deploy
+extraObjects: []
+  # - apiVersion: secrets-store.csi.x-k8s.io/v1
+  #   kind: SecretProviderClass
+  #   metadata:
+  #     name: velero-secrets-store
+  #   spec:
+  #     provider: aws
+  #     parameters:
+  #       objects: |
+  #         - objectName: "velero"
+  #           objectType: "secretsmanager"
+  #           jmesPath:
+  #               - path: "access_key"
+  #                 objectAlias: "access_key"
+  #               - path: "secret_key"
+  #                 objectAlias: "secret_key"
+  #     secretObjects:
+  #       - data:
+  #         - key: access_key
+  #           objectName: client-id
+  #         - key: client-secret
+  #           objectName: client-secret
+  #         secretName: velero-secrets-store
+  #         type: Opaque
+
 # Settings for Velero's prometheus metrics. Enabled by default.
 metrics:
   enabled: true
@@ -129,6 +155,9 @@ kubectl:
     # digest:
     # kubectl image tag. If used, it will take precedence over the cluster Kubernetes version.
     # tag: 1.16.15
+  # Container Level Security Context for the 'kubectl' container of the crd jobs. Optional.
+  # See: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  containerSecurityContext: {}
   # Resource requests/limits to specify for the upgrade/cleanup job. Optional
   resources: {}
   # Annotations to set for the upgrade/cleanup job. Optional.
@@ -263,6 +292,8 @@ rbac:
   create: true
   # Whether to create the cluster role binding to give administrator permissions to Velero
   clusterAdministrator: true
+  # Name of the ClusterRole.
+  clusterAdministratorName: cluster-admin
 
 # Information about the Kubernetes service account Velero uses.
 serviceAccount:
@@ -376,7 +407,7 @@ restic:
 #     annotations:
 #       myenv: foo
 #     schedule: "0 0 * * *"
-#     useOwnerReferencesInBackup: true
+#     useOwnerReferencesInBackup: false
 #     template:
 #       ttl: "240h"
 #       includedNamespaces:
@@ -397,7 +428,7 @@ schedules:
 #       velero.io/plugin-config: ""
 #       velero.io/restic: RestoreItemAction
 #     data:
-#       image: velero/velero-restic-restore-helper:v1.7.1
+#       image: velero/velero-restic-restore-helper:v1.8.1
 configMaps: {}
 
 ##
