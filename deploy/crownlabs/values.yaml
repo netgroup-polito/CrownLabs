@@ -150,3 +150,14 @@ exam-agent:
   image:
     repository: crownlabs/exam-agent
     pullPolicy: IfNotPresent
+
+instmetrics:
+  image:
+    repository: crownlabs/instmetrics
+  configurations:
+    runtimeEndpoint: unix:///run/dockershim.sock
+    containerRuntime: /run/dockershim.sock
+    dockerSocket: /var/run/docker.sock
+    connectionTimeout:  10s
+    updatePeriod: 4s
+    grpcPort: 9090

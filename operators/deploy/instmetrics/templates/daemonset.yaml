@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "instmetrics.fullname" . }}
+  labels:
+    {{- include "instmetrics.labels" . | nindent 4 }}
+{{- with .Values.daemonsetAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "instmetrics.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{ toYaml . | indent 8 }}
+    {{- end }}
+      labels:
+        {{- include "instmetrics.selectorLabels" . | nindent 8 }}
+    spec:
+      tolerations:
+        {{ toYaml .Values.tolerations | indent 8 }}
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "instmetrics.version" . }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          args:
+          - "--runtime-endpoint={{ .Values.configurations.runtimeEndpoint }}"
+          - "--connection-timeout={{ .Values.configurations.connectionTimeout }}"
+          - "--update-period={{ .Values.configurations.updatePeriod }}"
+          - "--grpc-port={{ .Values.configurations.grpcPort }}"
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: probes
+              containerPort: 8081
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: container-runtime
+            mountPath: "{{ .Values.configurations.containerRuntime }}"
+            readOnly: true
+          - name: docker-socket
+            mountPath: "{{ .Values.configurations.dockerSocket }}"
+            readOnly: true
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        - name: container-runtime
+          hostPath:
+            path: "{{ .Values.configurations.containerRuntime }}"
+        - name: docker-socket
+          hostPath:
+            path: "{{ .Values.configurations.dockerSocket }}"

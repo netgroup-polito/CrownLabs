@@ -23,5 +23,8 @@ dependencies:
 - name: exam-agent
   repository: file://../../operators/deploy/exam-agent
   version: 0.1.0
+- name: instmetrics
+  repository: file://../../operators/deploy/instmetrics
+  version: 0.1.0
 digest: sha256:5e61e140806766e46aa2014b018ba66c40653756b213e3ff042782b0d662a6a8
 generated: "2022-04-02T18:37:42.140831116+02:00"
