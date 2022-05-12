@@ -75,6 +75,16 @@ func MatchOneInStringSlices(a, b []string) bool {
 	return false
 }
 
+// Contains checks if the value is contained in the slice.
+func Contains(slice []string, value string) bool {
+	for _, val := range slice {
+		if val == value {
+			return true
+		}
+	}
+	return false
+}
+
 // CheckSingleLabel checks if the instance has the label and value.
 func CheckSingleLabel(obj client.Object, label, value string) bool {
 	labels := obj.GetLabels()
