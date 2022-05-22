@@ -161,6 +161,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/", host, instanceUID),
 	}
 
+	DescribeBodyParametersIngressGUIContainer := DescribeBodyParameters{
+		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
+			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
+				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
+		},
+		EmptySpec:              netv1.IngressSpec{},
+		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.URL },
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/app/", host, instanceUID),
+	}
+
 	DescribeBodyParametersIngressMD := DescribeBodyParameters{
 		NamespacedName: &ingressMDName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
@@ -312,7 +323,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			})
 
 			Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
+			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
 			Describe("Assessing the MyDrive ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressMD) })
 		})
 	})

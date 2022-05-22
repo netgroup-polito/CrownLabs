@@ -276,7 +276,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment),
+						forge.WebsockifyContainer(&opts, &environment, i),
 						forge.XVncContainer(&opts),
 						forge.MyDriveContainer(i, &opts, myDriveMountPath),
 						forge.AppContainer(i, e, myDriveMountPath),
@@ -289,7 +289,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment),
+						forge.WebsockifyContainer(&opts, &environment, i),
 						forge.XVncContainer(&opts),
 						forge.AppContainer(i, e, myDriveMountPath),
 					}
@@ -301,7 +301,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment),
+						forge.WebsockifyContainer(&opts, &environment, i),
 						forge.XVncContainer(&opts),
 						forge.AppContainer(i, e, myDriveMountPath),
 					}
@@ -360,8 +360,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			expected.Name = envName
 			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_BASE_PATH", forge.IngressGUICleanPath(&instance))
 			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_LISTEN_PORT", "6080")
-			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
-			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
+			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})
@@ -370,7 +370,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual, expected corev1.Container
 		JustBeforeEach(func() {
 			expected = corev1.Container{}
-			actual = forge.WebsockifyContainer(&opts, &environment)
+			actual = forge.WebsockifyContainer(&opts, &environment, &instance)
 		})
 
 		It("Should set the correct container name and image", func() {
@@ -387,12 +387,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			forge.AddTCPPortToContainer(&expected, "metrics", 9090)
 			Expect(actual.Ports).To(Equal(expected.Ports))
 		})
-		It("Should set no environment variables", func() {
-			Expect(actual.Env).To(BeEmpty())
-		})
 		It("Should set the readiness probe", func() {
 			forge.SetContainerReadinessTCPProbe(&expected, "gui")
 			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
+		})
+		It("Should set the env varibles", func() {
+			expected.Name = forge.WebsockifyName
+			forge.AddEnvVariableFromFieldToContainer(&expected, forge.PodNameEnvName, "metadata.name")
+			forge.AddEnvVariableFromResourcesToContainer(&expected, forge.AppCPULimitsEnvName, environment.Name, corev1.ResourceLimitsCPU, forge.MilliDivisor)
+			forge.AddEnvVariableFromResourcesToContainer(&expected, forge.AppMEMLimitsEnvName, environment.Name, corev1.ResourceLimitsMemory, forge.DefaultDivisor)
+			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 
 		When("the environment mode is Standard", func() {
@@ -403,8 +407,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
+					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
 					"--show-controls=true",
+					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
+					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
+					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
+					fmt.Sprintf("--memory-limit=$(%s)", forge.AppMEMLimitsEnvName),
 				}))
 			})
 		})
@@ -417,8 +426,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
+					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
 					"--show-controls=false",
+					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
+					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
+					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
+					fmt.Sprintf("--memory-limit=$(%s)", forge.AppMEMLimitsEnvName),
 				}))
 			})
 		})
@@ -516,8 +530,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			})
 			It("Should set the env varibles", func() {
 				expected.Name = envName
-				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
-				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
+				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
 				Expect(actual.Env).To(ConsistOf(expected.Env))
 			})
 		})
@@ -779,7 +793,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.AddEnvVariableFromResourcesToContainer", func() {
 		JustBeforeEach(func() {
 			container.Name = envName
-			forge.AddEnvVariableFromResourcesToContainer(&container, envVarName, corev1.ResourceRequestsCPU)
+			forge.AddEnvVariableFromResourcesToContainer(&container, envVarName, container.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
 		})
 		It("Should add a single env entry with the specified parameters", func() {
 			Expect(container.Env).To(ConsistOf(corev1.EnvVar{

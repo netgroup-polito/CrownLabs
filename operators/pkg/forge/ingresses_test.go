@@ -155,20 +155,16 @@ var _ = Describe("Ingresses", func() {
 					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-					Annotations: nil,
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
-					}, "3600"),
+					Annotations:    nil,
+					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
 				}),
 				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
 						"user/key": "user/value",
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
@@ -178,7 +174,6 @@ var _ = Describe("Ingresses", func() {
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"nginx.ingress.kubernetes.io/rewrite-target": "/websockify",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
@@ -362,7 +357,7 @@ var _ = Describe("Ingresses", func() {
 				})
 				Context("The instance has no special configurations", func() {
 					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/vnc"))
+						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
 					})
 				})
 			})
@@ -396,8 +391,8 @@ var _ = Describe("Ingresses", func() {
 				BeforeEach(func() {
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 				})
-				It("Should generate a path based on the instance UID", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/"))
+				It("Should generate a path based on the instance UID and /app at the end", func() {
+					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
 				})
 			})
 		})
@@ -410,7 +405,6 @@ var _ = Describe("Ingresses", func() {
 				BeforeEach(func() {
 					environment.EnvironmentType = clv1alpha2.ClassStandalone
 				})
-
 				It("Should generate a path based on the instance UID and /app at the end", func() {
 					Expect(GUIName).To(BeIdenticalTo("app"))
 				})
