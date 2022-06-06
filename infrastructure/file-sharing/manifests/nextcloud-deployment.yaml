@@ -41,7 +41,7 @@ spec:
       volumes:
       - name: nextcloud-data
         persistentVolumeClaim:
-          claimName: nextcloud-cephfs-pvc
+          claimName: nextcloud-data
       - name: php-configmap-volume
         configMap:
           name: nextcloud-php-configmap
@@ -49,8 +49,7 @@ spec:
           - key: custom-php.ini
             path: custom-php.ini
       containers:
-      - image: nextcloud:production-apache
-        imagePullPolicy: Always
+      - image: nextcloud:24.0.1-apache
         name: nextcloud
         env:
         - name: POSTGRES_HOST

@@ -37,7 +37,7 @@ For more information about the Postgres Operator please refer to this [README.md
 ## CEPHfs for the PVC
 The Ceph File System, or CephFS, is a POSIX-compliant file system built on top of Ceph’s distributed object store, RADOS. CephFS endeavors to provide a state-of-the-art, multi-use, highly available,
 and performant file store for a variety of applications, including traditional use-cases like shared home directories, HPC scratch space, and distributed workflow shared storage.
-Now we will create a Persistent Volume Claim which will be attached to the Nextcloud Deployment. Applying the [nextcloud-pvc.yaml](manifests/nextcloud-pvc.yaml) we will have a PVC of 700 Gi in size provisioned
+Now we will create a Persistent Volume Claim which will be attached to the Nextcloud Deployment. Applying the [nextcloud-pvc.yaml](manifests/nextcloud-pvc.yaml) we will have a PVC of 500 Gi in size provisioned
 by the **csi-cephfs** storage class.
 ```bash
 kubectl create -n nextcloud -f nextcloud-pvc.yaml
