@@ -77,6 +77,21 @@ func EnvironmentFrom(ctx context.Context) *clv1alpha2.Environment {
 	return ctx.Value(environmentKey).(*clv1alpha2.Environment)
 }
 
+// LoggerIntoContext takes a context and sets the logger as one of its values.
+// Use LoggerFromContext function to retrieve the logger.
+func LoggerIntoContext(ctx context.Context, log logr.Logger) context.Context {
+	return logr.NewContext(ctx, log)
+}
+
+// LoggerFromContext returns a logger with predefined values from a context.Context.
+func LoggerFromContext(ctx context.Context, keysAndValues ...interface{}) logr.Logger {
+	var log logr.Logger
+	if ctx != nil {
+		log = logr.FromContext(ctx)
+	}
+	return log.WithValues(keysAndValues...)
+}
+
 func objectInto(ctx context.Context, key ctxValueKey, object client.Object) (context.Context, logr.Logger) {
 	log := ctrl.LoggerFrom(ctx, key, klog.KObj(object))
 	ctx = context.WithValue(ctrl.LoggerInto(ctx, log), key, object)

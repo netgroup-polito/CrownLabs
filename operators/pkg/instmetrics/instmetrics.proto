@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package instmetrics;
+option go_package = "./instmetrics";
+
+service InstanceMetrics {
+    // ContainerMetrics returns metrics of the "application container" related to the required PodName. 
+    // If the container does not exist, the call returns an error.
+    rpc ContainerMetrics(ContainerMetricsRequest) returns (ContainerMetricsResponse) {}
+}
+
+message ContainerMetricsResponse {
+    float cpu_perc = 1; 
+	uint64 mem_bytes = 2;
+	uint64 disk_bytes = 3;
+}
+
+message ContainerMetricsRequest {
+    // Filter needed to find target "application container"
+    string pod_name = 1;
+}
