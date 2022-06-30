@@ -19,6 +19,7 @@ package forge
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -135,6 +136,8 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 		AutomountServiceAccountToken:  pointer.Bool(false),
 		TerminationGracePeriodSeconds: pointer.Int64(containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
+		EnableServiceLinks:            pointer.Bool(false),
+		Hostname:                      InstanceHostname(environment),
 	}
 	return spec
 }
@@ -454,4 +457,13 @@ func MyDriveMountPath(environment *clv1alpha2.Environment) string {
 	}
 
 	return MyDriveDefaultMountPath
+}
+
+// InstanceHostname forges the hostname of the instance:
+// empty for standard mode (will use pod name) or the lowercase mode otherwise.
+func InstanceHostname(environment *clv1alpha2.Environment) string {
+	if environment.Mode != clv1alpha2.ModeStandard {
+		return strings.ToLower(string(environment.Mode))
+	}
+	return ""
 }

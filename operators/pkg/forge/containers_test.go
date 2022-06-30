@@ -249,6 +249,14 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(spec.AutomountServiceAccountToken).To(PointTo(BeFalse()))
 		})
 
+		It("Should disable service links", func() {
+			Expect(spec.EnableServiceLinks).To(PointTo(BeFalse()))
+		})
+
+		It("Should set the container hostname accordingly", func() {
+			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&environment)))
+		})
+
 		When("the environment type is Standalone", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
 				Mode:            clv1alpha2.ModeStandard,
@@ -1158,4 +1166,43 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}))
 	})
 
+	Describe("The forge.InstanceHostname function", func() {
+		var actual string
+
+		JustBeforeEach(func() {
+			actual = forge.InstanceHostname(&environment)
+		})
+
+		type EnvModeCase struct {
+			EnvMode        clv1alpha2.EnvironmentMode
+			ExpectedOutput string
+		}
+
+		WhenBody := func(c EnvModeCase) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.Mode = c.EnvMode
+				})
+
+				It("Should return the correct hostname", func() {
+					Expect(actual).To(Equal(c.ExpectedOutput))
+				})
+			}
+		}
+
+		When("the environment mode is Exercise", WhenBody(EnvModeCase{
+			EnvMode:        clv1alpha2.ModeExercise,
+			ExpectedOutput: "exercise",
+		}))
+
+		When("the environment mode is Exam", WhenBody(EnvModeCase{
+			EnvMode:        clv1alpha2.ModeExam,
+			ExpectedOutput: "exam",
+		}))
+
+		When("the environment mode is Standard", WhenBody(EnvModeCase{
+			EnvMode:        clv1alpha2.ModeStandard,
+			ExpectedOutput: "",
+		}))
+	})
 })
