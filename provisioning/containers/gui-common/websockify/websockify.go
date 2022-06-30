@@ -18,11 +18,9 @@ package main
 // Original version at https://github.com/novnc/websockify-other/tree/master/golang
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -86,23 +84,34 @@ func (h *NoVncHandler) serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip := r.Header.Get(headerXForwardedFor)
-	connID := atomic.AddUint32(&h.connectionsCount, 1)
+	if ip == "" {
+		ip = "unknown"
+	}
+	connUID := r.URL.Query().Get("connUid")
 
-	metric := makeLatencyObserver(ip, fmt.Sprint(connID))
-
-	log.Printf("Incoming websocket connection from IP=%s", ip)
-	go forwardtcp(ws, vnc)
-	go forwardweb(ws, vnc)
-	go h.pingCycle(ws, metric)
+	if ci, ok := h.connectionsTracking.Load(connUID); ok {
+		connectionInfo := ci.(ConnInfo)
+		metric := makeLatencyObserver(ip, connUID)
+		log.Printf("Incoming websocket connection on path /websockify from IP=%s", ip)
+		go forwardtcp(ws, vnc)
+		go forwardweb(ws, vnc)
+		go h.pingCycle(ws, metric, &connectionInfo)
+	} else {
+		log.Println("received connUid queryParam was never assigned")
+		_ = ws.Close()
+		return
+	}
 }
 
-func (h *NoVncHandler) pingCycle(wsconn *websocket.Conn, metric prometheus.Observer) {
+func (h *NoVncHandler) pingCycle(wsconn *websocket.Conn, metric prometheus.Observer, connInfo *ConnInfo) {
 	// set pong handler
 	lastPing := time.Now()
 	wsconn.SetPongHandler(func(data string) error {
-		latency := time.Since(lastPing)
-		metric.Observe(float64(latency.Milliseconds()))
-		log.Printf("ping latency: %s", latency)
+		connInfo.Latency = time.Since(lastPing).Milliseconds()
+		connInfo.Active = true
+		metric.Observe(float64(connInfo.Latency))
+		h.connectionsTracking.Store(connInfo.UID, *connInfo)
+		log.Printf("ping latency: %dms, connUid: %s", connInfo.Latency, connInfo.UID)
 		return nil
 	})
 
@@ -111,6 +120,12 @@ func (h *NoVncHandler) pingCycle(wsconn *websocket.Conn, metric prometheus.Obser
 		err := wsconn.WriteControl(websocket.PingMessage, nil, time.Now().Add(h.PingInterval))
 		if err != nil {
 			log.Println("ping error:", err)
+			log.Printf("stopping connection tracking for <IP %s; UID %s>", connInfo.IP, connInfo.UID)
+
+			connInfo.Latency = 0
+			connInfo.Active = false
+			connInfo.DisconnTime = time.Now()
+			h.connectionsTracking.Store(connInfo.UID, *connInfo)
 			ticker.Stop()
 		}
 	}

@@ -53,8 +53,21 @@ const (
 	CrownLabsUserID = int64(1010)
 	// SubmissionJobMaxRetries -> max number of retries for submission jobs.
 	SubmissionJobMaxRetries = 10
+	// AppCPULimitsEnvName -> name of the env variable containing AppContainer CPU limits.
+	AppCPULimitsEnvName = "APP_CPU_LIMITS"
+	// AppMEMLimitsEnvName -> name of the env variable containing AppContainer memory limits.
+	AppMEMLimitsEnvName = "APP_MEM_LIMITS"
+	// PodNameEnvName -> name of the env variable containing the Pod Name.
+	PodNameEnvName = "POD_NAME"
 
 	containersTerminationGracePeriod = 10
+)
+
+var (
+	// DefaultDivisor -> "0".
+	DefaultDivisor = *resource.NewQuantity(0, "")
+	// MilliDivisor -> "1m".
+	MilliDivisor = *resource.NewMilliQuantity(1, resource.DecimalSI)
 )
 
 // ContainerEnvOpts contains images name and tag for container environment.
@@ -65,6 +78,7 @@ type ContainerEnvOpts struct {
 	MyDriveImgAndTag     string
 	ContentDownloaderImg string
 	ContentUploaderImg   string
+	InstMetricsEndpoint  string
 }
 
 // PVCSpec forges a ReadWriteOnce PersistentVolumeClaimSpec
@@ -166,7 +180,7 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	volumeMountPath := MyDriveMountPath(environment)
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassContainer:
-		containers = append(containers, WebsockifyContainer(opts, environment), XVncContainer(opts), AppContainer(instance, environment, volumeMountPath))
+		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(instance, environment, volumeMountPath))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath))
 	default:
@@ -179,14 +193,22 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
 // to the VNC server.
-func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment) corev1.Container {
+func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) corev1.Container {
 	websockifyContainer := GenericContainer(WebsockifyName, fmt.Sprintf("%s:%s", opts.WebsockifyImg, opts.ImagesTag))
 	SetContainerResources(&websockifyContainer, 0.01, 0.1, 30, 100)
+	AddEnvVariableFromFieldToContainer(&websockifyContainer, PodNameEnvName, "metadata.name")
+	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppCPULimitsEnvName, environment.Name, corev1.ResourceLimitsCPU, MilliDivisor)
+	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppMEMLimitsEnvName, environment.Name, corev1.ResourceLimitsMemory, DefaultDivisor)
 	AddTCPPortToContainer(&websockifyContainer, GUIPortName, GUIPortNumber)
 	AddTCPPortToContainer(&websockifyContainer, MetricsPortName, MetricsPortNumber)
 	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
+	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance))
 	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
 	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(environment.Mode == clv1alpha2.ModeStandard))
+	AddContainerArg(&websockifyContainer, "instmetrics-server-endpoint", opts.InstMetricsEndpoint)
+	AddContainerArg(&websockifyContainer, "pod-name", fmt.Sprintf("$(%s)", PodNameEnvName))
+	AddContainerArg(&websockifyContainer, "cpu-limit", fmt.Sprintf("$(%s)", AppCPULimitsEnvName))
+	AddContainerArg(&websockifyContainer, "memory-limit", fmt.Sprintf("$(%s)", AppMEMLimitsEnvName))
 	SetContainerReadinessTCPProbe(&websockifyContainer, GUIPortName)
 	return websockifyContainer
 }
@@ -236,8 +258,8 @@ func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.
 func AppContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
 	appContainer := GenericContainer(environment.Name, environment.Image)
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
-	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", corev1.ResourceRequestsCPU)
-	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", corev1.ResourceLimitsCPU)
+	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", appContainer.Name, corev1.ResourceRequestsCPU, DefaultDivisor)
+	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", appContainer.Name, corev1.ResourceLimitsCPU, DefaultDivisor)
 	if NeedsContainerVolume(instance, environment) {
 		AddContainerVolumeMount(&appContainer, MyDriveName, volumeMountPath)
 	}
@@ -316,14 +338,27 @@ func AddEnvVariableToContainer(c *corev1.Container, name, value string) {
 	})
 }
 
-// AddEnvVariableFromResourcesToContainer appends an environment variable to the given container's env with a resource-referenced value.
-func AddEnvVariableFromResourcesToContainer(c *corev1.Container, name string, resName corev1.ResourceName) {
+// AddEnvVariableFromFieldToContainer appends an environment variable to the given container's env with a generic field-referenced value.
+func AddEnvVariableFromFieldToContainer(c *corev1.Container, name, value string) {
 	c.Env = append(c.Env, corev1.EnvVar{
 		Name: name,
 		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: value,
+			},
+		},
+	})
+}
+
+// AddEnvVariableFromResourcesToContainer appends an environment variable to the given container's env with a resource-referenced value from the source container.
+func AddEnvVariableFromResourcesToContainer(c *corev1.Container, envVarName, srcContainerName string, resName corev1.ResourceName, divisor resource.Quantity) {
+	c.Env = append(c.Env, corev1.EnvVar{
+		Name: envVarName,
+		ValueFrom: &corev1.EnvVarSource{
 			ResourceFieldRef: &corev1.ResourceFieldSelector{
-				ContainerName: c.Name,
+				ContainerName: srcContainerName,
 				Resource:      resName.String(),
+				Divisor:       divisor,
 			},
 		},
 	})

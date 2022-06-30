@@ -34,8 +34,9 @@ var (
 	)
 )
 
-func runMetricsServer(addr, endpoint string) {
-	http.Handle(endpoint, promhttp.Handler())
+func runMetricsServer(addr, metricsEndpoint string) {
+	http.Handle(metricsEndpoint, promhttp.Handler())
+
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal("failed starting metrics server", err)
 	}

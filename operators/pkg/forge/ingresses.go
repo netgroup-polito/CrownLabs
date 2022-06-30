@@ -31,8 +31,8 @@ const (
 	IngressGUINameSuffix = "gui"
 	// IngressMyDriveNameSuffix -> the suffix added to the name of the ingress targeting the environment "MyDrive".
 	IngressMyDriveNameSuffix = "mydrive"
-	// IngressStandaloneSuffix -> the suffix added to the path of the ingress targeting the standalone application.
-	IngressStandaloneSuffix = "app"
+	// IngressAppSuffix -> the suffix added to the path of the ingress targeting standalone and container environments.
+	IngressAppSuffix = "app"
 
 	// IngressDefaultCertificateName -> the name of the secret containing the crownlabs certificate.
 	IngressDefaultCertificateName = "crownlabs-ingress-secret"
@@ -81,8 +81,6 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 	}
 	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
-	} else if environment.EnvironmentType == clv1alpha2.ClassContainer {
-		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = WebsockifyRewriteEndpoint
 	}
 	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "3600"
 	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = "3600"
@@ -142,10 +140,12 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
 		if environment.RewriteURL {
-			return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix+"(/|$)(.*)"), "/")
+			return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix+"(/|$)(.*)"), "/")
 		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix), "/")
-	case clv1alpha2.ClassContainer, clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix), "/")
+	case clv1alpha2.ClassContainer:
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix), "/")
+	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressVNCGUIPathSuffix), "/")
 	}
 	return ""
@@ -153,15 +153,15 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 
 // IngressGUICleanPath returns the path of the ingress targeting the environment GUI vnc or Standalone, without the url-rewrite's regex.
 func IngressGUICleanPath(instance *clv1alpha2.Instance) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressStandaloneSuffix), "/")
+	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix), "/")
 }
 
 // IngressGuiStatusURL returns the path of the ingress targeting the environment.
 func IngressGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
 	switch environment.EnvironmentType {
-	case clv1alpha2.ClassStandalone:
-		return fmt.Sprintf("https://%v%v/%v/%v/", host, IngressInstancePrefix, instance.UID, IngressStandaloneSuffix)
-	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+		return fmt.Sprintf("https://%v%v/%v/%v/", host, IngressInstancePrefix, instance.UID, IngressAppSuffix)
+	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 		return fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
 	}
 	return ""
@@ -171,7 +171,7 @@ func IngressGuiStatusURL(host string, environment *clv1alpha2.Environment, insta
 func IngressGUIName(environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
-		return IngressStandaloneSuffix
+		return IngressAppSuffix
 	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 		return IngressGUINameSuffix
 	}

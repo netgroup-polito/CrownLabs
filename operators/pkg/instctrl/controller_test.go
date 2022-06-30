@@ -178,7 +178,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				runInstance = false
 			})
 
-			StandaloneContainerIt(forge.IngressStandaloneSuffix, true)
+			StandaloneContainerIt(forge.IngressAppSuffix, true)
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
@@ -186,7 +186,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				environment.EnvironmentType = clv1alpha2.ClassStandalone
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressStandaloneSuffix, false)
+			StandaloneContainerIt(forge.IngressAppSuffix, false)
 		})
 	})
 
