@@ -26,5 +26,8 @@ dependencies:
 - name: instmetrics
   repository: file://../../operators/deploy/instmetrics
   version: 0.1.0
-digest: sha256:5e61e140806766e46aa2014b018ba66c40653756b213e3ff042782b0d662a6a8
-generated: "2022-04-02T18:37:42.140831116+02:00"
+- name: policies
+  repository: file://../../policies
+  version: 0.1.0
+digest: sha256:94f282fd3eb152d3693b5d98117d3cd48ca6570be13a48552de2b3b036696f46
+generated: "2022-07-08T12:10:33.942195264+02:00"

@@ -162,3 +162,12 @@ instmetrics:
     connectionTimeout:  10s
     updatePeriod: 4s
     grpcPort: 9090
+  
+policies:
+  ingressHostnamePattern: s??????.sandbox.crownlabs.polito.it
+  namespaceSelector:
+    matchExpressions:
+      - key: crownlabs.polito.it/type
+        operator: In
+        values:
+        - sandbox

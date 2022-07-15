@@ -64,3 +64,8 @@ dependencies:
   version: "0.1.0"
   repository: file://../../operators/deploy/instmetrics
   condition: instmetrics.enabled
+
+- name: policies
+  version: "0.1.0"
+  repository: file://../../policies
+  condition: policies.enabled
