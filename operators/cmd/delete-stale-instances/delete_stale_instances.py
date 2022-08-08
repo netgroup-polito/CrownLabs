@@ -143,7 +143,7 @@ class InstanceExpiredDeleter:
                              "has a wrong delete_after field format")
             else:
                 # verify instance expiration status
-                if(InstanceExpiredDeleter.instance_is_expired(lifespan, creation_timestamp)):
+                if InstanceExpiredDeleter.instance_is_expired(lifespan, creation_timestamp):
                     try:
                         # delete expired instance
                         api_instance.delete_namespaced_custom_object(group=self.group, version=self.version,
