@@ -218,6 +218,8 @@ jobs:
   release:
     name: Create a new CrownLabs release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs:
       - configure
       - build
@@ -240,28 +242,49 @@ jobs:
         with:
           repository: ${{ github.repository }}
 
-      - name: Generate the CHANGELOG
-        uses: RiskLedger/generate-changelog@v1.2
-        id: changelog
-        with:
-          from: ${{ steps.last-release.outputs.release }}
-          to: ${{ needs.configure.outputs.version }}
-        env:
-          GITHUB_AUTH: ${{ secrets.CI_TOKEN }}
-
-      - name: Save the CHANGELOG as a file
+      - name: Configure Git
         run: |
-          echo "${{ steps.changelog.outputs.changelog }}" > ./CHANGELOG.md
-          sed -i "1s/.*/## Changes since ${{ steps.last-release.outputs.release }}/" ./CHANGELOG.md
+          git config user.name "kingmakerbot"
+          git config user.email "kingmakerbot@users.noreply.github.com"
 
-      - name: Create the release
-        uses: actions/create-release@v1
+      # automatic helm repo management
+      # (from https://github.com/liqotech/liqo/blob/master/.github/workflows/integration.yml)
+      - name: Install Helm
+        uses: azure/setup-helm@v3
         with:
-          tag_name: ${{ needs.configure.outputs.version }}
-          release_name: Release ${{ needs.configure.outputs.version }}
-          body_path: ./CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          version: v3.9.4
+
+      - name: Download chart releaser
+        run: |
+          curl -sSL "https://github.com/helm/chart-releaser/releases/download/v1.4.0/chart-releaser_1.4.0_linux_amd64.tar.gz" | tar -xz
+
+      - name: Package helm chart
+        run: |
+          # the output should be in the .cr-release-packages since cr index expects to find it there to create the helm index
+          helm dependency update deploy/crownlabs && helm package deploy/crownlabs --version "${{ needs.configure.outputs.version }}" --app-version "${{ needs.configure.outputs.version }}" --destination .cr-release-packages
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: ".cr-release-packages/*"
+          generateReleaseNotes: true
+          token: ${{ github.token }}
+          allowUpdates: true
+          tag: ${{ needs.configure.outputs.version }}
+          name: Release ${{ needs.configure.outputs.version }}
+
+      - name: Update Helm index
+        run: |
+          repo=$(cut -d '/' -f 2 <<< "$GITHUB_REPOSITORY")
+          owner=$(cut -d '/' -f 1 <<< "$GITHUB_REPOSITORY")
+          # Update index and push to github pages
+          ./cr index \
+              --owner "$owner" \
+              --git-repo "$repo" \
+              --release-name-template "${{ needs.configure.outputs.version }}" \
+              --token "${{ secrets.GITHUB_TOKEN }}" \
+              --index-path index.yaml \
+              --pages-index-path index.yaml \
+              --push
 
       - name: Notify Event to CrownOps
         uses: peter-evans/repository-dispatch@v1
