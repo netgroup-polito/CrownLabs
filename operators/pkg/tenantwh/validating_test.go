@@ -146,14 +146,16 @@ var _ = Describe("Validating webhook", func() {
 
 	Describe("The TenantValidator.HandleWorkspaceEdit", func() {
 		var newTenant, oldTenant *clv1alpha2.Tenant
+		var operation admissionv1.Operation
 		JustBeforeEach(func() {
-			response = validatingWH.HandleWorkspaceEdit(ctx, newTenant, oldTenant, manager)
+			response = validatingWH.HandleWorkspaceEdit(ctx, newTenant, oldTenant, manager, operation)
 		})
 
 		When("manager adds a workspace he manages", func() {
 			BeforeEach(func() {
 				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser(testWorkspace)
+				operation = admissionv1.Update
 			})
 			It("Should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
@@ -164,6 +166,7 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser(testWorkspace)
+				operation = admissionv1.Update
 			})
 			It("Should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
@@ -174,6 +177,7 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
+				operation = admissionv1.Update
 			})
 			It("Should allow the change", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -186,6 +190,7 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
+				operation = admissionv1.Update
 			})
 			It("Should allow the change", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -198,11 +203,23 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{LastName: "test"}}
 				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
+				operation = admissionv1.Update
 			})
 			It("should deny the change", func() {
 				Expect(response.Allowed).To(BeFalse())
 				Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
 				Expect(response.Result.Reason).NotTo(BeEmpty())
+			})
+		})
+
+		When("a new user is created", func() {
+			BeforeEach(func() {
+				oldTenant = &clv1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
+				operation = admissionv1.Create
+			})
+			It("should allow the change", func() {
+				Expect(response.Allowed).To(BeTrue())
 			})
 		})
 	})

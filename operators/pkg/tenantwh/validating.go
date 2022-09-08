@@ -78,7 +78,7 @@ func (tv *TenantValidator) Handle(ctx context.Context, req admission.Request) ad
 	}
 
 	ctx = ctrl.LoggerInto(ctx, log.WithValues("operation", "workspaces-edit"))
-	return tv.HandleWorkspaceEdit(ctx, tenant, oldTenant, manager)
+	return tv.HandleWorkspaceEdit(ctx, tenant, oldTenant, manager, req.Operation)
 }
 
 // HandleSelfEdit checks every field but public keys for changes through DeepEqual.
@@ -96,7 +96,7 @@ func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTen
 }
 
 // HandleWorkspaceEdit checks that changes made to the workspaces have been made by a valid manager, then checks other fields not to have been modified through DeepEqual.
-func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, oldTenant, manager *clv1alpha2.Tenant) admission.Response {
+func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, oldTenant, manager *clv1alpha2.Tenant, operation admissionv1.Operation) admission.Response {
 	log := ctrl.LoggerFrom(ctx)
 
 	workspacesDiff := CalculateWorkspacesDiff(newTenant, oldTenant)
@@ -111,7 +111,7 @@ func (tv *TenantValidator) HandleWorkspaceEdit(ctx context.Context, newTenant, o
 
 	newTenant.Spec.Workspaces = nil
 	oldTenant.Spec.Workspaces = nil
-	if !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
+	if operation != admissionv1.Create && !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
 		log.Info("denied: unexpected tenant spec change")
 		return admission.Denied("only changes to workspaces are allowed to workspace managers")
 	}
