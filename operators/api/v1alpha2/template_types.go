@@ -160,6 +160,10 @@ type ContainerStartupOpts struct {
 	ContentPath string `json:"contentPath,omitempty"`
 	// Arguments to be passed to the application container on startup
 	StartupArgs []string `json:"startupArgs,omitempty"`
+	// Whether forcing the container working directory to be the same as the contentPath (or default mydrive path if not specified)
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=false
+	EnforceWorkdir bool `json:"enforceWorkdir"`
 }
 
 // +kubebuilder:object:root=true
