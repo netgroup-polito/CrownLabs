@@ -1,8 +1,0 @@
-Operations to perform in order to complete the preparation of the NetlabVM
-
-1) Set the italian keyboard layout (if desired)
-   - Win+R -> Keyboard -> Layout
-2) Zero the HDD to enable VirtualBox to reduce the size of the disk to the actual data stored in there
-   - # systemctl rescue (to enter rescue mode)
-   - # bash zerohdd.sh (executes zerofree under the hood)
-   - (alternatively) If you are running VirtualBox on Windows, download the CloneVDI tool from https://forums.virtualbox.org/viewtopic.php?f=6&t=22422 and it works really great.

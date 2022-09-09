@@ -1,9 +1,0 @@
----
-- name: Install the tools required for the namespaces and cgroups lab
-  apt:
-    name: "{{ packages }}"
-    state: latest
-  vars:
-    packages:
-    - cgroup-tools
-    - tree

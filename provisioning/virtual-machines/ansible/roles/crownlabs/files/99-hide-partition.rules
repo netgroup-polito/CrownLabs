@@ -1,1 +1,0 @@
-ENV{ID_FS_LABEL}=="cidata", ENV{UDISKS_IGNORE}="1"

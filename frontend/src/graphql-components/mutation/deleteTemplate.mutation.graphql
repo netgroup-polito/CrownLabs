@@ -1,8 +1,0 @@
-mutation deleteTemplate($workspaceNamespace: String!, $templateId: String!) {
-  deletedTemplate: deleteCrownlabsPolitoItV1alpha2NamespacedTemplate(
-    namespace: $workspaceNamespace
-    name: $templateId
-  ) {
-    kind
-  }
-}

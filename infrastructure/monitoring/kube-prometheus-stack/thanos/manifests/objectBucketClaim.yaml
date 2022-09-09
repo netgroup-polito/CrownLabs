@@ -1,8 +1,0 @@
-apiVersion: objectbucket.io/v1alpha1
-kind: ObjectBucketClaim
-metadata:
-  name: ceph-thanos-bucket
-  namespace: monitoring
-spec:
-  generateBucketName: ceph-thanos-bkt
-  storageClassName: rook-ceph-thanos-bucket
