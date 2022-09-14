@@ -134,7 +134,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, template.Namespace, template.Name)
+		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TemplateInto(ctx, &template)
@@ -146,7 +146,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, template.Name)
+		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TenantInto(ctx, &tenant)
