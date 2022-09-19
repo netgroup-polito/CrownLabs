@@ -92,6 +92,12 @@ spec:
                             be mounted and into which, if given in SourceArchiveURL,
                             will be extracted the archive
                           type: string
+                        enforceWorkdir:
+                          default: false
+                          description: Whether forcing the container working directory
+                            to be the same as the contentPath (or default mydrive
+                            path if not specified)
+                          type: boolean
                         sourceArchiveURL:
                           description: URL from which GET the archive to be extracted
                             into ContentPath

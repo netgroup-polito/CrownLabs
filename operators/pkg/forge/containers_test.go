@@ -388,7 +388,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Ports).To(Equal(expected.Ports))
 		})
 		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessTCPProbe(&expected, "gui")
+			forge.SetContainerReadinessHTTPProbe(&expected, "gui", forge.IngressGUICleanPath(&instance))
 			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
 		})
 		It("Should set the env varibles", func() {
@@ -574,6 +574,39 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return testArguments },
 			}))
 		})
+
+		Context("Has to handle the workdir", func() {
+			type ContainerCase struct {
+				StartupOpts    *clv1alpha2.ContainerStartupOpts
+				ExpectedOutput func(*clv1alpha2.Environment) string
+			}
+
+			WhenBody := func(c ContainerCase) func() {
+				return func() {
+					BeforeEach(func() {
+						environment.ContainerStartupOptions = c.StartupOpts
+					})
+
+					JustBeforeEach(func() {
+						actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
+					})
+
+					It("Should set the WorkingDirectory accordingly", func() {
+						Expect(actual.WorkingDir).To(Equal(c.ExpectedOutput(&environment)))
+					})
+				}
+			}
+
+			When("ContainerStartupOptions is nil", WhenBody(ContainerCase{
+				StartupOpts:    nil,
+				ExpectedOutput: func(e *clv1alpha2.Environment) string { return "" },
+			}))
+
+			When("EnforceWorkdir is set", WhenBody(ContainerCase{
+				StartupOpts:    &clv1alpha2.ContainerStartupOpts{EnforceWorkdir: true},
+				ExpectedOutput: forge.MyDriveMountPath,
+			}))
+		})
 	})
 
 	Describe("The forge.InitContainers function forges the list of init containers for the podSpec", func() {
@@ -671,7 +704,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		It("should return the correct podSpecification", func() {
 			Expect(actual).To(Equal(batchv1.JobSpec{
-				BackoffLimit: pointer.Int32Ptr(forge.SubmissionJobMaxRetries),
+				BackoffLimit:            pointer.Int32Ptr(forge.SubmissionJobMaxRetries),
+				TTLSecondsAfterFinished: pointer.Int32Ptr(forge.SubmissionJobTTLSeconds),
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
@@ -940,15 +974,19 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}))
 
 		When("the environment is not persistent and mode is exam", WhenBody(ContainerVolumesCase{
-			Persistent:        false,
-			Mode:              clv1alpha2.ModeExam,
-			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume { return nil },
+			Persistent: false,
+			Mode:       clv1alpha2.ModeExam,
+			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+			},
 		}))
 
 		When("the environment is not persistent and mode is exercise", WhenBody(ContainerVolumesCase{
-			Persistent:        false,
-			Mode:              clv1alpha2.ModeExercise,
-			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume { return nil },
+			Persistent: false,
+			Mode:       clv1alpha2.ModeExercise,
+			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
+				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+			},
 		}))
 
 		When("the environment is persistent and mode is standard", WhenBody(ContainerVolumesCase{
@@ -1029,58 +1067,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				},
 			},
 		}))
-	})
-
-	Describe("The forge.NeedsContainerVolume function", func() {
-		type NeedsContainerVolumeCase struct {
-			StartupOpts    *clv1alpha2.ContainerStartupOpts
-			Persistent     bool
-			Mode           clv1alpha2.EnvironmentMode
-			ExpectedOutput bool
-		}
-
-		WhenBody := func(c NeedsContainerVolumeCase) func() {
-			return func() {
-				BeforeEach(func() {
-					environment.ContainerStartupOptions = c.StartupOpts
-					environment.Persistent = c.Persistent
-					environment.Mode = c.Mode
-				})
-
-				It("Should return the correct value", func() {
-					Expect(forge.NeedsContainerVolume(&instance, &environment)).To(Equal(c.ExpectedOutput))
-				})
-			}
-		}
-
-		When("the volume should not be needed", WhenBody(NeedsContainerVolumeCase{
-			StartupOpts:    nil,
-			Persistent:     false,
-			Mode:           clv1alpha2.ModeExercise,
-			ExpectedOutput: false,
-		}))
-
-		When("the mode is standard", WhenBody(NeedsContainerVolumeCase{
-			StartupOpts:    nil,
-			Persistent:     false,
-			Mode:           clv1alpha2.ModeStandard,
-			ExpectedOutput: true,
-		}))
-
-		When("the environment is persistent", WhenBody(NeedsContainerVolumeCase{
-			StartupOpts:    nil,
-			Persistent:     true,
-			Mode:           clv1alpha2.ModeExercise,
-			ExpectedOutput: true,
-		}))
-
-		When("a source archive is specified", WhenBody(NeedsContainerVolumeCase{
-			StartupOpts:    &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			Persistent:     false,
-			Mode:           clv1alpha2.ModeExercise,
-			ExpectedOutput: true,
-		}))
-
 	})
 
 	Describe("The forge.NeedsInitContainer function", func() {

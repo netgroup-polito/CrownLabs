@@ -40,7 +40,7 @@ To install the chart with the release name `loki` and apply the configuration sp
 helm upgrade --install --namespace monitoring --create-namespace loki -f loki-values.yaml grafana/loki
 ```
 
-The [loki-values.yaml](./loki-values.yaml) defines the Loki configuration. You must configure the values file according to your specifications; here, we modified it to suit the CrownLabs needs. The main changes are below, the original values file is located [here](https://github.com/grafana/helm-charts/blob/main/charts/loki/values.yaml).
+The [loki-values.yaml](./loki-values.yaml) defines the Loki configuration. You must configure the values file according to your specifications; here, we modified it to suit the CrownLabs needs. The main changes are below, the original values file is located [here](https://github.com/grafana/helm-charts/blob/loki-2.8.1/charts/loki/values.yaml).
 
 ```yaml
   ingester:
