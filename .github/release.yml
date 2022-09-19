@@ -1,0 +1,25 @@
+changelog:
+  exclude:
+    labels:
+    - kind/no-changelog
+    authors:
+    - kingmakerbot
+  categories:
+    - title: ":boom: Breaking Changes"
+      labels:
+      - kind/breaking
+    - title: ":rocket: New Features"
+      labels:
+      - kind/feature
+    - title: ":bug: Bug Fixes"
+      labels:
+      - kind/bug
+    - title: ":broom: Code Refactoring"
+      labels:
+      - kind/cleanup
+    - title: ":memo: Documentation"
+      labels:
+      - kind/docs
+    - title: Other Changes
+      labels:
+      - "*"
