@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 global:
-  version: ""
+  version: "" # default set while packaging
 
 createClusterRoles: true
 
