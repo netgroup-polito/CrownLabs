@@ -63,7 +63,7 @@ jobs:
           # The optional images (i.e., user environments) are built only in case of version tags,
           # and when the /deploy-staging event is dispatched with the build-all flag
           [[ "${{ steps.version.outputs.version }}" != "" || \
-            ("${{ github.event_name }}" == "repository_dispatch" && github.event.client_payload.slash_command.args.all == 'build-all') ]] && \
+            ("${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.client_payload.slash_command.args.all }}" == "build-all") ]] && \
             echo "::set-output name=filter-optional-images::false" || \
             echo "::set-output name=filter-optional-images::true"
 
