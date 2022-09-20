@@ -16,7 +16,7 @@
 INCLUDE+ ./base/Dockerfile
 
 ENV SUDO_FORCE_REMOVE yes
-ENV CPPTOOLS_VERSION=v1.9.8
+ENV CPPTOOLS_VERSION=v1.12.4
 
 
 COPY ./c-cpp/project/main.c /example_project/main.c

@@ -14,7 +14,7 @@ RUN apt-get update && \
     apt-get install -y gcc wget
 
 # Download and install golang and required tools
-ADD https://go.dev/dl/go1.18.linux-amd64.tar.gz /usr/local/go.tar.gz
+ADD https://go.dev/dl/go1.19.linux-amd64.tar.gz /usr/local/go.tar.gz
 ADD https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh install.sh
 RUN tar -xzf /usr/local/go.tar.gz -C /usr/local && \
     echo 'export PATH=$PATH:/usr/local/go/bin'>>/root/.bashrc && \
@@ -28,7 +28,7 @@ RUN tar -xzf /usr/local/go.tar.gz -C /usr/local && \
     /usr/local/go/bin/go install honnef.co/go/tools/cmd/staticcheck@latest && \
     /usr/local/go/bin/go env GOPATH && \
     cp /config/go/bin/dlv /config/go/bin/dlv-dap && \
-    /bin/bash ./install.sh -b $(/usr/local/go/bin/go env GOPATH)/bin v1.43.0 && \
+    /bin/bash ./install.sh -b $(/usr/local/go/bin/go env GOPATH)/bin v1.49.0 && \
     rm install.sh
 
 # Remove apt and useless/dangerous packages
