@@ -2,6 +2,58 @@ apiVersion: v1
 entries:
   crownlabs:
   - apiVersion: v2
+    appVersion: v0.14.3
+    created: "2022-09-29T13:00:50.257287978Z"
+    dependencies:
+    - condition: frontend-app.enabled
+      name: frontend-app
+      repository: file://../../frontend/deploy/frontend-app
+      version: 0.1.0
+    - condition: qlkube.enabled
+      name: qlkube
+      repository: file://../../qlkube/deploy/qlkube
+      version: 0.1.0
+    - condition: instance-operator.enabled
+      name: instance-operator
+      repository: file://../../operators/deploy/instance-operator
+      version: 0.1.1
+    - condition: tenant-operator.enabled
+      name: tenant-operator
+      repository: file://../../operators/deploy/tenant-operator
+      version: 0.1.0
+    - condition: bastion-operator.enabled
+      name: bastion-operator
+      repository: file://../../operators/deploy/bastion-operator
+      version: 0.1.0
+    - condition: image-list.enabled
+      name: image-list
+      repository: file://../../operators/deploy/image-list
+      version: 0.1.0
+    - condition: delete-stale-instances.enabled
+      name: delete-stale-instances
+      repository: file://../../operators/deploy/delete-stale-instances
+      version: 0.1.0
+    - condition: exam-agent.enabled
+      name: exam-agent
+      repository: file://../../operators/deploy/exam-agent
+      version: 0.1.0
+    - condition: instmetrics.enabled
+      name: instmetrics
+      repository: file://../../operators/deploy/instmetrics
+      version: 0.1.0
+    - condition: policies.enabled
+      name: policies
+      repository: file://../../policies
+      version: 0.1.0
+    description: A Helm chart for CrownLabs
+    digest: 40fec7ff22317d896dc1006fbecf6593b8005fdaec1cf5796b89417fdf8feaf3
+    icon: https://crownlabs.polito.it/images/logo.svg
+    name: crownlabs
+    type: application
+    urls:
+    - https://github.com/netgroup-polito/CrownLabs/releases/download/v0.14.3/crownlabs-v0.14.3.tgz
+    version: v0.14.3
+  - apiVersion: v2
     appVersion: v0.14.2
     created: "2022-09-20T13:13:21.548762816Z"
     dependencies:
@@ -53,4 +105,4 @@ entries:
     urls:
     - https://github.com/netgroup-polito/CrownLabs/releases/download/v0.14.2/crownlabs-v0.14.2.tgz
     version: v0.14.2
-generated: "2022-09-20T13:13:21.548770016Z"
+generated: "2022-09-29T13:00:50.257295778Z"
