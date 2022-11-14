@@ -3,7 +3,7 @@ kind: Workspace
 metadata:
   name: tea
   labels:
-    reconcile: "true"
+    crownlabs.polito.it/operator-selector: local
 spec:
   prettyName: A cup of tea from the queen
   quota:
@@ -16,7 +16,7 @@ kind: Workspace
 metadata:
   name: coffee
   labels:
-    reconcile: "true"
+    crownlabs.polito.it/operator-selector: local
 spec:
   prettyName: Just coffee
   quota:
@@ -28,6 +28,8 @@ apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
 metadata:
   name: chill-pepper
+  labels:
+    crownlabs.polito.it/operator-selector: local
 spec:
   prettyName: A bit spicy
   quota:

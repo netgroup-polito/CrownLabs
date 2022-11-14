@@ -90,11 +90,11 @@ run-instance: generate
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
 				--nextcloud-base-url=crownlabs.polito.it/cloud
 
-#the double target below is used to set DOMAIN for local targets 
+#the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: samples-local install-local run-instance
-	
+
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
@@ -107,7 +107,7 @@ run-tenant: generate
 				--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)\
 				--nc-url=$(NEXTCLOUD_URL)\
 				--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)\
-				--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)
+				--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)\
 				--enable-webhooks=false
 
 install-local: manifests
@@ -118,7 +118,7 @@ python-dependencies:
 	pip3 install -r ./build/delete-stale-instances/requirements.txt
 
 samples-local:
-	kubectl apply -f ./samples/	
+	kubectl apply -f ./samples/
 
 clean-local:
 	kubectl delete -f ./samples/
