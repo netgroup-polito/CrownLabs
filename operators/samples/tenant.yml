@@ -3,7 +3,7 @@ kind: Tenant
 metadata:
   name: john.doe
   labels:
-    reconcile: "true"
+    crownlabs.polito.it/operator-selector: local
 spec:
   firstName: John
   lastName: Doe
