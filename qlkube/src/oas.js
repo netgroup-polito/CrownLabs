@@ -12,7 +12,7 @@ module.exports = async function getOpenApiSpec(url, token) {
       baseUrl: url,
       json: true,
       timeout: 5 * 1000,
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     })
       .then(r => {
         logger.info(
