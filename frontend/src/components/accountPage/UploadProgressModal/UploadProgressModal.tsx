@@ -110,38 +110,38 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
       closable={false}
       footer={[
         stepCurrent < 1 && (
-          <Button danger onClick={handleClose} icon={<StopOutlined />}>
-            Cancel
-          </Button>
+          <Button
+            danger
+            onClick={handleClose}
+            icon={<StopOutlined />}
+            children="Cancel"
+          />
         ),
         stepCurrent === 2 && (
           <Button
             danger
             onClick={() => setAbortUploading(true)}
             icon={<StopOutlined />}
-          >
-            Abort
-          </Button>
+            children="Abort"
+          />
         ),
-        stepCurrent === 3 && <Button onClick={props.onClose}>Close</Button>,
         (stepCurrent === 1 || stepCurrent === 3) && (
           <Button
             icon={<CaretLeftOutlined />}
             onClick={() => setStepCurrent(stepCurrent - 1)}
             disabled={stepCurrent === 3 || editing}
-          >
-            Previous
-          </Button>
+            children="Previous"
+          />
         ),
         stepCurrent < 3 && (
           <Button
             icon={<CaretRightOutlined />}
             onClick={handleOk}
             disabled={usersCSV.length === 0 || stepCurrent === 2 || editing}
-          >
-            Next
-          </Button>
+            children="Next"
+          />
         ),
+        stepCurrent === 3 && <Button onClick={props.onClose}>Close</Button>,
       ]}
       destroyOnClose={true}
     >

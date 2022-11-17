@@ -140,8 +140,11 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {
-          genericErrorCatcher(error as SupportedError);
-          setErrors(errors => [...errors, error]);
+          const enrichedError = {
+            ...(error as SupportedError),
+            entity: user.userid,
+          };
+          setErrors(errors => [...errors, enrichedError]);
         }
         setUploadedNumber(number => number + 1);
       }
