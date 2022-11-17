@@ -133,14 +133,11 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
           status={props.stepStatus}
         >
           <Step title="Upload " description="Upload your CSV file" />
-          <Step
-            title="Edit user "
-            description="Edit user in table and then press Ok button"
-          />
+          <Step title="Edit and review" description="Fix possible errors" />
 
           <Step
-            title="Waiting"
-            description="Please waiting while uploading the users"
+            title="Synchronization"
+            description="Sync changes"
             icon={props.stepCurrent === 2 && <LoadingOutlined />}
           />
 
@@ -148,13 +145,11 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
             <Step
               title={props.abortUploading ? 'Aborted' : 'Error'}
               description={
-                props.abortUploading
-                  ? 'Aborted uploading'
-                  : 'Error during uploading'
+                props.abortUploading ? 'Aborted uploading' : 'Upload failure'
               }
             />
           ) : (
-            <Step title="Finish" description="Correctly uploaded users" />
+            <Step title="Completed" description="Operation results" />
           )}
         </Steps>
       </Row>
@@ -175,7 +170,7 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
               <Button
                 type="primary"
                 disabled={props.stepCurrent > 0}
-                className="m-1"
+                className="m-6"
                 icon={<UploadOutlined />}
               >
                 Upload CSV
@@ -203,7 +198,7 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
           )}
           {props.stepCurrent > 1 && (
             <Progress
-              className="flex justify-center"
+              className="flex justify-center my-8"
               type="circle"
               status={statusProgressBar}
               percent={Math.floor(

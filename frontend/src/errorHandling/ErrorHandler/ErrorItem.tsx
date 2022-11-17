@@ -18,7 +18,7 @@ const ErrorItem: FC<IErrorItemProps> = ({ ...props }) => {
   const errorDesc = (
     <>
       {expanded && (
-        <Text className="mt-4 block max-h-72 overflow-scroll" copyable keyboard>
+        <Text className="mt-4 block max-h-72 overflow-auto" copyable keyboard>
           {item.getType() === ErrorTypes.KeycloakError
             ? (item.getError() as KeycloakError).error_description
             : (item.getError() as ApolloError | Error).stack}
@@ -67,7 +67,7 @@ const ErrorItem: FC<IErrorItemProps> = ({ ...props }) => {
               type="ghost"
               onClick={() => setExpanded(old => !old)}
             >
-              {expanded ? 'Show debug info' : 'Hide debug info'}
+              {expanded ? 'Hide debug info' : 'Show debug info'}
             </Button>
           </Space>
         }
