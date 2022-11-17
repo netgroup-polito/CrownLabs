@@ -586,14 +586,12 @@ func updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []cro
 		delete(tn.Labels, NoWorkspacesLabel)
 	}
 
-	cleanedFirstName := cleanName(tn.Spec.FirstName)
-	cleanedLastName := cleanName(tn.Spec.LastName)
-	tn.Labels["crownlabs.polito.it/first-name"] = *cleanedFirstName
-	tn.Labels["crownlabs.polito.it/last-name"] = *cleanedLastName
+	tn.Labels["crownlabs.polito.it/first-name"] = cleanName(tn.Spec.FirstName)
+	tn.Labels["crownlabs.polito.it/last-name"] = cleanName(tn.Spec.LastName)
 	return nil
 }
 
-func cleanName(name string) *string {
+func cleanName(name string) string {
 	okRegex := regexp.MustCompile("^[a-zA-Z0-9_]+$")
 	name = strings.ReplaceAll(name, " ", "_")
 
@@ -608,7 +606,8 @@ func cleanName(name string) *string {
 			name = strings.Replace(name, v, "", 1)
 		}
 	}
-	return &name
+
+	return strings.Trim(name, "_")
 }
 
 // cleanWorkspaceLabels removes all the labels of a workspace from a tenant.

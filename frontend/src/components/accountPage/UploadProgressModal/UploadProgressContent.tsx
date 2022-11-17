@@ -79,7 +79,9 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
       key: user[CSVFields.userid].trim(),
       name: capitalizeName(user[CSVFields.name]) ?? '',
       surname:
-        capitalizeName(user[CSVFields.surname_inserted].replace('(*)', '')) ??
+        capitalizeName(
+          user[CSVFields.surname_inserted].replace(/\(\*+\)/, '')
+        ) ??
         capitalizeName(user[CSVFields.surname]) ??
         '',
       userid: handleUserId(user[CSVFields.userid]) ?? '',
