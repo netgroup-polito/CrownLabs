@@ -123,7 +123,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 		}
-		klog.Infof("Cluster resourcess for tenant %s updated", ws.Name)
+		klog.Infof("Cluster resources for tenant %s updated", ws.Name)
 	} else {
 		klog.Errorf("Unable to update namespace of tenant %s -> %s", ws.Name, err)
 		ws.Status.Namespace.Created = false

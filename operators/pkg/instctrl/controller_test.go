@@ -16,6 +16,7 @@ package instctrl_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -93,7 +94,8 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
 			Spec: clv1alpha2.TenantSpec{
-				Email: "test@email.me",
+				Email:     "test@email.me",
+				LastLogin: metav1.Time{Time: time.Now().AddDate(-3, 0, 0)},
 			},
 		}
 		template := clv1alpha2.Template{

@@ -52,6 +52,12 @@ var testEnv *envtest.Environment
 const targetLabelKey = "reconcile"
 const targetLabelValue = "true"
 
+const sandboxClusterRole = "crownlabs-sandbox"
+const maxConcurrentReconciles = 1
+const requeueTimeMinimum = 3 * time.Hour
+const requeueTimeMaximum = 4 * time.Hour
+const tenantNSKeepAlive = 7 * 24 * time.Hour
+
 const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
 const kcTargetClientID = "targetClientId"
@@ -118,6 +124,11 @@ var _ = BeforeSuite(func() {
 		KcA:                         &kcA,
 		TargetLabelKey:              targetLabelKey,
 		TargetLabelValue:            targetLabelValue,
+		SandboxClusterRole:          sandboxClusterRole,
+		Concurrency:                 maxConcurrentReconciles,
+		RequeueTimeMinimum:          requeueTimeMinimum,
+		RequeueTimeMaximum:          requeueTimeMaximum,
+		TenantNSKeepAlive:           tenantNSKeepAlive,
 		ReconcileDeferHook:          GinkgoRecover,
 		MyDrivePVCsSize:             resource.MustParse("1Gi"),
 		MyDrivePVCsStorageClassName: "rook-nfs",
