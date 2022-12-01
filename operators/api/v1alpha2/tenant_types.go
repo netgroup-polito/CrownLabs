@@ -59,6 +59,9 @@ type TenantSpec struct {
 	// The last name of the Tenant.
 	LastName string `json:"lastName"`
 
+	// The last login date of the Tenant.
+	LastLogin string `json:"lastLogin"`
+
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
 	// The email associated with the Tenant, which will be used to log-in
@@ -123,6 +126,7 @@ type TenantStatus struct {
 	// Whether all subscriptions and resource creations succeeded or an error
 	// occurred. In case of errors, the other status fields provide additional
 	// information about which problem occurred.
+	// May be set to false when personal workspace is deleted.
 	Ready bool `json:"ready"`
 
 	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.

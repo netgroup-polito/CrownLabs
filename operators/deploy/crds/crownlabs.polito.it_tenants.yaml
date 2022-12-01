@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.lastName
       name: Last Name
       type: string
+    - jsonPath: .spec.lastLogin
+      name: Last Login
+      type: string
     - jsonPath: .spec.email
       name: Email
       priority: 10
@@ -73,6 +76,9 @@ spec:
                 type: string
               lastName:
                 description: The last name of the Tenant.
+                type: string
+              lastLogin:
+                description: The last login date of the Tenant.
                 type: string
               publicKeys:
                 description: The list of the SSH public keys associated with the Tenant.

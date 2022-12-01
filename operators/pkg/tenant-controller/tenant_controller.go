@@ -398,6 +398,12 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	return true, retErr
 }
 
+// LastLogin updates the tenant last login date.
+func (r *TenantReconciler) updateTnLastLogin(ns *v1.Namespace, tnName string) {
+	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
+	ns.Labels["lastLogin"] = "today"
+}
+
 // updateTnNamespace updates the tenant namespace.
 func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
