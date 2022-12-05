@@ -23,9 +23,6 @@ spec:
     - jsonPath: .spec.lastName
       name: Last Name
       type: string
-    - jsonPath: .spec.lastLogin
-      name: Last Login
-      type: string
     - jsonPath: .spec.email
       name: Email
       priority: 10
@@ -76,9 +73,6 @@ spec:
                 type: string
               lastName:
                 description: The last name of the Tenant.
-                type: string
-              lastLogin:
-                description: The last login date of the Tenant.
                 type: string
               publicKeys:
                 description: The list of the SSH public keys associated with the Tenant.
@@ -175,6 +169,9 @@ spec:
                 required:
                 - created
                 type: object
+              lastLogin:
+                description: The last login date of the Tenant.
+                type: string
               quota:
                 description: The amount of resources associated with this Tenant,
                   either inherited from the Workspaces in which he/she is enrolled,
@@ -243,6 +240,7 @@ spec:
             - failingWorkspaces
             - personalNamespace
             - ready
+            - lastLogin
             - sandboxNamespace
             - subscriptions
             type: object

@@ -144,6 +144,41 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		retrigErr = err
 	}
 
+	// Update last login date
+
+
+	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
+	// the tenant has logged in; update the lastLogin date as such
+	if tn.Status.PersonalNamespace.Created!=true && tn.Status.LastLogin=="" {
+	  
+	  klog.Infof("FIRST LOGIN: lastLogin creation process")
+
+	  klog.Infof("personalNamespace: %s", tn.Status.PersonalNamespace)
+	  klog.Infof("Former last login date: %s", tn.Status.LastLogin)
+
+	  format := time.RFC3339
+	  dt := time.Now().Format(format)
+	  fmt.Println("Current unformatted date and time is: ", time.Now())
+
+      fmt.Println("Current formatted date and time is: ", dt)
+
+      fmt.Println("Setting lastLogin value in TenantResourceList.")
+	  tn.Status.LastLogin = dt
+
+	  // Test parsing
+	  t, err := time.Parse(format, dt)
+	  if err != nil {
+	      fmt.Println(err)
+	  }
+
+	  fmt.Println("Parsed unformatted date and time is: ", t)
+
+	} else {
+	  klog.Infof("lastLogin date unchanged")
+	}
+
+	klog.Infof("Current last login date: %s", tn.Status.LastLogin)
+
 	// update resource quota in the status of the tenant after checking validity of workspaces.
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
 
@@ -311,19 +346,19 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	nsOpRes, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+	_, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
 		r.updateTnNamespace(&ns, tn.Name)
 		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
 	})
+
 	if nsErr != nil {
 		klog.Errorf("Error when updating namespace of tenant %s -> %s", tn.Name, nsErr)
 		return false, nsErr
 	}
-	if nsOpRes=="created" {
-	  klog.Infof("Namespace for tenant %s CREATED (INITIAL CREATION OR RE-ANIMATION)", tn.Name)
-	}
+
 
 	var retErr error
+
 	// handle resource quota
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
@@ -400,12 +435,6 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	}
 	klog.Infof("Allow network policy for tenant %s %s", tn.Name, npAOpRes)
 	return true, retErr
-}
-
-// LastLogin updates the tenant last login date.
-func (r *TenantReconciler) updateTnLastLogin(ns *v1.Namespace) {
-	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
-	ns.Labels["lastLogin"] = "today"
 }
 
 // updateTnNamespace updates the tenant namespace.

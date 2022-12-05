@@ -59,9 +59,6 @@ type TenantSpec struct {
 	// The last name of the Tenant.
 	LastName string `json:"lastName"`
 
-	// The last login date of the Tenant.
-	LastLogin string `json:"lastLogin"`
-
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
 	// The email associated with the Tenant, which will be used to log-in
@@ -117,6 +114,9 @@ type TenantStatus struct {
 	// This mainly happens if .spec.Workspaces contains references to Workspaces
 	// which do not exist.
 	FailingWorkspaces []string `json:"failingWorkspaces"`
+
+	// The last login date.
+	LastLogin string `json:"lastLogin"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
 	// Nextcloud, ...), indicating for each one whether it succeeded or an error
