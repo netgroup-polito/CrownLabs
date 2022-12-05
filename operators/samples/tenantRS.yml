@@ -7,7 +7,6 @@ metadata:
 spec:
   firstName: John
   lastName: Doe
-  lastLogin: a
   email: jonh.doe@email.com
   publicKeys:
     - type1 key1 comment1

@@ -311,12 +311,16 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+	nsOpRes, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
 		r.updateTnNamespace(&ns, tn.Name)
 		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
-	}); nsErr != nil {
+	})
+	if nsErr != nil {
 		klog.Errorf("Error when updating namespace of tenant %s -> %s", tn.Name, nsErr)
 		return false, nsErr
+	}
+	if nsOpRes=="created" {
+	  klog.Infof("Namespace for tenant %s CREATED (INITIAL CREATION OR RE-ANIMATION)", tn.Name)
 	}
 
 	var retErr error
@@ -399,7 +403,7 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 }
 
 // LastLogin updates the tenant last login date.
-func (r *TenantReconciler) updateTnLastLogin(ns *v1.Namespace, tnName string) {
+func (r *TenantReconciler) updateTnLastLogin(ns *v1.Namespace) {
 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
 	ns.Labels["lastLogin"] = "today"
 }
