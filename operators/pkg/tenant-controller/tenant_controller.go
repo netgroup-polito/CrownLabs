@@ -144,17 +144,19 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		retrigErr = err
 	}
 
-	// Update last login date
 
+
+
+	// Update last login date
 
 	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
 	// the tenant has logged in; update the lastLogin date as such
-	if tn.Status.PersonalNamespace.Created!=true && tn.Status.LastLogin=="" {
+	if tn.Status.PersonalNamespace.Created!=true && tn.Spec.LastLogin=="" {
 	  
 	  klog.Infof("FIRST LOGIN: lastLogin creation process")
 
 	  klog.Infof("personalNamespace: %s", tn.Status.PersonalNamespace)
-	  klog.Infof("Former last login date: %s", tn.Status.LastLogin)
+	  klog.Infof("Former last login date: %s", tn.Spec.LastLogin)
 
 	  format := time.RFC3339
 	  dt := time.Now().Format(format)
@@ -163,7 +165,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
       fmt.Println("Current formatted date and time is: ", dt)
 
       fmt.Println("Setting lastLogin value in TenantResourceList.")
-	  tn.Status.LastLogin = dt
+	  tn.Spec.LastLogin = dt
 
 	  // Test parsing
 	  t, err := time.Parse(format, dt)
@@ -174,10 +176,15 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	  fmt.Println("Parsed unformatted date and time is: ", t)
 
 	} else {
+		
 	  klog.Infof("lastLogin date unchanged")
 	}
 
-	klog.Infof("Current last login date: %s", tn.Status.LastLogin)
+	klog.Infof("Current last login date: %s", tn.Spec.LastLogin)
+
+
+
+
 
 	// update resource quota in the status of the tenant after checking validity of workspaces.
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
