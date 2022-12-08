@@ -158,26 +158,33 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	  klog.Infof("personalNamespace: %s", tn.Status.PersonalNamespace)
 	  klog.Infof("Former last login date: %s", tn.Spec.LastLogin)
 
-	  format := time.RFC3339
-	  dt := time.Now().Format(format)
-	  fmt.Println("Current unformatted date and time is: ", time.Now())
-
-      fmt.Println("Current formatted date and time is: ", dt)
+	  dt := time.Now().Format(time.RFC3339)
 
       fmt.Println("Setting lastLogin value in TenantResourceList.")
 	  tn.Spec.LastLogin = dt
 
-	  // Test parsing
-	  t, err := time.Parse(format, dt)
+	} else {
+
+	  // Check to see if last login was more than XXX in the past: if so, do something
+      
+	  t, err := time.Parse(time.RFC3339, tn.Spec.LastLogin)
 	  if err != nil {
 	      fmt.Println(err)
 	  }
 
-	  fmt.Println("Parsed unformatted date and time is: ", t)
 
-	} else {
-		
-	  klog.Infof("lastLogin date unchanged")
+	  diff := time.Now().Sub(t)
+	  fmt.Println(diff)
+	  fmt.Println(diff.Seconds())
+	  sPassed := diff.Seconds();
+
+	  fmt.Println("Difference is: ", sPassed)
+	  if(sPassed>90) {
+	  	fmt.Println("********* Should close namespace if not already closed")
+	  } else {
+	  	fmt.Println("No need to close namespace")
+	  }
+
 	}
 
 	klog.Infof("Current last login date: %s", tn.Spec.LastLogin)
@@ -270,7 +277,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeSeconds, err := randomRange(60, 70) // need to use seconds value for interval 4h-8h to have resolution to the second
+	nextRequeSeconds, err := randomRange(30, 35) // need to use seconds value for interval 4h-8h to have resolution to the second
 	if err != nil {
 		klog.Errorf("Error when generating random number for reque -> %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
