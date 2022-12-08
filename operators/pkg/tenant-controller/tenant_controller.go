@@ -38,6 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -146,8 +148,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 
 
-
-	// Update last login date
+    
+	keepNsOpen := true;
 
 	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
 	// the tenant has logged in; update the lastLogin date as such
@@ -172,15 +174,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	      fmt.Println(err)
 	  }
 
+	  sPassed := time.Now().Sub(t).Seconds();
 
-	  diff := time.Now().Sub(t)
-	  fmt.Println(diff)
-	  fmt.Println(diff.Seconds())
-	  sPassed := diff.Seconds();
+	  fmt.Println("Last login was %s seconds ago", sPassed)
 
-	  fmt.Println("Difference is: ", sPassed)
-	  if(sPassed>90) {
+	  if(sPassed>90) { // seconds
 	  	fmt.Println("********* Should close namespace if not already closed")
+	  	keepNsOpen = false;
 	  } else {
 	  	fmt.Println("No need to close namespace")
 	  }
@@ -196,24 +196,46 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// update resource quota in the status of the tenant after checking validity of workspaces.
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
 
+	nsOk := false; // default to false
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
-	nsOk, err := r.createOrUpdateClusterResources(ctx, &tn, nsName)
-	if nsOk {
-		klog.Infof("Namespace %s for tenant %s updated", nsName, tn.Name)
-		tn.Status.PersonalNamespace.Created = true
-		tn.Status.PersonalNamespace.Name = nsName
-		if err != nil {
-			klog.Errorf("Unable to update cluster resource of tenant %s -> %s", tn.Name, err)
+
+    if keepNsOpen {
+	    nsSuccess, err := r.createOrUpdateClusterResources(ctx, &tn, nsName)
+		nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
+		if nsSuccess {
+			klog.Infof("Namespace %s for tenant %s updated", nsName, tn.Name)
+			tn.Status.PersonalNamespace.Created = true
+			tn.Status.PersonalNamespace.Name = nsName
+			if err != nil {
+				klog.Errorf("Unable to update cluster resource of tenant %s -> %s", tn.Name, err)
+				retrigErr = err
+				tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+			}
+			klog.Infof("Cluster resources for tenant %s updated", tn.Name)
+			nsOk = true;
+		} else {
+			klog.Errorf("Unable to update namespace of tenant %s -> %s", tn.Name, err)
+			tn.Status.PersonalNamespace.Created = false
+			tn.Status.PersonalNamespace.Name = ""
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		}
-		klog.Infof("Cluster resourcess for tenant %s updated", tn.Name)
 	} else {
-		klog.Errorf("Unable to update namespace of tenant %s -> %s", tn.Name, err)
-		tn.Status.PersonalNamespace.Created = false
-		tn.Status.PersonalNamespace.Name = ""
-		retrigErr = err
-		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+		nsSuccess, err := r.deleteClusterNamespace(ctx, &tn, nsName)
+		if nsSuccess {
+			klog.Infof("Namespace %s for tenant %s deleted", nsName, tn.Name)
+			tn.Status.PersonalNamespace.Created = false
+			tn.Status.PersonalNamespace.Name = ""
+			if err != nil {
+				klog.Errorf("Unable to delete namespace of tenant %s -> %s", tn.Name, err)
+				retrigErr = err
+				tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+			}
+		} else {
+			klog.Errorf("Unable to delete namespace of tenant %s -> %s", tn.Name, err)
+			retrigErr = err
+			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+		}
 	}
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
@@ -354,6 +376,56 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 		}
 	}
 	return tenantExistingWorkspaces, workspaces, err
+}
+
+
+// from https://github.com/adracus/controller-runtime/commit/88fa42f9931939de0fef9cd6c118c531586d9153
+
+// mutate wraps a MutateFn and applies validation to its result.
+func mutate(f MutateFn, key client.ObjectKey, obj client.Object) error {
+	if err := f(); err != nil {
+		return err
+	}
+	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
+		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
+	}
+	return nil
+}
+
+// MutateFn is a function which mutates the existing object into its desired state.
+type MutateFn func() error
+
+// DeleteIfExists deletes the given object in the Kubernetes
+// cluster if it exists.
+//
+// It returns the executed operation and an error.
+func DeleteIfExists(ctx context.Context, c client.Client, obj client.Object, f MutateFn) (OperationResult string, err error) {
+	if err := c.Delete(ctx, obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			return "unchanged", nil
+		}
+		return "unchanged", err
+	}
+	return "deleted", nil
+}
+
+
+// deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error
+func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+
+	_, nsErr := DeleteIfExists(ctx, r.Client, &ns, func() error {
+		r.updateTnNamespace(&ns, tn.Name)
+		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
+	})
+
+	if nsErr != nil {
+		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
+		return false, nsErr
+	}
+
+	return true, nsErr
+
 }
 
 // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
