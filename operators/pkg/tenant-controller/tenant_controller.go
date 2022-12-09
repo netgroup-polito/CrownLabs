@@ -51,10 +51,12 @@ const (
 )
 
 
-const REQUEUE_SECONDS_MINIMUM = 30;
-const REQUEUE_SECONDS_MAXIMUM = 35;
+const REQUEUE_SECONDS_MINIMUM = 30; // Minimum seconds before requeue of controller
+const REQUEUE_SECONDS_MAXIMUM = 35; // Maximum seconds before requeue of controller
 
-const TENANT_WORKSPACE_KEEP_ALIVE_SECONDS = 80;
+const TENANT_WORKSPACE_KEEP_ALIVE_SECONDS = 80; // Seconds after last login of tenant during which the tenant workspace should be
+												// kept alive: after this period, the controller will attempt to delete the tenant
+												// personal workspace
 
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
