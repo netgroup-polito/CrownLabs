@@ -71,11 +71,11 @@ spec:
               firstName:
                 description: The first name of the Tenant.
                 type: string
+              lastLogin:
+                description: The last login date.
+                type: string
               lastName:
                 description: The last name of the Tenant.
-                type: string
-              lastLogin:
-                description: The last login date of the Tenant.
                 type: string
               publicKeys:
                 description: The list of the SSH public keys associated with the Tenant.
@@ -207,7 +207,8 @@ spec:
               ready:
                 description: Whether all subscriptions and resource creations succeeded
                   or an error occurred. In case of errors, the other status fields
-                  provide additional information about which problem occurred.
+                  provide additional information about which problem occurred. Will
+                  be set to true even when personal workspace is intentionally deleted.
                 type: boolean
               sandboxNamespace:
                 description: The namespace that can be freely used by the Tenant to

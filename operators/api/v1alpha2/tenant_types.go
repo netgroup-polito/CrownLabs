@@ -126,7 +126,7 @@ type TenantStatus struct {
 	// Whether all subscriptions and resource creations succeeded or an error
 	// occurred. In case of errors, the other status fields provide additional
 	// information about which problem occurred.
-	// May be set to false when personal workspace is deleted.
+	// Will be set to true even when personal workspace is intentionally deleted.
 	Ready bool `json:"ready"`
 
 	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.
