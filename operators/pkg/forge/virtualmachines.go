@@ -29,9 +29,9 @@ import (
 const (
 	urlDockerPrefix = "docker://"
 
-	// nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
+	//nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
 	registryCredentialsSecretName = "registry-credentials"
-	// nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
+	//nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
 	cdiSecretName = "registry-credentials-cdi"
 
 	volumeRootName      = "root"

@@ -57,7 +57,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -86,7 +85,6 @@ linters:
     - gosec
     - gosimple
     - govet
-    - ifshort
     - importas
     - ineffassign
   # - lll
@@ -101,14 +99,12 @@ linters:
     - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
   # - testpackage
     - typecheck
     - unconvert
   # - unparam
     - unused
-    - varcheck
     - whitespace
   # - wsl
 

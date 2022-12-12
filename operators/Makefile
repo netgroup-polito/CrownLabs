@@ -35,9 +35,7 @@ manifests: controller-gen
 # Install gci if not available
 gci:
 ifeq (, $(shell which gci))
-	@{ \
-	go get github.com/daixiang0/gci@v0.2.9 ;\
-	}
+	@go install github.com/daixiang0/gci@v0.7.0
 endif
 
 # Install addlicense if not available
@@ -52,7 +50,7 @@ endif
 fmt: gci addlicense
 	go mod tidy
 	go fmt ./...
-	find $(pwd) -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci -local github.com/netgroup-polito/CrownLabs -w {} \;
+	find $(pwd) -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci write -s standard -s default -s "prefix(github.com/netgroup-polito/CrownLabs)" {} \;
 	find . -type f -name '*.go' -exec addlicense -l apache -c "Politecnico di Torino" -y "2020-$(shell date +%Y)" {} \;
 
 # Run go vet against code
