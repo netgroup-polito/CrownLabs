@@ -96,6 +96,11 @@ type Environment struct {
 
 	// +kubebuilder:default=false
 
+	// For VNC based containers, hide the noVNC control bar when true
+	DisableControls bool `json:"disableControls,omitempty"`
+
+	// +kubebuilder:default=false
+
 	// Whether the environment should be persistent (i.e. preserved when the
 	// corresponding instance is terminated) or not.
 	Persistent bool `json:"persistent,omitempty"`

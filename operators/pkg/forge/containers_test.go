@@ -399,6 +399,25 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 
+		disableCtrlsWhenBody := func(disableCtrls bool) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.DisableControls = disableCtrls
+				})
+
+				It("Should set the related argument accordingly", func() {
+					Expect(actual.Args).To(ContainElement(
+						fmt.Sprintf("--show-controls=%v", !disableCtrls),
+					))
+					Expect(actual.Args).NotTo(ContainElement(
+						fmt.Sprintf("--show-controls=%v", disableCtrls),
+					))
+				})
+			}
+		}
+		When("disableControls is true", disableCtrlsWhenBody(true))
+		When("disableControls is false", disableCtrlsWhenBody(false))
+
 		When("the environment mode is Standard", func() {
 			BeforeEach(func() {
 				instance.UID = instanceName
@@ -409,7 +428,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
 					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
-					"--show-controls=true",
+					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
 					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
 					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
 					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
@@ -428,7 +447,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
 					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
-					"--show-controls=false",
+					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
 					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
 					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
 					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
