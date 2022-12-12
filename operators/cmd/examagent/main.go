@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package main contains the entrypoint for the exam agent.
 package main
 
 import (
@@ -19,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"time"
 
 	"k8s.io/klog/v2/klogr"
 
@@ -51,16 +53,23 @@ func main() {
 		TemplatesEP   = path.Join(examagent.Options.BasePath, TemplatesRoot) + "/"
 	)
 
-	http.HandleFunc("/healthz", healthzHandler)
+	handler := http.NewServeMux()
+	server := &http.Server{
+		Addr:              examagent.Options.ListenerAddr,
+		Handler:           handler,
+		ReadHeaderTimeout: 2 * time.Second, // Required to limit the effects of the Slowloris attack.
+	}
 
-	http.Handle(InstanceEP, &examagent.InstanceHandler{Log: log.WithName("instance"), Client: k8sClient, AdapterEndpoint: InstanceRoot})
-	http.Handle(InstancesEP, &examagent.InstanceHandler{Log: log.WithName("instance"), Client: k8sClient, AdapterEndpoint: InstancesRoot})
+	handler.HandleFunc("/healthz", healthzHandler)
 
-	http.Handle(TemplateEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
-	http.Handle(TemplatesEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
+	handler.Handle(InstanceEP, &examagent.InstanceHandler{Log: log.WithName("instance"), Client: k8sClient, AdapterEndpoint: InstanceRoot})
+	handler.Handle(InstancesEP, &examagent.InstanceHandler{Log: log.WithName("instance"), Client: k8sClient, AdapterEndpoint: InstancesRoot})
+
+	handler.Handle(TemplateEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
+	handler.Handle(TemplatesEP, &examagent.TemplateHandler{Log: log.WithName("template"), Client: k8sClient})
 
 	log.Info("CrownLabs Exam Agent started", "bind", examagent.Options.ListenerAddr)
-	log.Error(http.ListenAndServe(examagent.Options.ListenerAddr, nil), "unable to start http server")
+	log.Error(server.ListenAndServe(), "unable to start http server")
 }
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {

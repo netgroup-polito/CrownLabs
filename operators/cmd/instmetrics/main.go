@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package main contains the entrypoint for the instance metrics collector.
 package main
 
 import (
@@ -64,6 +65,7 @@ func main() {
 
 	go func() {
 		http.Handle("/ready", &instmetrics.ReadinessProbeHandler{RuntimeClient: remoteRuntimeClient, Log: log.WithName("probeHandler"), Ready: false})
+		//nolint:gosec // The server is meant to be accessed only by well behaving clients, hence there are no issues with timeouts.
 		if err = http.ListenAndServe(":8081", nil); err != nil {
 			log.Error(err, "Error serving readiness probe")
 		}
