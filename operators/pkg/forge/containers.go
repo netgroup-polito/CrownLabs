@@ -207,7 +207,7 @@ func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environ
 	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
 	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance))
 	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
-	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(environment.Mode == clv1alpha2.ModeStandard))
+	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(!environment.DisableControls))
 	AddContainerArg(&websockifyContainer, "instmetrics-server-endpoint", opts.InstMetricsEndpoint)
 	AddContainerArg(&websockifyContainer, "pod-name", fmt.Sprintf("$(%s)", PodNameEnvName))
 	AddContainerArg(&websockifyContainer, "cpu-limit", fmt.Sprintf("$(%s)", AppCPULimitsEnvName))
