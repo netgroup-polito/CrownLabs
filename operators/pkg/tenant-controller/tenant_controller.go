@@ -428,12 +428,10 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	_, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
 		r.updateTnNamespace(&ns, tn.Name)
 		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
-	})
-
-	if nsErr != nil {
+	}); nsErr != nil {
 		klog.Errorf("Error when updating namespace of tenant %s -> %s", tn.Name, nsErr)
 		return false, nsErr
 	}
