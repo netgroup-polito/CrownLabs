@@ -54,7 +54,7 @@ const (
 const REQUEUE_SECONDS_MINIMUM = 30; // Minimum seconds before requeue of controller
 const REQUEUE_SECONDS_MAXIMUM = 35; // Maximum seconds before requeue of controller
 
-const TENANT_WORKSPACE_KEEP_ALIVE_SECONDS = 80; // Seconds after last login of tenant during which the tenant workspace should be
+const TENANT_WORKSPACE_KEEP_ALIVE_SECONDS time.Duration = 80 * 1000000000; // Seconds after last login of tenant during which the tenant workspace should be
 												// kept alive: after this period, the controller will attempt to delete the tenant
 												// personal workspace
 
@@ -161,9 +161,9 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
 	// the tenant has logged in; update the lastLogin date to current time
-	if tn.Status.PersonalNamespace.Created==false && tn.Spec.LastLogin=="" {
+	if tn.Status.PersonalNamespace.Created==false && tn.Spec.LastLogin.IsZero() {
 
-	  tn.Spec.LastLogin = time.Now().Format(time.RFC3339)
+	  tn.Spec.LastLogin = metav1.Time{Time: time.Now()}
       klog.Infof("First login of %s: setting lastLogin value of %s in tenant spec.", tn.Name, tn.Spec.LastLogin)
 
 	} else { // Otherwise, this is not the first time the user has logged in
@@ -171,22 +171,18 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	  // So we check to see if last login was more than TENANT_WORKSPACE_KEEP_ALIVE_SECONDS in the past:
 	  // if so, temporarily delete the namespace
       
-	  t, err := time.Parse(time.RFC3339, tn.Spec.LastLogin) // Read lastLogin string and converte to datetime
-	  if err != nil {
-		  klog.Errorf("Error in parsing lastLogin date in RFC3339 format of tenant %s -> %s", tn.Name, err)
-		  return ctrl.Result{}, retrigErr
-	  }
+	  t := tn.Spec.LastLogin;
 
       // Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
-	  sPassed := int(time.Now().Sub(t).Seconds());
+	  sPassed := time.Since(t.Time);
 
-	  klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, sPassed)
+	  klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
 
 	  if(sPassed>TENANT_WORKSPACE_KEEP_ALIVE_SECONDS) { // seconds
-	  	klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", TENANT_WORKSPACE_KEEP_ALIVE_SECONDS, tn.Name)
+	  	klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(TENANT_WORKSPACE_KEEP_ALIVE_SECONDS.Seconds()), tn.Name)
 	  	keepNsOpen = false;
 	  } else {
-	  	klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", TENANT_WORKSPACE_KEEP_ALIVE_SECONDS, tn.Name)
+	  	klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(TENANT_WORKSPACE_KEEP_ALIVE_SECONDS.Seconds()), tn.Name)
 	  }
 
 	}
