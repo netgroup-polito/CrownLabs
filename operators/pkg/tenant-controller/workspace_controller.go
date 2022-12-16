@@ -102,13 +102,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	klog.Infof("Reconciling workspace %s", ws.Name)
 
 	// add tenant operator finalizer to workspace
-	if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
-		if err := r.Update(context.Background(), &ws); err != nil {
-			klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
-			retrigErr = err
-		}
-	}
+	// if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
+	// 	ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
+	// 	if err := r.Update(context.Background(), &ws); err != nil {
+	// 		klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
+	// 		retrigErr = err
+	// 	}
+	// }
 
 	nsName := fmt.Sprintf("workspace-%s", ws.Name)
 
@@ -122,7 +122,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 		}
-		klog.Infof("Cluster resourcess for tenant %s updated", ws.Name)
+		klog.Infof("Cluster resources for tenant %s updated", ws.Name)
 	} else {
 		klog.Errorf("Unable to update namespace of tenant %s -> %s", ws.Name, err)
 		ws.Status.Namespace.Created = false
@@ -131,20 +131,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 	}
 
-	if ws.Status.Subscriptions == nil {
-		// len 1 of the map is for the number of subscriptions (keycloak)
-		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
-	}
-	// handling keycloak resources
-	if err = r.KcA.createKcRoles(ctx, genWsKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
-		klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
-		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
-		retrigErr = err
-		tnOpinternalErrors.WithLabelValues("workspace", "keycloak").Inc()
-	} else {
-		klog.Infof("Roles for workspace %s created successfully", ws.Name)
-		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
-	}
+	// if ws.Status.Subscriptions == nil {
+	// 	// len 1 of the map is for the number of subscriptions (keycloak)
+	// 	ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
+	// }
+	// // handling keycloak resources
+	// if err = r.KcA.createKcRoles(ctx, genWsKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
+	// 	klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
+	// 	ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+	// 	retrigErr = err
+	// 	tnOpinternalErrors.WithLabelValues("workspace", "keycloak").Inc()
+	// } else {
+	// 	klog.Infof("Roles for workspace %s created successfully", ws.Name)
+	// 	ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
+	// }
 
 	ws.Status.Ready = retrigErr == nil
 

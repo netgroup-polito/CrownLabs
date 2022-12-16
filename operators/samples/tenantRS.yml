@@ -8,6 +8,9 @@ spec:
   firstName: John
   lastName: Doe
   email: jonh.doe@email.com
+  workspaces:
+    - name: pepsi
+      role: user
   publicKeys:
     - type1 key1 comment1
     - type2 key2 comment3

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-pod-crownlabs
+  namespace: tenant-sam-h
+spec:
+  selector:
+    matchLabels:
+      app: test-pod-crownlabs
+  template:
+    metadata:
+      labels:
+        app: test-pod-crownlabs
+    spec:
+      serviceAccountName: test-pod
+      containers:
+      - name: test-pod
+        image: https://k8s.io/examples/pods/probe/exec-liveness.yaml
+        resources:
+          requests:
+            cpu: "10m"
+            memory: 50Mi
+          limits:
+            cpu: "100m"
+            memory: 150Mi

@@ -38,8 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -152,6 +150,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 
+	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
 	keepNsOpen := true; // keepNsOpen defines if we should close the personal namespace based on the last login date
 	                    // must be initialized for later use
@@ -175,22 +174,50 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	  klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
 
-	  if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
-	  	klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
-	  	keepNsOpen = false;
-	  } else {
-	  	klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+	  // Attempt to get instances in current namespace
+	  list := &crownlabsv1alpha2.InstanceList{}
+
+	  if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
+	  	klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
 	  }
 
+	  // output, err := json.Marshal(list)
+	  // if err != nil {
+	  //     fmt.Println(err)
+	  // }
+	  // klog.Infof(string(output));
+
+
+  	  if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
+  		klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+  		if len(list.Items)==0 {
+  		  klog.Infof("No instances in %s: workspace can be deleted", nsName)
+  		  keepNsOpen = false;
+  		} else {
+  		  // Add instance names to a list
+  		  instNames := ""
+  		  for _, inst := range list.Items {
+  		    instNames+=" "+inst.Name
+  		  }
+  		  klog.Infof("Instances in namespace %s:%s. Namespace will not be deleted",nsName,instNames)
+  		}
+  	  } else {
+  		klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+      }
+
+	
+
+	 
+
 	}
+
+
 
 
     nsOk := false; // nsOk must be initialized for later use
 
 	// update resource quota in the status of the tenant after checking validity of workspaces.
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
-
-	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
     if keepNsOpen {
 	    nsOk, err = r.createOrUpdateClusterResources(ctx, &tn, nsName)
@@ -211,7 +238,9 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			retrigErr = err
 			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		}
+
 	} else {
+
 		nsOk, err = r.deleteClusterNamespace(ctx, &tn, nsName)
 		if nsOk {
 			klog.Infof("Namespace %s for tenant %s deleted if not already deleted", nsName, tn.Name)
@@ -378,6 +407,7 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error
 func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
+
 	nsErr := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace");
     
 	if nsErr != nil {
