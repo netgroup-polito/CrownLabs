@@ -43,6 +43,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
@@ -374,53 +375,17 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 	return tenantExistingWorkspaces, workspaces, err
 }
 
-
-// Code modified from https://github.com/adracus/controller-runtime/commit/88fa42f9931939de0fef9cd6c118c531586d9153
-// and https://github.com/kubernetes-sigs/controller-runtime/blob/v0.13.1/pkg/controller/controllerutil/controllerutil.go#L195
-
-// mutate wraps a MutateFn and applies validation to its result.
-func mutate(f MutateFn, key client.ObjectKey, obj client.Object) error {
-	if err := f(); err != nil {
-		return err
-	}
-	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
-		return fmt.Errorf("MutateFn cannot mutate object name and/or object namespace")
-	}
-	return nil
-}
-
-// MutateFn is a function which mutates the existing object into its desired state.
-type MutateFn func() error
-
-// DeleteIfExists deletes the given object in the Kubernetes
-// cluster if it exists.
-
-// It returns the executed operation and an error.
-func DeleteIfExists(ctx context.Context, c client.Client, obj client.Object, f MutateFn) (OperationResult string, err error) {
-	if err := c.Delete(ctx, obj); err != nil {
-		if apierrors.IsNotFound(err) {
-			return "unchanged", nil
-		}
-		return "unchanged", err
-	}
-	return "deleted", nil
-}
-
-
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error
 func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
-
-	_, nsErr := DeleteIfExists(ctx, r.Client, &ns, func() error {
-		r.updateTnNamespace(&ns, tn.Name)
-		return ctrl.SetControllerReference(tn, &ns, r.Scheme)
-	})
-
+	nsErr := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace");
+    
 	if nsErr != nil {
 		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
 		return false, nsErr
 	}
 
+	r.updateTnNamespace(&ns, tn.Name)
 	return true, nsErr
 }
 
