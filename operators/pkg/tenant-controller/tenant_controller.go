@@ -156,10 +156,10 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	                    // must be initialized for later use
 
 	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
-	// the tenant has logged in; update the lastLogin date to current time
+	// the tenant has logged in; update the lastLogin date to the year 2000 (i.e. do not cause any updates)
 	if tn.Status.PersonalNamespace.Created==false && tn.Spec.LastLogin.IsZero() {
 
-	  tn.Spec.LastLogin = metav1.Time{Time: time.Now()}
+	  tn.Spec.LastLogin = metav1.Time{Time: time.Date(2000, 0, 0, 0, 0, 0, 0, time.Now().Location())}
       klog.Infof("First login of %s: setting lastLogin value of %s in tenant spec.", tn.Name, tn.Spec.LastLogin)
 
 	} else { // Otherwise, this is not the first time the user has logged in
