@@ -1,5 +1,5 @@
 /* eslint-disable react/no-multi-comp */
-import { Table, Form, Popconfirm } from 'antd';
+import { Table, Form, Popconfirm, Tooltip } from 'antd';
 import {
   EditOutlined,
   CheckOutlined,
@@ -100,20 +100,27 @@ const EditableTable: FC<IEditableTableProps> = props => {
         const editable = isEditing(record);
         return editable ? (
           <span>
-            <CheckOutlined onClick={() => save(record)} className="mr-1" />
+            <Tooltip title="Confirm changes">
+              <CheckOutlined onClick={() => save(record)} className="mr-1" />
+            </Tooltip>
 
             <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-              <CloseOutlined />
+              <Tooltip title="Discard changes">
+                <CloseOutlined />
+              </Tooltip>
             </Popconfirm>
           </span>
         ) : (
           <>
-            <EditOutlined
-              disabled={editingKey !== ''}
-              onClick={() => {
-                edit(record);
-              }}
-            />
+            <Tooltip title="Edit details">
+              <EditOutlined
+                className="mx-1"
+                disabled={editingKey !== ''}
+                onClick={() => {
+                  edit(record);
+                }}
+              />
+            </Tooltip>
             <Popconfirm
               title="Sure to delete?"
               onConfirm={() =>
@@ -122,7 +129,9 @@ const EditableTable: FC<IEditableTableProps> = props => {
                 )
               }
             >
-              <DeleteOutlined className="text-red-500" />
+              <Tooltip title="Remove entry">
+                <DeleteOutlined className="text-red-500" />
+              </Tooltip>
             </Popconfirm>
           </>
         );

@@ -51,7 +51,7 @@ const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
 const kcTargetClientID = "targetClientId"
 
-//  keycloak variables
+// keycloak variables.
 var mKcClient *mocks.MockGoCloak
 var mToken *gocloak.JWT = &gocloak.JWT{AccessToken: kcAccessToken}
 var reqActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
@@ -65,7 +65,7 @@ var kcA = KcActor{
 	EmailActionsLifeSpanS: emailActionLifespan,
 }
 
-//  nextcloud variables
+// nextcloud variables.
 var mNcA *mocks.NcHandlerMock
 
 func TestAPIs(t *testing.T) {

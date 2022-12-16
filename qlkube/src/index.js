@@ -50,6 +50,28 @@ async function main() {
     schema,
     playground: true,
     plugins: [graphqlQueryRegistry],
+    formatError: error => {
+      try {
+        const msgs = [...error.message.match(/(\d+)\s*\-(.*)$/)];
+        if (msgs.length != 3) return error;
+        let msg = JSON.parse(msgs[2]);
+        try {
+          msg = JSON.parse(msg);
+        } catch (_) {}
+        return {
+          ...error,
+          message: msg.message,
+          extensions: {
+            ...error.extensions,
+            k8s: msg,
+            http: msgs[1],
+          },
+        };
+      } catch (e) {
+        graphqlLogger('[w] Could not parse error response: ' + e);
+        return error;
+      }
+    },
     subscriptions: {
       path: '/subscription',
       onConnect: (connectionParams, webSocket, context) => {

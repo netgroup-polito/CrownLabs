@@ -78,7 +78,11 @@ const ErrorContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const [execLogin, setExecLogin] = useState(true);
   useEffect(() => {
-    if (errorsQueue.find(e => e.getErrorMessage().includes('Unauthorized')))
+    if (
+      errorsQueue.find(e =>
+        (e.getErrorMessage() || '').includes('Unauthorized')
+      )
+    )
       setExecLogin(true);
   }, [errorsQueue]);
 

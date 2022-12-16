@@ -109,6 +109,11 @@ spec:
                             type: string
                           type: array
                       type: object
+                    disableControls:
+                      default: false
+                      description: For VNC based containers, hide the noVNC control
+                        bar when true
+                      type: boolean
                     environmentType:
                       description: The type of environment to be instantiated, among
                         VirtualMachine, Container, CloudVM and Standalone.

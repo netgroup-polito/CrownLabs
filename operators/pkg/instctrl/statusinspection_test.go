@@ -142,9 +142,9 @@ var _ = Describe("Status Inspection", func() {
 		ForgeResourceQuotaExceededDeployment := func(desired, ready int32) *appsv1.Deployment {
 			deployment := ForgeDeployment(desired, ready)
 			deployment.Status.Conditions = []appsv1.DeploymentCondition{{
-				Type:   "ReplicaFailure",
-				Status: corev1.ConditionTrue,
-				Reason: "FailedCreate",
+				Type:    "ReplicaFailure",
+				Status:  corev1.ConditionTrue,
+				Reason:  "FailedCreate",
 				Message: "pod is forbidden: exceeded quota:	crownlabs-resource-quota",
 			}}
 			return deployment

@@ -19,6 +19,8 @@ import (
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,7 +90,7 @@ func CanonicalSandboxName(name string) string {
 
 // RandomInstancePrettyName generates a random name of 2 capitalized words.
 func RandomInstancePrettyName() string {
-	return strings.Title(petname.Generate(2, " "))
+	return cases.Title(language.AmericanEnglish).String(petname.Generate(2, " "))
 }
 
 // CapResourceQuantity compares a resource.Quantity value with a given cap and returns the lower.

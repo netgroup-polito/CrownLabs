@@ -17,6 +17,7 @@ require (
 	github.com/onsi/gomega v1.11.0
 	github.com/prometheus/client_golang v1.10.0
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
