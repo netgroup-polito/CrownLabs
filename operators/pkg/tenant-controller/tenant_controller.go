@@ -51,23 +51,19 @@ const (
 )
 
 
-const REQUEUE_SECONDS_MINIMUM = 30; // Minimum seconds before requeue of controller
-const REQUEUE_SECONDS_MAXIMUM = 35; // Maximum seconds before requeue of controller
-
-const TENANT_WORKSPACE_KEEP_ALIVE_SECONDS time.Duration = 80 * 1000000000; // Seconds after last login of tenant during which the tenant workspace should be
-												// kept alive: after this period, the controller will attempt to delete the tenant
-												// personal workspace
-
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	KcA                *KcActor
-	NcA                NcHandler
-	TargetLabelKey     string
-	TargetLabelValue   string
-	SandboxClusterRole string
-	Concurrency        int
+	Scheme                    *runtime.Scheme
+	KcA                       *KcActor
+	NcA                       NcHandler
+	TargetLabelKey            string
+	TargetLabelValue          string
+	SandboxClusterRole        string
+	Concurrency               int
+	RequeueTimeMinimum        time.Duration
+	RequeueTimeMaximum        time.Duration
+	TenantWorkspaceKeepAlive  time.Duration 
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -168,7 +164,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	} else { // Otherwise, this is not the first time the user has logged in
 
-	  // So we check to see if last login was more than TENANT_WORKSPACE_KEEP_ALIVE_SECONDS in the past:
+	  // So we check to see if last login was more than r.TenantWorkspaceKeepAlive in the past:
 	  // if so, temporarily delete the namespace
       
 	  t := tn.Spec.LastLogin;
@@ -178,11 +174,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	  klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
 
-	  if(sPassed>TENANT_WORKSPACE_KEEP_ALIVE_SECONDS) { // seconds
-	  	klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(TENANT_WORKSPACE_KEEP_ALIVE_SECONDS.Seconds()), tn.Name)
+	  if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
+	  	klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
 	  	keepNsOpen = false;
 	  } else {
-	  	klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(TENANT_WORKSPACE_KEEP_ALIVE_SECONDS.Seconds()), tn.Name)
+	  	klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
 	  }
 
 	}
@@ -300,7 +296,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeueSeconds, err := randomRange(REQUEUE_SECONDS_MINIMUM, REQUEUE_SECONDS_MAXIMUM) // need to use seconds value for interval 4h-8h to have resolution to the second
+	nextRequeueSeconds, err := randomRange(int(r.RequeueTimeMinimum.Seconds()), int(r.RequeueTimeMaximum.Seconds())) // need to use seconds value for interval 4h-8h to have resolution to the second
 	if err != nil {
 		klog.Errorf("Error when generating random number for requeue -> %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
