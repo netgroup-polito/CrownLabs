@@ -22,6 +22,10 @@ import (
 	"strings"
 	"time"
 
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -37,18 +41,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
 	// NoWorkspacesLabel -> label to be set (to true) when no workspaces are associated to the tenant.
 	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
 )
-
 
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
@@ -149,15 +147,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		retrigErr = err
 	}
 
-
-
-    // Determine if the personal namespace should be deleted
+	// Determine if the personal namespace should be deleted
 
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
 	keepNsOpen := true; // keepNsOpen defines if we should close the personal namespace based on the last login date
 	                    // must be initialized for later use
-
 
 	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
 	// the tenant has logged in; update the lastLogin date to the year 2000 (i.e. do not cause any updates)
@@ -185,13 +180,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	  	klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
 	  }
 
-	  // output, err := json.Marshal(list)
-	  // if err != nil {
-	  //     fmt.Println(err)
-	  // }
-	  // klog.Infof(string(output));
-
-
   	  if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
   		klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
   		if len(list.Items)==0 {
@@ -208,9 +196,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
   	  } else {
   		klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
       }
-
 	}
-
 
 	var nsOk bool;
     nsOk, err = r.deleteCreateOrUpdateClusterResources(ctx, &tn, nsName, tenantExistingWorkspaces, workspaces, keepNsOpen, retrigErr);
@@ -426,8 +412,6 @@ func (r *TenantReconciler) deleteCreateOrUpdateClusterResources(ctx context.Cont
 	}
 	return nsOk, retrigErr;
 }
-
-
 
 // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {

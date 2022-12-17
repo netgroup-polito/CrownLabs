@@ -91,8 +91,8 @@ func main() {
 	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
-	flag.DurationVar(&requeueTimeMinimum, "nc-tenant-operator-rq-time-min", 30000000000, "Minimum nanoseconds before requeue of controller.") //4*3600*1000000000
-	flag.DurationVar(&requeueTimeMaximum, "nc-tenant-operator-rq-time-max", 35000000000, "Maximum nanoseconds before requeue of controller.") //8*3600*1000000000
+	flag.DurationVar(&requeueTimeMinimum, "nc-tenant-operator-rq-time-min", 30000000000, "Minimum nanoseconds before requeue of controller.") // 4*3600*1000000000
+	flag.DurationVar(&requeueTimeMaximum, "nc-tenant-operator-rq-time-max", 35000000000, "Maximum nanoseconds before requeue of controller.") // 8*3600*1000000000
 	flag.DurationVar(&tenantWorkspaceKeepAlive, "nc-tenant-operator-wspc-keep-alive", 80000000000, "Nanoseconds after last login of tenant during which the tenant workspace should be kept alive: after this period, the controller will attempt to delete the tenant personal workspace.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")

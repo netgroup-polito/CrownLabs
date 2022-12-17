@@ -72,7 +72,8 @@ spec:
                 description: The first name of the Tenant.
                 type: string
               lastLogin:
-                description: The last login date.
+                description: The last login timestamp.
+                format: date-time
                 type: string
               lastName:
                 description: The last name of the Tenant.
@@ -144,6 +145,7 @@ spec:
             required:
             - email
             - firstName
+            - lastLogin
             - lastName
             type: object
           status:
