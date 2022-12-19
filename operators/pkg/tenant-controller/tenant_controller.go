@@ -162,7 +162,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
 	sPassed := time.Since(t.Time);
 
-	klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
+	klog.Infof("Last login of tenant %s was %s ago", tn.Name, sPassed)
 
 	// Attempt to get instances in current namespace
 	list := &crownlabsv1alpha2.InstanceList{}
@@ -172,7 +172,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
-		klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", r.TenantWorkspaceKeepAlive, tn.Name)
 		if len(list.Items)==0 {
 		  klog.Infof("No instances in %s: workspace can be deleted", nsName)
 		  keepNsOpen = false;
@@ -185,7 +185,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		  klog.Infof("Instances in namespace %s:%s. Namespace will not be deleted",nsName,instNames)
 		}
 	} else {
-		klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", r.TenantWorkspaceKeepAlive, tn.Name)
 	}
 	
 
