@@ -154,49 +154,40 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	keepNsOpen := true; // keepNsOpen defines if we should close the personal namespace based on the last login date
 	                    // must be initialized for later use
 
-	// If the personalNamespace is not created and the lastLogin is blank, then this is the first time
-	// the tenant has logged in; update the lastLogin date to the year 2000 (i.e. do not cause any updates)
-	if tn.Status.PersonalNamespace.Created==false && tn.Spec.LastLogin.IsZero() {
+	// We check to see if last login was more than r.TenantWorkspaceKeepAlive in the past:
+	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
 
-	  tn.Spec.LastLogin = metav1.Time{Time: time.Date(2000, 0, 0, 0, 0, 0, 0, time.Now().Location())}
-      klog.Infof("First login of %s: setting lastLogin value of %s in tenant spec.", tn.Name, tn.Spec.LastLogin)
+	t := tn.Spec.LastLogin;
 
-	} else { // Otherwise, this is not the first time the user has logged in
+	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
+	sPassed := time.Since(t.Time);
 
-	  // So we check to see if last login was more than r.TenantWorkspaceKeepAlive in the past:
-	  // if so, temporarily delete the namespace
-      
-	  t := tn.Spec.LastLogin;
+	klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
 
-      // Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
-	  sPassed := time.Since(t.Time);
+	// Attempt to get instances in current namespace
+	list := &crownlabsv1alpha2.InstanceList{}
 
-	  klog.Infof("Last login of tenant %s was %d seconds ago", tn.Name, int(sPassed.Seconds()))
-
-	  // Attempt to get instances in current namespace
-	  list := &crownlabsv1alpha2.InstanceList{}
-
-	  if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
-	  	klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
-	  }
-
-  	  if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
-  		klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
-  		if len(list.Items)==0 {
-  		  klog.Infof("No instances in %s: workspace can be deleted", nsName)
-  		  keepNsOpen = false;
-  		} else {
-  		  // Add instance names to a list
-  		  instNames := ""
-  		  for _, inst := range list.Items {
-  		    instNames+=" "+inst.Name
-  		  }
-  		  klog.Infof("Instances in namespace %s:%s. Namespace will not be deleted",nsName,instNames)
-  		}
-  	  } else {
-  		klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
-      }
+	if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
+		klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
 	}
+
+	if(sPassed>r.TenantWorkspaceKeepAlive) { // seconds
+		klog.Infof("Over %d seconds elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+		if len(list.Items)==0 {
+		  klog.Infof("No instances in %s: workspace can be deleted", nsName)
+		  keepNsOpen = false;
+		} else {
+		  // Add instance names to a list
+		  instNames := ""
+		  for _, inst := range list.Items {
+		    instNames+=" "+inst.Name
+		  }
+		  klog.Infof("Instances in namespace %s:%s. Namespace will not be deleted",nsName,instNames)
+		}
+	} else {
+		klog.Infof("Under %d seconds (limit) elapsed since last login of tenant %s: namespace is left as-is", int(r.TenantWorkspaceKeepAlive.Seconds()), tn.Name)
+	}
+	
 
 	var nsOk bool;
     nsOk, err = r.deleteCreateOrUpdateClusterResources(ctx, &tn, nsName, tenantExistingWorkspaces, workspaces, keepNsOpen, retrigErr);
