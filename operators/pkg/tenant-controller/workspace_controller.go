@@ -102,13 +102,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	klog.Infof("Reconciling workspace %s", ws.Name)
 
 	// add tenant operator finalizer to workspace
-	if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
-		if err := r.Update(context.Background(), &ws); err != nil {
-			klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
-			retrigErr = err
-		}
-	}
+	// if !ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
+	// 	ctrlUtil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
+	// 	if err := r.Update(context.Background(), &ws); err != nil {
+	// 		klog.Errorf("Error when adding finalizer to workspace %s -> %s", ws.Name, err)
+	// 		retrigErr = err
+	// 	}
+	// }
 
 	nsName := fmt.Sprintf("workspace-%s", ws.Name)
 
