@@ -133,13 +133,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	tn.Spec.Email = strings.ToLower(tn.Spec.Email)
 
 	// add tenant operator finalizer to tenant
-	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
-		if err := r.Update(context.Background(), &tn); err != nil {
-			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
-			retrigErr = err
-		}
-	}
+	// if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
+	// 	ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+	// 	if err := r.Update(context.Background(), &tn); err != nil {
+	// 		klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
+	// 		retrigErr = err
+	// 	}
+	// }
 
 	tenantExistingWorkspaces, workspaces, err := r.checkValidWorkspaces(ctx, &tn)
 
