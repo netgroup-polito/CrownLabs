@@ -157,10 +157,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// We check to see if last login was more than r.TenantWorkspaceKeepAlive in the past:
 	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
 
-	t := tn.Spec.LastLogin;
-
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
-	sPassed := time.Since(t.Time);
+	sPassed := time.Since(tn.Spec.LastLogin.Time);
 
 	klog.Infof("Last login of tenant %s was %s ago", tn.Name, sPassed)
 
