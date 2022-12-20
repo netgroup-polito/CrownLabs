@@ -190,7 +190,9 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
 
 	var nsOk bool
-	nsOk, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
+	nsOk, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen); if err != nil {
+		klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
+	}
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
 		klog.Errorf("Error when updating keycloak subscription for tenant %s -> %s", tn.Name, err)
