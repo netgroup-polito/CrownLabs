@@ -72,8 +72,8 @@ func main() {
 	var ncTnOpUser string
 	var ncTnOpPsw string
 	var requeueTimeMinimum time.Duration
-    var requeueTimeMaximum time.Duration
-    var tenantWorkspaceKeepAlive time.Duration
+	var requeueTimeMaximum time.Duration
+	var tenantWorkspaceKeepAlive time.Duration
 	var maxConcurrentReconciles int
 	var webhookBypassGroups string
 
@@ -91,8 +91,8 @@ func main() {
 	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
-	flag.DurationVar(&requeueTimeMinimum, "nc-tenant-operator-rq-time-min", 4*time.Hour, "Minimum time elapsed before requeue of controller.") // 30*time.Second for testing
-	flag.DurationVar(&requeueTimeMaximum, "nc-tenant-operator-rq-time-max", 8*time.Hour, "Maximum time elapsed before requeue of controller.") // 35*time.Second for testing
+	flag.DurationVar(&requeueTimeMinimum, "nc-tenant-operator-rq-time-min", 4*time.Hour, "Minimum time elapsed before requeue of controller.")                                                                                                                                              // 30*time.Second for testing
+	flag.DurationVar(&requeueTimeMaximum, "nc-tenant-operator-rq-time-max", 8*time.Hour, "Maximum time elapsed before requeue of controller.")                                                                                                                                              // 35*time.Second for testing
 	flag.DurationVar(&tenantWorkspaceKeepAlive, "nc-tenant-operator-wspc-keep-alive", time.Hour, "Time elapsed after last login of tenant during which the tenant workspace should be kept alive: after this period, the controller will attempt to delete the tenant personal workspace.") // 80**time.Second for testing
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
@@ -176,17 +176,17 @@ func main() {
 		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	}
 	if err = (&controllers.TenantReconciler{
-		Client:                    mgr.GetClient(),
-		Scheme:                    mgr.GetScheme(),
-		KcA:                       kcA,
-		NcA:                       NcA,
-		TargetLabelKey:            targetLabelKey,
-		TargetLabelValue:          targetLabelValue,
-		SandboxClusterRole:        *sandboxClusterRole,
-		Concurrency:               maxConcurrentReconciles,
-		RequeueTimeMinimum:        requeueTimeMinimum,
-		RequeueTimeMaximum:        requeueTimeMaximum,
-		TenantWorkspaceKeepAlive:  tenantWorkspaceKeepAlive,
+		Client:                   mgr.GetClient(),
+		Scheme:                   mgr.GetScheme(),
+		KcA:                      kcA,
+		NcA:                      NcA,
+		TargetLabelKey:           targetLabelKey,
+		TargetLabelValue:         targetLabelValue,
+		SandboxClusterRole:       *sandboxClusterRole,
+		Concurrency:              maxConcurrentReconciles,
+		RequeueTimeMinimum:       requeueTimeMinimum,
+		RequeueTimeMaximum:       requeueTimeMaximum,
+		TenantWorkspaceKeepAlive: tenantWorkspaceKeepAlive,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)
