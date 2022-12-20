@@ -186,8 +186,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", r.TenantWorkspaceKeepAlive, tn.Name)
 	}
 
+	// update resource quota in the status of the tenant after checking validity of workspaces.
+	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
+
 	var nsOk bool
-	nsOk, err = r.EnforceClusterResources(ctx, &tn, nsName, tenantExistingWorkspaces, workspaces, keepNsOpen)
+	nsOk, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
 		klog.Errorf("Error when updating keycloak subscription for tenant %s -> %s", tn.Name, err)
@@ -349,14 +352,10 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 	return true, nsErr
 }
 
-func (r *TenantReconciler) EnforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry, workspaces []crownlabsv1alpha1.Workspace, keepNsOpen bool) (nsOk bool, err error) {
-
-	// Delete namespace or update the cluster resources
+// Deletes namespace or updates the cluster resources
+func (r *TenantReconciler) enforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (nsOk bool, err error) {
 
 	nsOk = false // nsOk must be initialized for later use
-
-	// update resource quota in the status of the tenant after checking validity of workspaces.
-	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
 
 	if keepNsOpen {
 		nsOk, err = r.createOrUpdateClusterResources(ctx, tn, nsName)
