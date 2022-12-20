@@ -313,18 +313,17 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 }
 
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error
-func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
+func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	nsErr := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace")
 
 	if nsErr != nil {
 		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
-		return false, nsErr
 	}
 
 	r.updateTnNamespace(&ns, tn.Name)
-	return true, nsErr
+	return nsErr
 }
 
 // Deletes namespace or updates the cluster resources
@@ -385,15 +384,10 @@ func (r *TenantReconciler) enforceClusterResources(ctx context.Context, tn *crow
 
 	} else {
 
-		nsOk, err = r.deleteClusterNamespace(ctx, tn, nsName)
-		if nsOk {
+		nsErr := r.deleteClusterNamespace(ctx, tn, nsName); if nsErr == nil {
 			klog.Infof("Namespace %s for tenant %s deleted if not already deleted", nsName, tn.Name)
 			tn.Status.PersonalNamespace.Created = false
 			tn.Status.PersonalNamespace.Name = ""
-			if err != nil {
-				klog.Errorf("Unable to delete namespace of tenant %s -> %s", tn.Name, err)
-				tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
-			}
 		} else {
 			klog.Errorf("Unable to delete namespace of tenant %s -> %s", tn.Name, err)
 			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
