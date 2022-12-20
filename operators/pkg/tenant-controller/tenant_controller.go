@@ -260,7 +260,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeueSeconds, err := randomRange(int(r.RequeueTimeMinimum.Seconds()), int(r.RequeueTimeMaximum.Seconds())) // need to use seconds value for interval 4h-8h to have resolution to the second
+	nextRequeueSeconds, err := randomRange(int(r.RequeueTimeMinimum.Seconds()), int(r.RequeueTimeMaximum.Seconds()))
 	if err != nil {
 		klog.Errorf("Error when generating random number for requeue -> %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
