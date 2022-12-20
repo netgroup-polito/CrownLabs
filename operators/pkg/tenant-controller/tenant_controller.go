@@ -319,10 +319,9 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 	nsErr := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace")
 
 	if nsErr != nil {
-		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
+	  klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
 	}
-
-	r.updateTnNamespace(&ns, tn.Name)
+	
 	return nsErr
 }
 
