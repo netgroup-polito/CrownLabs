@@ -16,6 +16,7 @@ package tenantwh_test
 
 import (
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -128,6 +129,34 @@ var _ = Describe("Validating webhook", func() {
 			})
 			It("should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
+			})
+		})
+
+		When("lastLogin is changed within the LastLoginToleration", func() {
+			BeforeEach(func() {
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
+					LastLogin: metav1.Time{
+						Time: time.Now().Add(tenantwh.LastLoginToleration / 2),
+					},
+				}}
+			})
+			It("should allow the change", func() {
+				Expect(response.Allowed).To(BeTrue())
+			})
+		})
+
+		When("lastLogin too far from now (abs(lastLogin-now)) > LastLoginToleration)", func() {
+			BeforeEach(func() {
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
+					LastLogin: metav1.Time{
+						Time: time.Now().Add(tenantwh.LastLoginToleration + time.Millisecond),
+					},
+				}}
+			})
+			It("should deny the change", func() {
+				Expect(response.Allowed).To(BeFalse())
+				Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+				Expect(response.Result.Reason).NotTo(BeEmpty())
 			})
 		})
 
