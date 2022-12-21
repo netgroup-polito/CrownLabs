@@ -21,8 +21,10 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -31,6 +33,8 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
+
+const LastLoginToleration = time.Hour * 24
 
 // TenantValidator validates Tenants.
 type TenantValidator struct{ TenantWebhook }
@@ -86,6 +90,17 @@ func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTen
 	log := ctrl.LoggerFrom(ctx)
 	newTenant.Spec.PublicKeys = nil
 	oldTenant.Spec.PublicKeys = nil
+
+	lastLoginDelta := newTenant.Spec.LastLogin.Time.Sub(time.Now())
+	if lastLoginDelta < 0 { // time.Duration.Abs() not available before go v1.19
+		lastLoginDelta = -lastLoginDelta
+	}
+	if newTenant.Spec.LastLogin != oldTenant.Spec.LastLogin && lastLoginDelta > LastLoginToleration {
+		return admission.Denied(fmt.Sprintf("unacceptable last login time, must be within +/-%v since local server time: %v", LastLoginToleration, time.Now()))
+	}
+	newTenant.Spec.LastLogin = metav1.Time{}
+	oldTenant.Spec.LastLogin = metav1.Time{}
+
 	if !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
 		log.Info("denied: unexpected tenant spec change")
 		return admission.Denied("only changes to public keys are allowed in the owned tenant")
