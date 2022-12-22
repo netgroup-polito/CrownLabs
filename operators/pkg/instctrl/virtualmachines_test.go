@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
-	virtv1 "kubevirt.io/client-go/api/v1"
+	virtv1 "kubevirt.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -133,8 +133,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			Kind:               "Instance",
 			Name:               instance.GetName(),
 			UID:                instance.GetUID(),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
-			Controller:         pointer.BoolPtr(true),
+			BlockOwnerDeletion: pointer.Bool(true),
+			Controller:         pointer.Bool(true),
 		}
 	})
 

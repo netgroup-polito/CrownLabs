@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -173,8 +173,8 @@ var _ = Describe("Sandbox", func() {
 			Kind:               "Tenant",
 			Name:               tenant.Name,
 			UID:                tenant.GetUID(),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
-			Controller:         pointer.BoolPtr(true),
+			BlockOwnerDeletion: pointer.Bool(true),
+			Controller:         pointer.Bool(true),
 		}
 		sandboxNSname = types.NamespacedName{
 			Name: forge.CanonicalSandboxName(tenantName),

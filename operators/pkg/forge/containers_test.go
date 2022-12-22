@@ -18,7 +18,7 @@ package forge_test
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
@@ -329,7 +329,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			var probe *corev1.Probe
 			BeforeEach(func() {
 				probe = forge.ContainerProbe()
-				probe.Handler.HTTPGet = &corev1.HTTPGetAction{
+				probe.HTTPGet = &corev1.HTTPGetAction{
 					Port: intstr.FromString("gui"),
 					Path: "/",
 				}
@@ -344,7 +344,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			var probe *corev1.Probe
 			BeforeEach(func() {
 				probe = forge.ContainerProbe()
-				probe.Handler.HTTPGet = &corev1.HTTPGetAction{
+				probe.HTTPGet = &corev1.HTTPGetAction{
 					Port: intstr.FromString("gui"),
 					Path: forge.IngressGUIPath(&instance, &environment),
 				}
@@ -723,8 +723,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		It("should return the correct podSpecification", func() {
 			Expect(actual).To(Equal(batchv1.JobSpec{
-				BackoffLimit:            pointer.Int32Ptr(forge.SubmissionJobMaxRetries),
-				TTLSecondsAfterFinished: pointer.Int32Ptr(forge.SubmissionJobTTLSeconds),
+				BackoffLimit:            pointer.Int32(forge.SubmissionJobMaxRetries),
+				TTLSecondsAfterFinished: pointer.Int32(forge.SubmissionJobTTLSeconds),
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
@@ -886,7 +886,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var expected *corev1.Probe
 		JustBeforeEach(func() {
 			expected = forge.ContainerProbe()
-			expected.Handler.TCPSocket = &corev1.TCPSocketAction{
+			expected.TCPSocket = &corev1.TCPSocketAction{
 				Port: intstr.FromString(portName),
 			}
 			forge.SetContainerReadinessTCPProbe(&container, portName)
@@ -901,7 +901,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var expected *corev1.Probe
 		JustBeforeEach(func() {
 			expected = forge.ContainerProbe()
-			expected.Handler.HTTPGet = &corev1.HTTPGetAction{
+			expected.HTTPGet = &corev1.HTTPGetAction{
 				Port: intstr.FromString(portName),
 				Path: httpPath,
 			}

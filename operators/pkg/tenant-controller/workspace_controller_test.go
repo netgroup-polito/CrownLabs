@@ -21,7 +21,7 @@ import (
 
 	gocloak "github.com/Nerzal/gocloak/v7"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
@@ -65,7 +65,6 @@ var _ = Describe("Workspace controller", func() {
 
 	It("Should create the related resources when creating a workspace", func() {
 		By("By creating a workspace")
-		ctx := context.Background()
 		ws := &crownlabsv1alpha1.Workspace{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",

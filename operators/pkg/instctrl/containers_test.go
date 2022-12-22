@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
@@ -132,8 +132,8 @@ var _ = Describe("Generation of the container based instances", func() {
 			Kind:               "Instance",
 			Name:               instance.GetName(),
 			UID:                instance.GetUID(),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
-			Controller:         pointer.BoolPtr(true),
+			BlockOwnerDeletion: pointer.Bool(true),
+			Controller:         pointer.Bool(true),
 		}
 	})
 

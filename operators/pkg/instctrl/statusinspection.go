@@ -19,7 +19,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	virtv1 "kubevirt.io/client-go/api/v1"
+	virtv1 "kubevirt.io/api/core/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )

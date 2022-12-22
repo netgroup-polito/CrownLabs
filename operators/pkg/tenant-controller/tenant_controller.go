@@ -90,10 +90,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	var retrigErr error
-	if tn.Status.Subscriptions == nil {
-		// make initial len is 2 (keycloak and nextcloud)
-		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 2)
-	}
 
 	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
@@ -136,6 +132,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
 			retrigErr = err
 		}
+	}
+
+	if tn.Status.Subscriptions == nil {
+		// make initial len is 2 (keycloak and nextcloud)
+		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 2)
 	}
 
 	tenantExistingWorkspaces, workspaces, err := r.checkValidWorkspaces(ctx, &tn)

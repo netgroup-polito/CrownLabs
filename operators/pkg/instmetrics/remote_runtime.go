@@ -22,6 +22,7 @@ import (
 
 	// criapi "k8s.io/cri-api/pkg/apis/runtime/v1".
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
@@ -65,7 +66,7 @@ func newRemoteRuntimeServiceClient(ctx context.Context, endpoint string) (*Remot
 	addr := URL.Path
 
 	// Open gRPC connection.
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithContextDialer(dial))
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dial))
 	if err != nil {
 		log.Error(err, "Connect remote runtime failed", "address", addr)
 		return nil, err

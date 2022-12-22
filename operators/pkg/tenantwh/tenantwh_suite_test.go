@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 func TestTenantWebHooks(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Forge Suite")
+	RunSpecs(t, "Tenant Webhook Suite")
 }
 
 func serializeTenant(t *clv1alpha2.Tenant) runtime.RawExtension {
