@@ -21,7 +21,7 @@ import (
 
 	gocloak "github.com/Nerzal/gocloak/v7"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/core/v1"
@@ -168,8 +168,6 @@ var _ = Describe("Tenant controller", func() {
 	})
 
 	It("Should create the related resources when creating a tenant", func() {
-		ctx := context.Background()
-
 		SampleResourceQuota := crownlabsv1alpha1.WorkspaceResourceQuota{
 			CPU:       *resource.NewQuantity(15, resource.DecimalSI),
 			Memory:    *resource.NewQuantity(25*1024*1024*1024, resource.BinarySI),

@@ -19,7 +19,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -33,20 +33,22 @@ var _ = Describe("CrownLabs Context Objects", func() {
 	var (
 		ctx context.Context
 
-		mockctrl *gomock.Controller
-		mocklog  *mocks.MockLogger
-		expected logr.Logger
-		log      logr.Logger
+		mockctrl    *gomock.Controller
+		mocklogsink *mocks.MockLogSink
+		expected    logr.Logger
+		log         logr.Logger
 	)
 
 	BeforeEach(func() {
 		mockctrl = gomock.NewController(GinkgoT())
-		mocklog = mocks.NewMockLogger(mockctrl)
+		mocklogsink = mocks.NewMockLogSink(mockctrl)
 		expected = logr.Discard()
 	})
 
 	JustBeforeEach(func() {
-		ctx = ctrl.LoggerInto(context.Background(), mocklog)
+		mocklogsink.EXPECT().Init(gomock.Any())
+		log = logr.New(mocklogsink)
+		ctx = ctrl.LoggerInto(context.Background(), log)
 	})
 
 	AfterEach(func() {
@@ -59,7 +61,7 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 			BeforeEach(func() {
 				instance = clv1alpha2.Instance{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"}}
-				mocklog.EXPECT().WithValues(gomock.Eq(instanceKey), gomock.Eq(klog.KObj(&instance))).Return(expected)
+				mocklogsink.EXPECT().WithValues(gomock.Eq(instanceKey), gomock.Eq(klog.KObj(&instance))).Return(expected.GetSink())
 			})
 
 			JustBeforeEach(func() {
@@ -83,7 +85,7 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 			BeforeEach(func() {
 				template = clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"}}
-				mocklog.EXPECT().WithValues(gomock.Eq(templateKey), gomock.Eq(klog.KObj(&template))).Return(expected)
+				mocklogsink.EXPECT().WithValues(gomock.Eq(templateKey), gomock.Eq(klog.KObj(&template))).Return(expected.GetSink())
 			})
 
 			JustBeforeEach(func() {
@@ -107,7 +109,7 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 			BeforeEach(func() {
 				tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "namespace"}}
-				mocklog.EXPECT().WithValues(gomock.Eq(tenantKey), gomock.Eq(klog.KObj(&tenant))).Return(expected)
+				mocklogsink.EXPECT().WithValues(gomock.Eq(tenantKey), gomock.Eq(klog.KObj(&tenant))).Return(expected.GetSink())
 			})
 
 			JustBeforeEach(func() {
@@ -131,7 +133,7 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 			BeforeEach(func() {
 				environment = clv1alpha2.Environment{Name: "name"}
-				mocklog.EXPECT().WithValues(gomock.Eq(environmentKey), gomock.Eq(environment.Name)).Return(expected)
+				mocklogsink.EXPECT().WithValues(gomock.Eq(environmentKey), gomock.Eq(environment.Name)).Return(expected.GetSink())
 			})
 
 			JustBeforeEach(func() {

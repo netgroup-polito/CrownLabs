@@ -384,7 +384,7 @@ func AddContainerArg(c *corev1.Container, name, value string) {
 // SetContainerReadinessTCPProbe sets the given container's ReadinessProbe with a TCPSocket handler.
 func SetContainerReadinessTCPProbe(c *corev1.Container, portName string) {
 	probe := ContainerProbe()
-	probe.Handler.TCPSocket = &corev1.TCPSocketAction{
+	probe.TCPSocket = &corev1.TCPSocketAction{
 		Port: intstr.FromString(portName),
 	}
 	c.ReadinessProbe = probe
@@ -393,7 +393,7 @@ func SetContainerReadinessTCPProbe(c *corev1.Container, portName string) {
 // SetContainerReadinessHTTPProbe sets the given container's ReadinessProbe with a HTTPGet handler.
 func SetContainerReadinessHTTPProbe(c *corev1.Container, portName, path string) {
 	probe := ContainerProbe()
-	probe.Handler.HTTPGet = &corev1.HTTPGetAction{
+	probe.HTTPGet = &corev1.HTTPGetAction{
 		Port: intstr.FromString(portName),
 		Path: path,
 	}
@@ -407,7 +407,6 @@ func ContainerProbe() *corev1.Probe {
 		PeriodSeconds:       2,
 		SuccessThreshold:    2,
 		FailureThreshold:    5,
-		Handler:             corev1.Handler{},
 	}
 }
 

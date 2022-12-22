@@ -28,8 +28,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
@@ -54,7 +54,7 @@ func init() {
 	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
 
 	utilruntime.Must(virtv1.AddToScheme(scheme))
-	utilruntime.Must(cdiv1.AddToScheme(scheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
 }
 
 func main() {

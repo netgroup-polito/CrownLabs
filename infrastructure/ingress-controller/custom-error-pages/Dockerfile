@@ -1,4 +1,4 @@
-FROM golang:1.16 as builder
+FROM golang:1.19 as builder
 
 COPY ./ /tmp/custom-error-pages
 WORKDIR /tmp/custom-error-pages

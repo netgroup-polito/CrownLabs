@@ -18,23 +18,23 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
-	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -42,10 +42,7 @@ import (
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Instance Controller Suite")
 }
 
 var (
@@ -61,6 +58,8 @@ var (
 const webdavSecretName = "webdav-secret"
 
 var _ = BeforeSuite(func() {
+	tests.LogsToGinkgoWriter()
+
 	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
@@ -68,7 +67,7 @@ var _ = BeforeSuite(func() {
 	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
-	Expect(cdiv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	ctrl.SetLogger(klogr.NewWithOptions())
 

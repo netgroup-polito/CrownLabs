@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package forge_test
+package tests
 
 import (
-	"testing"
+	"flag"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog/v2"
 )
 
-func TestForge(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Forge Suite")
+// LogsToGinkgoWriter configures klog to output the logs to GinkgoWriter, instead of stdout.
+// This allows to output the logs only in case of failing tests, simplifying troubleshooting.
+func LogsToGinkgoWriter() {
+	klog.SetOutput(ginkgo.GinkgoWriter)
+	flagset := flag.NewFlagSet("klog", flag.PanicOnError)
+	klog.InitFlags(flagset)
+	utilruntime.Must(flagset.Set("v", "5"))
+	utilruntime.Must(flagset.Set("stderrthreshold", "FATAL"))
+	klog.LogToStderr(false)
 }

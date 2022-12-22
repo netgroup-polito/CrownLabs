@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	batch "k8s.io/api/batch/v1"
@@ -121,8 +121,6 @@ var _ = Describe("InstancesnapshotController", func() {
 			},
 		}
 	)
-
-	ctx := context.Background()
 
 	BeforeEach(func() {
 		By("Preparing the environment for the new test")

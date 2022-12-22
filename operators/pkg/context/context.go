@@ -87,7 +87,7 @@ func LoggerIntoContext(ctx context.Context, log logr.Logger) context.Context {
 func LoggerFromContext(ctx context.Context, keysAndValues ...interface{}) logr.Logger {
 	var log logr.Logger
 	if ctx != nil {
-		log = logr.FromContext(ctx)
+		log, _ = logr.FromContext(ctx)
 	}
 	return log.WithValues(keysAndValues...)
 }

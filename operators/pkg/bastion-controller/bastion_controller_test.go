@@ -16,11 +16,10 @@ package bastion_controller
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,8 +46,6 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 		tenant1LookupKey   = types.NamespacedName{Name: NameTenant1}
 		tenant2LookupKey   = types.NamespacedName{Name: NameTenant2}
 	)
-
-	ctx := context.Background()
 
 	// this function checks if the keys are properly placed in the file.
 	checkFile := func() (bool, error) {
@@ -94,7 +91,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 
 		// create or update tenant in order to reset the specs
 
-		if err1 := k8sClient.Get(context.Background(), tenant1LookupKey, tenant1); err1 != nil {
+		if err1 := k8sClient.Get(ctx, tenant1LookupKey, tenant1); err1 != nil {
 			tenant1 = &crownlabsalpha2.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -127,7 +124,7 @@ var _ = Describe("Bastion controller - creating two tenants", func() {
 			return updatedTenant1.Spec.PublicKeys
 		}, timeout, interval).Should(Equal(PublicKeysTenant1))
 
-		if err2 := k8sClient.Get(context.Background(), tenant2LookupKey, tenant2); err2 != nil {
+		if err2 := k8sClient.Get(ctx, tenant2LookupKey, tenant2); err2 != nil {
 			tenant2 = &crownlabsalpha2.Tenant{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "crownlabs.polito.it/v1alpha1",

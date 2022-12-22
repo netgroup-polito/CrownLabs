@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	virtv1 "kubevirt.io/client-go/api/v1"
-	cdiv1beta1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1beta1"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
@@ -223,18 +223,18 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 }
 
 // DataVolumeSourceForge forges the DataVolumeSource for DataVolumeTemplate.
-func DataVolumeSourceForge(environment *clv1alpha2.Environment) cdiv1beta1.DataVolumeSource {
+func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
-		return cdiv1beta1.DataVolumeSource{
+		return &cdiv1beta1.DataVolumeSource{
 			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
 				URL: environment.Image,
 			},
 		}
 	}
-	return cdiv1beta1.DataVolumeSource{
+	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
-			URL:       urlDockerPrefix + environment.Image,
-			SecretRef: cdiSecretName,
+			URL:       pointer.String(urlDockerPrefix + environment.Image),
+			SecretRef: pointer.String(cdiSecretName),
 		},
 	}
 }

@@ -11,11 +11,7 @@ gen: generate fmt vet manifests
 
 #run all tests
 test:
-	# KubeVirt registers two versions of its API, which is not supported by
-	# the kubernetes client. This environment variable is required to force
-	# KubeVirt register only a specific version of the API
-	KUBEVIRT_CLIENT_GO_SCHEME_REGISTRATION_VERSION=v1alpha3 \
-		go test ./... -coverprofile coverage.out -covermode=count
+	go test ./... -coverprofile coverage.out -covermode=count
 
 test-python: python-dependencies
 	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
@@ -63,24 +59,13 @@ generate: controller-gen
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-}
+	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.1
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 run-instance: generate
-	# KubeVirt registers two versions of its API, which is not supported by
-	# the kubernetes client. This environment variable is required to force
-	# KubeVirt register only a specific version of the API
-	KUBEVIRT_CLIENT_GO_SCHEME_REGISTRATION_VERSION=v1alpha3 \
 	go run cmd/instance-operator/main.go\
 				--webdav-secret-name=nextcloud-credentials\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
