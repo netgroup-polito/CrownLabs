@@ -314,7 +314,7 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 }
 
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.
-func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (err error) {
+func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 	err := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace")
