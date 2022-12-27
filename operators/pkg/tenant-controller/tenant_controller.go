@@ -61,7 +61,7 @@ type TenantReconciler struct {
 	Concurrency              int
 	RequeueTimeMinimum       time.Duration
 	RequeueTimeMaximum       time.Duration
-	TenantWorkspaceKeepAlive time.Duration
+	TenantNSKeepAlive        time.Duration
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -153,7 +153,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
 	// Test if namespace has been open for too long; attempt to delete if there are no instances inside
-	keepNsOpen, err := r.enforceNamespaceKeepAliveOrDelete(ctx, &tn, nsName, r.TenantWorkspaceKeepAlive)
+	keepNsOpen, err := r.enforceNamespaceKeepAliveOrDelete(ctx, &tn, nsName, r.TenantNSKeepAlive)
 	if err != nil {
 		klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
 	}
@@ -325,8 +325,8 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 }
 
 // enforceNamespaceKeepAliveOrDelete deletes the namespace if it should be deleted.
-func (r *TenantReconciler) enforceNamespaceKeepAliveOrDelete(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, tenantWorkspaceKeepAlive time.Duration) (keepNsOpen bool, err error) {
-	// We check to see if last login was more than tenantWorkspaceKeepAlive in the past:
+func (r *TenantReconciler) enforceNamespaceKeepAliveOrDelete(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, tenantNSKeepAlive time.Duration) (keepNsOpen bool, err error) {
+	// We check to see if last login was more than tenantNSKeepAlive in the past:
 	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
 
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
@@ -342,8 +342,8 @@ func (r *TenantReconciler) enforceNamespaceKeepAliveOrDelete(ctx context.Context
 	}
 	
 	keepNsOpen = true
-	if sPassed > tenantWorkspaceKeepAlive { // seconds
-		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantWorkspaceKeepAlive, tn.Name)
+	if sPassed > tenantNSKeepAlive { // seconds
+		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
 			klog.Infof("No instances in %s: workspace can be deleted", nsName)
 			keepNsOpen = false
@@ -351,7 +351,7 @@ func (r *TenantReconciler) enforceNamespaceKeepAliveOrDelete(ctx context.Context
 			klog.Infof("Instances in namespace %s. Namespace will not be deleted", nsName)
 		}
 	} else {
-		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", tenantWorkspaceKeepAlive, tn.Name)
+		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", tenantNSKeepAlive, tn.Name)
 	}
 
 	return keepNsOpen, nil
