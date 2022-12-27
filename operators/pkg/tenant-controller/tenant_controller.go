@@ -317,13 +317,13 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (err error) {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
-	nsErr := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace")
+	err := utils.EnforceObjectAbsence(ctx, r.Client, &ns, "personal namespace")
 
-	if nsErr != nil {
-		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, nsErr)
+	if err != nil {
+		klog.Errorf("Error when deleting namespace of tenant %s -> %s", tn.Name, err)
 	}
 
-	return nsErr
+	return err
 }
 
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
