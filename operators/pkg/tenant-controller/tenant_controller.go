@@ -343,12 +343,11 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 		return true, err
 	}
 	
-	keepNsOpen = true
 	if sPassed > tenantNSKeepAlive { // seconds
 		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
 			klog.Infof("No instances found in %s: namespace can be deleted", nsName)
-			keepNsOpen = false
+			return false, nil
 		} else {
 			klog.Infof("Instances found in namespace %s. Namespace will not be deleted", nsName)
 		}
@@ -356,7 +355,7 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", tenantNSKeepAlive, tn.Name)
 	}
 
-	return keepNsOpen, nil
+	return true, nil
 }
 
 // Deletes namespace or updates the cluster resources.
