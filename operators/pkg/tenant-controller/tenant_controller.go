@@ -155,7 +155,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Test if namespace has been open for too long; check if it is ok to delete
 	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName, r.TenantNSKeepAlive)
 	if err != nil {
-		klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
+		klog.Errorf("Error in r.List: unable to capture instances in tenant namespace %s -> %s", nsName, err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
 		return ctrl.Result{}, err
 	}
@@ -347,7 +347,7 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 	if sPassed > tenantNSKeepAlive { // seconds
 		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
-			klog.Infof("No instances in %s: workspace can be deleted", nsName)
+			klog.Infof("No instances in %s: namespace can be deleted", nsName)
 			keepNsOpen = false
 		} else {
 			klog.Infof("Instances in namespace %s. Namespace will not be deleted", nsName)
