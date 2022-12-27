@@ -152,10 +152,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
-	// Test if namespace has been open for too long; attempt to delete if there are no instances inside
+	// Test if namespace has been open for too long; check if it is ok to delete
 	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName, r.TenantNSKeepAlive)
 	if err != nil {
 		klog.Errorf("Error in r.List: unable to capture instances in tenant workspace %s -> %s", nsName, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+		return ctrl.Result{}, err
 	}
 
 	// update resource quota in the status of the tenant after checking validity of workspaces.
