@@ -405,7 +405,6 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	}
 
 	var retErr error
-
 	// handle resource quota
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: nsName},
