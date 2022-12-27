@@ -1,0 +1,11 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: pepsi-6831
+  namespace: tenant-sam-h
+spec:
+  template.crownlabs.polito.it/TemplateRef:
+    name: pepsi
+    namespace: workspace-pepsi
+  tenant.crownlabs.polito.it/TenantRef:
+    name: sam.h

@@ -1,0 +1,16 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Tenant
+metadata:
+  name: sam.h
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  firstName: John
+  lastName: Doe
+  email: jonh.doe@email.com
+  workspaces:
+    - name: pepsi
+      role: user
+  publicKeys:
+    - type1 key1 comment1
+    - type2 key2 comment3
