@@ -340,7 +340,8 @@ func (r *TenantReconciler) enforceNamespaceKeepAliveOrDelete(ctx context.Context
 	if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
 		return true, err
 	}
-
+	
+	keepNsOpen = true
 	if sPassed > tenantWorkspaceKeepAlive { // seconds
 		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantWorkspaceKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
