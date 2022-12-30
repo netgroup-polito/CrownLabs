@@ -52,16 +52,16 @@ const (
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
-	Scheme                   *runtime.Scheme
-	KcA                      *KcActor
-	NcA                      NcHandler
-	TargetLabelKey           string
-	TargetLabelValue         string
-	SandboxClusterRole       string
-	Concurrency              int
-	RequeueTimeMinimum       time.Duration
-	RequeueTimeMaximum       time.Duration
-	TenantNSKeepAlive        time.Duration
+	Scheme             *runtime.Scheme
+	KcA                *KcActor
+	NcA                NcHandler
+	TargetLabelKey     string
+	TargetLabelValue   string
+	SandboxClusterRole string
+	Concurrency        int
+	RequeueTimeMinimum time.Duration
+	RequeueTimeMaximum time.Duration
+	TenantNSKeepAlive  time.Duration
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -134,13 +134,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	tn.Spec.Email = strings.ToLower(tn.Spec.Email)
 
 	// add tenant operator finalizer to tenant
-	// if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
-	// 	ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
-	// 	if err := r.Update(context.Background(), &tn); err != nil {
-	// 		klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
-	// 		retrigErr = err
-	// 	}
-	// }
+	if !ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
+		ctrlUtil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+		if err := r.Update(context.Background(), &tn); err != nil {
+			klog.Errorf("Error when adding finalizer to tenant %s -> %s ", tn.Name, err)
+			retrigErr = err
+		}
+	}
 
 	tenantExistingWorkspaces, workspaces, err := r.checkValidWorkspaces(ctx, &tn)
 
@@ -343,7 +343,7 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 	if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
 		return true, err
 	}
-	
+
 	if sPassed > tenantNSKeepAlive { // seconds
 		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {

@@ -91,9 +91,9 @@ func main() {
 	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
 	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
 	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
-	flag.DurationVar(&requeueTimeMinimum, "tenant-operator-rq-time-min", 30*time.Second, "Minimum time elapsed before requeue of controller.")
-	flag.DurationVar(&requeueTimeMaximum, "tenant-operator-rq-time-max", 35*time.Second, "Maximum time elapsed before requeue of controller.")
-	flag.DurationVar(&tenantNSKeepAlive, "tenant-operator-ns-keep-alive", 80*time.Second, "Time elapsed after last login of tenant during which the tenant namespace should be kept alive: after this period, the controller will attempt to delete the tenant personal namespace.")
+	flag.DurationVar(&requeueTimeMinimum, "tenant-operator-rq-time-min", 4*time.Hour, "Minimum time elapsed before requeue of controller.")
+	flag.DurationVar(&requeueTimeMaximum, "tenant-operator-rq-time-max", 8*time.Hour, "Maximum time elapsed before requeue of controller.")
+	flag.DurationVar(&tenantNSKeepAlive, "tenant-operator-ns-keep-alive", time.Hour, "Time elapsed after last login of tenant during which the tenant namespace should be kept alive: after this period, the controller will attempt to delete the tenant personal namespace.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
@@ -176,17 +176,17 @@ func main() {
 		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	}
 	if err = (&controllers.TenantReconciler{
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
-		KcA:                      kcA,
-		NcA:                      NcA,
-		TargetLabelKey:           targetLabelKey,
-		TargetLabelValue:         targetLabelValue,
-		SandboxClusterRole:       *sandboxClusterRole,
-		Concurrency:              maxConcurrentReconciles,
-		RequeueTimeMinimum:       requeueTimeMinimum,
-		RequeueTimeMaximum:       requeueTimeMaximum,
-		TenantNSKeepAlive:        tenantNSKeepAlive,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		KcA:                kcA,
+		NcA:                NcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		SandboxClusterRole: *sandboxClusterRole,
+		Concurrency:        maxConcurrentReconciles,
+		RequeueTimeMinimum: requeueTimeMinimum,
+		RequeueTimeMaximum: requeueTimeMaximum,
+		TenantNSKeepAlive:  tenantNSKeepAlive,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)
