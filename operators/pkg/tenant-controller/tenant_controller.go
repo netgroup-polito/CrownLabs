@@ -163,10 +163,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// update resource quota in the status of the tenant after checking validity of workspaces.
 	tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
 
-	var nsOk bool
-	nsOk, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
+	nsOk, err := r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
 	if err != nil {
 		klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+		return ctrl.Result{}, err
 	}
 
 	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
