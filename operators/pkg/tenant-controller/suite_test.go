@@ -47,6 +47,12 @@ var testEnv *envtest.Environment
 const targetLabelKey = "reconcile"
 const targetLabelValue = "true"
 
+const sandboxClusterRole = "crownlabs-sandbox"
+const maxConcurrentReconciles = 1
+const requeueTimeMinimum = 30*time.Second
+const requeueTimeMaximum = 35*time.Second
+const tenantNSKeepAlive = 80*time.Second
+
 const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
 const kcTargetClientID = "targetClientId"
@@ -115,6 +121,11 @@ var _ = BeforeSuite(func(done Done) {
 		NcA:                mNcA,
 		TargetLabelKey:     targetLabelKey,
 		TargetLabelValue:   targetLabelValue,
+		SandboxClusterRole: sandboxClusterRole,
+		Concurrency:        maxConcurrentReconciles,
+		RequeueTimeMinimum: requeueTimeMinimum,
+		RequeueTimeMaximum: requeueTimeMaximum,
+		TenantNSKeepAlive:  tenantNSKeepAlive,
 		ReconcileDeferHook: GinkgoRecover,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

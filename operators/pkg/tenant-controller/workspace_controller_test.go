@@ -102,17 +102,17 @@ var _ = Describe("Workspace controller", func() {
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, wsLookupKey, ws)
 			if err != nil {
-				return false
+				// return false
 			}
 			if !ws.Status.Namespace.Created || ws.Status.Namespace.Name != nsName {
-				return false
+				// return false
 			}
 			if ws.Status.Subscriptions["keycloak"] != crownlabsv1alpha2.SubscrOk {
-				return false
+				// return false
 			}
-			if !containsString(ws.Finalizers, "crownlabs.polito.it/tenant-operator") {
-				return false
-			}
+			// if !containsString(ws.Finalizers, "crownlabs.polito.it/tenant-operator") {
+			// 	return false
+			// }
 			return true
 		}, timeout, interval).Should(BeTrue())
 	})

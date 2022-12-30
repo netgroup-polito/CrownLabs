@@ -90,6 +90,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
 			Spec: clv1alpha2.TenantSpec{
 				Email: "test@email.me",
+				LastLogin:  metav1.Now(),
 			},
 		}
 		template := clv1alpha2.Template{
