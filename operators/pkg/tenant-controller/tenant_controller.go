@@ -153,7 +153,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 
 	// Test if namespace has been open for too long; check if it is ok to delete
-	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName, r.TenantNSKeepAlive)
+	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName)
 	if err != nil {
 		klog.Errorf("Error in r.List: unable to capture instances in tenant namespace %s -> %s", nsName, err)
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
@@ -328,8 +328,8 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 }
 
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
-func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, tenantNSKeepAlive time.Duration) (keepNsOpen bool, err error) {
-	// We check to see if last login was more than tenantNSKeepAlive in the past:
+func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (keepNsOpen bool, err error) {
+	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
 	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
 
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
@@ -344,15 +344,15 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 		return true, err
 	}
 
-	if sPassed > tenantNSKeepAlive { // seconds
-		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", tenantNSKeepAlive, tn.Name)
+	if sPassed > r.TenantNSKeepAlive { // seconds
+		klog.Infof("Over %s elapsed since last login of tenant %s: attempting to delete tenant namespace if not already deleted", r.TenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
 			klog.Infof("No instances found in %s: namespace can be deleted", nsName)
 			return false, nil
 		}
 		klog.Infof("Instances found in namespace %s. Namespace will not be deleted", nsName)
 	} else {
-		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", tenantNSKeepAlive, tn.Name)
+		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: namespace is left as-is", r.TenantNSKeepAlive, tn.Name)
 	}
 
 	return true, nil
