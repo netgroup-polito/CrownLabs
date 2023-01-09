@@ -49,9 +49,9 @@ const targetLabelValue = "true"
 
 const sandboxClusterRole = "crownlabs-sandbox"
 const maxConcurrentReconciles = 1
-const requeueTimeMinimum = 30 * time.Second
-const requeueTimeMaximum = 35 * time.Second
-const tenantNSKeepAlive = 80 * time.Second
+const requeueTimeMinimum = 3 * time.Hour
+const requeueTimeMaximum = 4 * time.Hour
+const tenantNSKeepAlive = 10 * time.Hour
 
 const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
