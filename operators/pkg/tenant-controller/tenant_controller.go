@@ -380,8 +380,8 @@ func (r *TenantReconciler) enforceClusterResources(ctx context.Context, tn *crow
 			tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		}
 	} else {
-		nsErr := r.deleteClusterNamespace(ctx, tn, nsName)
-		if nsErr == nil {
+		err := r.deleteClusterNamespace(ctx, tn, nsName)
+		if err == nil {
 			klog.Infof("Namespace %s for tenant %s deleted if not already deleted", nsName, tn.Name)
 			tn.Status.PersonalNamespace.Created = false
 			tn.Status.PersonalNamespace.Name = ""
