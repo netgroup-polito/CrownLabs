@@ -1,4 +1,4 @@
-// Copyright 2020-2022 Politecnico di Torino
+// Copyright 2020-2023 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller/mocks"
@@ -216,15 +215,15 @@ var _ = Describe("Tenant controller", func() {
 			Kind:       "Namespace",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "tenant-"+tnName,
+			Name: "tenant-" + tnName,
 			Labels: map[string]string{
 				"test-suite": "true",
 				"crownlabs.polito.it/instance-resources-replication": "true",
-			    "crownlabs.polito.it/managed-by": "tenant",
-			    "crownlabs.polito.it/name": tnName,
-			    "crownlabs.polito.it/operator-selector": "local",
-			    "crownlabs.polito.it/type": "tenant",
-			    "kubernetes.io/metadata.name": "tenant-"+tnName,
+				"crownlabs.polito.it/managed-by":                     "tenant",
+				"crownlabs.polito.it/name":                           tnName,
+				"crownlabs.polito.it/operator-selector":              "local",
+				"crownlabs.polito.it/type":                           "tenant",
+				"kubernetes.io/metadata.name":                        "tenant-" + tnName,
 			},
 		},
 	}
@@ -298,13 +297,12 @@ var _ = Describe("Tenant controller", func() {
 			return true
 		}, timeout, interval).Should(BeTrue())
 
-		k8sClient.Delete(ctx, tn1)
+		Expect(k8sClient.Delete(ctx, tn1)).Should(Succeed())
 
 	})
 
+	It("Should create a Tenant with LastLogin of many months ago and a personal namespace and an instance, and the namespace should be kept after time passes", func() {
 
-	It("Should create a Tenant with LastLogin of many months ago and a personal namespace and an instance, then keep the namespace", func() {
-		
 		ws2 := &crownlabsv1alpha1.Workspace{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -322,7 +320,7 @@ var _ = Describe("Tenant controller", func() {
 		}
 		Expect(k8sClient.Create(ctx, ws2)).Should(Succeed())
 
-        tn6 := &crownlabsv1alpha2.Tenant{
+		tn6 := &crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
 				Kind:       "Tenant",
@@ -350,31 +348,7 @@ var _ = Describe("Tenant controller", func() {
 		createdTn := &crownlabsv1alpha2.Tenant{}
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
-		ns3 := ns
- 		k8sClient.Create(ctx, ns3)
-
-        in1 := &crownlabsv1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "pepsi-6831",
-				Namespace: "tenant-"+tnName,
-			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
-				Template:crownlabsv1alpha2.GenericRef{
-					Name: "pepsi",
-					Namespace: wsName,
-				},
-				Tenant:crownlabsv1alpha2.GenericRef{
-					Name: tnName,
-				},
-			},
-		}
-        Expect(k8sClient.Create(ctx, in1)).Should(Succeed())
-
-        By("Simulating time passing")
-        tn6.Spec.LastLogin = metav1.Time{Time: time.Now().AddDate(-3, 0, 0)}
-		Expect(k8sClient.Update(ctx, tn6)).Should(Succeed())
-
-        By("Should have personal namespace kept due to instance")
+		By("Checking that the personal namespace was created due to recent login")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn6)
 			if err != nil {
@@ -385,14 +359,46 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		
-		k8sClient.Delete(ctx, tn6)
-		k8sClient.Delete(ctx, ns3)
-		k8sClient.Delete(ctx, ws2)
+
+		in1 := &crownlabsv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pepsi-6831",
+				Namespace: "tenant-" + tnName,
+			},
+			Spec: crownlabsv1alpha2.InstanceSpec{
+				Template: crownlabsv1alpha2.GenericRef{
+					Name:      "pepsi",
+					Namespace: wsName,
+				},
+				Tenant: crownlabsv1alpha2.GenericRef{
+					Name: tnName,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, in1)).Should(Succeed())
+
+		By("Simulating time passing")
+		tn6.Spec.LastLogin = metav1.Time{Time: time.Now().AddDate(-3, 0, 0)}
+
+		Expect(k8sClient.Update(ctx, tn6)).Should(Succeed())
+
+		By("Having personal namespace kept due to instance")
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, tnLookupKey, tn6)
+			if err != nil {
+				return false
+			}
+			if !tn6.Status.PersonalNamespace.Created {
+				return false
+			}
+			return true
+		}, timeout, interval).Should(BeTrue())
+
+		Expect(k8sClient.Delete(ctx, tn6)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, ws2)).Should(Succeed())
 	})
 
-
-	It("Should create a Tenant with LastLogin of now and no personal namespace, then add a namespace", func() {
+	It("Should create a Tenant with LastLogin of now and no personal namespace, then the namespace should be automatically added", func() {
 		tn2 := &crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -416,12 +422,13 @@ var _ = Describe("Tenant controller", func() {
 				},
 			},
 		}
+
 		Expect(k8sClient.Create(ctx, tn2)).Should(Succeed())
 		tnLookupKey := types.NamespacedName{Name: tnName, Namespace: tnNamespace}
 		createdTn := &crownlabsv1alpha2.Tenant{}
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
-        By("Should show the personal namespace added")
+		By("Showing the personal namespace added")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn2)
 			if err != nil {
@@ -432,11 +439,11 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		k8sClient.Delete(ctx, tn2)
+		Expect(k8sClient.Delete(ctx, tn2)).Should(Succeed())
+
 	})
 
-
-	It("Should create a Tenant with LastLogin of many months ago and a personal namespace, then remove the namespace", func() {
+	It("Should create a Tenant with LastLogin of many months ago and a personal namespace, then the namespace should be automatically removed", func() {
 		tn3 := &crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -465,10 +472,11 @@ var _ = Describe("Tenant controller", func() {
 		createdTn := &crownlabsv1alpha2.Tenant{}
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
+		// Namespace should not be able to successfully be created
 		ns1 := ns
-        k8sClient.Create(ctx, ns1)
-		
-        By("Should show the personal namespace deleted")
+		Expect(k8sClient.Create(ctx, ns1)).ShouldNot(Succeed())
+
+		By("Showing that the personal namespace was deleted")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn3)
 			if err != nil {
@@ -479,13 +487,12 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		
-		k8sClient.Delete(ctx, tn3)
-		k8sClient.Delete(ctx, ns1)
+
+		Expect(k8sClient.Delete(ctx, tn3)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, ns1)).Should(Succeed())
 	})
 
-
-	It("Should create a Tenant with LastLogin of now and a personal namespace, and leave the namespace in place", func() {
+	It("Should create a Tenant with LastLogin of now and a personal namespace, and the namespace should be kept in place", func() {
 		tn4 := &crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "crownlabs.polito.it/v1alpha1",
@@ -515,9 +522,9 @@ var _ = Describe("Tenant controller", func() {
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
 		ns2 := ns
-        k8sClient.Create(ctx, ns2)
+		Expect(k8sClient.Create(ctx, ns2)).ShouldNot(Succeed()) // This is because it has already been created
 
-        By("Leaving the personal namespace in place")
+		By("Leaving the personal namespace in place")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn4)
 			if err != nil {
@@ -528,10 +535,9 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		k8sClient.Delete(ctx, tn4)
-		k8sClient.Delete(ctx, ns2)
+		Expect(k8sClient.Delete(ctx, tn4)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, ns2)).Should(Succeed())
 	})
-
 
 	It("Should create a Tenant with LastLogin of many months ago without a personal namespace, then the namespace should remain removed", func() {
 		tn5 := &crownlabsv1alpha2.Tenant{
@@ -561,8 +567,8 @@ var _ = Describe("Tenant controller", func() {
 		tnLookupKey := types.NamespacedName{Name: tnName, Namespace: tnNamespace}
 		createdTn := &crownlabsv1alpha2.Tenant{}
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
-		
-        By("Should have personal namespace kept removed")
+
+		By("Keeping the personal namespace removed")
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, tnLookupKey, tn5)
 			if err != nil {
@@ -573,8 +579,8 @@ var _ = Describe("Tenant controller", func() {
 			}
 			return true
 		}, timeout, interval).Should(BeTrue())
-		
-		k8sClient.Delete(ctx, tn5)
+
+		Expect(k8sClient.Delete(ctx, tn5)).Should(Succeed())
 	})
 
 })

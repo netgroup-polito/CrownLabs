@@ -1,4 +1,4 @@
-// Copyright 2020-2022 Politecnico di Torino
+// Copyright 2020-2023 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import (
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
@@ -176,17 +175,17 @@ func main() {
 		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	}
 	if err = (&controllers.TenantReconciler{
-		Client:                   mgr.GetClient(),
-		Scheme:                   mgr.GetScheme(),
-		KcA:                      kcA,
-		NcA:                      NcA,
-		TargetLabelKey:           targetLabelKey,
-		TargetLabelValue:         targetLabelValue,
-		SandboxClusterRole:       *sandboxClusterRole,
-		Concurrency:              maxConcurrentReconciles,
-		RequeueTimeMinimum:       requeueTimeMinimum,
-		RequeueTimeMaximum:       requeueTimeMaximum,
-		TenantNSKeepAlive:        tenantNSKeepAlive,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		KcA:                kcA,
+		NcA:                NcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		SandboxClusterRole: *sandboxClusterRole,
+		Concurrency:        maxConcurrentReconciles,
+		RequeueTimeMinimum: requeueTimeMinimum,
+		RequeueTimeMaximum: requeueTimeMaximum,
+		TenantNSKeepAlive:  tenantNSKeepAlive,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)
