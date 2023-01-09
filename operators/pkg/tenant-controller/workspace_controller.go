@@ -30,6 +30,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // WorkspaceReconciler reconciles a Workspace object.
@@ -181,6 +182,7 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&v1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.RoleBinding{}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Workspace")).
 		Complete(r)
 }
 

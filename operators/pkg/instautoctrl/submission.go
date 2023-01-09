@@ -57,6 +57,7 @@ func (r *InstanceSubmissionReconciler) SetupWithManager(mgr ctrl.Manager, concur
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSubmission")).
 		Complete(r)
 }
 

@@ -36,7 +36,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 var (
@@ -96,9 +95,6 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if !klog.V(5).Enabled() {
-		klog.SetLogFilter(utils.LogShortenerFilter{})
-	}
 	ctrl.SetLogger(klogr.NewWithOptions())
 
 	ctx := ctrl.SetupSignalHandler()

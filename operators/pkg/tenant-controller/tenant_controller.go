@@ -41,6 +41,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
@@ -257,6 +258,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Concurrency,
 		}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
 		Complete(r)
 }
 

@@ -39,7 +39,6 @@ import (
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -99,9 +98,6 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if !klog.V(5).Enabled() {
-		klog.SetLogFilter(utils.LogShortenerFilter{})
-	}
 	ctrl.SetLogger(klogr.NewWithOptions())
 
 	log := ctrl.Log.WithName("setup")

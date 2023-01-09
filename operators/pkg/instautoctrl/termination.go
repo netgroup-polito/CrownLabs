@@ -59,6 +59,7 @@ func (r *InstanceTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concu
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceTermination")).
 		Complete(r)
 }
 
