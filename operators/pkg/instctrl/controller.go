@@ -255,6 +255,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Instance")).
 		Complete(r)
 }
 

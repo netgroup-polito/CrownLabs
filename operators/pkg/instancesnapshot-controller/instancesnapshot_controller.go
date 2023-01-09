@@ -146,5 +146,6 @@ func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// The generation changed predicate allow to avoid updates on the status changes of the InstanceSnapshot
 		For(&crownlabsv1alpha2.InstanceSnapshot{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&batch.Job{}).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
 		Complete(r)
 }
