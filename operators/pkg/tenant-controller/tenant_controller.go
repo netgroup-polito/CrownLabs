@@ -113,7 +113,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				ctrlUtil.RemoveFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
 				if err := r.Update(context.Background(), &tn); err != nil {
 					klog.Errorf("Error when removing tenant operator finalizer from tenant %s -> %s", tn.Name, err)
-					tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+					tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 					retrigErr = err
 				}
 			}
