@@ -89,7 +89,7 @@ func main() {
 	flag.StringVar(&kcTargetClient, "kc-target-client", "", "The target client for keycloak users and roles.")
 	flag.DurationVar(&requeueTimeMinimum, "tenant-operator-rq-time-min", 4*time.Hour, "Minimum time elapsed before requeue of controller.")
 	flag.DurationVar(&requeueTimeMaximum, "tenant-operator-rq-time-max", 8*time.Hour, "Maximum time elapsed before requeue of controller.")
-	flag.DurationVar(&tenantNSKeepAlive, "tenant-operator-ns-keep-alive", 10*time.Hour, "Time elapsed after last login of tenant during which the tenant namespace should be kept alive: after this period, the controller will attempt to delete the tenant personal namespace.")
+	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 10*time.Hour, "Time elapsed after last login of tenant during which the tenant namespace should be kept alive: after this period, the controller will attempt to delete the tenant personal namespace.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
@@ -179,11 +179,13 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.WorkspaceReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		KcA:              kcA,
-		TargetLabelKey:   targetLabelKey,
-		TargetLabelValue: targetLabelValue,
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		KcA:                kcA,
+		TargetLabelKey:     targetLabelKey,
+		TargetLabelValue:   targetLabelValue,
+		RequeueTimeMinimum: requeueTimeMinimum,
+		RequeueTimeMaximum: requeueTimeMaximum,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "workspace")
 		os.Exit(1)

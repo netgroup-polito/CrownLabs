@@ -41,6 +41,9 @@ type WorkspaceReconciler struct {
 	TargetLabelKey   string
 	TargetLabelValue string
 
+	RequeueTimeMinimum time.Duration
+	RequeueTimeMaximum time.Duration
+
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -167,15 +170,9 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// no retrigErr, need to normal reconcile later, so need to create random number and exit
-	nextRequeSeconds, err := randomRange(3600, 7200) // need to use seconds value for interval 1h-2h to have resultion to the second
-	if err != nil {
-		klog.Errorf("Error when generating random number for reque -> %s", err)
-		tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
-		return ctrl.Result{}, err
-	}
-	nextRequeDuration := time.Second * time.Duration(*nextRequeSeconds)
-	klog.Infof("Workspace %s reconciled successfully, next in %s", ws.Name, nextRequeDuration)
-	return ctrl.Result{RequeueAfter: nextRequeDuration}, nil
+	nextRequeueDuration := randomDuration(r.RequeueTimeMinimum, r.RequeueTimeMaximum)
+	klog.Infof("Workspace %s reconciled successfully, next in %s", ws.Name, nextRequeueDuration)
+	return ctrl.Result{RequeueAfter: nextRequeueDuration}, nil
 }
 
 // SetupWithManager registers a new controller for Workspace resources.

@@ -161,11 +161,6 @@ var _ = Describe("Sandbox", func() {
 			Expect(reconciler.Get(ctx, sandboxNSname, &sbNamespace)).To(FailBecauseNotFound())
 		})
 	}
-	DescribeBodySandboxLastLoginPresence := func() {
-		It("Last login should be present and should be 0", func() {
-			Expect(tenant.Spec.LastLogin).To(BeZero())
-		})
-	}
 
 	BeforeEach(func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -221,7 +216,6 @@ var _ = Describe("Sandbox", func() {
 			Describe("Assessing the resource quota presence", func() { DescribeBodySandboxResourceQuotaPresence() })
 			Describe("Assessing the role binding presence", func() { DescribeBodySandboxRoleBindingPresence() })
 			Describe("Assessing the limit range presence", func() { DescribeBodySandboxLimitRangePresence() })
-			Describe("Assessing the last login presence", func() { DescribeBodySandboxLastLoginPresence() })
 		})
 
 		When("Sandbox resources are already present", func() {
@@ -234,7 +228,6 @@ var _ = Describe("Sandbox", func() {
 			Describe("Assessing the resource quota presence", func() { DescribeBodySandboxResourceQuotaPresence() })
 			Describe("Assessing the role binding presence", func() { DescribeBodySandboxRoleBindingPresence() })
 			Describe("Assessing the limit range presence", func() { DescribeBodySandboxLimitRangePresence() })
-			Describe("Assessing the last login presence", func() { DescribeBodySandboxLastLoginPresence() })
 		})
 	})
 

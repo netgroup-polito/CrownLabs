@@ -94,6 +94,7 @@ tenant-operator:
       user: username
       pass: password
     maxConcurrentReconciles: 1
+    tenantNamespaceKeepAlive: 168h
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
@@ -152,7 +153,7 @@ instmetrics:
     connectionTimeout:  10s
     updatePeriod: 4s
     grpcPort: 9090
-  
+
 policies:
   ingressHostnamePattern: s??????.sandbox.crownlabs.polito.it
   namespaceSelector:
