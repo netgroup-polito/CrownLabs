@@ -60,7 +60,7 @@ type TenantSpec struct {
 	LastName string `json:"lastName"`
 
 	// The last login timestamp.
-	LastLogin metav1.Time `json:"lastLogin"`
+	LastLogin metav1.Time `json:"lastLogin,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 

@@ -15,23 +15,21 @@
 package tenant_controller
 
 import (
-	"crypto/rand"
-	"math/big"
+	"math/rand"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-func randomRange(min, max int) (*int, error) {
-	bg := big.NewInt(int64(max - min))
-
-	n, err := rand.Int(rand.Reader, bg)
-	if err != nil {
-		return nil, err
+// randomDuration returns a duration between duration value between min and max.
+func randomDuration(min, max time.Duration) time.Duration {
+	if min >= max {
+		return min
 	}
-	ret := int(n.Int64()) + min
-	return &ret, nil
+
+	return (min + time.Duration(rand.Float64()*float64(max-min))).Truncate(time.Millisecond) //nolint:gosec // don't need crypto/rand
 }
 
 // Helper functions to check and remove string from a slice of strings.

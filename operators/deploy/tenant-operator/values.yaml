@@ -18,6 +18,7 @@ configurations:
   mydrivePVCsNamespace: mydrive-pvcs
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
+  tenantNamespaceKeepAlive: 168h
 
 image:
   repository: crownlabs/tenant-operator
