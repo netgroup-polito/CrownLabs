@@ -388,7 +388,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.Ports).To(Equal(expected.Ports))
 		})
 		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessHTTPProbe(&expected, "gui", forge.IngressGUICleanPath(&instance))
+			forge.SetContainerReadinessHTTPProbe(&expected, "gui", forge.HealthzEndpoint)
 			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
 		})
 		It("Should set the env varibles", func() {

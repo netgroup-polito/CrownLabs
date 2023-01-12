@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Main websockify package
 package main
 
 import (
@@ -70,7 +71,9 @@ func main() {
 	// SyncMap shared between NoVncHandler and InstanceMetricsHandler
 	var connectionsTracking sync.Map
 
-	http.Handle("/", &NoVncHandler{
+	mux := http.NewServeMux()
+
+	mux.Handle("/", &NoVncHandler{
 		BasePath:            *basePath,
 		NoVncFS:             http.FileServer(http.FS(novncFS)),
 		ShowNoVncBar:        *showBar,
@@ -87,7 +90,17 @@ func main() {
 		},
 	})
 
-	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	})
+
+	server := &http.Server{
+		Addr:              *httpAddr,
+		ReadHeaderTimeout: 5 * time.Second,
+		Handler:           mux,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("failed starting websockify server", err)
 	}
 }

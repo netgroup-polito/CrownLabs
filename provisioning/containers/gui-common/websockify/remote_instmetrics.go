@@ -21,6 +21,7 @@ import (
 
 	pb "github.com/novnc/websockify-other/websockify/instmetrics"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // InstanceMetricsClient is a gRPC implementation of pb.InstanceMetricsClient.
@@ -47,7 +48,7 @@ func GetInstanceMetricsClient(ctx context.Context, connectionTimeout time.Durati
 func newInstanceMetricsClient(ctx context.Context, endpoint string) (*InstanceMetricsClient, error) {
 	log.Println("Connecting to instance metrics server", "endpoint", endpoint)
 
-	connection, err := grpc.DialContext(ctx, endpoint, grpc.WithInsecure(), grpc.WithBlock())
+	connection, err := grpc.DialContext(ctx, endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		log.Printf("An error occurred while creating instance metrics server client: %v", err)
 		return nil, err
