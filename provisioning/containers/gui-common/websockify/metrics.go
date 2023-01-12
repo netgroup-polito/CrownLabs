@@ -17,6 +17,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -35,9 +36,16 @@ var (
 )
 
 func runMetricsServer(addr, metricsEndpoint string) {
-	http.Handle(metricsEndpoint, promhttp.Handler())
+	mux := http.NewServeMux()
+	mux.Handle(metricsEndpoint, promhttp.Handler())
 
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	server := &http.Server{
+		Addr:              addr,
+		ReadHeaderTimeout: 5 * time.Second,
+		Handler:           mux,
+	}
+
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatal("failed starting metrics server", err)
 	}
 }

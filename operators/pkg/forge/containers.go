@@ -212,7 +212,7 @@ func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environ
 	AddContainerArg(&websockifyContainer, "pod-name", fmt.Sprintf("$(%s)", PodNameEnvName))
 	AddContainerArg(&websockifyContainer, "cpu-limit", fmt.Sprintf("$(%s)", AppCPULimitsEnvName))
 	AddContainerArg(&websockifyContainer, "memory-limit", fmt.Sprintf("$(%s)", AppMEMLimitsEnvName))
-	SetContainerReadinessHTTPProbe(&websockifyContainer, GUIPortName, IngressGUICleanPath(instance))
+	SetContainerReadinessHTTPProbe(&websockifyContainer, GUIPortName, HealthzEndpoint)
 	return websockifyContainer
 }
 

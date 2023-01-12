@@ -72,7 +72,6 @@ instance-operator:
       tag: ""
       vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
-      novncImage: crownlabs/novnc
       filebrowserImage: filebrowser/filebrowser
       filebrowserImageTag: latest
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090

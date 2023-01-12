@@ -31,7 +31,7 @@ session.screen0.focusModel:     ClickFocus
 session.screen0.showwindowposition:     false
 session.screen0.maxIgnoreIncrement:     true
 session.screen0.workspaces:     1
-session.screen0.maxDisableMove: false
+session.screen0.maxDisableMove: true
 session.screen0.autoRaise:      true
 session.screen0.tooltipDelay:   500
 session.screen0.edgeSnapThreshold:      10
@@ -39,13 +39,13 @@ session.screen0.colPlacementDirection:  TopToBottom
 session.screen0.tabFocusModel:  ClickToTabFocus
 session.screen0.opaqueMove:     true
 session.screen0.strftimeFormat: %02k:%M:%S - %d/%m/%Y
-session.screen0.windowPlacement:        RowMinOverlapPlacement
+session.screen0.windowPlacement:        CascadePlacement
 session.screen0.focusNewWindows:        true
 session.screen0.clickRaises:    true
 session.screen0.maxDisableResize:       false
 session.screen0.allowRemoteActions:     false
 session.screen0.focusSameHead:  false
-session.screen0.workspacewarping:       true
+session.screen0.workspacewarping:       false
 session.screen0.fullMaximization:       false
 session.screen0.defaultDeco:    NORMAL
 session.screen0.noFocusWhileTypingDelay:        0

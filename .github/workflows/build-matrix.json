@@ -60,11 +60,6 @@
     },
 
     {
-        "component": "novnc",
-        "context": "./provisioning/containers/gui-common/novnc",
-        "harbor-project": "crownlabs-container-envs-tools"
-    },
-    {
         "component": "tigervnc",
         "context": "./provisioning/containers/gui-common/tigervnc",
         "harbor-project": "crownlabs-container-envs-tools"
