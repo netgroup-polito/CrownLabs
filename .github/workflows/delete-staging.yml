@@ -17,11 +17,11 @@ jobs:
         id: pr-number
         run: |
           [[ "${{ github.event_name }}" == "pull_request_target" ]] && \
-            echo "::set-output name=number::${{ github.event.pull_request.number }}" || \
-            echo "::set-output name=number::${{ github.event.client_payload.github.payload.issue.number }}"
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT || \
+            echo "number=${{ github.event.client_payload.github.payload.issue.number }}" >> $GITHUB_OUTPUT
 
       - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.CI_TOKEN }}
           repository: netgroup-polito/CrownOps
@@ -33,7 +33,7 @@ jobs:
             }
 
       - name: Report status as reaction
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.CI_TOKEN }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
