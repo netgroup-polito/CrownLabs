@@ -137,7 +137,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
 	}
 	// handling keycloak resources
-	if err = r.KcA.createKcRoles(ctx, genWsKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
+	if r.KcA == nil {
+		// KcA could be nil for local testing skipping the keycloak subscription
+		klog.Warningf("Skipping creation/update of roles in keycloak for workspace %s", ws.Name)
+		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+	} else if err = r.KcA.createKcRoles(ctx, genWsKcRolesData(ws.Name, ws.Spec.PrettyName)); err != nil {
 		klog.Errorf("Error when creating roles for workspace %s -> %s", ws.Name, err)
 		ws.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
 		retrigErr = err
@@ -189,10 +193,12 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *WorkspaceReconciler) handleDeletion(ctx context.Context, wsName, wsPrettyName string) error {
 	var retErr error
 	rolesToDelete := genWsKcRolesData(wsName, wsPrettyName)
-	if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
-		klog.Errorf("Error when deleting roles of workspace %s -> %s", wsName, err)
-		tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
-		retErr = err
+	if r.KcA != nil {
+		if err := r.KcA.deleteKcRoles(ctx, rolesToDelete); err != nil {
+			klog.Errorf("Error when deleting roles of workspace %s -> %s", wsName, err)
+			tnOpinternalErrors.WithLabelValues("workspace", "self-update").Inc()
+			retErr = err
+		}
 	}
 
 	// unsubscribe tenants from workspace to delete

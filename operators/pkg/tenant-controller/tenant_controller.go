@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,18 +48,27 @@ import (
 const (
 	// NoWorkspacesLabel -> label to be set (to true) when no workspaces are associated to the tenant.
 	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
+	// NFSSecretName -> NFS secret name.
+	NFSSecretName = "mydrive-info"
+	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
+	NFSSecretServerNameKey = "server-name"
+	// NFSSecretPathKey -> NFS path key in NFS secret.
+	NFSSecretPathKey = "path"
 )
 
 // TenantReconciler reconciles a Tenant object.
 type TenantReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	KcA                *KcActor
-	NcA                NcHandler
-	TargetLabelKey     string
-	TargetLabelValue   string
-	SandboxClusterRole string
-	Concurrency        int
+	Scheme                      *runtime.Scheme
+	KcA                         *KcActor
+	NcA                         NcHandler
+	TargetLabelKey              string
+	TargetLabelValue            string
+	SandboxClusterRole          string
+	Concurrency                 int
+	MyDrivePVCsSize             resource.Quantity
+	MyDrivePVCsStorageClassName string
+	MyDrivePVCsNamespace        string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -247,6 +257,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue))).
 		// owns the secret related to the nextcloud credentials, to allow new password generation in case tenant has a problem with nextcloud
 		Owns(&v1.Secret{}).
+		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&v1.Namespace{}).
 		Owns(&v1.ResourceQuota{}).
 		Owns(&rbacv1.RoleBinding{}).
@@ -266,23 +277,27 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) error {
 	var retErr error
 	// delete keycloak user
-	if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
-		klog.Errorf("Error when checking if user %s existed for deletion -> %s", tnName, err)
-		tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
-		retErr = err
-	} else if userID != nil {
-		// userID != nil means user exist in keycloak, so need to delete it
-		if err = r.KcA.Client.DeleteUser(ctx, r.KcA.GetAccessToken(), r.KcA.TargetRealm, *userID); err != nil {
-			klog.Errorf("Error when deleting user %s -> %s", tnName, err)
+	if r.KcA != nil {
+		if userID, _, err := r.KcA.getUserInfo(ctx, tnName); err != nil {
+			klog.Errorf("Error when checking if user %s existed for deletion -> %s", tnName, err)
 			tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
 			retErr = err
+		} else if userID != nil {
+			// userID != nil means user exist in keycloak, so need to delete it
+			if err = r.KcA.Client.DeleteUser(ctx, r.KcA.GetAccessToken(), r.KcA.TargetRealm, *userID); err != nil {
+				klog.Errorf("Error when deleting user %s -> %s", tnName, err)
+				tnOpinternalErrors.WithLabelValues("tenant", "keycloak").Inc()
+				retErr = err
+			}
 		}
 	}
 	// delete nextcloud user
-	if err := r.NcA.DeleteUser(genNcUsername(tnName)); err != nil {
-		klog.Errorf("Error when deleting nextcloud user for tenant %s -> %s", tnName, err)
-		tnOpinternalErrors.WithLabelValues("tenant", "nextcloud").Inc()
-		retErr = err
+	if r.NcA != nil {
+		if err := r.NcA.DeleteUser(genNcUsername(tnName)); err != nil {
+			klog.Errorf("Error when deleting nextcloud user for tenant %s -> %s", tnName, err)
+			tnOpinternalErrors.WithLabelValues("tenant", "nextcloud").Inc()
+			retErr = err
+		}
 	}
 	return retErr
 }
@@ -398,7 +413,52 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 		retErr = err
 	}
 	klog.Infof("Allow network policy for tenant %s %s", tn.Name, npAOpRes)
+
+	err = r.createOrUpdateTnPersonalNFSVolume(ctx, tn, nsName)
+	if err != nil {
+		klog.Errorf("Unable to create or update personal NFS volume for tenant %s -> %s", tn.Name, err)
+		retErr = err
+	}
+	klog.Infof("Personal NFS volume for tenant %s", tn.Name)
+
 	return true, retErr
+}
+
+// Creates or updates the user's personal NFS volume.
+func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
+	// Persistent volume claim NFS
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
+
+	pvcOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
+		r.updateTnPersistentVolumeClaim(&pvc)
+		return ctrl.SetControllerReference(tn, &pvc, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
+		return err
+	}
+	klog.Infof("PVC for tenant %s %s", tn.Name, pvcOpRes)
+
+	if pvc.Status.Phase == v1.ClaimBound {
+		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
+		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
+			klog.Errorf("Unable to get PV for tenant %s -> %s", tn.Name, err)
+			return err
+		}
+		pvcSecret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: NFSSecretName, Namespace: nsName}}
+		pvcSecOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvcSecret, func() error {
+			r.updateTnPVCSecret(&pvcSecret, fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"]), pv.Spec.CSI.VolumeAttributes["share"])
+			return ctrl.SetControllerReference(tn, &pvcSecret, r.Scheme)
+		})
+		if err != nil {
+			klog.Errorf("Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
+			return err
+		}
+		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
+	} else if pvc.Status.Phase == v1.ClaimPending {
+		klog.Infof("PVC pending for tenant %s", tn.Name)
+	}
+	return nil
 }
 
 // updateTnNamespace updates the tenant namespace.
@@ -443,6 +503,15 @@ func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
 		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
 	}}}}}
+}
+
+func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
+	scName := r.MyDrivePVCsStorageClassName
+	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
+
+	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
+	pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
+	pvc.Spec.StorageClassName = &scName
 }
 
 func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
@@ -572,6 +641,15 @@ func (r *TenantReconciler) updateTnNcSecret(sec *v1.Secret, username, password s
 	sec.Data["password"] = []byte(password)
 }
 
+func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
+	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
+
+	sec.Type = v1.SecretTypeOpaque
+	sec.Data = make(map[string][]byte, 2)
+	sec.Data[NFSSecretServerNameKey] = []byte(dnsName)
+	sec.Data[NFSSecretPathKey] = []byte(path)
+}
+
 func updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
 	if tn.Labels == nil {
 		tn.Labels = map[string]string{}
@@ -592,6 +670,10 @@ func updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []cro
 	tn.Labels["crownlabs.polito.it/first-name"] = cleanName(tn.Spec.FirstName)
 	tn.Labels["crownlabs.polito.it/last-name"] = cleanName(tn.Spec.LastName)
 	return nil
+}
+
+func myDrivePVCName(tnName string) string {
+	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tnName, ".", "-"))
 }
 
 func cleanName(name string) string {

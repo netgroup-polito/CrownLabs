@@ -139,7 +139,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	})
 
 	JustBeforeEach(func() {
-		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials}
+		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)

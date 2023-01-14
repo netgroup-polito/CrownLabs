@@ -37,16 +37,14 @@ const (
 	WebsockifyName = "websockify"
 	// XVncName -> name of the x+vnc server sidecar container.
 	XVncName = "xvnc"
-	// MyDriveName -> name of the filebrowser sidecar container.
-	MyDriveName = "mydrive"
+	// PersistentVolumeName -> name of the persistent volume.
+	PersistentVolumeName = "persistent"
 	// ContentDownloaderName -> name of the downloader initcontainer.
 	ContentDownloaderName = "content-downloader"
 	// ContentUploaderName -> name of the uploader initcontainer.
 	ContentUploaderName = "content-uploader"
-	// MyDriveDefaultMountPath -> default path for the user files accessible through the mydrive.
-	MyDriveDefaultMountPath = "/mydrive"
-	// MyDriveDBPath -> default path for the filebrowser internal database file.
-	MyDriveDBPath = "/tmp/database.db"
+	// PersistentDefaultMountPath -> default path for the container's pvc or persistent storage.
+	PersistentDefaultMountPath = "/media/data"
 	// HealthzEndpoint -> default endpoint for HTTP probes.
 	HealthzEndpoint = "/healthz"
 	// CrownLabsUserID -> used as UID and GID for containers security context.
@@ -61,6 +59,10 @@ const (
 	AppMEMLimitsEnvName = "APP_MEM_LIMITS"
 	// PodNameEnvName -> name of the env variable containing the Pod Name.
 	PodNameEnvName = "POD_NAME"
+	// MyDriveVolumeName -> Name of the NFS volume.
+	MyDriveVolumeName = "mydrive"
+	// MyDriveVolumeMountPath -> Mount path for the NFS personal volume.
+	MyDriveVolumeMountPath = "/media/mydrive"
 
 	containersTerminationGracePeriod = 10
 )
@@ -129,7 +131,7 @@ func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Enviro
 
 // DeploymentSpec forges the complete DeploymentSpec (without replicas)
 // containing the needed sidecars for X-VNC based container instances.
-func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
+func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, nfsServerName, nfsPath string, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
 	return appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: InstanceSelectorLabels(instance)},
 		Strategy: appsv1.DeploymentStrategy{
@@ -137,17 +139,17 @@ func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 		},
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{Labels: InstanceSelectorLabels(instance)},
-			Spec:       PodSpec(instance, environment, opts),
+			Spec:       PodSpec(instance, environment, nfsServerName, nfsPath, opts),
 		},
 	}
 }
 
 // PodSpec forges the pod specification for X-VNC based container instance,
 // conditionally includes the "myDrive" sidecar for standard mode environments.
-func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) corev1.PodSpec {
+func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, nfsServerName, nfsPath string, opts *ContainerEnvOpts) corev1.PodSpec {
 	spec := corev1.PodSpec{
 		Containers:                    ContainersSpec(instance, environment, opts),
-		Volumes:                       ContainerVolumes(instance, environment),
+		Volumes:                       ContainerVolumes(instance, environment, nfsServerName, nfsPath),
 		SecurityContext:               PodSecurityContext(),
 		AutomountServiceAccountToken:  pointer.Bool(false),
 		TerminationGracePeriodSeconds: pointer.Int64(containersTerminationGracePeriod),
@@ -168,7 +170,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 				Containers: []corev1.Container{
 					ContentUploaderJobContainer(instance.Spec.CustomizationUrls.ContentDestination, instance.Name, opts),
 				},
-				Volumes:                      ContainerVolumes(instance, environment),
+				Volumes:                      ContainerVolumes(instance, environment, "", ""),
 				SecurityContext:              PodSecurityContext(),
 				AutomountServiceAccountToken: pointer.Bool(false),
 				RestartPolicy:                corev1.RestartPolicyOnFailure,
@@ -180,16 +182,13 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 // ContainersSpec returns the Containers obj based on Environment Type.
 func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) []corev1.Container {
 	var containers []corev1.Container
-	volumeMountPath := MyDriveMountPath(environment)
+	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassContainer:
 		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(instance, environment, volumeMountPath))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath))
 	default:
-	}
-	if environment.Mode == clv1alpha2.ModeStandard {
-		containers = append(containers, MyDriveContainer(instance, opts, volumeMountPath))
 	}
 	return containers
 }
@@ -225,21 +224,6 @@ func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
 	return xVncContainer
 }
 
-// MyDriveContainer forges the sidecar container which hosts a webservice to browse files in a certain path.
-func MyDriveContainer(instance *clv1alpha2.Instance, opts *ContainerEnvOpts, mountPath string) corev1.Container {
-	mydriveContainer := GenericContainer(MyDriveName, opts.MyDriveImgAndTag)
-	SetContainerResources(&mydriveContainer, 0.01, 0.25, 100, 500)
-	AddTCPPortToContainer(&mydriveContainer, MyDriveName, MyDrivePortNumber)
-	SetContainerReadinessHTTPProbe(&mydriveContainer, MyDriveName, HealthzEndpoint)
-	AddContainerVolumeMount(&mydriveContainer, MyDriveName, mountPath)
-	AddContainerArg(&mydriveContainer, "port", fmt.Sprint(MyDrivePortNumber))
-	AddContainerArg(&mydriveContainer, "root", mountPath)
-	AddContainerArg(&mydriveContainer, "noauth", strconv.FormatBool(true))
-	AddContainerArg(&mydriveContainer, "database", MyDriveDBPath)
-	AddContainerArg(&mydriveContainer, "baseurl", IngressMyDrivePath(instance))
-	return mydriveContainer
-}
-
 // StandaloneContainer forges the Standalone application container of the environment.
 func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
 	standaloneContainer := AppContainer(instance, environment, volumeMountPath)
@@ -263,11 +247,14 @@ func AppContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environ
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", appContainer.Name, corev1.ResourceRequestsCPU, DefaultDivisor)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", appContainer.Name, corev1.ResourceLimitsCPU, DefaultDivisor)
-	AddContainerVolumeMount(&appContainer, MyDriveName, volumeMountPath)
+	AddContainerVolumeMount(&appContainer, PersistentVolumeName, volumeMountPath)
+	if environment.MountMyDriveVolume {
+		AddContainerVolumeMount(&appContainer, MyDriveVolumeName, MyDriveVolumeMountPath)
+	}
 	if environment.ContainerStartupOptions != nil {
 		appContainer.Args = environment.ContainerStartupOptions.StartupArgs
 		if environment.ContainerStartupOptions.EnforceWorkdir {
-			appContainer.WorkingDir = MyDriveMountPath(environment)
+			appContainer.WorkingDir = PersistentMountPath(environment)
 		}
 	}
 	return appContainer
@@ -286,9 +273,9 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentDownloaderImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentDownloader, 0.5, 1, 256, 1024)
 	// MyDriveDefaultMountPath as mount point ensures a fixed path just for the download, it will likely be different in the application container
-	AddContainerVolumeMount(&contentDownloader, MyDriveName, MyDriveDefaultMountPath)
+	AddContainerVolumeMount(&contentDownloader, PersistentVolumeName, PersistentDefaultMountPath)
 	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", contentOrigin)
-	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", MyDriveDefaultMountPath)
+	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", PersistentDefaultMountPath)
 	return contentDownloader
 }
 
@@ -296,8 +283,8 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 func ContentUploaderJobContainer(contentDestination, filename string, ceOpts *ContainerEnvOpts) corev1.Container {
 	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentUploaderImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentUploader, 0.5, 1, 256, 1024)
-	AddContainerVolumeMount(&contentUploader, MyDriveName, MyDriveDefaultMountPath)
-	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", MyDriveDefaultMountPath)
+	AddContainerVolumeMount(&contentUploader, PersistentVolumeName, PersistentDefaultMountPath)
+	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", PersistentDefaultMountPath)
 	AddEnvVariableToContainer(&contentUploader, "DESTINATION_URL", contentDestination)
 	AddEnvVariableToContainer(&contentUploader, "FILENAME", filename)
 	return contentUploader
@@ -441,8 +428,12 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty
 // list in case the environment is not standard and not persistent.
-func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) []corev1.Volume {
-	return []corev1.Volume{ContainerVolume(MyDriveName, NamespacedName(instance).Name, environment)}
+func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, nfsServerName, nfsPath string) []corev1.Volume {
+	vols := []corev1.Volume{ContainerVolume(PersistentVolumeName, NamespacedName(instance).Name, environment)}
+	if environment.MountMyDriveVolume && nfsServerName != "" && nfsPath != "" {
+		vols = append(vols, MyDriveVolume(MyDriveVolumeName, nfsServerName, nfsPath))
+	}
+	return vols
 }
 
 // ContainerVolume forges a Volume containing
@@ -467,6 +458,20 @@ func ContainerVolume(volumeName, claimName string, environment *clv1alpha2.Envir
 	}
 }
 
+// MyDriveVolume returns the Personal volume of the tenant.
+func MyDriveVolume(volumeName, nfsServerName, nfsPath string) corev1.Volume {
+	return corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			NFS: &corev1.NFSVolumeSource{
+				Server:   nfsServerName,
+				Path:     nfsPath,
+				ReadOnly: false,
+			},
+		},
+	}
+}
+
 // NeedsInitContainer returns true if the environment requires an initcontainer in order to be prepopulated.
 func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (value bool, contentOrigin string) {
 	if icu := instance.Spec.CustomizationUrls; icu != nil && icu.ContentOrigin != "" {
@@ -478,14 +483,14 @@ func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.E
 	return false, ""
 }
 
-// MyDriveMountPath returns the path on which mounting the myDrive volume.
-func MyDriveMountPath(environment *clv1alpha2.Environment) string {
+// PersistentMountPath returns the path on which mounting the myDrive volume.
+func PersistentMountPath(environment *clv1alpha2.Environment) string {
 	cso := environment.ContainerStartupOptions
 	if cso != nil && cso.ContentPath != "" {
 		return environment.ContainerStartupOptions.ContentPath
 	}
 
-	return MyDriveDefaultMountPath
+	return PersistentDefaultMountPath
 }
 
 // InstanceHostname forges the hostname of the instance:

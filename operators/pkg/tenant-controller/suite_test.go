@@ -24,6 +24,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -52,6 +55,8 @@ const targetLabelValue = "true"
 const kcAccessToken = "keycloak-token"
 const kcTargetRealm = "targetRealm"
 const kcTargetClientID = "targetClientId"
+
+const testMyDrivePVCsNamespace = "mydrive-pvc-namespace"
 
 // keycloak variables.
 var mKcClient *mocks.MockGoCloak
@@ -111,13 +116,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&TenantReconciler{
-		Client:             k8sManager.GetClient(),
-		Scheme:             k8sManager.GetScheme(),
-		KcA:                &kcA,
-		NcA:                mNcA,
-		TargetLabelKey:     targetLabelKey,
-		TargetLabelValue:   targetLabelValue,
-		ReconcileDeferHook: GinkgoRecover,
+		Client:                      k8sManager.GetClient(),
+		Scheme:                      k8sManager.GetScheme(),
+		KcA:                         &kcA,
+		NcA:                         mNcA,
+		TargetLabelKey:              targetLabelKey,
+		TargetLabelValue:            targetLabelValue,
+		ReconcileDeferHook:          GinkgoRecover,
+		MyDrivePVCsSize:             resource.MustParse("1Gi"),
+		MyDrivePVCsStorageClassName: "rook-nfs",
+		MyDrivePVCsNamespace:        testMyDrivePVCsNamespace,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -128,6 +136,10 @@ var _ = BeforeSuite(func() {
 
 	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
+	myDrivePVCsNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: testMyDrivePVCsNamespace},
+	}
+	Expect((k8sClient.Create(ctx, &myDrivePVCsNamespace))).Should(Succeed())
 })
 
 var _ = AfterSuite(func() {

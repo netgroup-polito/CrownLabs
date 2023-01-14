@@ -140,6 +140,11 @@ spec:
                       - Exam
                       - Exercise
                       type: string
+                    mountMyDriveVolume:
+                      default: true
+                      description: Whether the instance has to have the user's MyDrive
+                        volume
+                      type: boolean
                     name:
                       description: The name identifying the specific environment.
                       type: string
@@ -209,6 +214,7 @@ spec:
                   required:
                   - environmentType
                   - image
+                  - mountMyDriveVolume
                   - name
                   - resources
                   type: object

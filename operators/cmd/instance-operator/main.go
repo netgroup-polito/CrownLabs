@@ -69,7 +69,6 @@ func main() {
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
-	webdavSecret := flag.String("webdav-secret-name", "webdav", "The name of the secret containing webdav credentials")
 
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
@@ -77,7 +76,6 @@ func main() {
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&svcUrls.NextcloudBaseURL, "nextcloud-base-url", "", "Base URL of NextCloud website to use")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
@@ -128,7 +126,6 @@ func main() {
 		Scheme:             mgr.GetScheme(),
 		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
 		NamespaceWhitelist: nsWhitelist,
-		WebdavSecretName:   *webdavSecret,
 		ServiceUrls:        svcUrls,
 		ContainerEnvOpts:   containerEnvOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {

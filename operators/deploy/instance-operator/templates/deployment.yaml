@@ -34,10 +34,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--webdav-secret-name={{ .Values.configurations.nextcloud.webdavSecretName }}"
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
             - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
-            - "--nextcloud-base-url={{ .Values.configurations.nextcloud.baseUrl }}"
             - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
             - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"

@@ -30,6 +30,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
@@ -82,9 +83,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	JustBeforeEach(func() {
 		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
-		webdavSecret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: webdavSecretName, Namespace: testName},
-			Data:       map[string][]byte{"username": []byte(testName), "password": []byte(testName)},
+		tenantPvcSecret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: tntctrl.NFSSecretName, Namespace: testName},
+			Data: map[string][]byte{
+				tntctrl.NFSSecretServerNameKey: []byte(testName),
+				tntctrl.NFSSecretPathKey:       []byte(testName),
+			},
 		}
 		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
@@ -110,9 +114,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		}
 
 		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
-		Expect(k8sClient.Create(ctx, &webdavSecret)).To(Succeed())
 		if createTenant {
 			Expect(k8sClient.Create(ctx, &tenant)).To(Succeed())
+			Expect(k8sClient.Create(ctx, &tenantPvcSecret)).To(Succeed())
 		}
 		if createTemplate {
 			Expect(k8sClient.Create(ctx, &template)).To(Succeed())

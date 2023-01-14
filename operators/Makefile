@@ -67,11 +67,10 @@ endif
 
 run-instance: generate
 	go run cmd/instance-operator/main.go\
-				--webdav-secret-name=nextcloud-credentials\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
-				--nextcloud-base-url=crownlabs.polito.it/cloud
+				--container-env-sidecars-tag=v0.14.5
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html

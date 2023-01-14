@@ -22,11 +22,10 @@ import (
 
 // userdata is a helper structure to marshal the userdata configuration.
 type userdata struct {
-	Users             []user      `yaml:"users"`
-	Network           network     `yaml:"network"`
-	Mounts            [][]string  `yaml:"mounts"`
-	WriteFiles        []writefile `yaml:"write_files"`
-	SSHAuthorizedKeys []string    `yaml:"ssh_authorized_keys,omitempty"`
+	Users             []user     `yaml:"users"`
+	Network           network    `yaml:"network"`
+	Mounts            [][]string `yaml:"mounts"`
+	SSHAuthorizedKeys []string   `yaml:"ssh_authorized_keys,omitempty"`
 }
 
 // user is a helper structure to marshal the userdata configuration to configure users.
@@ -50,15 +49,8 @@ type interf struct {
 	DHCP4 bool `yaml:"dhcp4"`
 }
 
-// writefile is a helper structure to marshal the userdata configuration to create new files.
-type writefile struct {
-	Content     string `yaml:"content"`
-	Path        string `yaml:"path"`
-	Permissions string `yaml:"permissions"`
-}
-
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
-func CloudInitUserData(nextcloudBaseURL, webdavUsername, webdavPassword string, publicKeys []string) ([]byte, error) {
+func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]byte, error) {
 	config := userdata{
 		Users: []user{{
 			Name:       "crownlabs",
@@ -74,20 +66,17 @@ func CloudInitUserData(nextcloudBaseURL, webdavUsername, webdavPassword string, 
 			Version: 2,
 			ID0:     interf{DHCP4: true},
 		},
-		Mounts: [][]string{{
-			fmt.Sprintf("%s/remote.php/dav/files/%s", nextcloudBaseURL, webdavUsername),
-			"/media/MyDrive",
-			"davfs",
-			"_netdev,auto,user,rw,uid=1000,gid=1000",
-			"0",
-			"0",
-		}},
-		WriteFiles: []writefile{{
-			Content:     fmt.Sprintf("/media/MyDrive %s %s", webdavUsername, webdavPassword),
-			Path:        "/etc/davfs2/secrets",
-			Permissions: "0600",
-		}},
 		SSHAuthorizedKeys: publicKeys,
+	}
+	if nfsServerName != "" && nfsPath != "" {
+		config.Mounts = [][]string{{
+			fmt.Sprintf("%s:%s", nfsServerName, nfsPath),
+			"/media/mydrive",
+			"nfs",
+			"rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14",
+			"0",
+			"0",
+		}}
 	}
 
 	output, err := yaml.Marshal(config)

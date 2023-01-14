@@ -84,7 +84,6 @@ func (ms *MetricsScraper) Start(ctx context.Context) {
 		forge.XVncName,
 		forge.WebsockifyName,
 		forge.ContentDownloaderName,
-		forge.MyDriveName,
 	}
 	ms.oldStats = map[string]*ContainerStats{}
 

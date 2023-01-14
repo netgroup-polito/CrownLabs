@@ -26,9 +26,8 @@ import (
 var _ = Describe("CloudInit userdata generation", func() {
 	Context("The CloudInitUserData function", func() {
 		const (
-			baseURL  = "https://nextcloud.example.com"
-			username = "username"
-			password = "password"
+			serviceName = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
+			servicePath = "/path"
 
 			expected = `
 #cloud-config
@@ -46,16 +45,12 @@ network:
     id0:
         dhcp4: true
 mounts:
-    - - https://nextcloud.example.com/remote.php/dav/files/username
-      - /media/MyDrive
-      - davfs
-      - _netdev,auto,user,rw,uid=1000,gid=1000
+    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/path
+      - /media/mydrive
+      - nfs
+      - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14
       - "0"
       - "0"
-write_files:
-    - content: /media/MyDrive username password
-      path: /etc/davfs2/secrets
-      permissions: "0600"
 ssh_authorized_keys:
     - tenant-key-1
     - tenant-key-2
@@ -74,7 +69,7 @@ ssh_authorized_keys:
 		}
 
 		BeforeEach(func() { publicKeys = []string{"tenant-key-1", "tenant-key-2"} })
-		JustBeforeEach(func() { output, err = forge.CloudInitUserData(baseURL, username, password, publicKeys) })
+		JustBeforeEach(func() { output, err = forge.CloudInitUserData(serviceName, servicePath, publicKeys) })
 
 		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
 		It("Should match the expected output", func() { Expect(output).To(WithTransform(Transformer, Equal(Transformer([]byte(expected))))) })

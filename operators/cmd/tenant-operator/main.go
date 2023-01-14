@@ -36,6 +36,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
 )
 
 var (
@@ -72,6 +73,9 @@ func main() {
 	var ncTnOpPsw string
 	var maxConcurrentReconciles int
 	var webhookBypassGroups string
+	mydrivePVCsSize := args.NewQuantity("1Gi")
+	var mydrivePVCsStorageClassName string
+	var myDrivePVCsNamespace string
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -91,6 +95,9 @@ func main() {
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
 	enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
+	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
+	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
+	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -165,15 +172,19 @@ func main() {
 		httpClient := resty.New().SetCookieJar(nil)
 		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
 	}
+
 	if err = (&controllers.TenantReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		KcA:                kcA,
-		NcA:                NcA,
-		TargetLabelKey:     targetLabelKey,
-		TargetLabelValue:   targetLabelValue,
-		SandboxClusterRole: *sandboxClusterRole,
-		Concurrency:        maxConcurrentReconciles,
+		Client:                      mgr.GetClient(),
+		Scheme:                      mgr.GetScheme(),
+		KcA:                         kcA,
+		NcA:                         NcA,
+		TargetLabelKey:              targetLabelKey,
+		TargetLabelValue:            targetLabelValue,
+		SandboxClusterRole:          *sandboxClusterRole,
+		Concurrency:                 maxConcurrentReconciles,
+		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,
+		MyDrivePVCsStorageClassName: mydrivePVCsStorageClassName,
+		MyDrivePVCsNamespace:        myDrivePVCsNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)

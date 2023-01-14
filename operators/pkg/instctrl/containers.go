@@ -78,17 +78,27 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 // enforceContainer enforces the actual deployment
 // which contains all the container based instance components.
 func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
+	var nfsServerName, nfsPath string
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
 	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
 
+	if environment.MountMyDriveVolume {
+		var err error
+		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
+		if err != nil {
+			log.Error(err, "can't get NFS spec")
+			return err
+		}
+	}
+
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
 		// Deployment specifications are forged only at creation time, as changing them later may be
 		// either rejected or cause the restart of the Pod, with consequent possible data loss.
 		if depl.CreationTimestamp.IsZero() {
-			depl.Spec = forge.DeploymentSpec(instance, environment, &r.ContainerEnvOpts)
+			depl.Spec = forge.DeploymentSpec(instance, environment, nfsServerName, nfsPath, &r.ContainerEnvOpts)
 		}
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())

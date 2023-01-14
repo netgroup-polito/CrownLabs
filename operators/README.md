@@ -236,6 +236,12 @@ Arguments:
                 The username of the acting account for nextcloud
   --nc-tenant-operator-psw
                 The password of the acting account for nextcloud
+  --mydrive-pvcs-size
+                The dimension of the user's personal space
+  --mydrive-pvcs-storage-class-name
+                The name for the user's storage class
+  --mydrive-pvcs-namespace
+                The namespace where the PVCs are created
 ```
 
 For local development (e.g. using [KinD](https://kind.sigs.k8s.io/)), the operator can be easily started using `make`, after having set the proper environment variables regarding the different configurations:

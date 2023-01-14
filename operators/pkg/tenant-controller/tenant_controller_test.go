@@ -69,6 +69,10 @@ var _ = Describe("Tenant controller", func() {
 		timeout     = time.Second * 10
 		interval    = time.Millisecond * 250
 		nsName      = "tenant-mariorossi"
+
+		nfsServerName     = "rook-ceph-nfs-my-nfs-a"
+		nfsPath           = "/path"
+		rookCephNamespace = "rook-ceph"
 	)
 
 	BeforeEach(func() {
@@ -215,11 +219,10 @@ var _ = Describe("Tenant controller", func() {
 		By("By checking that the tenant has been created")
 		tnLookupKey := types.NamespacedName{Name: tnName, Namespace: tnNamespace}
 		createdTn := &crownlabsv1alpha2.Tenant{}
-
 		doesEventuallyExists(ctx, tnLookupKey, createdTn, BeTrue(), timeout, interval)
 
 		By("By checking that the needed cluster resources for the tenant have been updated accordingly")
-		checkTnClusterResourceCreation(ctx, tnName, nsName, timeout, interval)
+		checkTnClusterResourceCreation(ctx, tnName, nsName, timeout, interval, nfsServerName, rookCephNamespace, nfsPath)
 
 		By("By checking that the tenant has been updated accordingly after creation")
 
@@ -275,7 +278,50 @@ var _ = Describe("Tenant controller", func() {
 
 })
 
-func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, timeout, interval time.Duration) {
+func checkTnPVBound(ctx context.Context, tnName, nsName string, timeout, interval time.Duration, serverName, rookCephNamespace, path string) {
+	var pvc v1.PersistentVolumeClaim
+	doesEventuallyExists(ctx, types.NamespacedName{Name: myDrivePVCName(tnName), Namespace: testMyDrivePVCsNamespace}, &pvc, BeTrue(), timeout, interval)
+
+	pv := &v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pv-test",
+		},
+		Spec: v1.PersistentVolumeSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteMany,
+			},
+			Capacity: v1.ResourceList{
+				v1.ResourceStorage: *resource.NewQuantity(1*1024*1024*1024, resource.BinarySI),
+			},
+			ClaimRef: &v1.ObjectReference{
+				APIVersion:      "v1",
+				Kind:            "PersistentVolumeClaim",
+				Name:            pvc.Name,
+				Namespace:       pvc.Namespace,
+				ResourceVersion: pvc.ResourceVersion,
+				UID:             pvc.UID,
+			},
+			PersistentVolumeSource: v1.PersistentVolumeSource{
+				CSI: &v1.CSIPersistentVolumeSource{
+					Driver:       "rook-ceph.nfs.csi.ceph.com",
+					VolumeHandle: "path",
+					VolumeAttributes: map[string]string{
+						"server":    serverName,
+						"share":     path,
+						"clusterID": rookCephNamespace,
+					},
+				},
+			},
+		},
+	}
+	Expect(k8sClient.Create(ctx, pv)).Should(Succeed())
+	pvc.Spec.VolumeName = "pv-test"
+	Expect(k8sClient.Update(ctx, &pvc)).Should(Succeed())
+	pvc.Status.Phase = v1.ClaimBound
+	Expect(k8sClient.Status().Update(ctx, &pvc)).Should(Succeed())
+}
+
+func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, timeout, interval time.Duration, serverName, rookCephNamespace, path string) {
 	By("By checking that the corresponding namespace has been created")
 
 	nsLookupKey := types.NamespacedName{Name: nsName, Namespace: ""}
@@ -398,4 +444,21 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdNcSecret.Data).Should(HaveKeyWithValue("username", []byte("keycloak-"+tnName)))
 	Expect(createdNcSecret.Data).Should(HaveKey("password"))
 	Expect(createdNcSecret.Data["password"]).Should(HaveLen(40))
+
+	By("By checking that the mydrive-info secret of the tenant has been created")
+	checkTnPVBound(ctx, tnName, nsName, timeout, interval, serverName, rookCephNamespace, path)
+
+	By("By checking that the mydrive-info secret of the tenant has been created")
+	NFSSecretLookupKey := types.NamespacedName{Name: NFSSecretName, Namespace: nsName}
+	createdNFSSecret := &v1.Secret{}
+	doesEventuallyExists(ctx, NFSSecretLookupKey, createdNFSSecret, BeTrue(), timeout, interval)
+
+	By("By checking that the NFS pvc secret of the tenant has a owner reference and label pointing to the tenant operator")
+	Expect(createdNFSSecret.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
+	Expect(createdNFSSecret.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+
+	By("By checking that the NFS pvc secret of the tenant has a correct spec")
+	Expect(createdNFSSecret.Type).Should(Equal(v1.SecretTypeOpaque))
+	Expect(createdNFSSecret.Data).Should(HaveKeyWithValue(NFSSecretPathKey, []byte(path)))
+	Expect(createdNFSSecret.Data).Should(HaveKeyWithValue(NFSSecretServerNameKey, []byte(serverName+"."+rookCephNamespace)))
 }
