@@ -55,8 +55,6 @@ var (
 	whiteListMap = map[string]string{"production": "true"}
 )
 
-const webdavSecretName = "webdav-secret"
-
 var _ = BeforeSuite(func() {
 	tests.LogsToGinkgoWriter()
 
@@ -79,10 +77,8 @@ var _ = BeforeSuite(func() {
 		Scheme:             scheme.Scheme,
 		EventsRecorder:     record.NewFakeRecorder(1024),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
-		WebdavSecretName:   webdavSecretName,
 		ReconcileDeferHook: GinkgoRecover,
 		ServiceUrls: instctrl.ServiceUrls{
-			NextcloudBaseURL: "fake.com",
 			WebsiteBaseURL:   "fakesite.com",
 			InstancesAuthURL: "fake.com/auth",
 		},

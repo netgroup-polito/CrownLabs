@@ -27,6 +27,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -43,17 +44,12 @@ const (
 // EnforceCloudInitSecret enforces the creation/update of a secret containing the cloud-init configuration,
 // based on the information retrieved for the tenant object and its associated WebDav credentials.
 func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
+	var nfsServerName, nfsPath string
+
 	log := ctrl.LoggerFrom(ctx)
+	env := clctx.EnvironmentFrom(ctx)
 
-	// Retrieve the WebDav credentials.
-	user, password, err := r.GetWebDavCredentials(ctx)
-	if err != nil {
-		log.Error(err, "unable to get webdav credentials")
-		return err
-	}
-	log.V(utils.LogDebugLevel).Info("webdav credentials correctly retrieved")
-
-	// Retrieve the public keys
+	// Retrieve the public keys.
 	publicKeys, err := r.GetPublicKeys(ctx)
 	if err != nil {
 		log.Error(err, "unable to get public keys")
@@ -61,13 +57,21 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	}
 	log.V(utils.LogDebugLevel).Info("public keys correctly retrieved")
 
-	userdata, err := forge.CloudInitUserData(r.ServiceUrls.NextcloudBaseURL, user, password, publicKeys)
+	if env.MountMyDriveVolume {
+		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
+
+		if err != nil {
+			log.Error(err, "unable to retrieve NFS volume dns name and path")
+			return err
+		}
+	}
+
+	userdata, err := forge.CloudInitUserData(nfsServerName, nfsPath, publicKeys)
 	if err != nil {
 		log.Error(err, "unable to marshal secret content")
 		return err
 	}
-
-	// Enforce the cloud-init secret presence
+	// Enforce the cloud-init secret presence.
 	instance := clctx.InstanceFrom(ctx)
 	secret := corev1.Secret{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
@@ -86,12 +90,12 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	return nil
 }
 
-// GetWebDavCredentials extracts the credentials (i.e. username and password)
+// GetNFSSpecs extracts the NFS server name and path for the user's personal NFS volume,
 // required to mount the MyDrive disk of a given tenant from the associated secret.
-func (r *InstanceReconciler) GetWebDavCredentials(ctx context.Context) (username, password string, err error) {
+func (r *InstanceReconciler) GetNFSSpecs(ctx context.Context) (nfsServerName, nfsPath string, err error) {
+	var serverNameBytes, serverPathBytes []byte
 	instance := clctx.InstanceFrom(ctx)
-	namespacedName := forge.NamespacedName(instance)
-	secretName := types.NamespacedName{Namespace: namespacedName.Namespace, Name: r.WebdavSecretName}
+	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: tntctrl.NFSSecretName}
 
 	secret := corev1.Secret{}
 	if err = r.Get(ctx, secretName, &secret); err != nil {
@@ -99,22 +103,21 @@ func (r *InstanceReconciler) GetWebDavCredentials(ctx context.Context) (username
 		return
 	}
 
-	var ok bool
-	var userBytes, passBytes []byte
-
-	if userBytes, ok = secret.Data[WebdavSecretUsernameKey]; !ok {
-		err = fmt.Errorf("cannot find %v key in secret", WebdavSecretUsernameKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve credentials from secret", "secret", secretName)
+	serverNameBytes, ok := secret.Data[tntctrl.NFSSecretServerNameKey]
+	if !ok {
+		err = fmt.Errorf("cannot find %v key in secret", tntctrl.NFSSecretServerNameKey)
+		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
 		return
 	}
 
-	if passBytes, ok = secret.Data[WebdavSecretPasswordKey]; !ok {
-		err = fmt.Errorf("cannot find %v key in secret", WebdavSecretPasswordKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve credentials from secret", "secret", secretName)
+	serverPathBytes, ok = secret.Data[tntctrl.NFSSecretPathKey]
+	if !ok {
+		err = fmt.Errorf("cannot find %v key in secret", tntctrl.NFSSecretPathKey)
+		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
 		return
 	}
 
-	return string(userBytes), string(passBytes), nil
+	return string(serverNameBytes), string(serverPathBytes), nil
 }
 
 // GetPublicKeys extracts and returns the set of public keys associated with a

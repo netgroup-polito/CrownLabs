@@ -51,7 +51,6 @@ type InstanceReconciler struct {
 	Scheme             *runtime.Scheme
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
-	WebdavSecretName   string
 	ServiceUrls        ServiceUrls
 	ContainerEnvOpts   forge.ContainerEnvOpts
 
@@ -64,7 +63,6 @@ type InstanceReconciler struct {
 // ServiceUrls holds URL parameters for the instance reconciler.
 type ServiceUrls struct {
 	WebsiteBaseURL   string
-	NextcloudBaseURL string
 	InstancesAuthURL string
 }
 

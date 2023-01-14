@@ -64,12 +64,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		portNum              = 1234
 		httpPath             = "/some/path"
 		httpPathAlternative  = "/some/different/path"
-	)
-
-	// test aware constants (are tested against code)
-	const (
-		myDriveMountPath = "/mydrive"
-		myDriveName      = "mydrive"
+		nfsServerName        = "nfs-server-name"
+		nfsPath              = "/nfs/path"
+		nfsVolumeName        = "nfs-vol"
 	)
 
 	BeforeEach(func() {
@@ -202,14 +199,14 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec appsv1.DeploymentSpec
 
 		JustBeforeEach(func() {
-			spec = forge.DeploymentSpec(&instance, &environment, &opts)
+			spec = forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &opts)
 		})
 
 		It("Should set the correct template labels", func() {
 			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, &opts)))
+			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, nfsServerName, nfsPath, &opts)))
 		})
 		It("Should set the correct selector", func() {
 			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
@@ -238,7 +235,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		JustBeforeEach(func() {
-			spec = forge.PodSpec(&instance, &environment, &opts)
+			spec = forge.PodSpec(&instance, &environment, nfsServerName, nfsPath, &opts)
 		})
 
 		It("Should set the security context", func() {
@@ -263,8 +260,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.StandaloneContainer(i, e, myDriveMountPath),
-						forge.MyDriveContainer(i, &opts, myDriveMountPath),
+						forge.StandaloneContainer(i, e, forge.PersistentMountPath(e)),
 					}
 				},
 			}))
@@ -276,10 +272,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment, i),
+						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.MyDriveContainer(i, &opts, myDriveMountPath),
-						forge.AppContainer(i, e, myDriveMountPath),
+						forge.AppContainer(i, e, forge.PersistentMountPath(e)),
 					}
 				},
 			}))
@@ -289,9 +284,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment, i),
+						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(i, e, myDriveMountPath),
+						forge.AppContainer(i, e, forge.PersistentMountPath(e)),
 					}
 				},
 			}))
@@ -301,9 +296,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, &environment, i),
+						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(i, e, myDriveMountPath),
+						forge.AppContainer(i, e, forge.PersistentMountPath(&environment)),
 					}
 				},
 			}))
@@ -314,7 +309,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual, expected corev1.Container
 
 		JustBeforeEach(func() {
-			actual = forge.StandaloneContainer(&instance, &environment, myDriveMountPath)
+			actual = forge.StandaloneContainer(&instance, &environment, forge.PersistentMountPath(&environment))
 		})
 
 		It("Should set container port", func() {
@@ -483,49 +478,12 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 	})
 
-	Describe("The forge.MyDriveContainer function forges a mydrive sidecar container", func() {
-		var actual, expected corev1.Container
-		JustBeforeEach(func() {
-			actual = forge.MyDriveContainer(&instance, &opts, myDriveMountPath)
-		})
-
-		It("Should set the correct container name and image", func() {
-			// PodSecurityContext setting is checked by GenericContainer specific tests
-			Expect(actual.Name).To(Equal(myDriveName))
-			Expect(actual.Image).To(Equal(opts.MyDriveImgAndTag))
-		})
-		It("Should set the correct resources", func() {
-			forge.SetContainerResources(&expected, 0.01, 0.25, 100, 500)
-			Expect(actual.Resources).To(Equal(expected.Resources))
-		})
-		It("Should set the tcp port exposition", func() {
-			forge.AddTCPPortToContainer(&expected, myDriveName, 8080)
-			Expect(actual.Ports).To(Equal(expected.Ports))
-		})
-		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessHTTPProbe(&expected, myDriveName, "/healthz")
-			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
-		})
-		It("Should set the volume mount", func() {
-			forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
-			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
-		})
-		It("Should set the launch arguments", func() {
-			forge.AddContainerArg(&expected, "port", "8080")
-			forge.AddContainerArg(&expected, "root", myDriveMountPath)
-			forge.AddContainerArg(&expected, "noauth", "true")
-			forge.AddContainerArg(&expected, "database", "/tmp/database.db")
-			forge.AddContainerArg(&expected, "baseurl", forge.IngressMyDrivePath(&instance))
-			Expect(actual.Args).To(Equal(expected.Args))
-		})
-	})
-
 	Describe("The forge.AppContainer function forges the main application container", func() {
 		var actual, expected corev1.Container
 
 		Context("Has to set the general parameters", func() {
 			JustBeforeEach(func() {
-				actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
+				actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
 			})
 
 			It("Should set the correct container name and image", func() {
@@ -543,16 +501,54 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("Should NOT set readiness probes", func() {
 				Expect(actual.ReadinessProbe).To(BeNil())
 			})
-			It("Should set the volume mount", func() {
-				forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
-				Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
-			})
 			It("Should set the env varibles", func() {
 				expected.Name = envName
 				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
 				forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
 				Expect(actual.Env).To(ConsistOf(expected.Env))
 			})
+		})
+
+		Context("Adds the right volume mounts", func() {
+			type VolumeMountCase struct {
+				PersonalVolume bool
+				ExpectedOutput func(*clv1alpha2.Environment) []corev1.VolumeMount
+			}
+
+			WhenBody := func(c VolumeMountCase) func() {
+				return func() {
+					BeforeEach(func() {
+						environment.MountMyDriveVolume = c.PersonalVolume
+					})
+
+					JustBeforeEach(func() {
+						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+					})
+
+					It("Should set the VolumeMounts accordingly", func() {
+						Expect(actual.VolumeMounts).To(Equal(c.ExpectedOutput(&environment)))
+					})
+				}
+			}
+
+			When("The personal volume mount is enabled", WhenBody(VolumeMountCase{
+				PersonalVolume: true,
+				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
+					c := corev1.Container{}
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					forge.AddContainerVolumeMount(&c, forge.MyDriveVolumeName, forge.MyDriveVolumeMountPath)
+					return c.VolumeMounts
+				},
+			}))
+
+			When("The personal volume mount is disabled", WhenBody(VolumeMountCase{
+				PersonalVolume: false,
+				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
+					c := corev1.Container{}
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					return c.VolumeMounts
+				},
+			}))
 		})
 
 		Context("Has to handle custom startup options", func() {
@@ -569,7 +565,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
+						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
 					})
 
 					It("Should return the correct startup args", func() {
@@ -607,7 +603,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&instance, &environment, myDriveMountPath)
+						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
 					})
 
 					It("Should set the WorkingDirectory accordingly", func() {
@@ -623,7 +619,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("EnforceWorkdir is set", WhenBody(ContainerCase{
 				StartupOpts:    &clv1alpha2.ContainerStartupOpts{EnforceWorkdir: true},
-				ExpectedOutput: forge.MyDriveMountPath,
+				ExpectedOutput: forge.PersistentMountPath,
 			}))
 		})
 	})
@@ -697,12 +693,12 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.ReadinessProbe).To(BeNil())
 		})
 		It("Should set the volume mount", func() {
-			forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
+			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath)
 			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
 		})
 		It("Should set the correct environment variables", func() {
 			forge.AddEnvVariableToContainer(&expected, "SOURCE_ARCHIVE", httpPath)
-			forge.AddEnvVariableToContainer(&expected, "DESTINATION_PATH", myDriveMountPath)
+			forge.AddEnvVariableToContainer(&expected, "DESTINATION_PATH", forge.PersistentDefaultMountPath)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})
@@ -730,7 +726,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 						Containers: []corev1.Container{
 							forge.ContentUploaderJobContainer(httpPath, instance.Name, &opts),
 						},
-						Volumes:                      forge.ContainerVolumes(&instance, &environment),
+						Volumes:                      forge.ContainerVolumes(&instance, &environment, "", ""),
 						SecurityContext:              forge.PodSecurityContext(),
 						AutomountServiceAccountToken: pointer.Bool(false),
 						RestartPolicy:                corev1.RestartPolicyOnFailure,
@@ -764,11 +760,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.ReadinessProbe).To(BeNil())
 		})
 		It("Should set the volume mount", func() {
-			forge.AddContainerVolumeMount(&expected, myDriveName, myDriveMountPath)
+			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath)
 			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
 		})
 		It("Should set the correct environment variables", func() {
-			forge.AddEnvVariableToContainer(&expected, "SOURCE_PATH", myDriveMountPath)
+			forge.AddEnvVariableToContainer(&expected, "SOURCE_PATH", forge.PersistentDefaultMountPath)
 			forge.AddEnvVariableToContainer(&expected, "DESTINATION_URL", httpPath)
 			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
@@ -960,14 +956,15 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual []corev1.Volume
 
 		JustBeforeEach(func() {
-			actual = forge.ContainerVolumes(&instance, &environment)
+			actual = forge.ContainerVolumes(&instance, &environment, nfsServerName, nfsPath)
 		})
 
 		type ContainerVolumesCase struct {
-			Persistent        bool
-			Mode              clv1alpha2.EnvironmentMode
-			StartupOpts       *clv1alpha2.ContainerStartupOpts
-			ExpectedOutputVSs func(*clv1alpha2.Environment) []corev1.Volume
+			Persistent          bool
+			MountPersonalVolume bool
+			Mode                clv1alpha2.EnvironmentMode
+			StartupOpts         *clv1alpha2.ContainerStartupOpts
+			ExpectedOutputVSs   func(*clv1alpha2.Environment) []corev1.Volume
 		}
 
 		WhenBody := func(c ContainerVolumesCase) func() {
@@ -976,6 +973,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					environment.Persistent = c.Persistent
 					environment.ContainerStartupOptions = c.StartupOpts
 					environment.Mode = c.Mode
+					environment.MountMyDriveVolume = c.MountPersonalVolume
 				})
 
 				It("Should return the correct volumeSource", func() {
@@ -988,7 +986,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Mode:       clv1alpha2.ModeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -996,7 +994,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Mode:       clv1alpha2.ModeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -1004,7 +1002,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Mode:       clv1alpha2.ModeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -1012,7 +1010,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -1020,7 +1018,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -1028,7 +1026,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Mode:       clv1alpha2.ModeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
 		}))
 
@@ -1037,7 +1035,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent:  false,
 			Mode:        clv1alpha2.ModeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(myDriveName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+			},
+		}))
+
+		When("the environment has the mount personal volume option", WhenBody(ContainerVolumesCase{
+			MountPersonalVolume: true,
+			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
+				return []corev1.Volume{
+					forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e),
+					forge.MyDriveVolume(forge.MyDriveVolumeName, nfsServerName, nfsPath),
+				}
 			},
 		}))
 
@@ -1153,7 +1161,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}))
 	})
 
-	Describe("The forge.MyDriveMountPath function", func() {
+	Describe("The forge.PersistentMountPath function", func() {
 		type MyDriveMountPathCase struct {
 			StartupOpts    *clv1alpha2.ContainerStartupOpts
 			ExpectedOutput string
@@ -1166,18 +1174,18 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				})
 
 				It("Should return the correct value", func() {
-					Expect(forge.MyDriveMountPath(&environment)).To(Equal(c.ExpectedOutput))
+					Expect(forge.PersistentMountPath(&environment)).To(Equal(c.ExpectedOutput))
 				})
 			}
 		}
 
 		When("ContainerStartupOpts is nil", WhenBody(MyDriveMountPathCase{
 			StartupOpts:    nil,
-			ExpectedOutput: myDriveMountPath,
+			ExpectedOutput: forge.PersistentDefaultMountPath,
 		}))
 		When("no content path is specified", WhenBody(MyDriveMountPathCase{
 			StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
-			ExpectedOutput: myDriveMountPath,
+			ExpectedOutput: forge.PersistentDefaultMountPath,
 		}))
 		When("content path is specified", WhenBody(MyDriveMountPathCase{
 			StartupOpts:    &clv1alpha2.ContainerStartupOpts{ContentPath: volumePath},

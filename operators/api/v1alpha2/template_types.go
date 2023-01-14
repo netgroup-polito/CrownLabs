@@ -122,6 +122,10 @@ type Environment struct {
 
 	// Name of the storage class to be used for the persistent volume (when needed)
 	StorageClassName string `json:"storageClassName,omitempty"`
+
+	// +kubebuilder:default=true
+	// Whether the instance has to have the user's MyDrive volume
+	MountMyDriveVolume bool `json:"mountMyDriveVolume"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

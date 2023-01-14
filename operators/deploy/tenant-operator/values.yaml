@@ -17,6 +17,9 @@ configurations:
     url: "https://nextcloud.crownlabs.example.com/"
     user: username
     pass: password
+  mydrivePVCsSize: 1Gi
+  mydrivePVCsStorageClassName: rook-nfs
+  mydrivePVCsNamespace: mydrive-pvcs
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
 

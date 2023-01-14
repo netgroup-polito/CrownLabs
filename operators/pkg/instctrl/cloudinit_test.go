@@ -33,6 +33,7 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
@@ -47,9 +48,9 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		tenant      clv1alpha2.Tenant
 		environment clv1alpha2.Environment
 
-		webdavSecretName types.NamespacedName
-		objectName       types.NamespacedName
-		secret           corev1.Secret
+		pvcSecretName types.NamespacedName
+		objectName    types.NamespacedName
+		secret        corev1.Secret
 
 		ownerRef metav1.OwnerReference
 
@@ -65,10 +66,8 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		environmentName   = "control-plane"
 		tenantName        = "tester"
 
-		nextcloudBaseURL  = "https://nextcloud.example.com"
-		webdavCredentials = "webdav-credentials"
-		webdavUsername    = "username"
-		webdavPassword    = "password"
+		NFSServiceName = "rook-nfs-server-name"
+		NFSServicePath = "/path"
 	)
 
 	NewTenant := func(suffix string, workspace string, role clv1alpha2.WorkspaceUserRole, keys []string) clv1alpha2.Tenant {
@@ -99,10 +98,10 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 				WorkspaceRef: clv1alpha2.GenericRef{Name: workspaceName},
 			},
 		}
-		environment = clv1alpha2.Environment{Name: environmentName}
+		environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: true}
 		tenant = NewTenant("user", workspaceName, clv1alpha2.User, []string{"tenant-key-1", "tenant-key-2"})
 
-		webdavSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: webdavCredentials}
+		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: tntctrl.NFSSecretName}
 		objectName = forge.NamespacedName(&instance)
 		secret = corev1.Secret{}
 
@@ -116,12 +115,12 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		}
 	})
 
-	ForgeWebDavSecret := func(usernameKey, passwordKey string) *corev1.Secret {
+	ForgePvcSecret := func(serviceNameKey, servicePathKey string) *corev1.Secret {
 		return &corev1.Secret{
-			ObjectMeta: forge.NamespacedNameToObjectMeta(webdavSecretName),
+			ObjectMeta: forge.NamespacedNameToObjectMeta(pvcSecretName),
 			Data: map[string][]byte{
-				usernameKey: []byte(webdavUsername),
-				passwordKey: []byte(webdavPassword),
+				serviceNameKey: []byte(NFSServiceName),
+				servicePathKey: []byte(NFSServicePath),
 			},
 		}
 	}
@@ -129,8 +128,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build()}
 		reconciler = instctrl.InstanceReconciler{
-			Client: client, Scheme: scheme.Scheme, WebdavSecretName: webdavCredentials,
-			ServiceUrls: instctrl.ServiceUrls{NextcloudBaseURL: nextcloudBaseURL},
+			Client: client, Scheme: scheme.Scheme,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -147,10 +145,9 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		}
 
 		BeforeEach(func() {
-			clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-				instctrl.WebdavSecretUsernameKey, instctrl.WebdavSecretPasswordKey))
+			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, tntctrl.NFSSecretPathKey))
 
-			expected, err = forge.CloudInitUserData(nextcloudBaseURL, webdavUsername, webdavPassword, tenant.Spec.PublicKeys)
+			expected, err = forge.CloudInitUserData(NFSServiceName, NFSServicePath, tenant.Spec.PublicKeys)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -197,42 +194,39 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 	})
 
-	Describe("The GetWebDavCredentials function", func() {
-		var username, password string
+	Describe("The NFSSpecs function", func() {
+		var serviceName, servicePath string
 
 		JustBeforeEach(func() {
-			username, password, err = reconciler.GetWebDavCredentials(ctx)
+			serviceName, servicePath, err = reconciler.GetNFSSpecs(ctx)
 		})
 
-		Context("The webdav credentials secret does not exist", func() {
+		Context("The user-pvc secret does not exist", func() {
 			It("Should return a not found error", func() { Expect(err).To(FailBecauseNotFound()) })
 		})
 
-		Context("The webdav credentials secret exists", func() {
+		Context("The user-pvc secret exists", func() {
 			When("the secret contains the expected data", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						instctrl.WebdavSecretUsernameKey, instctrl.WebdavSecretPasswordKey))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, tntctrl.NFSSecretPathKey))
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
-				It("The retrieved username should be correct", func() { Expect(username).To(BeIdenticalTo(webdavUsername)) })
-				It("The retrieved password should be correct", func() { Expect(password).To(BeIdenticalTo(webdavPassword)) })
+				It("The retrieved dns name should be correct", func() { Expect(serviceName).To(BeIdenticalTo(NFSServiceName)) })
+				It("The retrieved path should be correct", func() { Expect(servicePath).To(BeIdenticalTo(NFSServicePath)) })
 			})
 
-			When("the secret does not contain the username", func() {
+			When("the secret does not contain the dns name", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						"invalid-username-key", instctrl.WebdavSecretPasswordKey))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret("invalid-name-key", tntctrl.NFSSecretPathKey))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
 			})
 
-			When("the secret does not contain the password", func() {
+			When("the secret does not contain the path", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgeWebDavSecret(
-						instctrl.WebdavSecretUsernameKey, "invalid-password-key"))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, "invalid-path-key"))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })

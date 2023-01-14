@@ -9,9 +9,6 @@ configurations:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com
     instancesAuthUrl: https://crownlabs.example.com/auth
-  nextcloud:
-    baseUrl: https://nextcloud.example.com
-    webdavSecretName: nextcloud-credentials
   containerEnvironmentOptions:
     tag: ""
     websockifyImage: crownlabs/websockify

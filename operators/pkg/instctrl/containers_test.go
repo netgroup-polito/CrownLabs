@@ -36,6 +36,7 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 )
 
 var _ = Describe("Generation of the container based instances", func() {
@@ -67,6 +68,8 @@ var _ = Describe("Generation of the container based instances", func() {
 		deploy     appsv1.Deployment
 		pvc        corev1.PersistentVolumeClaim
 
+		myDriveSecret corev1.Secret
+
 		ownerRef metav1.OwnerReference
 
 		containerOpts forge.ContainerEnvOpts
@@ -87,6 +90,9 @@ var _ = Describe("Generation of the container based instances", func() {
 		cpuReserved = 25
 		memory      = "1250M"
 		disk        = "20Gi"
+
+		nfsServerName = "rook-nfs-server-name"
+		nfsPath       = "/path"
 	)
 
 	BeforeEach(func() {
@@ -98,8 +104,19 @@ var _ = Describe("Generation of the container based instances", func() {
 			MyDriveImgAndTag:     "mydrive:v4.5.6",
 			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
+		myDriveSecret = corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tntctrl.NFSSecretName,
+				Namespace: instanceNamespace,
+			},
+			Data: map[string][]byte{
+				tntctrl.NFSSecretServerNameKey: []byte(nfsServerName),
+				tntctrl.NFSSecretPathKey:       []byte(nfsPath),
+			},
+		}
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace}},
+			&myDriveSecret,
 		)
 
 		instance = clv1alpha2.Instance{
@@ -107,12 +124,14 @@ var _ = Describe("Generation of the container based instances", func() {
 			Spec: clv1alpha2.InstanceSpec{
 				Running:  true,
 				Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
+				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
 		}
 		environment = clv1alpha2.Environment{
-			Name:            environmentName,
-			EnvironmentType: clv1alpha2.ClassContainer,
-			Image:           image,
+			Name:               environmentName,
+			EnvironmentType:    clv1alpha2.ClassContainer,
+			Image:              image,
+			MountMyDriveVolume: false,
 			Resources: clv1alpha2.EnvironmentResources{
 				CPU:                   cpu,
 				ReservedCPUPercentage: cpuReserved,
@@ -169,7 +188,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -300,7 +319,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -396,6 +415,25 @@ var _ = Describe("Generation of the container based instances", func() {
 					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
 				})
 			})
+		})
+	})
+
+	Context("The environment needs the personal drive", func() {
+		BeforeEach(func() { environment.MountMyDriveVolume = true })
+
+		When("the deployment is not yet present", func() {
+			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+			// The spec of the deployment is checked in forge.
+		})
+
+		When("the mydrive-info secret is not present", func() {
+			BeforeEach(func() {
+				// Set a different name for the mydrive-info secret so the reconciler won't find it.
+				myDriveSecret.Name = "wrong-name"
+			})
+
+			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
 		})
 	})
 })
