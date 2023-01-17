@@ -113,6 +113,19 @@ If the request for a new snapshot is valid, a new Job is created that performs t
 
 When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
+### Personal storage
+
+The Instance Operator can attach the user's personal storage to the running instance using the parameters stored in the `mydrive-info` secret created by the Tenant Operator. 
+
+The Instance Operator mounts or not the user's personal storage inside an `Environment`, basing on the `MountMyDriveVolume` flag inside each `Environment` that can be found in an Instance Resource.
+
+This operation is performed both for Containers and VirtualMachines.
+
+For containers, the user's personal storage is attached as a NFS volume to the `Pod` and then mounted in the container environment with a `VolumeMount`.
+
+For Virtual Machines, the user's personal storage is attached by the VM itself: `cloud-init` is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the NFS filesystem.\
+The VM must be able to mount the NFS volume, this means that it should have the necessary packages installed (`nfs-common` or `nfs-utils` according to the OS).
+
 ### Build from source
 
 The Instance Operator requires Golang 1.16 and `make`. To build the operator:
@@ -169,6 +182,9 @@ The operator executes some actions to setup cluster and external resources to al
   - after every update on the cluster resources managed by the operator itself.
   - periodically, (i.e. in a range between 1 and 2 hours since the last update)
 - When performing the actions, the operator utilizes a `fail-fast:false` strategy. Hence, if an action fails (e.g. due to Keycloak being temporarily offline), the operator does not stop and tries to execute all the other independent actions.
+- PVCs for the users personal storage are all created in the same namespace, specified by the `--mydrive-pvcs-namespace` parameter of the operator, and different from the namespace of the user.
+This prevents the loss of the user data after the deletion of the user account, which removes also the namespace of the user itself and all the resources therein.
+- The PVCs for the users personal storage have a size specified via the `--mydrive-pvcs-size` parameter, with default value `1Gi`.
 
 The actions performed by the operator are the following:
 
@@ -183,6 +199,10 @@ The actions performed by the operator are the following:
     - networkPolicies:
       - one to allow to send/receive traffic to own instances
       - one to deny send/receive traffic to instances of other users
+    - persistentVolumeClaim: for the user's personal storage, the persistentVolume is dynamically provisioned by Rook-NFS
+    - secret: to store the parameters to connect to the user's personal storage via NFS
+      - serverName: the DNS name of the service for the NFS server
+      - path: the pseudo-path to the user's folder
   - check if the tenant subscribed to non-existing workspaces, in case some are found add to the tenant status
   - append a label for each subscribed workspace that exists
   - create or update the corresponding user in keycloak and assign him/her a role for each subscribed workspace
@@ -212,7 +232,10 @@ go run cmd/tenant-operator/main.go
       --kc-target-client=KEYCLOAK_TARGET_CLIENT\
       --nc-url=NEXTCLOUD_URL\
       --nc-tenant-operator-user=NEXTCLOUD_TENANT_OPERATOR_USER\
-      --nc-tenant-operator-psw=NEXTCLOUD_TENANT_OPERATOR_PSW
+      --nc-tenant-operator-psw=NEXTCLOUD_TENANT_OPERATOR_PSW\
+      --mydrive-pvcs-size=MYDRIVE_PVCS_SIZE\
+      --mydrive-pvcs-storage-class-name=MYDRIVE_PVCS_STORAGE_CLASS\
+      --mydrive-pvcs-namespace=MYDRIVE_PVCS_NAMESPACE
 
 
 Arguments:

@@ -85,3 +85,32 @@ After that you can delete test with commands
 $ kubectl delete -f examples/wordpress.yaml
 $ kubectl delete -f examples/mysql.yaml
 ```
+
+## Rook NFS
+The personal storage disk attached to VMs and containers is based on the NFS server provided by Rook-Ceph ([here](https://rook.io/docs/rook/v1.10/Storage-Configuration/NFS/nfs/)), which can be configured with the `CephNFS` CRD of the NFS-Ganesha server.
+
+The user's storage is dynamically provisioned through PVCs based on a `StorageClass` that contains a set of parameters used by the Rook Operator in order to create a NFS share; this is later mounted from user's VMs and containers though the NFS protocol.
+
+To create the necessary resources:
+```bash
+$ kubectl create -f nfs-manifests/nfs.yaml
+$ kubectl create -f nfs-manifests/storageclass.yaml
+```
+
+Be aware that to use this feature the system must be configured with:
+- Rook v1.9.1 or greater
+- Ceph v16.2.7 or greater
+
+### Using the NFS service
+Mounting NFS shares inside Virtual Machines may require additional software, e.g., `nfs-common` package for Debian-based VMs, and `nfs-utils` for CentOS-based VMs. Kubernetes nodes will need to be provisioned with the same software in order to enable the kubelet to attach them to containers.
+
+The DNS resolution for the service name of Rook's NFS server on Container instances is done by the software running on the physical server (i.e., kubelet), which does not have access to the Kubernetes cluster's DNS server.
+To allow the host machine to resolve such DNS name, several solution can be implemented, for example adding the proper record to the host's `/etc/resolv.conf`, either manually or with an automated process (e.g., ansible). This operation should to be done right after the creation or modification of the NFS service, that would cause the allocation of the service cluster IP address.
+
+This record should resolve the _standard_ name used by Kubernetes pods to access to the storage service (e.g., `rook-ceph-nfs-rook-nfs-primary-a.rook-ceph.cluster.local`) to the cluster IP address used by that service, such as in the following example of a possible `/etc/hosts` file:
+
+```bash
+$ cat /etc/hosts
+
+rook-ceph-nfs-rook-nfs-primary-a.rook-ceph.cluster.local 8.8.8.8
+```
