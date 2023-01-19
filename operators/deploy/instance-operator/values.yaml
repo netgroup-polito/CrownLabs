@@ -15,7 +15,6 @@ configurations:
     xVncImage: crownlabs/tigervnc
     contentDownloaderImage: crownlabs/content-downloader
     contentUploaderImage: crownlabs/content-uploader
-    mydriveImageAndTag: filebrowser/filebrowser:latest
     instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest

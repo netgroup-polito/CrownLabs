@@ -109,35 +109,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
 	instance.Status.URL = forge.IngressGuiStatusURL(host, environment, instance)
 
-	// No need to create the file-browser ingress resource in case of VM or restricted modes.
-	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.Mode != clv1alpha2.ModeStandard {
-		return nil
-	}
-
-	// Enforce the ingress to access the environment "MyDrive"
-	path := forge.IngressMyDrivePath(instance)
-	ingressMyDrive := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressMyDriveNameSuffix)}
-	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressMyDrive, func() error {
-		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
-		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
-		if ingressMyDrive.CreationTimestamp.IsZero() {
-			ingressMyDrive.Spec = forge.IngressSpec(host, path,
-				forge.IngressDefaultCertificateName, service.GetName(), forge.MyDrivePortName)
-		}
-
-		ingressMyDrive.SetLabels(forge.InstanceObjectLabels(ingressMyDrive.GetLabels(), instance))
-		ingressMyDrive.SetAnnotations(forge.IngressMyDriveAnnotations(ingressMyDrive.GetAnnotations()))
-		ingressMyDrive.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressMyDrive.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
-		return ctrl.SetControllerReference(instance, &ingressMyDrive, r.Scheme)
-	})
-
-	if err != nil {
-		log.Error(err, "failed to create object", "ingress", klog.KObj(&ingressMyDrive))
-		return err
-	}
-	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressMyDrive), "result", res)
-	instance.Status.MyDriveURL = "https://" + host + path
-
 	return nil
 }
 
@@ -146,7 +117,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance := clctx.InstanceFrom(ctx)
 	instance.Status.IP = ""
 	instance.Status.URL = ""
-	instance.Status.MyDriveURL = ""
 
 	// Enforce service absence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
@@ -160,7 +130,5 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 		return err
 	}
 
-	// Enforce file-browser ingress absence
-	ingressFB := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressMyDriveNameSuffix)}
-	return utils.EnforceObjectAbsence(ctx, r.Client, &ingressFB, "ingress")
+	return nil
 }

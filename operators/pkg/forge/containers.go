@@ -79,7 +79,6 @@ type ContainerEnvOpts struct {
 	ImagesTag            string
 	XVncImg              string
 	WebsockifyImg        string
-	MyDriveImgAndTag     string
 	ContentDownloaderImg string
 	ContentUploaderImg   string
 	InstMetricsEndpoint  string
@@ -144,8 +143,7 @@ func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	}
 }
 
-// PodSpec forges the pod specification for X-VNC based container instance,
-// conditionally includes the "myDrive" sidecar for standard mode environments.
+// PodSpec forges the pod specification for X-VNC based container instance.
 func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, nfsServerName, nfsPath string, opts *ContainerEnvOpts) corev1.PodSpec {
 	spec := corev1.PodSpec{
 		Containers:                    ContainersSpec(instance, environment, opts),
@@ -483,7 +481,7 @@ func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.E
 	return false, ""
 }
 
-// PersistentMountPath returns the path on which mounting the myDrive volume.
+// PersistentMountPath returns the path on which mounting the persistent volume.
 func PersistentMountPath(environment *clv1alpha2.Environment) string {
 	cso := environment.ContainerStartupOptions
 	if cso != nil && cso.ContentPath != "" {

@@ -16,7 +16,6 @@ package tenant_controller
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math/big"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,17 +42,6 @@ func containsString(slice []string, s string) bool {
 		}
 	}
 	return false
-}
-
-func generateToken() (*string, error) {
-	// the size of b is equal to double the length of the generated token
-	b := make([]byte, 20)
-	if _, err := rand.Read(b); err != nil {
-		klog.Error("Error when generating random token")
-		return nil, err
-	}
-	token := fmt.Sprintf("%x", b)
-	return &token, nil
 }
 
 func labelSelectorPredicate(targetLabelKey, targetLabelValue string) predicate.Predicate {

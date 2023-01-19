@@ -66,7 +66,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 		service     corev1.Service
 
 		ingressGUIName types.NamespacedName
-		ingressMDName  types.NamespacedName
 		ingress        netv1.Ingress
 
 		ownerRef metav1.OwnerReference
@@ -101,7 +100,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		serviceName = forge.NamespacedName(&instance)
 		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix)
-		ingressMDName = forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix)
 
 		service = corev1.Service{}
 		ingress = netv1.Ingress{}
@@ -172,17 +170,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/app/", host, instanceUID),
 	}
 
-	DescribeBodyParametersIngressMD := DescribeBodyParameters{
-		NamespacedName: &ingressMDName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
-			return forge.IngressSpec(host, forge.IngressMyDrivePath(inst),
-				forge.IngressDefaultCertificateName, serviceName.Name, forge.MyDrivePortName)
-		},
-		EmptySpec:              netv1.IngressSpec{},
-		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.MyDriveURL },
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/mydrive", host, instanceUID),
-	}
-
 	Context("The instance is running", func() {
 		BeforeEach(func() { instance.Spec.Running = true })
 
@@ -224,15 +211,13 @@ var _ = Describe("Generation of the exposition environment", func() {
 				BeforeEach(func() {
 					svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
 					ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
-					ingMD := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressMDName)}
 
 					svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
 					ingGUI.SetCreationTimestamp(metav1.NewTime(time.Now()))
-					ingMD.SetCreationTimestamp(metav1.NewTime(time.Now()))
 
 					svc.Spec.ClusterIP = clusterIP
 
-					clientBuilder.WithObjects(&svc, &ingGUI, &ingMD)
+					clientBuilder.WithObjects(&svc, &ingGUI)
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -284,7 +269,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
-				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
 			})
 
 			Context("The environment has not a GUI", func() {
@@ -292,7 +276,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 				Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
-				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
 			})
 		})
 
@@ -304,7 +287,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
-				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
 			})
 
 			Context("The environment has not a GUI", func() {
@@ -312,7 +294,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 				Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
-				Describe("Assessing the MyDrive ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressMD) })
 			})
 		})
 
@@ -324,7 +305,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 			Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
-			Describe("Assessing the MyDrive ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressMD) })
 		})
 	})
 
@@ -342,8 +322,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 				BeforeEach(func() {
 					svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
 					ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
-					ingMD := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressMDName)}
-					clientBuilder.WithObjects(&svc, &ingGUI, &ingMD)
+					clientBuilder.WithObjects(&svc, &ingGUI)
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -368,6 +347,5 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		Describe("Assessing the service deletion", func() { DescribeBody(DescribeBodyParametersService) })
 		Describe("Assessing the GUI ingress deletion", func() { DescribeBody(DescribeBodyParametersIngressGUI) })
-		Describe("Assessing the MyDrive ingress deletion", func() { DescribeBody(DescribeBodyParametersIngressMD) })
 	})
 })

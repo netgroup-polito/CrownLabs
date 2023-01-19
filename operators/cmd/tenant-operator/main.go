@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-resty/resty/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -68,9 +67,6 @@ func main() {
 	var kcLoginRealm string
 	var kcTargetRealm string
 	var kcTargetClient string
-	var ncURL string
-	var ncTnOpUser string
-	var ncTnOpPsw string
 	var maxConcurrentReconciles int
 	var webhookBypassGroups string
 	mydrivePVCsSize := args.NewQuantity("1Gi")
@@ -88,9 +84,6 @@ func main() {
 	flag.StringVar(&kcLoginRealm, "kc-login-realm", "", "The realm where to login the keycloak acting account.")
 	flag.StringVar(&kcTargetRealm, "kc-target-realm", "", "The target realm for keycloak clients, roles and users.")
 	flag.StringVar(&kcTargetClient, "kc-target-client", "", "The target client for keycloak users and roles.")
-	flag.StringVar(&ncURL, "nc-url", "", "The base URL for the nextcloud actor.")
-	flag.StringVar(&ncTnOpUser, "nc-tenant-operator-user", "", "The username of the acting account for nextcloud.")
-	flag.StringVar(&ncTnOpPsw, "nc-tenant-operator-psw", "", "The password of the acting account for nextcloud.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
@@ -161,23 +154,10 @@ func main() {
 		go checkAndRenewTokenPeriodically(ctrl.LoggerInto(ctx, log), kcA, kcTnOpUser, kcTnOpPsw, kcLoginRealm, 2*time.Minute, 5*time.Minute)
 	}
 
-	var NcA controllers.NcHandler
-	if ncURL == "" {
-		log.Info("Skipping client initialization, as empty target URL", "client", "nextcloud")
-	} else {
-		if ncTnOpUser == "" || ncTnOpPsw == "" {
-			log.Error(errors.New("missing nextcloud parameters"), "Initialization failed")
-			os.Exit(1)
-		}
-		httpClient := resty.New().SetCookieJar(nil)
-		NcA = &controllers.NcActor{TnOpUser: ncTnOpUser, TnOpPsw: ncTnOpPsw, Client: httpClient, BaseURL: ncURL}
-	}
-
 	if err = (&controllers.TenantReconciler{
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
 		KcA:                         kcA,
-		NcA:                         NcA,
 		TargetLabelKey:              targetLabelKey,
 		TargetLabelValue:            targetLabelValue,
 		SandboxClusterRole:          *sandboxClusterRole,

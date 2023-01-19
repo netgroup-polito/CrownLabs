@@ -42,7 +42,7 @@ type WorkspaceStatus struct {
 	Namespace v1alpha2.NameCreated `json:"namespace,omitempty"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
-	// Nextcloud, ...), indicating for each one whether it succeeded or an error
+	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
 	Subscriptions map[string]v1alpha2.SubscriptionStatus `json:"subscription,omitempty"`
 

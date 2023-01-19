@@ -87,9 +87,6 @@ run-tenant: generate
 				--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)\
 				--kc-target-realm=$(KEYCLOAK_TARGET_REALM)\
 				--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)\
-				--nc-url=$(NEXTCLOUD_URL)\
-				--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)\
-				--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)\
 				--enable-webhooks=false
 
 install-local: manifests

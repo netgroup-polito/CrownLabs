@@ -146,7 +146,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the exposition resources aren't present", func() {
 				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
 				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(FailBecauseNotFound())
-				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
 			})
 
 			By("Setting the instance to running", func() {
@@ -158,7 +157,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the right exposition resources exist", func() {
 				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
 				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(Succeed())
-				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(Succeed())
 			})
 
 			By("Asserting the state is coherent", func() {
@@ -244,7 +242,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the exposition resources aren't present", func() {
 						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
 					})
 
 					By("Setting the instance to running", func() {
@@ -256,7 +253,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the right exposition resources exist", func() {
 						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
 					})
 
 					By("Asserting the state is coherent", func() {
@@ -305,7 +301,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the exposition resources aren't present", func() {
 					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
 				})
 
 				By("Setting the instance to running", func() {
@@ -317,7 +312,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the right exposition resources exist", func() {
 					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressMyDriveNameSuffix), &ingress)).To(FailBecauseNotFound())
 				})
 
 				By("Asserting the VM has been created", func() {

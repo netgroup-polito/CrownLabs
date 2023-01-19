@@ -46,10 +46,6 @@ the cluster and improve the user experience during the instantiation of new VMs.
 ## [Identity Provider](identity-provider)
 When the matter comes to authentication and authorization of the users we went with Keycloak identity
 provider. Thanks to its advanced features and rich documentation it was a breeze to configure.
-
-## [File Sharing](file-sharing)
-As Virtual Machines are ephemeral, users need to be provided a persistent storage. This task is
-fulfilled by Nextcloud, which provides an on-premise, "safe home for all your data".
 ​
 ## [Monitoring](monitoring)
 All the above mentioned services have to be monitored and kept healthy, here Prometheus and
