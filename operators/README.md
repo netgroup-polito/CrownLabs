@@ -206,7 +206,6 @@ The actions performed by the operator are the following:
   - check if the tenant subscribed to non-existing workspaces, in case some are found add to the tenant status
   - append a label for each subscribed workspace that exists
   - create or update the corresponding user in keycloak and assign him/her a role for each subscribed workspace
-  - create or update the nextcloud credentials for the user
   - delete all managed resources upon tenant deletion
 - `Workspace` ([details](pkg/tenant-controller/workspace_controller.go))
   - create or update some cluster resources
@@ -230,9 +229,6 @@ go run cmd/tenant-operator/main.go
       --kc-login-realm=KEYCLOAK_LOGIN_REALM\
       --kc-target-realm=KEYCLOAK_TARGET_REALM\
       --kc-target-client=KEYCLOAK_TARGET_CLIENT\
-      --nc-url=NEXTCLOUD_URL\
-      --nc-tenant-operator-user=NEXTCLOUD_TENANT_OPERATOR_USER\
-      --nc-tenant-operator-psw=NEXTCLOUD_TENANT_OPERATOR_PSW\
       --mydrive-pvcs-size=MYDRIVE_PVCS_SIZE\
       --mydrive-pvcs-storage-class-name=MYDRIVE_PVCS_STORAGE_CLASS\
       --mydrive-pvcs-namespace=MYDRIVE_PVCS_NAMESPACE
@@ -253,12 +249,6 @@ Arguments:
                 The target realm for keycloak clients, roles and users
   --kc-target-client
                 The target client for keycloak users and roles
-  --nc-url
-                The URL of the nextcloud server
-  --nc-tenant-operator-user
-                The username of the acting account for nextcloud
-  --nc-tenant-operator-psw
-                The password of the acting account for nextcloud
   --mydrive-pvcs-size
                 The dimension of the user's personal space
   --mydrive-pvcs-storage-class-name

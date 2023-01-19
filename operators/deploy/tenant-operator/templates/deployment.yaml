@@ -41,9 +41,6 @@ spec:
             - "--kc-target-client={{ .Values.configurations.keycloak.targetClient }}"
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
-            - "--nc-url={{ .Values.configurations.nextcloud.url }}"
-            - "--nc-tenant-operator-user=$(NEXTCLOUD_TENANT_OPERATOR_USER)"
-            - "--nc-tenant-operator-psw=$(NEXTCLOUD_TENANT_OPERATOR_PSW)"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
             - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
@@ -85,16 +82,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "tenant-operator.fullname" . }}
                   key: keycloak-pass
-            - name: NEXTCLOUD_TENANT_OPERATOR_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: nextcloud-user
-            - name: NEXTCLOUD_TENANT_OPERATOR_PSW
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "tenant-operator.fullname" . }}
-                  key: nextcloud-pass
           volumeMounts:
           - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
             name: webhook-certs

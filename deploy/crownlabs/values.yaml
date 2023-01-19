@@ -65,15 +65,10 @@ instance-operator:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       websiteBaseUrl: crownlabs.example.com
       instancesAuthUrl: https://crownlabs.example.com/auth
-    nextcloud:
-      baseUrl: https://nextcloud.example.com
-      webdavSecretName: nextcloud-credentials
     containerEnvironmentOptions:
       tag: ""
       vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
-      filebrowserImage: filebrowser/filebrowser
-      filebrowserImageTag: latest
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
@@ -96,10 +91,6 @@ tenant-operator:
       loginRealm: master
       targetRealm: crownlabs
       targetClient: k8s
-      user: username
-      pass: password
-    nextcloud:
-      url: "https://nextcloud.crownlabs.example.com/"
       user: username
       pass: password
     maxConcurrentReconciles: 1

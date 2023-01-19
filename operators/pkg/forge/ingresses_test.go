@@ -363,17 +363,6 @@ var _ = Describe("Ingresses", func() {
 
 		})
 
-		Describe("The forge.IngressMyDrivePath function", func() {
-			BeforeEach(func() {
-				path = forge.IngressMyDrivePath(&instance)
-			})
-			Context("The instance has no special configurations", func() {
-				It("Should generate a path based on the instance UID", func() {
-					Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/mydrive"))
-				})
-			})
-		})
-
 		Describe("The forge.IngressGuiStatusURL function", func() {
 			JustBeforeEach(func() {
 				statusPath = forge.IngressGuiStatusURL(host, &environment, &instance)

@@ -236,7 +236,7 @@ var _ = Describe("Tenant controller", func() {
 				return false
 			}
 			// check if external subscriptions has been correctly updated
-			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha2.SubscrOk || tn.Status.Subscriptions["nextcloud"] != crownlabsv1alpha2.SubscrOk {
+			if tn.Status.Subscriptions["keycloak"] != crownlabsv1alpha2.SubscrOk {
 				return false
 			}
 			// check if workspace inconsistence has been correctly updated
@@ -429,21 +429,6 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdNetPolAllow.Spec.Ingress).Should(HaveLen(1))
 	Expect(createdNetPolAllow.Spec.Ingress[0].From).Should(HaveLen(1))
 	Expect(createdNetPolAllow.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["crownlabs.polito.it/allow-instance-access"]).Should(Equal("true"))
-
-	By("By checking that the nextcloud-credentials secret of the tenant has been created")
-	ncSecretLookupKey := types.NamespacedName{Name: "nextcloud-credentials", Namespace: nsName}
-	createdNcSecret := &v1.Secret{}
-	doesEventuallyExists(ctx, ncSecretLookupKey, createdNcSecret, BeTrue(), timeout, interval)
-
-	By("By checking that the nextcloud-credentials secret of the tenant has a owner reference and label pointing to the tenant operator")
-	Expect(createdNcSecret.OwnerReferences).Should(ContainElement(MatchFields(IgnoreExtras, Fields{"Name": Equal(tnName)})))
-	Expect(createdNcSecret.Labels).Should(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
-
-	By("By checking that the nextcloud-credentials secret of the tenant has a correct spec")
-	Expect(createdNcSecret.Type).Should(Equal(v1.SecretTypeOpaque))
-	Expect(createdNcSecret.Data).Should(HaveKeyWithValue("username", []byte("keycloak-"+tnName)))
-	Expect(createdNcSecret.Data).Should(HaveKey("password"))
-	Expect(createdNcSecret.Data["password"]).Should(HaveLen(40))
 
 	By("By checking that the mydrive-info secret of the tenant has been created")
 	checkTnPVBound(ctx, tnName, nsName, timeout, interval, serverName, rookCephNamespace, path)

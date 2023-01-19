@@ -13,10 +13,6 @@ configurations:
     targetClient: k8s
     user: username
     pass: password
-  nextcloud:
-    url: "https://nextcloud.crownlabs.example.com/"
-    user: username
-    pass: password
   mydrivePVCsSize: 1Gi
   mydrivePVCsStorageClassName: rook-nfs
   mydrivePVCsNamespace: mydrive-pvcs

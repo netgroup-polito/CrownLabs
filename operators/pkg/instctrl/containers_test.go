@@ -101,7 +101,6 @@ var _ = Describe("Generation of the container based instances", func() {
 			ImagesTag:            "v1.2.3",
 			XVncImg:              "x-vnc",
 			WebsockifyImg:        "wskfy",
-			MyDriveImgAndTag:     "mydrive:v4.5.6",
 			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
 		myDriveSecret = corev1.Secret{

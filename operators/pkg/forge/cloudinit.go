@@ -71,7 +71,7 @@ func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]by
 	if nfsServerName != "" && nfsPath != "" {
 		config.Mounts = [][]string{{
 			fmt.Sprintf("%s:%s", nfsServerName, nfsPath),
-			"/media/mydrive",
+			MyDriveVolumeMountPath,
 			"nfs",
 			"rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14",
 			"0",

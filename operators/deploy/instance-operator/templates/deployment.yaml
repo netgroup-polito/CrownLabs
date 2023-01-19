@@ -42,7 +42,6 @@ spec:
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
             - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
-            - "--container-env-mydrive-img-and-tag={{ .Values.configurations.containerEnvironmentOptions.mydriveImageAndTag }}"
             - "--container-env-instmetrics-server-endpoint={{ .Values.configurations.containerEnvironmentOptions.instmetricsServerEndpoint }}"
             - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
             - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"

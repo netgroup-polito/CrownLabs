@@ -116,7 +116,7 @@ type TenantStatus struct {
 	FailingWorkspaces []string `json:"failingWorkspaces"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
-	// Nextcloud, ...), indicating for each one whether it succeeded or an error
+	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
 	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
 

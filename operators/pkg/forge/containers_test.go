@@ -90,7 +90,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			WebsockifyImg:        "wsfy-img",
 			ContentDownloaderImg: "cont-dler-img",
 			ContentUploaderImg:   "cont-uplr-img",
-			MyDriveImgAndTag:     "fb-img:tag",
 		}
 		container = corev1.Container{}
 	})

@@ -86,7 +86,6 @@ var _ = BeforeSuite(func() {
 			ImagesTag:            "v0.1.2",
 			XVncImg:              "fake-xvnc",
 			WebsockifyImg:        "fake-wskfy",
-			MyDriveImgAndTag:     "fake-filebrowser",
 			ContentDownloaderImg: "fake-archdl",
 		},
 	}

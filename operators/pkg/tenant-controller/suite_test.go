@@ -72,9 +72,6 @@ var kcA = KcActor{
 	EmailActionsLifeSpanS: emailActionLifespan,
 }
 
-// nextcloud variables.
-var mNcA *mocks.NcHandlerMock
-
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Tenant Controller Suite")
@@ -119,7 +116,6 @@ var _ = BeforeSuite(func() {
 		Client:                      k8sManager.GetClient(),
 		Scheme:                      k8sManager.GetScheme(),
 		KcA:                         &kcA,
-		NcA:                         mNcA,
 		TargetLabelKey:              targetLabelKey,
 		TargetLabelValue:            targetLabelValue,
 		ReconcileDeferHook:          GinkgoRecover,

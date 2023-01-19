@@ -229,8 +229,8 @@ spec:
                   - Failed
                   type: string
                 description: The list of the subscriptions to external services (e.g.
-                  Keycloak, Nextcloud, ...), indicating for each one whether it succeeded
-                  or an error occurred.
+                  Keycloak, ...), indicating for each one whether it succeeded or
+                  an error occurred.
                 type: object
             required:
             - failingWorkspaces

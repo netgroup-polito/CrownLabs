@@ -29,8 +29,6 @@ const (
 
 	// IngressGUINameSuffix -> the suffix added to the name of the ingress targeting the environment GUI.
 	IngressGUINameSuffix = "gui"
-	// IngressMyDriveNameSuffix -> the suffix added to the name of the ingress targeting the environment "MyDrive".
-	IngressMyDriveNameSuffix = "mydrive"
 	// IngressAppSuffix -> the suffix added to the path of the ingress targeting standalone and container environments.
 	IngressAppSuffix = "app"
 
@@ -39,8 +37,6 @@ const (
 
 	// IngressVNCGUIPathSuffix -> the suffix appended to the path of the ingress targeting the environment GUI websocketed vnc endpoint.
 	IngressVNCGUIPathSuffix = "vnc"
-	// IngressMyDrivePathSuffix -> the suffix appended to the path of the ingress targeting the environment "MyDrive".
-	IngressMyDrivePathSuffix = "mydrive"
 
 	// WebsockifyRewriteEndpoint -> endpoint of the websocketed vnc server.
 	WebsockifyRewriteEndpoint = "/websockify"
@@ -128,11 +124,6 @@ func HostName(baseHostName string, mode clv1alpha2.EnvironmentMode) string {
 	}
 
 	return baseHostName
-}
-
-// IngressMyDrivePath returns the path of the ingress targeting the environment "MyDrive".
-func IngressMyDrivePath(instance *clv1alpha2.Instance) string {
-	return fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressMyDrivePathSuffix)
 }
 
 // IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
