@@ -72,6 +72,7 @@ func main() {
 	var tenantNSKeepAlive time.Duration
 	var maxConcurrentReconciles int
 	var webhookBypassGroups string
+	var baseWorkspaces string
 	mydrivePVCsSize := args.NewQuantity("1Gi")
 	var mydrivePVCsStorageClassName string
 	var myDrivePVCsNamespace string
@@ -92,6 +93,7 @@ func main() {
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 10*time.Hour, "Time elapsed after last login of tenant during which the tenant namespace should be kept alive: after this period, the controller will attempt to delete the tenant personal namespace.")
 	flag.IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
+	flag.StringVar(&baseWorkspaces, "base-workspaces", "", "List of comma separated workspaces to be enforced to every tenant by the mutating webhook")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
 	enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
 	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
@@ -136,7 +138,12 @@ func main() {
 		hookServer := mgr.GetWebhookServer()
 		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
 		hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
-		hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantLabeler(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue))
+		var baseWorkspacesList []string
+		if baseWorkspaces != "" {
+			baseWorkspacesList = strings.Split(baseWorkspaces, ",")
+			log.Info("will enforce base workspaces", "workspaces", baseWorkspaces)
+		}
+		hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList))
 	} else {
 		log.Info("Webhook set up: operation skipped")
 	}

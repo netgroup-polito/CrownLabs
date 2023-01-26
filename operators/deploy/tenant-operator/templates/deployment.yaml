@@ -42,6 +42,7 @@ spec:
             - "--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)"
             - "--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
+            - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
             - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
             - "--tenant-ns-keep-alive={{ .Values.configurations.tenantNamespaceKeepAlive }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
