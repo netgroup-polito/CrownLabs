@@ -59,6 +59,7 @@ webhook:
   deployment:
     certsMount: /tmp/k8s-webhook-server/serving-certs/
     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    baseWorkspaces: utilities
   enableMutating: true
   clusterIssuer: self-signed
 

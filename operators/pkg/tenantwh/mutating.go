@@ -30,34 +30,35 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// TenantLabeler labels Tenants.
-type TenantLabeler struct {
+// TenantMutator labels Tenants.
+type TenantMutator struct {
 	opSelectorKey, opSelectorValue string
+	baseWorkspaces                 []string
 	TenantWebhook
 }
 
-// MakeTenantLabeler creates a new webhook handler suitable for controller runtime based on TenantLabeler.
-func MakeTenantLabeler(c client.Client, webhookBypassGroups []string, opSelectorKey, opSelectorValue string) *webhook.Admission {
-	return &webhook.Admission{Handler: &TenantLabeler{
-		opSelectorKey, opSelectorValue,
+// MakeTenantMutator creates a new webhook handler suitable for controller runtime based on TenantMutator.
+func MakeTenantMutator(c client.Client, webhookBypassGroups []string, opSelectorKey, opSelectorValue string, baseWorkspaces []string) *webhook.Admission {
+	return &webhook.Admission{Handler: &TenantMutator{
+		opSelectorKey, opSelectorValue, baseWorkspaces,
 		TenantWebhook{Client: c, BypassGroups: webhookBypassGroups},
 	}}
 }
 
-// Handle on TenantLabeler adds operator selector labels to new tenants and prevents possible changes - this method is used by controller runtime.
-func (tl *TenantLabeler) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic // the signature of this method is imposed by controller runtime.
+// Handle on TenantMutator adds operator selector labels to new tenants and prevents possible changes - this method is used by controller runtime.
+func (tm *TenantMutator) Handle(ctx context.Context, req admission.Request) admission.Response { //nolint:gocritic // the signature of this method is imposed by controller runtime.
 	log := ctrl.LoggerFrom(ctx).WithName("labeler").WithValues("username", req.UserInfo.Username, "tenant", req.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	log.V(utils.LogDebugLevel).Info("processing mutation request", "groups", strings.Join(req.UserInfo.Groups, ","))
 
-	tenant, err := tl.DecodeTenant(req.Object)
+	tenant, err := tm.DecodeTenant(req.Object)
 	if err != nil {
 		log.Error(err, "tenant decode from request failed")
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	labels, warnings, err := tl.EnforceTenantLabels(ctx, &req, tenant.GetLabels())
+	labels, warnings, err := tm.EnforceTenantLabels(ctx, &req, tenant.GetLabels())
 	if err != nil {
 		log.Error(err, "label enforcement failed")
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -65,11 +66,13 @@ func (tl *TenantLabeler) Handle(ctx context.Context, req admission.Request) admi
 
 	tenant.SetLabels(labels)
 
-	return tl.CreatePatchResponse(ctx, &req, tenant).WithWarnings(warnings...)
+	tm.EnforceTenantBaseWorkspaces(ctx, tenant)
+
+	return tm.CreatePatchResponse(ctx, &req, tenant).WithWarnings(warnings...)
 }
 
 // EnforceTenantLabels sets operator selector labels.
-func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission.Request, oldLabels map[string]string) (labels map[string]string, warnings []string, err error) {
+func (tm *TenantMutator) EnforceTenantLabels(ctx context.Context, req *admission.Request, oldLabels map[string]string) (labels map[string]string, warnings []string, err error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	labels = oldLabels
@@ -80,8 +83,8 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 
 	// enforce empty operator on svc tenant
 	if req.Name == clv1alpha2.SVCTenantName {
-		if labels[tl.opSelectorKey] != "" {
-			labels[tl.opSelectorKey] = ""
+		if labels[tm.opSelectorKey] != "" {
+			labels[tm.opSelectorKey] = ""
 			log.Info("attempted adding operator selector labels to svc tenant")
 			return labels, []string{"operator selector label must not be present on service tenant and has been removed"}, nil
 		}
@@ -90,7 +93,7 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 	}
 
 	// skip enforcement in case of override user and non-empty selector
-	if labels[tl.opSelectorKey] != "" && tl.CheckWebhookOverride(req) {
+	if labels[tm.opSelectorKey] != "" && tm.CheckWebhookOverride(req) {
 		log.Info("webhook override: not changing labels")
 		return labels, nil, nil
 	}
@@ -98,11 +101,11 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 	// enforce labels on create
 	if req.Operation == admissionv1.Create {
 		log.Info("enforcing operator selection labels", "operation", "create")
-		labels[tl.opSelectorKey] = tl.opSelectorValue
+		labels[tm.opSelectorKey] = tm.opSelectorValue
 		return labels, nil, nil
 	}
 
-	oldTenant, err := tl.DecodeTenant(req.OldObject)
+	oldTenant, err := tm.DecodeTenant(req.OldObject)
 	if err != nil {
 		// if we get an error here it's not because we're on create
 		log.Error(err, "previous tenant decode from request failed")
@@ -111,14 +114,14 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 
 	oldTenantLabels := oldTenant.GetLabels()
 
-	oldLabel, oldLabelExisted := oldTenantLabels[tl.opSelectorKey]
-	newLabel := labels[tl.opSelectorKey]
+	oldLabel, oldLabelExisted := oldTenantLabels[tm.opSelectorKey]
+	newLabel := labels[tm.opSelectorKey]
 
 	if newLabel != oldLabel {
 		if oldLabelExisted {
-			labels[tl.opSelectorKey] = oldLabel
+			labels[tm.opSelectorKey] = oldLabel
 		} else {
-			delete(labels, tl.opSelectorKey)
+			delete(labels, tm.opSelectorKey)
 		}
 		warnings = []string{"operator selector label change is prohibited and has been reverted"}
 		log.Info("operator selector label change prevented", "operation", "update", "requested", oldLabel, "applied", newLabel)
@@ -129,8 +132,31 @@ func (tl *TenantLabeler) EnforceTenantLabels(ctx context.Context, req *admission
 	return labels, warnings, nil
 }
 
+// EnforceTenantBaseWorkspaces ensure base workspaces are present in the given tenant.
+func (tm *TenantMutator) EnforceTenantBaseWorkspaces(ctx context.Context, tenant *clv1alpha2.Tenant) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("enforcing base workspaces")
+
+	for _, baseWs := range tm.baseWorkspaces {
+		found := false
+		for _, tenantWs := range tenant.Spec.Workspaces {
+			if tenantWs.Name == baseWs {
+				found = true
+				break
+			}
+		}
+		if !found {
+			tenant.Spec.Workspaces = append(tenant.Spec.Workspaces, clv1alpha2.TenantWorkspaceEntry{
+				Name: baseWs,
+				Role: clv1alpha2.User,
+			})
+			log.Info("base workspace added", "workspace", baseWs)
+		}
+	}
+}
+
 // CreatePatchResponse creates and admission response with the given tenant.
-func (tl *TenantLabeler) CreatePatchResponse(ctx context.Context, req *admission.Request, tenant *clv1alpha2.Tenant) admission.Response {
+func (tm *TenantMutator) CreatePatchResponse(ctx context.Context, req *admission.Request, tenant *clv1alpha2.Tenant) admission.Response {
 	marshaledTenant, err := json.Marshal(tenant)
 	if err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "patch response creation failed")

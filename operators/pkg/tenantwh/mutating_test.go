@@ -31,11 +31,12 @@ import (
 
 var _ = Describe("Mutating webhook", func() {
 	var (
-		mutatingWH *tenantwh.TenantLabeler
+		mutatingWH *tenantwh.TenantMutator
 		request    admission.Request
 
 		opSelectorKey   = "crownlabs.polito.it/op-sel"
 		opSelectorValue = "prod"
+		baseWorkspaces  = []string{}
 	)
 
 	forgeOpSelectorMap := func(opSel string) map[string]string {
@@ -46,13 +47,17 @@ var _ = Describe("Mutating webhook", func() {
 		return &clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
 	}
 
-	BeforeEach(func() {
+	forgeTenantWithWorkspaces := func(name string, workspaces []clv1alpha2.TenantWorkspaceEntry) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: clv1alpha2.TenantSpec{Workspaces: workspaces}}
+	}
+
+	JustBeforeEach(func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-		mutatingWH = tenantwh.MakeTenantLabeler(fakeClient, bypassGroups, opSelectorKey, opSelectorValue).Handler.(*tenantwh.TenantLabeler)
+		mutatingWH = tenantwh.MakeTenantMutator(fakeClient, bypassGroups, opSelectorKey, opSelectorValue, baseWorkspaces).Handler.(*tenantwh.TenantMutator)
 		Expect(mutatingWH.InjectDecoder(decoder)).To(Succeed())
 	})
 
-	Describe("The TenantLabeler.Handle method", func() {
+	Describe("The TenantMutator.Handle method", func() {
 		var response, expectedResponse admission.Response
 
 		JustBeforeEach(func() {
@@ -86,7 +91,7 @@ var _ = Describe("Mutating webhook", func() {
 		})
 	})
 
-	Describe("The TenantLabeler.EnforceTenantLabels method", func() {
+	Describe("The TenantMutator.EnforceTenantLabels method", func() {
 		type EnforceLabelsCase struct {
 			newTenant, oldTenant *clv1alpha2.Tenant
 			operation            admissionv1.Operation
@@ -219,6 +224,67 @@ var _ = Describe("Mutating webhook", func() {
 					expectedLabels:   forgeOpSelectorMap(customVal),
 					expectedWarnings: []string{"operator selector label change is prohibited and has been reverted"},
 				})
+			})
+		})
+	})
+
+	Describe("The TenantMutator.EnforceTenantBaseWorkspaces method", func() {
+		type EnforceTenantBaseWorkspacesCase struct {
+			testTenant         *clv1alpha2.Tenant
+			testBaseWorkspaces []string
+			expectedWorkspaces []clv1alpha2.TenantWorkspaceEntry
+		}
+
+		exampleWs1 := clv1alpha2.TenantWorkspaceEntry{Name: "workspace", Role: clv1alpha2.Manager}
+		testWsName := "utilities"
+
+		WhenBody := func(elc EnforceTenantBaseWorkspacesCase) {
+			BeforeEach(func() {
+				baseWorkspaces = elc.testBaseWorkspaces
+			})
+			JustBeforeEach(func() {
+				mutatingWH.EnforceTenantBaseWorkspaces(ctx, elc.testTenant)
+			})
+			It("Should set the expected base workspaces", func() {
+				Expect(elc.testTenant.Spec.Workspaces).To(Equal(elc.expectedWorkspaces))
+			})
+		}
+
+		When("the tenant has no workspaces", func() {
+			WhenBody(EnforceTenantBaseWorkspacesCase{
+				testTenant:         forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, nil),
+				testBaseWorkspaces: []string{testWsName},
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{{
+					Name: testWsName,
+					Role: clv1alpha2.User,
+				}},
+			})
+		})
+
+		When("the tenant has some workspaces", func() {
+			WhenBody(EnforceTenantBaseWorkspacesCase{
+				testTenant:         forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, []clv1alpha2.TenantWorkspaceEntry{exampleWs1}),
+				testBaseWorkspaces: []string{testWsName},
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{
+					exampleWs1, {
+						Name: testWsName,
+						Role: clv1alpha2.User,
+					}},
+			})
+		})
+
+		When("the tenant already has the base workspaces already set", func() {
+			WhenBody(EnforceTenantBaseWorkspacesCase{
+				testTenant: forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, []clv1alpha2.TenantWorkspaceEntry{exampleWs1, {
+					Name: testWsName,
+					Role: clv1alpha2.Manager,
+				}}),
+				testBaseWorkspaces: []string{testWsName},
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{
+					exampleWs1, {
+						Name: testWsName,
+						Role: clv1alpha2.Manager,
+					}},
 			})
 		})
 	})
