@@ -9,6 +9,7 @@ export default gql`
           email
           firstName
           lastName
+          lastLogin
           workspaces {
             role
             name
@@ -33,6 +34,12 @@ export default gql`
         status {
           personalNamespace {
             name
+            created
+          }
+          quota {
+            cpu
+            instances
+            memory
           }
         }
       }

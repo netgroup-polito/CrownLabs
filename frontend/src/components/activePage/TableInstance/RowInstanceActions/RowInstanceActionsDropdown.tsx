@@ -41,7 +41,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     tenantNamespace,
     environmentType,
     gui,
-    myDriveUrl,
   } = instance;
 
   const font20px = { fontSize: '20px' };
@@ -115,13 +114,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         break;
       case DropDownAction.ssh:
         setSshModal(true);
-        break;
-      case DropDownAction.upload:
-        (environmentType === EnvironmentType.Container ||
-          environmentType === EnvironmentType.Standalone) &&
-          window.open(`${myDriveUrl}/files`, '_blank');
-        environmentType === EnvironmentType.VirtualMachine &&
-          window.open('https://crownlabs.polito.it/cloud', '_blank');
         break;
       default:
         break;

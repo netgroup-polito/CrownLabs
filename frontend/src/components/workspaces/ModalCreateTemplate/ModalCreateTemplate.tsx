@@ -31,7 +31,8 @@ type Template = {
   image?: string;
   registry?: string;
   vmorcontainer?: Vmorcontainer;
-  diskMode: boolean;
+  persistent: boolean;
+  mountMyDrive: boolean;
   gui: boolean;
   cpu: number;
   ram: number;
@@ -96,7 +97,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     image: template && template.image,
     registry: template && template.registry,
     vmorcontainer: template && template.vmorcontainer,
-    diskMode: !!template && template.diskMode,
+    persistent: template?.persistent ?? false,
+    mountMyDrive: template?.mountMyDrive ?? true,
     gui: template?.gui ?? true,
     cpu: template ? template.cpu : cpuInterval.min,
     ram: template ? template.ram : ramInterval.min,
@@ -121,7 +123,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           template.image !== formTemplate.image ||
           template.vmorcontainer !== formTemplate.vmorcontainer ||
           template.gui !== formTemplate.gui ||
-          template.diskMode !== formTemplate.diskMode ||
+          template.persistent !== formTemplate.persistent ||
           template.cpu !== formTemplate.cpu ||
           template.ram !== formTemplate.ram ||
           template.disk !== formTemplate.disk
@@ -315,7 +317,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                       registry: imageFound?.registry,
                       vmorcontainer:
                         imageFound?.vmorcontainer[0] ?? 'Container',
-                      diskMode: false,
+                      persistent: false,
                       gui: true,
                     };
                   });
@@ -346,13 +348,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
               <Checkbox
                 className="ml-3"
-                checked={formTemplate.diskMode}
+                checked={formTemplate.persistent}
                 onChange={() =>
                   setFormTemplate(old => {
                     return {
                       ...old,
-                      diskMode: !old.diskMode,
-                      disk: !old.diskMode
+                      persistent: !old.persistent,
+                      disk: !old.persistent
                         ? template?.disk || diskInterval.min
                         : 0,
                     };
@@ -417,7 +419,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           labelAlign="left"
           label="DISK"
           name="disk"
-          className={formTemplate.diskMode ? '' : 'hidden'}
+          className={formTemplate.persistent ? '' : 'hidden'}
         >
           <div className="sm:pl-3 pr-1 ">
             <Slider

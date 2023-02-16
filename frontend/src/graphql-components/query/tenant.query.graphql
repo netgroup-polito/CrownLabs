@@ -4,6 +4,7 @@ query tenant($tenantId: String!) {
       email
       firstName
       lastName
+      lastLogin
       workspaces {
         role
         name
@@ -28,6 +29,7 @@ query tenant($tenantId: String!) {
     status {
       personalNamespace {
         name
+        created
       }
       quota {
         cpu

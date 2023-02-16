@@ -91,7 +91,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ? `${t.registry}/${t.image}`.trim()!
           : `${t.image}`.trim()!,
         guiEnabled: t.gui,
-        persistent: t.diskMode,
+        persistent: t.persistent,
+        mountMyDriveVolume: t.mountMyDrive,
         environmentType:
           t.vmorcontainer === EnvironmentType.Container
             ? EnvironmentType.Container

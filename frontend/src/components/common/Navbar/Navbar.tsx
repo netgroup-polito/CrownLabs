@@ -3,7 +3,7 @@ import { Divider, Drawer, Layout, Typography } from 'antd';
 import Button from 'antd-button-color';
 import { FC, useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { LinkPosition, RouteData, RouteDescriptor } from '../../../utils';
 import ThemeSwitcher from '../../misc/ThemeSwitcher';
 import Logo from '../Logo';

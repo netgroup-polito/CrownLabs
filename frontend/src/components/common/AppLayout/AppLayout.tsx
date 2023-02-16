@@ -1,10 +1,12 @@
 import { InfoOutlined } from '@ant-design/icons';
 import { Col, Layout, Result, Row } from 'antd';
-import { FC, useState } from 'react';
+import { FC, useContext, useState } from 'react';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { logout } from '../../../contexts/AuthContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { PUBLIC_URL } from '../../../env';
 import { RouteDescriptor } from '../../../utils';
+import FullPageLoader from '../FullPageLoader';
 import Navbar from '../Navbar';
 import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
@@ -24,6 +26,12 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   const [sideLeftShow, setSideLeftShow] = useState(false);
   const { routes, transparentNavbar, TooltipButtonData, TooltipButtonLink } =
     props;
+
+  const { data: tenantData } = useContext(TenantContext);
+  const tenantNsIsReady =
+    tenantData?.tenant?.status?.personalNamespace?.created ?? false;
+  const tenantName = tenantData?.tenant?.spec?.firstName;
+
   return (
     <BrowserRouter basename={PUBLIC_URL}>
       <Layout className="h-full">
@@ -33,28 +41,35 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
           transparent={transparentNavbar}
         />
         <Content className="flex">
-          <Switch>
-            {routes.map(r =>
-              r.content ? (
-                <Route exact key={r.route.path} path={r.route.path}>
-                  <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                    <Col span={0} lg={1} xxl={2}></Col>
-                    {r.content}
-                    <Col span={0} lg={1} xxl={2}></Col>
-                  </Row>
-                </Route>
-              ) : null
-            )}
-            <Route>
-              <div className="flex justify-center items-center w-full">
-                <Result
-                  status="404"
-                  title="404"
-                  subTitle="Sorry, the page you visited does not exist."
-                />
-              </div>
-            </Route>
-          </Switch>
+          {tenantNsIsReady ? (
+            <Switch>
+              {routes.map(r =>
+                r.content ? (
+                  <Route exact key={r.route.path} path={r.route.path}>
+                    <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                      <Col span={0} lg={1} xxl={2}></Col>
+                      {r.content}
+                      <Col span={0} lg={1} xxl={2}></Col>
+                    </Row>
+                  </Route>
+                ) : null
+              )}
+              <Route>
+                <div className="flex justify-center items-center w-full">
+                  <Result
+                    status="404"
+                    title="404"
+                    subTitle="Sorry, the page you visited does not exist."
+                  />
+                </div>
+              </Route>
+            </Switch>
+          ) : (
+            <FullPageLoader
+              text={`Welcome back ${tenantName}!`}
+              subtext="Settings things back up... Hold tight!"
+            />
+          )}
         </Content>
         <div className="left-TooltipButton">
           <TooltipButton

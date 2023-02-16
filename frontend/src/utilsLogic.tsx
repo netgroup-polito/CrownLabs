@@ -156,8 +156,6 @@ export const makeGuiInstance = (
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
-  const myDrive = status?.myDriveUrl ?? '';
-
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
   return {
@@ -180,7 +178,6 @@ export const makeGuiInstance = (
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
-    myDriveUrl: myDrive,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
@@ -344,7 +341,6 @@ export const getManagerInstances = (
   const { firstName, lastName } =
     tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
   const workspaceName = (templateNamespace ?? '').replace(/^workspace-/, '');
-  const myDrive = status?.myDriveUrl ?? '';
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
   return {
@@ -359,7 +355,6 @@ export const getManagerInstances = (
     ip: status?.ip,
     status: status?.phase,
     url: status?.url,
-    myDriveUrl: myDrive,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
     tenantNamespace: tenantNamespace,

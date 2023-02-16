@@ -4,7 +4,7 @@ import Button from 'antd-button-color';
 import { FC, useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { Instance, WorkspaceRole } from '../../../utils';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';

@@ -7,17 +7,19 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
-import { ErrorContext } from '../../errorHandling/ErrorContext';
-import { ErrorTypes } from '../../errorHandling/utils';
+import { AuthContext } from './AuthContext';
+import { ErrorContext } from '../errorHandling/ErrorContext';
+import { ErrorTypes } from '../errorHandling/utils';
 import {
   TenantQuery,
   UpdatedTenantSubscription,
+  useApplyTenantMutation,
   useTenantQuery,
-} from '../../generated-types';
-import { JSONDeepCopy } from '../../utils';
-import { workspaceGetName } from '../../utilsLogic';
-import { updatedTenant } from '../subscription';
+} from '../generated-types';
+import { JSONDeepCopy } from '../utils';
+import { workspaceGetName } from '../utilsLogic';
+import { updatedTenant } from '../graphql-components/subscription';
+import { getTenantPatchJson } from '../graphql-components/utils';
 
 interface ITenantContext {
   data?: TenantQuery;
@@ -59,6 +61,10 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     onError: apolloErrorCatcher,
   });
 
+  const [applyTenantMutation] = useApplyTenantMutation({
+    onError: apolloErrorCatcher,
+  });
+
   useEffect(() => {
     if (!loading && !error && !errorsQueue.length) {
       const unsubscribe = subscribeToMore({
@@ -84,12 +90,27 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
     makeErrorCatcher,
   ]);
 
+  const refreshClock = () => setNow(new Date());
+
   useEffect(() => {
-    const timerHandler = setInterval(() => setNow(new Date()), 60000);
+    const timerHandler = setInterval(refreshClock, 60000);
     return () => clearInterval(timerHandler);
   }, []);
 
-  const refreshClock = () => setNow(new Date());
+  useEffect(() => {
+    if (!userId) return;
+    applyTenantMutation({
+      variables: {
+        tenantId: userId,
+        patchJson: getTenantPatchJson({
+          lastLogin: new Date(),
+        }),
+        manager: 'frontend-tenant-new-keys',
+      },
+      onError: apolloErrorCatcher,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const hasSSHKeys = !!data?.tenant?.spec?.publicKeys?.length;
   return (

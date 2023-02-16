@@ -1,6 +1,6 @@
 import { Spin } from 'antd';
 import { FC, useContext } from 'react';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import Dashboard from '../Dashboard/Dashboard';
 

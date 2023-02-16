@@ -6,7 +6,7 @@ import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewL
 import AppLayout from './components/common/AppLayout';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import ThemeContextProvider from './contexts/ThemeContext';
-import { TenantContext } from './graphql-components/tenantContext/TenantContext';
+import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 
 function App() {
