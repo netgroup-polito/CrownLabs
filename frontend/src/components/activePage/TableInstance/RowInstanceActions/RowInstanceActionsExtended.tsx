@@ -1,7 +1,7 @@
 import { FC, SetStateAction } from 'react';
 import { Popover, Tooltip, Typography } from 'antd';
 import Button from 'antd-button-color';
-import { InfoOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { InfoOutlined } from '@ant-design/icons';
 import { Instance, WorkspaceRole } from '../../../../utils';
 import { EnvironmentType, Phase } from '../../../../generated-types';
 
@@ -20,20 +20,6 @@ const getSSHTooltipText = (
   return 'Show SSH connection instructions';
 };
 
-const getFileManagerTooltipText = (
-  isInstanceReady: boolean,
-  environmentType: EnvironmentType
-) => {
-  if (environmentType === EnvironmentType.VirtualMachine) {
-    return 'Drive';
-  }
-  if (environmentType === EnvironmentType.Container) {
-    if (!isInstanceReady)
-      return 'Instance must be ready in order to manage this Container files';
-    else return 'File Manager';
-  }
-};
-
 export interface IRowInstanceActionsExtendedProps {
   instance: Instance;
   time: string;
@@ -45,25 +31,13 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
-  const {
-    ip,
-    environmentType,
-    status,
-    templatePrettyName,
-    name,
-    prettyName,
-    myDriveUrl,
-  } = instance;
+  const { ip, environmentType, status, templatePrettyName, name, prettyName } =
+    instance;
 
   const sshDisabled =
     status !== Phase.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
-
-  const fileManagerDisabled =
-    status !== Phase.Ready &&
-    (environmentType === EnvironmentType.Container ||
-      environmentType === EnvironmentType.Standalone);
 
   const infoContent = (
     <>
@@ -98,7 +72,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   );
   return (
     <>
-      <div className="inline-flex border-box justify-center">
+      <div className="inline-flex border-box justify-center xl:pl-4">
         <Popover placement="top" content={infoContent} trigger="click">
           <Button shape="circle" className="hidden sm:block mr-3">
             <InfoOutlined />
@@ -118,33 +92,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip
-          title={getFileManagerTooltipText(
-            status === Phase.Ready,
-            environmentType!
-          )}
-        >
-          <span
-            className={`${fileManagerDisabled ? 'cursor-not-allowed' : ''}`}
-          >
-            <Button
-              shape="circle"
-              className={`hidden mr-3 xl:inline-block ${
-                fileManagerDisabled ? 'pointer-events-none' : ''
-              }`}
-              disabled={fileManagerDisabled}
-              href={
-                environmentType === EnvironmentType.Container ||
-                environmentType === EnvironmentType.Standalone
-                  ? `${myDriveUrl}/files`
-                  : 'https://crownlabs.polito.it/cloud'
-              }
-              target="_blank"
-            >
-              <FolderOpenOutlined />
             </Button>
           </span>
         </Tooltip>

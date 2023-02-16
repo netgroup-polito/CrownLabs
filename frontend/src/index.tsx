@@ -4,7 +4,7 @@ import './theming';
 import App from './App';
 import AuthContextProvider from './contexts/AuthContext';
 import ApolloClientSetup from './graphql-components/apolloClientSetup/ApolloClientSetup';
-import TenantContextProvider from './graphql-components/tenantContext/TenantContext';
+import TenantContextProvider from './contexts/TenantContext';
 import ErrorContextProvider from './errorHandling/ErrorContext';
 
 ReactDOM.render(

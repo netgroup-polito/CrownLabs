@@ -14,7 +14,7 @@ import {
   DeleteTemplateMutation,
   useInstancesLabelSelectorQuery,
 } from '../../../../generated-types';
-import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../../contexts/TenantContext';
 import { Template, WorkspaceRole } from '../../../../utils';
 import Badge from '../../../common/Badge';
 import { ModalAlert } from '../../../common/ModalAlert';

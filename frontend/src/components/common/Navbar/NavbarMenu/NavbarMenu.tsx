@@ -4,7 +4,7 @@ import Button from 'antd-button-color';
 import { FC, useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { logout } from '../../../../contexts/AuthContext';
-import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../../contexts/TenantContext';
 import { generateAvatarUrl } from '../../../../utils';
 import { RouteData } from '../Navbar';
 

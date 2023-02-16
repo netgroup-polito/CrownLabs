@@ -7,7 +7,7 @@ import {
   CreateInstanceMutation,
   DeleteTemplateMutation,
 } from '../../../../generated-types';
-import { TenantContext } from '../../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../../contexts/TenantContext';
 import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
 import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';

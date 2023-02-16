@@ -48,7 +48,6 @@ export type Instance = {
   ip: string;
   status: Phase;
   url: string | null;
-  myDriveUrl: string;
   timeStamp: string;
   workspaceName: string;
   running: boolean;

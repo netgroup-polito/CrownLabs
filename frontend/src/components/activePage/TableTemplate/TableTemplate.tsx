@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { Template, WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableInstance from '../TableInstance/TableInstance';

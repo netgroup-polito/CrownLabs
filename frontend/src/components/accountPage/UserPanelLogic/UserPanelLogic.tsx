@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useApplyTenantMutation } from '../../../generated-types';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserPanel from '../UserPanel';
 import UserPanelContainer from '../UserPanelContainer/UserPanelContainer';

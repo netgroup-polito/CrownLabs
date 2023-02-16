@@ -6,6 +6,7 @@ mutation createTemplate(
   $image: String!
   $guiEnabled: Boolean!
   $persistent: Boolean!
+  $mountMyDriveVolume: Boolean!
   $resources: ResourcesInput!
   $templateId: String = "template-"
   $environmentType: EnvironmentType!
@@ -26,6 +27,7 @@ mutation createTemplate(
             guiEnabled: $guiEnabled
             persistent: $persistent
             resources: $resources
+            mountMyDriveVolume: $mountMyDriveVolume
           }
         ]
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }

@@ -2,7 +2,7 @@ import { FC, useContext } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 
 const ActiveViewLogic: FC<{}> = ({ ...props }) => {

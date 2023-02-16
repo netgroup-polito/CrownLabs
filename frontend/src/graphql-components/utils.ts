@@ -59,6 +59,7 @@ function getTenantPatchJson(
     firstName?: string;
     lastName?: string;
     publicKeys?: string[];
+    lastLogin?: Date;
     workspaces?: {
       role: Role;
       name: string;
@@ -69,7 +70,10 @@ function getTenantPatchJson(
   let patchJson: ItPolitoCrownlabsV1alpha2Tenant = {
     kind: 'Tenant',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
-    spec,
+    spec: {
+      ...spec,
+      lastLogin: spec.lastLogin?.toJSON(),
+    },
   };
   if (name) {
     patchJson.metadata = { name };

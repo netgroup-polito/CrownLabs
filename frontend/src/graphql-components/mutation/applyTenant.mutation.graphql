@@ -16,6 +16,7 @@ mutation applyTenant(
       firstName
       lastName
       email
+      lastLogin
       workspaces {
         role
         name

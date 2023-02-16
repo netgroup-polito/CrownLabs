@@ -11,7 +11,7 @@ import {
   useOwnedInstancesQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
-import { TenantContext } from '../../../graphql-components/tenantContext/TenantContext';
+import { TenantContext } from '../../../contexts/TenantContext';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 import { Instance, User, WorkspaceRole } from '../../../utils';
 import {
