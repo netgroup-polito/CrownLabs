@@ -21,8 +21,8 @@ You should use the Harbor Registry if you want to:
 - fully own your images distribution pipeline.
 - integrate image storage and distribution tightly into your in-house development workflow.
 - leverage the high-speed network that connects your servers, avoiding to consume precious Internet bandwidth to transfer images stored in the Docker Hub public service.
-- leverage [Proxy Cache](https://goharbor.io/docs/2.4.0/administration/configure-proxy-cache/) functionalities, to not exceed Docker Hub’s rate limiting policy.
-- have a [vulnerability scanner](https://goharbor.io/docs/2.4.0/administration/vulnerability-scanning/) to detect possible image vulnerabilities.
+- leverage [Proxy Cache](https://goharbor.io/docs/2.7.0/administration/configure-proxy-cache/) functionalities, to not exceed Docker Hub’s rate limiting policy.
+- have a [vulnerability scanner](https://goharbor.io/docs/2.7.0/administration/vulnerability-scanning/) to detect possible image vulnerabilities.
 - manage your [Helm Charts](https://goharbor.io/docs/edge/working-with-projects/working-with-images/managing-helm-charts/).
 
 Finally, consider that, in this Kubernetes setup, users instantiate mainly VMs, whose image may be rather large. Allowing users to download the VM image locally, instead of from a remote server, would greatly impact on their quality of experience in term of time required to start their service.

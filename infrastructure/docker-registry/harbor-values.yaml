@@ -1,17 +1,15 @@
 expose:
-  # Set the way how to expose the service. Set the type as "ingress",
-  # "clusterIP", "nodePort" or "loadBalancer" and fill the information
-  # in the corresponding section
+  # Set how to expose the service. Set the type as "ingress", "clusterIP", "nodePort" or "loadBalancer"
+  # and fill the information in the corresponding section
   type: ingress
   tls:
-    # Enable the tls or not.
+    # Enable TLS or not.
     # Delete the "ssl-redirect" annotations in "expose.ingress.annotations" when TLS is disabled and "expose.type" is "ingress"
-    # Note: if the "expose.type" is "ingress" and the tls
-    # is disabled, the port must be included in the command when pull/push
-    # images. Refer to https://github.com/goharbor/harbor/issues/5291
-    # for the detail.
+    # Note: if the "expose.type" is "ingress" and TLS is disabled,
+    # the port must be included in the command when pulling/pushing images.
+    # Refer to https://github.com/goharbor/harbor/issues/5291 for details.
     enabled: true
-    # The source of the tls certificate. Set it as "auto", "secret"
+    # The source of the tls certificate. Set as "auto", "secret"
     # or "none" and fill the information in the corresponding section
     # 1) auto: generate the tls certificate automatically
     # 2) secret: read the tls certificate from the specified secret.
@@ -32,7 +30,7 @@ expose:
       # "tls.crt" - the certificate
       # "tls.key" - the private key
       # Only needed when the "expose.type" is "ingress".
-      notarySecretName: "notary-secret-tls"
+      notarySecretName: ""
   ingress:
     hosts:
       core: harbor.crownlabs.polito.it
@@ -41,9 +39,12 @@ expose:
     # leave as `default` for most ingress controllers.
     # set to `gce` if using the GCE ingress controller
     # set to `ncp` if using the NCP (NSX-T Container Plugin) ingress controller
-    controller: nginx-external
+    # set to `alb` if using the ALB ingress controller
+    # set to `f5-bigip` if using the F5 BIG-IP ingress controller
+    controller: default
     ## Allow .Capabilities.KubeVersion.Version to be overridden while creating ingress
     kubeVersionOverride: ""
+    className: "nginx-external"
     annotations:
       # note different ingress controllers may require a different ssl-redirect annotation
       # for Envoy, use ingress.kubernetes.io/force-ssl-redirect: "true" and remove the nginx lines below
@@ -54,20 +55,24 @@ expose:
       nginx.ingress.kubernetes.io/custom-http-errors: "418"
       cert-manager.io/cluster-issuer: letsencrypt-production
     notary:
-      # notary-specific annotations
+      # notary ingress-specific annotations
       annotations: {}
+      # notary ingress-specific labels
+      labels: {}
     harbor:
       # harbor ingress-specific annotations
       annotations: {}
+      # harbor ingress-specific labels
+      labels: {}
   clusterIP:
     # The name of ClusterIP service
     name: harbor
     # Annotations on the ClusterIP service
     annotations: {}
     ports:
-      # The service port Harbor listens on when serving with HTTP
+      # The service port Harbor listens on when serving HTTP
       httpPort: 80
-      # The service port Harbor listens on when serving with HTTPS
+      # The service port Harbor listens on when serving HTTPS
       httpsPort: 443
       # The service port Notary listens on. Only needed when notary.enabled
       # is set to true
@@ -77,14 +82,14 @@ expose:
     name: harbor
     ports:
       http:
-        # The service port Harbor listens on when serving with HTTP
+        # The service port Harbor listens on when serving HTTP
         port: 80
-        # The node port Harbor listens on when serving with HTTP
+        # The node port Harbor listens on when serving HTTP
         nodePort: 30002
       https:
-        # The service port Harbor listens on when serving with HTTPS
+        # The service port Harbor listens on when serving HTTPS
         port: 443
-        # The node port Harbor listens on when serving with HTTPS
+        # The node port Harbor listens on when serving HTTPS
         nodePort: 30003
       # Only needed when notary.enabled is set to true
       notary:
@@ -98,9 +103,9 @@ expose:
     # Set the IP if the LoadBalancer supports assigning IP
     IP: ""
     ports:
-      # The service port Harbor listens on when serving with HTTP
+      # The service port Harbor listens on when serving HTTP
       httpPort: 80
-      # The service port Harbor listens on when serving with HTTPS
+      # The service port Harbor listens on when serving HTTPS
       httpsPort: 443
       # The service port Notary listens on. Only needed when notary.enabled
       # is set to true
@@ -127,7 +132,7 @@ externalURL: https://harbor.crownlabs.polito.it
 # in each components tls cert files need to provided in advance.
 internalTLS:
   # If internal TLS enabled
-  enabled: true
+  enabled: false
   # There are three ways to provide tls
   # 1) "auto" will generate cert automatically
   # 2) "manual" need provide cert file manually in following value
@@ -193,9 +198,9 @@ ipFamily:
     enabled: true
 
 # The persistence is enabled by default and a default StorageClass
-# is needed in the k8s cluster to provision volumes dynamicly.
+# is needed in the k8s cluster to provision volumes dynamically.
 # Specify another StorageClass in the "storageClass" or set "existingClaim"
-# if you have already existing persistent volumes to use
+# if you already have existing persistent volumes to use
 #
 # For storing images and charts, you can also use "azure", "gcs", "s3",
 # "swift" or "oss". Set it in the "imageChartStorage" section
@@ -212,24 +217,28 @@ persistence:
       # and specify the "subPath" if the PVC is shared with other components
       existingClaim: ""
       # Specify the "storageClass" used to provision the volume. Or the default
-      # StorageClass will be used(the default).
+      # StorageClass will be used (the default).
       # Set it to "-" to disable dynamic provisioning
       storageClass: "rook-cephfs-primary"
       subPath: ""
       accessMode: ReadWriteMany
       size: 1Ti
+      annotations: {}
     chartmuseum:
       existingClaim: ""
       storageClass: "rook-cephfs-primary"
       subPath: ""
       accessMode: ReadWriteMany
       size: 10Gi
+      annotations: {}
     jobservice:
-      existingClaim: ""
-      storageClass: "rook-cephfs-primary"
-      subPath: ""
-      accessMode: ReadWriteMany
-      size: 10Gi
+      jobLog:
+        existingClaim: ""
+        storageClass: "rook-cephfs-primary"
+        subPath: ""
+        accessMode: ReadWriteMany
+        size: 10Gi
+      annotations: {}
     # If external database is used, the following settings for database will
     # be ignored
     database:
@@ -238,6 +247,7 @@ persistence:
       subPath: ""
       accessMode: ReadWriteOnce
       size: 1Gi
+      annotations: {}
     # If external Redis is used, the following settings for Redis will
     # be ignored
     redis:
@@ -246,12 +256,14 @@ persistence:
       subPath: ""
       accessMode: ReadWriteOnce
       size: 1Gi
+      annotations: {}
     trivy:
       existingClaim: ""
       storageClass: "rook-cephfs-primary"
       subPath: ""
       accessMode: ReadWriteMany
       size: 10Gi
+      annotations: {}
   # Define which storage backend is used for registry and chartmuseum to store
   # images and charts. Refer to
   # https://github.com/docker/distribution/blob/master/docs/configuration.md#storage
@@ -282,13 +294,22 @@ persistence:
       accountkey: base64encodedaccountkey
       container: containername
       #realm: core.windows.net
+      # To use existing secret, the key must be AZURE_STORAGE_ACCESS_KEY
+      existingSecret: ""
     gcs:
       bucket: bucketname
       # The base64 encoded json file which contains the key
       encodedkey: base64-encoded-json-key-file
       #rootdirectory: /gcs/object/name/prefix
       #chunksize: "5242880"
+      # To use existing secret, the key must be gcs-key.json
+      existingSecret: ""
+      useWorkloadIdentity: false
     s3:
+      # Set an existing secret for S3 accesskey and secretkey
+      # keys in the secret should be AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for chartmuseum
+      # keys in the secret should be REGISTRY_STORAGE_S3_ACCESSKEY and REGISTRY_STORAGE_S3_SECRETKEY for registry
+      #existingSecret: ""
       region: us-west-1
       bucket: bucketname
       #accesskey: awsaccesskey
@@ -357,12 +378,14 @@ logLevel: info
 harborAdminPassword: <redacted>
 
 # The name of the secret which contains key named "ca.crt". Setting this enables the
-# download link on portal to download the certificate of CA when the certificate isn't
+# download link on portal to download the CA certificate when the certificate isn't
 # generated automatically
 caSecretName: ""
 
 # The secret key used for encryption. Must be a string of 16 chars.
 secretKey: <redacted>
+# If using existingSecretSecretKey, the key must be sercretKey
+existingSecretSecretKey: ""
 
 # The proxy settings for updating trivy vulnerabilities from the Internet and replicating
 # artifacts from/to the registries that cannot be reached directly
@@ -375,6 +398,9 @@ proxy:
     - jobservice
     - trivy
 
+# Run the migration job via helm hook
+enableMigrateHelmHook: false
+
 # The custom ca bundle secret, the secret must contain key named "ca.crt"
 # which will be injected into the trust store for chartmuseum, core, jobservice, registry, trivy components
 # caBundleSecretName: ""
@@ -386,16 +412,17 @@ proxy:
 # contains a base64 encoded CA Certificate named `ca.crt`.
 # uaaSecretName:
 
-# If expose the service via "ingress", the Nginx will not be used
+# If service exposed via "ingress", the Nginx will not be used
 nginx:
   image:
     repository: goharbor/nginx-photon
-    tag: v2.4.1
+    tag: v2.7.1
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
   automountServiceAccountToken: false
   replicas: 1
+  revisionHistoryLimit: 5
   # resources:
   #  requests:
   #    memory: 256Mi
@@ -411,12 +438,13 @@ nginx:
 portal:
   image:
     repository: goharbor/harbor-portal
-    tag: v2.4.1
+    tag: v2.7.1
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
   automountServiceAccountToken: false
   replicas: 3
+  revisionHistoryLimit: 5
   resources:
     requests:
       memory: 100Mi
@@ -444,12 +472,13 @@ portal:
 core:
   image:
     repository: goharbor/harbor-core
-    tag: v2.4.1
+    tag: v2.7.1
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
   automountServiceAccountToken: false
   replicas: 3
+  revisionHistoryLimit: 5
   ## Startup probe values
   startupProbe:
     enabled: true
@@ -475,6 +504,8 @@ core:
         topologyKey: kubernetes.io/hostname
   ## Additional deployment annotations
   podAnnotations: {}
+  ## Additional service annotations
+  serviceAnnotations: {}
   # Secret is used when core server communicates with other components.
   # If a secret key is not specified, Helm will generate one.
   # Must be a string of 16 chars.
@@ -482,20 +513,33 @@ core:
   # Fill the name of a kubernetes secret if you want to use your own
   # TLS certificate and private key for token encryption/decryption.
   # The secret must contain keys named:
-  # "tls.crt" - the certificate
   # "tls.key" - the private key
-  # The default key pair will be used if it isn't set
+  # "tls.crt" - the certificate
   secretName: ""
+  # If not specifying a preexisting secret, a secret can be created from tokenKey and tokenCert and used instead.
+  # If none of secretName, tokenKey, and tokenCert are specified, an ephemeral key and certificate will be autogenerated.
+  # tokenKey and tokenCert must BOTH be set or BOTH unset.
+  # The tokenKey value is formatted as a multiline string containing a PEM-encoded RSA key, indented one more than tokenKey on the following line.
+  tokenKey: |
+  # If tokenKey is set, the value of tokenCert must be set as a PEM-encoded certificate signed by tokenKey, and supplied as a multiline string, indented one more than tokenCert on the following line.
+  tokenCert: |
   # The XSRF key. Will be generated automatically if it isn't specified
   xsrfKey: ""
   ## The priority class to run the pod as
   priorityClassName:
+  # The time duration for async update artifact pull_time and repository
+  # pull_count, the unit is second. Will be 10 seconds if it isn't set.
+  # eg. artifactPullAsyncFlushDuration: 10
+  artifactPullAsyncFlushDuration:
+  gdpr:
+    deleteUser: false
 
 jobservice:
   image:
     repository: goharbor/harbor-jobservice
-    tag: v2.4.1
+    tag: v2.7.1
   replicas: 1
+  revisionHistoryLimit: 5
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -506,6 +550,8 @@ jobservice:
     - file
     # - database
     # - stdout
+  # The jobLogger sweeper duration (ignored if `jobLogger` is `stdout`)
+  loggerSweeperDuration: 14 #days
 
   resources:
     requests:
@@ -534,7 +580,7 @@ registry:
   registry:
     image:
       repository: goharbor/registry-photon
-      tag: v2.4.1
+      tag: v2.7.1
     resources:
       requests:
         memory: 120Mi
@@ -545,13 +591,14 @@ registry:
   controller:
     image:
       repository: goharbor/harbor-registryctl
-      tag: v2.4.1
+      tag: v2.7.1
 
     # resources:
     #  requests:
     #    memory: 256Mi
     #    cpu: 100m
   replicas: 3
+  revisionHistoryLimit: 5
   nodeSelector: {}
   tolerations: []
   affinity: 
@@ -579,7 +626,10 @@ registry:
   credentials:
     username: "harbor_registry_user"
     password: <redacted>
-
+    # If using existingSecret, the key must be REGISTRY_PASSWD and REGISTRY_HTPASSWD
+    existingSecret: ""
+    # Login and password in htpasswd string format. Excludes `registry.credentials.username`  and `registry.credentials.password`. May come in handy when integrating with tools like argocd or flux. This allows the same line to be generated each time the template is rendered, instead of the `htpasswd` function from helm, which generates different lines each time because of the salt.
+    # htpasswdString: $apr1$XLefHzeG$Xl4.s00sMSCCcMyJljSZb0 # example string
   middleware:
     enabled: false
     type: cloudFront
@@ -591,6 +641,14 @@ registry:
       # The secret key that should be present is CLOUDFRONT_KEY_DATA, which should be the encoded private key
       # that allows access to CloudFront
       privateKeySecret: "my-secret"
+  # enable purge _upload directories
+  upload_purging:
+    enabled: true
+    # remove files in _upload directories which exist for a period of time, default is one week.
+    age: 168h
+    # the interval of the purge operations
+    interval: 24h
+    dryrun: false
 
 chartmuseum:
   enabled: true
@@ -602,8 +660,9 @@ chartmuseum:
   absoluteUrl: false
   image:
     repository: goharbor/chartmuseum-photon
-    tag: v2.4.1
+    tag: v2.7.1
   replicas: 1
+  revisionHistoryLimit: 5
   resources:
     requests:
       memory: 50Mi
@@ -628,7 +687,7 @@ trivy:
     # repository the repository for Trivy adapter image
     repository: goharbor/trivy-adapter-photon
     # tag the tag for Trivy adapter image
-    tag: v2.4.1
+    tag: v2.7.1
   # set the service account to be used, default if left empty
   serviceAccountName: ""
   # mount the service account token
@@ -667,6 +726,16 @@ trivy:
   # If the value is set to `true` you have to manually download the `trivy.db` file and mount it in the
   # `/home/scanner/.cache/trivy/db/trivy.db` path.
   skipUpdate: false
+  # The offlineScan option prevents Trivy from sending API requests to identify dependencies.
+  #
+  # Scanning JAR files and pom.xml may require Internet access for better detection, but this option tries to avoid it.
+  # For example, the offline mode will not try to resolve transitive dependencies in pom.xml when the dependency doesn't
+  # exist in the local repositories. It means a number of detected vulnerabilities might be fewer in offline mode.
+  # It would work if all the dependencies are in local.
+  # This option doesn’t affect DB download. You need to specify skipUpdate as well as offlineScan in an air-gapped environment.
+  offlineScan: false
+  # Comma-separated list of what security issues to detect. Possible values are `vuln`, `config` and `secret`. Defaults to `vuln`.
+  securityCheck: "vuln"
   # The duration to wait for scan completion
   timeout: 5m0s
   resources:
@@ -693,7 +762,7 @@ notary:
     automountServiceAccountToken: false
     image:
       repository: goharbor/notary-server-photon
-      tag: v2.4.1
+      tag: v2.7.1
     replicas: 1
     # resources:
     #  requests:
@@ -706,6 +775,8 @@ notary:
     podAnnotations: {}
     ## The priority class to run the pod as
     priorityClassName:
+  ## Additional service annotations
+  serviceAnnotations: {}
   signer:
     # set the service account to be used, default if left empty
     serviceAccountName: ""
@@ -713,7 +784,7 @@ notary:
     automountServiceAccountToken: false
     image:
       repository: goharbor/notary-signer-photon
-      tag: v2.4.1
+      tag: v2.7.1
     replicas: 1
     # resources:
     #  requests:
@@ -745,7 +816,7 @@ database:
     automountServiceAccountToken: false
     image:
       repository: goharbor/harbor-db
-      tag: v2.4.1
+      tag: v2.7.1
     # The initial superuser password for internal database
     password: "changeit"
     # The size limit for Shared memory, pgSQL use it for shared_buffer
@@ -756,6 +827,12 @@ database:
     #  requests:
     #    memory: 256Mi
     #    cpu: 100m
+    # The timeout used in livenessProbe; 1 to 5 seconds
+    livenessProbe:
+      timeoutSeconds: 1
+    # The timeout used in readinessProbe; 1 to 5 seconds
+    readinessProbe:
+      timeoutSeconds: 1
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -780,6 +857,8 @@ database:
     coreDatabase: "registry"
     notaryServerDatabase: "notary_server"
     notarySignerDatabase: "notary_signer"
+    # if using existing secret, the key must be "password"
+    existingSecret: ""
     # "disable" - No SSL
     # "require" - Always SSL (skip verification)
     # "verify-ca" - Always SSL (verify that the certificate presented by the
@@ -809,7 +888,7 @@ redis:
     automountServiceAccountToken: false
     image:
       repository: goharbor/redis-photon
-      tag: v2.4.1
+      tag: v2.7.1
     # resources:
     #  requests:
     #    memory: 256Mi
@@ -834,32 +913,35 @@ redis:
     chartmuseumDatabaseIndex: "3"
     trivyAdapterIndex: "5"
     password: ""
+    # If using existingSecret, the key must be REDIS_PASSWORD
+    existingSecret: ""
   ## Additional deployment annotations
   podAnnotations: {}
 
 exporter:
-    replicas: 1
-    resources:
-     requests:
-       memory: 100Mi
-       cpu: 10m
-     limits:
-       memory: 200Mi
-       cpu: 100m
-    podAnnotations: {}
-    serviceAccountName: ""
-    # mount the service account token
-    automountServiceAccountToken: false
-    image:
-      repository: goharbor/harbor-exporter
-      tag: v2.4.1
-    nodeSelector: {}
-    tolerations: []
-    affinity: {}
-    cacheDuration: 23
-    cacheCleanInterval: 14400
-    ## The priority class to run the pod as
-    priorityClassName:
+  replicas: 1
+  revisionHistoryLimit: 5
+  resources:
+    requests:
+      memory: 100Mi
+      cpu: 10m
+    limits:
+      memory: 200Mi
+      cpu: 100m
+  podAnnotations: {}
+  serviceAccountName: ""
+  # mount the service account token
+  automountServiceAccountToken: false
+  image:
+    repository: goharbor/harbor-exporter
+    tag: v2.7.1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  cacheDuration: 23
+  cacheCleanInterval: 14400
+  ## The priority class to run the pod as
+  priorityClassName:
 
 metrics:
   enabled: true
@@ -885,12 +967,14 @@ metrics:
     # Scrape interval. If not set, the Prometheus default scrape interval is used.
     interval: ""
     # Metric relabel configs to apply to samples before ingestion.
-    metricRelabelings: []
+    metricRelabelings:
+      []
       # - action: keep
       #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
       #   sourceLabels: [__name__]
     # Relabel configs to apply to samples before ingestion.
-    relabelings: []
+    relabelings:
+      []
       # - sourceLabels: [__meta_kubernetes_pod_node_name]
       #   separator: ;
       #   regex: ^(.*)$
@@ -912,8 +996,8 @@ trace:
   #   application: harbor
   jaeger:
     # jaeger supports two modes:
-    #   agent mode(uncomment endpoint and uncomment username, password if needed)
-    #   collector mode(uncomment agent_host and agent_port)
+    #   collector mode(uncomment endpoint and uncomment username, password if needed)
+    #   agent mode(uncomment agent_host and agent_port)
     endpoint: http://hostname:14268/api/traces
     # username:
     # password:
@@ -925,5 +1009,16 @@ trace:
     url_path: /v1/traces
     compression: false
     insecure: true
-    timeout: 10s
-    
+    # timeout is in seconds
+    timeout: 10
+
+# cache layer configurations
+# if this feature enabled, harbor will cache the resource
+# `project/project_metadata/repository/artifact/manifest` in the redis
+# which help to improve the performance of high concurrent pulling manifest.
+cache:
+  # default is not enabled.
+  enabled: false
+  # default keep cache for one day.
+  expireHours: 24
+
