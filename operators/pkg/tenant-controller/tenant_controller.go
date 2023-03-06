@@ -71,6 +71,7 @@ type TenantReconciler struct {
 	RequeueTimeMinimum          time.Duration
 	RequeueTimeMaximum          time.Duration
 	TenantNSKeepAlive           time.Duration
+	BaseWorkspaces              []string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -206,7 +207,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		retrigErr = err
 	}
 
-	if err = updateTnLabels(&tn, tenantExistingWorkspaces); err != nil {
+	if err = r.updateTnLabels(&tn, tenantExistingWorkspaces); err != nil {
 		klog.Errorf("Unable to update label of tenant %s -> %s", tn.Name, err)
 		retrigErr = err
 		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
@@ -610,18 +611,23 @@ func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path strin
 	sec.Data[NFSSecretPathKey] = []byte(path)
 }
 
-func updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
+func (r *TenantReconciler) updateTnLabels(tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
 	if tn.Labels == nil {
 		tn.Labels = map[string]string{}
 	} else {
 		cleanWorkspaceLabels(tn.Labels)
 	}
+
+	nonBaseWorkspacesCount := 0
 	for _, wsData := range tenantExistingWorkspaces {
 		wsLabelKey := fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, wsData.Name)
 		tn.Labels[wsLabelKey] = string(wsData.Role)
+		if !containsString(r.BaseWorkspaces, wsData.Name) {
+			nonBaseWorkspacesCount++
+		}
 	}
 	// label for users without workspaces
-	if len(tenantExistingWorkspaces) == 0 {
+	if nonBaseWorkspacesCount == 0 {
 		tn.Labels[NoWorkspacesLabel] = "true"
 	} else {
 		delete(tn.Labels, NoWorkspacesLabel)
