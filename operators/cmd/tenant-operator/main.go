@@ -134,15 +134,17 @@ func main() {
 		log.Error(err, "Unable to create manager")
 		os.Exit(1)
 	}
+
+	var baseWorkspacesList []string
+	if baseWorkspaces != "" {
+		baseWorkspacesList = strings.Split(baseWorkspaces, ",")
+		log.Info("will enforce base workspaces", "workspaces", baseWorkspaces)
+	}
+
 	if *enableWH {
 		hookServer := mgr.GetWebhookServer()
 		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
 		hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
-		var baseWorkspacesList []string
-		if baseWorkspaces != "" {
-			baseWorkspacesList = strings.Split(baseWorkspaces, ",")
-			log.Info("will enforce base workspaces", "workspaces", baseWorkspaces)
-		}
 		hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList))
 	} else {
 		log.Info("Webhook set up: operation skipped")
@@ -181,6 +183,7 @@ func main() {
 		RequeueTimeMinimum:          requeueTimeMinimum,
 		RequeueTimeMaximum:          requeueTimeMaximum,
 		TenantNSKeepAlive:           tenantNSKeepAlive,
+		BaseWorkspaces:              baseWorkspacesList,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Unable to create controller", "controller", "tenant")
 		os.Exit(1)
