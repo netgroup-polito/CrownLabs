@@ -111,6 +111,12 @@
         "optional": true
     },
     {
+        "component": "eclipse-java",
+        "context": "./provisioning/containers/eclipse-java",
+        "harbor-project": "crownlabs-container-envs",
+        "optional": true
+    },
+    {
         "component": "jupyterlab",
         "context": "./provisioning/standalone/jupyterlab",
         "harbor-project": "crownlabs-standalone",
