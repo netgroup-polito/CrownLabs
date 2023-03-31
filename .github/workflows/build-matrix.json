@@ -90,6 +90,11 @@
         "context": "./operators/build/img-exporter",
         "harbor-project": "crownlabs-vm-envs-tools"
     },
+    {
+        "component": "vms-provisioner",
+        "context": "./provisioning/virtual-machines/packer-automation/provisioner",
+        "harbor-project": "crownlabs-vm-envs-tools"
+    },
 
     {
         "component": "pycharm",

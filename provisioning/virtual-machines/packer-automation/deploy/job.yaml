@@ -1,60 +1,59 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cloud-image-creator
+  name: crownlabs-img-creator
 spec:
+  backoffLimit: 3
   template:
     spec:
-      containers:
-      - name: docker-image-creator
-        image: harbor.crownlabs.polito.it/crownlabs-cloud-vms/docker_image_creator:v0.5.5
-        securityContext:
-          privileged: true
-        resources:
-          requests:
-            memory: "12Gi"
-            cpu: "4000m"
-          limits:
-            memory: "16Gi"
-            cpu: "4500m"
-        env:
-        - name: IMAGE_NAME
-          value: <output-image>
-        - name: USERNAME
-          value: <registry-username>
-        - name: PASSWORD
-          value: <registry-password>
-        volumeMounts:
-        - mountPath: /images
-          name: images
       restartPolicy: OnFailure
-      initContainers:
+      containers:
       - name: packer-image-creator
-        image: harbor.crownlabs.polito.it/crownlabs-cloud-vms/packer_image_creator:v0.5.5
+        image: crownlabs/vms-provisioner:latest
         securityContext:
           privileged: true
         resources:
           requests:
-            memory: "12Gi"
+            memory: "16Gi"
             cpu: "4000m"
           limits:
             memory: "16Gi"
-            cpu: "4500m"
+            cpu: "6000m"
         env:
         - name: ISO_URL
-          value: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+          value: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
         - name: ISO_CHECKSUM
-          value: sha256:826743a5b7aab6e5bf9253d99436daee757361ed05246225abb0054a0429b14b
+          value: sha256:b8e4d5bd9b576c3fc5c5ad48bb6e0b92fbdeeb53c4af88a898ef4aba949e75d0
         - name: INSTALL_DESKTOP_ENVIRONMENT
-          value: "true" # set it to "false" to install the server version
+          value: "true"
         - name: ANSIBLE_PLAYBOOK
           value: ubuntu-base.yml
+        - name: DISK_SIZE
+          value: 10G
+        - name: MEMORY
+          value: '2048'
+
         - name: GIT_ANSIBLE_URL
           value: https://github.com/netgroup-polito/CrownLabs.git
-        volumeMounts:
-        - mountPath: /packer_builder/output
-          name: images
-      volumes:
-      - name: images
-        emptyDir: {}
-  backoffLimit: 4
+        - name: GIT_ANSIBLE_BRANCH
+          value: master
+
+        - name: IMAGE_NAME
+          value: ubuntu22-base
+        - name: IMAGE_TAG
+          value: '2023-03-31-0'
+
+        - name: TARGET_REGISTRY
+          value: harbor.crownlabs.polito.it
+        - name: REGISTRY_USER
+          valueFrom:
+            secretKeyRef:
+              name: crownlabs-img-creator-registry
+              key: username
+        - name: REGISTRY_PASS
+          valueFrom:
+            secretKeyRef:
+              name: crownlabs-img-creator-registry
+              key: password
+        - name: REGISTRY_PREFIX
+          value: crownlabs-containerdisks
