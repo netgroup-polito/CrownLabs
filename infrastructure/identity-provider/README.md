@@ -20,28 +20,7 @@ You will need the following tools installed in your workstation:
 * [Helm](https://helm.sh/)
 
 ## PostgreSQL-Operator
-The following steps will install the postgresql-operator in the namespace called **keycloak-ha**.
-The Postgres Operator can be installed simply by applying `yaml` manifests, after properly changing the namespace in file `operator-service-account-rbac.yaml` for the `service account` and `cluster rolebinding`.
-
-### Manual deployment setup
-For more details, please visit the [official documentation website](https://github.com/zalando/postgres-operator#documentation).
-
- ```bash
-# First, clone the repository and change to the directory postgres-operator
-git clone https://github.com/zalando/postgres-operator.git
-cd postgres-operator
-# apply the manifests in the following order
-kubectl create -f manifests/configmap.yaml -n keycloak-ha  # configuration
-kubectl create -f manifests/operator-service-account-rbac.yaml -n keycloak-ha # identity and permissions
-kubectl create -f manifests/postgres-operator.yaml -n keycloak-ha # deployment
-```
-
-### Check if Postgres Operator is running
-Starting the operator may take a few seconds. Check if the operator pod is running before applying a Postgres cluster manifest.
-
-```bash
-kubectl get pod -l name=postgres-operator -n keycloak-ha
-```
+The PostgreSQL-Operator is required to deploy the database for Keycloak. Refer to [postgres-operator](../database-operators/postgres-operator) for installation and maintenance information.
 
 ### Create a Postgres cluster
 
