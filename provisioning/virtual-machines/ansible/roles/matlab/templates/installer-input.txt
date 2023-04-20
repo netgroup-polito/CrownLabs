@@ -1,0 +1,308 @@
+##################################################################
+##
+## Use this file to specify parameters required by the installer at runtime.
+##
+## Instructions for using this file.
+##
+## 1. Create a copy of this template file and fill in the required
+##    information.
+##
+## 2. Uncomment only those lines that start with a single '#'
+##    and set the desired values. All allowed values for the
+##    parameters are defined in the comments section for each
+##    parameter.
+##
+## 3. Launch the installer from the command line, using the -inputFile option
+##    to specify the name of your installer initialization file.
+##
+##    (Windows) setup.exe -inputFile <file_name>
+##    (Linux/macOS) install -inputFile <file_name>
+##
+##################################################################
+##
+##
+## SPECIFY INSTALLATION FOLDER
+##
+## Example:
+##        (Windows) destinationFolder=C:\Program Files\MATLAB\RXXXX
+##        (Linux) destinationFolder=/usr/local/RXXXX
+##        (macOS) destinationFolder=/Applications
+##
+## Set the desired value for destinationFolder and
+## uncomment the line.
+
+destinationFolder={{ matlab_destination_folder }}
+
+##
+## SPECIFY FILE INSTALLATION KEY
+##
+## Example: fileInstallationKey=xxxxx-xxxxx-xxxxx-xxxxx.....
+##
+## Set the desired value for fileInstallationKey and
+## uncomment the line.
+##
+
+fileInstallationKey={{ matlab_fik }}
+
+##
+## ACCEPT LICENSE AGREEMENT
+##
+## You must agree to the license agreement to install MathWorks products.
+## The license agreement can be found in the license_agreement.txt file at the
+## root level of the installation DVD.
+##
+## Example: agreeToLicense=yes
+##
+## Set agreeToLicense value to yes or no and
+## uncomment the line.
+
+agreeToLicense=yes
+
+##
+## SPECIFY OUTPUT LOG
+##
+## Specify full path of file into which you want the results of the
+## installation to be recorded.
+##
+## Example:
+##            (Windows) outputFile=C:\TEMP\mathworks_<user_name>.log
+##            (Linux/macOS) outputFile=/tmp/mathworks_<user_name>.log
+##
+## Set the desired value for outputFile and
+## uncomment the line.
+
+outputFile=/tmp/matlab_inst_log.log
+
+##
+## Enable Login Named User licensing
+##
+## Set to Yes to enable use of a Login Named User license for all users of this MATLAB installation
+## Users must log in to their MathWorks Account when MATLAB starts.
+##
+## Example: enableLNU=yes
+##
+## NOTE: This flag is valid in silent installations only.
+
+# enableLNU=yes
+
+##
+## IMPROVE MATLAB
+##
+## Improve MATLAB by sending user experience information to MathWorks.
+## Your participation ensures that you are represented and helps us design
+## better products. You can opt in or out of this service either during
+## installation or by going to MATLAB preferences.
+## https://www.mathworks.com/support/faq/user_experience_information_faq.html
+
+improveMATLAB=no
+
+########## Begin: Options for Network License Types #########
+##
+## SPECIFY PATH TO LICENSE FILE (Required for network license types only)
+##
+## This value is required when installing as a Network End-User
+## Example:
+##            (Windows) licensePath=C:\TEMP\license.dat
+##            (Linux) licensePath=/tmp/license.dat
+## Set the desired value for licensePath and
+## uncomment the line.
+
+licensePath={{ matlab_license_path }}
+
+########## End: Options for Network License Types #########
+
+
+################# Begin - Windows Only Options ################
+##
+## CHOOSE TO SET FILE ASSOCIATIONS
+##
+## Set to true if you want the installer to associate file types used by MathWorks
+## products to this version of MATLAB, or false if you do not want the installer to
+## associate MathWorks file types with this version of MATLAB.
+##
+## Default value is true.
+##
+## Set setFileAssoc value to true or false and
+## uncomment the line.
+
+# setFileAssoc=true
+
+##
+## CHOOSE TO CREATE WINDOWS DESKTOP SHORTCUT
+##
+## Set to true if you would like the installer to create a desktop shortcut icon
+## when MATLAB is installed or false if you don't want the shortcut created.
+##
+## Default value is false.
+##
+## Set desktopShortcut value to true or false and
+## uncomment the line.
+
+# desktopShortcut=false
+
+## CHOOSE TO ADD SHORTCUT TO WINDOWS START MENU
+##
+## Set to true if you would like the installer to create a Start Menu shortcut
+## icon when MATLAB is installed or false if you don't want the shortcut created.
+##
+## Default value is true.
+##
+## Set startMenuShortcut value to true or false and
+## uncomment the line.
+
+# startMenuShortcut=true
+
+## CREATE a MATLAB Startup Accelerator task
+##
+## The MATLAB Startup Accelerator installer creates a
+## system task to preload MATLAB into the system's cache
+## for faster startup.
+##
+## NOTE: By default, a MATLAB Startup Accelerator task will
+## automatically be created.
+##
+## If you want a MATLAB Startup Accelerator task to be created,
+## do not edit this section.
+##
+## Set createAccelTask value to false if you do not want to
+## create an Accelerator task and uncomment the line.
+
+# createAccelTask=true
+
+################ End - Windows Only Options ################
+
+## SPECIFY PRODUCTS YOU WANT TO INSTALL
+##
+## By default, the installer installs all the products and
+## documentation for which you are licensed. Products you are not licensed for
+## are not installed, even if they are listed here.
+##
+## Note:
+## 1. To automatically install all your licensed products, do not edit
+##    any lines in this section.
+##
+## 2. To install a specific product or a subset of products for
+##    which you are licensed, uncomment the line for the product(s) you want
+##    to install.
+
+#product.5G_Toolbox
+#product.AUTOSAR_Blockset
+#product.Aerospace_Blockset
+#product.Aerospace_Toolbox
+#product.Antenna_Toolbox
+#product.Audio_Toolbox
+#product.Automated_Driving_Toolbox
+#product.Bioinformatics_Toolbox
+#product.Bluetooth_Toolbox
+#product.Communications_Toolbox
+#product.Computer_Vision_Toolbox
+#product.Control_System_Toolbox
+#product.Curve_Fitting_Toolbox
+#product.DDS_Blockset
+#product.DO_Qualification_Kit
+#product.DSP_HDL_Toolbox
+#product.DSP_System_Toolbox
+#product.Data_Acquisition_Toolbox
+#product.Database_Toolbox
+#product.Datafeed_Toolbox
+#product.Deep_Learning_HDL_Toolbox
+#product.Deep_Learning_Toolbox
+#product.Econometrics_Toolbox
+#product.Embedded_Coder
+#product.Filter_Design_HDL_Coder
+#product.Financial_Instruments_Toolbox
+#product.Financial_Toolbox
+#product.Fixed-Point_Designer
+#product.Fuzzy_Logic_Toolbox
+#product.GPU_Coder
+#product.Global_Optimization_Toolbox
+#product.HDL_Coder
+#product.HDL_Verifier
+#product.IEC_Certification_Kit
+#product.Image_Acquisition_Toolbox
+#product.Image_Processing_Toolbox
+#product.Industrial_Communication_Toolbox
+#product.Instrument_Control_Toolbox
+#product.LTE_Toolbox
+#product.Lidar_Toolbox
+#product.MATLAB
+#product.MATLAB_Coder
+#product.MATLAB_Compiler
+#product.MATLAB_Compiler_SDK
+#product.MATLAB_Parallel_Server
+#product.MATLAB_Production_Server
+#product.MATLAB_Report_Generator
+#product.MATLAB_Web_App_Server
+#product.Mapping_Toolbox
+#product.Mixed-Signal_Blockset
+#product.Model_Predictive_Control_Toolbox
+#product.Model-Based_Calibration_Toolbox
+#product.Motor_Control_Blockset
+#product.Navigation_Toolbox
+#product.Optimization_Toolbox
+#product.Parallel_Computing_Toolbox
+#product.Partial_Differential_Equation_Toolbox
+#product.Phased_Array_System_Toolbox
+#product.Polyspace_Bug_Finder
+#product.Polyspace_Bug_Finder_Server
+#product.Polyspace_Code_Prover
+#product.Polyspace_Code_Prover_Server
+#product.Powertrain_Blockset
+#product.Predictive_Maintenance_Toolbox
+#product.RF_Blockset
+#product.RF_PCB_Toolbox
+#product.RF_Toolbox
+#product.ROS_Toolbox
+#product.Radar_Toolbox
+#product.Reinforcement_Learning_Toolbox
+#product.Requirements_Toolbox
+#product.Risk_Management_Toolbox
+#product.Robotics_System_Toolbox
+#product.Robust_Control_Toolbox
+#product.Satellite_Communications_Toolbox
+#product.Sensor_Fusion_and_Tracking_Toolbox
+#product.SerDes_Toolbox
+#product.Signal_Integrity_Toolbox
+#product.Signal_Processing_Toolbox
+#product.SimBiology
+#product.SimEvents
+#product.Simscape
+#product.Simscape_Driveline
+#product.Simscape_Electrical
+#product.Simscape_Fluids
+#product.Simscape_Multibody
+#product.Simulink
+#product.Simulink_3D_Animation
+#product.Simulink_Check
+#product.Simulink_Code_Inspector
+#product.Simulink_Coder
+#product.Simulink_Compiler
+#product.Simulink_Control_Design
+#product.Simulink_Coverage
+#product.Simulink_Design_Optimization
+#product.Simulink_Design_Verifier
+#product.Simulink_Desktop_Real-Time
+#product.Simulink_PLC_Coder
+#product.Simulink_Real-Time
+#product.Simulink_Report_Generator
+#product.Simulink_Test
+#product.SoC_Blockset
+#product.Spreadsheet_Link
+#product.Stateflow
+#product.Statistics_and_Machine_Learning_Toolbox
+#product.Symbolic_Math_Toolbox
+#product.System_Composer
+#product.System_Identification_Toolbox
+#product.Text_Analytics_Toolbox
+#product.UAV_Toolbox
+#product.Vehicle_Dynamics_Blockset
+#product.Vehicle_Network_Toolbox
+#product.Vision_HDL_Toolbox
+#product.WLAN_Toolbox
+#product.Wavelet_Toolbox
+#product.Wireless_HDL_Toolbox
+#product.Wireless_Testbench
+
+{% for product in matlab_products_to_install %}
+product.{{product}}
+{% endfor %}

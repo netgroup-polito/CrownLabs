@@ -1,0 +1,68 @@
+---
+# tasks file for matlab
+
+- name: Check matlab_fik
+  fail:
+    msg: "Missing matlab_fik variable!"
+  when: matlab_fik is not defined
+
+- name: Check matlab_products_to_install
+  fail:
+    msg: "matlab_products_to_install variable must be set and be a list!"
+  when: (matlab_products_to_install is not defined) or (matlab_products_to_install is not iterable) or (matlab_products_to_install is string)
+
+- name: Install nfs utils
+  apt:
+    name: nfs-common
+    state: present
+
+- name: Mount Matlab NFS install volume
+  ansible.posix.mount:
+    src: "{{ matlab_nfs_source }}"
+    path: /mnt/matlab_install
+    opts: rw,sync,hard
+    boot: false
+    fstype: nfs
+    state: mounted
+
+- name: Set the Matlab variables
+  set_fact:
+    matlab_destination_folder: "{{ matlab_destination_folder | default('/usr/local/R2022a') }}"
+    matlab_installer_path: "{{ matlab_installer_path | default('/mnt/matlab_install/inst/2023_03_10_12_49_32/install') }}"
+    matlab_license_path: "{{ matlab_license_path | default('/mnt/matlab_install/network.lic')}} "
+    matlab_desktop_file_path: "{{ matlab_desktop_file_path | default('/usr/share/applications') }}"
+    matlab_installer_input: "{{ matlab_installer_input | default('/tmp/matlab-installer-input.txt') }}"
+
+- name: Template installer input file
+  template:
+    src: templates/installer-input.txt
+    dest: "{{ matlab_installer_input }}"
+
+- name: Install MATLAB
+  ansible.builtin.shell: |
+    set -e
+
+    rm -rf "{{ matlab_destination_folder }}"
+
+    {{ matlab_installer_path }} -inputFile "{{ matlab_installer_input }}"
+
+- name: Create a symbolic link
+  ansible.builtin.file:
+    src: "{{ matlab_destination_folder }}/bin/matlab"
+    dest: /usr/local/bin/matlab
+    mode: "0777"
+    state: link
+
+- name: Install matlab support package
+  apt:
+    name: matlab-support
+    state: present
+
+- name: Unmount Matlab NFS install volume
+  ansible.posix.mount:
+    src: "{{ matlab_nfs_source }}"
+    path: /mnt/matlab_install
+    opts: rw,sync,hard
+    boot: false
+    fstype: nfs
+    state: absent

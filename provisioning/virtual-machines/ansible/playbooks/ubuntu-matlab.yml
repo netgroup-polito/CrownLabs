@@ -1,0 +1,12 @@
+---
+
+- hosts: crownlabs
+  become: yes
+
+  roles:
+  - role: ../roles/gather-desktop-environment-facts
+  - role: ../roles/ubuntu-pre
+  - role: ../roles/crownlabs
+    when: crownlabs_mode
+  - role: ../roles/matlab
+  - role: ../roles/ubuntu-post

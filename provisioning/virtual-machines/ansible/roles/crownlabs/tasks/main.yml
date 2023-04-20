@@ -68,6 +68,11 @@
     removes: /usr/sbin/umount.davfs
   when: davfs2_version.stdout is search("1.5.5")
 
+# NFS tools package
+- name: Install nfs tools to mount mfs disks
+  apt:
+    name: nfs-common
+    state: present
 
 # TigerVNC Configuration
 - name: Set the TigerVNC variables
