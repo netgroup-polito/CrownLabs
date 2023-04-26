@@ -28,11 +28,11 @@
         "harbor-project": "crownlabs-core"
     },
     {
-      "component": "instmetrics",
-      "context": "./operators",
-      "dockerfile": "./operators/build/golang-common/Dockerfile",
-      "build-args": "COMPONENT=instmetrics",
-      "harbor-project": "crownlabs-core"
+        "component": "instmetrics",
+        "context": "./operators",
+        "dockerfile": "./operators/build/golang-common/Dockerfile",
+        "build-args": "COMPONENT=instmetrics",
+        "harbor-project": "crownlabs-core"
     },
     {
         "component": "crownlabs-image-list",
@@ -100,13 +100,6 @@
     {
         "component": "blender",
         "context": "./provisioning/containers/blender",
-        "harbor-project": "crownlabs-container-envs",
-        "optional": true
-    },
-    {
-        "component": "blender-lts",
-        "context": "./provisioning/containers/blender",
-        "build-args": "BLENDER_VERSION_MAJOR=2.83\nBLENDER_VERSION_MINOR=13",
         "harbor-project": "crownlabs-container-envs",
         "optional": true
     },
