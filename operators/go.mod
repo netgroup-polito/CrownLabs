@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
-	github.com/docker/docker v20.10.22+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/dustinkirkland/golang-petname v0.0.0-20191129215211-8e5a1ed0cff0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-resty/resty/v2 v2.7.0
