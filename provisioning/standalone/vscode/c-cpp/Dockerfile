@@ -46,4 +46,3 @@ USER $USER
 # Install extensions
 RUN code-server --extensions-dir /config/extensions --install-extension cpptools-linux.vsix && \
     code-server --extensions-dir /config/extensions --install-extension formulahendry.code-runner
-ENTRYPOINT [ "/start.sh" ]

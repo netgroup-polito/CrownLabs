@@ -44,4 +44,3 @@ RUN chown -R ${USER}:${USER} /config && \
     chown -R ${USER}:${USER} /example_project
 
 USER ${USER}
-ENTRYPOINT [ "/start.sh" ]

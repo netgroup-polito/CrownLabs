@@ -1,5 +1,13 @@
 {
     "python.linting.enabled": true,
     "python.linting.lintOnSave": true,
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "files.autoSaveDelay": 5000,
+    "workbench.startupEditor": "none",
+    "files.exclude": {
+        "**/.vscode": true,
+        "**/lost+found": true
+    },
+    "security.workspace.trust.enabled": false,
+    "workbench.colorTheme": "Default Dark+"
 }
