@@ -21,6 +21,10 @@
     vtype='boolean'
     value='true'
 
+- name: Update the apt cache
+  apt:
+    update_cache: yes
+
 - name: Install the gns3 packages
   apt:
     name: "{{ gns3_packages }}"
