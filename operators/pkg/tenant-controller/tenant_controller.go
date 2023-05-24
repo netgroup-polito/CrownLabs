@@ -54,6 +54,8 @@ const (
 	NFSSecretServerNameKey = "server-name"
 	// NFSSecretPathKey -> NFS path key in NFS secret.
 	NFSSecretPathKey = "path"
+	// KeepAliveLabel -> label which keeps TenantNS from deletion regardless of time elapsed since lastLogin
+	KeepAliveLabel = "crownlabs.polito.it/keep-alive"
 )
 
 // TenantReconciler reconciles a Tenant object.
@@ -313,12 +315,24 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
 func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (keepNsOpen bool, err error) {
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
-	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
+	// if so, temporarily delete the namespace. Exception: tenants with KeepAliveLabel.
+	// We assume that a lastLogin of 0 occurs when a user is first created
+
+	if tn.Labels[KeepAliveLabel] == "true" {
+		klog.Infof("KeepAliveLabel is applied to tenant %s: tenant namespace will not be deleted", tn.Name)
+		return true, nil
+	}
 
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
 	sPassed := time.Since(tn.Spec.LastLogin.Time)
-
 	klog.Infof("Last login of tenant %s was %s ago", tn.Name, sPassed)
+
+	if sPassed < r.TenantNSKeepAlive { // seconds
+		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: tenant namespace shall be present", r.TenantNSKeepAlive, tn.Name)
+		return true, nil
+	} else {	
+		klog.Infof("Over %s elapsed since last login of tenant %s: tenant namespace shall be absent", r.TenantNSKeepAlive, tn.Name)
+	}
 
 	// Attempt to get instances in current namespace
 	list := &crownlabsv1alpha2.InstanceList{}
@@ -327,18 +341,13 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 		return true, err
 	}
 
-	if sPassed > r.TenantNSKeepAlive { // seconds
-		klog.Infof("Over %s elapsed since last login of tenant %s: tenant namespace shall be absent", r.TenantNSKeepAlive, tn.Name)
-		if len(list.Items) == 0 {
-			klog.Infof("No instances found in %s: namespace can be deleted", nsName)
-			return false, nil
-		}
+	if len(list.Items) > 0 {
 		klog.Infof("Instances found in namespace %s. Namespace will not be deleted", nsName)
+		return true, nil
 	} else {
-		klog.Infof("Under %s (limit) elapsed since last login of tenant %s: tenant namespace shall be present", r.TenantNSKeepAlive, tn.Name)
+		klog.Infof("No instances found in %s: namespace can be deleted", nsName)
 	}
-
-	return true, nil
+	return false, nil
 }
 
 // Deletes namespace or updates the cluster resources.
