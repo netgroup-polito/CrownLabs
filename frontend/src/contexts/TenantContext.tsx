@@ -105,7 +105,7 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
         patchJson: getTenantPatchJson({
           lastLogin: new Date(),
         }),
-        manager: 'frontend-tenant-new-keys',
+        manager: 'frontend-tenant-lastlogin',
       },
       onError: apolloErrorCatcher,
     });
