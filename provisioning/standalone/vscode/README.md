@@ -1,6 +1,6 @@
 # Visual Studio Code
 
-This is a **server-based** version with a **Web Interface** of the popular editor [**VS-Code**](https://code.visualstudio.com/) by [**Microsoft®**](https://www.microsoft.com/en-us/).
+This is a **server-based** version with a **Web Interface** of the popular editor [**VS-Code**](https://code.visualstudio.com/) by **Microsoft®**.
 
 _It is based on the [**code-server**](https://github.com/coder/code-server) project by [**Coder**](https://github.com/coder)_
 
@@ -102,7 +102,7 @@ docker run -e CROWNLABS_LISTEN_PORT=8001 -it --rm -p 8001:8001 vscode-c-cpp --di
 
 ## Codetogether
 
-**Vscode images** support [**codetogether**](https://www.codetogether.com/) extension and API, which allow **social-coding** between multiple vscode instances (similarly to **[liveshare](https://visualstudio.microsoft.com/it/services/live-share/)** by [**Microsoft®**](https://www.microsoft.com/en-us/). This [video](https://youtu.be/l4yTfduxptw) shows what it can do. To enable an image to use **codetogether** it is necessary to build it with the `CODETOGETHER_ENABLED_ARG=true` build argument.
+**Vscode images** support [**codetogether**](https://www.codetogether.com/) extension and API, which allow **social-coding** between multiple vscode instances (similarly to **[liveshare](https://visualstudio.microsoft.com/it/services/live-share/)** by **Microsoft®**. This [video](https://youtu.be/l4yTfduxptw) shows what it can do. To enable an image to use **codetogether** it is necessary to build it with the `CODETOGETHER_ENABLED_ARG=true` build argument.
 
 For example:
 
