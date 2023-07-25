@@ -1,0 +1,10 @@
+{
+    "name": "Linux host",
+    "compute_id": "local",
+    "template_type": "docker",
+    "adapters": 1,
+    "category": "guest",
+    "console_type": "telnet",
+    "image": "praqma/network-multitool:latest",
+    "start_command": "sh"
+}

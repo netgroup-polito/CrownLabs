@@ -75,3 +75,101 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: '0644'
+
+### The following Ansible tasks replace the previous manual setup of the GNS3 environment
+
+## 1.  Download the Cisco IOS Image
+
+# 1.1 Download nfs-common
+- name: Install nfs utils
+  apt:
+    name: nfs-common
+    state: present
+
+# 1.2 Mount GNS4 NFS install volume
+- name: Mount GNS3 NFS install volume
+  ansible.posix.mount:
+    src: "{{ gns3_device_images }}"
+    path: "/mnt/gns3_images"
+    opts: rw,sync,hard
+    boot: false
+    fstype: nfs
+    state: mounted
+
+# 1.3 Decompress the file from .bin to .image
+- name: Extract ZIP file without creating intermediate files
+  unarchive:
+    src: /mnt/gns3_images/c2691-advipservicesk9-mz.124-25c.bin
+    dest: /home/{{ ansible_user }}/GNS3/images/IOS/
+    remote_src: yes
+    creates: /home/{{ ansible_user }}/GNS3/images/IOS/c2691-advipservicesk9-mz.124-25c.image
+  changed_when: false
+  failed_when: false
+
+ # 1.4 Unmount GNS3 NFS install volume
+- name: Unmount GNS3 NFS install volume
+  ansible.posix.mount:
+    src: "{{ gns3_device_images }}"
+    path: "/mnt/gns3_images"
+    opts: rw,sync,hard
+    boot: false
+    fstype: nfs
+    state: absent
+
+## 2.  Create a new template for the Cisco 2691 router
+
+# GNS3 server is usually launched through UI. Here we need to start it via command line.
+
+# 2.1 Create a gns3.service file which is going to be handled via systemd
+- name: Copy the gns3 service file
+  copy:
+    src: "{{ role_path }}/files/gns3.service"
+    dest: /etc/systemd/system/gns3.service
+    mode: '0755'
+
+# 2.2 Enable and start the new gns3 service
+- name: Enable and start the gns3 service
+  systemd:
+    name: gns3
+    state: started
+    enabled: yes
+
+# 2.3 The GNS3 server needs some seconds to be ready
+- name: Introduce a sleep delay of 10 seconds
+  pause:
+    seconds: 10
+
+# 2.4 Performing the request to the GNS3 server
+- name: Create new template using GNS3 API
+  uri:
+    url: "http://localhost:3080/v2/templates"
+    method: POST
+    src: "{{ role_path }}/files/cisco-c2961.json"
+    remote_src: yes
+    status_code: 201
+
+## 3  Configure the Xfce4 terminal in GNS3
+
+# 3.1 The jq package is needed for this operation
+- name: Install jq package
+  apt:
+    name: jq
+    state: present
+
+# 3.2 Modify the proper config file
+- name: Update the value using jq
+  shell: >
+          jq '.MainWindow.telnet_console_command = "xfce4-terminal --tab -T \"%d\" -e \"telnet %h %p\""'
+          /home/{{ ansible_user }}/.config/GNS3/2.2/gns3_gui.conf > /home/{{ ansible_user }}/.config/GNS3/2.2/gns3_gui.conf.tmp &&
+          mv /home/{{ ansible_user }}/.config/GNS3/2.2/gns3_gui.conf.tmp /home/{{ ansible_user }}/.config/GNS3/2.2/gns3_gui.conf
+
+## 4  Add the network-multitool docker image to the list of end devices
+
+# 4.1 Performing the request to the GNS3 server
+- name: Create new template using GNS3 API
+  uri:
+    url: "http://localhost:3080/v2/templates"
+    method: POST
+    src: "{{ role_path }}/files/docker.json"
+    remote_src: yes
+    status_code: 201
