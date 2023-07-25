@@ -25,17 +25,17 @@ import (
 const (
 	// InstancesCountKey -> The key for accessing at the total number of instances in the corev1.ResourceList map.
 	InstancesCountKey = "count/instances.crownlabs.polito.it"
-
-	// CapInstance -> The cap number of instances that can be requested by a Tenant.
-	CapInstance = 10
 )
 
 var (
-	// CapCPU -> The cap amount of CPU cores that can be requested by a Tenant.
-	CapCPU = *resource.NewQuantity(25, resource.DecimalSI)
+	// CapInstance -> The maximum number of instances that can be started by a Tenant.
+	CapInstance int
 
-	// CapMemory -> The cap amount of RAM memory that can be requested by a Tenant.
-	CapMemory = *resource.NewScaledQuantity(50, resource.Giga)
+	// CapCPU -> The total amount of CPU cores that can be requested by a Tenant.
+	CapCPU int
+
+	// CapMemoryGiga -> The total amount of RAM (in gigabytes) that can be requested by a Tenant.
+	CapMemoryGiga int
 
 	// SandboxCPUQuota -> The maximum amount of CPU cores that can be used by a sandbox namespace.
 	SandboxCPUQuota = *resource.NewQuantity(4, resource.DecimalSI)
@@ -62,9 +62,15 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 		quota.Instances += workspaces[i].Spec.Quota.Instances
 	}
 
-	quota.CPU = CapResourceQuantity(quota.CPU, CapCPU)
-	quota.Memory = CapResourceQuantity(quota.Memory, CapMemory)
-	quota.Instances = CapIntegerQuantity(quota.Instances, CapInstance)
+	if CapCPU > 0 {
+		quota.CPU = CapResourceQuantity(quota.CPU, *resource.NewQuantity(int64(CapCPU), resource.DecimalSI))
+	}
+	if CapMemoryGiga > 0 {
+		quota.Memory = CapResourceQuantity(quota.Memory, *resource.NewScaledQuantity(int64(CapMemoryGiga), resource.Giga))
+	}
+	if CapInstance > 0 {
+		quota.Instances = CapIntegerQuantity(quota.Instances, uint32(CapInstance))
+	}
 
 	return quota
 }

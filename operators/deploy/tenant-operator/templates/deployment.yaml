@@ -49,6 +49,9 @@ spec:
             - "--mydrive-pvcs-size={{ .Values.configurations.mydrivePVCsSize }}"
             - "--mydrive-pvcs-storage-class-name={{ .Values.configurations.mydrivePVCsStorageClassName }}"
             - "--mydrive-pvcs-namespace={{ .Values.configurations.mydrivePVCsNamespace }}"
+            - "--cap-instance={{ .Values.configurations.tenant.resourcecaps.instances }}"
+            - "--cap-cpu={{ .Values.configurations.tenant.resourcecaps.cpu }}"
+            - "--cap-memory-giga={{ .Values.configurations.tenant.resourcecaps.memory }}"
           ports:
             - name: metrics
               containerPort: 8080
