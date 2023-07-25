@@ -1,0 +1,12 @@
+{
+    "name":"Cisco 2961",
+    "compute_id":"local",
+    "platform":"c2691",
+    "image":"c2691-advipservicesk9-mz.124-25c.image",
+    "ram":192,
+    "slot0":"GT96100-FE",
+    "slot1":"NM-16ESW",
+    "disk0":4,
+    "disk1":0,
+    "template_type":"dynamips"
+  }
