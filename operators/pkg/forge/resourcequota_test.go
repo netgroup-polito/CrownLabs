@@ -79,6 +79,9 @@ var _ = Describe("Resource quota spec forging", func() {
 				sampleWorkspace1.Spec.Quota = quota1
 				sampleWorkspace2.Spec.Quota = quota2
 				workspaces = append(workspaces, sampleWorkspace1, sampleWorkspace2)
+				forge.CapCPU = 25
+				forge.CapMemoryGiga = 40
+				forge.CapInstance = 5
 			})
 
 			JustBeforeEach(func() {
