@@ -1,0 +1,26 @@
+# tasks file for firefox
+
+- name: Assert that a Desktop Environment is installed
+  fail:
+    msg: "You are attempting to install 'Firefox', but no Desktop Environment seems to be available"
+  when: not desktop_environment_detected
+
+- name: Add mozillateam APT repository
+  apt_repository:
+    repo: ppa:mozillateam/ppa
+
+- name: Alter the Firefox package priority
+  lineinfile:
+    path: /etc/apt/preferences.d/mozilla-firefox
+    create: yes
+    line: "{{ item }}"
+    state: present
+  with_items:
+    - "Package: *"
+    - "Pin: release o=LP-PPA-mozillateam"
+    - "Pin-Priority: 1001"
+
+- name: Install Firefox
+  apt:
+    name: firefox
+    state: present

@@ -17,7 +17,7 @@
             "disk_compression": true,
             "format": "qcow2",
             "accelerator": "kvm",
-            "ssh_username": "ubuntu",
+            "ssh_username": "crownlabs",
             "ssh_password": "crownlabs",
             "ssh_timeout": "30m",
             "vm_name": "crownlabs.qcow2",
@@ -36,7 +36,7 @@
                 "--extra-vars",
                 "ansible_sudo_pass=crownlabs crownlabs_mode=true install_desktop_environment={{ user `INSTALL_DESKTOP_ENVIRONMENT` }}"
             ],
-            "user": "ubuntu"
+            "user": "crownlabs"
         },
         {
             "type": "shell",

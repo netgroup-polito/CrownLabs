@@ -46,11 +46,17 @@
   loop: "{{ unnecessary_packages }}"
   when: install_desktop_environment is defined and install_desktop_environment == "true"
 
-- name: Install xubuntu-desktop
+- name: Install xfce4-session
   apt:
-    name: xubuntu-desktop
+    name: xfce4-session
     state: present
+    install_recommends: no
   when: install_desktop_environment is defined and install_desktop_environment == "true"
+
+- name: Add necessary packages
+  apt:
+    name: "{{ necessary_packages }}"
+    state: present
 
 # Not the best ansible way to solve this problem
 # but it seems to achieve the intended purpose

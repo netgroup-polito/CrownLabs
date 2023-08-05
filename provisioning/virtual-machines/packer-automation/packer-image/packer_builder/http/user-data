@@ -1,4 +1,5 @@
 #cloud-config
+user: crownlabs
 password: crownlabs
 chpasswd: { expire: False }
 ssh_pwauth: True

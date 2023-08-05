@@ -130,12 +130,21 @@
     state: present
   when: desktop_environment_detected
 
+- name: Check the existence of the policy file path
+  stat:
+    path: /usr/share/polkit-1/actions/{{ item }}
+  with_items:
+  - org.freedesktop.color.policy
+  - org.xfce.session.policy
+  register: check_file_path
+
 - name: Prevent the appearance of an authorization popup due to vnc and polkit
   replace:
-    path: /usr/share/polkit-1/actions/org.freedesktop.color.policy
+    path: /usr/share/polkit-1/actions/{{ item.item }}
     regexp: '<allow_any>auth_admin<\/allow_any>'
     replace: '<allow_any>yes</allow_any>'
-  when: desktop_environment_detected
+  with_items: "{{ check_file_path.results }}"
+  when: desktop_environment_detected and item.stat.exists
 
 
 # NoVNC Configuration

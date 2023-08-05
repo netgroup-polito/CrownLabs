@@ -8,4 +8,5 @@
   - role: ../roles/crownlabs
     when: crownlabs_mode
   - role: ../roles/cloudlab-client
+  - role: ../roles/firefox
   - role: ../roles/ubuntu-post
