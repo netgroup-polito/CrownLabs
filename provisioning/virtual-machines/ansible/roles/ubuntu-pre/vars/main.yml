@@ -81,3 +81,15 @@ unnecessary_packages:
 - xfce4-weather-plugin
 - xubuntu-docs
 - xubuntu-community-wallpapers
+
+necessary_packages:
+- xauth
+- xfce4-panel
+- xfce4-terminal
+- xfce4-appfinder
+- thunar
+- libegl1
+- xfwm4
+- xfdesktop4
+- xfce4-screensaver
+- elementary-xfce-icon-theme

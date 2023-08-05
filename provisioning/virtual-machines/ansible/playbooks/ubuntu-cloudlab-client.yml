@@ -8,4 +8,6 @@
   - role: ../roles/crownlabs
     when: crownlabs_mode
   - role: ../roles/cloudlab-client
+  - role: ../roles/firefox
+    when: install_desktop_environment is defined and install_desktop_environment == "true"
   - role: ../roles/ubuntu-post

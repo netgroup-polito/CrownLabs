@@ -44,11 +44,19 @@
     name: "{{ item }}"
     selection: hold
   loop: "{{ unnecessary_packages }}"
+  ignore_errors: true
   when: install_desktop_environment is defined and install_desktop_environment == "true"
 
-- name: Install xubuntu-desktop
+- name: Install xfce4-session
   apt:
-    name: xubuntu-desktop
+    name: xfce4-session
+    state: present
+    install_recommends: no
+  when: install_desktop_environment is defined and install_desktop_environment == "true"
+
+- name: Add necessary packages
+  apt:
+    name: "{{ necessary_packages }}"
     state: present
   when: install_desktop_environment is defined and install_desktop_environment == "true"
 
