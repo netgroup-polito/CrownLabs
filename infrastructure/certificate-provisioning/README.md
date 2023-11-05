@@ -118,7 +118,7 @@ In different scenarios, it may happen to have different `Ingress` resources in d
 
 ### Install kubed
 
-Kubed can be easily installed with helm [[5]](https://appscode.com/products/kubed/latest/setup/install/).
+Kubed can be easily installed with helm [[5]](https://appscode.com/products/kubed/v0.12.0/setup/install/).
 
 ```bash
 helm repo add appscode https://charts.appscode.com/stable/

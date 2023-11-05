@@ -24,7 +24,6 @@ sudo sudo adduser <your_user> docker
 newgrp docker
 ```
 
-<a name="ansible"></a>
 ## Installing software packages with Ansible: overview
 
 The `setup-crownlabs-vms.sh` script makes use of Ansible Playbooks to install additional software packages in the VM (e.g., applications that you need to run in the guest OS).
@@ -71,7 +70,7 @@ The tools that are required by CrownLabs to work and are automatically installed
 
 3. Once the installation terminates and the OS completes the reboot, issue `./setup-crownlabs-vm.sh <vm-name> configure <ansible-playbook.yml> (--vbox-only)`, where the _playbook_ contains the instructions to configure and install the additional software packages you need to run in the VM.
 The script connects to the VM via SSH and runs the specified ansible playbook.
-For more detailed instructions about creating and customizing Ansible playbook, look at the [dedicated subsection](#ansible).
+For more detailed instructions about creating and customizing Ansible playbook, look at the [dedicated subsection](#installing-software-packages-with-ansible-overview).
 
    **NOTE**: if the command is executed with no additional parameters, the scripts assumes that the VM is going to be used in CrownLabs and proceeds with the installation of the tools required for its operations. The `--vbox-only` flag tells the script to opt out this configuration and prepares vanilla VMs meant to be used directly in VirtualBox, as well as exported in the *.ova* format.
 
