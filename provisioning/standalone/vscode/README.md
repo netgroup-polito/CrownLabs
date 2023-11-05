@@ -42,7 +42,7 @@ The **base image** contained in the `./base` folder is an image that contains on
 
 ### Set Dockerfile
 
-Starting from the [Base Version](#base-version) it is possible to develop a customized image.
+Starting from the [Base Version](#basic-version) it is possible to develop a customized image.
 
 1.   **Create** a new **Dockerfile**
 2.   **Include** the base version Dockerfile using **Dockerfile+**'s `INCLUDE+` directive (see more [**here**](https://github.com/edrevo/dockerfile-plus.git))

@@ -89,7 +89,7 @@ With the **memberlist** configuration, the information is shared between the rep
     working_directory: /data/loki/boltdb-shipper-compactor
     shared_store: s3 #filesystem
 ```
-You can choose where you want to store the data, either in the local filesystem (PVC) or in a S3 object store. For the latter, you must configure the S3 bucket parameters as indicated. Some examples of Loki configurations are also available [here](https://grafana.com/docs/loki/latest/configuration/examples/#loki-configuration-examples).
+You can choose where you want to store the data, either in the local filesystem (PVC) or in a S3 object store. For the latter, you must configure the S3 bucket parameters as indicated. Some examples of Loki configurations are also available [here](https://grafana.com/docs/loki/latest/configure/examples/).
 
 *NOTE: some buckets, for example AWS, want the region before the BUCKET_HOST. So the full S3 path is s3://<ACCESS_KEY>:<SECRET_ACCESS_KEY>@REGION_BUKET.BUCKET_HOST/BUCKET_NAME*.
 
