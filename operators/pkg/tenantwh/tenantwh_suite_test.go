@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -40,6 +41,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
+	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
 	var err error
 	decoder, err = admission.NewDecoder(scheme)

@@ -25,20 +25,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 )
 
 var _ = Describe("Validating webhook", func() {
-	forgeTenantWithWorkspaceUser := func(wsName string) *clv1alpha2.Tenant {
+	forgeTenantWithWorkspace := func(ws clv1alpha2.TenantWorkspaceEntry) *clv1alpha2.Tenant {
 		return &clv1alpha2.Tenant{
 			Spec: clv1alpha2.TenantSpec{
-				Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
-					Name: wsName,
-					Role: clv1alpha2.User,
-				}},
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{ws},
 			},
 		}
+	}
+
+	forgeTenantWithWorkspaceUser := func(wsName string) *clv1alpha2.Tenant {
+		return forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+			Name: wsName,
+			Role: clv1alpha2.User,
+		})
 	}
 
 	var (
@@ -46,6 +51,13 @@ var _ = Describe("Validating webhook", func() {
 		request      admission.Request
 		response     admission.Response
 		manager      *clv1alpha2.Tenant
+
+		workspaceWA     *clv1alpha1.Workspace
+		workspaceWAName = "test-workspace-withApproval"
+		workspaceNA     *clv1alpha1.Workspace
+		workspaceNAName = "test-workspace-noAutoenroll"
+		workspaceIM     *clv1alpha1.Workspace
+		workspaceIMName = "test-workspace-immediate"
 	)
 
 	BeforeEach(func() {
@@ -60,7 +72,44 @@ var _ = Describe("Validating webhook", func() {
 			},
 		}
 
-		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(manager).Build()
+		workspaceWA = &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: workspaceWAName},
+			Spec: clv1alpha1.WorkspaceSpec{
+				PrettyName: "test-workspace",
+				Quota: clv1alpha1.WorkspaceResourceQuota{
+					Instances: 1,
+				},
+				AutoEnroll: clv1alpha1.AutoenrollWithApproval,
+			},
+		}
+
+		workspaceNA = &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: workspaceNAName},
+			Spec: clv1alpha1.WorkspaceSpec{
+				PrettyName: "test-workspace",
+				Quota: clv1alpha1.WorkspaceResourceQuota{
+					Instances: 1,
+				},
+			},
+		}
+
+		workspaceIM = &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: workspaceIMName},
+			Spec: clv1alpha1.WorkspaceSpec{
+				PrettyName: "test-workspace",
+				Quota: clv1alpha1.WorkspaceResourceQuota{
+					Instances: 1,
+				},
+				AutoEnroll: clv1alpha1.AutoenrollImmediate,
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+			manager,
+			workspaceWA,
+			workspaceNA,
+			workspaceIM,
+		).Build()
 
 		validatingWH = tenantwh.MakeTenantValidator(fakeClient, bypassGroups).Handler.(*tenantwh.TenantValidator)
 		Expect(validatingWH.InjectDecoder(decoder)).To(Succeed())
@@ -158,6 +207,68 @@ var _ = Describe("Validating webhook", func() {
 				Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
 				Expect(response.Result.Reason).NotTo(BeEmpty())
 			})
+		})
+
+		Describe("a workspace is added", func() {
+			WhenBody := func(nt *clv1alpha2.Tenant, shouldSucceed bool) func() {
+				return func() {
+					BeforeEach(func() {
+						oldTenant = &clv1alpha2.Tenant{}
+						newTenant = nt
+					})
+
+					if shouldSucceed {
+						It("should allow the change", func() {
+							Expect(response.Allowed).To(BeTrue())
+						})
+					} else {
+						It("should deny the change", func() {
+							Expect(response.Allowed).To(BeFalse())
+							Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+							Expect(response.Result.Reason).ToNot(BeEmpty())
+						})
+					}
+				}
+			}
+
+			When("no autoenroll and user role", WhenBody(
+				forgeTenantWithWorkspaceUser(workspaceNAName),
+				false,
+			))
+
+			When("no autoenroll and candidate role", WhenBody(
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+					Name: workspaceNAName,
+					Role: clv1alpha2.Candidate,
+				}),
+				false,
+			))
+
+			When("autoenroll withApproval and user role", WhenBody(
+				forgeTenantWithWorkspaceUser(workspaceWAName),
+				false,
+			))
+
+			When("autoenroll withApproval and candidate role", WhenBody(
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+					Name: workspaceWAName,
+					Role: clv1alpha2.Candidate,
+				}),
+				true,
+			))
+
+			When("autoenroll immediate and user role", WhenBody(
+				forgeTenantWithWorkspaceUser(workspaceIMName),
+				true,
+			))
+
+			When("autoenroll immediate and candidate role", WhenBody(
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+					Name: workspaceIMName,
+					Role: clv1alpha2.Candidate,
+				}),
+				false,
+			))
 		})
 
 		When("other fields are changed", func() {
