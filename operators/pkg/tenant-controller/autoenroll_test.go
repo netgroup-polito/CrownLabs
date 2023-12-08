@@ -35,6 +35,9 @@ var _ = Describe("Workspace AutoEnroll Update", func() {
 	const (
 		tenantName    = "tester"
 		workspaceName = "foo"
+
+		labelkey   = "crownlabs.polito.it/operator-selector"
+		labelvalue = "autoenroll-test"
 	)
 
 	BeforeEach(func() {
@@ -51,14 +54,12 @@ var _ = Describe("Workspace AutoEnroll Update", func() {
 				Email:     "mariorossi@email.com",
 			},
 		}
-		tenant.Labels = map[string]string{"reconcile.crownlabs.polito.it": "true"}
-		workspace.Labels = map[string]string{"reconcile.crownlabs.polito.it": "true"}
+		tenant.Labels = map[string]string{labelkey: labelvalue}
+		workspace.Labels = map[string]string{labelkey: labelvalue}
 		tenant.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{{Name: workspaceName, Role: clv1alpha2.Candidate}}
 	})
 
 	JustBeforeEach(func() {
-		labelkey := "reconcile.crownlabs.polito.it"
-		labelvalue := "true"
 		cl = builder.WithObjects(&tenant, &workspace).Build()
 		tnReconciler = tntctrl.TenantReconciler{
 			Client: cl, Scheme: scheme.Scheme,
