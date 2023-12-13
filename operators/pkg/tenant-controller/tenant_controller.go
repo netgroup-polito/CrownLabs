@@ -153,7 +153,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
 	}
 
-	tenantExistingWorkspaces, workspaces, err := r.checkValidWorkspaces(ctx, &tn)
+	tenantExistingWorkspaces, workspaces, enrolledWorkspaces, err := r.checkValidWorkspaces(ctx, &tn)
 
 	if err != nil {
 		retrigErr = err
@@ -181,7 +181,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	if err = r.handleKeycloakSubscription(ctx, &tn, tenantExistingWorkspaces); err != nil {
+	if err = r.handleKeycloakSubscription(ctx, &tn, enrolledWorkspaces); err != nil {
 		klog.Errorf("Error when updating keycloak subscription for tenant %s -> %s", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
 		retrigErr = err
@@ -275,8 +275,11 @@ func (r *TenantReconciler) handleDeletion(ctx context.Context, tnName string) er
 }
 
 // checkValidWorkspaces check validity of workspaces in tenant.
-func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownlabsv1alpha2.Tenant) ([]crownlabsv1alpha2.TenantWorkspaceEntry, []crownlabsv1alpha1.Workspace, error) {
+// allWsEntry []TenantWorkspaceEntry and allWs []Workspace contains all the workspaces associated with the tenant.
+// enrolledWs []TenantWorkspaceEntry contains only the workspaces the tenant is enrolled in (`user` or `manager`).
+func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownlabsv1alpha2.Tenant) (allWsEntry []crownlabsv1alpha2.TenantWorkspaceEntry, allWs []crownlabsv1alpha1.Workspace, enrolledWs []crownlabsv1alpha2.TenantWorkspaceEntry, retErr error) {
 	tenantExistingWorkspaces := []crownlabsv1alpha2.TenantWorkspaceEntry{}
+	enrolledWorkspaces := []crownlabsv1alpha2.TenantWorkspaceEntry{}
 	workspaces := []crownlabsv1alpha1.Workspace{}
 	tn.Status.FailingWorkspaces = []string{}
 	var err error
@@ -284,17 +287,26 @@ func (r *TenantReconciler) checkValidWorkspaces(ctx context.Context, tn *crownla
 	for _, tnWs := range tn.Spec.Workspaces {
 		wsLookupKey := types.NamespacedName{Name: tnWs.Name}
 		var ws crownlabsv1alpha1.Workspace
-		if err = r.Get(ctx, wsLookupKey, &ws); err != nil {
+		err = r.Get(ctx, wsLookupKey, &ws)
+		switch {
+		case err != nil:
 			// if there was a problem, add the workspace to the status of the tenant
 			klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tnWs.Name, tn.Name, err)
 			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.Name)
 			tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
-		} else {
+		case tnWs.Role == crownlabsv1alpha2.Candidate && ws.Spec.AutoEnroll != crownlabsv1alpha1.AutoenrollWithApproval:
+			// Candidate role is allowed only if the workspace has autoEnroll = WithApproval
+			klog.Errorf("Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s", tnWs.Name, tn.Name)
+			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tnWs.Name)
+		default:
 			tenantExistingWorkspaces = append(tenantExistingWorkspaces, tnWs)
 			workspaces = append(workspaces, ws)
+			if tnWs.Role != crownlabsv1alpha2.Candidate {
+				enrolledWorkspaces = append(enrolledWorkspaces, tnWs)
+			}
 		}
 	}
-	return tenantExistingWorkspaces, workspaces, err
+	return tenantExistingWorkspaces, workspaces, enrolledWorkspaces, err
 }
 
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.

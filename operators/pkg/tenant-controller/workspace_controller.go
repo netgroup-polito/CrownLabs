@@ -135,6 +135,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		tnOpinternalErrors.WithLabelValues("workspace", "cluster-resources").Inc()
 	}
 
+	// handling autoEnrollment
+	err = r.handleAutoEnrollment(ctx, &ws)
+	if err != nil {
+		klog.Errorf("Error when handling autoEnrollment for workspace %s -> %s", ws.Name, err)
+		retrigErr = err
+		tnOpinternalErrors.WithLabelValues("workspace", "auto-enrollment").Inc()
+	}
+
 	if ws.Status.Subscriptions == nil {
 		// len 1 of the map is for the number of subscriptions (keycloak)
 		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus, 1)
@@ -232,6 +240,59 @@ func removeWsFromTn(workspaces *[]crownlabsv1alpha2.TenantWorkspaceEntry, wsToRe
 	if idxToRemove != -1 {
 		*workspaces = append((*workspaces)[:idxToRemove], (*workspaces)[idxToRemove+1:]...) // Truncate slice.
 	}
+}
+
+func (r *WorkspaceReconciler) handleAutoEnrollment(ctx context.Context, ws *crownlabsv1alpha1.Workspace) error {
+	// check label and update if needed
+	var wantedLabel string
+	if utils.AutoEnrollEnabled(ws.Spec.AutoEnroll) {
+		wantedLabel = string(ws.Spec.AutoEnroll)
+	} else {
+		wantedLabel = "disabled"
+	}
+
+	if ws.Labels[crownlabsv1alpha2.WorkspaceLabelAutoenroll] != wantedLabel {
+		ws.Labels[crownlabsv1alpha2.WorkspaceLabelAutoenroll] = wantedLabel
+
+		if err := r.Update(ctx, ws); err != nil {
+			klog.Errorf("Error when updating workspace %s -> %s", ws.Name, err)
+			return err
+		}
+	}
+
+	// if actual AutoEnroll is WithApproval, nothing left to do
+	if ws.Spec.AutoEnroll == crownlabsv1alpha1.AutoenrollWithApproval {
+		return nil
+	}
+
+	// if actual AutoEnroll is not WithApproval, manage Tenants in candidate status
+	var tenantsToUpdate crownlabsv1alpha2.TenantList
+	targetLabel := fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, ws.Name)
+	err := r.List(ctx, &tenantsToUpdate, &client.MatchingLabels{targetLabel: string(crownlabsv1alpha2.Candidate)})
+	if err != nil {
+		klog.Errorf("Error when listing tenants subscribed to workspace %s -> %s", ws.Name, err)
+		return err
+	}
+	for i := range tenantsToUpdate.Items {
+		patch := client.MergeFrom(tenantsToUpdate.Items[i].DeepCopy())
+		removeWsFromTn(&tenantsToUpdate.Items[i].Spec.Workspaces, ws.Name)
+		// if AutoEnrollment is Immediate, add the workspace with User role
+		if ws.Spec.AutoEnroll == crownlabsv1alpha1.AutoenrollImmediate {
+			tenantsToUpdate.Items[i].Spec.Workspaces = append(
+				tenantsToUpdate.Items[i].Spec.Workspaces,
+				crownlabsv1alpha2.TenantWorkspaceEntry{
+					Name: ws.Name,
+					Role: crownlabsv1alpha2.User,
+				},
+			)
+		}
+		if err := r.Patch(ctx, &tenantsToUpdate.Items[i], patch); err != nil {
+			klog.Errorf("Error when updating tenant %s -> %s", tenantsToUpdate.Items[i].Name, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *WorkspaceReconciler) createOrUpdateClusterResources(ctx context.Context, ws *crownlabsv1alpha1.Workspace, nsName string) (nsOk bool, err error) {

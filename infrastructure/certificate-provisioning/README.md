@@ -134,7 +134,7 @@ helm install kubed appscode/kubed \
 
 ### Secret synchronization
 
-Once kubed is installed, secrets can be duplicated in multiple namespaces, and kept synchronized, by adding the ad-hoc annotation [[6]](https://appscode.com/products/kubed/v0.12.0-rc.2/welcome/):
+Once kubed is installed, secrets can be duplicated in multiple namespaces, and kept synchronized, by adding the ad-hoc annotation [[6]](https://cert-manager.io/v1.1-docs/faq/kubed/#syncing-arbitrary-secrets-across-namespaces-using-kubed):
 
 ```yaml
 ...

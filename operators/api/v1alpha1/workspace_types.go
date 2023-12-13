@@ -24,10 +24,29 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:validation:Enum="";withApproval;immediate
+
+// WorkspaceAutoenroll defines auto-enroll capabilities of the Workspace.
+type WorkspaceAutoenroll string
+
+const (
+	// AutoenrollNone -> no auto-enroll capabilities.
+	AutoenrollNone WorkspaceAutoenroll = ""
+
+	// AutoenrollWithApproval -> auto-enroll is enabled, but requires approval by a manager.
+	AutoenrollWithApproval WorkspaceAutoenroll = "withApproval"
+
+	// AutoenrollImmediate -> auto-enroll is enabled, and the user can enroll himself/herself.
+	AutoenrollImmediate WorkspaceAutoenroll = "immediate"
+)
+
 // WorkspaceSpec is the specification of the desired state of the Workspace.
 type WorkspaceSpec struct {
 	// The human-readable name of the Workspace.
 	PrettyName string `json:"prettyName"`
+
+	// AutoEnroll capability definition. If omitted, no autoenroll features will be added.
+	AutoEnroll WorkspaceAutoenroll `json:"autoEnroll,omitempty"`
 
 	// The amount of resources associated with this workspace, and inherited by enrolled tenants.
 	Quota WorkspaceResourceQuota `json:"quota"`

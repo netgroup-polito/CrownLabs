@@ -52,5 +52,8 @@ const (
 // WorkspaceLabelPrefix is the prefix of a label assigned to a tenant indicating it is subscribed to a workspace.
 const WorkspaceLabelPrefix = "crownlabs.polito.it/workspace-"
 
+// WorkspaceLabelAutoenroll is the label assigned to a workspace in which autoenroll is enabled.
+const WorkspaceLabelAutoenroll = "crownlabs.polito.it/autoenroll"
+
 // TnOperatorFinalizerName is the name of the finalizer corresponding to the tenant operator.
 const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"

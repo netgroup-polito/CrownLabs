@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -86,7 +87,10 @@ func (tv *TenantValidator) Handle(ctx context.Context, req admission.Request) ad
 	return tv.HandleWorkspaceEdit(ctx, tenant, oldTenant, manager, req.Operation)
 }
 
-// HandleSelfEdit checks every field but public keys for changes through DeepEqual.
+// HandleSelfEdit checks every field but public keys for changes:
+// - LastLogin must be within a certain tolerance;
+// - Workspaces can be changed only if autoenroll is enabled and within the allowed roles;
+// - Other fields must be unchanged.
 func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTenant *clv1alpha2.Tenant) admission.Response {
 	log := ctrl.LoggerFrom(ctx)
 	newTenant.Spec.PublicKeys = nil
@@ -99,13 +103,68 @@ func (tv *TenantValidator) HandleSelfEdit(ctx context.Context, newTenant, oldTen
 	newTenant.Spec.LastLogin = metav1.Time{}
 	oldTenant.Spec.LastLogin = metav1.Time{}
 
+	// manage workspaces
+	newWorkspaces := newTenant.Spec.Workspaces
+	oldWorkspaces := oldTenant.Spec.Workspaces
+	newTenant.Spec.Workspaces = nil
+	oldTenant.Spec.Workspaces = nil
+
 	if !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
 		log.Info("denied: unexpected tenant spec change")
-		return admission.Denied("only changes to public keys are allowed in the owned tenant")
+		return admission.Denied("only changes to public keys or workspaces that have autoenroll enabled are allowed in the owned tenant")
+	}
+
+	newTenant.Spec.Workspaces = newWorkspaces
+	oldTenant.Spec.Workspaces = oldWorkspaces
+
+	res, err := tv.checkValidWorkspaces(ctx, newTenant, oldTenant)
+	if err != nil {
+		log.Error(err, "failed to check workspace changes")
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	if !res {
+		log.Info("denied: workspaces validation failed")
+		return admission.Denied("you have changed workspaces you are not allowed to change")
 	}
 
 	log.Info("allowed")
 	return admission.Allowed("")
+}
+
+// checkValidWorkspaces checks that the user is not changing workspaces they are not allowed to change.
+func (tv *TenantValidator) checkValidWorkspaces(ctx context.Context, newTenant, oldTenant *clv1alpha2.Tenant) (bool, error) {
+	workspaceDiff := CalculateWorkspacesDiff(newTenant, oldTenant)
+	newWorkspacesMap := mapFromWorkspacesList(newTenant)
+
+	for ws, changed := range workspaceDiff {
+		if !changed {
+			// it's always ok to keep the same role
+			continue
+		}
+		wsObj := clv1alpha1.Workspace{}
+		err := tv.Client.Get(ctx, client.ObjectKey{Name: ws}, &wsObj)
+		if err != nil {
+			return false, fmt.Errorf("failed to fetch workspace %s: %w", ws, err)
+		}
+		if !utils.AutoEnrollEnabled(wsObj.Spec.AutoEnroll) {
+			// Tenant cannot change workspaces with autoenroll disabled
+			return false, nil
+		}
+		if _, ok := newWorkspacesMap[ws]; !ok {
+			// it's always possible to remove a Workspace from the Tenant if the target Workspace has autoenroll enabled
+			continue
+		}
+		if wsObj.Spec.AutoEnroll == clv1alpha1.AutoenrollImmediate && newWorkspacesMap[ws] != clv1alpha2.User {
+			// if AutoEnroll is Immediate, then the user has to enroll with User role
+			return false, nil
+		}
+		if wsObj.Spec.AutoEnroll == clv1alpha1.AutoenrollWithApproval && newWorkspacesMap[ws] != clv1alpha2.Candidate {
+			// if AutoEnroll is WithApproval, then the user has to enroll with Candidate role (to be approved by a Manager)
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // HandleWorkspaceEdit checks that changes made to the workspaces have been made by a valid manager, then checks other fields not to have been modified through DeepEqual.

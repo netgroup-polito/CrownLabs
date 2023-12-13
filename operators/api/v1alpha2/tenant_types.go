@@ -23,7 +23,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:Enum=manager;user
+// +kubebuilder:validation:Enum=manager;user;candidate
 
 // WorkspaceUserRole is an enumeration of the different roles that can be
 // associated to a Tenant in a Workspace.
@@ -36,6 +36,9 @@ const (
 	// User -> a Tenant with User role can only interact with his/her own
 	// environments (e.g. VMs) within that Workspace.
 	User WorkspaceUserRole = "user"
+	// Candidate -> a Tenant with Candidate role wants to be added to the
+	// Workspace, but he/she is not yet enrolled.
+	Candidate WorkspaceUserRole = "candidate"
 
 	// SVCTenantName -> name of a system/service tenant to which other resources might belong.
 	SVCTenantName string = "service-tenant"
