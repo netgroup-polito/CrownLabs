@@ -132,6 +132,7 @@ spec:
                       enum:
                       - manager
                       - user
+                      - candidate
                       type: string
                   required:
                   - name

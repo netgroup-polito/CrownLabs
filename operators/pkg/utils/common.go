@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 // ParseDockerDirectory returns a valid Docker image directory.
@@ -89,4 +91,10 @@ func Contains(slice []string, value string) bool {
 func CheckSingleLabel(obj client.Object, label, value string) bool {
 	labels := obj.GetLabels()
 	return labels != nil && labels[label] == value
+}
+
+// AutoEnrollEnabled checks if the specified WorkspaceAutoenroll enables any feature.
+func AutoEnrollEnabled(autoEnroll clv1alpha1.WorkspaceAutoenroll) bool {
+	return autoEnroll == clv1alpha1.AutoenrollImmediate ||
+		autoEnroll == clv1alpha1.AutoenrollWithApproval
 }

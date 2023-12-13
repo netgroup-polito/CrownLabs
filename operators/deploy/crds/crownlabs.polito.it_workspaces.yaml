@@ -49,6 +49,14 @@ spec:
             description: WorkspaceSpec is the specification of the desired state of
               the Workspace.
             properties:
+              autoEnroll:
+                description: AutoEnroll capability definition. If omitted, no autoenroll
+                  features will be added.
+                enum:
+                - ""
+                - withApproval
+                - immediate
+                type: string
               prettyName:
                 description: The human-readable name of the Workspace.
                 type: string
