@@ -15,6 +15,7 @@ import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import { Image, Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
+import Badge from '../../common/Badge';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -57,15 +58,7 @@ const getImages = (dataImages: ImagesQuery) => {
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const {
-    tenantNamespace,
-    workspace: {
-      role,
-      name: workspaceName,
-      namespace: workspaceNamespace,
-      prettyName: workspacePrettyName,
-    },
-  } = props;
+  const { tenantNamespace, workspace } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -82,9 +75,9 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const submitHandler = (t: Template) =>
     createTemplateMutation({
       variables: {
-        workspaceId: workspaceName,
-        workspaceNamespace: workspaceNamespace,
-        templateId: `${workspaceName}-`,
+        workspaceId: workspace.name,
+        workspaceNamespace: workspace.namespace,
+        templateId: `${workspace.name}-`,
         templateName: t.name?.trim()!,
         descriptionTemplate: t.name?.trim()!,
         image: t.registry
@@ -109,7 +102,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   return (
     <>
       <ModalCreateTemplate
-        workspaceNamespace={workspaceNamespace}
+        workspaceNamespace={workspace.namespace}
         cpuInterval={{ max: 4, min: 1 }}
         ramInterval={{ max: 8, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
@@ -125,11 +118,11 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           center: (
             <div className="h-full flex justify-center items-center px-5">
               <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{workspacePrettyName}</b>
+                <b>{workspace.prettyName}</b>
               </p>
             </div>
           ),
-          left: role === 'manager' && (
+          left: workspace.role === 'manager' && (
             <div className="h-full flex justify-center items-center pl-10">
               <Tooltip title="Manage users">
                 <Button
@@ -138,11 +131,20 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                   size="large"
                   icon={<UserSwitchOutlined />}
                   onClick={() => setShowUserListModal(true)}
-                />
+                >
+                  {workspace.waitingTenants && (
+                    <Badge
+                      value={workspace.waitingTenants}
+                      size="small"
+                      color="yellow"
+                      className="absolute -top-2.5 -right-2.5"
+                    />
+                  )}
+                </Button>
               </Tooltip>
             </div>
           ),
-          right: role === 'manager' && (
+          right: workspace.role === 'manager' && (
             <div className="h-full flex justify-center items-center pr-10">
               <Tooltip title="Create template">
                 <Button
@@ -162,22 +164,19 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       >
         <TemplatesTableLogic
           tenantNamespace={tenantNamespace}
-          role={role}
-          workspaceNamespace={workspaceNamespace}
-          workspaceName={workspaceName}
+          role={workspace.role}
+          workspaceNamespace={workspace.namespace}
+          workspaceName={workspace.name}
         />
         <Modal
           destroyOnClose={true}
-          title={`Users in ${workspacePrettyName} `}
+          title={`Users in ${workspace.prettyName} `}
           width="800px"
           visible={showUserListModal}
           footer={null}
           onCancel={() => setShowUserListModal(false)}
         >
-          <UserListLogic
-            workspaceName={workspaceName}
-            workspaceNamespace={workspaceNamespace}
-          />
+          <UserListLogic workspace={workspace} />
         </Modal>
       </Box>
     </>

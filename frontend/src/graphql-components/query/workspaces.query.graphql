@@ -1,0 +1,13 @@
+query workspaces($labels: String) {
+  workspaces: itPolitoCrownlabsV1alpha1WorkspaceList(labelSelector: $labels) {
+    items {
+      metadata {
+        name
+      }
+      spec {
+        prettyName
+        autoEnroll
+      }
+    }
+  }
+}

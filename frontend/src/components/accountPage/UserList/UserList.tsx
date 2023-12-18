@@ -7,6 +7,7 @@ import {
   DeleteOutlined,
   SwapOutlined,
   RedoOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import Column from 'antd/lib/table/Column';
 import { Role } from '../../../generated-types';
@@ -44,8 +45,21 @@ const UserList: FC<IUserListProps> = props => {
   };
 
   const handleChangeCurrentRole = (record: UserAccountPage) => {
-    const newRole =
-      record.currentRole === Role.Manager ? Role.User : Role.Manager;
+    let newRole: Role;
+    switch (record.currentRole) {
+      case Role.Manager:
+        newRole = Role.User;
+        break;
+      case Role.User:
+        newRole = Role.Manager;
+        break;
+      case Role.Candidate:
+        newRole = Role.User;
+        break;
+      default:
+        newRole = Role.User;
+        break;
+    }
 
     props.onUpdateUser(record, newRole);
   };
@@ -131,12 +145,21 @@ const UserList: FC<IUserListProps> = props => {
             render={(_: any, record: UserAccountPage) =>
               props.users.length >= 1 ? (
                 <div className="flex justify-center">
-                  <Tooltip title="Swap role">
-                    <SwapOutlined
-                      className="mr-2"
-                      onClick={() => handleChangeCurrentRole(record)}
-                    />
-                  </Tooltip>
+                  {record.currentRole === Role.Candidate ? (
+                    <Tooltip title="Approve request">
+                      <CheckOutlined
+                        className="mr-2"
+                        onClick={() => handleChangeCurrentRole(record)}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Swap role">
+                      <SwapOutlined
+                        className="mr-2"
+                        onClick={() => handleChangeCurrentRole(record)}
+                      />
+                    </Tooltip>
+                  )}
 
                   <DeleteOutlined className="text-gray-700" />
                 </div>

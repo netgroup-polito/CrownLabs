@@ -8,9 +8,12 @@ import Button from 'antd-button-color';
 import { Dispatch, SetStateAction } from 'react';
 import {
   ApplyInstanceMutation,
+  AutoEnroll,
   Exact,
+  ItPolitoCrownlabsV1alpha1Workspace,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
+  Maybe,
   OwnedInstancesQuery,
   Phase,
   UpdatedOwnedInstancesSubscriptionResult,
@@ -20,7 +23,14 @@ import {
   WorkspaceTemplatesQuery,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
-import { Instance, Template, Workspace, WorkspaceRole } from './utils';
+import {
+  Instance,
+  Template,
+  Workspace,
+  WorkspaceRole,
+  WorkspacesAvailable,
+  WorkspacesAvailableAction,
+} from './utils';
 
 type Nullable<T> = T | null | undefined;
 
@@ -311,6 +321,38 @@ export const joinInstancesAndTemplates = (
       i => i.templateId === makeTemplateKey(t.id, t.workspaceName)
     ),
   }));
+
+export const availableWorkspaces = (
+  workspaces: Maybe<ItPolitoCrownlabsV1alpha1Workspace>[],
+  userWorkspaces: Workspace[]
+) => {
+  return workspaces
+    .map(w => {
+      let wa: WorkspacesAvailable = {
+        name: w?.metadata?.name ?? '',
+        prettyName: w?.spec?.prettyName ?? '',
+        role:
+          userWorkspaces.find(uw => uw.name === w?.metadata?.name)?.role ??
+          null,
+      };
+      if (wa.role === null) {
+        // user is not enrolled and has not candidate status
+        if (w?.spec?.autoEnroll === AutoEnroll.Immediate) {
+          wa.action = WorkspacesAvailableAction.Join;
+        } else if (w?.spec?.autoEnroll === AutoEnroll.WithApproval) {
+          wa.action = WorkspacesAvailableAction.AskToJoin;
+        }
+      } else if (wa.role === WorkspaceRole.candidate) {
+        // user has candidate status
+        wa.action = WorkspacesAvailableAction.Waiting;
+      } else {
+        // user is enrolled
+        wa.action = WorkspacesAvailableAction.None;
+      }
+      return wa;
+    })
+    .filter(w => w.action !== WorkspacesAvailableAction.None);
+};
 
 //Utilities for active page only
 
