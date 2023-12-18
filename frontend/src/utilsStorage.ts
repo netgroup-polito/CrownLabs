@@ -7,6 +7,7 @@ export enum StorageKeys {
   // Dashboard Keys
   Dashboard_View = 'DashboardPageView',
   Dashboard_ID_T = 'DashboardPageTemplate',
+  Dashboard_LoadCandidates = 'DashboardPageLoadCandidates',
 }
 
 class StorageValue {

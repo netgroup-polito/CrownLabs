@@ -6,22 +6,21 @@ import {
 } from '../../../generated-types';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
-import { makeRandomDigits, UserAccountPage } from '../../../utils';
+import { makeRandomDigits, UserAccountPage, Workspace } from '../../../utils';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { Role } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes, SupportedError } from '../../../errorHandling/utils';
 
 export interface IUserListLogicProps {
-  workspaceName: string;
-  workspaceNamespace: string;
+  workspace: Workspace;
 }
 const UserListLogic: FC<IUserListLogicProps> = props => {
   const { apolloErrorCatcher, makeErrorCatcher } = useContext(ErrorContext);
   const genericErrorCatcher = makeErrorCatcher(ErrorTypes.GenericError);
 
   const { userId } = useContext(AuthContext);
-  const { workspaceName, workspaceNamespace } = props;
+  const { workspace } = props;
   const [loadingSpinner, setLoadingSpinner] = useState(false);
   const [errors, setErrors] = useState<any[]>([]);
   // Used to handle stop while uploading users from CSV
@@ -32,7 +31,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   const [users, setUsers] = useState<UserAccountPage[]>([]);
   const { data, loading, error, refetch } = useTenantsQuery({
     variables: {
-      labels: `crownlabs.polito.it/${workspaceNamespace}`,
+      labels: `crownlabs.polito.it/${workspace.namespace}`,
       retrieveWorkspaces: true,
     },
     onError: apolloErrorCatcher,
@@ -44,7 +43,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [abortUploading]);
 
   const getManager = () => {
-    return `${workspaceName}-${userId || makeRandomDigits(10)}`;
+    return `${workspace.name}-${userId || makeRandomDigits(10)}`;
   };
 
   const refreshUserList = async () => await refetch();
@@ -59,8 +58,8 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
           name: user?.spec?.firstName!,
           surname: user?.spec?.lastName!,
           email: user?.spec?.email!,
-          currentRole: user?.spec?.workspaces?.find(roles =>
-            workspaceName.includes(roles?.name!)
+          currentRole: user?.spec?.workspaces?.find(
+            roles => roles?.name === workspace.name
           )?.role!,
           workspaces:
             user?.spec?.workspaces?.map(workspace => ({
@@ -70,7 +69,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         })) || []
       );
     }
-  }, [loading, data, workspaceName]);
+  }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
 
@@ -78,7 +77,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     try {
       let workspaces = users
         .find(u => u.userid === user.userid)!
-        .workspaces?.filter(w => w.name === workspaceName)
+        .workspaces?.filter(w => w.name === workspace.name)
         .map(({ name }) => ({ name, role: newRole }));
       setLoadingSpinner(true);
       await applyTenantMutation({
@@ -90,15 +89,23 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         onError: apolloErrorCatcher,
       });
       setUsers(
-        users.map(u =>
-          u.userid === user.userid
-            ? {
-                ...u,
-                currentRole: newRole,
-                workspaces,
+        users.map(u => {
+          if (u.userid === user.userid) {
+            if (u.currentRole === Role.Candidate && workspace.waitingTenants) {
+              workspace.waitingTenants--;
+              if (workspace.waitingTenants === 0) {
+                workspace.waitingTenants = undefined;
               }
-            : u
-        )
+            }
+            return {
+              ...u,
+              currentRole: newRole,
+              workspaces,
+            };
+          } else {
+            return u;
+          }
+        })
       );
     } catch (error) {
       genericErrorCatcher(error as SupportedError);
@@ -164,8 +171,8 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         users={users}
         onAddUser={addUser}
         onUpdateUser={updateUser}
-        workspaceNamespace={workspaceNamespace}
-        workspaceName={workspaceName}
+        workspaceNamespace={workspace.namespace}
+        workspaceName={workspace.name}
         uploadedNumber={uploadedNumber}
         uploadedUserNumber={uploadedUserNumber}
         setAbortUploading={handleAbort}
