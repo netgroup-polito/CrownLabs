@@ -1,3 +1,17 @@
+// Copyright 2020-2023 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package tenant_controller_test
 
 import (
@@ -78,8 +92,9 @@ var _ = Describe("Workspace AutoEnroll Update", func() {
 		It("should update candidate tenants to user", func() {
 			By("Updating the workspace")
 			workspace.Spec.AutoEnroll = clv1alpha1.AutoenrollImmediate
-			cl.Update(ctx, &workspace)
-			_, err := wsReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspace.Name}})
+			err := cl.Update(ctx, &workspace)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = wsReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspace.Name}})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Checking that the tenant has been updated")
@@ -94,8 +109,9 @@ var _ = Describe("Workspace AutoEnroll Update", func() {
 		It("should update user and remove workspace", func() {
 			By("Updating the workspace")
 			workspace.Spec.AutoEnroll = clv1alpha1.AutoenrollNone
-			cl.Update(ctx, &workspace)
-			_, err := wsReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspace.Name}})
+			err := cl.Update(ctx, &workspace)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = wsReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: types.NamespacedName{Name: workspace.Name}})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Checking that the tenant has been updated")
