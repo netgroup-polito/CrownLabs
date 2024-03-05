@@ -1,4 +1,8 @@
 {
+    "security.workspace.trust.enabled": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.startupEditor": "none",
+    "window.menuBarVisibility": "visible",
     "go.toolsManagement.autoUpdate": true,
     "[go]": {
         "editor.insertSpaces": false,
