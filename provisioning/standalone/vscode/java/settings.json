@@ -1,0 +1,8 @@
+{
+    "security.workspace.trust.enabled": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.startupEditor": "none",
+    "window.menuBarVisibility": "visible",
+    "java.project.importHint": false,
+    "redhat.telemetry.enabled": false
+}
