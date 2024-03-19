@@ -40,6 +40,10 @@ users:
         - tenant-key-1
         - tenant-key-2
       shell: /bin/bash
+network:
+    version: 2
+    id0:
+        dhcp4: true
 mounts:
     - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/path
       - /media/mydrive
