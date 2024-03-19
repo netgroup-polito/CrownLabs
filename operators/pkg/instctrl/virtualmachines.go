@@ -68,6 +68,17 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	template := clctx.TemplateFrom(ctx)
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+
+	// It is necessary to retrieve the VMI object associated with the VM (if any), to enforce the MAC of the VMI into the VM, and later to correctly detect the ResourceQuotaExceeded phase.
+	// VM and VMI are characterized by the same resource name.
+	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
+		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
+		return err
+	} else if err != nil {
+		klog.Infof("VMI %s-%s doesn't exist", instance.Name, environment.Name)
+	}
+
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &vm, func() error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
@@ -77,6 +88,9 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
 		vm.SetLabels(forge.EnvironmentObjectLabels(vm.GetLabels(), instance, environment))
+		if len(vm.Spec.Template.Spec.Domain.Devices.Interfaces) > 0 && len(vmi.Status.Interfaces) > 0 && vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress == "" {
+			vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress = vmi.Status.Interfaces[0].MAC
+		}
 		return ctrl.SetControllerReference(instance, &vm, r.Scheme)
 	})
 
@@ -86,15 +100,6 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	}
 	log.V(utils.FromResult(res)).Info("virtualmachine enforced", "virtualmachine", klog.KObj(&vm), "result", res)
 
-	// It is necessary to retrieve the VMI object associated with the VM (if any), to correctly detect the ResourceQuotaExceeded phase.
-	// VM and VMI are characterized by the same resource name.
-	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-	if err = r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
-		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
-		return err
-	} else if err != nil {
-		klog.Infof("VMI %s-%s doesn't exist", instance.Name, environment.Name)
-	}
 	phase := r.RetrievePhaseFromVM(&vm, &vmi)
 
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
