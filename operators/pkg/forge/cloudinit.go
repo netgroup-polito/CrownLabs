@@ -23,7 +23,6 @@ import (
 // userdata is a helper structure to marshal the userdata configuration.
 type userdata struct {
 	Users             []user     `yaml:"users"`
-	Network           network    `yaml:"network"`
 	Mounts            [][]string `yaml:"mounts"`
 	SSHAuthorizedKeys []string   `yaml:"ssh_authorized_keys,omitempty"`
 }
@@ -36,12 +35,6 @@ type user struct {
 	Sudo              string   `yaml:"sudo"`
 	SSHAuthorizedKeys []string `yaml:"ssh_authorized_keys,omitempty"`
 	Shell             string   `yaml:"shell"`
-}
-
-// network is a helper structure to marshal the userdata configuration to configure the network subsystem.
-type network struct {
-	Version int    `yaml:"version"`
-	ID0     interf `yaml:"id0"`
 }
 
 // interf is a helper structure to marshal the userdata configuration to configure a given interface.
@@ -62,10 +55,6 @@ func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]by
 			SSHAuthorizedKeys: publicKeys,
 			Shell:             "/bin/bash",
 		}},
-		Network: network{
-			Version: 2,
-			ID0:     interf{DHCP4: true},
-		},
 		SSHAuthorizedKeys: publicKeys,
 	}
 	if nfsServerName != "" && nfsPath != "" {
