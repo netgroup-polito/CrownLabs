@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/textlogger"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,10 +48,13 @@ func TestAPIs(t *testing.T) {
 var (
 	instanceReconciler instctrl.InstanceReconciler
 	k8sClient          client.Client
-	testEnv            = envtest.Environment{CRDDirectoryPaths: []string{
-		filepath.Join("..", "..", "deploy", "crds"),
-		filepath.Join("..", "..", "tests", "crds"),
-	}}
+	testEnv            = envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "deploy", "crds"),
+			filepath.Join("..", "..", "tests", "crds"),
+		},
+		ErrorIfCRDPathMissing: true,
+	}
 	whiteListMap = map[string]string{"production": "true"}
 )
 
@@ -62,15 +65,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
-	ctrl.SetLogger(klogr.NewWithOptions())
+	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
 
 	instanceReconciler = instctrl.InstanceReconciler{
 		Client:             k8sClient,

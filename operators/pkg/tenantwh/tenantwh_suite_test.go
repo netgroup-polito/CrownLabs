@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tenantwh_test
+package tenantwh
 
 import (
 	"context"
@@ -30,9 +30,8 @@ import (
 )
 
 var (
-	scheme  *runtime.Scheme
-	decoder *admission.Decoder
-	ctx     = context.Background()
+	scheme *runtime.Scheme
+	ctx    = context.Background()
 
 	bypassGroups   = []string{"admins"}
 	testTenantName = "test-tenant"
@@ -43,9 +42,6 @@ var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
 	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
-	var err error
-	decoder, err = admission.NewDecoder(scheme)
-	Expect(err).ToNot(HaveOccurred())
 })
 
 func TestTenantWebHooks(t *testing.T) {

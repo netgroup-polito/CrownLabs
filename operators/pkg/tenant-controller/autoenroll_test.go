@@ -74,7 +74,7 @@ var _ = Describe("Workspace AutoEnroll Update", func() {
 	})
 
 	JustBeforeEach(func() {
-		cl = builder.WithObjects(&tenant, &workspace).Build()
+		cl = builder.WithObjects(&tenant, &workspace).WithStatusSubresource(&tenant, &workspace).Build()
 		tnReconciler = tntctrl.TenantReconciler{
 			Client: cl, Scheme: scheme.Scheme,
 			TargetLabelKey: labelkey, TargetLabelValue: labelvalue,

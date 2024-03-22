@@ -1,3 +1,10 @@
+### NOTE: THIS FILE IS CURRENTLY NOT UP TO DATE WITH THE ACTUAL KUBEBUILDER 3 BOILERPLATE
+
+# Image URL to use all building/pushing image targets
+IMG ?= controller:latest
+# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
+ENVTEST_K8S_VERSION = 1.29.0
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -59,7 +66,7 @@ generate: controller-gen
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.1
+	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)

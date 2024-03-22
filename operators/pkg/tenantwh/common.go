@@ -16,6 +16,7 @@ package tenantwh
 
 import (
 	"context"
+	"errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,14 +39,11 @@ func (twh *TenantWebhook) CheckWebhookOverride(req *admission.Request) bool {
 	return utils.MatchOneInStringSlices(twh.BypassGroups, req.UserInfo.Groups)
 }
 
-// InjectDecoder injects the decoder - this method is used by controller runtime.
-func (twh *TenantWebhook) InjectDecoder(d *admission.Decoder) error {
-	twh.decoder = d
-	return nil
-}
-
 // DecodeTenant decodes the tenant from the incoming request.
 func (twh *TenantWebhook) DecodeTenant(obj runtime.RawExtension) (tenant *clv1alpha2.Tenant, err error) {
+	if twh.decoder == nil {
+		return nil, errors.New("missing decoder")
+	}
 	tenant = &clv1alpha2.Tenant{}
 	err = twh.decoder.DecodeRaw(obj, tenant)
 	return

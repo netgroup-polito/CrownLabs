@@ -40,7 +40,7 @@ To install Harbor, it is possible to leverage the [official Helm Chart](https://
   6. PVC that can be shared across nodes (i.e., with `ReadWriteMany` access mode) or external object storage
 
 ### Redis Configuration
-In our architecture we have a [Redis-Sentinel](https://redis.io/docs/manual/sentinel/) service, instead of [Redis Cluster](https://redis.io/docs/manual/scaling/), because with this architecture Sentinel manages automatically the failover of the master.
+In our architecture we have a [Redis-Sentinel](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/) service, instead of [Redis Cluster](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/), because with this architecture Sentinel manages automatically the failover of the master.
 To enable the `Redis-Sentinel ` architecture it is necessary to configure the following parameter in the redis file values (`redis-service-values.yaml`):
 ```yaml
   sentinel.enabled=true

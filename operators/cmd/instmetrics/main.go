@@ -20,12 +20,10 @@ import (
 	"flag"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/docker/docker/client"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/textlogger"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instmetrics"
@@ -40,7 +38,7 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	log := klogr.NewWithOptions().WithName("instmetrics")
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("instmetrics")
 	ctx := clctx.LoggerIntoContext(context.Background(), log)
 
 	remoteRuntimeClient, err := instmetrics.GetRuntimeService(ctx, *connectionTimeout, *runtimeEndpoint)
@@ -49,19 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var statsScraper instmetrics.StatsScraper
-
-	switch *runtimeEndpoint {
-	case "unix:///run/dockershim.sock":
-		dockerCli, err := client.NewClientWithOpts(client.WithVersion("v1.41"))
-		if err != nil {
-			log.Error(err, "Unable to initialize docker API client")
-			os.Exit(1)
-		}
-		statsScraper = instmetrics.DockerMetricsScraper{DockerClient: dockerCli, ContStatsListMutex: &sync.RWMutex{}}
-	default:
-		statsScraper = instmetrics.CRIMetricsScraper{RuntimeClient: remoteRuntimeClient}
-	}
+	var statsScraper instmetrics.StatsScraper = instmetrics.CRIMetricsScraper{RuntimeClient: remoteRuntimeClient}
 
 	go func() {
 		http.Handle("/ready", &instmetrics.ReadinessProbeHandler{RuntimeClient: remoteRuntimeClient, Log: log.WithName("probeHandler"), Ready: false})
@@ -71,13 +57,13 @@ func main() {
 		}
 	}()
 
-	err = instmetrics.Server{
+	err = (&instmetrics.Server{
 		MetricsScraperPeriod: *updatePeriod,
 		Log:                  log.WithName("gRPCServer"),
 		Port:                 *grpcPort,
 		RuntimeClient:        remoteRuntimeClient,
 		StatsScraper:         &statsScraper,
-	}.Start(ctx)
+	}).Start(ctx)
 	if err != nil {
 		log.Error(err, "Unable to initialize gRPC server")
 		os.Exit(1)

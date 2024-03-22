@@ -25,6 +25,7 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,10 +43,11 @@ const LastLoginToleration = time.Hour * 24
 type TenantValidator struct{ TenantWebhook }
 
 // MakeTenantValidator creates a new webhook handler suitable for controller runtime based on TenantValidator.
-func MakeTenantValidator(c client.Client, webhookBypassGroups []string) *webhook.Admission {
+func MakeTenantValidator(c client.Client, webhookBypassGroups []string, scheme *runtime.Scheme) *webhook.Admission {
 	return &webhook.Admission{Handler: &TenantValidator{TenantWebhook{
 		Client:       c,
 		BypassGroups: webhookBypassGroups,
+		decoder:      admission.NewDecoder(scheme),
 	}}}
 }
 

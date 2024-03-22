@@ -279,7 +279,7 @@ var _ = Describe("Tenant controller", func() {
 
 })
 
-func checkTnPVBound(ctx context.Context, tnName, nsName string, timeout, interval time.Duration, serverName, rookCephNamespace, path string) {
+func checkTnPVBound(ctx context.Context, tnName string, timeout, interval time.Duration, serverName, rookCephNamespace, path string) {
 	var pvc v1.PersistentVolumeClaim
 	doesEventuallyExists(ctx, types.NamespacedName{Name: myDrivePVCName(tnName), Namespace: testMyDrivePVCsNamespace}, &pvc, BeTrue(), timeout, interval)
 
@@ -432,7 +432,7 @@ func checkTnClusterResourceCreation(ctx context.Context, tnName, nsName string, 
 	Expect(createdNetPolAllow.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["crownlabs.polito.it/allow-instance-access"]).Should(Equal("true"))
 
 	By("By checking that the mydrive-info secret of the tenant has been created")
-	checkTnPVBound(ctx, tnName, nsName, timeout, interval, serverName, rookCephNamespace, path)
+	checkTnPVBound(ctx, tnName, timeout, interval, serverName, rookCephNamespace, path)
 
 	By("By checking that the mydrive-info secret of the tenant has been created")
 	NFSSecretLookupKey := types.NamespacedName{Name: NFSSecretName, Namespace: nsName}

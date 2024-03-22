@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
@@ -71,7 +71,7 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, environment *clv1
 		Volumes:                       Volumes(instance, environment),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
-		TerminationGracePeriodSeconds: pointer.Int64(terminationGracePeriod),
+		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
 	}
 }
 
@@ -233,8 +233,8 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 	}
 	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
-			URL:       pointer.String(urlDockerPrefix + environment.Image),
-			SecretRef: pointer.String(cdiSecretName),
+			URL:       ptr.To[string](urlDockerPrefix + environment.Image),
+			SecretRef: ptr.To[string](cdiSecretName),
 		},
 	}
 }
@@ -247,7 +247,7 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 			Source: DataVolumeSourceForge(environment),
 			PVC: &corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: environment.Resources.Disk,
 					},

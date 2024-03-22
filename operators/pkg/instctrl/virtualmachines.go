@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,7 +73,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			vm.Spec = forge.VirtualMachineSpec(instance, environment)
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
-		vm.Spec.Running = pointer.Bool(instance.Spec.Running)
+		vm.Spec.Running = ptr.To(instance.Spec.Running)
 		vm.SetLabels(forge.InstanceObjectLabels(vm.GetLabels(), instance))
 		return ctrl.SetControllerReference(instance, &vm, r.Scheme)
 	})
@@ -90,6 +90,8 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	if err = r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
 		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
 		return err
+	} else if err != nil {
+		klog.Infof("VMI %s doesn't exist", instance.Name)
 	}
 	phase := r.RetrievePhaseFromVM(&vm, &vmi)
 

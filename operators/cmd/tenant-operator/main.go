@@ -27,9 +27,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/textlogger"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -107,7 +109,7 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	ctrl.SetLogger(klogr.NewWithOptions())
+	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
 	ctx := ctrl.SetupSignalHandler()
 	log := ctrl.Log.WithName("setup")
@@ -126,8 +128,8 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Metrics:                server.Options{BindAddress: metricsAddr},
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "f547a6ba.crownlabs.polito.it",
 		HealthProbeBindAddress: ":8081",
@@ -148,8 +150,14 @@ func main() {
 	if *enableWH {
 		hookServer := mgr.GetWebhookServer()
 		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
-		hookServer.Register(ValidatingWebhookPath, tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList))
-		hookServer.Register(MutatingWebhookPath, tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList))
+		hookServer.Register(
+			ValidatingWebhookPath,
+			tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList, mgr.GetScheme()),
+		)
+		hookServer.Register(
+			MutatingWebhookPath,
+			tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList, mgr.GetScheme()),
+		)
 	} else {
 		log.Info("Webhook set up: operation skipped")
 	}

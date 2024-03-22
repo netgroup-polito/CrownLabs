@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
@@ -92,7 +92,7 @@ func PVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSp
 			corev1.ReadWriteOnce,
 		},
 		StorageClassName: PVCStorageClassName(environment),
-		Resources: corev1.ResourceRequirements{
+		Resources: corev1.VolumeResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceStorage: environment.Resources.Disk,
 			},
@@ -103,7 +103,7 @@ func PVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSp
 // PVCStorageClassName returns the storage class configured as option, or nil if empty.
 func PVCStorageClassName(environment *clv1alpha2.Environment) *string {
 	if environment.StorageClassName != "" {
-		return pointer.String(environment.StorageClassName)
+		return ptr.To[string](environment.StorageClassName)
 	}
 	return nil
 }
@@ -112,10 +112,10 @@ func PVCStorageClassName(environment *clv1alpha2.Environment) *string {
 // with 1010 UID and GID and RunAsNonRoot set.
 func PodSecurityContext() *corev1.PodSecurityContext {
 	return &corev1.PodSecurityContext{
-		RunAsUser:    pointer.Int64(CrownLabsUserID),
-		RunAsGroup:   pointer.Int64(CrownLabsUserID),
-		FSGroup:      pointer.Int64(CrownLabsUserID),
-		RunAsNonRoot: pointer.Bool(true),
+		RunAsUser:    ptr.To(CrownLabsUserID),
+		RunAsGroup:   ptr.To(CrownLabsUserID),
+		FSGroup:      ptr.To(CrownLabsUserID),
+		RunAsNonRoot: ptr.To(true),
 	}
 }
 
@@ -123,9 +123,9 @@ func PodSecurityContext() *corev1.PodSecurityContext {
 // or, if persistent, in case environment spec is set as running; 0 otherwise.
 func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, isNew bool) *int32 {
 	if (!isNew && !environment.Persistent) || instance.Spec.Running {
-		return pointer.Int32(1)
+		return ptr.To[int32](1)
 	}
-	return pointer.Int32(0)
+	return ptr.To[int32](0)
 }
 
 // DeploymentSpec forges the complete DeploymentSpec (without replicas)
@@ -149,10 +149,10 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 		Containers:                    ContainersSpec(instance, environment, opts),
 		Volumes:                       ContainerVolumes(instance, environment, nfsServerName, nfsPath),
 		SecurityContext:               PodSecurityContext(),
-		AutomountServiceAccountToken:  pointer.Bool(false),
-		TerminationGracePeriodSeconds: pointer.Int64(containersTerminationGracePeriod),
+		AutomountServiceAccountToken:  ptr.To(false),
+		TerminationGracePeriodSeconds: ptr.To[int64](containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
-		EnableServiceLinks:            pointer.Bool(false),
+		EnableServiceLinks:            ptr.To(false),
 		Hostname:                      InstanceHostname(environment),
 	}
 	return spec
@@ -161,8 +161,8 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 // SubmissionJobSpec returns the job spec for the submission job.
 func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, opts *ContainerEnvOpts) batchv1.JobSpec {
 	return batchv1.JobSpec{
-		BackoffLimit:            pointer.Int32(SubmissionJobMaxRetries),
-		TTLSecondsAfterFinished: pointer.Int32(SubmissionJobTTLSeconds),
+		BackoffLimit:            ptr.To[int32](SubmissionJobMaxRetries),
+		TTLSecondsAfterFinished: ptr.To[int32](SubmissionJobTTLSeconds),
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -170,7 +170,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 				},
 				Volumes:                      ContainerVolumes(instance, environment, "", ""),
 				SecurityContext:              PodSecurityContext(),
-				AutomountServiceAccountToken: pointer.Bool(false),
+				AutomountServiceAccountToken: ptr.To(false),
 				RestartPolicy:                corev1.RestartPolicyOnFailure,
 			},
 		},
@@ -183,7 +183,7 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassContainer:
-		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(instance, environment, volumeMountPath))
+		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath))
 	default:
@@ -224,7 +224,7 @@ func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
 
 // StandaloneContainer forges the Standalone application container of the environment.
 func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
-	standaloneContainer := AppContainer(instance, environment, volumeMountPath)
+	standaloneContainer := AppContainer(environment, volumeMountPath)
 	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
 
 	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance))
@@ -240,7 +240,7 @@ func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.
 }
 
 // AppContainer forges the main application container of the environment.
-func AppContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
+func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string) corev1.Container {
 	appContainer := GenericContainer(environment.Name, environment.Image)
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", appContainer.Name, corev1.ResourceRequestsCPU, DefaultDivisor)
@@ -305,8 +305,8 @@ func RestrictiveSecurityContext() *corev1.SecurityContext {
 				corev1.Capability("ALL"),
 			},
 		},
-		Privileged:               pointer.Bool(false),
-		AllowPrivilegeEscalation: pointer.Bool(false),
+		Privileged:               ptr.To(false),
+		AllowPrivilegeEscalation: ptr.To(false),
 	}
 }
 

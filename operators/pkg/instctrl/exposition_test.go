@@ -17,6 +17,7 @@ package instctrl_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -29,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -109,8 +110,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 			Kind:               "Instance",
 			Name:               instance.GetName(),
 			UID:                instance.GetUID(),
-			BlockOwnerDeletion: pointer.Bool(true),
-			Controller:         pointer.Bool(true),
+			BlockOwnerDeletion: ptr.To(true),
+			Controller:         ptr.To(true),
 		}
 	})
 
@@ -174,15 +175,13 @@ var _ = Describe("Generation of the exposition environment", func() {
 		BeforeEach(func() { instance.Spec.Running = true })
 
 		ObjectToSpec := func(obj client.Object) interface{} {
-			switch obj.GetObjectKind().GroupVersionKind().Kind {
-			case "Service":
-				return obj.(*corev1.Service).Spec
-			case "Ingress":
-				return obj.(*netv1.Ingress).Spec
-			default:
-				Fail("Unexpected resource type " + obj.GetObjectKind().GroupVersionKind().Kind)
-				return nil
+			if svc, ok := obj.(*corev1.Service); ok {
+				return svc.Spec
+			} else if ing, ok := obj.(*netv1.Ingress); ok {
+				return ing.Spec
 			}
+			Fail("Unexpected resource type " + reflect.TypeOf(obj).String())
+			return nil
 		}
 
 		DescribeBodyPresent := func(p DescribeBodyParameters) {

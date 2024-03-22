@@ -31,7 +31,7 @@ const (
 
 // LogConstructor returns a constructor for a logger to be used by the given controller.
 func LogConstructor(logger logr.Logger, ctrlname string) func(*reconcile.Request) logr.Logger {
-	return func(r *reconcile.Request) logr.Logger {
+	return func(_ *reconcile.Request) logr.Logger {
 		return logger.WithName(ctrlname)
 	}
 }

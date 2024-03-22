@@ -23,7 +23,7 @@ import (
 	// criapi "k8s.io/cri-api/pkg/apis/runtime/v1".
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	criapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 )

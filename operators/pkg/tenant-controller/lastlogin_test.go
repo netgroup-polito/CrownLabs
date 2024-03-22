@@ -61,7 +61,7 @@ var _ = Describe("Automatic namespace deletion", func() {
 	})
 
 	JustBeforeEach(func() {
-		cl = builder.WithObjects(&tenant).Build()
+		cl = builder.WithObjects(&tenant).WithStatusSubresource(&tenant).Build()
 		reconciler := tntctrl.TenantReconciler{
 			Client: cl, Scheme: scheme.Scheme, TenantNSKeepAlive: 1 * time.Hour,
 			RequeueTimeMinimum: 1 + time.Hour, RequeueTimeMaximum: 2 * time.Hour,

@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -133,8 +133,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			Kind:               "Instance",
 			Name:               instance.GetName(),
 			UID:                instance.GetUID(),
-			BlockOwnerDeletion: pointer.Bool(true),
-			Controller:         pointer.Bool(true),
+			BlockOwnerDeletion: ptr.To(true),
+			Controller:         ptr.To(true),
 		}
 	})
 
@@ -326,7 +326,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				BeforeEach(func() {
 					existing := virtv1.VirtualMachine{
 						ObjectMeta: forge.NamespacedNameToObjectMeta(objectName),
-						Spec:       virtv1.VirtualMachineSpec{Running: pointer.Bool(running)},
+						Spec:       virtv1.VirtualMachineSpec{Running: ptr.To(running)},
 						Status:     virtv1.VirtualMachineStatus{PrintableStatus: virtv1.VirtualMachineStatusRunning},
 					}
 					existing.SetCreationTimestamp(metav1.NewTime(time.Now()))

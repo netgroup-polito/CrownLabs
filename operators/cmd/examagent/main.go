@@ -22,14 +22,14 @@ import (
 	"path"
 	"time"
 
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/textlogger"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/examagent"
 )
 
 func main() {
 	examagent.Options.Init()
-	log := klogr.NewWithOptions().WithName("examagent")
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
 
 	if err := examagent.Options.Parse(); err != nil {
 		log.Error(err, "invalid configuration")
