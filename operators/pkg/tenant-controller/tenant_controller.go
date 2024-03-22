@@ -37,7 +37,6 @@ import (
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -192,7 +191,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if err = r.EnforceSandboxResources(ctx, &tn); err != nil {
-		klog.Error("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
+		klog.Errorf("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
 		tn.Status.SandboxNamespace.Created = false
 		tnOpinternalErrors.WithLabelValues("tenant", "sandbox-resources").Inc()
 		return ctrl.Result{}, err
@@ -244,7 +243,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&netv1.NetworkPolicy{}).
-		Watches(&source.Kind{Type: &crownlabsv1alpha1.Workspace{}},
+		Watches(&crownlabsv1alpha1.Workspace{},
 			handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Concurrency,
@@ -335,7 +334,7 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 	// Attempt to get instances in current namespace
 	list := &crownlabsv1alpha2.InstanceList{}
 
-	if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
+	if err := r.List(ctx, list, client.InNamespace(nsName)); err != nil {
 		return true, err
 	}
 
@@ -691,10 +690,10 @@ func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string
 	return labels
 }
 
-func (r *TenantReconciler) workspaceToEnrolledTenants(o client.Object) []reconcile.Request {
+func (r *TenantReconciler) workspaceToEnrolledTenants(ctx context.Context, o client.Object) []reconcile.Request {
 	var enqueues []reconcile.Request
 	var tenants crownlabsv1alpha2.TenantList
-	if err := r.List(context.Background(), &tenants, client.HasLabels{
+	if err := r.List(ctx, &tenants, client.HasLabels{
 		fmt.Sprintf("%s%s", crownlabsv1alpha2.WorkspaceLabelPrefix, o.GetName()),
 	}); err != nil {
 		klog.Errorf("Error when retrieving tenants enrolled in %s -> %s", o.GetName(), err)

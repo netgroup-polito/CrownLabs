@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: templates.crownlabs.polito.it
 spec:
   group: crownlabs.polito.it
@@ -50,14 +49,19 @@ spec:
           be instantiated.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -67,10 +71,11 @@ spec:
             properties:
               deleteAfter:
                 default: never
-                description: The maximum lifetime of an Instance referencing the current
-                  Template. Once this period is expired, the Instance may be automatically
-                  deleted or stopped to save resources. If set to "never", the instance
-                  will not be automatically terminated.
+                description: |-
+                  The maximum lifetime of an Instance referencing the current Template.
+                  Once this period is expired, the Instance may be automatically deleted
+                  or stopped to save resources. If set to "never", the instance will not be
+                  automatically terminated.
                 pattern: ^(never|[0-9]+[mhd])$
                 type: string
               description:
@@ -87,9 +92,9 @@ spec:
                       description: Options to customize container startup
                       properties:
                         contentPath:
-                          description: Path on which storage (EmptyDir/Storage) will
-                            be mounted and into which, if given in SourceArchiveURL,
-                            will be extracted the archive
+                          description: |-
+                            Path on which storage (EmptyDir/Storage) will be mounted
+                            and into which, if given in SourceArchiveURL, will be extracted the archive
                           type: string
                         enforceWorkdir:
                           default: false
@@ -114,8 +119,9 @@ spec:
                         bar when true
                       type: boolean
                     environmentType:
-                      description: The type of environment to be instantiated, among
-                        VirtualMachine, Container, CloudVM and Standalone.
+                      description: |-
+                        The type of environment to be instantiated, among VirtualMachine,
+                        Container, CloudVM and Standalone.
                       enum:
                       - VirtualMachine
                       - Container
@@ -150,19 +156,19 @@ spec:
                       type: string
                     persistent:
                       default: false
-                      description: Whether the environment should be persistent (i.e.
-                        preserved when the corresponding instance is terminated) or
-                        not.
+                      description: |-
+                        Whether the environment should be persistent (i.e. preserved when the
+                        corresponding instance is terminated) or not.
                       type: boolean
                     resources:
                       description: The amount of computational resources associated
                         with the environment.
                       properties:
                         cpu:
-                          description: The maximum number of CPU cores made available
-                            to the environment (at least 1 core). This maps to the
-                            'limits' specified for the actual pod representing the
-                            environment.
+                          description: |-
+                            The maximum number of CPU cores made available to the environment
+                            (at least 1 core). This maps to the 'limits' specified
+                            for the actual pod representing the environment.
                           format: int32
                           minimum: 1
                           type: integer
@@ -170,29 +176,28 @@ spec:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: The size of the persistent disk allocated for
-                            the given environment. This field is meaningful only in
-                            case of persistent or container-based environments, while
-                            it is silently ignored in the other cases. In case of
-                            containers, when this field is not specified, an emptyDir
-                            will be attached to the pod but this could result in data
-                            loss whenever the pod dies.
+                          description: |-
+                            The size of the persistent disk allocated for the given environment.
+                            This field is meaningful only in case of persistent or container-based
+                            environments, while it is silently ignored in the other cases.
+                            In case of containers, when this field is not specified, an emptyDir will be
+                            attached to the pod but this could result in data loss whenever the pod dies.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         memory:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: The amount of RAM memory assigned to the given
-                            environment. Requests and limits do correspond to avoid
-                            OOMKill issues.
+                          description: |-
+                            The amount of RAM memory assigned to the given environment. Requests and
+                            limits do correspond to avoid OOMKill issues.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         reservedCPUPercentage:
-                          description: The percentage of reserved CPU cores, ranging
-                            between 1 and 100, with respect to the 'CPU' value. Essentially,
-                            this corresponds to the 'requests' specified for the actual
-                            pod representing the environment.
+                          description: |-
+                            The percentage of reserved CPU cores, ranging between 1 and 100, with
+                            respect to the 'CPU' value. Essentially, this corresponds to the 'requests'
+                            specified for the actual pod representing the environment.
                           format: int32
                           maximum: 100
                           minimum: 1
@@ -230,8 +235,9 @@ spec:
                     description: The name of the resource to be referenced.
                     type: string
                   namespace:
-                    description: The namespace containing the resource to be referenced.
-                      It should be left empty in case of cluster-wide resources.
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
                     type: string
                 required:
                 - name

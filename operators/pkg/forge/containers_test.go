@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -273,7 +273,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(i, e, forge.PersistentMountPath(e)),
+						forge.AppContainer(e, forge.PersistentMountPath(e)),
 					}
 				},
 			}))
@@ -285,7 +285,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(i, e, forge.PersistentMountPath(e)),
+						forge.AppContainer(e, forge.PersistentMountPath(e)),
 					}
 				},
 			}))
@@ -297,7 +297,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(i, e, forge.PersistentMountPath(&environment)),
+						forge.AppContainer(e, forge.PersistentMountPath(&environment)),
 					}
 				},
 			}))
@@ -482,7 +482,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		Context("Has to set the general parameters", func() {
 			JustBeforeEach(func() {
-				actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+				actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
 			})
 
 			It("Should set the correct container name and image", func() {
@@ -521,7 +521,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
 					})
 
 					It("Should set the VolumeMounts accordingly", func() {
@@ -564,7 +564,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
 					})
 
 					It("Should return the correct startup args", func() {
@@ -575,17 +575,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("ContainerStartupOptions is nil", WhenBody(ContainerCase{
 				StartupOpts:    nil,
-				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return nil },
+				ExpectedOutput: func(_ *clv1alpha2.Environment) []string { return nil },
 			}))
 
 			When("startup argument are not set", WhenBody(ContainerCase{
 				StartupOpts:    &clv1alpha2.ContainerStartupOpts{},
-				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return nil },
+				ExpectedOutput: func(_ *clv1alpha2.Environment) []string { return nil },
 			}))
 
 			When("startup argument are not set", WhenBody(ContainerCase{
 				StartupOpts:    &clv1alpha2.ContainerStartupOpts{StartupArgs: testArguments},
-				ExpectedOutput: func(e *clv1alpha2.Environment) []string { return testArguments },
+				ExpectedOutput: func(_ *clv1alpha2.Environment) []string { return testArguments },
 			}))
 		})
 
@@ -602,7 +602,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
 					})
 
 					It("Should set the WorkingDirectory accordingly", func() {
@@ -613,7 +613,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("ContainerStartupOptions is nil", WhenBody(ContainerCase{
 				StartupOpts:    nil,
-				ExpectedOutput: func(e *clv1alpha2.Environment) string { return "" },
+				ExpectedOutput: func(_ *clv1alpha2.Environment) string { return "" },
 			}))
 
 			When("EnforceWorkdir is set", WhenBody(ContainerCase{
@@ -649,13 +649,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("ContainerStartupOpts is nil", WhenBody(InitContainersCase{
 			StartupOpts: nil,
-			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+			ExpectedOutput: func(_ *clv1alpha2.Instance, _ *clv1alpha2.Environment) []corev1.Container {
 				return nil
 			},
 		}))
 		When("no archive source is specified", WhenBody(InitContainersCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{},
-			ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
+			ExpectedOutput: func(_ *clv1alpha2.Instance, _ *clv1alpha2.Environment) []corev1.Container {
 				return nil
 			},
 		}))
@@ -718,8 +718,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		It("should return the correct podSpecification", func() {
 			Expect(actual).To(Equal(batchv1.JobSpec{
-				BackoffLimit:            pointer.Int32(forge.SubmissionJobMaxRetries),
-				TTLSecondsAfterFinished: pointer.Int32(forge.SubmissionJobTTLSeconds),
+				BackoffLimit:            ptr.To[int32](forge.SubmissionJobMaxRetries),
+				TTLSecondsAfterFinished: ptr.To[int32](forge.SubmissionJobTTLSeconds),
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
@@ -727,7 +727,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 						},
 						Volumes:                      forge.ContainerVolumes(&instance, &environment, "", ""),
 						SecurityContext:              forge.PodSecurityContext(),
-						AutomountServiceAccountToken: pointer.Bool(false),
+						AutomountServiceAccountToken: ptr.To(false),
 						RestartPolicy:                corev1.RestartPolicyOnFailure,
 					},
 				},

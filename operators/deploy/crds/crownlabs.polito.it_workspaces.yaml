@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: workspaces.crownlabs.polito.it
 spec:
   group: crownlabs.polito.it
@@ -34,14 +33,19 @@ spec:
         description: Workspace describes a workspace in CrownLabs.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -99,10 +103,11 @@ spec:
               of the Workspace.
             properties:
               namespace:
-                description: The namespace containing all CrownLabs related objects
-                  of the Workspace. This is the namespace that groups multiple related
-                  templates, together with all the accessory resources (e.g. RBACs)
-                  created by the tenant operator.
+                description: |-
+                  The namespace containing all CrownLabs related objects of the Workspace.
+                  This is the namespace that groups multiple related templates, together
+                  with all the accessory resources (e.g. RBACs) created by the tenant
+                  operator.
                 properties:
                   created:
                     description: Whether the creation succeeded or not.
@@ -114,22 +119,24 @@ spec:
                 - created
                 type: object
               ready:
-                description: Whether all subscriptions and resource creations succeeded
-                  or an error occurred. In case of errors, the other status fields
-                  provide additional information about which problem occurred.
+                description: |-
+                  Whether all subscriptions and resource creations succeeded or an error
+                  occurred. In case of errors, the other status fields provide additional
+                  information about which problem occurred.
                 type: boolean
               subscription:
                 additionalProperties:
-                  description: SubscriptionStatus is an enumeration of the different
-                    states that can be assumed by the subscription to a service (e.g.
-                    successful or failing).
+                  description: |-
+                    SubscriptionStatus is an enumeration of the different states that can be
+                    assumed by the subscription to a service (e.g. successful or failing).
                   enum:
                   - Ok
                   - Failed
                   type: string
-                description: The list of the subscriptions to external services (e.g.
-                  Keycloak, ...), indicating for each one whether it succeeded or
-                  an error occurred.
+                description: |-
+                  The list of the subscriptions to external services (e.g. Keycloak,
+                  ...), indicating for each one whether it succeeded or an error
+                  occurred.
                 type: object
             type: object
         type: object

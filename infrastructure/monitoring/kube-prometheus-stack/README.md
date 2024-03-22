@@ -174,7 +174,7 @@ The access to Alertmanager and Prometheus is limited to users belonging to the `
 #### Additional references
 
 1. [ingress-nginx - External OAUTH authentication](https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/auth/oauth-external-auth)
-2. [oauth2-proxy - Configuration](https://oauth2-proxy.github.io/oauth2-proxy/docs/configuration/overview)
+2. [oauth2-proxy - Configuration](https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview)
 
 ### Monitor the Bind DNS Server
 

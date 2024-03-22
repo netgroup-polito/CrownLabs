@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tenantwh_test
+package tenantwh
 
 import (
 	"net/http"
@@ -26,12 +26,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 )
 
 var _ = Describe("Mutating webhook", func() {
 	var (
-		mutatingWH *tenantwh.TenantMutator
+		mutatingWH *TenantMutator
 		request    admission.Request
 
 		opSelectorKey   = "crownlabs.polito.it/op-sel"
@@ -53,8 +52,8 @@ var _ = Describe("Mutating webhook", func() {
 
 	JustBeforeEach(func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-		mutatingWH = tenantwh.MakeTenantMutator(fakeClient, bypassGroups, opSelectorKey, opSelectorValue, baseWorkspaces).Handler.(*tenantwh.TenantMutator)
-		Expect(mutatingWH.InjectDecoder(decoder)).To(Succeed())
+		mutatingWH = MakeTenantMutator(fakeClient, bypassGroups, opSelectorKey, opSelectorValue, baseWorkspaces, scheme).Handler.(*TenantMutator)
+		Expect(mutatingWH.decoder).NotTo(BeNil())
 	})
 
 	Describe("The TenantMutator.Handle method", func() {

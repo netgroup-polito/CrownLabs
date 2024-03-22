@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tenantwh_test
+package tenantwh
 
 import (
 	"net/http"
@@ -27,7 +27,6 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 )
 
 var _ = Describe("Validating webhook", func() {
@@ -47,7 +46,7 @@ var _ = Describe("Validating webhook", func() {
 	}
 
 	var (
-		validatingWH *tenantwh.TenantValidator
+		validatingWH *TenantValidator
 		request      admission.Request
 		response     admission.Response
 		manager      *clv1alpha2.Tenant
@@ -111,8 +110,9 @@ var _ = Describe("Validating webhook", func() {
 			workspaceIM,
 		).Build()
 
-		validatingWH = tenantwh.MakeTenantValidator(fakeClient, bypassGroups).Handler.(*tenantwh.TenantValidator)
-		Expect(validatingWH.InjectDecoder(decoder)).To(Succeed())
+		validatingWH = MakeTenantValidator(fakeClient, bypassGroups, scheme).Handler.(*TenantValidator)
+
+		Expect(validatingWH.decoder).NotTo(BeNil())
 	})
 
 	Describe("The TenantValidator.Handle method", func() {
@@ -185,7 +185,7 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
 					LastLogin: metav1.Time{
-						Time: time.Now().Add(tenantwh.LastLoginToleration / 2),
+						Time: time.Now().Add(LastLoginToleration / 2),
 					},
 				}}
 			})
@@ -198,7 +198,7 @@ var _ = Describe("Validating webhook", func() {
 			BeforeEach(func() {
 				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
 					LastLogin: metav1.Time{
-						Time: time.Now().Add(tenantwh.LastLoginToleration + time.Millisecond),
+						Time: time.Now().Add(LastLoginToleration + time.Millisecond),
 					},
 				}}
 			})
@@ -372,7 +372,7 @@ var _ = Describe("Validating webhook", func() {
 		WhenBody := func(cwdc CalcWsDiffCase) func() {
 			return func() {
 				var actuals []string
-				result := tenantwh.CalculateWorkspacesDiff(
+				result := CalculateWorkspacesDiff(
 					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.a}},
 					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.b}},
 				)

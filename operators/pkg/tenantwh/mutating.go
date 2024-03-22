@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -38,10 +39,14 @@ type TenantMutator struct {
 }
 
 // MakeTenantMutator creates a new webhook handler suitable for controller runtime based on TenantMutator.
-func MakeTenantMutator(c client.Client, webhookBypassGroups []string, opSelectorKey, opSelectorValue string, baseWorkspaces []string) *webhook.Admission {
+func MakeTenantMutator(c client.Client, webhookBypassGroups []string, opSelectorKey, opSelectorValue string, baseWorkspaces []string, scheme *runtime.Scheme) *webhook.Admission {
 	return &webhook.Admission{Handler: &TenantMutator{
 		opSelectorKey, opSelectorValue, baseWorkspaces,
-		TenantWebhook{Client: c, BypassGroups: webhookBypassGroups},
+		TenantWebhook{
+			Client:       c,
+			BypassGroups: webhookBypassGroups,
+			decoder:      admission.NewDecoder(scheme),
+		},
 	}}
 }
 

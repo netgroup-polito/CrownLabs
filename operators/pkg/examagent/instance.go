@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -275,7 +275,7 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 
 // InstanceSpecFromAdapter creates an InstanceSpec from a given InstanceAdapter.
 func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
-	running := pointer.BoolDeref(instReq.Running, true)
+	running := ptr.Deref(instReq.Running, true)
 	return clv1alpha2.InstanceSpec{
 		Template: clv1alpha2.GenericRef{
 			Name:      instReq.Template,
@@ -295,7 +295,7 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 	adapter := &InstanceAdapter{
 		ID:       inst.Name,
 		Template: inst.Spec.Template.Name,
-		Running:  pointer.Bool(inst.Spec.Running),
+		Running:  ptr.To(inst.Spec.Running),
 		URL:      inst.Status.URL,
 		Phase:    string(inst.Status.Phase),
 		Labels:   inst.GetLabels(),

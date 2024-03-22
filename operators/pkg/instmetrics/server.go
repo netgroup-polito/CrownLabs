@@ -40,14 +40,14 @@ type Server struct {
 }
 
 // Start metricsScraper and RPC server.
-func (instmetrics Server) Start(ctx context.Context) error {
+func (instmetrics *Server) Start(ctx context.Context) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s%d", "0.0.0.0:", instmetrics.Port))
 	if err != nil {
 		return err
 	}
 
 	instmetrics.grpcServer = grpc.NewServer()
-	RegisterInstanceMetricsServer(instmetrics.grpcServer, &instmetrics)
+	RegisterInstanceMetricsServer(instmetrics.grpcServer, instmetrics)
 
 	instmetrics.Log.Info("Custom Metrics gRPC Server started", "listenerAddress", lis.Addr())
 
@@ -69,7 +69,7 @@ func (instmetrics Server) Start(ctx context.Context) error {
 }
 
 // ContainerMetrics receives the PodName and returns a ContainerMetricsResponse with resource utilization.
-func (instmetrics *Server) ContainerMetrics(ctx context.Context, in *ContainerMetricsRequest) (*ContainerMetricsResponse, error) {
+func (instmetrics *Server) ContainerMetrics(_ context.Context, in *ContainerMetricsRequest) (*ContainerMetricsResponse, error) {
 	if in == nil || in.PodName == "" {
 		return nil, fmt.Errorf("wrong request: valid CustomMetricsRequest required")
 	}
