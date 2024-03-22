@@ -17,7 +17,7 @@ package instmetrics
 import (
 	"context"
 
-	criapi "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/trace"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"

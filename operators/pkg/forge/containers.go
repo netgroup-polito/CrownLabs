@@ -92,7 +92,7 @@ func PVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSp
 			corev1.ReadWriteOnce,
 		},
 		StorageClassName: PVCStorageClassName(environment),
-		Resources: corev1.ResourceRequirements{
+		Resources: corev1.VolumeResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceStorage: environment.Resources.Disk,
 			},
