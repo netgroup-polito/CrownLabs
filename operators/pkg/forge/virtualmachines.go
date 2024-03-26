@@ -247,7 +247,7 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 			Source: DataVolumeSourceForge(environment),
 			PVC: &corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.ResourceRequirements{
+				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: environment.Resources.Disk,
 					},

@@ -20,10 +20,8 @@ import (
 	"flag"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/docker/docker/client"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 
@@ -49,19 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var statsScraper instmetrics.StatsScraper
-
-	switch *runtimeEndpoint {
-	case "unix:///run/dockershim.sock":
-		dockerCli, err := client.NewClientWithOpts(client.WithVersion("v1.41"))
-		if err != nil {
-			log.Error(err, "Unable to initialize docker API client")
-			os.Exit(1)
-		}
-		statsScraper = instmetrics.DockerMetricsScraper{DockerClient: dockerCli, ContStatsListMutex: &sync.RWMutex{}}
-	default:
-		statsScraper = instmetrics.CRIMetricsScraper{RuntimeClient: remoteRuntimeClient}
-	}
+	var statsScraper instmetrics.StatsScraper = instmetrics.CRIMetricsScraper{RuntimeClient: remoteRuntimeClient}
 
 	go func() {
 		http.Handle("/ready", &instmetrics.ReadinessProbeHandler{RuntimeClient: remoteRuntimeClient, Log: log.WithName("probeHandler"), Ready: false})

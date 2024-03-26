@@ -43,9 +43,7 @@ var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
 	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
-	var err error
-	decoder, err = admission.NewDecoder(scheme)
-	Expect(err).ToNot(HaveOccurred())
+	decoder = admission.NewDecoder(scheme)
 })
 
 func TestTenantWebHooks(t *testing.T) {
