@@ -191,7 +191,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	if err = r.EnforceSandboxResources(ctx, &tn); err != nil {
-		klog.Error("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
+		klog.Errorf("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
 		tn.Status.SandboxNamespace.Created = false
 		tnOpinternalErrors.WithLabelValues("tenant", "sandbox-resources").Inc()
 		return ctrl.Result{}, err
@@ -334,7 +334,7 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 	// Attempt to get instances in current namespace
 	list := &crownlabsv1alpha2.InstanceList{}
 
-	if err := r.List(context.Background(), list, client.InNamespace(nsName)); err != nil {
+	if err := r.List(ctx, list, client.InNamespace(nsName)); err != nil {
 		return true, err
 	}
 
