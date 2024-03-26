@@ -137,26 +137,9 @@
         "optional": true
     },
     {
-        "component": "vscode-python-codetogether",
-        "build-args": "CODETOGETHER_ENABLED_ARG=true",
+        "component": "vscode-java",
         "context": "./provisioning/standalone/vscode",
-        "dockerfile": "./provisioning/standalone/vscode/python/Dockerfile",
-        "harbor-project": "crownlabs-standalone",
-        "optional": true
-    },
-    {
-        "component": "vscode-c-cpp-codetogether",
-        "build-args": "CODETOGETHER_ENABLED_ARG=true",
-        "context": "./provisioning/standalone/vscode",
-        "dockerfile": "./provisioning/standalone/vscode/c-cpp/Dockerfile",
-        "harbor-project": "crownlabs-standalone",
-        "optional": true
-    },
-    {
-        "component": "vscode-golang-codetogether",
-        "build-args": "CODETOGETHER_ENABLED_ARG=true",
-        "context": "./provisioning/standalone/vscode",
-        "dockerfile": "./provisioning/standalone/vscode/golang/Dockerfile",
+        "dockerfile": "./provisioning/standalone/vscode/java/Dockerfile",
         "harbor-project": "crownlabs-standalone",
         "optional": true
     }
