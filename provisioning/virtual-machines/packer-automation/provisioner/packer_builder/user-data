@@ -1,4 +1,10 @@
 #cloud-config
-password: crownlabs
-chpasswd: { expire: False }
-ssh_pwauth: True
+users:
+  - name: crownlabs
+  - primary_group: crownlabs
+  - ssh_pwauth: True
+
+chpasswd:
+  users: |
+    crownlabs:crownlabs
+  expire: False

@@ -47,7 +47,7 @@ source "qemu" "crownlabs" {
   shutdown_command             = ""
   ssh_disable_agent_forwarding = true
   ssh_timeout                  = "30m"
-  ssh_username                 = "ubuntu"
+  ssh_username                 = "crownlabs"
   ssh_password                 = "crownlabs"
   vm_name                      = "crownlabs.img"
 }
@@ -61,7 +61,7 @@ build {
       "--extra-vars", 
       "ansible_sudo_pass=crownlabs ansible_ssh_pass=crownlabs crownlabs_mode=true install_desktop_environment=${var.INSTALL_DESKTOP_ENVIRONMENT}"
     ]
-    user = "ubuntu"
+    user = "crownlabs"
     use_proxy = false
     playbook_file   = "./ansible/playbooks/${var.ANSIBLE_PLAYBOOK}"
   }

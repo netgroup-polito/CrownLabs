@@ -12,7 +12,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install 
     linux-image-generic \
     xorriso \
     curl \
-    subversion \
+    git \
     lsb-release \
     ansible \
     sshpass \
@@ -20,7 +20,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install 
     && \
     curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - && \
     apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
-    apt-get update && apt-get install packer
+    apt-get update && apt-get install packer && \
+    packer plugins install github.com/hashicorp/qemu && \
+    packer plugins install github.com/hashicorp/ansible
 
 WORKDIR /packer_builder
 
@@ -31,6 +33,7 @@ ENV ISO_CHECKSUM=
 ENV INSTALL_DESKTOP_ENVIRONMENT=false
 ENV GIT_ANSIBLE_URL=https://github.com/netgroup-polito/CrownLabs.git
 ENV GIT_ANSIBLE_BRANCH=master
+ENV GIT_ANSIBLE_PATH=provisioning/virtual-machines/ansible
 ENV ANSIBLE_PLAYBOOK=
 ENV MEMORY=2048
 ENV DISK_SIZE=10G

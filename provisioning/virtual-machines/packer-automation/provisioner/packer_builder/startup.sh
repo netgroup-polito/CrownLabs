@@ -5,12 +5,13 @@ set -e
 cd /packer_builder
 
 if [[ ! -z "$GIT_ANSIBLE_URL" ]]; then
-  BRANCH="branches/$GIT_ANSIBLE_BRANCH"
-  if [ "$GIT_ANSIBLE_BRANCH" = master ]; then
-    BRANCH=trunk
-  fi
-
-  svn export --force "$GIT_ANSIBLE_URL/$BRANCH/provisioning/virtual-machines/ansible"
+  git clone --no-checkout "$GIT_ANSIBLE_URL" --filter=tree:0 --depth=1 --branch="$GIT_ANSIBLE_BRANCH" repo
+  pushd repo
+  git sparse-checkout init --cone
+  git sparse-checkout set "$GIT_ANSIBLE_PATH"
+  git checkout "$GIT_ANSIBLE_BRANCH"
+  popd
+  mv repo/"$GIT_ANSIBLE_PATH" ansible/
 
   /usr/bin/packer build -force "builder.pkr.hcl"
 fi

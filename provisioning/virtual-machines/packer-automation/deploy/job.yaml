@@ -37,6 +37,8 @@ spec:
           value: https://github.com/netgroup-polito/CrownLabs.git
         - name: GIT_ANSIBLE_BRANCH
           value: master
+        - name: GIT_ANSIBLE_PATH
+          value: provisioning/virtual-machines/ansible
 
         - name: IMAGE_NAME
           value: ubuntu22-base
