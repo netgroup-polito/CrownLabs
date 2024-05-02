@@ -75,7 +75,7 @@ export type WorkspacesAvailable = {
 };
 
 export const generateAvatarUrl = (style: string, seed: string) => {
-  return `https://avatars.dicebear.com/api/${style}/${stringHash(seed)}.svg`;
+  return `https://api.dicebear.com/8.x/${style}/svg?seed=${stringHash(seed)}`;
 };
 
 export const stringHash = (s: string) => {
