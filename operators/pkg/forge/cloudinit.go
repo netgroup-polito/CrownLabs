@@ -15,6 +15,8 @@
 package forge
 
 import (
+	"bytes"
+	_ "embed"
 	"fmt"
 
 	"gopkg.in/yaml.v3"
@@ -49,6 +51,15 @@ type interf struct {
 	DHCP4 bool `yaml:"dhcp4"`
 }
 
+//go:embed cloudinit-startup.sh
+var scriptdata []byte
+
+// CloudInitUserScriptData configures and forges the cloud-init startup script.
+func CloudInitUserScriptData() ([]byte, error) {
+	userScriptData := bytes.ReplaceAll(scriptdata, []byte("$NFSPATH"), []byte(MyDriveVolumeMountPath))
+	return userScriptData, nil
+}
+
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
 func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]byte, error) {
 	config := userdata{
@@ -73,7 +84,7 @@ func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]by
 			fmt.Sprintf("%s:%s", nfsServerName, nfsPath),
 			MyDriveVolumeMountPath,
 			"nfs",
-			"rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14",
+			"rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user",
 			"0",
 			"0",
 		}}

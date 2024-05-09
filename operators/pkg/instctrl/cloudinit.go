@@ -71,12 +71,19 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 		log.Error(err, "unable to marshal secret content")
 		return err
 	}
+
+	userScriptData, err := forge.CloudInitUserScriptData()
+	if err != nil {
+		log.Error(err, "unable to marshal secret content")
+		return err
+	}
+
 	// Enforce the cloud-init secret presence.
 	instance := clctx.InstanceFrom(ctx)
 	secret := corev1.Secret{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
 		secret.SetLabels(forge.InstanceObjectLabels(secret.GetLabels(), instance))
-		secret.Data = map[string][]byte{UserDataKey: userdata}
+		secret.Data = map[string][]byte{UserDataKey: userdata, "x-shellscript": userScriptData}
 		secret.Type = corev1.SecretTypeOpaque
 		return ctrl.SetControllerReference(instance, &secret, r.Scheme)
 	})

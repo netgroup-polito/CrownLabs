@@ -23,7 +23,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
-var _ = Describe("CloudInit userdata generation", func() {
+var _ = Describe("CloudInit files generation", func() {
 	Context("The CloudInitUserData function", func() {
 		const (
 			serviceName = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
@@ -48,7 +48,7 @@ mounts:
     - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/path
       - /media/mydrive
       - nfs
-      - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14
+      - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
 ssh_authorized_keys:
@@ -73,5 +73,21 @@ ssh_authorized_keys:
 
 		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
 		It("Should match the expected output", func() { Expect(output).To(WithTransform(Transformer, Equal(Transformer([]byte(expected))))) })
+	})
+
+	Context("The CloudInitUserScriptData function", func() {
+		const expected = `#!/bin/bash
+mkdir -p "/media/mydrive"
+chown 1000:1000 "/media/mydrive"
+`
+
+		var (
+			scriptdata []byte
+			err        error
+		)
+		JustBeforeEach(func() { scriptdata, err = forge.CloudInitUserScriptData() })
+
+		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
+		It("Should match the expected output", func() { Expect(scriptdata).To(Equal([]byte(expected))) })
 	})
 })
