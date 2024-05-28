@@ -100,7 +100,12 @@ async function main() {
   app.use(compression());
   app.get('/schema', (req, res) => {
     res.setHeader('content-type', 'text/plain');
-    res.send(printSchema(schema));
+    res.send(
+      printSchema(schema)
+        .split('\n')
+        .filter(l => l.trim() != '_') // remove empty values from enums
+        .join('\n')
+    );
   });
   app.get('/healthz', (req, res) => {
     res.sendStatus(200);
