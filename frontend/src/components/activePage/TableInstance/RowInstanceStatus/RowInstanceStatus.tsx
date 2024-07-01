@@ -18,26 +18,36 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   const font20px = { fontSize: '20px' };
   const statusIcon = {
-    Unknown: <WarningOutlined className="warning-color-fg" style={font20px} />,
-    CreationLoopBackoff: (
+    [Phase.Empty]: (
       <WarningOutlined className="warning-color-fg" style={font20px} />
     ),
-    Running: <LoadingOutlined className="warning-color-fg" style={font20px} />,
-    Importing: (
+    [Phase.CreationLoopBackoff]: (
+      <WarningOutlined className="warning-color-fg" style={font20px} />
+    ),
+    [Phase.Running]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    ResourceQuotaExceeded: (
+    [Phase.Importing]: (
+      <LoadingOutlined className="warning-color-fg" style={font20px} />
+    ),
+    [Phase.ResourceQuotaExceeded]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    Ready: (
+    [Phase.Ready]: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
     ),
-    Failed: (
+    [Phase.Failed]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    Off: <PauseCircleOutlined className="warning-color-fg" style={font20px} />,
-    Starting: <LoadingOutlined className="warning-color-fg" style={font20px} />,
-    Stopping: <LoadingOutlined className="warning-color-fg" style={font20px} />,
+    [Phase.Off]: (
+      <PauseCircleOutlined className="warning-color-fg" style={font20px} />
+    ),
+    [Phase.Starting]: (
+      <LoadingOutlined className="warning-color-fg" style={font20px} />
+    ),
+    [Phase.Stopping]: (
+      <LoadingOutlined className="warning-color-fg" style={font20px} />
+    ),
   };
 
   return (

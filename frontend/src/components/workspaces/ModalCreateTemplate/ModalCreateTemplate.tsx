@@ -11,9 +11,10 @@ import {
 import Button from 'antd-button-color';
 import {
   CreateTemplateMutation,
+  EnvironmentType,
   useWorkspaceTemplatesQuery,
 } from '../../../generated-types';
-import { FetchResult } from 'apollo-link';
+import { FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
@@ -24,7 +25,7 @@ export type Image = {
   registry: string;
 };
 
-type Vmorcontainer = 'Container' | 'VM';
+type Vmorcontainer = EnvironmentType.VirtualMachine | EnvironmentType.Container;
 
 type Template = {
   name?: string;
@@ -316,14 +317,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                       image: String(value),
                       registry: imageFound?.registry,
                       vmorcontainer:
-                        imageFound?.vmorcontainer[0] ?? 'Container',
+                        imageFound?.vmorcontainer[0] ??
+                        EnvironmentType.Container,
                       persistent: false,
                       gui: true,
                     };
                   });
                   form.setFieldsValue({
                     image: value,
-                    vmorcontainer: imageFound?.vmorcontainer[0] ?? 'Container',
+                    vmorcontainer:
+                      imageFound?.vmorcontainer[0] ?? EnvironmentType.Container,
                   });
                 }
               }}
