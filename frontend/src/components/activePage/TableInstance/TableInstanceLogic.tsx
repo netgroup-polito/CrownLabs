@@ -1,4 +1,3 @@
-import { FetchPolicy } from '@apollo/client';
 import { Empty, Spin } from 'antd';
 import Button from 'antd-button-color';
 import { FC, useContext, useEffect, useState } from 'react';
@@ -13,7 +12,7 @@ import {
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import { Instance, User, WorkspaceRole } from '../../../utils';
+import { Instance, JSONDeepCopy, User, WorkspaceRole } from '../../../utils';
 import {
   getSubObjTypeK8s,
   makeGuiInstance,
@@ -29,8 +28,6 @@ export interface ITableInstanceLogicProps {
   extended: boolean;
   user: User;
 }
-
-const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { viewMode, extended, showGuiIcon, user } = props;
@@ -53,9 +50,10 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     error: errorInstances,
     subscribeToMore: subscribeToMoreInstances,
   } = useOwnedInstancesQuery({
+    skip: !tenantId,
     variables: { tenantNamespace },
     onCompleted: setDataInstances,
-    fetchPolicy: fetchPolicy_networkOnly,
+    fetchPolicy: 'network-only',
     onError: apolloErrorCatcher,
   });
 
@@ -73,13 +71,14 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
           const { instance, updateType } = data?.updateInstance;
           let notify = false;
-          let newItem = prev;
+          let newItem = JSONDeepCopy(prev);
           let objType;
 
-          if (prev.instanceList?.instances) {
-            let instances = [...prev.instanceList.instances];
+          if (newItem.instanceList?.instances) {
+            let { instances } = newItem.instanceList;
             const found = instances.find(matchK8sObject(instance, false));
             objType = getSubObjTypeK8s(found, instance, updateType);
+
             switch (objType) {
               case SubObjType.Deletion:
                 instances = instances.filter(matchK8sObject(instance, true));
@@ -103,14 +102,14 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
               default:
                 break;
             }
-            prev.instanceList.instances = [...instances];
+            newItem.instanceList.instances = instances;
           }
 
-          if (notify)
+          if (notify) {
             notifyStatus(instance.status?.phase, instance, updateType);
+          }
 
           if (objType !== SubObjType.Drop) {
-            newItem = { ...prev };
             setDataInstances(newItem);
           }
           return newItem;

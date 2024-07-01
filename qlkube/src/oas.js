@@ -1,34 +1,21 @@
-const got = require('got');
-const promiseAny = require('promise-any');
-const logger = require('pino')({ useLevelLabels: true });
+const { fetchJson, logger } = require('./utils');
 
-const openApiPaths = ['/openapi/v2', '/swagger.json'];
-
-// execute parallel requests to possible open api endpoints and return first success
-module.exports = async function getOpenApiSpec(url, token) {
-  let gotProms = [];
-  for (let p of openApiPaths) {
-    const gotProm = got(p, {
-      baseUrl: url,
-      json: true,
-      timeout: 5 * 1000,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
-      .then(r => {
-        logger.info(
-          { url, path: p },
-          'successfully retrieved open api spec from this path'
-        );
-        return r.body;
-      })
-      .catch(err => {
-        logger.info(
-          { cause: err.message, url, path: p },
-          'failed to retrieve open api spec from this path - will try another'
-        );
-        throw err;
-      });
-    gotProms.push(gotProm);
+async function getOpenApiSpec(baseUrl, paths, token) {
+  for (const path of paths) {
+    try {
+      const url = [baseUrl, path].join('/');
+      const res = await fetchJson(url, token ? { Authorization: `Bearer ${token}` } : {});
+      if (res.statusCode >= 200 && res.statusCode < 300 && res.body) {
+        logger.warn({ baseUrl, path }, 'OpenApi retrieved');
+        return res.body;
+      }
+      logger.warn({ res, baseUrl, path }, 'OpenApi invalid response');
+    } catch (e) {
+      logger.warn({ baseUrl, path, err: e.message }, 'Could not retrieve OpenApi Spec');
+    }
   }
-  return promiseAny(gotProms);
-};
+  logger.error({ baseUrl, paths }, 'OpenApi retrieval failed');
+  throw new Error('ENOAPI');
+}
+
+module.exports.getOpenApiSpec = getOpenApiSpec;

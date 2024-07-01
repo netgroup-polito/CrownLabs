@@ -93,7 +93,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     <>
       <div
         className={`rowInstance-bg-color ${
-          viewMode === 'user' && extended
+          viewMode === WorkspaceRole.user && extended
             ? 'cl-table-instance flex-grow flex-wrap content-between py-0 overflow-auto scrollbar'
             : ''
         }`}
@@ -133,7 +133,9 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           pagination={false}
           size="middle"
           rowClassName={
-            viewMode === 'user' && extended ? '' : 'rowInstance-bg-color'
+            viewMode === WorkspaceRole.user && extended
+              ? ''
+              : 'rowInstance-bg-color'
           }
           rowKey={record => record.id + (record.templateId || '')}
         >

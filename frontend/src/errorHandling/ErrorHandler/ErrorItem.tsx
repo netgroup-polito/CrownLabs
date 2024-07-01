@@ -1,6 +1,6 @@
 import { Alert, Space, Typography } from 'antd';
 import Button from 'antd-button-color';
-import { ApolloError } from 'apollo-client';
+import { ApolloError } from '@apollo/client';
 import { KeycloakError } from 'keycloak-js';
 import { FC, useState } from 'react';
 import { CustomError, ErrorTypes } from '../utils';

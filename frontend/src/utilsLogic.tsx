@@ -31,6 +31,7 @@ import {
   WorkspacesAvailable,
   WorkspacesAvailableAction,
 } from './utils';
+import { DeepPartial } from '@apollo/client/utilities';
 
 type Nullable<T> = T | null | undefined;
 
@@ -42,7 +43,7 @@ export enum SubObjType {
   Drop,
 }
 interface ItPolitoCrownlabsV1alpha2TemplateAlias {
-  original: Nullable<ItPolitoCrownlabsV1alpha2Template>;
+  original: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Template>>;
   alias: {
     name: string;
     id: string;
@@ -72,7 +73,7 @@ export const makeGuiTemplate = (
     instances: [],
     workspaceNamespace:
       'workspace-' +
-        tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
+      (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
   } as Template;
 };
 interface TemplatesSubscriptionData {
@@ -138,11 +139,11 @@ export type InstanceLabels = {
 };
 
 export const getInstanceLabels = (
-  i: ItPolitoCrownlabsV1alpha2Instance
+  i: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>
 ): InstanceLabels | undefined => i.metadata?.labels as InstanceLabels;
 
 export const makeGuiInstance = (
-  instance?: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  instance?: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   userId?: string,
   optional?: {
     workspaceName: string;
@@ -197,7 +198,9 @@ export const makeGuiInstance = (
   } as Instance;
 };
 
-export const makeWorkspace = (workspace: Nullable<WorkspacesListItem>) => {
+export const makeWorkspace = (
+  workspace: Nullable<DeepPartial<WorkspacesListItem>>
+) => {
   if (!workspace) {
     throw new Error('getInstances() error: a required parameter is undefined');
   }
@@ -210,7 +213,7 @@ export const makeWorkspace = (workspace: Nullable<WorkspacesListItem>) => {
     name: name,
     namespace: status?.namespace?.name,
     prettyName: spec?.prettyName,
-    role: WorkspaceRole[role!],
+    role: role! as unknown as WorkspaceRole,
     templates: [],
   } as Workspace;
 };
@@ -290,8 +293,8 @@ export const getSubObjTypeCustom = (
 };
 
 export const getSubObjTypeK8s = (
-  oldObj: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
-  newObj: ItPolitoCrownlabsV1alpha2Instance,
+  oldObj: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
+  newObj: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
   uType: Nullable<UpdateType>
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
@@ -323,7 +326,7 @@ export const joinInstancesAndTemplates = (
   }));
 
 export const availableWorkspaces = (
-  workspaces: Maybe<ItPolitoCrownlabsV1alpha1Workspace>[],
+  workspaces: Maybe<DeepPartial<ItPolitoCrownlabsV1alpha1Workspace>>[],
   userWorkspaces: Workspace[]
 ) => {
   return workspaces
@@ -357,7 +360,7 @@ export const availableWorkspaces = (
 //Utilities for active page only
 
 export const getManagerInstances = (
-  instance: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   index: number
 ) => {
   if (!instance) {
@@ -524,7 +527,7 @@ const makeNotificationContent = (
 
 export const notifyStatus = (
   status: Nullable<string>,
-  instance: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   updateType: Nullable<UpdateType>
 ) => {
   if (!instance) {
@@ -662,6 +665,8 @@ export const setInstancePrettyname = async (
   }
 };
 
-export const workspaceGetName = (ws: WorkspacesListItem): string =>
+export const workspaceGetName = (
+  ws: Nullable<DeepPartial<WorkspacesListItem>>
+): string =>
   ws?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.spec
     ?.prettyName ?? '';

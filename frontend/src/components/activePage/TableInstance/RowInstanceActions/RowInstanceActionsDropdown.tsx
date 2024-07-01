@@ -71,12 +71,12 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const statusComponents = {
-    Ready: {
+    [Phase.Ready]: {
       menuKey: 'stop',
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
     },
-    Off: {
+    [Phase.Off]: {
       menuKey: 'start',
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
