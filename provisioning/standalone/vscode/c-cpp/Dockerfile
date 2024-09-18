@@ -22,7 +22,7 @@ ENV CPPTOOLS_VERSION=v1.12.4
 COPY ./c-cpp/project/main.c /example_project/main.c
 COPY ./c-cpp/project/main.cpp /example_project/main.cpp
 COPY ./c-cpp/project/vscode /example_project/.vscode
-COPY ./c-cpp/settings.json /config/data/User/settings.json
+COPY ./c-cpp/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
 
 # Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && apt-get install -y build-essential cmake gdb && \
@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y build-essential cmake gdb && \
 ADD "https://github.com/microsoft/vscode-cpptools/releases/download/${CPPTOOLS_VERSION}/cpptools-linux.vsix" "./cpptools-linux.vsix"
 
 # Setup permissions
-RUN chown -R $USER:$USER /config && \
+RUN chown -R $USER:$USER ${VSCODE_SRV_DIR} && \
     chown -R $USER:$USER /example_project && \
     chown $USER:$USER cpptools-linux.vsix && \
     chmod 400 cpptools-linux.vsix
@@ -44,6 +44,6 @@ RUN chown -R $USER:$USER /config && \
 USER $USER
 
 # Install extensions
-RUN code-server --extensions-dir /config/extensions --install-extension cpptools-linux.vsix && \
-    code-server --extensions-dir /config/extensions --install-extension formulahendry.code-runner
+RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension cpptools-linux.vsix && \
+    code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension formulahendry.code-runner
 ENTRYPOINT [ "/start.sh" ]

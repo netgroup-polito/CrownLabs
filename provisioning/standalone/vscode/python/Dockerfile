@@ -6,7 +6,7 @@ ENV SUDO_FORCE_REMOVE yes
 
 COPY ./python/project/main.py /example_project/main.py
 COPY ./python/project/vscode /example_project/.vscode
-COPY ./python/settings.json /config/data/User/settings.json
+COPY ./python/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
 
 # Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && \
@@ -16,10 +16,10 @@ RUN apt-get update && \
     apt-get remove --autoremove --purge -y apt sudo --allow-remove-essential
 
 # Install extension
-RUN code-server --extensions-dir /config/extensions --install-extension ms-python.python
+RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension ms-python.python
 
 # Setup permissions
-RUN chown -R ${USER}:${USER} /config && \
+RUN chown -R ${USER}:${USER} ${VSCODE_SRV_DIR} && \
     chown -R ${USER}:${USER} /example_project
 
 USER ${USER}

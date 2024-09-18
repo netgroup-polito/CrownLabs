@@ -67,8 +67,6 @@ This is an example of how to build the **c-cpp vscode** version:
 - Go inside the `/provisioning/standalone/vscode` folder
 - Run: `docker build -f ./c-cpp/Dockerfile -t harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp`
 
-*Optionally*, you can install **codetogether** providing the **build-arg** `CODETOGETHER_ENABLED_ARG` (see more [here](#codetogether))
-
 ## Ready-to-use images available
 
 This is a list of **ready-to-use images**, built by the **CrownLabs** team :
@@ -85,7 +83,7 @@ harbor.crownlabs.polito.it/crownlabs-standalone/vscode-golang
 **Extensions** can be installed from the command line using:
 
 ```Dockerfile
-code-server --extensions-dir /config/extensions --install-extension ${EXTENSION_NAME}
+code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension ${EXTENSION_NAME}
 ```
 
 The `EXTENSION_NAME` can be either a local `.vsix` file or a reference to an extension on [https://open-vsx.org/](https://open-vsx.org/) marketplace.
@@ -98,16 +96,6 @@ For example:
 
 ```
 docker run -e CROWNLABS_LISTEN_PORT=8001 -it --rm -p 8001:8001 vscode-c-cpp --disable-marketplace
-```
-
-## Codetogether
-
-**Vscode images** support [**codetogether**](https://www.codetogether.com/) extension and API, which allow **social-coding** between multiple vscode instances (similarly to **[liveshare](https://visualstudio.microsoft.com/it/services/live-share/)** by **Microsoft®**. This [video](https://youtu.be/l4yTfduxptw) shows what it can do. To enable an image to use **codetogether** it is necessary to build it with the `CODETOGETHER_ENABLED_ARG=true` build argument.
-
-For example:
-
-```
-docker build --build-arg=CODETOGETHER_ENABLED_ARG=true -t vscode-c-cpp-codetogether
 ```
 
 ## Reset persistent instances
