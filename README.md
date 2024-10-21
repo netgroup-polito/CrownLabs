@@ -23,7 +23,7 @@ For more information, visit the CrownLabs website ([https://crownlabs.polito.it]
 
 CrownLabs relies on two major high-level components:
 * **The Backend Business Logic**, which provides the different CrownLabs functionalities and is implemented by custom Kubernetes operators (e.g. the Instance Operator);
-* **qlkube**, a middleware that enables the exposition of the Kubernetes API Server as a GraphQL service;
+* **qlkube**, a middleware that can expose the Kubernetes API Server as a GraphQL service;
 * **The Frontend Dashboard**, which interacts with the Kubernetes API Server through _qlkube_ and exposes the different CrownLabs custom resources through a graphical interface.
 
 A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
