@@ -1,22 +1,31 @@
-const { ApolloServer } = require('apollo-server-express');
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require('@apollo/server/plugin/drainHttpServer');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const express = require('express');
 const fs = require('fs').promises;
 const { printSchema } = require('graphql');
+const {
+  ApolloServerPluginLandingPageGraphQLPlayground,
+} = require('@apollo/server-plugin-landing-page-graphql-playground');
 const { createServer } = require('http');
+const { WebSocketServer } = require('ws');
+const bodyParser = require('body-parser');
+const { useServer } = require('graphql-ws/lib/use/ws');
 const logger = require('pino')({ useLevelLabels: true });
 const { setupSubscriptions } = require('./decorateSubscription.js');
-const getOpenApiSpec = require('./oas');
+const { getOpenApiSpec } = require('./oas');
 const { decorateOpenapi } = require('./decorateOpenapi');
-const { createSchema } = require('./schema');
+const { joinSchemas } = require('./joinSchemas.js');
+const { createSchema, createHarborSchema } = require('./schema');
 const { subscriptions } = require('./subscriptions.js');
 const { kinformer } = require('./informer.js');
-const {
-  getBearerToken,
-  graphqlQueryRegistry,
-  graphqlLogger,
-} = require('./utils.js');
+const { getBearerToken, graphqlLogger } = require('./utils.js');
+
+const repl = require('repl');
 
 dotenv.config();
 
@@ -30,6 +39,7 @@ async function main() {
   const kubeApiUrl = inCluster
     ? 'https://kubernetes.default.svc'
     : 'http://localhost:8001';
+  const harborApiUrl = 'https://harbor.crownlabs.polito.it';
   const inClusterToken = inCluster
     ? await fs.readFile(
         '/var/run/secrets/kubernetes.io/serviceaccount/token',
@@ -38,7 +48,25 @@ async function main() {
     : '';
   const oas = await getOpenApiSpec(kubeApiUrl, inClusterToken);
   const targetOas = decorateOpenapi(oas);
-  let schema = await createSchema(targetOas, kubeApiUrl, inClusterToken);
+
+  const harborToken = JSON.parse(
+    await fs.readFile(
+      inCluster ? '/var/run/secrets/harbor_token.json' : './.harbor_token.json',
+      'utf8'
+    )
+  );
+
+  const harborOas = await getOpenApiSpec(harborApiUrl, harborToken);
+
+  let kubeSchema = await createSchema(targetOas, kubeApiUrl, inClusterToken);
+  let harborSchema = await createHarborSchema(
+    harborOas,
+    harborApiUrl,
+    harborToken
+  );
+
+  let schema = joinSchemas(kubeSchema, harborSchema);
+
   try {
     schema = setupSubscriptions(subscriptions, schema, kubeApiUrl);
   } catch (e) {
@@ -46,13 +74,44 @@ async function main() {
     process.exit(1);
   }
 
+  const app = express();
+  app.use(compression());
+  app.use(bodyParser.json());
+
+  app.get('/schema', (req, res) => {
+    res.setHeader('content-type', 'text/plain');
+    res.send(
+      printSchema(schema)
+        .split('\n')
+        .filter(l => l.trim() != '_') // remove empty values from enums
+        .join('\n')
+    );
+  });
+  app.get('/healthz', (req, res) => {
+    res.sendStatus(200);
+  });
+
+  const httpServer = createServer(app);
+
   const server = new ApolloServer({
     schema,
     playground: true,
-    plugins: [graphqlQueryRegistry],
+    plugins: [
+      ApolloServerPluginDrainHttpServer({ httpServer: httpServer }),
+      ApolloServerPluginLandingPageGraphQLPlayground(),
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            },
+          };
+        },
+      },
+    ],
     formatError: error => {
       try {
-        const msgs = [...error.message.match(/(\d+)\s*\-(.*)$/)];
+        const msgs = [...(error.message.match(/(\d+)\s*\-(.*)$/) || [])];
         if (msgs.length != 3) return error;
         let msg = JSON.parse(msgs[2]);
         try {
@@ -84,7 +143,7 @@ async function main() {
       },
     },
 
-    context: ({ req, connection }) => {
+    context: async ({ req, connection }) => {
       if (connection) {
         const { token } = connection.context;
         return { token };
@@ -96,36 +155,33 @@ async function main() {
     },
   });
 
-  const app = express();
-  app.use(compression());
-  app.get('/schema', (req, res) => {
-    res.setHeader('content-type', 'text/plain');
-    res.send(
-      printSchema(schema)
-        .split('\n')
-        .filter(l => l.trim() != '_') // remove empty values from enums
-        .join('\n')
-    );
+  await server.start();
+
+  app.use(
+    '/',
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const token = getBearerToken(req.headers);
+        return { token };
+      },
+    })
+  );
+
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: '/subscriptions',
   });
-  app.get('/healthz', (req, res) => {
-    res.sendStatus(200);
-  });
-  server.applyMiddleware({
-    app,
-    path: '/',
-  });
-  const httpServer = createServer(app);
-  server.installSubscriptionHandlers(httpServer);
+  const serverCleanup = useServer({ schema }, wsServer);
 
   const PORT = process.env.CROWNLABS_QLKUBE_PORT || 8080;
 
   httpServer.listen({ port: PORT }, () => {
+    console.log(`🚀 Server ready at http://localhost:${PORT}/`);
     console.log(
-      `🚀 Server ready at http://localhost:${PORT}${server.graphqlPath}`
+      `🚀 Subscriptions ready at ws://localhost:${PORT}/subscriptions`
     );
-    console.log(
-      `🚀 Subscriptions ready at ws://localhost:${PORT}${server.subscriptionsPath}`
-    );
+    global.harborSchema = harborSchema;
+    repl.start('> ');
   });
 
   /**

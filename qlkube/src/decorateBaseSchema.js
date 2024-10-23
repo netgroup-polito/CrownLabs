@@ -1,4 +1,4 @@
-const { gql } = require('apollo-server-core');
+const { gql } = require('graphql-tag');
 const { extendSchema } = require('graphql/utilities');
 const { addResolversToSchema } = require('@graphql-tools/schema');
 const { capitalizeType, graphqlLogger } = require('./utils.js');
@@ -67,7 +67,11 @@ function decorateBaseSchema(
   };
 
   const extendedSchema = extendSchema(baseSchema, extension);
-  const newSchema = addResolversToSchema(extendedSchema, resolvers);
+  const newSchema = addResolversToSchema({
+    schema: extendedSchema,
+    resolvers: resolvers,
+  });
+
   return newSchema;
 }
 

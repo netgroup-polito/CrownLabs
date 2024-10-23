@@ -1,5 +1,6 @@
-const { withFilter } = require('apollo-server');
-const { gql, ForbiddenError } = require('apollo-server-core');
+const { ForbiddenError } = require('@apollo/server');
+const { withFilter } = require('graphql-subscriptions');
+const { gql } = require('graphql-tag');
 const { addResolversToSchema } = require('@graphql-tools/schema');
 const { extendSchema } = require('graphql/utilities');
 const { pubsubAsyncIterator } = require('./pubsub');
@@ -389,7 +390,10 @@ function decorateSubscription(baseSchema, targetType, enumType, kubeApiUrl) {
   };
 
   const extendedSchema = extendSchema(baseSchema, extension);
-  const newSchema = addResolversToSchema(extendedSchema, resolvers);
+  const newSchema = addResolversToSchema({
+    schema: extendedSchema,
+    resolvers: resolvers,
+  });
   newSchema._subscriptionType = newSchema._typeMap.Subscription;
   return newSchema;
 }
@@ -598,7 +602,10 @@ function decorateLabelsSubscription(
   };
 
   const extendedSchema = extendSchema(baseSchema, extension);
-  const newSchema = addResolversToSchema(extendedSchema, resolvers);
+  const newSchema = addResolversToSchema({
+    schema: extendedSchema,
+    resolvers: resolvers,
+  });
   newSchema._subscriptionType = newSchema._typeMap.Subscription;
   return newSchema;
 }

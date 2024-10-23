@@ -1,4 +1,4 @@
-FROM node:16.3-alpine
+FROM node:18-alpine
 
 RUN mkdir --parent /qlkube
 RUN chown node:node /qlkube && chmod 770 /qlkube
@@ -13,6 +13,6 @@ RUN yarn install --production=true --frozen-lockfile
 
 COPY src/*.js ./src/
 
-ENV NODE_EXTRA_CA_CERTS /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+ENV NODE_EXTRA_CA_CERTS=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
 ENTRYPOINT [ "yarn", "start" ]

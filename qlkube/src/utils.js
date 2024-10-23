@@ -1,4 +1,4 @@
-const { ForbiddenError } = require('apollo-server-core');
+const { GraphQLError } = require('graphql');
 
 function capitalizeType(name) {
   return name[0].toUpperCase() + name.slice(1);
@@ -12,9 +12,19 @@ function getBearerToken(connectionParams) {
   if (!connectionParams)
     throw new Error('Parameter connectionParams cannot be empty!');
   const auth = connectionParams.authorization || connectionParams.Authorization;
-  if (!auth) throw new ForbiddenError('Token Error! Token absent!');
+  if (!auth)
+    throw new GraphQLError('Token Error! Token absent!', {
+      extensions: {
+        code: 'FORBIDDEN',
+      },
+    });
   const token = auth.split(/\s+/)[1];
-  if (!token) throw new ForbiddenError('Token Error! Token not valid!');
+  if (!token)
+    throw new GraphQLError('Token Error! Token not valid!', {
+      extensions: {
+        code: 'FORBIDDEN',
+      },
+    });
 
   return token;
 }

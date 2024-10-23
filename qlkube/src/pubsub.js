@@ -1,4 +1,4 @@
-const { PubSub } = require('apollo-server');
+const { PubSub } = require('graphql-subscriptions');
 
 const maxListeners = parseInt(process.env.MAX_LISTENERS) || 100;
 const pubsub = new PubSub();
