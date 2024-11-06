@@ -98,6 +98,12 @@ spec:
             properties:
               phase:
                 description: Phase represents the current state of the Instance Snapshot.
+                enum:
+                - ""
+                - Pending
+                - Processing
+                - Completed
+                - Failed
                 type: string
             required:
             - phase

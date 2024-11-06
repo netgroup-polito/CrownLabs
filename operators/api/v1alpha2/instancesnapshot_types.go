@@ -21,6 +21,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:validation:Enum="";"Pending";"Processing";"Completed";"Failed"
+
 // SnapshotStatus is an enumeration representing the current state of the InstanceSnapshot.
 type SnapshotStatus string
 
