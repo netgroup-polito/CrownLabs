@@ -4,14 +4,14 @@ const { wrappers } = require('./wrappers');
 const fs = require('fs');
 
 exports.createSchema = async (oas, kubeApiUrl, token) => {
-  let baseSchema = await oasToGraphQlSchema(oas, kubeApiUrl, token);
+  let baseSchema = (await oasToGraphQlSchema(oas, kubeApiUrl, token)).schema;
 
   try {
     wrappers.forEach(wtype => {
       baseSchema = decorateBaseSchema(
         wtype['type'],
         wtype['fieldWrapper'],
-        baseSchema.schema,
+        baseSchema,
         wtype['nameWrapper'],
         wtype['queryFieldsRequired']
       );
