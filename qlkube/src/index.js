@@ -24,6 +24,7 @@ const { createSchema, createHarborSchema } = require('./schema');
 const { subscriptions } = require('./subscriptions.js');
 const { kinformer } = require('./informer.js');
 const { getBearerToken, graphqlLogger } = require('./utils.js');
+const cors = require('cors');
 
 const repl = require('repl');
 
@@ -159,6 +160,7 @@ async function main() {
 
   app.use(
     '/',
+    cors<cors.CorsRequest>(),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = getBearerToken(req.headers);
