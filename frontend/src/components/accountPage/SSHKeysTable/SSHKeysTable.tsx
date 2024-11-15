@@ -12,7 +12,10 @@ export interface ISSHKeysTableProps {
 
 const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
   const { sshKeys, onDeleteKey } = props;
-  const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<{
+    name: string;
+    key: string;
+  } | null>(null);
   return (
     <Table
       dataSource={sshKeys}
@@ -47,7 +50,7 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
           sshKeys?.length && (
             <>
               <ModalAlert
-                headTitle={record.name}
+                headTitle={recordToDelete?.name}
                 message="Delete ssh key"
                 description="Do you really want to delete this key?"
                 type="warning"
@@ -57,7 +60,7 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
                     shape="round"
                     className="mr-2 w-24"
                     type="primary"
-                    onClick={() => setShowDeleteModalConfirm(false)}
+                    onClick={() => setRecordToDelete(null)} // Close the modal without deleting
                   >
                     Close
                   </Button>,
@@ -66,21 +69,23 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
                     shape="round"
                     className="ml-2 w-24"
                     type="danger"
-                    onClick={() =>
-                      onDeleteKey(record)
-                        .then(() => setShowDeleteModalConfirm(false))
-                        .catch(err => null)
-                    }
+                    onClick={() => {
+                      if (recordToDelete) {
+                        onDeleteKey(recordToDelete) // Safe to call because recordToDelete is not null
+                          .then(() => setRecordToDelete(null)) // Close modal on success
+                          .catch(err => null); // Handle error gracefully
+                      }
+                    }}
                   >
                     Delete
                   </Button>,
                 ]}
-                show={showDeleteModalConfirm}
-                setShow={setShowDeleteModalConfirm}
+                show={!!recordToDelete} // Show the modal only when recordToDelete is not null
+                setShow={() => setRecordToDelete(null)} // Close the modal on outside click or Close button
               />
 
               <DeleteOutlined
-                onClick={() => setShowDeleteModalConfirm(true)}
+                onClick={() => setRecordToDelete(record)}
                 style={{ color: 'red' }}
               />
             </>
