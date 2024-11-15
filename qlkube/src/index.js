@@ -160,7 +160,7 @@ async function main() {
 
   app.use(
     '/',
-    cors<cors.CorsRequest>(),
+    cors<cors.CorsRequest>({ origin: ['*'] }),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = getBearerToken(req.headers);
