@@ -78,6 +78,7 @@ async function main() {
   const app = express();
   app.use(compression());
   app.use(bodyParser.json());
+  app.use(cors());
 
   app.get('/schema', (req, res) => {
     res.setHeader('content-type', 'text/plain');
@@ -160,7 +161,6 @@ async function main() {
 
   app.use(
     '/',
-    cors<cors.CorsRequest>({ origin: ['*'] }),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = getBearerToken(req.headers);
