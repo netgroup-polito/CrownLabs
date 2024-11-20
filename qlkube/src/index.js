@@ -8,9 +8,6 @@ const dotenv = require('dotenv');
 const express = require('express');
 const fs = require('fs').promises;
 const { printSchema } = require('graphql');
-const {
-  ApolloServerPluginLandingPageGraphQLPlayground,
-} = require('@apollo/server-plugin-landing-page-graphql-playground');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const bodyParser = require('body-parser');
@@ -92,15 +89,22 @@ async function main() {
   app.get('/healthz', (req, res) => {
     res.sendStatus(200);
   });
+  app.get('/', (req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.send(`<html><head><title>CrownLabs GraphQL Playground</title></head><body>
+      <div></div>
+      <script src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"></script> 
+      <script>new window.EmbeddedSandbox({ target: 'div', initialEndpoint: document.location.href, initialSubscriptionEndpoint: document.location.href+'subscription' });</script>
+      <style>html, body, body > div {height: 100%;body: 100%;margin: 0;padding: 0}</style>
+      </body></html>`);
+  });
 
   const httpServer = createServer(app);
 
   const server = new ApolloServer({
     schema,
-    playground: true,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer: httpServer }),
-      ApolloServerPluginLandingPageGraphQLPlayground(),
       {
         async serverWillStart() {
           return {
@@ -157,6 +161,19 @@ async function main() {
     },
   });
 
+  // Creating the WebSocket server
+  const wsServer = new WebSocketServer({
+    // This is the `httpServer` we created in a previous step.
+    server: httpServer,
+    // Pass a different path here if app.use
+    // serves expressMiddleware at a different path
+    path: '/subscription',
+  });
+
+  // Hand in the schema we just created and have the
+  // WebSocketServer start listening.
+  const serverCleanup = useServer({ schema }, wsServer);
+
   await server.start();
 
   app.use(
@@ -169,18 +186,12 @@ async function main() {
     })
   );
 
-  const wsServer = new WebSocketServer({
-    server: httpServer,
-    path: '/subscription',
-  });
-  const serverCleanup = useServer({ schema }, wsServer);
-
   const PORT = process.env.CROWNLABS_QLKUBE_PORT || 8080;
 
   httpServer.listen({ port: PORT }, () => {
     console.log(`🚀 Server ready at http://localhost:${PORT}/`);
     console.log(
-      `🚀 Subscriptions ready at ws://localhost:${PORT}/subscriptions`
+      `🚀 Subscriptions ready at ws://localhost:${PORT}/subscription`
     );
     global.harborSchema = harborSchema;
     repl.start('> ');

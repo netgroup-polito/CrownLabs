@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@apollo/server": "^4.10.4",
-    "@apollo/server-plugin-landing-page-graphql-playground": "^4.0.1",
     "@graphql-tools/schema": "10.0.4",
     "@graphql-tools/stitch": "^9.2.9",
     "@graphql-tools/wrap": "10.0.5",
