@@ -171,7 +171,7 @@ async function main() {
 
   const wsServer = new WebSocketServer({
     server: httpServer,
-    path: '/subscriptions',
+    path: '/subscription',
   });
   const serverCleanup = useServer({ schema }, wsServer);
 
