@@ -12,6 +12,40 @@ const force = {
 };
 
 /**
+ * Recursively add x-graphql-enum-mapping property
+ * tho the enum ones which values contain empty string
+ *
+ * @param {Object} obj
+ */
+function setGQLEnumNones(obj) {
+  const GQL_EXT_ENUM_MAPPING = 'x-graphql-enum-mapping';
+  if (!obj.properties) return;
+  Object.keys(obj.properties).forEach(prop => {
+    const p = obj.properties[prop];
+    if (p?.type === 'string' && p.enum) {
+      if (!p[GQL_EXT_ENUM_MAPPING]) {
+        p[GQL_EXT_ENUM_MAPPING] = {};
+      }
+      p.enum.forEach(v => {
+        if (!p[GQL_EXT_ENUM_MAPPING][v]) {
+          if (v !== '') {
+            p[GQL_EXT_ENUM_MAPPING][v] = v
+              .replace(/([a-z])([A-Z])/g, '$1_$2')
+              .toUpperCase();
+          } else {
+            p[GQL_EXT_ENUM_MAPPING][''] = '_EMPTY_';
+          }
+        }
+      });
+    } else if (p?.type === 'object') {
+      setGQLEnumNones(p);
+    } else if (p?.type === 'array') {
+      setGQLEnumNones(p.items);
+    }
+  });
+}
+
+/**
  *
  * @param {*} oas
  * This function filters the OpenApi made from k8s API.
@@ -60,6 +94,11 @@ function decorateOpenapi(oas) {
         patch.parameters.push({ ...force });
     }
   }
+
+  Object.keys(oas.definitions).forEach(k =>
+    setGQLEnumNones(oas.definitions[k])
+  );
+
   return oas;
 }
 

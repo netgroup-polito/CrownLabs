@@ -1,21 +1,22 @@
 const { createGraphQLSchema } = require('openapi-to-graphql');
 const { decorateBaseSchema } = require('./decorateBaseSchema.js');
 const { wrappers } = require('./wrappers');
-const fs = require('fs');
 
 exports.createSchema = async (oas, kubeApiUrl, token) => {
   let baseSchema = (await oasToGraphQlSchema(oas, kubeApiUrl, token)).schema;
 
   try {
-    wrappers.forEach(wtype => {
-      baseSchema = decorateBaseSchema(
-        wtype['type'],
-        wtype['fieldWrapper'],
-        baseSchema,
-        wtype['nameWrapper'],
-        wtype['queryFieldsRequired']
-      );
-    });
+    wrappers.forEach(
+      ({ type, fieldWrapper, nameWrapper, queryFieldsRequired }) => {
+        baseSchema = decorateBaseSchema(
+          type,
+          fieldWrapper,
+          baseSchema,
+          nameWrapper,
+          queryFieldsRequired
+        );
+      }
+    );
 
     return baseSchema;
   } catch (e) {
@@ -48,6 +49,7 @@ async function oasToGraphQlSchema(oas, kubeApiUrl, token) {
       Authorization: `Bearer ${token}`,
     },
     tokenJSONpath: '$.token',
+    simpleEnumValues: true,
   });
   return schema;
 }

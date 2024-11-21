@@ -43,7 +43,7 @@
     "got": "^12.6.1",
     "graphql": "^16.9.0",
     "graphql-http": "^1.22.1",
-    "graphql-subscriptions": "^2.0.0",
+    "graphql-subscriptions": "^3.0.0",
     "graphql-tag": "^2.12.6",
     "graphql-tools": "9.0.1",
     "graphql-ws": "^5.16.0",
