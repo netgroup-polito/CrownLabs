@@ -1,6 +1,6 @@
 import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
 import { Checkbox, Space, Typography } from 'antd';
-import { ApolloError } from 'apollo-client';
+import { ApolloError } from '@apollo/client';
 import { FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { useApplyInstanceMutation } from '../../../../generated-types';

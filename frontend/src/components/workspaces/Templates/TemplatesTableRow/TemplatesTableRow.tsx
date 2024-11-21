@@ -5,7 +5,7 @@ import {
 } from '@ant-design/icons';
 import { Space, Tooltip } from 'antd';
 import Button from 'antd-button-color';
-import { FetchResult } from 'apollo-link';
+import { FetchResult } from '@apollo/client';
 import { FC, useContext, useState } from 'react';
 import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
