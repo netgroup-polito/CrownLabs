@@ -32,8 +32,8 @@
     "ws": "^8.2.2"
   },
   "scripts": {
-    "start": "craco start",
-    "build-app": "craco build",
+    "start": "craco --openssl-legacy-provider start",
+    "build-app": "craco --openssl-legacy-provider build",
     "test": "craco test",
     "prepare": "cd .. && husky install frontend/.husky",
     "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0",

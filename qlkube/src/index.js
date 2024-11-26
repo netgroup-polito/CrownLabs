@@ -163,7 +163,6 @@ async function main() {
       } catch (err) {
         logger.warn({ error: err.message }, 'Incoming WS connection - Token parsing failed');
       }
-      logger.info();
       return { token };
     },
     onDisconnect: (_webSocket, _context) => {

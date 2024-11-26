@@ -24,8 +24,6 @@ async function runTypeResolver(ruid, schema, targetType, vars, ctx, info) {
   const mainQueryObj = schema.getQueryType().getFields()[targetType];
   if (!mainQueryObj) throw new Error('Query object not found');
 
-  logger.info(`(${ruid}) Resolve main query object of ${info.fieldName}`);
-
   return mainQueryObj.resolve(null, vars, ctx, info);
 }
 
