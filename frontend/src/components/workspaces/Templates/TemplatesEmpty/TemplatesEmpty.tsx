@@ -9,7 +9,7 @@ export interface ITemplatesEmptyProps {
 
 const TemplatesEmpty: FC<ITemplatesEmptyProps> = ({ ...props }) => {
   const { role } = props;
-  return role === 'manager' ? (
+  return role === WorkspaceRole.manager ? (
     <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5 ">
       <div className="w-full pb-10 flex justify-center">
         <p className="text-6xl md:text-7xl text-center mb-0 primary-color-fg">

@@ -3,9 +3,9 @@ import { EnvironmentType, Phase } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
-  user = 'user',
-  manager = 'manager',
-  candidate = 'candidate',
+  user = Role.User,
+  manager = Role.Manager,
+  candidate = Role.Candidate,
 }
 export type BadgeSize = 'small' | 'middle' | 'large';
 export type User = { tenantId: string; tenantNamespace: string };
@@ -124,7 +124,8 @@ export function makeListToggler<T>(
   };
 }
 
-export const JSONDeepCopy = <T>(obj: T) => JSON.parse(JSON.stringify(obj)) as T;
+export const JSONDeepCopy = <T>(obj: T) =>
+  obj && (JSON.parse(JSON.stringify(obj)) as T);
 
 export type UserAccountPage = {
   key: string;

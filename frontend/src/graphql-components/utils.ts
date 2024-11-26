@@ -1,3 +1,4 @@
+import { DeepPartial } from '@apollo/client/utilities';
 import {
   ItPolitoCrownlabsV1alpha2Tenant,
   ItPolitoCrownlabsV1alpha2Instance,
@@ -35,7 +36,7 @@ function getInstancePatchJson(spec: {
   prettyName?: string;
   running?: boolean;
 }): string {
-  let patchJson: ItPolitoCrownlabsV1alpha2Instance = {
+  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
     kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec,
@@ -67,7 +68,7 @@ function getTenantPatchJson(
   },
   name?: string
 ): string {
-  let patchJson: ItPolitoCrownlabsV1alpha2Tenant = {
+  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Tenant> = {
     kind: 'Tenant',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec: {

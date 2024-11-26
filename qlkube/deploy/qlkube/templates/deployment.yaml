@@ -57,10 +57,16 @@ spec:
           - name: configuration
             mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.wrappers.fileName }}"
             subPath: "{{ .Values.configuration.wrappers.fileName }}"
+          - name: harbor-token
+            mountPath: "/var/run/secrets/harbor_token.json"
+            subPath: "harbor_token.json"
       volumes:
       - name: configuration
         configMap:
           name: "{{ include "qlkube.fullname" . }}"
+      - name: harbor-token
+        secret:
+          secretName: {{ include "qlkube.fullname" . }}-harbor-token
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

@@ -1,7 +1,7 @@
-const { gql } = require('apollo-server-core');
+const { gql } = require('graphql-tag');
 const { extendSchema } = require('graphql/utilities');
 const { addResolversToSchema } = require('@graphql-tools/schema');
-const { capitalizeType, graphqlLogger } = require('./utils.js');
+const { capitalizeType, logger } = require('./utils');
 
 /**
  *
@@ -18,7 +18,7 @@ function decorateBaseSchema(
   extendedType,
   baseSchema,
   nameWrapper,
-  argsNeeded
+  argsNeeded,
 ) {
   if (!targetQuery) throw new Error('Parameter targetQuery cannot be empty!');
   if (!extendedType) throw new Error('Parameter extendedType cannot be empty!');
@@ -26,8 +26,7 @@ function decorateBaseSchema(
   if (!argsNeeded) throw new Error('Parameter argsNeeded cannot be empty!');
   if (!baseSchema) throw new Error('Parameter baseSchema cannot be empty!');
 
-  if (baseSchema.getQueryType().getFields()[targetQuery] === undefined)
-    throw new Error('Parameter targetQuery not valid!');
+  if (baseSchema.getQueryType().getFields()[targetQuery] === undefined) throw new Error('Parameter targetQuery not valid!');
   const targetType = baseSchema.getQueryType().getFields()[targetQuery];
 
   if (!targetType) throw new Error('targetType fault!');
@@ -46,11 +45,10 @@ function decorateBaseSchema(
 
   const resolvers = {
     [extendedType]: {
-      [nameWrapper]: (parent, args, context, info) => {
+      [nameWrapper]: (parent, _args, _context, _info) => {
         const newParent = {};
-        for (e of argsNeeded) {
-          if (parent[e] === undefined)
-            throw new Error(`Error: ${e} is not into the parent object!`);
+        for (const e of argsNeeded) {
+          if (parent[e] === undefined) throw new Error(`Error: ${e} is not into the parent object!`);
           newParent[e] = parent[e];
         }
         return newParent;
@@ -58,16 +56,17 @@ function decorateBaseSchema(
     },
     [typeWrapper]: {
       [targetQuery]: (parent, args, context, info) => {
-        graphqlLogger(
-          `[i] Resolve ${targetQuery} query of ${typeWrapper} type wrapper`
-        );
+        logger.info({ targetQuery, typeWrapper }, 'Resolving wrapper');
         return targetType.resolve(parent, parent, context, info);
       },
     },
   };
 
-  const extendedSchema = extendSchema(baseSchema, extension);
-  const newSchema = addResolversToSchema(extendedSchema, resolvers);
+  const newSchema = addResolversToSchema({
+    schema: extendSchema(baseSchema, extension),
+    resolvers,
+  });
+
   return newSchema;
 }
 

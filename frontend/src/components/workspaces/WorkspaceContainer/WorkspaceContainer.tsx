@@ -9,7 +9,7 @@ import {
   useCreateTemplateMutation,
   useImagesQuery,
 } from '../../../generated-types';
-import { Workspace } from '../../../utils';
+import { JSONDeepCopy, Workspace, WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
@@ -24,7 +24,7 @@ export interface IWorkspaceContainerProps {
 
 const getImages = (dataImages: ImagesQuery) => {
   let images: Image[] = [];
-  dataImages?.imageList?.images?.forEach(i => {
+  JSONDeepCopy(dataImages?.imageList?.images)?.forEach(i => {
     const registry = i?.spec?.registryName!;
     const imagesRaw = i?.spec?.images;
     imagesRaw?.forEach(ir => {
@@ -36,7 +36,7 @@ const getImages = (dataImages: ImagesQuery) => {
         versionsInImageName = [
           {
             name: latestVersion,
-            vmorcontainer: ['VM'],
+            vmorcontainer: [EnvironmentType.VirtualMachine],
             registry: registry!,
           },
         ];
@@ -44,7 +44,7 @@ const getImages = (dataImages: ImagesQuery) => {
         versionsInImageName = ir?.versions?.map(v => {
           return {
             name: `${ir?.name!}:${v}`,
-            vmorcontainer: ['Container'],
+            vmorcontainer: [EnvironmentType.Container],
             registry: registry!,
           };
         })!;
@@ -122,7 +122,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               </p>
             </div>
           ),
-          left: workspace.role === 'manager' && (
+          left: workspace.role === WorkspaceRole.manager && (
             <div className="h-full flex justify-center items-center pl-10">
               <Tooltip title="Manage users">
                 <Button
@@ -144,7 +144,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               </Tooltip>
             </div>
           ),
-          right: workspace.role === 'manager' && (
+          right: workspace.role === WorkspaceRole.manager && (
             <div className="h-full flex justify-center items-center pr-10">
               <Tooltip title="Create template">
                 <Button
