@@ -1,8 +1,6 @@
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@apollo/server/express4');
-const {
-  ApolloServerPluginDrainHttpServer,
-} = require('@apollo/server/plugin/drainHttpServer');
+const { ApolloServerPluginDrainHttpServer } = require('@apollo/server/plugin/drainHttpServer');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const express = require('express');
@@ -10,80 +8,69 @@ const fs = require('fs').promises;
 const { printSchema } = require('graphql');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
-const bodyParser = require('body-parser');
 const { useServer } = require('graphql-ws/lib/use/ws');
-const logger = require('pino')({ useLevelLabels: true });
-const { setupSubscriptions } = require('./decorateSubscription.js');
+const cors = require('cors');
+const repl = require('repl');
+const { setupSubscriptions } = require('./decorateSubscription');
 const { getOpenApiSpec } = require('./oas');
 const { decorateOpenapi } = require('./decorateOpenapi');
-const { joinSchemas } = require('./joinSchemas.js');
+const { joinSchemas } = require('./joinSchemas');
 const { createSchema, createHarborSchema } = require('./schema');
-const { subscriptions } = require('./subscriptions.js');
-const { kinformer } = require('./informer.js');
-const { getBearerToken, graphqlLogger } = require('./utils.js');
-const cors = require('cors');
-
-const repl = require('repl');
+const { subscriptions } = require('./subscriptions');
+const { kinformer } = require('./informer');
+const { getBearerToken, logger } = require('./utils');
 
 dotenv.config();
-
-main().catch(e =>
-  logger.error({ error: e.stack }, 'failed to start qlkube server')
-);
 
 async function main() {
   const inCluster = process.env.IN_CLUSTER !== 'false';
   logger.info({ inCluster }, 'cluster mode configured');
+
   const kubeApiUrl = inCluster
     ? 'https://kubernetes.default.svc'
     : 'http://localhost:8001';
-  const harborApiUrl = 'https://harbor.crownlabs.polito.it';
   const inClusterToken = inCluster
     ? await fs.readFile(
-        '/var/run/secrets/kubernetes.io/serviceaccount/token',
-        'utf8'
-      )
+      '/var/run/secrets/kubernetes.io/serviceaccount/token',
+      'utf8',
+    )
     : '';
-  const oas = await getOpenApiSpec(kubeApiUrl, inClusterToken);
+  const oas = await getOpenApiSpec(kubeApiUrl, ['openapi/v2'], inClusterToken);
   const targetOas = decorateOpenapi(oas);
+
+  let kubeSchema = await createSchema(targetOas, kubeApiUrl, inClusterToken);
+  kubeSchema = setupSubscriptions(subscriptions, kubeSchema);
 
   const harborToken = JSON.parse(
     await fs.readFile(
       inCluster ? '/var/run/secrets/harbor_token.json' : './.harbor_token.json',
-      'utf8'
-    )
+      'utf8',
+    ),
   );
 
-  const harborOas = await getOpenApiSpec(harborApiUrl, harborToken);
+  const harborApiUrl = 'https://harbor.crownlabs.polito.it';
 
-  let kubeSchema = await createSchema(targetOas, kubeApiUrl, inClusterToken);
-  let harborSchema = await createHarborSchema(
+  const harborOas = await getOpenApiSpec(harborApiUrl, ['swagger2.json'], harborToken);
+  const harborSchema = await createHarborSchema(
     harborOas,
     harborApiUrl,
-    harborToken
+    harborToken,
   );
 
-  let schema = joinSchemas(kubeSchema, harborSchema);
-
-  try {
-    schema = setupSubscriptions(subscriptions, schema, kubeApiUrl);
-  } catch (e) {
-    console.error(e);
-    process.exit(1);
-  }
+  const schema = joinSchemas(kubeSchema, harborSchema);
 
   const app = express();
+  const httpServer = createServer(app);
+
   app.use(compression());
-  app.use(bodyParser.json());
-  app.use(cors());
 
   app.get('/schema', (req, res) => {
     res.setHeader('content-type', 'text/plain');
     res.send(
       printSchema(schema)
         .split('\n')
-        .filter(l => l.trim() != '_') // remove empty values from enums
-        .join('\n')
+        .filter((l) => l.trim() !== '_') // remove empty values from enums
+        .join('\n'),
     );
   });
   app.get('/healthz', (req, res) => {
@@ -99,30 +86,32 @@ async function main() {
       </body></html>`);
   });
 
-  const httpServer = createServer(app);
+  let serverCleanup;
 
   const server = new ApolloServer({
     schema,
     plugins: [
-      ApolloServerPluginDrainHttpServer({ httpServer: httpServer }),
+      ApolloServerPluginDrainHttpServer({ httpServer }),
       {
         async serverWillStart() {
           return {
             async drainServer() {
-              await serverCleanup.dispose();
+              if (serverCleanup) {
+                await serverCleanup.dispose();
+              }
             },
           };
         },
       },
     ],
-    formatError: error => {
+    formatError: (error) => {
       try {
-        const msgs = [...(error.message.match(/(\d+)\s*\-(.*)$/) || [])];
-        if (msgs.length != 3) return error;
+        const msgs = [...(error.message.match(/(\d+)\s*-(.*)$/) || [])];
+        if (msgs.length !== 3) return error;
         let msg = JSON.parse(msgs[2]);
         try {
           msg = JSON.parse(msg);
-        } catch (_) {}
+        } catch (_) { /* empty: file silently */ }
         return {
           ...error,
           message: msg.message,
@@ -133,31 +122,19 @@ async function main() {
           },
         };
       } catch (e) {
-        graphqlLogger('[w] Could not parse error response: ' + e);
+        logger.error(null, 'Cannot parse error response');
+        // eslint-disable-next-line no-console
+        console.error(e);
         return error;
       }
     },
-    subscriptions: {
-      path: '/subscription',
-      onConnect: (connectionParams, webSocket, context) => {
-        graphqlLogger('[i] New connection');
-        const token = getBearerToken(connectionParams);
-        return { token };
-      },
-      onDisconnect: (webSocket, context) => {
-        graphqlLogger('[i] Disconnected');
-      },
-    },
 
-    context: async ({ req, connection }) => {
+    context: async ({ _req, connection }) => {
       if (connection) {
         const { token } = connection.context;
         return { token };
       }
-      if (!req.headers['apollo-query-plan-experimental']) {
-        const token = getBearerToken(req.headers);
-        return { token };
-      }
+      return null;
     },
   });
 
@@ -172,43 +149,66 @@ async function main() {
 
   // Hand in the schema we just created and have the
   // WebSocketServer start listening.
-  const serverCleanup = useServer({ schema }, wsServer);
+  serverCleanup = useServer({
+    schema,
+    onConnect: ({ connectionParams }, _webSocket, _context) => {
+      const token = getBearerToken(connectionParams);
+      if (!token) {
+        logger.info('Incoming WS connection without token');
+        return false;
+      }
+      try {
+        const { preferred_username: decodedUser } = JSON.parse(atob(token.split('.')[1])); // JWT data part
+        logger.info({ decodedUser }, 'Incoming WS connection');
+      } catch (err) {
+        logger.warn({ error: err.message }, 'Incoming WS connection - Token parsing failed');
+      }
+      logger.info();
+      return { token };
+    },
+    onDisconnect: (_webSocket, _context) => {
+      logger.info('WS disconnected');
+    },
+    context: ({ connectionParams }, _msg, _args) => {
+      const token = getBearerToken(connectionParams);
+      return { token };
+    },
+  }, wsServer);
 
   await server.start();
 
   app.use(
     '/',
+    cors(),
+    express.json(),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = getBearerToken(req.headers);
         return { token };
       },
-    })
+    }),
   );
 
   const PORT = process.env.CROWNLABS_QLKUBE_PORT || 8080;
 
   httpServer.listen({ port: PORT }, () => {
-    console.log(`🚀 Server ready at http://localhost:${PORT}/`);
-    console.log(
-      `🚀 Subscriptions ready at ws://localhost:${PORT}/subscription`
-    );
+    logger.info({
+      url: `http://localhost:${PORT}/`,
+      subscriptions: `ws://localhost:${PORT}/subscription`,
+    }, '🚀 Server ready');
     global.harborSchema = harborSchema;
+    global.kubeSchema = kubeSchema;
     repl.start('> ');
   });
 
   /**
    * Making informer for watching resources.
-   * Whether you want to change informer with watcher:
-   * 1. Include kwatch from watch.js
-   * 2. Use kwatch(resourceApi, sub.type);
    */
-  try {
-    subscriptions.forEach(sub => {
-      kinformer(sub);
-    });
-  } catch (e) {
-    console.error(e);
-    process.exit(1);
-  }
+  subscriptions.forEach(kinformer);
 }
+
+main().catch((e) => {
+  logger.error({ error: e.message }, 'failed to start qlkube server');
+  // eslint-disable-next-line no-console
+  console.error(e);
+});

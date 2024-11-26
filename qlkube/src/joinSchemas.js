@@ -2,7 +2,7 @@ const { stitchSchemas } = require('@graphql-tools/stitch');
 const { RenameRootFields } = require('@graphql-tools/wrap');
 
 module.exports.joinSchemas = (kubeSchema, harborSchema) => {
-  let schema = stitchSchemas({
+  const schema = stitchSchemas({
     subschemas: [
       {
         schema: kubeSchema,
@@ -10,9 +10,7 @@ module.exports.joinSchemas = (kubeSchema, harborSchema) => {
       {
         schema: harborSchema,
         transforms: [
-          new RenameRootFields((operation, name, field) => {
-            return 'reg_' + name;
-          }),
+          new RenameRootFields((operation, name, _field) => `reg_${name}`),
         ],
       },
     ],

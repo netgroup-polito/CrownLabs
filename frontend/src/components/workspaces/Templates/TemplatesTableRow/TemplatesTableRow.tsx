@@ -214,7 +214,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               Info
             </Button>
           </Tooltip>
-          {role === 'manager' ? (
+          {role === WorkspaceRole.manager ? (
             <TemplatesTableRowSettings
               id={template.id}
               createInstance={createInstance}

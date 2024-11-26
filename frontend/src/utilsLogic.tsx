@@ -326,7 +326,7 @@ export const joinInstancesAndTemplates = (
   }));
 
 export const availableWorkspaces = (
-  workspaces: Maybe<ItPolitoCrownlabsV1alpha1Workspace>[],
+  workspaces: Maybe<DeepPartial<ItPolitoCrownlabsV1alpha1Workspace>>[],
   userWorkspaces: Workspace[]
 ) => {
   return workspaces
@@ -360,7 +360,7 @@ export const availableWorkspaces = (
 //Utilities for active page only
 
 export const getManagerInstances = (
-  instance: Nullable<ItPolitoCrownlabsV1alpha2Instance>,
+  instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   index: number
 ) => {
   if (!instance) {

@@ -1,8 +1,13 @@
 import { getMainDefinition } from '@apollo/client/utilities';
-import { ApolloProvider } from '@apollo/react-hooks';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
-import { ApolloClient, HttpLink, InMemoryCache, split } from '@apollo/client';
+import {
+  ApolloClient,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
+  split,
+} from '@apollo/client';
 import { FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';

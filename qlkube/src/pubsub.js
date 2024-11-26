@@ -9,7 +9,7 @@ function publishEvent(label, value) {
 }
 
 function pubsubAsyncIterator(...labels) {
-  return pubsub.asyncIterator(labels);
+  return pubsub.asyncIterableIterator(labels);
 }
 
 module.exports = { publishEvent, pubsubAsyncIterator };
