@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +55,10 @@ const (
 	NFSSecretServerNameKey = "server-name"
 	// NFSSecretPathKey -> NFS path key in NFS secret.
 	NFSSecretPathKey = "path"
+	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job
+	ProvisionJobBaseImage = "busybox"
+	// ProvisionJobLabel -> Key of the label added by the Provision Job
+	ProvisionJobLabel = "pvc-provisioning"
 )
 
 // TenantReconciler reconciles a Tenant object.
@@ -243,6 +249,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&netv1.NetworkPolicy{}).
+		Owns(&batchv1.Job{}).
 		Watches(&crownlabsv1alpha1.Workspace{},
 			handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
 		WithOptions(controller.Options{
@@ -517,6 +524,67 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 			return err
 		}
 		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
+
+		val, ok := pvc.Labels[ProvisionJobLabel]
+		if !ok || val != "completed" {
+			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name) + "-provision", Namespace: r.MyDrivePVCsNamespace}}
+
+			chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
+
+				if chownJob.CreationTimestamp.IsZero() {
+					chownJob.Spec.BackoffLimit = ptr.To[int32](3)
+					chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyNever
+					chownJob.Spec.Template.Spec.Containers = []v1.Container{
+						{
+							Name:    "chown-container",
+							Image:   ProvisionJobBaseImage,
+							Command: []string{"chown", "-R", fmt.Sprintf("%d", forge.CrownLabsUserID) + ":" + fmt.Sprintf("%d", forge.CrownLabsUserID), "/mnt/mydrive"},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "mydrive",
+									MountPath: "/mnt/mydrive",
+								},
+							},
+							Resources: v1.ResourceRequirements{
+								Requests: v1.ResourceList{
+									"cpu":    resource.MustParse("100m"),
+									"memory": resource.MustParse("128Mi"),
+								},
+								Limits: v1.ResourceList{
+									"cpu":    resource.MustParse("500m"),
+									"memory": resource.MustParse("256Mi"),
+								},
+							},
+						},
+					}
+					chownJob.Spec.Template.Spec.Volumes = []v1.Volume{
+						{
+							Name: "mydrive",
+							VolumeSource: v1.VolumeSource{
+								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+									ClaimName: pvc.Name,
+								},
+							},
+						},
+					}
+				}
+
+				if chownJob.Status.Succeeded == 1 {
+					pvc.Labels[ProvisionJobLabel] = "completed"
+					klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
+				} else if chownJob.Status.Failed == 1 {
+					klog.Errorf("PVC Provisioning Job failed for tenant %s", tn.Name)
+				}
+
+				return ctrl.SetControllerReference(tn, &chownJob, r.Scheme)
+			})
+			if err != nil {
+				klog.Errorf("Unable to create or update PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
+				return err
+			}
+			klog.Infof("PVC Provisioning Job for tenant %s %s", tn.Name, chownJobOpRes)
+		}
+
 	} else if pvc.Status.Phase == v1.ClaimPending {
 		klog.Infof("PVC pending for tenant %s", tn.Name)
 	}
