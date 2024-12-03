@@ -37,10 +37,17 @@ const (
 	InstanceSubmissionSelectorLabel = "crownlabs.polito.it/instance-submission-requested"
 	// InstanceSubmissionCompletedLabel -> label for Instances that have been submitted.
 	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
+	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the Tenant's MyDrive PVC.
+	ProvisionJobLabel = "crownlabs.polito.it/mydrive-provisioning"
 
 	labelManagedByInstanceValue = "instance"
 	labelManagedByTenantValue   = "tenant"
 	labelTypeSandboxValue       = "sandbox"
+
+	// ProvisionJobValueOk -> Value of the label added by the Provision Job to flag the PVC when everything worked fine.
+	ProvisionJobValueOk = "completed"
+	// ProvisionJobValuePending -> Value of the label added by the Provision Job to flag the PVC when it hasn't completed yet.
+	ProvisionJobValuePending = "pending"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
