@@ -57,8 +57,14 @@ const (
 	NFSSecretPathKey = "path"
 	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job
 	ProvisionJobBaseImage = "busybox"
-	// ProvisionJobLabel -> Key of the label added by the Provision Job
+	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC
 	ProvisionJobLabel = "pvc-provisioning"
+	// ProvisionJobValue -> Value of the label added by the Provision Job to flag the PVC
+	ProvisionJobValue = "completed"
+	// ProvisionJobMaxRetries -> Maximum number of retries for Provision jobs
+	ProvisionJobMaxRetries = 3
+	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success)
+	ProvisionJobTTLSeconds = 604800
 )
 
 // TenantReconciler reconciles a Tenant object.
@@ -526,56 +532,11 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
 
 		val, ok := pvc.Labels[ProvisionJobLabel]
-		if !ok || val != "completed" {
-			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name) + "-provision", Namespace: r.MyDrivePVCsNamespace}}
+		if !ok || val != ProvisionJobValue {
+			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
 
 			chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
-
-				if chownJob.CreationTimestamp.IsZero() {
-					chownJob.Spec.BackoffLimit = ptr.To[int32](3)
-					chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyNever
-					chownJob.Spec.Template.Spec.Containers = []v1.Container{
-						{
-							Name:    "chown-container",
-							Image:   ProvisionJobBaseImage,
-							Command: []string{"chown", "-R", fmt.Sprintf("%d", forge.CrownLabsUserID) + ":" + fmt.Sprintf("%d", forge.CrownLabsUserID), "/mnt/mydrive"},
-							VolumeMounts: []v1.VolumeMount{
-								{
-									Name:      "mydrive",
-									MountPath: "/mnt/mydrive",
-								},
-							},
-							Resources: v1.ResourceRequirements{
-								Requests: v1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("128Mi"),
-								},
-								Limits: v1.ResourceList{
-									"cpu":    resource.MustParse("500m"),
-									"memory": resource.MustParse("256Mi"),
-								},
-							},
-						},
-					}
-					chownJob.Spec.Template.Spec.Volumes = []v1.Volume{
-						{
-							Name: "mydrive",
-							VolumeSource: v1.VolumeSource{
-								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-									ClaimName: pvc.Name,
-								},
-							},
-						},
-					}
-				}
-
-				if chownJob.Status.Succeeded == 1 {
-					pvc.Labels[ProvisionJobLabel] = "completed"
-					klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
-				} else if chownJob.Status.Failed == 1 {
-					klog.Errorf("PVC Provisioning Job failed for tenant %s", tn.Name)
-				}
-
+				r.updateTnProvisioningJob(&chownJob, &pvc)
 				return ctrl.SetControllerReference(tn, &chownJob, r.Scheme)
 			})
 			if err != nil {
@@ -583,6 +544,16 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 				return err
 			}
 			klog.Infof("PVC Provisioning Job for tenant %s %s", tn.Name, chownJobOpRes)
+
+			if chownJob.Status.Succeeded == 1 {
+				ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
+					pvc.Labels[ProvisionJobLabel] = ProvisionJobValue
+					return nil
+				})
+				klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
+			} else if chownJob.Status.Failed == 1 {
+				klog.Errorf("PVC Provisioning Job failed for tenant %s", tn.Name)
+			}
 		}
 
 	} else if pvc.Status.Phase == v1.ClaimPending {
@@ -642,6 +613,44 @@ func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolum
 	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
 	pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
 	pvc.Spec.StorageClassName = &scName
+}
+
+func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
+	if chownJob.CreationTimestamp.IsZero() {
+		chownJob.Spec.BackoffLimit = ptr.To[int32](ProvisionJobMaxRetries)
+		chownJob.Spec.TTLSecondsAfterFinished = ptr.To[int32](ProvisionJobTTLSeconds)
+		chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
+		chownJob.Spec.Template.Spec.Containers = []v1.Container{{
+			Name:    "chown-container",
+			Image:   ProvisionJobBaseImage,
+			Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", forge.CrownLabsUserID, forge.CrownLabsUserID), forge.MyDriveVolumeMountPath},
+			VolumeMounts: []v1.VolumeMount{{
+				Name:      "mydrive",
+				MountPath: forge.MyDriveVolumeMountPath,
+			},
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					"cpu":    resource.MustParse("100m"),
+					"memory": resource.MustParse("128Mi"),
+				},
+				Limits: v1.ResourceList{
+					"cpu":    resource.MustParse("100m"),
+					"memory": resource.MustParse("128Mi"),
+				},
+			},
+		},
+		}
+		chownJob.Spec.Template.Spec.Volumes = []v1.Volume{{
+			Name: "mydrive",
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: pvc.Name,
+				},
+			},
+		},
+		}
+	}
 }
 
 func (r *TenantReconciler) handleKeycloakSubscription(ctx context.Context, tn *crownlabsv1alpha2.Tenant, tenantExistingWorkspaces []crownlabsv1alpha2.TenantWorkspaceEntry) error {
