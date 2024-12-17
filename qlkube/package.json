@@ -5,9 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "IN_CLUSTER=false nodemon src/index.js",
+    "dev": "IN_CLUSTER=false nodemon --inspect src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css}",
+    "check-format-lint": "eslint src",
     "pre-commit": "lint-staged",
     "prepare": "cd .. && husky install qlkube/.husky"
   },
@@ -23,40 +23,44 @@
   },
   "homepage": "https://github.com/netgroup-polito/CrownLabs/qlkube#readme",
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "eslint": "8",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-node": "^11.1.0",
     "husky": "^6.0.0",
-    "lint-staged": "^10.5.4",
-    "nodemon": "^2.0.7",
-    "prettier": "^2.2.1"
+    "lint-staged": "15.2.7",
+    "nodemon": "^2.0.7"
+  },
+  "engines": {
+    "node": ">=18.6.0"
   },
   "dependencies": {
-    "@graphql-tools/schema": "^7.1.4",
-    "@kubernetes/client-node": "^0.15.1",
-    "apollo-server": "2.25.4",
-    "apollo-server-express": "^2.25.1",
+    "@apollo/server": "^4.10.4",
+    "@graphql-tools/schema": "10.0.4",
+    "@graphql-tools/stitch": "^9.2.9",
+    "@graphql-tools/wrap": "10.0.5",
+    "@kubernetes/client-node": "^0.22.3",
     "compression": "^1.7.4",
+    "cors": "^2.8.5",
     "dotenv": "^9.0.2",
     "express": "^4.19.2",
-    "express-graphql": "^0.12.0",
-    "got": "^9.6.0",
-    "graphql": "^15.5.1",
-    "graphql-tools": "^8.1.0",
-    "oasgraph": "^0.14.3",
-    "pino": "^5.13.6",
-    "promise-any": "^0.2.0"
-  },
-  "prettier": {
-    "printWidth": 80,
-    "tabWidth": 2,
-    "semi": true,
-    "singleQuote": true,
-    "arrowParens": "avoid",
-    "endOfLine": "lf"
+    "globals": "^15.12.0",
+    "graphql": "^16.9.0",
+    "graphql-http": "^1.22.1",
+    "graphql-subscriptions": "^3.0.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-tools": "9.0.1",
+    "graphql-ws": "^5.16.0",
+    "openapi-to-graphql": "^3.0.7",
+    "pino": "^9.5.0",
+    "ws": "^8.17.1"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,css}": "prettier --write"
+    "*.{ts,tsx,js,jsx,json,css}": "eslint"
   },
   "resolutions": {
-    "yargs-parser": "20.2.2",
+    "yargs-parser": "21.1.1",
     "ansi-regex": "^5.0.1"
   }
 }

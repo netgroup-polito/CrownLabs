@@ -91,3 +91,5 @@ resources:
     memory: 250Mi
 
 rbacResourcesName: crownlabs-qlkube
+
+harborToken: {}

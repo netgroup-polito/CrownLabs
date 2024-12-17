@@ -17,7 +17,12 @@ import {
   useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import { multiStringIncludes, User, Workspace } from '../../../utils';
+import {
+  JSONDeepCopy,
+  multiStringIncludes,
+  User,
+  Workspace,
+} from '../../../utils';
 import {
   getManagerInstances,
   getSubObjTypeK8s,
@@ -119,12 +124,12 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           const { instance, updateType } = data?.updateInstanceLabelSelector;
           const { namespace: ns } = instance.metadata!;
           let notify = false;
-          let newItem = prev;
+          let newItem = JSONDeepCopy(prev);
           let objType;
           const matchNS = ns === tenantNamespace;
 
-          if (prev.instanceList?.instances) {
-            let instances = [...prev.instanceList.instances];
+          if (newItem.instanceList?.instances) {
+            let { instances } = newItem.instanceList;
             const found = instances.find(matchK8sObject(instance, false));
             objType = getSubObjTypeK8s(found, instance, updateType);
 
@@ -151,14 +156,14 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
               default:
                 break;
             }
-            prev.instanceList.instances = [...instances];
+            newItem.instanceList.instances = instances;
           }
 
-          if (notify && matchNS)
+          if (notify && matchNS) {
             notifyStatus(instance.status?.phase, instance, updateType);
+          }
 
           if (objType !== SubObjType.Drop) {
-            newItem = { ...prev };
             setDataInstances(newItem);
           }
           return prev;

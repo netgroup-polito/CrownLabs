@@ -6,7 +6,7 @@ import {
   DeleteOutlined,
   EllipsisOutlined,
 } from '@ant-design/icons';
-import { FetchResult } from 'apollo-link';
+import { FetchResult } from '@apollo/client';
 import { CreateInstanceMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowSettingsProps {

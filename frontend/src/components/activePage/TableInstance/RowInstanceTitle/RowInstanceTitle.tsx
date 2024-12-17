@@ -1,6 +1,6 @@
 import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
 import { Checkbox, Space, Typography } from 'antd';
-import { ApolloError } from 'apollo-client';
+import { ApolloError } from '@apollo/client';
 import { FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { useApplyInstanceMutation } from '../../../../generated-types';
@@ -80,7 +80,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
     <>
       <div className="w-full flex justify-start items-center pl-2">
         <Space size="middle">
-          {viewMode === 'manager' &&
+          {viewMode === WorkspaceRole.manager &&
             selectiveDestroy &&
             selectToDestroy &&
             showCheckbox && (
@@ -94,7 +94,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
             )}
           <RowInstanceStatus status={status} />
 
-          {viewMode === 'manager' ? (
+          {viewMode === WorkspaceRole.manager ? (
             <div className="flex items-center gap-4">
               <Text className="w-32">{tenantId}</Text>
               <Text className="hidden w-max lg:w-32 2xl:w-40 md:block" ellipsis>
