@@ -55,15 +55,17 @@ const (
 	NFSSecretServerNameKey = "server-name"
 	// NFSSecretPathKey -> NFS path key in NFS secret.
 	NFSSecretPathKey = "path"
-	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job
+	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job.
 	ProvisionJobBaseImage = "busybox"
-	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC
-	ProvisionJobLabel = "pvc-provisioning"
-	// ProvisionJobValue -> Value of the label added by the Provision Job to flag the PVC
-	ProvisionJobValue = "completed"
-	// ProvisionJobMaxRetries -> Maximum number of retries for Provision jobs
+	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC.
+	ProvisionJobLabel = "mydrive-provisioning"
+	// ProvisionJobValueOk -> Value of the label added by the Provision Job to flag the PVC when everything worked fine.
+	ProvisionJobValueOk = "completed"
+	// ProvisionJobValuePending -> Value of the label added by the Provision Job to flag the PVC when it hasn't completed yet.
+	ProvisionJobValuePending = "pending"
+	// ProvisionJobMaxRetries -> Maximum number of retries for Provision jobs.
 	ProvisionJobMaxRetries = 3
-	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success)
+	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
 	ProvisionJobTTLSeconds = 604800
 )
 
@@ -532,7 +534,7 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
 
 		val, ok := pvc.Labels[ProvisionJobLabel]
-		if !ok || val != ProvisionJobValue {
+		if !ok || val != ProvisionJobValueOk {
 			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
 
 			chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
@@ -546,16 +548,16 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 			klog.Infof("PVC Provisioning Job for tenant %s %s", tn.Name, chownJobOpRes)
 
 			if chownJob.Status.Succeeded == 1 {
-				ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
-					pvc.Labels[ProvisionJobLabel] = ProvisionJobValue
-					return nil
-				})
+				pvc.Labels[ProvisionJobLabel] = ProvisionJobValueOk
+				if err := r.Update(ctx, &pvc); err != nil {
+					klog.Errorf("PVC Provisioning Job failed to update PVC labels for tenant %s", tn.Name)
+				}
+
 				klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
 			} else if chownJob.Status.Failed == 1 {
 				klog.Errorf("PVC Provisioning Job failed for tenant %s", tn.Name)
 			}
 		}
-
 	} else if pvc.Status.Phase == v1.ClaimPending {
 		klog.Infof("PVC pending for tenant %s", tn.Name)
 	}
@@ -609,6 +611,7 @@ func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
 	scName := r.MyDrivePVCsStorageClassName
 	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
+	pvc.Labels[ProvisionJobLabel] = ProvisionJobValuePending
 
 	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
 	pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
