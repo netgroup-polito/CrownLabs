@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cloudimg-registry.fullname" . }}
+  labels:
+    {{ include "cloudimg-registry.labels" . | nindent 4 }}
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{ include "cloudimg-registry.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "cloudimg-registry.selectorLabels" . | nindent 8 }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ include "cloudimg-registry.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--data-root={{ .Values.configurations.dataRoot }}"
+            - "--read-header-timeout-secs={{ .Values.configurations.readHeaderTimeoutSeconds }}"
+            - "--listener-addr=:8080"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: "{{ include "cloudimg-registry.fullname" . }}-storage"
+              mountPath: {{ .Values.configurations.dataRoot }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+      volumes:
+        - name: "{{ include "cloudimg-registry.fullname" . }}-storage"
+          persistentVolumeClaim:
+            claimName: "{{ include "cloudimg-registry.fullname" . }}-pvc"
