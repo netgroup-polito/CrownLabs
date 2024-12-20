@@ -5,9 +5,6 @@
 replicaCount: 1
 
 configurations:
-  # Comma separated list of whitelisted IPs (can include glob expressions) that can create instances
-  allowedIPs: ""
-  targetNamespace: "cloudimg-registry"
   dataRoot: "/data"
   readHeaderTimeoutSeconds: 2
   volume:
