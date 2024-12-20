@@ -14,6 +14,13 @@
         "harbor-project": "crownlabs-core"
     },
     {
+        "component": "cloudimg-registry",
+        "context": "./operators",
+        "dockerfile": "./operators/build/golang-common/Dockerfile",
+        "build-args": "COMPONENT=cloudimg-registry",
+        "harbor-project": "crownlabs-core"
+    },
+    {
         "component": "bastion-operator",
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
