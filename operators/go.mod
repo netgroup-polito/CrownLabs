@@ -9,7 +9,6 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/go-resty/resty/v2 v2.12.0
 	github.com/golang/mock v1.6.0
-	github.com/gorilla/mux v1.8.1
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
 	github.com/prometheus/client_golang v1.20.5
@@ -27,8 +26,6 @@ require (
 	kubevirt.io/containerized-data-importer-api v1.58.3
 	sigs.k8s.io/controller-runtime v0.17.2
 )
-
-require github.com/vearutop/statigz v1.4.0 // indirect
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -70,11 +67,11 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/swaggest/form/v5 v5.1.1 // indirect
 	github.com/swaggest/jsonschema-go v0.3.72 // indirect
-	github.com/swaggest/openapi-go v0.2.54 // indirect
+	github.com/swaggest/openapi-go v0.2.54
 	github.com/swaggest/refl v1.3.0 // indirect
-	github.com/swaggest/rest v0.2.69 // indirect
+	github.com/swaggest/rest v0.2.69
 	github.com/swaggest/swgui v1.8.2
-	github.com/swaggest/usecase v1.3.1 // indirect
+	github.com/swaggest/usecase v1.3.1
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
