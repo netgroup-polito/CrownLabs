@@ -77,6 +77,22 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 	}
 }
 
+// NamespacedNameFromSharedVolume returns the namespace/name pair of the passed SharedVolume.
+func NamespacedNameFromSharedVolume(shvol *clv1alpha2.SharedVolume) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      shvol.Name,
+		Namespace: shvol.Namespace,
+	}
+}
+
+// NamespacedNameFromMount returns the namespace/name pair of the SharedVolume contained in the passed SharedVolumeMountInfo.
+func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      mountInfo.SharedVolumeRef.Name,
+		Namespace: mountInfo.SharedVolumeRef.Namespace,
+	}
+}
+
 // canonicalName returns a canonical name given a resource name, to
 // prevent issues with DNS style requirements.
 func canonicalName(name string) string {

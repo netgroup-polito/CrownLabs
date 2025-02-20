@@ -49,6 +49,9 @@ const (
 	SubscrFailed SubscriptionStatus = "Failed"
 )
 
+// TemplateLabelPrefix is the prefix of a label assigned to a sharedvolume indicating it is mounted on a template.
+const TemplateLabelPrefix = "crownlabs.polito.it/template-"
+
 // WorkspaceLabelPrefix is the prefix of a label assigned to a tenant indicating it is subscribed to a workspace.
 const WorkspaceLabelPrefix = "crownlabs.polito.it/workspace-"
 
@@ -57,3 +60,6 @@ const WorkspaceLabelAutoenroll = "crownlabs.polito.it/autoenroll"
 
 // TnOperatorFinalizerName is the name of the finalizer corresponding to the tenant operator.
 const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"
+
+// ShVolCtrlFinalizerName is the name of the finalizer for SharedVolume's PVC protection.
+const ShVolCtrlFinalizerName = "crownlabs.polito.it/shvolctrl-volume-protection"

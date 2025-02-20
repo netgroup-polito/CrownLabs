@@ -147,7 +147,9 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		BeforeEach(func() {
 			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, tntctrl.NFSSecretPathKey))
 
-			expected, err = forge.CloudInitUserData(NFSServiceName, NFSServicePath, tenant.Spec.PublicKeys)
+			expected, err = forge.CloudInitUserData(tenant.Spec.PublicKeys, []forge.NFSVolumeMountInfo{
+				forge.MyDriveNFSVolumeMountInfo(NFSServiceName, NFSServicePath),
+			})
 			Expect(err).ToNot(HaveOccurred())
 		})
 

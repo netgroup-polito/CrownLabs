@@ -111,7 +111,6 @@ By default, cert-manager has been configured to prove the control of the domain 
 labels:
     use-dns01-solver: "true"
 ```
-
 ## Synchronize digital certificates between namespaces
 ❗❗ `Kubed is no longer available and has been superseded by ConfigSyncer` 
 

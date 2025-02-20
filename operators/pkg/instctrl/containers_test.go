@@ -72,9 +72,14 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ownerRef metav1.OwnerReference
 
+		shvol       clv1alpha2.SharedVolume
+		shvolMounts []clv1alpha2.SharedVolumeMountInfo
+		mountInfos  []forge.NFSVolumeMountInfo
+
 		containerOpts forge.ContainerEnvOpts
 
-		err error
+		err      error
+		errShVol error
 	)
 
 	const (
@@ -91,8 +96,14 @@ var _ = Describe("Generation of the container based instances", func() {
 		memory      = "1250M"
 		disk        = "20Gi"
 
-		nfsServerName = "rook-nfs-server-name"
-		nfsPath       = "/path"
+		nfsServerName     = "rook-nfs-server-name"
+		nfsMyDriveExpPath = "/nfs/path"
+		nfsShVolName      = "nfs0"
+		nfsShVolExpPath   = "/nfs/shvol"
+		nfsShVolMountPath = "/mnt/path"
+		nfsShVolReadOnly  = true
+		shVolName         = "myshvol"
+		shVolNamespace    = "default"
 	)
 
 	BeforeEach(func() {
@@ -110,7 +121,7 @@ var _ = Describe("Generation of the container based instances", func() {
 			},
 			Data: map[string][]byte{
 				tntctrl.NFSSecretServerNameKey: []byte(nfsServerName),
-				tntctrl.NFSSecretPathKey:       []byte(nfsPath),
+				tntctrl.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
 			},
 		}
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
@@ -153,6 +164,32 @@ var _ = Describe("Generation of the container based instances", func() {
 			BlockOwnerDeletion: ptr.To(true),
 			Controller:         ptr.To(true),
 		}
+
+		shvol = clv1alpha2.SharedVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      shVolName,
+				Namespace: shVolNamespace,
+			},
+			Spec: clv1alpha2.SharedVolumeSpec{
+				PrettyName: "My Pretty Name",
+				Size:       resource.MustParse("1Gi"),
+			},
+			Status: clv1alpha2.SharedVolumeStatus{},
+		}
+		shvolMounts = []clv1alpha2.SharedVolumeMountInfo{
+			{
+				SharedVolumeRef: clv1alpha2.GenericRef{
+					Name:      shvol.Name,
+					Namespace: shvol.Namespace,
+				},
+				MountPath: nfsShVolMountPath,
+				ReadOnly:  nfsShVolReadOnly,
+			},
+		}
+		mountInfos = []forge.NFSVolumeMountInfo{
+			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
+			forge.ShVolNFSVolumeMountInfo(0, &shvol, shvolMounts[0]),
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -164,6 +201,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		errShVol = reconciler.Create(ctx, &shvol)
 		err = reconciler.EnforceContainerEnvironment(ctx)
 	})
 
@@ -187,7 +225,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -303,7 +341,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The PVC should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.Spec).To(Equal(forge.PVCSpec(&environment)))
+				Expect(pvc.Spec).To(Equal(forge.InstancePVCSpec(&environment)))
 			})
 		})
 
@@ -318,7 +356,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -433,6 +471,30 @@ var _ = Describe("Generation of the container based instances", func() {
 			})
 
 			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
+		})
+	})
+
+	Context("The environment has the personal drive and a shared volume to mount", func() {
+		BeforeEach(func() {
+			environment.MountMyDriveVolume = true
+			environment.SharedVolumeMounts = shvolMounts
+		})
+
+		When("the deployment is not yet present", func() {
+			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+			// The spec of the deployment is checked in forge.
+		})
+
+		When("the shvol is not yet present", func() {
+			It("Creating shvol should not return an error", func() { Expect(errShVol).ToNot(HaveOccurred()) })
+
+			It("The deployment should be present and with the correct volumes spec", func() {
+				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
+				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+
+				Expect(deploy.Spec.Template.Spec.Volumes).To(Equal(expected.Template.Spec.Volumes))
+			})
 		})
 	})
 })
