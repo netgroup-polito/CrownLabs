@@ -544,4 +544,29 @@ var _ = Describe("Labels forging", func() {
 			It("The original annotations map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
 		})
 	})
+
+	Describe("The forge.SharedVolumeObjectLabels function", func() {
+		var (
+			input    map[string]string
+			output   map[string]string
+			expected = map[string]string{
+				"key":                             "value",
+				"crownlabs.polito.it/managed-by":  "instance",
+				"crownlabs.polito.it/volume-type": "sharedvolume",
+			}
+		)
+
+		BeforeEach(func() {
+			input = map[string]string{
+				"key": "value",
+			}
+		})
+		JustBeforeEach(func() {
+			output = forge.SharedVolumeObjectLabels(input)
+		})
+
+		It("Should have the same labels", func() {
+			Expect(output).To(Equal(expected))
+		})
+	})
 })

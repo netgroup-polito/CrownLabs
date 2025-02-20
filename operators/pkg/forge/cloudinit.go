@@ -17,7 +17,6 @@ package forge
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
@@ -61,7 +60,7 @@ func CloudInitUserScriptData() ([]byte, error) {
 }
 
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
-func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]byte, error) {
+func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]byte, error) {
 	config := userdata{
 		Users: []user{{
 			Name:       "crownlabs",
@@ -79,16 +78,12 @@ func CloudInitUserData(nfsServerName, nfsPath string, publicKeys []string) ([]by
 		},
 		SSHAuthorizedKeys: publicKeys,
 	}
-	if nfsServerName != "" && nfsPath != "" {
-		config.Mounts = [][]string{{
-			fmt.Sprintf("%s:%s", nfsServerName, nfsPath),
-			MyDriveVolumeMountPath,
-			"nfs",
-			"rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user",
-			"0",
-			"0",
-		}}
+
+	config.Mounts = [][]string{}
+	for _, mountInfo := range mountInfos {
+		config.Mounts = append(config.Mounts, NFSVolumeMount(mountInfo.ServerAddress, mountInfo.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly))
 	}
+	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, not even Santa will give you 18."))
 
 	output, err := yaml.Marshal(config)
 	if err != nil {

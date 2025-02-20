@@ -233,8 +233,8 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 	}
 	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
-			URL:       ptr.To[string](urlDockerPrefix + environment.Image),
-			SecretRef: ptr.To[string](cdiSecretName),
+			URL:       ptr.To(urlDockerPrefix + environment.Image),
+			SecretRef: ptr.To(cdiSecretName),
 		},
 	}
 }

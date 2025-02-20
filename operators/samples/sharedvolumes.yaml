@@ -1,0 +1,8 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: SharedVolume
+metadata:
+  name: mylemon
+  namespace: workspace-tea
+spec:
+  prettyName: My Lemon Drive
+  size: 1Gi

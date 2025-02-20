@@ -40,6 +40,7 @@ import (
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -70,6 +71,8 @@ func main() {
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
+
+	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
 
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
@@ -170,6 +173,18 @@ func main() {
 		NamespaceWhitelist: nsWhitelist,
 	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSubmission)
+		os.Exit(1)
+	}
+
+	// Configure the SharedVolume controller
+	const sharedVolumeCtrl = "SharedVolume"
+	if err := (&shvolctrl.SharedVolumeReconciler{
+		Client:             mgr.GetClient(),
+		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
+		NamespaceWhitelist: nsWhitelist,
+		PVCStorageClass:    *sharedVolumeStorageClass,
+	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 

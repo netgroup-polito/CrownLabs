@@ -9,6 +9,10 @@ rules:
   resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["sharedvolumes", "sharedvolumes/status"]
+  verbs: ["get","list","watch","create","update","patch","delete","deletecollection"]
+  
 - apiGroups: [""]
   resources: ["namespaces", "resourcequotas", "limitranges", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]

@@ -7,7 +7,7 @@ metadata:
 rules:
 - apiGroups: ["crownlabs.polito.it"]
   resources: ["instances", "instances/status"]
-  verbs: ["get","list","watch","create","update","patch","delete", "deleteCollection"]
+  verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
 
 - apiGroups: ["crownlabs.polito.it"]
   resources: ["instancesnapshots", "instancesnapshots/status"]
@@ -17,8 +17,12 @@ rules:
   resources: ["templates", "tenants"]
   verbs: ["get","list","watch"]
 
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["sharedvolumes", "sharedvolumes/status"]
+  verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
+
 - apiGroups: [""]
-  resources: ["namespaces"]
+  resources: ["namespaces","persistentvolumes"]
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]
