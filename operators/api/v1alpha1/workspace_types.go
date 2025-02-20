@@ -82,6 +82,12 @@ type WorkspaceResourceQuota struct {
 	// +kubebuilder:validation:Minimum:=1
 	// The maximum number of concurrent instances required by this Workspace.
 	Instances uint32 `json:"instances"`
+
+	// The maximum number of Shared Volumes required by this Workspace.
+	SharedVolumeNumber uint32 `json:"sharedVolumeNumber"`
+
+	// The maximum amount of Shared Volume memory required by this Workspace.
+	SharedVolumeMemory resource.Quantity `json:"sharedVolumeMemory"`
 }
 
 // +kubebuilder:object:root=true
