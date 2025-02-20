@@ -29,7 +29,7 @@ configurations:
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m"
     maxConcurrentSubmissionReconciles: 1
-  sharedVolumeStorageClass: shared-volume-nfs //TODO: Conferma nome e posizione StorageClass
+  sharedVolumeStorageClass: shared-volume-nfs
 
 image:
   repository: crownlabs/instance-operator
