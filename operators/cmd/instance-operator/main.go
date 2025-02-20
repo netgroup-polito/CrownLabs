@@ -40,6 +40,7 @@ import (
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -91,6 +92,9 @@ func main() {
 
 	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
+
+	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "shared-volume-nfs", "The StorageClass to be used for all SharedVolumes' PVC")
+	//TODO: Conferma nome della StorageClass ^
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -170,6 +174,19 @@ func main() {
 		NamespaceWhitelist: nsWhitelist,
 	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSubmission)
+		os.Exit(1)
+	}
+
+	// Configure the SharedVolume controller
+	const sharedVolumeCtrl = "SharedVolume"
+	if err := (&shvolctrl.SharedVolumeReconciler{
+		Client:             mgr.GetClient(),
+		Scheme:             mgr.GetScheme(),
+		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
+		NamespaceWhitelist: nsWhitelist,
+		PVCStorageClass:    *sharedVolumeStorageClass,
+	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 

@@ -89,10 +89,25 @@ spec:
                       Workspace.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
+                  sharedVolumeMemory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of Shared Volume memory required
+                      by this Workspace.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  sharedVolumeNumber:
+                    description: The maximum number of Shared Volumes required by
+                      this Workspace.
+                    format: int32
+                    type: integer
                 required:
                 - cpu
                 - instances
                 - memory
+                - sharedVolumeMemory
+                - sharedVolumeNumber
                 type: object
             required:
             - prettyName
