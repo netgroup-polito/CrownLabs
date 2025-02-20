@@ -66,7 +66,23 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 		}
 	}
 
-	userdata, err := forge.CloudInitUserData(nfsServerName, nfsPath, publicKeys)
+	mountInfos := []forge.NFSVolumeMountInfo{}
+
+	if nfsServerName != "" && nfsPath != "" {
+		mountInfos = append(mountInfos, forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
+	}
+
+	for i, mount := range env.SharedVolumeMounts {
+		var shvol clv1alpha2.SharedVolume
+		if err := r.Get(ctx, forge.NamespacedNameFromMount(mount), &shvol); err != nil {
+			log.Error(err, "unable to retrieve shvol to mount")
+			return err
+		}
+
+		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
+	}
+
+	userdata, err := forge.CloudInitUserData(publicKeys, mountInfos)
 	if err != nil {
 		log.Error(err, "unable to marshal secret content")
 		return err

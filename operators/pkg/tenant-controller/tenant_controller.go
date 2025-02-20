@@ -614,8 +614,12 @@ func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolum
 	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
 
 	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
-	pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
 	pvc.Spec.StorageClassName = &scName
+
+	oldSize := *pvc.Spec.Resources.Requests.Storage()
+	if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
+		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
+	}
 }
 
 func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {

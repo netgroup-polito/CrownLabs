@@ -403,3 +403,25 @@ rules:
   - list
   - watch
 {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-manage-sharedvolumes
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - sharedvolumes
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+      - deletecollection
