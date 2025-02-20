@@ -98,7 +98,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec corev1.PersistentVolumeClaimSpec
 
 		JustBeforeEach(func() {
-			spec = forge.PVCSpec(&environment)
+			spec = forge.InstancePVCSpec(&environment)
 		})
 
 		It("Should set the correct access mode", func() {

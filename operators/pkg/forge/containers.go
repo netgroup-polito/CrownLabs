@@ -84,28 +84,45 @@ type ContainerEnvOpts struct {
 	InstMetricsEndpoint  string
 }
 
-// PVCSpec forges a ReadWriteOnce PersistentVolumeClaimSpec
-// with requests set as in environment.Resources.Disk.
-func PVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSpec {
-	return corev1.PersistentVolumeClaimSpec{
+// PVCSpec forges a PersistentVolumeClaimSpec with the passed arguments.
+// The params storageClass and size will be ignored if equal to nil.
+func PVCSpec(accessMode corev1.PersistentVolumeAccessMode, storageClass *string, size *resource.Quantity) corev1.PersistentVolumeClaimSpec {
+	spec := corev1.PersistentVolumeClaimSpec{
 		AccessModes: []corev1.PersistentVolumeAccessMode{
-			corev1.ReadWriteOnce,
-		},
-		StorageClassName: PVCStorageClassName(environment),
-		Resources: corev1.VolumeResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceStorage: environment.Resources.Disk,
-			},
+			accessMode,
 		},
 	}
+
+	if storageClass != nil {
+		spec.StorageClassName = storageClass
+	}
+
+	if size != nil {
+		spec.Resources.Requests = corev1.ResourceList{
+			corev1.ResourceStorage: *size,
+		}
+	}
+
+	return spec
 }
 
-// PVCStorageClassName returns the storage class configured as option, or nil if empty.
-func PVCStorageClassName(environment *clv1alpha2.Environment) *string {
+// InstancePVCSpec forges a ReadWriteOnce PersistentVolumeClaimSpec
+// with requests set as in environment.Resources.Disk.
+func InstancePVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSpec {
+	return PVCSpec(corev1.ReadWriteOnce, InstancePVCStorageClassName(environment), &environment.Resources.Disk)
+}
+
+// InstancePVCStorageClassName returns the storage class configured as option, or nil if empty.
+func InstancePVCStorageClassName(environment *clv1alpha2.Environment) *string {
 	if environment.StorageClassName != "" {
 		return ptr.To[string](environment.StorageClassName)
 	}
 	return nil
+}
+
+// SharedVolumePVCSpec forges a ReadWriteMany PersistentVolumeClaimSpec.
+func SharedVolumePVCSpec(storageClass *string) corev1.PersistentVolumeClaimSpec {
+	return PVCSpec(corev1.ReadWriteMany, storageClass, nil)
 }
 
 // PodSecurityContext forges a PodSecurityContext
