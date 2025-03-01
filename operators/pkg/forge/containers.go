@@ -115,7 +115,7 @@ func InstancePVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolum
 // InstancePVCStorageClassName returns the storage class configured as option, or nil if empty.
 func InstancePVCStorageClassName(environment *clv1alpha2.Environment) *string {
 	if environment.StorageClassName != "" {
-		return ptr.To[string](environment.StorageClassName)
+		return ptr.To(environment.StorageClassName)
 	}
 	return nil
 }

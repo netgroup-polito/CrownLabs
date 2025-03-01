@@ -29,7 +29,8 @@ configurations:
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m"
     maxConcurrentSubmissionReconciles: 1
-  sharedVolumeStorageClass: shared-volume-nfs
+  sharedVolumeOptions:
+    storageClass: rook-nfs
 
 image:
   repository: crownlabs/instance-operator

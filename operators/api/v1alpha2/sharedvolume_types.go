@@ -22,7 +22,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// +kubebuilder:validation:Enum="";"Starting";"Pending";"ResourceQuotaExceeded";"Bound";"Terminating"
+// +kubebuilder:validation:Enum="";"Pending";"Provisioning";"Ready";"ResourceQuotaExceeded";"Error"
 
 // SharedVolumePhase is an enumeration of the different phases associated with a SharedVolume.
 type SharedVolumePhase string
@@ -30,9 +30,7 @@ type SharedVolumePhase string
 const (
 	// SharedVolumePhaseUnset -> the shared volume phase is unknown.
 	SharedVolumePhaseUnset SharedVolumePhase = ""
-	// SharedVolumePhaseCreating -> the shared volume is creating.
-	SharedVolumePhaseCreating SharedVolumePhase = "Creating"
-	// SharedVolumePhasePending -> the shared volume's PVC is pending.
+	// SharedVolumePhasePending -> the shared volume is pending.
 	SharedVolumePhasePending SharedVolumePhase = "Pending"
 	// SharedVolumePhaseProvisioning -> the shared volume's PVC is under provisioning.
 	SharedVolumePhaseProvisioning SharedVolumePhase = "Provisioning"
@@ -42,9 +40,6 @@ const (
 	SharedVolumePhaseResourceQuotaExceeded SharedVolumePhase = "ResourceQuotaExceeded"
 	// SharedVolumePhaseError -> the shared volume had an error during reconcile.
 	SharedVolumePhaseError SharedVolumePhase = "Error"
-
-	// SharedVolumeErrorReasonSmaller -> the shared volume had an error since the size is smaller than before.
-	SharedVolumeErrorReasonSmaller string = "Forbidden: Size cannot be less than previous value"
 )
 
 // SharedVolumeSpec is the specification of the desired state of the Shared Volume.
@@ -58,18 +53,14 @@ type SharedVolumeSpec struct {
 
 // SharedVolumeStatus reflects the most recently observed status of the Shared Volume.
 type SharedVolumeStatus struct {
-	// The server address to reach the PV //TODO: Va bene come descrizione?
+	// The NFS server address.
 	ServerAddress string `json:"serverAddress,omitempty"`
 
-	// The actual name of the volume retrieved from the PV.
+	// The NFS path.
 	ExportPath string `json:"exportPath,omitempty"`
 
 	// The current phase of the lifecycle of the Shared Volume.
 	Phase SharedVolumePhase `json:"phase,omitempty"`
-
-	// The reason why the Shared Volume is in Error phase.
-	ErrorReason string `json:"errorReason,omitempty"` //TODO: OPPURE GUARDA INSTANCE PER FARE DEI LOG???
-	//TODO: https://gitkraken.dev/link/dnNjb2RlOi8vZWFtb2Rpby5naXRsZW5zL2xpbmsvci84NzgzZTM5ODNkNzZlZjFjNWFhMDljZGViOThhYTdmODliZjg5OWFkL2Yvb3BlcmF0b3JzL3BrZy9leGFtYWdlbnQvaW5zdGFuY2UuZ28%2FdXJsPWh0dHBzJTNBJTJGJTJGZ2l0aHViLmNvbSUyRm5ldGdyb3VwLXBvbGl0byUyRkNyb3duTGFicyZsaW5lcz0xMjU%3D?origin=gitlens
 }
 
 // +kubebuilder:object:root=true

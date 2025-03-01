@@ -73,25 +73,21 @@ spec:
             description: SharedVolumeStatus reflects the most recently observed status
               of the Shared Volume.
             properties:
-              errorReason:
-                description: The reason why the Shared Volume is in Error phase.
-                type: string
               exportPath:
-                description: The actual name of the volume retrieved from the PV.
+                description: The NFS path.
                 type: string
               phase:
                 description: The current phase of the lifecycle of the Shared Volume.
                 enum:
                 - ""
-                - Starting
                 - Pending
+                - Provisioning
+                - Ready
                 - ResourceQuotaExceeded
-                - Bound
-                - Terminating
+                - Error
                 type: string
               serverAddress:
-                description: 'The server address to reach the PV //TODO: Va bene come
-                  descrizione?'
+                description: The NFS server address.
                 type: string
             type: object
         type: object

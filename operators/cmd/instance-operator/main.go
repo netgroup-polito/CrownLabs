@@ -72,6 +72,8 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
+	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
+
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
@@ -92,9 +94,6 @@ func main() {
 
 	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
-
-	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "shared-volume-nfs", "The StorageClass to be used for all SharedVolumes' PVC")
-	//TODO: Conferma nome della StorageClass ^
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
