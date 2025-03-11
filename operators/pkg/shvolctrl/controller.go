@@ -18,32 +18,30 @@ package shvolctrl
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
 
-	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/go-logr/logr"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	tnctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // SharedVolumeReconciler reconciles a SharedVolume object.
 type SharedVolumeReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
 	PVCStorageClass    string
@@ -54,13 +52,11 @@ type SharedVolumeReconciler struct {
 	ReconcileDeferHook func()
 }
 
-//TODO: Ma perché non ci sei nel team di CL sul sito? https://preprod.crownlabs.polito.it/about/
-
 // SetupWithManager registers a new controller for SharedVolume resources.
 func (r *SharedVolumeReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clv1alpha2.SharedVolume{}). //TODO: Corretto? È ancora valida la wiki https://preprod.crownlabs.polito.it/learning/operator/ ?
+		For(&clv1alpha2.SharedVolume{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
 		WithOptions(controller.Options{
@@ -88,7 +84,7 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		if !kerrors.IsNotFound(err) {
 			log.Error(err, "Failed retrieving shared volume")
 		}
-		// Reconcile was triggered by a delete request.
+		// Reconcile was triggered by a delete request and object is already deleted.
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -102,42 +98,84 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
+	//TODO: Qc.check()
+	if !shvolume.GetDeletionTimestamp().IsZero() {
+		log.Info("Processing delete request")
+		r.EventsRecorder.Event(&shvolume, v1.EventTypeNormal, "Deleting", "Pending deletion...")
+
+		if ctrlUtil.ContainsFinalizer(&shvolume, clv1alpha2.InstOperatorFinalizerName) {
+			if err := r.handleDeletion(ctx, log, shvolume); err != nil {
+				log.Error(err, "failed handling deletion request")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	// Defer the function to update the SharedVolume status depending on the modifications
+	// performed while enforcing the desired environments. This is deferred early to
+	// allow setting the Error phase in case of errors.
+	defer func(original, updated *clv1alpha2.SharedVolume) {
+		// Avoid triggering the status update if not necessary.
+		if !reflect.DeepEqual(original.Status, updated.Status) {
+			if err2 := r.Status().Patch(ctx, updated, client.MergeFrom(original)); err2 != nil {
+				log.Error(err2, "failed to update the sharedvolume status")
+				err = err2
+			} else {
+				tracer.Step("sharedvolume status updated")
+				log.Info("sharedvolume status correctly updated")
+			}
+		}
+	}(shvolume.DeepCopy(), &shvolume)
+
+	// Change the Phase of the SharedVolume, so that if something happens it goes into Error.
+	shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
+
+	//TODO: Dovremmo settare labels sullo shvol qui?
+	// -- ad esempio managed-by
+
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
-	phaseToSet := clv1alpha2.SharedVolumePhaseUnset
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: shvolume.GetName(), Namespace: shvolume.GetNamespace()}}
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "shvol-" + shvolume.GetName(), Namespace: shvolume.GetNamespace()}}
 
 	pvcOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
 
 		if pvc.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.SharedVolumePVCSpec(&r.PVCStorageClass)
-			//TODO: Non servono label sul PVC, vero? (Tranne quelle generate dal Job, o quelle vanno sullo shvol?)
 		}
+
+		pvc.SetLabels(forge.SharedVolumeObjectLabels(pvc.GetLabels(), &shvolume))
 
 		// Set Error phase if ShVol size is forbidden (less than previous)
-		if shvolume.Spec.Size.Cmp(oldSize) >= 0 {
+		if sizeDiff := shvolume.Spec.Size.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
 			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: shvolume.Spec.Size}
-			log.Info("Size updated",
+
+			log.V(utils.LogDebugLevel).Info("Size updated",
 				"previous", oldSize, "current", shvolume.Spec.Size)
-		} else {
-			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: oldSize}
-			phaseToSet = clv1alpha2.SharedVolumePhaseError
-			shvolume.Status.ErrorReason = clv1alpha2.SharedVolumeErrorReasonSmaller
+		} else if sizeDiff < 0 {
+			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 			log.Error(fmt.Errorf("forbidden: size smaller than previous"), "Phase transitioned to Error")
-			return ctrl.SetControllerReference(&shvolume, &pvc, r.Scheme) //TODO: Così va bene per uscire? (Serve solo se la roba di sotto va spostata dentro qui)
+			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCSmaller, EvPVCSmallerMsg)
+
+			// Must return now (do not add code below or add return here).
 		}
 
-		return ctrl.SetControllerReference(&shvolume, &pvc, r.Scheme)
+		return ctrl.SetControllerReference(&shvolume, &pvc, r.Scheme())
 	})
 	if err != nil {
-		log.Error(err, "Unable to create or update PVC")
+		if isResourceQuotaExceeded(err) {
+			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseResourceQuotaExceeded
+			log.Error(fmt.Errorf("forbidden: resource quota exceeded"), "Phase transitioned to ResourceQuotaExceeded")
+			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
+			err = nil
+		} else {
+			log.Error(err, "Unable to create or update PVC")
+		}
+
 		return ctrl.Result{}, err
 	}
 	log.Info("PVC enforced", "result", pvcOpRes)
 
 	// Update SharedVolume Status and start provisioning if PVC is Bound
-	//TODO: Switch-Case?
-	//TODO: Controlliamo qui o dentro alla MutatingFn?
 	if pvc.Status.Phase == v1.ClaimBound {
 		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
 		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
@@ -145,147 +183,72 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		shvolume.Status.ServerAddress = fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"])
-		shvolume.Status.ExportPath = pv.Spec.CSI.VolumeAttributes["share"]
+		nfsServer, expPath := forge.NFSShVolSpec(pv)
+		if nfsServer == "" || expPath == "" {
+			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
+			log.Error(fmt.Errorf("pv does not have CSI params"), "Phase transitioned to Error")
+			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVNoCSI, EvPVNoCSIMsg)
+			return ctrl.Result{}, nil
+		}
 
-		phaseToSet = clv1alpha2.SharedVolumePhaseProvisioning
+		shvolume.Status.ServerAddress = nfsServer
+		shvolume.Status.ExportPath = expPath
 
-		done, err := r.doDriveProvisioning(ctx, log.WithName("provisioning-job"), &pvc, &shvolume)
+		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseProvisioning
+
+		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, r.Scheme(), &pvc, &shvolume)
 		if err != nil {
 			return ctrl.Result{}, err
+		} else if done {
+			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseReady
+
+			ctrlUtil.AddFinalizer(&shvolume, clv1alpha2.InstOperatorFinalizerName)
+			if err := r.Update(ctx, &shvolume); err != nil {
+				log.Error(err, "failed adding finalizer")
+				return ctrl.Result{}, err
+			}
 		}
-		if done {
-			phaseToSet = clv1alpha2.SharedVolumePhaseReady
-		}
-	} else if pvc.Status.Phase == v1.ClaimPending {
-		phaseToSet = clv1alpha2.SharedVolumePhasePending
 	} else {
-		phaseToSet = clv1alpha2.SharedVolumePhaseCreating //TODO: A questo punto serve davvero questa differenza (pending/creating)?
-	}
-	//TODO: Chi ce lo dovrebbe mettere in ResourceQuotaExceeded?
-
-	/*
-		switch pvc.Status.Phase {
-		case v1.ClaimBound:
-			pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
-			if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
-				log.Error(err, "Unable to get PV")
-				return ctrl.Result{}, err
-			}
-
-			shvolume.Status.ServerAddress = fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"])
-			shvolume.Status.ExportPath = pv.Spec.CSI.VolumeAttributes["share"]
-
-			phaseToSet = clv1alpha2.SharedVolumePhaseProvisioning
-
-			done, err := r.doDriveProvisioning(ctx, log.WithName("provisioning-job"), &pvc, &shvolume)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			if done {
-				phaseToSet = clv1alpha2.SharedVolumePhaseReady
-			}
-		case v1.ClaimPending:
-			phaseToSet = clv1alpha2.SharedVolumePhasePending
-		default:
-			phaseToSet = clv1alpha2.SharedVolumePhaseCreating
-		}
-	*/
-
-	// Update Phase according to what happened
-	if phaseToSet != shvolume.Status.Phase {
-		log.Info("Phase changed",
-			"previous", shvolume.Status.Phase, "current", phaseToSet)
-
-		shvolume.Status.Phase = phaseToSet
-		if err := r.Update(ctx, &shvolume); err != nil {
-			log.Error(err, "Failed to update phase")
-			return ctrl.Result{}, err
-		}
+		shvolume.Status.Phase = clv1alpha2.SharedVolumePhasePending
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *SharedVolumeReconciler) doDriveProvisioning(ctx context.Context, log logr.Logger, pvc *v1.PersistentVolumeClaim, shvol *clv1alpha2.SharedVolume) (bool, error) {
-	val, found := pvc.Labels[forge.ProvisionJobLabel]
-	if !found || val != forge.ProvisionJobValueOk {
-		chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
-		labelToSet := forge.ProvisionJobValuePending
-
-		chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
-			if chownJob.CreationTimestamp.IsZero() {
-				log.Info("Created")
-				r.updateProvisioningJob(&chownJob, pvc)
-			} else if found && val == forge.ProvisionJobValuePending {
-				if chownJob.Status.Succeeded == 1 {
-					labelToSet = forge.ProvisionJobValueOk
-					log.Info("Completed")
-				} else if chownJob.Status.Failed == 1 {
-					log.Info("Failed")
-				}
-			}
-
-			return ctrl.SetControllerReference(shvol, &chownJob, r.Scheme)
-		})
-		if err != nil {
-			log.Error(err, "Unable to create or update Job")
-			return false, err
-		}
-		log.Info("Job enforced", "result", chownJobOpRes)
-
-		if labelToSet != pvc.Labels[forge.ProvisionJobLabel] {
-			log.Info("PVC labels changed",
-				"previous", pvc.Labels[forge.ProvisionJobLabel], "current", labelToSet)
-
-			pvc.Labels[forge.ProvisionJobLabel] = labelToSet
-			if err := r.Update(ctx, pvc); err != nil {
-				log.Error(err, "Failed to update PVC labels")
-				return false, err
-			}
-		}
-	}
-
-	if pvc.Labels[forge.ProvisionJobLabel] == forge.ProvisionJobValueOk { //TODO: Va bene come escamotage?
-		return true, nil
-	}
-
-	return false, nil
+func isResourceQuotaExceeded(err error) bool {
+	return kerrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota")
 }
 
-// TODO: Non sarebbe il caso di portarla fuori da qualche parte invece che ripeterla?
-func (r *SharedVolumeReconciler) updateProvisioningJob(job *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
-	job.Spec.BackoffLimit = ptr.To[int32](tnctrl.ProvisionJobMaxRetries) //TODO: Brutto vero?
-	job.Spec.TTLSecondsAfterFinished = ptr.To[int32](tnctrl.ProvisionJobTTLSeconds)
-	job.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
-	job.Spec.Template.Spec.Containers = []v1.Container{{
-		Name:    "chown-container",
-		Image:   tnctrl.ProvisionJobBaseImage,
-		Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", forge.CrownLabsUserID, forge.CrownLabsUserID), forge.MyDriveVolumeMountPath},
-		VolumeMounts: []v1.VolumeMount{{
-			Name:      "drive",
-			MountPath: forge.MyDriveVolumeMountPath,
-		},
-		},
-		Resources: v1.ResourceRequirements{
-			Requests: v1.ResourceList{
-				"cpu":    resource.MustParse("100m"),
-				"memory": resource.MustParse("128Mi"),
-			},
-			Limits: v1.ResourceList{
-				"cpu":    resource.MustParse("100m"),
-				"memory": resource.MustParse("128Mi"),
-			},
-		},
-	},
+func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol clv1alpha2.SharedVolume) error {
+	var tempList clv1alpha2.TemplateList
+	if err := r.List(ctx, &tempList, &client.ListOptions{}); err != nil {
+		log.Error(err, "unable to retrieve template list")
+		return err
 	}
-	job.Spec.Template.Spec.Volumes = []v1.Volume{{
-		Name: "drive",
-		VolumeSource: v1.VolumeSource{
-			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-				ClaimName: pvc.Name,
-			},
-		},
-	},
+
+	found := false
+	mountedList := []string{}
+
+	for _, tmpl := range tempList.Items {
+		for _, env := range tmpl.Spec.EnvironmentList {
+			for _, shmount := range env.SharedVolumeMounts {
+				if shmount.SharedVolumeRef.Name == shvol.GetName() && shmount.SharedVolumeRef.Namespace == shvol.GetNamespace() {
+					mountedList = append(mountedList, tmpl.Name)
+					found = true
+				}
+			}
+		}
 	}
+
+	if found {
+		r.EventsRecorder.Eventf(&shvol, v1.EventTypeWarning, "BlockedDeletion", "Cannot delete shvol since it is mounted on %s", mountedList)
+	} else {
+		ctrlUtil.RemoveFinalizer(&shvol, clv1alpha2.InstOperatorFinalizerName)
+		if err := r.Update(ctx, &shvol); err != nil {
+			log.Error(err, "failed removing finalizer")
+			return err
+		}
+	}
+
+	return nil
 }

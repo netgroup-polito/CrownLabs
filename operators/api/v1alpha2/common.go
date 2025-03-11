@@ -49,6 +49,9 @@ const (
 	SubscrFailed SubscriptionStatus = "Failed"
 )
 
+// TemplateLabelPrefix is the prefix of a label assigned to a sharedvolume indicating it is mounted on a template.
+const TemplateLabelPrefix = "crownlabs.polito.it/template-"
+
 // WorkspaceLabelPrefix is the prefix of a label assigned to a tenant indicating it is subscribed to a workspace.
 const WorkspaceLabelPrefix = "crownlabs.polito.it/workspace-"
 
@@ -57,3 +60,7 @@ const WorkspaceLabelAutoenroll = "crownlabs.polito.it/autoenroll"
 
 // TnOperatorFinalizerName is the name of the finalizer corresponding to the tenant operator.
 const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"
+
+// InstOperatorFinalizerName is the name of the finalizer corresponding to the instance operator.
+// TODO: Non dovremmo specificare in qualche modo che il finalizer non è per l'inst in sè ma per lo shvol
+const InstOperatorFinalizerName = "crownlabs.polito.it/instance-operator"

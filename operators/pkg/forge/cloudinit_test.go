@@ -15,6 +15,7 @@
 package forge_test
 
 import (
+	"fmt"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,8 +27,11 @@ import (
 var _ = Describe("CloudInit files generation", func() {
 	Context("The CloudInitUserData function", func() {
 		const (
-			serviceName = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
-			servicePath = "/path"
+			serviceName       = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
+			servicePath       = "/nfs/path"
+			nfsShVolExpPath   = "/nfs/shvol"
+			nfsShVolMountPath = "/mnt/path"
+			nfsShVolReadOnly  = "ro"
 
 			expected = `
 #cloud-config
@@ -45,10 +49,16 @@ network:
     id0:
         dhcp4: true
 mounts:
-    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/path
+    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/path
       - /media/mydrive
       - nfs
       - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
+      - "0"
+      - "0"
+	- - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/shvol
+	  - /mnt/path
+      - nfs
+      - ro,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
 ssh_authorized_keys:
@@ -69,7 +79,19 @@ ssh_authorized_keys:
 		}
 
 		BeforeEach(func() { publicKeys = []string{"tenant-key-1", "tenant-key-2"} })
-		JustBeforeEach(func() { output, err = forge.CloudInitUserData(serviceName, servicePath, publicKeys) })
+		JustBeforeEach(func() {
+			output, err = forge.CloudInitUserData(publicKeys, [][]string{
+				forge.MyDriveVolumeMount(serviceName, servicePath),
+				{
+					fmt.Sprintf("%s:%s", serviceName, nfsShVolExpPath),
+					nfsShVolMountPath,
+					"nfs",
+					fmt.Sprintf("%s,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user", nfsShVolReadOnly),
+					"0",
+					"0",
+				},
+			})
+		})
 
 		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
 		It("Should match the expected output", func() { Expect(output).To(WithTransform(Transformer, Equal(Transformer([]byte(expected))))) })

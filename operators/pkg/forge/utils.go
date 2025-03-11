@@ -77,6 +77,13 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 	}
 }
 
+func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      mountInfo.SharedVolumeRef.Name,
+		Namespace: mountInfo.SharedVolumeRef.Namespace,
+	}
+}
+
 // canonicalName returns a canonical name given a resource name, to
 // prevent issues with DNS style requirements.
 func canonicalName(name string) string {

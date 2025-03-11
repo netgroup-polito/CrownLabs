@@ -72,6 +72,8 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ownerRef metav1.OwnerReference
 
+		mountInfos []forge.NFSVolumeMountInfo
+
 		containerOpts forge.ContainerEnvOpts
 
 		err error
@@ -91,8 +93,12 @@ var _ = Describe("Generation of the container based instances", func() {
 		memory      = "1250M"
 		disk        = "20Gi"
 
-		nfsServerName = "rook-nfs-server-name"
-		nfsPath       = "/path"
+		nfsServerName     = "rook-nfs-server-name"
+		nfsMyDriveExpPath = "/nfs/path"
+		nfsShVolName      = "nfs0"
+		nfsShVolExpPath   = "/nfs/shvol"
+		nfsShVolMountPath = "/mnt/path"
+		nfsShVolReadOnly  = true
 	)
 
 	BeforeEach(func() {
@@ -110,7 +116,7 @@ var _ = Describe("Generation of the container based instances", func() {
 			},
 			Data: map[string][]byte{
 				tntctrl.NFSSecretServerNameKey: []byte(nfsServerName),
-				tntctrl.NFSSecretPathKey:       []byte(nfsPath),
+				tntctrl.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
 			},
 		}
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
@@ -153,6 +159,17 @@ var _ = Describe("Generation of the container based instances", func() {
 			BlockOwnerDeletion: ptr.To(true),
 			Controller:         ptr.To(true),
 		}
+
+		mountInfos = []forge.NFSVolumeMountInfo{
+			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
+			{
+				VolumeName:    nfsShVolName,
+				ServerAddress: nfsServerName,
+				ExportPath:    nfsShVolExpPath,
+				MountPath:     nfsShVolMountPath,
+				ReadOnly:      nfsShVolReadOnly,
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -187,7 +204,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -318,7 +335,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
