@@ -83,7 +83,7 @@ func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]
 	for _, mountInfo := range mountInfos {
 		config.Mounts = append(config.Mounts, NFSVolumeMount(mountInfo.ServerAddress, mountInfo.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly))
 	}
-	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, you're a bad person"))
+	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, you are a bad person"))
 	//TODO: Provare se esce in fstab il commentino
 
 	output, err := yaml.Marshal(config)

@@ -60,6 +60,12 @@ mounts:
       - ro,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
+	- - '# If you change mount options from here, you are a bad person'
+	  - ""
+	  - ""
+	  - ""
+	  - ""
+	  - ""
 ssh_authorized_keys:
     - tenant-key-1
     - tenant-key-2
