@@ -22,14 +22,14 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
-func NFSDriveProvisioning(ctx context.Context, log logr.Logger, client client.Client, scheme *runtime.Scheme, pvc *v1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
+// NFSDriveProvisioning enforces a job to provision the passed PVC, changing its owner and adding it a label when done.
+func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *v1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
 	log = log.WithName("provisioning-job")
 
 	val, found := pvc.Labels[forge.ProvisionJobLabel]
@@ -37,7 +37,7 @@ func NFSDriveProvisioning(ctx context.Context, log logr.Logger, client client.Cl
 		chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
 		labelToSet := forge.ProvisionJobValuePending
 
-		chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, client, &chownJob, func() error {
+		chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, c, &chownJob, func() error {
 			if chownJob.CreationTimestamp.IsZero() {
 				log.Info("Created")
 				chownJob.Spec = forge.PVCProvisioningJobSpec(pvc)
@@ -50,9 +50,7 @@ func NFSDriveProvisioning(ctx context.Context, log logr.Logger, client client.Cl
 				}
 			}
 
-			client.Scheme()
-
-			return ctrl.SetControllerReference(owner, &chownJob, scheme)
+			return ctrl.SetControllerReference(owner, &chownJob, c.Scheme())
 		})
 		if err != nil {
 			log.Error(err, "Unable to create or update Job")
@@ -65,7 +63,7 @@ func NFSDriveProvisioning(ctx context.Context, log logr.Logger, client client.Cl
 				"previous", pvc.Labels[forge.ProvisionJobLabel], "current", labelToSet)
 
 			pvc.Labels[forge.ProvisionJobLabel] = labelToSet
-			if err := client.Update(ctx, pvc); err != nil {
+			if err := c.Update(ctx, pvc); err != nil {
 				log.Error(err, "Failed to update PVC labels")
 				return false, err
 			}

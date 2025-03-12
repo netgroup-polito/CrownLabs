@@ -77,6 +77,7 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 	}
 }
 
+// NamespacedNameFromMount returns the namespace/name pair of the SharedVolume contained in the passed SharedVolumeMountInfo.
 func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      mountInfo.SharedVolumeRef.Name,

@@ -29,4 +29,9 @@ const (
 	EvPVCResQuotaExceeded = "ResourceQuotaExceeded"
 	// EvPVCResQuotaExceededMsg -> the event message corresponding to exceeded PVC quota.
 	EvPVCResQuotaExceededMsg = "PVC exceeded the resource quota"
+
+	// EvDeletionBlocked -> the event key corresponding to blocked deletion.
+	EvDeletionBlocked = "DeletionBlocked"
+	// EvDeletionBlockedMsg -> the event message corresponding to blocked deletion.
+	EvDeletionBlockedMsg = "Cannot delete shvol since it is mounted on %v"
 )

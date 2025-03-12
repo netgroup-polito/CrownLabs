@@ -61,6 +61,5 @@ const WorkspaceLabelAutoenroll = "crownlabs.polito.it/autoenroll"
 // TnOperatorFinalizerName is the name of the finalizer corresponding to the tenant operator.
 const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"
 
-// InstOperatorFinalizerName is the name of the finalizer corresponding to the instance operator.
-// TODO: Non dovremmo specificare in qualche modo che il finalizer non è per l'inst in sè ma per lo shvol
-const InstOperatorFinalizerName = "crownlabs.polito.it/instance-operator"
+// ShVolCtrlFinalizerName is the name of the finalizer for SharedVolume's PVC protection.
+const ShVolCtrlFinalizerName = "crownlabs.polito.it/shvolctrl-volume-protection"

@@ -134,8 +134,18 @@ func InstanceComponentLabels(instance *clv1alpha2.Instance, componentName string
 	}, instance)
 }
 
+// SharedVolumeLabels receives in input a set of labels and returns the updated set.
+func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
+	labels = deepCopyLabels(labels)
+	update := false
+
+	update = updateLabel(labels, labelManagedByKey, labelManagedByInstanceValue) || update
+
+	return labels, update
+}
+
 // SharedVolumeObjectLabels receives in input a set of labels and returns the updated set depending on the specified shared volume.
-func SharedVolumeObjectLabels(labels map[string]string, shvol *clv1alpha2.SharedVolume) map[string]string {
+func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 
 	labels[labelManagedByKey] = labelManagedByInstanceValue

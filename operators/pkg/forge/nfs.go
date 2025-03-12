@@ -36,6 +36,7 @@ const (
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
 )
 
+// NFSVolumeMountInfo contains information about a volume that has to be mounted through NFS.
 type NFSVolumeMountInfo struct {
 	VolumeName    string
 	ServerAddress string
@@ -44,6 +45,7 @@ type NFSVolumeMountInfo struct {
 	ReadOnly      bool
 }
 
+// NFSVolumeMount forges the mount string array for a generic NFS volume.
 func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []string {
 	rwPermission := "rw"
 
@@ -61,10 +63,12 @@ func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []st
 	}
 }
 
+// MyDriveVolumeMount forges the mount string array for the MyDrive volume.
 func MyDriveVolumeMount(nfsServer, exportPath string) []string {
 	return NFSVolumeMount(nfsServer, exportPath, MyDriveVolumeMountPath, false)
 }
 
+// SharedVolumeMount forges the mount string array for a SharedVolume.
 func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.SharedVolumeMountInfo) []string {
 	if shvol.Status.ServerAddress == "" || shvol.Status.ExportPath == "" {
 		return CommentMount("Here lies an invalid SharedVolume mount")
@@ -73,6 +77,7 @@ func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.Shar
 	return NFSVolumeMount(shvol.Status.ServerAddress, shvol.Status.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly)
 }
 
+// CommentMount forges the mount string array for a comment.
 func CommentMount(comment string) []string {
 	return []string{
 		"# " + comment,
@@ -84,6 +89,7 @@ func CommentMount(comment string) []string {
 	}
 }
 
+// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume.
 func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    MyDriveVolumeName,
@@ -94,7 +100,8 @@ func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountI
 	}
 }
 
-func ShVolNFSVolumeMountInfo(i int, shvol clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
+// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}.
+func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    fmt.Sprintf("nfs%d", i),
 		ServerAddress: shvol.Status.ServerAddress,
@@ -104,18 +111,20 @@ func ShVolNFSVolumeMountInfo(i int, shvol clv1alpha2.SharedVolume, mount clv1alp
 	}
 }
 
-func NFSShVolSpec(pv v1.PersistentVolume) (nfsServer string, exportPath string) {
-	nfsServer = ""
+// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume.
+func NFSShVolSpec(pv *v1.PersistentVolume) (serverAddress, exportPath string) {
+	serverAddress = ""
 	exportPath = ""
 
 	if pv.Spec.CSI != nil && pv.Spec.CSI.VolumeAttributes != nil {
-		nfsServer = fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"])
+		serverAddress = fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"])
 		exportPath = pv.Spec.CSI.VolumeAttributes["share"]
 	}
 
 	return
 }
 
+// PVCProvisioningJobSpec forges the spec for the PVC Provisioning job.
 func PVCProvisioningJobSpec(pvc *v1.PersistentVolumeClaim) batchv1.JobSpec {
 	return batchv1.JobSpec{
 		BackoffLimit:            ptr.To[int32](ProvisionJobMaxRetries),

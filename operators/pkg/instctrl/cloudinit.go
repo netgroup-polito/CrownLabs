@@ -79,7 +79,7 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 			return err
 		}
 
-		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, shvol, mount))
+		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
 	}
 
 	userdata, err := forge.CloudInitUserData(publicKeys, mountInfos)

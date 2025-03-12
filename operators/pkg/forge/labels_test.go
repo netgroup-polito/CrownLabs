@@ -547,7 +547,6 @@ var _ = Describe("Labels forging", func() {
 
 	Describe("The forge.SharedVolumeObjectLabels function", func() {
 		var (
-			shvol    clv1alpha2.SharedVolume
 			input    map[string]string
 			output   map[string]string
 			expected = map[string]string{
@@ -558,18 +557,12 @@ var _ = Describe("Labels forging", func() {
 		)
 
 		BeforeEach(func() {
-			shvol = clv1alpha2.SharedVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "myshvol",
-					Namespace: "default",
-				},
-			}
 			input = map[string]string{
 				"key": "value",
 			}
 		})
 		JustBeforeEach(func() {
-			output = forge.SharedVolumeObjectLabels(input, &shvol)
+			output = forge.SharedVolumeObjectLabels(input)
 		})
 
 		It("Should have the same labels", func() {

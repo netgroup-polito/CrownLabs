@@ -105,7 +105,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 			return err
 		}
 
-		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, shvol, mount))
+		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
 	}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {

@@ -36,11 +36,13 @@ import (
 var _ = Describe("Containers and Deployment spec forging", func() {
 
 	var (
-		instance    clv1alpha2.Instance
-		environment clv1alpha2.Environment
-		mountInfos  []forge.NFSVolumeMountInfo
-		opts        forge.ContainerEnvOpts
-		container   corev1.Container
+		instance         clv1alpha2.Instance
+		environment      clv1alpha2.Environment
+		mountInfos       []forge.NFSVolumeMountInfo
+		opts             forge.ContainerEnvOpts
+		container        corev1.Container
+		mountInfoMyDrive forge.NFSVolumeMountInfo
+		mountInfoShVol   forge.NFSVolumeMountInfo
 	)
 
 	// example values
@@ -88,15 +90,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				Disk:                  resource.MustParse(disk),
 			},
 		}
+		mountInfoMyDrive = forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath)
+		mountInfoShVol = forge.NFSVolumeMountInfo{
+			VolumeName:    nfsShVolName,
+			ServerAddress: nfsServerName,
+			ExportPath:    nfsShVolExpPath,
+			MountPath:     nfsShVolMountPath,
+			ReadOnly:      nfsShVolReadOnly,
+		}
 		mountInfos = []forge.NFSVolumeMountInfo{
-			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
-			{
-				VolumeName:    nfsShVolName,
-				ServerAddress: nfsServerName,
-				ExportPath:    nfsShVolExpPath,
-				MountPath:     nfsShVolMountPath,
-				ReadOnly:      nfsShVolReadOnly,
-			},
+			mountInfoMyDrive,
+			mountInfoShVol,
 		}
 		opts = forge.ContainerEnvOpts{
 			ImagesTag:            "tag",
@@ -536,6 +540,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
+						fmt.Printf("Using mountInfos %v\n", c.MountInfos)
 						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), c.MountInfos)
 					})
 
@@ -548,7 +553,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			When("The personal volume mount is enabled", WhenBody(VolumeMountCase{
 				PersonalVolume: true,
 				MountInfos: []forge.NFSVolumeMountInfo{
-					forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
+					mountInfoMyDrive,
 				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
@@ -570,19 +575,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("There is a mounted shared volume and the personal volume mount is enabled", WhenBody(VolumeMountCase{
 				PersonalVolume: true,
-
-				//MountInfos:     mountInfos, //FIXME: Questo non funziona ma esplicito sì
 				MountInfos: []forge.NFSVolumeMountInfo{
-					forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
-					{
-						VolumeName:    nfsShVolName,
-						ServerAddress: nfsServerName,
-						ExportPath:    nfsShVolExpPath,
-						MountPath:     nfsShVolMountPath,
-						ReadOnly:      nfsShVolReadOnly,
-					},
+					mountInfoMyDrive,
+					mountInfoShVol,
 				},
-
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
 					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
@@ -595,13 +591,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			When("There is a mounted shared volume and the personal volume mount is disabled", WhenBody(VolumeMountCase{
 				PersonalVolume: true,
 				MountInfos: []forge.NFSVolumeMountInfo{
-					{
-						VolumeName:    nfsShVolName,
-						ServerAddress: nfsServerName,
-						ExportPath:    nfsShVolExpPath,
-						MountPath:     nfsShVolMountPath,
-						ReadOnly:      nfsShVolReadOnly,
-					},
+					mountInfoShVol,
 				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}

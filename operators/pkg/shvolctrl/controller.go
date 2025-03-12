@@ -98,17 +98,16 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
-	//TODO: Qc.check()
 	if !shvolume.GetDeletionTimestamp().IsZero() {
 		log.Info("Processing delete request")
-		r.EventsRecorder.Event(&shvolume, v1.EventTypeNormal, "Deleting", "Pending deletion...")
 
-		if ctrlUtil.ContainsFinalizer(&shvolume, clv1alpha2.InstOperatorFinalizerName) {
-			if err := r.handleDeletion(ctx, log, shvolume); err != nil {
+		if ctrlUtil.ContainsFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName) {
+			if err := r.handleDeletion(ctx, log, &shvolume); err != nil {
 				log.Error(err, "failed handling deletion request")
 				return ctrl.Result{}, err
 			}
 		}
+		return ctrl.Result{}, nil
 	}
 
 	// Defer the function to update the SharedVolume status depending on the modifications
@@ -127,11 +126,21 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}(shvolume.DeepCopy(), &shvolume)
 
+	// Patch the shared volume labels.
+	labels, updated := forge.SharedVolumeLabels(shvolume.GetLabels())
+	if updated {
+		original := shvolume.DeepCopy()
+		shvolume.SetLabels(labels)
+		if err := r.Patch(ctx, &shvolume, client.MergeFrom(original)); err != nil {
+			log.Error(err, "failed to update the sharedvolume labels")
+			return ctrl.Result{}, err
+		}
+		tracer.Step("sharedvolume labels updated")
+		log.Info("sharedvolume labels correctly configured")
+	}
+
 	// Change the Phase of the SharedVolume, so that if something happens it goes into Error.
 	shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
-
-	//TODO: Dovremmo settare labels sullo shvol qui?
-	// -- ad esempio managed-by
 
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "shvol-" + shvolume.GetName(), Namespace: shvolume.GetNamespace()}}
@@ -143,7 +152,7 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			pvc.Spec = forge.SharedVolumePVCSpec(&r.PVCStorageClass)
 		}
 
-		pvc.SetLabels(forge.SharedVolumeObjectLabels(pvc.GetLabels(), &shvolume))
+		pvc.SetLabels(forge.SharedVolumeObjectLabels(pvc.GetLabels()))
 
 		// Set Error phase if ShVol size is forbidden (less than previous)
 		if sizeDiff := shvolume.Spec.Size.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
@@ -183,7 +192,7 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		nfsServer, expPath := forge.NFSShVolSpec(pv)
+		nfsServer, expPath := forge.NFSShVolSpec(&pv)
 		if nfsServer == "" || expPath == "" {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 			log.Error(fmt.Errorf("pv does not have CSI params"), "Phase transitioned to Error")
@@ -196,17 +205,18 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseProvisioning
 
-		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, r.Scheme(), &pvc, &shvolume)
+		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, &pvc, &shvolume)
 		if err != nil {
 			return ctrl.Result{}, err
 		} else if done {
-			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseReady
-
-			ctrlUtil.AddFinalizer(&shvolume, clv1alpha2.InstOperatorFinalizerName)
-			if err := r.Update(ctx, &shvolume); err != nil {
+			original := shvolume.DeepCopy()
+			ctrlUtil.AddFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName)
+			if err := r.Patch(ctx, &shvolume, client.MergeFrom(original)); err != nil {
 				log.Error(err, "failed adding finalizer")
 				return ctrl.Result{}, err
 			}
+
+			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseReady
 		}
 	} else {
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhasePending
@@ -219,9 +229,9 @@ func isResourceQuotaExceeded(err error) bool {
 	return kerrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota")
 }
 
-func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol clv1alpha2.SharedVolume) error {
-	var tempList clv1alpha2.TemplateList
-	if err := r.List(ctx, &tempList, &client.ListOptions{}); err != nil {
+func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol *clv1alpha2.SharedVolume) error {
+	var templates clv1alpha2.TemplateList
+	if err := r.List(ctx, &templates, &client.ListOptions{}); err != nil {
 		log.Error(err, "unable to retrieve template list")
 		return err
 	}
@@ -229,8 +239,12 @@ func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Lo
 	found := false
 	mountedList := []string{}
 
-	for _, tmpl := range tempList.Items {
-		for _, env := range tmpl.Spec.EnvironmentList {
+	for tmplKey := range templates.Items {
+		tmpl := &templates.Items[tmplKey]
+
+		for envKey := range tmpl.Spec.EnvironmentList {
+			env := &tmpl.Spec.EnvironmentList[envKey]
+
 			for _, shmount := range env.SharedVolumeMounts {
 				if shmount.SharedVolumeRef.Name == shvol.GetName() && shmount.SharedVolumeRef.Namespace == shvol.GetNamespace() {
 					mountedList = append(mountedList, tmpl.Name)
@@ -241,13 +255,15 @@ func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Lo
 	}
 
 	if found {
-		r.EventsRecorder.Eventf(&shvol, v1.EventTypeWarning, "BlockedDeletion", "Cannot delete shvol since it is mounted on %s", mountedList)
+		r.EventsRecorder.Eventf(shvol, v1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
+		log.Info("blocked deletion, shvol is mounted on some templates")
 	} else {
-		ctrlUtil.RemoveFinalizer(&shvol, clv1alpha2.InstOperatorFinalizerName)
-		if err := r.Update(ctx, &shvol); err != nil {
+		ctrlUtil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)
+		if err := r.Update(ctx, shvol); err != nil {
 			log.Error(err, "failed removing finalizer")
 			return err
 		}
+		log.Info("deletion ok, removed finalizer")
 	}
 
 	return nil

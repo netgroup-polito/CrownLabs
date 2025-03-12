@@ -179,7 +179,7 @@ func main() {
 	// Configure the SharedVolume controller
 	const sharedVolumeCtrl = "SharedVolume"
 	if err := (&shvolctrl.SharedVolumeReconciler{
-		Client:             mgr.GetClient(), //TODO: Funziona anche senza Scheme, lo rimettiamo?
+		Client:             mgr.GetClient(),
 		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
 		NamespaceWhitelist: nsWhitelist,
 		PVCStorageClass:    *sharedVolumeStorageClass,

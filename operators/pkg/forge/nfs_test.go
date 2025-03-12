@@ -192,7 +192,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 				MountPath:     "/mnt/path",
 				ReadOnly:      true,
 			}
-			Expect(forge.ShVolNFSVolumeMountInfo(7, shvol, mountInfo)).To(Equal(expected))
+			Expect(forge.ShVolNFSVolumeMountInfo(7, &shvol, mountInfo)).To(Equal(expected))
 		})
 	})
 
@@ -201,7 +201,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 			var pv v1.PersistentVolume
 
 			It("Should return empty strings", func() {
-				server, path := forge.NFSShVolSpec(pv)
+				server, path := forge.NFSShVolSpec(&pv)
 				Expect(server).To(Equal(""))
 				Expect(path).To(Equal(""))
 			})
@@ -221,7 +221,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 			})
 
 			It("Should return empty strings", func() {
-				server, path := forge.NFSShVolSpec(pv)
+				server, path := forge.NFSShVolSpec(&pv)
 				Expect(server).To(Equal("my-nfs.local"))
 				Expect(path).To(Equal("/nfs/path"))
 			})
