@@ -15,7 +15,6 @@
 package forge_test
 
 import (
-	"fmt"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,7 +30,7 @@ var _ = Describe("CloudInit files generation", func() {
 			servicePath       = "/nfs/path"
 			nfsShVolExpPath   = "/nfs/shvol"
 			nfsShVolMountPath = "/mnt/path"
-			nfsShVolReadOnly  = "ro"
+			nfsShVolReadOnly  = true
 
 			expected = `
 #cloud-config
@@ -80,15 +79,13 @@ ssh_authorized_keys:
 
 		BeforeEach(func() { publicKeys = []string{"tenant-key-1", "tenant-key-2"} })
 		JustBeforeEach(func() {
-			output, err = forge.CloudInitUserData(publicKeys, [][]string{
-				forge.MyDriveVolumeMount(serviceName, servicePath),
+			output, err = forge.CloudInitUserData(publicKeys, []forge.NFSVolumeMountInfo{
+				forge.MyDriveNFSVolumeMountInfo(serviceName, servicePath),
 				{
-					fmt.Sprintf("%s:%s", serviceName, nfsShVolExpPath),
-					nfsShVolMountPath,
-					"nfs",
-					fmt.Sprintf("%s,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user", nfsShVolReadOnly),
-					"0",
-					"0",
+					ServerAddress: serviceName,
+					ExportPath:    nfsShVolExpPath,
+					MountPath:     nfsShVolMountPath,
+					ReadOnly:      nfsShVolReadOnly,
 				},
 			})
 		})

@@ -60,7 +60,7 @@ func CloudInitUserScriptData() ([]byte, error) {
 }
 
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
-func CloudInitUserData(publicKeys []string, mounts [][]string) ([]byte, error) {
+func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]byte, error) {
 	config := userdata{
 		Users: []user{{
 			Name:       "crownlabs",
@@ -78,9 +78,12 @@ func CloudInitUserData(publicKeys []string, mounts [][]string) ([]byte, error) {
 		},
 		SSHAuthorizedKeys: publicKeys,
 	}
-	if mounts != nil {
-		config.Mounts = mounts
+
+	config.Mounts = [][]string{}
+	for _, mountInfo := range mountInfos {
+		config.Mounts = append(config.Mounts, NFSVolumeMount(mountInfo.ServerAddress, mountInfo.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly))
 	}
+	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, you're a bad person"))
 	//TODO: Provare se esce in fstab il commentino
 
 	output, err := yaml.Marshal(config)
