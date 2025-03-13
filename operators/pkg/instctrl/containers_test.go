@@ -201,8 +201,8 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		err = reconciler.EnforceContainerEnvironment(ctx)
 		errShVol = reconciler.Create(ctx, &shvol)
+		err = reconciler.EnforceContainerEnvironment(ctx)
 	})
 
 	It("Should enforce the environment exposition objects", func() {
