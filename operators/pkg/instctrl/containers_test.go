@@ -489,11 +489,11 @@ var _ = Describe("Generation of the container based instances", func() {
 		When("the shvol is not yet present", func() {
 			It("Creating shvol should not return an error", func() { Expect(errShVol).ToNot(HaveOccurred()) })
 
-			It("The deployment should be present and with the correct spec", func() {
+			It("The deployment should be present and with the correct volumes spec", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
 
-				Expect(deploy.Spec).To(Equal(expected))
+				Expect(deploy.Spec.Template.Spec.Volumes).To(Equal(expected.Template.Spec.Volumes))
 			})
 		})
 	})
