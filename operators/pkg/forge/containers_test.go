@@ -36,13 +36,11 @@ import (
 var _ = Describe("Containers and Deployment spec forging", func() {
 
 	var (
-		instance         clv1alpha2.Instance
-		environment      clv1alpha2.Environment
-		mountInfos       []forge.NFSVolumeMountInfo
-		opts             forge.ContainerEnvOpts
-		container        corev1.Container
-		mountInfoMyDrive forge.NFSVolumeMountInfo
-		mountInfoShVol   forge.NFSVolumeMountInfo
+		instance    clv1alpha2.Instance
+		environment clv1alpha2.Environment
+		mountInfos  []forge.NFSVolumeMountInfo
+		opts        forge.ContainerEnvOpts
+		container   corev1.Container
 	)
 
 	// example values
@@ -75,6 +73,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		nfsShVolReadOnly     = true
 	)
 
+	var (
+		mountInfoMyDrive = forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath)
+		mountInfoShVol   = forge.NFSVolumeMountInfo{
+			VolumeName:    nfsShVolName,
+			ServerAddress: nfsServerName,
+			ExportPath:    nfsShVolExpPath,
+			MountPath:     nfsShVolMountPath,
+			ReadOnly:      nfsShVolReadOnly,
+		}
+	)
+
 	BeforeEach(func() {
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
@@ -90,14 +99,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				Disk:                  resource.MustParse(disk),
 			},
 		}
-		mountInfoMyDrive = forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath)
-		mountInfoShVol = forge.NFSVolumeMountInfo{
-			VolumeName:    nfsShVolName,
-			ServerAddress: nfsServerName,
-			ExportPath:    nfsShVolExpPath,
-			MountPath:     nfsShVolMountPath,
-			ReadOnly:      nfsShVolReadOnly,
-		}
+
 		mountInfos = []forge.NFSVolumeMountInfo{
 			mountInfoMyDrive,
 			mountInfoShVol,
