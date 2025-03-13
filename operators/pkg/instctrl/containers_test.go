@@ -72,11 +72,14 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ownerRef metav1.OwnerReference
 
-		mountInfos []forge.NFSVolumeMountInfo
+		shvol       clv1alpha2.SharedVolume
+		shvolMounts []clv1alpha2.SharedVolumeMountInfo
+		mountInfos  []forge.NFSVolumeMountInfo
 
 		containerOpts forge.ContainerEnvOpts
 
-		err error
+		err      error
+		errShVol error
 	)
 
 	const (
@@ -99,6 +102,8 @@ var _ = Describe("Generation of the container based instances", func() {
 		nfsShVolExpPath   = "/nfs/shvol"
 		nfsShVolMountPath = "/mnt/path"
 		nfsShVolReadOnly  = true
+		shVolName         = "myshvol"
+		shVolNamespace    = "default"
 	)
 
 	BeforeEach(func() {
@@ -160,15 +165,30 @@ var _ = Describe("Generation of the container based instances", func() {
 			Controller:         ptr.To(true),
 		}
 
+		shvol = clv1alpha2.SharedVolume{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      shVolName,
+				Namespace: shVolNamespace,
+			},
+			Spec: clv1alpha2.SharedVolumeSpec{
+				PrettyName: "My Pretty Name",
+				Size:       resource.MustParse("1Gi"),
+			},
+			Status: clv1alpha2.SharedVolumeStatus{},
+		}
+		shvolMounts = []clv1alpha2.SharedVolumeMountInfo{
+			{
+				SharedVolumeRef: clv1alpha2.GenericRef{
+					Name:      shvol.Name,
+					Namespace: shvol.Namespace,
+				},
+				MountPath: nfsShVolMountPath,
+				ReadOnly:  nfsShVolReadOnly,
+			},
+		}
 		mountInfos = []forge.NFSVolumeMountInfo{
 			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
-			{
-				VolumeName:    nfsShVolName,
-				ServerAddress: nfsServerName,
-				ExportPath:    nfsShVolExpPath,
-				MountPath:     nfsShVolMountPath,
-				ReadOnly:      nfsShVolReadOnly,
-			},
+			forge.ShVolNFSVolumeMountInfo(0, &shvol, shvolMounts[0]),
 		}
 	})
 
@@ -182,6 +202,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 		err = reconciler.EnforceContainerEnvironment(ctx)
+		errShVol = reconciler.Create(ctx, &shvol)
 	})
 
 	It("Should enforce the environment exposition objects", func() {
@@ -204,7 +225,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -335,7 +356,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -450,6 +471,30 @@ var _ = Describe("Generation of the container based instances", func() {
 			})
 
 			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
+		})
+	})
+
+	Context("The environment has the personal drive and a shared volume to mount", func() {
+		BeforeEach(func() {
+			environment.MountMyDriveVolume = true
+			environment.SharedVolumeMounts = shvolMounts
+		})
+
+		When("the deployment is not yet present", func() {
+			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+			// The spec of the deployment is checked in forge.
+		})
+
+		When("the shvol is not yet present", func() {
+			It("Creating shvol should not return an error", func() { Expect(errShVol).ToNot(HaveOccurred()) })
+
+			It("The deployment should be present and with the correct spec", func() {
+				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
+				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+
+				Expect(deploy.Spec).To(Equal(expected))
+			})
 		})
 	})
 })
