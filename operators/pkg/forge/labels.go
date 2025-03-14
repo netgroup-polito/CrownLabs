@@ -21,16 +21,17 @@ import (
 )
 
 const (
-	labelManagedByKey   = "crownlabs.polito.it/managed-by"
-	labelInstanceKey    = "crownlabs.polito.it/instance"
-	labelWorkspaceKey   = "crownlabs.polito.it/workspace"
-	labelTemplateKey    = "crownlabs.polito.it/template"
-	labelTenantKey      = "crownlabs.polito.it/tenant"
-	labelPersistentKey  = "crownlabs.polito.it/persistent"
-	labelComponentKey   = "crownlabs.polito.it/component"
-	labelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
-	labelTypeKey        = "crownlabs.polito.it/type"
-	labelVolumeTypeKey  = "crownlabs.polito.it/volume-type"
+	labelManagedByKey    = "crownlabs.polito.it/managed-by"
+	labelInstanceKey     = "crownlabs.polito.it/instance"
+	labelWorkspaceKey    = "crownlabs.polito.it/workspace"
+	labelTemplateKey     = "crownlabs.polito.it/template"
+	labelTenantKey       = "crownlabs.polito.it/tenant"
+	labelPersistentKey   = "crownlabs.polito.it/persistent"
+	labelComponentKey    = "crownlabs.polito.it/component"
+	labelMetricsEnabled  = "crownlabs.polito.it/metrics-enabled"
+	labelTypeKey         = "crownlabs.polito.it/type"
+	labelVolumeTypeKey   = "crownlabs.polito.it/volume-type"
+	labelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -56,7 +57,7 @@ const (
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
 // along with a boolean value indicating whether an update should be performed.
-func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, instCustomizationUrls *clv1alpha2.InstanceCustomizationUrls) (map[string]string, bool) {
+func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, instance *clv1alpha2.Instance) (map[string]string, bool) {
 	labels = deepCopyLabels(labels)
 	update := false
 
@@ -64,9 +65,14 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
 	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
+	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(template.Spec.EnvironmentList, instance)) || update
 
-	if instCustomizationUrls != nil && instCustomizationUrls.StatusCheck != "" && labels[InstanceTerminationSelectorLabel] == "" {
-		update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
+	if instance != nil {
+		instCustomizationUrls := instance.Spec.CustomizationUrls
+
+		if instCustomizationUrls != nil && instCustomizationUrls.StatusCheck != "" && labels[InstanceTerminationSelectorLabel] == "" {
+			update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
+		}
 	}
 
 	return labels, update
@@ -177,6 +183,19 @@ func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
 	for i := range environmentList {
 		if environmentList[i].Persistent {
 			return strconv.FormatBool(true)
+		}
+	}
+	return strconv.FormatBool(false)
+}
+
+// nodeSelectorLabelValue returns the value to be assigned to the node selector label, depending on the presence or the absence of the field.
+func nodeSelectorLabelValue(environmentList []clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
+	if instance != nil {
+		for i := range environmentList {
+			nodeSel := NodeSelectorLabels(instance, &environmentList[i])
+			if len(nodeSel) > 0 {
+				return strconv.FormatBool(true)
+			}
 		}
 	}
 	return strconv.FormatBool(false)

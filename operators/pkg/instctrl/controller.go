@@ -151,7 +151,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("successfully retrieved the instance tenant")
 
 	// Patch the instance labels to allow for easier categorization.
-	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, instance.Spec.CustomizationUrls)
+	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
 	if updated || instance.Spec.PrettyName == "" {
 		original := instance.DeepCopy()
 		if instance.Spec.PrettyName == "" {
