@@ -40,6 +40,7 @@ var _ = Describe("Labels forging", func() {
 
 	Describe("The forge.InstanceLabels function", func() {
 		var template clv1alpha2.Template
+		var instance clv1alpha2.Instance
 
 		type InstanceLabelsCase struct {
 			Input           map[string]string
@@ -50,6 +51,12 @@ var _ = Describe("Labels forging", func() {
 		type InstancePersistentLabelCase struct {
 			EnvironmentList []clv1alpha2.Environment
 			ExpectedValue   string
+		}
+
+		type NodeSelectorEnabledLabelCase struct {
+			EnvironmentList      []clv1alpha2.Environment
+			InstanceNodeSelector map[string]string
+			ExpectedValue        string
 		}
 
 		type InstanceAutomationLabelCase struct {
@@ -77,27 +84,30 @@ var _ = Describe("Labels forging", func() {
 			Entry("When the input labels map is nil", InstanceLabelsCase{
 				Input: nil,
 				ExpectedOutput: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/workspace":  workspaceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/persistent": "false",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/workspace":         workspaceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/persistent":        "false",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 				ExpectedUpdated: true,
 			}),
 			Entry("When the input labels map already contains the expected values", InstanceLabelsCase{
 				Input: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/workspace":  workspaceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/persistent": "false",
-					"user/key":                       "user/value",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/workspace":         workspaceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/persistent":        "false",
+					"user/key":                              "user/value",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 				ExpectedOutput: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/workspace":  workspaceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/persistent": "false",
-					"user/key":                       "user/value",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/workspace":         workspaceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/persistent":        "false",
+					"user/key":                              "user/value",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 				ExpectedUpdated: false,
 			}),
@@ -107,11 +117,12 @@ var _ = Describe("Labels forging", func() {
 					"user/key":                      "user/value",
 				},
 				ExpectedOutput: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/workspace":  workspaceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/persistent": "false",
-					"user/key":                       "user/value",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/workspace":         workspaceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/persistent":        "false",
+					"user/key":                              "user/value",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 				ExpectedUpdated: true,
 			}),
@@ -145,9 +156,72 @@ var _ = Describe("Labels forging", func() {
 			}),
 		)
 
+		DescribeTable("Correctly configures the node selection presence label",
+			func(c NodeSelectorEnabledLabelCase) {
+				template.Spec.EnvironmentList = c.EnvironmentList
+				instance.Spec.NodeSelector = c.InstanceNodeSelector
+				output, _ := forge.InstanceLabels(map[string]string{}, &template, &instance)
+				Expect(output).To(HaveKeyWithValue("crownlabs.polito.it/has-node-selector", c.ExpectedValue))
+			},
+			Entry("When the node selector of the environment and the instance are present and different", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key1": "val1"}}},
+				InstanceNodeSelector: map[string]string{"key2": "val2"},
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment and the instance are present and equal", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				InstanceNodeSelector: map[string]string{"key": "val"},
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment is empty and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				InstanceNodeSelector: map[string]string{"key": "val"},
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment is present and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				InstanceNodeSelector: map[string]string{},
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment is present and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				InstanceNodeSelector: nil,
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment is nil and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				InstanceNodeSelector: map[string]string{"key": "val"},
+				ExpectedValue:        "false",
+			}),
+			Entry("When the node selector of the environment is nil and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				InstanceNodeSelector: map[string]string{},
+				ExpectedValue:        "true",
+			}),
+			Entry("When the node selector of the environment is empty and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				InstanceNodeSelector: nil,
+				ExpectedValue:        "false",
+			}),
+			Entry("When the node selector of the environment and the node selector of the instance are empty", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				InstanceNodeSelector: map[string]string{},
+				ExpectedValue:        "false",
+			}),
+			Entry("When the node selector of the environment and the node selector of the instance are nil", NodeSelectorEnabledLabelCase{
+				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				InstanceNodeSelector: nil,
+				ExpectedValue:        "false",
+			}),
+		)
+
 		DescribeTable("Correctly configures the automation labels",
 			func(c InstanceAutomationLabelCase) {
-				output, _ := forge.InstanceLabels(c.Input, &template, c.InstanceCustomizationUrls)
+				output, _ := forge.InstanceLabels(c.Input, &template, &clv1alpha2.Instance{
+					Spec: clv1alpha2.InstanceSpec{
+						CustomizationUrls: c.InstanceCustomizationUrls,
+					},
+				})
 				if c.ExpectedValue != "" {
 					Expect(output).To(HaveKeyWithValue(forge.InstanceTerminationSelectorLabel, c.ExpectedValue))
 				} else {
@@ -192,12 +266,12 @@ var _ = Describe("Labels forging", func() {
 	})
 
 	Describe("The forge.InstanceObjectLabels function", func() {
-		var instance clv1alpha2.Instance
-
 		type ObjectLabelsCase struct {
 			Input          map[string]string
 			ExpectedOutput map[string]string
 		}
+
+		var instance clv1alpha2.Instance
 
 		BeforeEach(func() {
 			instance = clv1alpha2.Instance{
@@ -224,18 +298,20 @@ var _ = Describe("Labels forging", func() {
 			}),
 			Entry("When the input labels map already contains the expected values", ObjectLabelsCase{
 				Input: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/instance":   instanceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/tenant":     tenantName,
-					"user/key":                       "user/value",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/instance":          instanceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/tenant":            tenantName,
+					"user/key":                              "user/value",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 				ExpectedOutput: map[string]string{
-					"crownlabs.polito.it/managed-by": "instance",
-					"crownlabs.polito.it/instance":   instanceName,
-					"crownlabs.polito.it/template":   templateName,
-					"crownlabs.polito.it/tenant":     tenantName,
-					"user/key":                       "user/value",
+					"crownlabs.polito.it/managed-by":        "instance",
+					"crownlabs.polito.it/instance":          instanceName,
+					"crownlabs.polito.it/template":          templateName,
+					"crownlabs.polito.it/tenant":            tenantName,
+					"user/key":                              "user/value",
+					"crownlabs.polito.it/has-node-selector": "false",
 				},
 			}),
 			Entry("When the input labels map contains only part of the expected values", ObjectLabelsCase{

@@ -26,6 +26,7 @@ spec:
       environmentType: VirtualMachine
       image: registry.crownlabs.example.com/tea/green:finest
       guiEnabled: true
+      mountMyDriveVolume: false
       persistent: false
       resources:
         cpu: 2
@@ -49,6 +50,7 @@ spec:
       image: registry.crownlabs.example.com/coffee/dark:strongest
       guiEnabled: false
       persistent: true
+      mountMyDriveVolume: false
       resources:
         cpu: 4
         memory: 1G
@@ -69,6 +71,7 @@ spec:
     - name: vscode-environment
       environmentType: Standalone
       mode: Standard
+      mountMyDriveVolume: false
       image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.3
       containerStartupOptions:
         contentPath: /config/workspace
@@ -93,6 +96,7 @@ spec:
   description: A template about vscode
   environmentList:
     - name: vscode-environment
+      mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
       image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
@@ -119,6 +123,7 @@ spec:
   description: A template about vscode
   environmentList:
     - name: jupyterlab-environment
+      mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
       image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.3

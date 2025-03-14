@@ -273,6 +273,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&environment)))
 		})
 
+		It("Should set the node selector labels accordingly", func() {
+			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &environment)))
+		})
+
 		When("the environment type is Standalone", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
 				Mode:            clv1alpha2.ModeStandard,
@@ -1308,5 +1312,56 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			EnvMode:        clv1alpha2.ModeStandard,
 			ExpectedOutput: "",
 		}))
+	})
+
+	Describe("The forge.NodeSelectorLabels function", func() {
+		type NodeSelectorLabelsCase struct {
+			TemplateLabelSelector *map[string]string
+			InstanceLabelSelector map[string]string
+			ExpectedOutput        map[string]string
+		}
+
+		WhenBody := func(c NodeSelectorLabelsCase, desc string) func() {
+			return func() {
+				BeforeEach(func() {
+					environment.NodeSelector = c.TemplateLabelSelector
+					instance.Spec.NodeSelector = c.InstanceLabelSelector
+				})
+				It("Should return the right set of labels: "+desc, func() {
+					Expect(forge.NodeSelectorLabels(&instance, &environment)).To(Equal(c.ExpectedOutput))
+				})
+			}
+		}
+
+		Context("TemplateLabelSelector is nil", func() {
+			When("InstanceLabelSelector is nil", WhenBody(NodeSelectorLabelsCase{
+				TemplateLabelSelector: nil,
+				InstanceLabelSelector: nil,
+				ExpectedOutput:        map[string]string{},
+			}, "feature disabled"))
+			When("InstanceLabelSelector is present", WhenBody(NodeSelectorLabelsCase{
+				TemplateLabelSelector: nil,
+				InstanceLabelSelector: map[string]string{"key": "value"},
+				ExpectedOutput:        map[string]string{},
+			}, "feature disabled"))
+		})
+
+		Context("TemplateLabelSelector is present", func() {
+			When("TemplateLabelSelector is empty and InstanceLabelSelector is nil", WhenBody(NodeSelectorLabelsCase{
+				TemplateLabelSelector: &map[string]string{},
+				InstanceLabelSelector: nil,
+				ExpectedOutput:        nil,
+			}, "template and instance labels empty"))
+			When("TemplateLabelSelector is empty and InstanceLabelSelector is present", WhenBody(NodeSelectorLabelsCase{
+				TemplateLabelSelector: &map[string]string{},
+				InstanceLabelSelector: map[string]string{"key": "value"},
+				ExpectedOutput:        map[string]string{"key": "value"},
+			}, "instance labels are chosen over empty template labels"))
+			When("TemplateLabelSelector is present and InstanceLabelSelector is present", WhenBody(NodeSelectorLabelsCase{
+				TemplateLabelSelector: &map[string]string{"templateKey": "templateValue"},
+				InstanceLabelSelector: map[string]string{"instanceKey": "instanceValue"},
+				ExpectedOutput:        map[string]string{"templateKey": "templateValue"},
+			}, "template labels are chosen over instance labels"))
+		})
 	})
 })
