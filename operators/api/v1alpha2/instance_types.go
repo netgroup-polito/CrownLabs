@@ -88,6 +88,9 @@ type InstanceSpec struct {
 	// +kubebuilder:validation:Optional
 	PrettyName string `json:"prettyName"`
 
+	// Labels that are used for the selection of the node.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
 	// Optional urls for advanced integration features.
 	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
 }
@@ -127,6 +130,12 @@ type InstanceStatus struct {
 
 	// Timestamps of the Instance automation phases (check, termination and submission).
 	Automation InstanceAutomationStatus `json:"automation,omitempty"`
+
+	// The node on which the Instance is running.
+	NodeName string `json:"nodeName,omitempty"`
+
+	// The actual nodeSelector assigned to the Instance.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // +kubebuilder:object:root=true

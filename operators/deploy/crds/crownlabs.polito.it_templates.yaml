@@ -154,6 +154,14 @@ spec:
                     name:
                       description: The name identifying the specific environment.
                       type: string
+                    nodeSelector:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        Labels that are used for the selection of the node.
+                        They are given by means of a pointer to check the presence of the field.
+                        In case it is present, the labels that are chosen are the ones present on the instance
+                      type: object
                     persistent:
                       default: false
                       description: |-

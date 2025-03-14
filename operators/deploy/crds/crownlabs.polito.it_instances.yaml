@@ -88,6 +88,11 @@ spec:
                       for exact definition.
                     type: string
                 type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: Labels that are used for the selection of the node.
+                type: object
               prettyName:
                 description: |-
                   Custom name the user can assign and change at any time
@@ -171,6 +176,14 @@ spec:
                   be used to access it through the SSH protocol (leveraging the SSH bastion
                   in case it is not contacted from another CrownLabs Instance).
                 type: string
+              nodeName:
+                description: The node on which the Instance is running.
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: The actual nodeSelector assigned to the Instance.
+                type: object
               phase:
                 description: |-
                   The current status Instance, with reference to the associated environment

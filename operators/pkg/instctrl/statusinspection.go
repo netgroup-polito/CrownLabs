@@ -15,13 +15,16 @@
 package instctrl
 
 import (
+	"context"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	virtv1 "kubevirt.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // RetrievePhaseFromVM converts the VM phase to the corresponding one of the instance.
@@ -140,4 +143,28 @@ func isResourceQuotaExceededForDeployment(deployment *appsv1.Deployment) bool {
 		}
 	}
 	return false
+}
+
+func (r *InstanceReconciler) podScheduleStatusIntoInstance(ctx context.Context, instance *clv1alpha2.Instance) (err error) {
+	if !instance.Spec.Running {
+		instance.Status.NodeName = ""
+		instance.Status.NodeSelector = nil
+		return
+	}
+
+	podList := corev1.PodList{}
+	instLabels := forge.InstanceSelectorLabels(instance)
+	err = r.Client.List(ctx, &podList, client.MatchingLabels(instLabels))
+	if err != nil {
+		return
+	}
+
+	if len(podList.Items) == 0 {
+		return
+	}
+
+	instance.Status.NodeName = podList.Items[0].Spec.NodeName
+	instance.Status.NodeSelector = podList.Items[0].Spec.NodeSelector
+	delete(instance.Status.NodeSelector, "kubevirt.io/schedulable")
+	return
 }

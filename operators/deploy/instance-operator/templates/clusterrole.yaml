@@ -22,7 +22,7 @@ rules:
   verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
 
 - apiGroups: [""]
-  resources: ["namespaces","persistentvolumes"]
+  resources: ["namespaces","persistentvolumes","pods"]
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]

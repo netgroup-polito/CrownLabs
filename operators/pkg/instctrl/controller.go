@@ -151,7 +151,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("successfully retrieved the instance tenant")
 
 	// Patch the instance labels to allow for easier categorization.
-	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, instance.Spec.CustomizationUrls)
+	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
 	if updated || instance.Spec.PrettyName == "" {
 		original := instance.DeepCopy()
 		if instance.Spec.PrettyName == "" {
@@ -171,6 +171,11 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Error(err, "failed to enforce instance environments")
 		return ctrl.Result{}, err
 	}
+
+	if err = r.podScheduleStatusIntoInstance(ctx, &instance); err != nil {
+		log.Error(err, "unable to retrieve pod schedule status")
+	}
+
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 

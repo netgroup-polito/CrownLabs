@@ -53,6 +53,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 		ds.Selector = nil
 		ds.Template.ObjectMeta.Labels = nil
+		ds.Template.Spec.NodeSelector = nil
 	}
 
 	var (

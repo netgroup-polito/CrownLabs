@@ -45,6 +45,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		prettyName     string
 		runInstance    bool
 		instance       clv1alpha2.Instance
+		pod            corev1.Pod
 		environment    clv1alpha2.Environment
 		ingress        netv1.Ingress
 		service        corev1.Service
@@ -110,6 +111,21 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				Tenant:     clv1alpha2.GenericRef{Name: testName, Namespace: testName},
 				Running:    runInstance,
 				PrettyName: prettyName,
+			},
+		}
+		pod = corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName,
+				Namespace: testName,
+				Labels:    forge.InstanceSelectorLabels(&instance),
+			},
+			Spec: corev1.PodSpec{
+				NodeSelector: map[string]string{"key": "value", "kubevirt.io/schedulable": "true"},
+				NodeName:     testName,
+				Containers: []corev1.Container{{
+					Image: "some-image:v0",
+					Name:  "some-container",
+				}},
 			},
 		}
 
@@ -325,6 +341,75 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(RunReconciler()).To(Succeed())
 					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 				})
+			})
+		})
+	})
+
+	PodStatusIt := func(t string, envtype clv1alpha2.EnvironmentType, persistent bool) {
+		BeforeEach(func() {
+			testName = t
+
+			runInstance = false
+			environment.EnvironmentType = envtype
+			environment.Persistent = persistent
+			pod.Spec.NodeName = testName
+		})
+
+		It("Should correctly reconcile the instance", func() {
+			Expect(RunReconciler()).To(Succeed())
+
+			Expect(instance.Status.NodeName).To(Equal(""))
+			Expect(instance.Status.NodeSelector).To(BeNil())
+
+			Expect(k8sClient.Create(ctx, &pod)).To(Succeed())
+			instance.Spec.Running = true
+			Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+
+			Expect(RunReconciler()).To(Succeed())
+
+			Expect(instance.Status.NodeName).To(Equal(testName))
+			Expect(instance.Status.NodeSelector).To(Equal(map[string]string{"key": "value"}))
+
+			instance.Spec.Running = false
+			Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			Expect(RunReconciler()).To(Succeed())
+
+			Expect(instance.Status.NodeName).To(Equal(""))
+			Expect(instance.Status.NodeSelector).To(BeNil())
+		})
+	}
+
+	Context("Put pod schedule status into instance", func() {
+		When("The instance is a VM and is not persistent", func() {
+			PodStatusIt("pod-stat-vm-np", clv1alpha2.ClassVM, false)
+		})
+		When("The instance is a VM and is persistent", func() {
+			PodStatusIt("pod-stat-vm-p", clv1alpha2.ClassVM, true)
+		})
+		When("The instance is a container", func() {
+			PodStatusIt("pod-stat-cont", clv1alpha2.ClassContainer, true)
+		})
+	})
+
+	Context("Node selector field handling", func() {
+		When("Pod doesn't have kubevirt.io/schedulable label", func() {
+			BeforeEach(func() {
+				testName = "pod-kubevirt-label"
+				runInstance = true
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.Persistent = true
+				pod.Spec.NodeName = testName
+
+				pod.Spec.NodeSelector = make(map[string]string)
+				pod.Spec.NodeSelector["key"] = "value"
+			})
+
+			It("Should do no operation", func() {
+				Expect(k8sClient.Create(ctx, &pod)).To(Succeed())
+
+				Expect(RunReconciler()).To(Succeed())
+
+				Expect(instance.Status.NodeSelector).To(Equal(map[string]string{"key": "value"}))
 			})
 		})
 	})

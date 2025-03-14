@@ -206,6 +206,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// marshaling/unmarshaling process. Still, the correctness of the value is already checked with the
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
+					vmi.Spec.NodeSelector = map[string]string{}
 					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &environment)))
 				})
 
@@ -309,6 +310,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// different It clause.
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
+					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
 					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &environment)))
 				})
 

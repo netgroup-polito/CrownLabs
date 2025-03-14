@@ -171,6 +171,7 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 		InitContainers:                InitContainers(instance, environment, opts),
 		EnableServiceLinks:            ptr.To(false),
 		Hostname:                      InstanceHostname(environment),
+		NodeSelector:                  NodeSelectorLabels(instance, environment),
 	}
 }
 
@@ -516,4 +517,19 @@ func InstanceHostname(environment *clv1alpha2.Environment) string {
 		return strings.ToLower(string(environment.Mode))
 	}
 	return ""
+}
+
+// NodeSelectorLabels returns the node selector labels chosen
+// based on the instance and the environment.
+func NodeSelectorLabels(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
+	templateLabelSelector := environment.NodeSelector
+	instanceLabelSelector := instance.Spec.NodeSelector
+
+	if templateLabelSelector == nil {
+		return map[string]string{}
+	}
+	if len(*templateLabelSelector) == 0 {
+		return instanceLabelSelector
+	}
+	return *templateLabelSelector
 }
