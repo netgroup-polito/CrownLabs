@@ -113,12 +113,13 @@ labels:
 ```
 
 ## Synchronize digital certificates between namespaces
+❗❗ `Kubed is no longer available and has been superseded by ConfigSyncer` 
 
 In different scenarios, it may happen to have different `Ingress` resources in different namespaces which refer to the same domain (with different paths). Unfortunately, annotating all these ingresses with the `cert-manager.io/cluster-issuer` annotation soon leads to hitting the Let's Encrypt rate limits. Hence, it is necessary to introduce some mechanism to synchronize the secret generated between multiple namespaces. One of the projects currently providing a solution to this problem is [kubed](https://github.com/appscode/kubed).
 
 ### Install kubed
 
-Kubed can be easily installed with helm [[5]](https://appscode.com/products/kubed/v0.12.0/setup/install/).
+Kubed can be easily installed with helm [[5]](https://web.archive.org/web/20230605163413/https://appscode.com/products/kubed/v0.12.0/setup/install/).
 
 ```bash
 helm repo add appscode https://charts.appscode.com/stable/
