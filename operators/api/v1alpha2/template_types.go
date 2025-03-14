@@ -126,6 +126,11 @@ type Environment struct {
 	// +kubebuilder:default=true
 	// Whether the instance has to have the user's MyDrive volume
 	MountMyDriveVolume bool `json:"mountMyDriveVolume"`
+
+	// Labels that are used for the selection of the node.
+	// They are given by means of a pointer to check the presence of the field.
+	// In case it is present, the labels that are chosen are the ones present on the instance
+	LabelSelector *map[string]string `json:"labelSelector,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
