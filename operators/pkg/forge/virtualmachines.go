@@ -72,6 +72,7 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, environment *clv1
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
+		NodeSelector:                  NodeSelectorLabels(instance, environment),
 	}
 }
 
