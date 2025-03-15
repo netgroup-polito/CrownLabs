@@ -51,6 +51,17 @@ func (in *Environment) DeepCopyInto(out *Environment) {
 		*out = new(ContainerStartupOpts)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.LabelSelector != nil {
+		in, out := &in.LabelSelector, &out.LabelSelector
+		*out = new(map[string]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make(map[string]string, len(*in))
+			for key, val := range *in {
+				(*out)[key] = val
+			}
+		}
+	}
 	if in.SharedVolumeMounts != nil {
 		in, out := &in.SharedVolumeMounts, &out.SharedVolumeMounts
 		*out = make([]SharedVolumeMountInfo, len(*in))
@@ -288,6 +299,13 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 	*out = *in
 	out.Template = in.Template
 	out.Tenant = in.Tenant
+	if in.LabelSelector != nil {
+		in, out := &in.LabelSelector, &out.LabelSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.CustomizationUrls != nil {
 		in, out := &in.CustomizationUrls, &out.CustomizationUrls
 		*out = new(InstanceCustomizationUrls)
