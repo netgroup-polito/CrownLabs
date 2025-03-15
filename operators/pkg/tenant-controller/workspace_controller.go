@@ -343,6 +343,18 @@ func (r *WorkspaceReconciler) createOrUpdateClusterResources(ctx context.Context
 	}
 	klog.Infof("Manager role binding for workspace %s %s", ws.Name, mngRbOpRes)
 
+	// handle manager roleBinding for SharedVolumes
+	managerRbSV := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-sharedvolumes", Namespace: nsName}}
+	mngRbSVOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &managerRbSV, func() error {
+		r.updateWsRbSVMng(&managerRbSV, ws.Name)
+		return ctrl.SetControllerReference(ws, &managerRbSV, r.Scheme)
+	})
+	if err != nil {
+		klog.Errorf("Unable to create or update manager role binding for SharedVolumes for workspace %s -> %s", ws.Name, err)
+		retErr = err
+	}
+	klog.Infof("Manager role binding for SharedVolume for workspace %s %s", ws.Name, mngRbSVOpRes)
+
 	// handle manager clusterRoleBinding
 	tenantEditCrb := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-manage-tenants-" + ws.Name}}
 	tenEdCrbOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &tenantEditCrb, func() error {
@@ -382,6 +394,13 @@ func (r *WorkspaceReconciler) updateWsRbMng(rb *rbacv1.RoleBinding, wsName strin
 	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
 
 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-templates", APIGroup: "rbac.authorization.k8s.io"}
+	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
+}
+
+func (r *WorkspaceReconciler) updateWsRbSVMng(rb *rbacv1.RoleBinding, wsName string) {
+	rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
+
+	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-sharedvolumes", APIGroup: "rbac.authorization.k8s.io"}
 	rb.Subjects = []rbacv1.Subject{{Kind: "Group", Name: fmt.Sprintf("kubernetes:%s", genWsKcRoleName(wsName, crownlabsv1alpha2.Manager)), APIGroup: "rbac.authorization.k8s.io"}}
 }
 

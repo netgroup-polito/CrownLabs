@@ -30,6 +30,7 @@ const (
 	labelComponentKey   = "crownlabs.polito.it/component"
 	labelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
 	labelTypeKey        = "crownlabs.polito.it/type"
+	labelVolumeTypeKey  = "crownlabs.polito.it/volume-type"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -37,8 +38,8 @@ const (
 	InstanceSubmissionSelectorLabel = "crownlabs.polito.it/instance-submission-requested"
 	// InstanceSubmissionCompletedLabel -> label for Instances that have been submitted.
 	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
-	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the Tenant's MyDrive PVC.
-	ProvisionJobLabel = "crownlabs.polito.it/mydrive-provisioning"
+	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
+	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
 
 	labelManagedByInstanceValue = "instance"
 	labelManagedByTenantValue   = "tenant"
@@ -48,6 +49,9 @@ const (
 	ProvisionJobValueOk = "completed"
 	// ProvisionJobValuePending -> Value of the label added by the Provision Job to flag the PVC when it hasn't completed yet.
 	ProvisionJobValuePending = "pending"
+
+	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
+	VolumeTypeValueShVol = "sharedvolume"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -128,6 +132,26 @@ func InstanceComponentLabels(instance *clv1alpha2.Instance, componentName string
 	return InstanceObjectLabels(map[string]string{
 		labelComponentKey: componentName,
 	}, instance)
+}
+
+// SharedVolumeLabels receives in input a set of labels and returns the updated set.
+func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
+	labels = deepCopyLabels(labels)
+	update := false
+
+	update = updateLabel(labels, labelManagedByKey, labelManagedByInstanceValue) || update
+
+	return labels, update
+}
+
+// SharedVolumeObjectLabels receives in input a set of labels and returns the updated set depending on the specified shared volume.
+func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels[labelManagedByKey] = labelManagedByInstanceValue
+	labels[labelVolumeTypeKey] = VolumeTypeValueShVol
+
+	return labels
 }
 
 // deepCopyLabels creates a copy of the labels map.

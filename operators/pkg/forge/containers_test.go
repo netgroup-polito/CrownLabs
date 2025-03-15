@@ -38,6 +38,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	var (
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
+		mountInfos  []forge.NFSVolumeMountInfo
 		opts        forge.ContainerEnvOpts
 		container   corev1.Container
 	)
@@ -65,8 +66,22 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		httpPath             = "/some/path"
 		httpPathAlternative  = "/some/different/path"
 		nfsServerName        = "nfs-server-name"
-		nfsPath              = "/nfs/path"
-		nfsVolumeName        = "nfs-vol"
+		nfsMyDriveExpPath    = "/nfs/path"
+		nfsShVolName         = "nfs0"
+		nfsShVolExpPath      = "/nfs/shvol"
+		nfsShVolMountPath    = "/mnt/path"
+		nfsShVolReadOnly     = true
+	)
+
+	var (
+		mountInfoMyDrive = forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath)
+		mountInfoShVol   = forge.NFSVolumeMountInfo{
+			VolumeName:    nfsShVolName,
+			ServerAddress: nfsServerName,
+			ExportPath:    nfsShVolExpPath,
+			MountPath:     nfsShVolMountPath,
+			ReadOnly:      nfsShVolReadOnly,
+		}
 	)
 
 	BeforeEach(func() {
@@ -84,6 +99,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				Disk:                  resource.MustParse(disk),
 			},
 		}
+
+		mountInfos = []forge.NFSVolumeMountInfo{
+			mountInfoMyDrive,
+			mountInfoShVol,
+		}
 		opts = forge.ContainerEnvOpts{
 			ImagesTag:            "tag",
 			XVncImg:              "x-vnc-img",
@@ -98,7 +118,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec corev1.PersistentVolumeClaimSpec
 
 		JustBeforeEach(func() {
-			spec = forge.PVCSpec(&environment)
+			spec = forge.InstancePVCSpec(&environment)
 		})
 
 		It("Should set the correct access mode", func() {
@@ -198,14 +218,14 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec appsv1.DeploymentSpec
 
 		JustBeforeEach(func() {
-			spec = forge.DeploymentSpec(&instance, &environment, nfsServerName, nfsPath, &opts)
+			spec = forge.DeploymentSpec(&instance, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the correct template labels", func() {
 			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, nfsServerName, nfsPath, &opts)))
+			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, mountInfos, &opts)))
 		})
 		It("Should set the correct selector", func() {
 			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
@@ -234,7 +254,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		JustBeforeEach(func() {
-			spec = forge.PodSpec(&instance, &environment, nfsServerName, nfsPath, &opts)
+			spec = forge.PodSpec(&instance, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the security context", func() {
@@ -259,7 +279,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
-						forge.StandaloneContainer(i, e, forge.PersistentMountPath(e)),
+						forge.StandaloneContainer(i, e, forge.PersistentMountPath(e), mountInfos),
 					}
 				},
 			}))
@@ -273,7 +293,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(e)),
+						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
 					}
 				},
 			}))
@@ -285,7 +305,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(e)),
+						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
 					}
 				},
 			}))
@@ -297,7 +317,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					return []corev1.Container{
 						forge.WebsockifyContainer(&opts, e, i),
 						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(&environment)),
+						forge.AppContainer(e, forge.PersistentMountPath(&environment), mountInfos),
 					}
 				},
 			}))
@@ -308,7 +328,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual, expected corev1.Container
 
 		JustBeforeEach(func() {
-			actual = forge.StandaloneContainer(&instance, &environment, forge.PersistentMountPath(&environment))
+			actual = forge.StandaloneContainer(&instance, &environment, forge.PersistentMountPath(&environment), mountInfos)
 		})
 
 		It("Should set container port", func() {
@@ -482,7 +502,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		Context("Has to set the general parameters", func() {
 			JustBeforeEach(func() {
-				actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
+				actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), mountInfos)
 			})
 
 			It("Should set the correct container name and image", func() {
@@ -511,6 +531,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		Context("Adds the right volume mounts", func() {
 			type VolumeMountCase struct {
 				PersonalVolume bool
+				MountInfos     []forge.NFSVolumeMountInfo
 				ExpectedOutput func(*clv1alpha2.Environment) []corev1.VolumeMount
 			}
 
@@ -521,7 +542,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
+						fmt.Printf("Using mountInfos %v\n", c.MountInfos)
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), c.MountInfos)
 					})
 
 					It("Should set the VolumeMounts accordingly", func() {
@@ -532,6 +554,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("The personal volume mount is enabled", WhenBody(VolumeMountCase{
 				PersonalVolume: true,
+				MountInfos: []forge.NFSVolumeMountInfo{
+					mountInfoMyDrive,
+				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
 					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
@@ -542,9 +567,38 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 			When("The personal volume mount is disabled", WhenBody(VolumeMountCase{
 				PersonalVolume: false,
+				MountInfos:     nil,
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
 					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					return c.VolumeMounts
+				},
+			}))
+
+			When("There is a mounted shared volume and the personal volume mount is enabled", WhenBody(VolumeMountCase{
+				PersonalVolume: true,
+				MountInfos: []forge.NFSVolumeMountInfo{
+					mountInfoMyDrive,
+					mountInfoShVol,
+				},
+				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
+					c := corev1.Container{}
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					forge.AddContainerVolumeMount(&c, forge.MyDriveVolumeName, forge.MyDriveVolumeMountPath)
+					forge.AddContainerVolumeMount(&c, nfsShVolName, nfsShVolMountPath)
+					return c.VolumeMounts
+				},
+			}))
+
+			When("There is a mounted shared volume and the personal volume mount is disabled", WhenBody(VolumeMountCase{
+				PersonalVolume: true,
+				MountInfos: []forge.NFSVolumeMountInfo{
+					mountInfoShVol,
+				},
+				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
+					c := corev1.Container{}
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					forge.AddContainerVolumeMount(&c, nfsShVolName, nfsShVolMountPath)
 					return c.VolumeMounts
 				},
 			}))
@@ -564,7 +618,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), mountInfos)
 					})
 
 					It("Should return the correct startup args", func() {
@@ -602,7 +656,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment))
+						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), mountInfos)
 					})
 
 					It("Should set the WorkingDirectory accordingly", func() {
@@ -725,7 +779,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 						Containers: []corev1.Container{
 							forge.ContentUploaderJobContainer(httpPath, instance.Name, &opts),
 						},
-						Volumes:                      forge.ContainerVolumes(&instance, &environment, "", ""),
+						Volumes:                      forge.ContainerVolumes(&instance, &environment, nil),
 						SecurityContext:              forge.PodSecurityContext(),
 						AutomountServiceAccountToken: ptr.To(false),
 						RestartPolicy:                corev1.RestartPolicyOnFailure,
@@ -954,13 +1008,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.ContainerVolumes function", func() {
 		var actual []corev1.Volume
 
-		JustBeforeEach(func() {
-			actual = forge.ContainerVolumes(&instance, &environment, nfsServerName, nfsPath)
-		})
-
 		type ContainerVolumesCase struct {
 			Persistent          bool
 			MountPersonalVolume bool
+			MountInfos          []forge.NFSVolumeMountInfo
 			Mode                clv1alpha2.EnvironmentMode
 			StartupOpts         *clv1alpha2.ContainerStartupOpts
 			ExpectedOutputVSs   func(*clv1alpha2.Environment) []corev1.Volume
@@ -973,6 +1024,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					environment.ContainerStartupOptions = c.StartupOpts
 					environment.Mode = c.Mode
 					environment.MountMyDriveVolume = c.MountPersonalVolume
+				})
+
+				JustBeforeEach(func() {
+					actual = forge.ContainerVolumes(&instance, &environment, c.MountInfos)
 				})
 
 				It("Should return the correct volumeSource", func() {
@@ -1040,14 +1095,37 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment has the mount personal volume option", WhenBody(ContainerVolumesCase{
 			MountPersonalVolume: true,
+			MountInfos: []forge.NFSVolumeMountInfo{
+				forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
+			},
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{
 					forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e),
-					forge.MyDriveVolume(forge.MyDriveVolumeName, nfsServerName, nfsPath),
+					forge.NFSVolume(mountInfos[0]),
 				}
 			},
 		}))
 
+		When("the environment has a mounted shared volume and the personal volume", WhenBody(ContainerVolumesCase{
+			MountPersonalVolume: true,
+			MountInfos: []forge.NFSVolumeMountInfo{
+				forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
+				{
+					VolumeName:    nfsShVolName,
+					ServerAddress: nfsServerName,
+					ExportPath:    nfsShVolExpPath,
+					MountPath:     nfsShVolMountPath,
+					ReadOnly:      nfsShVolReadOnly,
+				},
+			},
+			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
+				return []corev1.Volume{
+					forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e),
+					forge.NFSVolume(mountInfos[0]),
+					forge.NFSVolume(mountInfos[1]),
+				}
+			},
+		}))
 	})
 
 	Describe("The forge.ContainerVolume function", func() {
