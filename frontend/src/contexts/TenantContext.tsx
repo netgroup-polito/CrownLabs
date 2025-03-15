@@ -1,4 +1,4 @@
-import { ApolloError } from 'apollo-client';
+import { ApolloError } from '@apollo/client';
 import {
   createContext,
   FC,
@@ -51,11 +51,13 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
 
   const { loading, error, subscribeToMore } = useTenantQuery({
     variables: { tenantId: userId ?? '' },
-    onCompleted: d => {
-      d!.tenant!.spec?.workspaces!.sort((a, b) =>
-        workspaceGetName(a!).localeCompare(workspaceGetName(b!))
+    skip: !userId,
+    onCompleted: data => {
+      const d = JSONDeepCopy(data);
+      d?.tenant?.spec?.workspaces?.sort((a, b) =>
+        workspaceGetName(a).localeCompare(workspaceGetName(b))
       );
-      setData(JSONDeepCopy(d));
+      setData(d);
     },
     fetchPolicy: 'network-only',
     onError: apolloErrorCatcher,
@@ -66,7 +68,7 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
   });
 
   useEffect(() => {
-    if (!loading && !error && !errorsQueue.length) {
+    if (userId && !loading && !error && !errorsQueue.length) {
       const unsubscribe = subscribeToMore({
         onError: makeErrorCatcher(ErrorTypes.GenericError),
         variables: { tenantId: userId ?? '' },

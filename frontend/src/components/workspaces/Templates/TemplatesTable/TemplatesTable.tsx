@@ -1,7 +1,7 @@
 /* eslint-disable react/no-multi-comp */
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import { FetchResult } from 'apollo-link';
+import { FetchResult } from '@apollo/client';
 import { FC, useContext, useEffect, useState } from 'react';
 import {
   CreateInstanceMutation,
