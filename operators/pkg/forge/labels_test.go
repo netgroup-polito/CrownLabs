@@ -159,7 +159,7 @@ var _ = Describe("Labels forging", func() {
 		DescribeTable("Correctly configures the node selection presence label",
 			func(c NodeSelectorEnabledLabelCase) {
 				template.Spec.EnvironmentList = c.EnvironmentList
-				instance.Spec.LabelSelector = c.InstanceNodeSelector //??
+				instance.Spec.LabelSelector = c.InstanceNodeSelector
 				output, _ := forge.InstanceLabels(map[string]string{}, &template, &instance)
 				Expect(output).To(HaveKeyWithValue("crownlabs.polito.it/has-node-selector", c.ExpectedValue))
 			},
