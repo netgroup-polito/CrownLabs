@@ -1,10 +1,13 @@
 import { getMainDefinition } from '@apollo/client/utilities';
-import { ApolloProvider } from '@apollo/react-hooks';
-import { InMemoryCache } from 'apollo-cache-inmemory';
-import { ApolloClient } from 'apollo-client';
-import { ApolloLink, split } from 'apollo-link';
-import { HttpLink } from 'apollo-link-http';
-import { WebSocketLink } from 'apollo-link-ws';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
+import {
+  ApolloClient,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
+  split,
+} from '@apollo/client';
 import { FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
@@ -26,39 +29,35 @@ const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
 
   useEffect(() => {
     if (token) {
+      const authHeader = {
+        authorization: `Bearer ${token}`,
+      };
       const httpLink = new HttpLink({
         uri: httpUri,
-        headers: {
-          authorization: token ? `Bearer ${token}` : '',
-        },
+        headers: authHeader,
       });
 
-      const wsLink = new WebSocketLink({
-        uri: wsUri,
-        options: {
-          // Automatic reconnect in case of connection error
-          reconnect: true,
-          connectionParams: {
-            authorization: token ? `Bearer ${token}` : '',
-          },
-        },
-      });
-
-      const terminatingLink = split(
-        ({ query }) => {
-          const { kind, operation }: Definition = getMainDefinition(query);
-          // If this is a subscription query, use wsLink, otherwise use httpLink
-          return kind === 'OperationDefinition' && operation === 'subscription';
-        },
-        wsLink,
-        httpLink
+      const wsLink = new GraphQLWsLink(
+        createClient({
+          url: wsUri,
+          connectionParams: authHeader,
+          shouldRetry: () => true,
+        })
       );
-
-      const link = ApolloLink.from([terminatingLink]);
 
       setApolloClient(
         new ApolloClient({
-          link,
+          link: split(
+            ({ query }) => {
+              const { kind, operation }: Definition = getMainDefinition(query);
+              // If this is a subscription query, use wsLink, otherwise use httpLink
+              return (
+                kind === 'OperationDefinition' && operation === 'subscription'
+              );
+            },
+            wsLink,
+            httpLink
+          ),
           cache: new InMemoryCache(),
         })
       );

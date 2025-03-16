@@ -1,6 +1,6 @@
 /* eslint-disable react/no-multi-comp */
 
-import { ApolloError } from 'apollo-client';
+import { ApolloError } from '@apollo/client';
 import {
   Component,
   createContext,

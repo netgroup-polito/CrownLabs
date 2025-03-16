@@ -1,4 +1,4 @@
-const { PubSub } = require('apollo-server');
+const { PubSub } = require('graphql-subscriptions');
 
 const maxListeners = parseInt(process.env.MAX_LISTENERS) || 100;
 const pubsub = new PubSub();
@@ -9,7 +9,7 @@ function publishEvent(label, value) {
 }
 
 function pubsubAsyncIterator(...labels) {
-  return pubsub.asyncIterator(labels);
+  return pubsub.asyncIterableIterator(labels);
 }
 
 module.exports = { publishEvent, pubsubAsyncIterator };

@@ -1,5 +1,5 @@
 # Builder image for the frontend
-FROM node:14-alpine as builder
+FROM node:18-alpine as builder
 
 ## Switch to an unprivileged user (avoids problems with npm)
 USER node
