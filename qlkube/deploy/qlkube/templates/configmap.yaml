@@ -50,3 +50,12 @@ data:
     ];
 
     module.exports = { wrappers };
+
+  {{ .Values.configuration.nodesLabels.fileName }}: |
+    const regexes = [
+      {{- range .Values.configuration.nodesLabels.regexes }}
+      {{ . }},
+      {{- end }}
+    ];
+
+    module.exports = { regexes };

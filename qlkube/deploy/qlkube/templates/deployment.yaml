@@ -42,7 +42,9 @@ spec:
             httpGet:
               path: /healthz
               port: http
-            initialDelaySeconds: 60
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
@@ -57,6 +59,9 @@ spec:
           - name: configuration
             mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.wrappers.fileName }}"
             subPath: "{{ .Values.configuration.wrappers.fileName }}"
+          - name: configuration
+            mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.nodesLabels.fileName }}"
+            subPath: "{{ .Values.configuration.nodesLabels.fileName }}"
       volumes:
       - name: configuration
         configMap:
