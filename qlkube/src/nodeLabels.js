@@ -1,7 +1,7 @@
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 const k8s = require('@kubernetes/client-node');
 const { regexes } = require('./nodesLabelsRegexes');
-const { kc: kubeClient } = require('./informer');
+const { kubeClient } = require('./informer');
 const { logger } = require('./utils');
 
 const apiClient = kubeClient.makeApiClient(k8s.CoreV1Api);
@@ -52,5 +52,6 @@ const resolvers = {
   },
 };
 
-module.exports = { nodesLabelsSchema: makeExecutableSchema({ typeDefs, resolvers }) };
-module.exports.updateNodesLabels = updateNodesLabels;
+module.exports = {
+  schema: makeExecutableSchema({ typeDefs, resolvers }),
+};
