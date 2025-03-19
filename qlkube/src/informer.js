@@ -1,7 +1,6 @@
 const k8s = require('@kubernetes/client-node');
 const { publishEvent } = require('./pubsub');
 const { logger } = require('./utils');
-const regexes = require('./nodesLabelsRegexes');
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -10,39 +9,6 @@ kc.loadFromDefault();
  * @type k8s.AuthorizationV1Api
  */
 const authApi = kc.makeApiClient(k8s.AuthorizationV1Api);
-
-/**
- * @type k8s.CoreV1Api
- */
-const nonApiClient = kc.makeApiClient(k8s.CoreV1Api);
-const nodesLabels = new Set();  // All the labels that match the regexes. To be shown on the frontend.
-
-async function updateNodesLabels() {
-  try{
-    nodesLabels.clear();
-    const nodes = await nonApiClient.listNode();
-    nodes.body.items.forEach(node => {
-      const labels = node.metadata.labels;
-      if (labels) {
-        console.log('Node labels: ', labels);
-        console.log('Regexes: ', regexes);
-        Object.keys(labels).forEach((label) => {
-          regexes.regexes.forEach((regex) => {
-            if(regex.test(label)){
-              nodesLabels.add(`${label}=${labels[label]}`);
-            }
-          });
-        });
-      }
-    });
-    console.log('Matching node labels: ', nodesLabels);
-  } catch (e) {
-    logger.error(e.message, 'Node labels error');
-  }
-};
-
-setInterval(updateNodesLabels, 60000);
-updateNodesLabels();
 
 async function canWatchResource(
   token,
@@ -114,4 +80,4 @@ function kinformer(sub) {
   informer.start();
 }
 
-module.exports = { kinformer, canWatchResource, nodesLabels };
+module.exports = { kinformer, canWatchResource, kc };

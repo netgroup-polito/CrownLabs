@@ -18,15 +18,12 @@ const { createSchema, oasToGraphQlSchema, joinSchemas } = require('./schema');
 const { subscriptions } = require('./subscriptions');
 const { kinformer } = require('./informer');
 const { getBearerToken, logger } = require('./utils');
-const { makeExecutableSchema } = require('@graphql-tools/schema');
-const nodesLabels = require('./informer').nodesLabels;
-
+const { nodesLabelsSchema } = require('./nodesLabelsSchema');
 
 dotenv.config();
 
 async function main() {
-  //const inCluster = process.env.IN_CLUSTER !== 'false';
-  inCluster = false;
+  const inCluster = process.env.IN_CLUSTER !== 'false';
   logger.info({ inCluster }, 'cluster mode configured');
 
   const kubeApiUrl = inCluster
@@ -48,31 +45,7 @@ async function main() {
 
   global.kubeSchema = kubeSchema;
 
-  typeDefs = `type Query {
-    getLabels: [Label!]
-  }
-  type Label {
-    key: String!
-    value: String
-  }
-  `; 
-  resolvers = {
-    Query: {
-      getLabels: async (parent, args, context, info) => {
-        const labels = [];
-
-        nodesLabels.forEach((label) => {
-          const [key, value] = label.split("=");
-          labels.push({ key, value });
-        });
-
-        return labels;
-      }
-    },
-  };
-  const nodesLabelsSchema = makeExecutableSchema({ typeDefs, resolvers });
-
-  const schemas = [{ schema: kubeSchema }, { schema: nodesLabelsSchema}];
+  const schemas = [{ schema: kubeSchema }, { schema: nodesLabelsSchema }];
 
   try {
     const registryOas = await getOpenApiSpec(registryUrl, ['docs/openapi.json']);
