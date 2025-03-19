@@ -18,7 +18,7 @@ const { createSchema, oasToGraphQlSchema, joinSchemas } = require('./schema');
 const { subscriptions } = require('./subscriptions');
 const { kinformer } = require('./informer');
 const { getBearerToken, logger } = require('./utils');
-const { nodesLabelsSchema } = require('./nodesLabelsSchema');
+const { schema: nodeLabelsSchema } = require('./nodeLabels');
 
 dotenv.config();
 
@@ -45,7 +45,7 @@ async function main() {
 
   global.kubeSchema = kubeSchema;
 
-  const schemas = [{ schema: kubeSchema }, { schema: nodesLabelsSchema }];
+  const schemas = [{ schema: kubeSchema }, { schema: nodeLabelsSchema }];
 
   try {
     const registryOas = await getOpenApiSpec(registryUrl, ['docs/openapi.json']);

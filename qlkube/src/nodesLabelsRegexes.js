@@ -3,7 +3,7 @@
 // one automatically generated from the configuration therein specified.
 
 const regexes = [
-    /crownlabs\.polito\.it.+/,
+  /crownlabs\.polito\.it.+/,
 ];
 
 module.exports = { regexes };

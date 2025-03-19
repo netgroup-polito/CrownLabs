@@ -80,4 +80,4 @@ function kinformer(sub) {
   informer.start();
 }
 
-module.exports = { kinformer, canWatchResource, kc };
+module.exports = { kinformer, canWatchResource, kubeClient: kc };
