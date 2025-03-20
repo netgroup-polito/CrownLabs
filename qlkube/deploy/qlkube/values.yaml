@@ -51,7 +51,7 @@ configuration:
 
   # This wrappers configuration maps to the current content
   # of the src/nodesLabelsRegexes.js file. Must be a subset of exposedAPIs.
-  nodesLabelsRegexes:
+  nodesLabels:
     fileName: nodesLabelsRegexes.js
     regexes:
       - /crownlabs\.polito\.it.+/
