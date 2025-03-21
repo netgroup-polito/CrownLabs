@@ -58,8 +58,8 @@ spec:
             mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.wrappers.fileName }}"
             subPath: "{{ .Values.configuration.wrappers.fileName }}"
           - name: configuration
-            mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.nodesLabelsRegexes.fileName }}"
-            subPath: "{{ .Values.configuration.nodesLabelsRegexes.fileName }}"
+            mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.nodesLabels.fileName }}"
+            subPath: "{{ .Values.configuration.nodesLabels.fileName }}"
       volumes:
       - name: configuration
         configMap:
