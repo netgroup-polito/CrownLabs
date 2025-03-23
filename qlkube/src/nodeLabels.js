@@ -6,30 +6,38 @@ const { logger } = require('./utils');
 
 const apiClient = kubeClient.makeApiClient(k8s.CoreV1Api);
 const nodesLabels = new Set();
+const nodesLabelsPairs = [];
 
 async function updateNodesLabels() {
+  logger.info('Updating nodes labels');
   try {
-    nodesLabels.clear();
     const nodes = await apiClient.listNode();
+    nodesLabels.clear();
+    nodesLabelsPairs.length = 0;
     nodes.body.items.forEach((node) => {
       const { labels } = node.metadata;
       if (labels) {
         Object.keys(labels).forEach((label) => {
           regexes.forEach((regex) => {
+            const labelPair = `${label}=${labels[label]}`;
             if (regex.test(label)) {
-              nodesLabels.add(`${label}=${labels[label]}`);
+              if (!nodesLabels.has(labelPair)) {
+                nodesLabels.add(labelPair);
+                nodesLabelsPairs.push({ key: label, value: labels[label] });
+              }
             }
           });
         });
       }
     });
+    logger.info('Node labels updated');
   } catch (e) {
     logger.error(e.message, 'Node labels error');
   }
 }
 
 updateNodesLabels();
-setInterval(updateNodesLabels, 6000);
+setInterval(updateNodesLabels, 60000);
 
 const typeDefs = `
 type Query {
@@ -41,14 +49,7 @@ type Label {
 }`;
 const resolvers = {
   Query: {
-    getLabels: async () => { // parent, args, context, info
-      const labels = [];
-      nodesLabels.forEach((label) => {
-        const [key, value] = label.split('=');
-        labels.push({ key, value });
-      });
-      return labels;
-    },
+    getLabels: () => nodesLabelsPairs,
   },
 };
 

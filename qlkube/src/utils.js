@@ -33,6 +33,7 @@ function getBearerToken(connectionParams) {
       extensions: {
         code: 'FORBIDDEN',
         connectionParams,
+        http: { status: 403 },
       },
     });
   }
@@ -41,6 +42,7 @@ function getBearerToken(connectionParams) {
     throw new GraphQLError('Token Error! Token not valid!', {
       extensions: {
         code: 'FORBIDDEN',
+        http: { status: 403 },
       },
     });
   }
