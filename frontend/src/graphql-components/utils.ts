@@ -4,6 +4,7 @@ import {
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
   Role,
+  ItPolitoCrownlabsV1alpha2SharedVolume,
 } from '../generated-types';
 import { someKeysOf } from '../utils';
 
@@ -82,9 +83,22 @@ function getTenantPatchJson(
   return JSON.stringify(patchJson);
 }
 
+function getShVolPatchJson(spec: {
+  prettyName?: string;
+  size?: string;
+}): string {
+  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2SharedVolume> = {
+    kind: 'SharedVolume',
+    apiVersion: 'crownlabs.polito.it/v1alpha2',
+    spec,
+  };
+  return JSON.stringify(patchJson);
+}
+
 export {
   beautifyGqlResponse,
   getInstancePatchJson,
   getTemplatePatchJson,
   getTenantPatchJson,
+  getShVolPatchJson,
 };
