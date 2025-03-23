@@ -1,0 +1,26 @@
+mutation applySharedVolume(
+  $workspaceNamespace: String!
+  $name: String!
+  $patchJson: String!
+  $manager: String!
+) {
+  applySharedVolume: patchCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    namespace: $workspaceNamespace
+    name: $name
+    force: true
+    fieldManager: $manager
+    applicationApplyPatchYamlInput: $patchJson
+  ) {
+    spec {
+      prettyName
+      size
+    }
+    metadata {
+      name
+      namespace
+    }
+    status {
+      phase
+    }
+  }
+}

@@ -1,0 +1,19 @@
+query workspaceSharedVolumes($workspaceNamespace: String!) {
+  sharedvolumeList: itPolitoCrownlabsV1alpha2SharedVolumeList(
+    namespace: $workspaceNamespace
+  ) {
+    sharedvolumes: items {
+      spec {
+        prettyName
+        size
+      }
+      status {
+        phase
+      }
+      metadata {
+        name
+        namespace
+      }
+    }
+  }
+}
