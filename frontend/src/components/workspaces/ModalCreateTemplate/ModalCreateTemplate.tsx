@@ -226,9 +226,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       })
     );
 
-    // eslint-disable-next-line no-console
-    console.log('heeey: ', JSON.stringify(sharedVolumeMountInfos, null, 2));
-
     submitHandler({
       ...formTemplate,
       image:
