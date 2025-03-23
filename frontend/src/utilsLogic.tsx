@@ -12,6 +12,7 @@ import {
   Exact,
   ItPolitoCrownlabsV1alpha1Workspace,
   ItPolitoCrownlabsV1alpha2Instance,
+  ItPolitoCrownlabsV1alpha2SharedVolume,
   ItPolitoCrownlabsV1alpha2Template,
   Maybe,
   OwnedInstancesQuery,
@@ -25,6 +26,7 @@ import {
 import { getInstancePatchJson } from './graphql-components/utils';
 import {
   Instance,
+  SharedVolume,
   Template,
   Workspace,
   WorkspaceRole,
@@ -670,3 +672,25 @@ export const workspaceGetName = (
 ): string =>
   ws?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.spec
     ?.prettyName ?? '';
+
+export const makeGuiSharedVolume = (
+  shVol?: Nullable<ItPolitoCrownlabsV1alpha2SharedVolume>
+) => {
+  if (!shVol) {
+    throw new Error(
+      'getSharedVolumes() error: a required parameter is undefined'
+    );
+  }
+
+  const { metadata, spec, status } = shVol;
+
+  return {
+    id: metadata?.namespace + '/' + metadata?.name,
+    name: metadata?.name,
+    prettyName: spec?.prettyName,
+    size: spec?.size,
+    status: status?.phase,
+    timeStamp: metadata?.creationTimestamp,
+    namespace: metadata?.namespace,
+  } as SharedVolume;
+};

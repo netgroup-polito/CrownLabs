@@ -1,0 +1,28 @@
+mutation createSharedVolume(
+  $workspaceNamespace: String!
+  $prettyName: String!
+  $size: JSON!
+  $generateName: String = "shvol-"
+) {
+  createdSharedVolume: createCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    namespace: $workspaceNamespace
+    itPolitoCrownlabsV1alpha2SharedVolumeInput: {
+      kind: "SharedVolume"
+      apiVersion: "crownlabs.polito.it/v1alpha2"
+      spec: { prettyName: $prettyName, size: $size }
+      metadata: { generateName: $generateName, namespace: $workspaceNamespace }
+    }
+  ) {
+    metadata {
+      name
+      namespace
+    }
+    spec {
+      prettyName
+      size
+    }
+    status {
+      phase
+    }
+  }
+}

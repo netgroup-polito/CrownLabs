@@ -1,5 +1,5 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
-import { EnvironmentType, Phase } from './generated-types';
+import { EnvironmentType, Phase, Phase3 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -53,6 +53,16 @@ export type Instance = {
   timeStamp: string;
   workspaceName: string;
   running: boolean;
+};
+
+export type SharedVolume = {
+  id: string;
+  name: string;
+  prettyName: string;
+  size: string;
+  status: Phase3;
+  timeStamp: string;
+  namespace: string;
 };
 
 export enum LinkPosition {
@@ -150,3 +160,63 @@ export function filterUser(user: UserAccountPage, value: string) {
     user.userid
   );
 }
+
+/**
+ * Find the key for a given value of an Enum.
+ * @param obj the enumeration
+ * @param value the value of the enumeration
+ * @returns the (first) key corresponding to the passed value or undefined
+ */
+export const findKeyByValue = <T, K extends keyof any>(
+  obj: Record<K, T>,
+  value: T
+): K | undefined => (Object.keys(obj) as K[]).find(key => obj[key] === value);
+
+/**
+ * Converts a string in k8s Resource.Quantity format to a number in GiB.
+ * @param sizeStr the string to convert (e.g. '2048Mi')
+ * @returns the number that represents the passed quantity in GiB (e.g. 2)
+ */
+export const convertToGiB = (sizeStr: string): number => {
+  const regexp = /[0-9]+(\.[0-9]+)?/g;
+  const match = sizeStr.match(regexp);
+  if (!match) {
+    throw new Error('Invalid size string');
+  }
+  const num = parseFloat(match[0]);
+  if (sizeStr.toLowerCase().includes('gi')) {
+    return num;
+  } else if (sizeStr.toLowerCase().includes('mi')) {
+    return num / 1024;
+  } else if (sizeStr.toLowerCase().includes('ki')) {
+    return num / (1024 * 1024);
+  } else if (sizeStr.toLowerCase().includes('g')) {
+    return num * 0.9313225746154785;
+  } else if (sizeStr.toLowerCase().includes('m')) {
+    return (num / 1024) * 0.9313225746154785;
+  } else if (sizeStr.toLowerCase().includes('k')) {
+    return (num / (1024 * 1024)) * 0.9313225746154785;
+  } else {
+    throw new Error('Unsupported size unit');
+  }
+};
+
+/**
+ * Converts a string in k8s Resource.Quantity format to a number in GB.
+ * @param sizeStr the string to convert (e.g. '2000M')
+ * @returns the number that represents the passed quantity in GB (e.g. 2)
+ */
+export const convertToGB = (sizeStr: string): number => {
+  return convertToGiB(sizeStr) * 1.073741824;
+};
+
+/**
+ * Approximates a number to the n-th decimal place.
+ * @param value the number to approximate
+ * @param n the number of decimal places to keep
+ * @returns the approximated number
+ */
+export const approximate = (value: number, n: number): number => {
+  const factor = Math.pow(10, n);
+  return Math.round(value * factor) / factor;
+};

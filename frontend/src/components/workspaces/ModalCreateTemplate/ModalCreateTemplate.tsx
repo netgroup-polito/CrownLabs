@@ -12,10 +12,12 @@ import Button from 'antd-button-color';
 import {
   CreateTemplateMutation,
   EnvironmentType,
+  SharedVolumeMountsListItem,
   useWorkspaceTemplatesQuery,
 } from '../../../generated-types';
 import { FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import ShVolFormItem from './ShVolFormItem';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
@@ -38,6 +40,7 @@ type Template = {
   cpu: number;
   ram: number;
   disk: number;
+  sharedVolumeMountInfos?: SharedVolumeMountsListItem[];
 };
 
 type Interval = {
@@ -104,6 +107,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     cpu: template ? template.cpu : cpuInterval.min,
     ram: template ? template.ram : ramInterval.min,
     disk: template ? template.disk : diskInterval.min,
+    sharedVolumeMountInfos: template ? template.sharedVolumeMountInfos : [],
   });
 
   const [valid, setValid] = useState<Valid>({
@@ -127,7 +131,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           template.persistent !== formTemplate.persistent ||
           template.cpu !== formTemplate.cpu ||
           template.ram !== formTemplate.ram ||
-          template.disk !== formTemplate.disk
+          template.disk !== formTemplate.disk ||
+          JSON.stringify(template.sharedVolumeMountInfos) !==
+            JSON.stringify(formTemplate.sharedVolumeMountInfos)
         : true)
     )
       setButtonDisabled(false);
@@ -146,7 +152,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       !errorFetchTemplates &&
       !loadingFetchTemplates &&
       dataFetchTemplates?.templateList?.templates
-        ?.map(t => t?.spec?.prettyName)
+        ?.map((t: any) => t?.spec?.prettyName)
         .includes(formTemplate.name.trim())
     ) {
       setValid(old => {
@@ -207,6 +213,38 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     variables: { workspaceNamespace },
   });
 
+  const onSubmit = () => {
+    let shvolMounts: any[] = form.getFieldValue('shvolss');
+    let sharedVolumeMountInfos: SharedVolumeMountsListItem[] = shvolMounts.map(
+      obj => ({
+        sharedVolume: {
+          namespace: obj.shvol.split('/')[0],
+          name: obj.shvol.split('/')[1],
+        },
+        mountPath: obj.mountpath,
+        readOnly: Boolean(obj.readonly),
+      })
+    );
+
+    submitHandler({
+      ...formTemplate,
+      image:
+        images.find(i => getImageNoVer(i.name) === formTemplate.image)?.name ??
+        formTemplate.image,
+      sharedVolumeMountInfos: sharedVolumeMountInfos,
+    })
+      .then(() => {
+        setShow(false);
+        setFormTemplate(old => {
+          return { ...old, name: undefined };
+        });
+        form.setFieldsValue({
+          templatename: undefined,
+        });
+      })
+      .catch(apolloErrorCatcher);
+  };
+
   return (
     <Modal
       destroyOnClose={true}
@@ -214,7 +252,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       centered
       footer={null}
       title={template ? 'Modify template' : 'Create a new template'}
-      visible={show}
+      open={show}
       onCancel={closehandler}
       width="600px"
     >
@@ -222,24 +260,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         labelCol={{ span: 2 }}
         wrapperCol={{ span: 22 }}
         form={form}
-        onSubmitCapture={() => {
-          submitHandler({
-            ...formTemplate,
-            image:
-              images.find(i => getImageNoVer(i.name) === formTemplate.image)
-                ?.name ?? formTemplate.image,
-          })
-            .then(() => {
-              setShow(false);
-              setFormTemplate(old => {
-                return { ...old, name: undefined };
-              });
-              form.setFieldsValue({
-                templatename: undefined,
-              });
-            })
-            .catch(apolloErrorCatcher);
-        }}
+        onSubmitCapture={onSubmit}
         initialValues={{
           templatename: formTemplate.name,
           image: formTemplate.image,
@@ -448,6 +469,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             />
           </div>
         </Form.Item>
+
+        <ShVolFormItem workspaceNamespace={workspaceNamespace} />
 
         <Form.Item {...fullLayout}>
           <div className="flex justify-center">

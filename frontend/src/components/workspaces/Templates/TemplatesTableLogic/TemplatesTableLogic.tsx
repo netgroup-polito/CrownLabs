@@ -27,6 +27,7 @@ import {
 } from '../../../../utilsLogic';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
+import { SharedVolumesDrawer } from '../../SharedVolumes';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -167,7 +168,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       !loadingInstances &&
       !errorTemplate &&
       !errorInstances &&
-      dataInstances &&
       templates &&
       dataInstances ? (
         <TemplatesTable
@@ -202,6 +202,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           <TemplatesEmpty role={role} />
         </div>
       )}
+      {role === WorkspaceRole.manager &&
+      !loadingTemplate &&
+      !loadingInstances ? (
+        <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
+      ) : null}
     </Spin>
   );
 };
