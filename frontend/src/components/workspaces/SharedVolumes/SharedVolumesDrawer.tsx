@@ -169,7 +169,10 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
             </Button>
           </Badge>
 
-          {/*FIXME: Someone makes appear a scroll bar when Drawer is opening. */}
+          {/*
+            FIXME: Someone makes a scroll bar appear when Drawer is opening.
+            FIXME: There is no animation when the drawer closes.
+          */}
           <Drawer
             title="Shared Volumes"
             placement="bottom"
