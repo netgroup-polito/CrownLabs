@@ -17,3 +17,11 @@ rules:
       - list
       - watch
   {{- end }}
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
