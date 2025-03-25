@@ -65,6 +65,11 @@ dependencies:
   repository: file://../../operators/deploy/instmetrics
   condition: instmetrics.enabled
 
+- name: cloudimg-registry
+  version: "0.1.0"
+  repository: file://../../operators/deploy/cloudimg-registry
+  condition: cloudimg-registry.enabled
+
 - name: policies
   version: "0.1.0"
   repository: file://../../policies
