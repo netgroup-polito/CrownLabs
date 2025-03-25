@@ -12,8 +12,8 @@ export enum Actions {
 export interface ISharedVolumesFormProps {
   workspaceNamespace: string;
   workspaceName?: string;
-  name?: string;
-  size?: number;
+  initialName?: string;
+  initialSize?: number;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   action: Actions;
@@ -26,8 +26,8 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
   const {
     workspaceNamespace,
     workspaceName,
-    name,
-    size,
+    initialName,
+    initialSize,
     open,
     setOpen,
     action,
@@ -41,14 +41,14 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
     if (open) {
       form.resetFields();
 
-      if (name || size) {
+      if (initialName || initialSize) {
         form.setFieldsValue({
-          name: name || '',
-          size: size || 1,
+          name: initialName || '',
+          size: initialSize || 1,
         });
       }
     }
-  }, [form, open, name, size]);
+  }, [form, open, initialName, initialSize]);
 
   return (
     <Modal
@@ -134,7 +134,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
           }
         >
           <InputNumber
-            min={0.5}
+            min={initialSize}
             step={0.5}
             max={20}
             style={{ width: '120px' }}

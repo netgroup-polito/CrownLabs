@@ -1,4 +1,5 @@
-import { Badge, Button, Drawer, Empty, Space, Table, Tooltip } from 'antd';
+import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
+import Button from 'antd-button-color';
 import { approximate, convertToGB, SharedVolume } from '../../../utils';
 import { FC, useContext, useState } from 'react';
 import {
@@ -15,6 +16,8 @@ import RowShVolStatus from './RowShVolStatus/RowShVolStatus';
 import SharedVolumeForm, {
   Actions,
 } from './SharedVolumeForms/SharedVolumeForm';
+import { ModalAlert } from '../../common/ModalAlert';
+import Text from 'antd/lib/typography/Text';
 
 export interface ISharedVolumesDrawerProps {
   workspaceNamespace: string;
@@ -36,6 +39,8 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
   const [editName, setEditName] = useState<string>('');
   const [editSize, setEditSize] = useState<number>(1);
   const [dataShVols, setDataShVols] = useState<SharedVolume[]>([]);
+  const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+  const [selectedShVol, setSelectedShVol] = useState<SharedVolume>();
 
   const {
     loading: loadingSharedVolumes,
@@ -130,15 +135,10 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
               style={{ cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.color = hoverColor)}
               onMouseLeave={e => (e.currentTarget.style.color = '')}
-              onClick={async () => {
+              onClick={() => {
                 if (!loadingDeleteShVolMutation) {
-                  await deleteShVolMutation({
-                    variables: {
-                      workspaceNamespace: shvol.namespace,
-                      name: shvol.name,
-                    },
-                  });
-                  reloadSharedVolumes();
+                  setSelectedShVol(shvol);
+                  setShowDeleteModalConfirm(true);
                 }
               }}
             />
@@ -170,7 +170,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
           </Badge>
 
           {/*
-            FIXME: Someone makes a scroll bar appear when Drawer is opening.
+            FIXME: Someone makes a scroll bar appear when the Drawer is opening.
             FIXME: There is no animation when the Drawer closes.
           */}
           <Drawer
@@ -206,7 +206,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   mutation={createShVolMutation}
                   loading={loadingCreateShVolMutation}
                   reload={reloadSharedVolumes}
-                  size={0.5}
+                  initialSize={0.5}
                 />
               </Space>
             }
@@ -221,11 +221,58 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   workspaceNamespace={workspaceNamespace}
                   workspaceName={editShVolWorkspaceName}
                   action={Actions.Update}
-                  name={editName}
-                  size={editSize}
+                  initialName={editName}
+                  initialSize={editSize}
                   mutation={applyShVolMutation}
                   loading={loadingApplyShVolMutation}
                   reload={reloadSharedVolumes}
+                />
+                <ModalAlert
+                  headTitle="Confirm Shared Volume deletion"
+                  message={
+                    <>
+                      <Text>
+                        Do you really want to delete{' '}
+                        <b>{selectedShVol?.prettyName}</b>?<br />
+                        All data will be lost.
+                      </Text>
+                    </>
+                  }
+                  description={`Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
+                  type="warning"
+                  buttons={[
+                    <Button
+                      key={0}
+                      shape="round"
+                      className="mr-2 w-24"
+                      type="primary"
+                      onClick={() => setShowDeleteModalConfirm(false)}
+                    >
+                      Close
+                    </Button>,
+                    <Button
+                      key={1}
+                      shape="round"
+                      className="ml-2 w-24"
+                      type="danger"
+                      onClick={async () => {
+                        if (selectedShVol) {
+                          await deleteShVolMutation({
+                            variables: {
+                              workspaceNamespace: selectedShVol.namespace,
+                              name: selectedShVol.name,
+                            },
+                          });
+                          reloadSharedVolumes();
+                        }
+                        setShowDeleteModalConfirm(false);
+                      }}
+                    >
+                      Delete
+                    </Button>,
+                  ]}
+                  show={showDeleteModalConfirm}
+                  setShow={setShowDeleteModalConfirm}
                 />
               </>
             ) : (
