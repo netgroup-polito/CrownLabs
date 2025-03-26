@@ -96,6 +96,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           disk: t.disk ? `${t.disk * 1000}M` : undefined,
           reservedCPUPercentage: 50,
         },
+        sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
       },
     });
 
