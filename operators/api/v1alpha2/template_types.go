@@ -126,6 +126,9 @@ type Environment struct {
 	// +kubebuilder:default=true
 	// Whether the instance has to have the user's MyDrive volume
 	MountMyDriveVolume bool `json:"mountMyDriveVolume"`
+
+	// The list of information about Shared Volumes that has to be mounted to the instance.
+	SharedVolumeMounts []SharedVolumeMountInfo `json:"sharedVolumeMounts,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
@@ -173,6 +176,18 @@ type ContainerStartupOpts struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	EnforceWorkdir bool `json:"enforceWorkdir"`
+}
+
+// SharedVolumeMountInfo contains mount information for a Shared Volume.
+type SharedVolumeMountInfo struct {
+	// The reference of the Shared Volume this Mount Info is related to.
+	SharedVolumeRef GenericRef `json:"sharedVolume"`
+
+	// The path the Shared Volume will be mounted in.
+	MountPath string `json:"mountPath"`
+
+	// Whether this Shared Volume should be mounted with R/W or R/O permission.
+	ReadOnly bool `json:"readOnly"`
 }
 
 // +kubebuilder:object:root=true

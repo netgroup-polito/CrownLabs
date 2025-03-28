@@ -26,8 +26,11 @@ import (
 var _ = Describe("CloudInit files generation", func() {
 	Context("The CloudInitUserData function", func() {
 		const (
-			serviceName = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
-			servicePath = "/path"
+			serviceName       = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
+			servicePath       = "/nfs/path"
+			nfsShVolExpPath   = "/nfs/shvol"
+			nfsShVolMountPath = "/mnt/path"
+			nfsShVolReadOnly  = true
 
 			expected = `
 #cloud-config
@@ -45,12 +48,24 @@ network:
     id0:
         dhcp4: true
 mounts:
-    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/path
+    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/path
       - /media/mydrive
       - nfs
       - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
+	- - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/shvol
+	  - /mnt/path
+      - nfs
+      - ro,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
+      - "0"
+      - "0"
+	- - '# If you change mount options from here, not even Santa will give you 18.'
+	  - ""
+	  - ""
+	  - ""
+	  - ""
+	  - ""
 ssh_authorized_keys:
     - tenant-key-1
     - tenant-key-2
@@ -69,7 +84,17 @@ ssh_authorized_keys:
 		}
 
 		BeforeEach(func() { publicKeys = []string{"tenant-key-1", "tenant-key-2"} })
-		JustBeforeEach(func() { output, err = forge.CloudInitUserData(serviceName, servicePath, publicKeys) })
+		JustBeforeEach(func() {
+			output, err = forge.CloudInitUserData(publicKeys, []forge.NFSVolumeMountInfo{
+				forge.MyDriveNFSVolumeMountInfo(serviceName, servicePath),
+				{
+					ServerAddress: serviceName,
+					ExportPath:    nfsShVolExpPath,
+					MountPath:     nfsShVolMountPath,
+					ReadOnly:      nfsShVolReadOnly,
+				},
+			})
+		})
 
 		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
 		It("Should match the expected output", func() { Expect(output).To(WithTransform(Transformer, Equal(Transformer([]byte(expected))))) })

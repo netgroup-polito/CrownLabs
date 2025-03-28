@@ -130,7 +130,7 @@ var _ = Describe("Utils forging", func() {
 		)
 	})
 
-	Describe("The forge.NamespacedNameWToObjectMeta function", func() {
+	Describe("The forge.NamespacedNameToObjectMeta function", func() {
 		var (
 			namespacedName types.NamespacedName
 			objectMeta     metav1.ObjectMeta
@@ -143,5 +143,59 @@ var _ = Describe("Utils forging", func() {
 
 		It("Should have a matching name", func() { Expect(objectMeta.Name).To(BeIdenticalTo(namespacedName.Name)) })
 		It("Should have a matching namespace", func() { Expect(objectMeta.Namespace).To(BeIdenticalTo(namespacedName.Namespace)) })
+	})
+
+	Describe("The forge.NamespacedNameFromSharedVolume function", func() {
+		var (
+			shvol          clv1alpha2.SharedVolume
+			namespacedName types.NamespacedName
+		)
+
+		BeforeEach(func() {
+			shvol = clv1alpha2.SharedVolume{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+			}
+		})
+		JustBeforeEach(func() {
+			namespacedName = forge.NamespacedNameFromSharedVolume(&shvol)
+		})
+
+		It("Should have a matching name", func() {
+			Expect(namespacedName.Name).To(Equal(shvol.Name))
+		})
+		It("Should have a matching namespace", func() {
+			Expect(namespacedName.Namespace).To(Equal(shvol.Namespace))
+		})
+
+	})
+
+	Describe("The forge.NamespacedNameFromMount function", func() {
+		var (
+			mountInfo      clv1alpha2.SharedVolumeMountInfo
+			namespacedName types.NamespacedName
+		)
+
+		BeforeEach(func() {
+			mountInfo = clv1alpha2.SharedVolumeMountInfo{
+				SharedVolumeRef: clv1alpha2.GenericRef{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+			}
+		})
+		JustBeforeEach(func() {
+			namespacedName = forge.NamespacedNameFromMount(mountInfo)
+		})
+
+		It("Should have a matching name", func() {
+			Expect(namespacedName.Name).To(Equal(mountInfo.SharedVolumeRef.Name))
+		})
+		It("Should have a matching namespace", func() {
+			Expect(namespacedName.Namespace).To(Equal(mountInfo.SharedVolumeRef.Namespace))
+		})
+
 	})
 })

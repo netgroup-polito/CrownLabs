@@ -22,7 +22,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -62,7 +62,7 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
 		if pvc.ObjectMeta.CreationTimestamp.IsZero() {
-			pvc.Spec = forge.PVCSpec(environment)
+			pvc.Spec = forge.InstancePVCSpec(environment)
 		}
 		pvc.SetLabels(forge.InstanceObjectLabels(pvc.GetLabels(), instance))
 		return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
@@ -85,6 +85,8 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 
 	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
 
+	mountInfos := []forge.NFSVolumeMountInfo{}
+
 	if environment.MountMyDriveVolume {
 		var err error
 		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
@@ -92,13 +94,25 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 			log.Error(err, "can't get NFS spec")
 			return err
 		}
+
+		mountInfos = append(mountInfos, forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
+	}
+
+	for i, mount := range environment.SharedVolumeMounts {
+		var shvol clv1alpha2.SharedVolume
+		if err := r.Get(ctx, forge.NamespacedNameFromMount(mount), &shvol); err != nil {
+			log.Error(err, "unable to retrieve shvol to mount")
+			return err
+		}
+
+		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
 	}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
 		// Deployment specifications are forged only at creation time, as changing them later may be
 		// either rejected or cause the restart of the Pod, with consequent possible data loss.
 		if depl.CreationTimestamp.IsZero() {
-			depl.Spec = forge.DeploymentSpec(instance, environment, nfsServerName, nfsPath, &r.ContainerEnvOpts)
+			depl.Spec = forge.DeploymentSpec(instance, environment, mountInfos, &r.ContainerEnvOpts)
 		}
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())
@@ -119,7 +133,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	// in case of non-running, non-persistent instances, just exposition is teared down
 	// we consider them off even if the container is still on, to avoid data loss
 	if !instance.Spec.Running && !environment.Persistent {
-		phase = v1alpha2.EnvironmentPhaseOff
+		phase = clv1alpha2.EnvironmentPhaseOff
 	}
 
 	if phase != instance.Status.Phase {

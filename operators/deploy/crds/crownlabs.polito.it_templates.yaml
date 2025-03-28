@@ -212,6 +212,42 @@ spec:
                       description: Whether the environment needs the URL Rewrite or
                         not.
                       type: boolean
+                    sharedVolumeMounts:
+                      description: The list of information about Shared Volumes that
+                        has to be mounted to the instance.
+                      items:
+                        description: SharedVolumeMountInfo contains mount information
+                          for a Shared Volume.
+                        properties:
+                          mountPath:
+                            description: The path the Shared Volume will be mounted
+                              in.
+                            type: string
+                          readOnly:
+                            description: Whether this Shared Volume should be mounted
+                              with R/W or R/O permission.
+                            type: boolean
+                          sharedVolume:
+                            description: The reference of the Shared Volume this Mount
+                              Info is related to.
+                            properties:
+                              name:
+                                description: The name of the resource to be referenced.
+                                type: string
+                              namespace:
+                                description: |-
+                                  The namespace containing the resource to be referenced. It should be left
+                                  empty in case of cluster-wide resources.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                        required:
+                        - mountPath
+                        - readOnly
+                        - sharedVolume
+                        type: object
+                      type: array
                     storageClassName:
                       description: Name of the storage class to be used for the persistent
                         volume (when needed)
