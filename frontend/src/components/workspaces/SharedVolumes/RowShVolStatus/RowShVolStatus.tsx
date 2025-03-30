@@ -4,6 +4,7 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
   CloseCircleOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { Phase3 } from '../../../../generated-types';
 import { findKeyByValue } from '../../../../utils';
@@ -28,6 +29,9 @@ const RowShVolStatus: FC<IRowShVolStatusProps> = ({ ...props }) => {
     ),
     [Phase3.Ready]: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
+    ),
+    [Phase3.Deleting]: (
+      <StopOutlined className="danger-color-fg" style={font20px} />
     ),
     [Phase3.ResourceQuotaExceeded]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />

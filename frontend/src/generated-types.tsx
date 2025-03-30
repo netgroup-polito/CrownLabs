@@ -1795,6 +1795,7 @@ export enum Phase2 {
 }
 
 export enum Phase3 {
+  Deleting = 'DELETING',
   Error = 'ERROR',
   Pending = 'PENDING',
   Provisioning = 'PROVISIONING',
