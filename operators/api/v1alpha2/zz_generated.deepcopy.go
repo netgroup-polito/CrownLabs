@@ -51,6 +51,11 @@ func (in *Environment) DeepCopyInto(out *Environment) {
 		*out = new(ContainerStartupOpts)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.SharedVolumeMounts != nil {
+		in, out := &in.SharedVolumeMounts, &out.SharedVolumeMounts
+		*out = make([]SharedVolumeMountInfo, len(*in))
+		copy(*out, *in)
+	}
 	if in.LabelSelector != nil {
 		in, out := &in.LabelSelector, &out.LabelSelector
 		*out = new(map[string]string)
@@ -61,11 +66,6 @@ func (in *Environment) DeepCopyInto(out *Environment) {
 				(*out)[key] = val
 			}
 		}
-	}
-	if in.SharedVolumeMounts != nil {
-		in, out := &in.SharedVolumeMounts, &out.SharedVolumeMounts
-		*out = make([]SharedVolumeMountInfo, len(*in))
-		copy(*out, *in)
 	}
 }
 
