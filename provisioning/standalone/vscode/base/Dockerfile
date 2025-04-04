@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV CODESERVER_VERSION=4.22.0
+ENV CODESERVER_VERSION=4.98.2
 ENV SERVICE_URL=https://open-vsx.org/vscode/gallery
 ENV ITEM_URL=https://open-vsx.org/vscode/item
 
