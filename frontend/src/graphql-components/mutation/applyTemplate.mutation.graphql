@@ -22,6 +22,14 @@ mutation applyTemplate(
           disk
           memory
         }
+        sharedVolumeMounts {
+          sharedVolume {
+            namespace
+            name
+          }
+          mountPath
+          readOnly
+        }
       }
     }
     metadata {

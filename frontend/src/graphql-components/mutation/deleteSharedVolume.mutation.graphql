@@ -1,0 +1,8 @@
+mutation deleteSharedVolume($workspaceNamespace: String!, $name: String!) {
+  deleteCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    name: $name
+    namespace: $workspaceNamespace
+  ) {
+    kind
+  }
+}

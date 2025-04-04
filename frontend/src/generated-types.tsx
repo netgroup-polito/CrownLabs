@@ -21,118 +21,6 @@ export type Scalars = {
   JSON: { input: any; output: any; }
 };
 
-export type Access2 = {
-  __typename?: 'Access2';
-  /** The action of the access */
-  action?: Maybe<Scalars['String']['output']>;
-  /** The effect of the access */
-  effect?: Maybe<Scalars['String']['output']>;
-  /** The resource of the access */
-  resource?: Maybe<Scalars['String']['output']>;
-};
-
-export type Access2Input = {
-  /** The action of the access */
-  action?: InputMaybe<Scalars['String']['input']>;
-  /** The effect of the access */
-  effect?: InputMaybe<Scalars['String']['input']>;
-  /** The resource of the access */
-  resource?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** The accessory of the artifact */
-export type Accessory = {
-  __typename?: 'Accessory';
-  /** The artifact id of the accessory */
-  artifactId?: Maybe<Scalars['BigInt']['output']>;
-  /** The creation time of the accessory */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The artifact digest of the accessory */
-  digest?: Maybe<Scalars['String']['output']>;
-  /** The icon of the accessory */
-  icon?: Maybe<Scalars['String']['output']>;
-  /** The ID of the accessory */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The artifact size of the accessory */
-  size?: Maybe<Scalars['BigInt']['output']>;
-  /** The subject artifact id of the accessory */
-  subjectArtifactId?: Maybe<Scalars['BigInt']['output']>;
-  /** The artifact size of the accessory */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-export enum Addition {
-  BuildHistory = 'BUILD_HISTORY',
-  Dependencies = 'DEPENDENCIES',
-  ReadmeMd = 'README_MD',
-  ValuesYaml = 'VALUES_YAML'
-}
-
-export type Artifact = {
-  __typename?: 'Artifact';
-  accessories?: Maybe<Array<Maybe<Accessory>>>;
-  additionLinks?: Maybe<Scalars['JSON']['output']>;
-  annotations?: Maybe<Scalars['JSON']['output']>;
-  /** The digest of the artifact */
-  digest?: Maybe<Scalars['String']['output']>;
-  extraAttrs?: Maybe<Scalars['JSON']['output']>;
-  /** The digest of the icon */
-  icon?: Maybe<Scalars['String']['output']>;
-  /** The ID of the artifact */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  labels?: Maybe<Array<Maybe<Label>>>;
-  /** The manifest media type of the artifact */
-  manifestMediaType?: Maybe<Scalars['String']['output']>;
-  /** The media type of the artifact */
-  mediaType?: Maybe<Scalars['String']['output']>;
-  /** The ID of the project that the artifact belongs to */
-  projectId?: Maybe<Scalars['BigInt']['output']>;
-  /** The latest pull time of the artifact */
-  pullTime?: Maybe<Scalars['String']['output']>;
-  /** The push time of the artifact */
-  pushTime?: Maybe<Scalars['String']['output']>;
-  references?: Maybe<Array<Maybe<Reference>>>;
-  /** The ID of the repository that the artifact belongs to */
-  repositoryId?: Maybe<Scalars['BigInt']['output']>;
-  /** The scan overview attached in the metadata of tag */
-  scanOverview?: Maybe<Scalars['JSON']['output']>;
-  /** The size of the artifact */
-  size?: Maybe<Scalars['BigInt']['output']>;
-  tags?: Maybe<Array<Maybe<Tag>>>;
-  /** The type of the artifact, e.g. image, chart, etc */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-export type AuditLog = {
-  __typename?: 'AuditLog';
-  /** The ID of the audit log entry. */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The time when this operation is triggered. */
-  opTime?: Maybe<Scalars['String']['output']>;
-  /** The operation against the repository in this log entry. */
-  operation?: Maybe<Scalars['String']['output']>;
-  /** Name of the repository in this log entry. */
-  resource?: Maybe<Scalars['String']['output']>;
-  /** Tag of the repository in this log entry. */
-  resourceType?: Maybe<Scalars['String']['output']>;
-  /** Username of the user in this log entry. */
-  username?: Maybe<Scalars['String']['output']>;
-};
-
-export type AuthproxySetting = {
-  __typename?: 'AuthproxySetting';
-  /** The fully qualified URI of login endpoint of authproxy, such as 'https://192.168.1.2:8443/login' */
-  endpoint?: Maybe<Scalars['String']['output']>;
-  /** The certificate to be pinned when connecting auth proxy. */
-  serverCertificate?: Maybe<Scalars['String']['output']>;
-  /** The flag to determine whether Harbor can skip search the user/group when adding him as a member. */
-  skipSearch?: Maybe<Scalars['Boolean']['output']>;
-  /** The fully qualified URI of token review endpoint of authproxy, such as 'https://192.168.1.2:8443/tokenreview' */
-  tokenreivewEndpoint?: Maybe<Scalars['String']['output']>;
-  /** The flag to determine whether Harbor should verify the certificate when connecting to the auth proxy. */
-  verifyCert?: Maybe<Scalars['Boolean']['output']>;
-};
-
 export enum AutoEnroll {
   Immediate = 'IMMEDIATE',
   WithApproval = 'WITH_APPROVAL',
@@ -160,143 +48,13 @@ export type AutomationInput = {
   terminationTime?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type BoolConfigItem = {
-  __typename?: 'BoolConfigItem';
-  /** The configure item can be updated or not */
-  editable?: Maybe<Scalars['Boolean']['output']>;
-  /** The boolean value of current config item */
-  value?: Maybe<Scalars['Boolean']['output']>;
-};
-
-/** The CVE Allowlist for system or project */
-export type CveAllowlist = {
-  __typename?: 'CVEAllowlist';
-  /** The creation time of the allowlist. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** the time for expiration of the allowlist, in the form of seconds since epoch.  This is an optional attribute, if it's not set the CVE allowlist does not expire. */
-  expiresAt?: Maybe<Scalars['Int']['output']>;
-  /** ID of the allowlist */
-  id?: Maybe<Scalars['Int']['output']>;
-  items?: Maybe<Array<Maybe<CveAllowlistItem>>>;
-  /** ID of the project which the allowlist belongs to.  For system level allowlist this attribute is zero. */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  /** The update time of the allowlist. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The item in CVE allowlist */
-export type CveAllowlistItem = {
-  __typename?: 'CVEAllowlistItem';
-  /** The ID of the CVE, such as "CVE-2019-10164" */
-  cveId?: Maybe<Scalars['String']['output']>;
-};
-
-/** A specified chart entry */
-export type ChartVersion = {
-  __typename?: 'ChartVersion';
-  /** The API version of this chart */
-  apiVersion: Scalars['String']['output'];
-  /** The version of the application enclosed in the chart */
-  appVersion: Scalars['String']['output'];
-  /** The created time of the chart entry */
-  created?: Maybe<Scalars['String']['output']>;
-  /** Whether or not this chart is deprecated */
-  deprecated?: Maybe<Scalars['Boolean']['output']>;
-  /** A one-sentence description of chart */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The digest value of the chart entry */
-  digest?: Maybe<Scalars['String']['output']>;
-  /** The name of template engine */
-  engine: Scalars['String']['output'];
-  /** The URL to the relevant project page */
-  home?: Maybe<Scalars['String']['output']>;
-  /** The URL to an icon file */
-  icon: Scalars['String']['output'];
-  /** A list of string keywords */
-  keywords?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** A list of label */
-  labels?: Maybe<Array<Maybe<Label>>>;
-  /** The name of the chart */
-  name: Scalars['String']['output'];
-  /** A flag to indicate if the chart entry is removed */
-  removed?: Maybe<Scalars['Boolean']['output']>;
-  /** The URL to the source code of chart */
-  sources?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** The urls of the chart entry */
-  urls?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** A SemVer 2 version of chart */
-  version: Scalars['String']['output'];
-};
-
-/** The health status of component */
-export type ComponentHealthStatus = {
-  __typename?: 'ComponentHealthStatus';
-  /** (optional) The error message when the status is "unhealthy" */
-  error?: Maybe<Scalars['String']['output']>;
-  /** The component name */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The health status of component */
-  status?: Maybe<Scalars['String']['output']>;
-};
-
-export type ConfigurationsResponse = {
-  __typename?: 'ConfigurationsResponse';
-  auditLogForwardEndpoint?: Maybe<StringConfigItem>;
-  authMode?: Maybe<StringConfigItem>;
-  httpAuthproxyAdminGroups?: Maybe<StringConfigItem>;
-  httpAuthproxyAdminUsernames?: Maybe<StringConfigItem>;
-  httpAuthproxyEndpoint?: Maybe<StringConfigItem>;
-  httpAuthproxyServerCertificate?: Maybe<StringConfigItem>;
-  httpAuthproxySkipSearch?: Maybe<BoolConfigItem>;
-  httpAuthproxyTokenreviewEndpoint?: Maybe<StringConfigItem>;
-  httpAuthproxyVerifyCert?: Maybe<BoolConfigItem>;
-  ldapBaseDn?: Maybe<StringConfigItem>;
-  ldapFilter?: Maybe<StringConfigItem>;
-  ldapGroupAdminDn?: Maybe<StringConfigItem>;
-  ldapGroupAttributeName?: Maybe<StringConfigItem>;
-  ldapGroupBaseDn?: Maybe<StringConfigItem>;
-  ldapGroupMembershipAttribute?: Maybe<StringConfigItem>;
-  ldapGroupSearchFilter?: Maybe<StringConfigItem>;
-  ldapGroupSearchScope?: Maybe<IntegerConfigItem>;
-  ldapScope?: Maybe<IntegerConfigItem>;
-  ldapSearchDn?: Maybe<StringConfigItem>;
-  ldapTimeout?: Maybe<IntegerConfigItem>;
-  ldapUid?: Maybe<StringConfigItem>;
-  ldapUrl?: Maybe<StringConfigItem>;
-  ldapVerifyCert?: Maybe<BoolConfigItem>;
-  notificationEnable?: Maybe<BoolConfigItem>;
-  oidcAdminGroup?: Maybe<StringConfigItem>;
-  oidcAutoOnboard?: Maybe<BoolConfigItem>;
-  oidcClientId?: Maybe<StringConfigItem>;
-  oidcEndpoint?: Maybe<StringConfigItem>;
-  oidcExtraRedirectParms?: Maybe<StringConfigItem>;
-  oidcGroupFilter?: Maybe<StringConfigItem>;
-  oidcGroupsClaim?: Maybe<StringConfigItem>;
-  oidcName?: Maybe<StringConfigItem>;
-  oidcScope?: Maybe<StringConfigItem>;
-  oidcUserClaim?: Maybe<StringConfigItem>;
-  oidcVerifyCert?: Maybe<BoolConfigItem>;
-  projectCreationRestriction?: Maybe<StringConfigItem>;
-  quotaPerProjectEnable?: Maybe<BoolConfigItem>;
-  readOnly?: Maybe<BoolConfigItem>;
-  robotNamePrefix?: Maybe<StringConfigItem>;
-  robotTokenDuration?: Maybe<IntegerConfigItem>;
-  scanAllPolicy?: Maybe<ScanAllPolicy>;
-  selfRegistration?: Maybe<BoolConfigItem>;
-  sessionTimeout?: Maybe<IntegerConfigItem>;
-  skipAuditLogDatabase?: Maybe<BoolConfigItem>;
-  storagePerProject?: Maybe<IntegerConfigItem>;
-  tokenExpiration?: Maybe<IntegerConfigItem>;
-  uaaClientId?: Maybe<StringConfigItem>;
-  uaaClientSecret?: Maybe<StringConfigItem>;
-  uaaEndpoint?: Maybe<StringConfigItem>;
-  uaaVerifyCert?: Maybe<BoolConfigItem>;
-};
-
 /** Options to customize container startup */
 export type ContainerStartupOptions = {
   __typename?: 'ContainerStartupOptions';
-  /** Path on which storage (EmptyDir/Storage) will be mounted and into which, if given in SourceArchiveURL, will be extracted the archive */
+  /**
+   * Path on which storage (EmptyDir/Storage) will be mounted
+   * and into which, if given in SourceArchiveURL, will be extracted the archive
+   */
   contentPath?: Maybe<Scalars['String']['output']>;
   /** Whether forcing the container working directory to be the same as the contentPath (or default mydrive path if not specified) */
   enforceWorkdir?: Maybe<Scalars['Boolean']['output']>;
@@ -308,7 +66,10 @@ export type ContainerStartupOptions = {
 
 /** Options to customize container startup */
 export type ContainerStartupOptionsInput = {
-  /** Path on which storage (EmptyDir/Storage) will be mounted and into which, if given in SourceArchiveURL, will be extracted the archive */
+  /**
+   * Path on which storage (EmptyDir/Storage) will be mounted
+   * and into which, if given in SourceArchiveURL, will be extracted the archive
+   */
   contentPath?: InputMaybe<Scalars['String']['input']>;
   /** Whether forcing the container working directory to be the same as the contentPath (or default mydrive path if not specified) */
   enforceWorkdir?: InputMaybe<Scalars['Boolean']['input']>;
@@ -346,7 +107,10 @@ export type EnvironmentListListItem = {
   containerStartupOptions?: Maybe<ContainerStartupOptions>;
   /** For VNC based containers, hide the noVNC control bar when true */
   disableControls?: Maybe<Scalars['Boolean']['output']>;
-  /** The type of environment to be instantiated, among VirtualMachine, Container, CloudVM and Standalone. */
+  /**
+   * The type of environment to be instantiated, among VirtualMachine,
+   * Container, CloudVM and Standalone.
+   */
   environmentType: EnvironmentType;
   /** Whether the environment is characterized by a graphical desktop or not. */
   guiEnabled?: Maybe<Scalars['Boolean']['output']>;
@@ -358,12 +122,17 @@ export type EnvironmentListListItem = {
   mountMyDriveVolume: Scalars['Boolean']['output'];
   /** The name identifying the specific environment. */
   name: Scalars['String']['output'];
-  /** Whether the environment should be persistent (i.e. preserved when the corresponding instance is terminated) or not. */
+  /**
+   * Whether the environment should be persistent (i.e. preserved when the
+   * corresponding instance is terminated) or not.
+   */
   persistent?: Maybe<Scalars['Boolean']['output']>;
   /** The amount of computational resources associated with the environment. */
   resources: Resources;
   /** Whether the environment needs the URL Rewrite or not. */
   rewriteURL?: Maybe<Scalars['Boolean']['output']>;
+  /** The list of information about Shared Volumes that has to be mounted to the instance. */
+  sharedVolumeMounts?: Maybe<Array<Maybe<SharedVolumeMountsListItem>>>;
   /** Name of the storage class to be used for the persistent volume (when needed) */
   storageClassName?: Maybe<Scalars['String']['output']>;
 };
@@ -374,7 +143,10 @@ export type EnvironmentListListItemInput = {
   containerStartupOptions?: InputMaybe<ContainerStartupOptionsInput>;
   /** For VNC based containers, hide the noVNC control bar when true */
   disableControls?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The type of environment to be instantiated, among VirtualMachine, Container, CloudVM and Standalone. */
+  /**
+   * The type of environment to be instantiated, among VirtualMachine,
+   * Container, CloudVM and Standalone.
+   */
   environmentType: EnvironmentType;
   /** Whether the environment is characterized by a graphical desktop or not. */
   guiEnabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -386,12 +158,17 @@ export type EnvironmentListListItemInput = {
   mountMyDriveVolume: Scalars['Boolean']['input'];
   /** The name identifying the specific environment. */
   name: Scalars['String']['input'];
-  /** Whether the environment should be persistent (i.e. preserved when the corresponding instance is terminated) or not. */
+  /**
+   * Whether the environment should be persistent (i.e. preserved when the
+   * corresponding instance is terminated) or not.
+   */
   persistent?: InputMaybe<Scalars['Boolean']['input']>;
   /** The amount of computational resources associated with the environment. */
   resources: ResourcesInput;
   /** Whether the environment needs the URL Rewrite or not. */
   rewriteURL?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The list of information about Shared Volumes that has to be mounted to the instance. */
+  sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>>>;
   /** Name of the storage class to be used for the persistent volume (when needed) */
   storageClassName?: InputMaybe<Scalars['String']['input']>;
 };
@@ -432,120 +209,6 @@ export enum EnvironmentType {
   VirtualMachine = 'VIRTUAL_MACHINE'
 }
 
-export type ExecHistory = {
-  __typename?: 'ExecHistory';
-  /** the creation time of purge job. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** if purge job was deleted. */
-  deleted?: Maybe<Scalars['Boolean']['output']>;
-  /** the id of purge job. */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** the job kind of purge job. */
-  jobKind?: Maybe<Scalars['String']['output']>;
-  /** the job name of purge job. */
-  jobName?: Maybe<Scalars['String']['output']>;
-  /** the job parameters of purge job. */
-  jobParameters?: Maybe<Scalars['String']['output']>;
-  /** the status of purge job. */
-  jobStatus?: Maybe<Scalars['String']['output']>;
-  schedule?: Maybe<ScheduleObj>;
-  /** the update time of purge job. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-export type Execution = {
-  __typename?: 'Execution';
-  /** The end time of execution */
-  endTime?: Maybe<Scalars['String']['output']>;
-  extraAttrs?: Maybe<Scalars['JSON']['output']>;
-  /** The ID of execution */
-  id?: Maybe<Scalars['Int']['output']>;
-  metrics?: Maybe<Metrics>;
-  /** The start time of execution */
-  startTime?: Maybe<Scalars['String']['output']>;
-  /** The status of execution */
-  status?: Maybe<Scalars['String']['output']>;
-  /** The status message of execution */
-  statusMessage?: Maybe<Scalars['String']['output']>;
-  /** The trigger of execution */
-  trigger?: Maybe<Scalars['String']['output']>;
-  /** The vendor id of execution */
-  vendorId?: Maybe<Scalars['Int']['output']>;
-  /** The vendor type of execution */
-  vendorType?: Maybe<Scalars['String']['output']>;
-};
-
-/** The style of the resource filter */
-export type FilterStyle = {
-  __typename?: 'FilterStyle';
-  /** The filter style */
-  style?: Maybe<Scalars['String']['output']>;
-  /** The filter type */
-  type?: Maybe<Scalars['String']['output']>;
-  /** The filter values */
-  values?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-};
-
-export type GcHistory = {
-  __typename?: 'GCHistory';
-  /** the creation time of gc job. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** if gc job was deleted. */
-  deleted?: Maybe<Scalars['Boolean']['output']>;
-  /** the id of gc job. */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** the job kind of gc job. */
-  jobKind?: Maybe<Scalars['String']['output']>;
-  /** the job name of gc job. */
-  jobName?: Maybe<Scalars['String']['output']>;
-  /** the job parameters of gc job. */
-  jobParameters?: Maybe<Scalars['String']['output']>;
-  /** the status of gc job. */
-  jobStatus?: Maybe<Scalars['String']['output']>;
-  schedule?: Maybe<ScheduleObj>;
-  /** the update time of gc job. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-export type GeneralInfo = {
-  __typename?: 'GeneralInfo';
-  /** The auth mode of current Harbor instance. */
-  authMode?: Maybe<Scalars['String']['output']>;
-  authproxySettings?: Maybe<AuthproxySetting>;
-  /** The current time of the server. */
-  currentTime?: Maybe<Scalars['String']['output']>;
-  /** The external URL of Harbor, with protocol. */
-  externalUrl?: Maybe<Scalars['String']['output']>;
-  /** The build version of Harbor. */
-  harborVersion?: Maybe<Scalars['String']['output']>;
-  /** Indicate whether there is a ca root cert file ready for download in the file system. */
-  hasCaRoot?: Maybe<Scalars['Boolean']['output']>;
-  /** The flag to indicate whether notification mechanism is enabled on Harbor instance. */
-  notificationEnable?: Maybe<Scalars['Boolean']['output']>;
-  /** Indicate who can create projects, it could be 'adminonly' or 'everyone'. */
-  projectCreationRestriction?: Maybe<Scalars['String']['output']>;
-  /** The flag to indicate whether Harbor is in readonly mode. */
-  readOnly?: Maybe<Scalars['Boolean']['output']>;
-  /** The storage provider's name of Harbor registry */
-  registryStorageProviderName?: Maybe<Scalars['String']['output']>;
-  /** The url of registry against which the docker command should be issued. */
-  registryUrl?: Maybe<Scalars['String']['output']>;
-  /** Indicate whether the Harbor instance enable user to register himself. */
-  selfRegistration?: Maybe<Scalars['Boolean']['output']>;
-  /** If the Harbor instance is deployed with nested chartmuseum. */
-  withChartmuseum?: Maybe<Scalars['Boolean']['output']>;
-  /** If the Harbor instance is deployed with nested notary. */
-  withNotary?: Maybe<Scalars['Boolean']['output']>;
-};
-
-export type Icon = {
-  __typename?: 'Icon';
-  /** The base64 encoded content of the icon */
-  content?: Maybe<Scalars['String']['output']>;
-  /** The content type of the icon */
-  contentType?: Maybe<Scalars['String']['output']>;
-};
-
 /** ImageListItem describes a single VM image. */
 export type ImagesListItem = {
   __typename?: 'ImagesListItem';
@@ -561,54 +224,6 @@ export type ImagesListItemInput = {
   name: Scalars['String']['input'];
   /** The list of versions the image is available in. */
   versions: Array<InputMaybe<Scalars['String']['input']>>;
-};
-
-export type ImmutableRule = {
-  __typename?: 'ImmutableRule';
-  action?: Maybe<Scalars['String']['output']>;
-  disabled?: Maybe<Scalars['Boolean']['output']>;
-  id?: Maybe<Scalars['Int']['output']>;
-  params?: Maybe<Scalars['JSON']['output']>;
-  priority?: Maybe<Scalars['Int']['output']>;
-  scopeSelectors?: Maybe<Scalars['JSON']['output']>;
-  tagSelectors?: Maybe<Array<Maybe<ImmutableSelector>>>;
-  template?: Maybe<Scalars['String']['output']>;
-};
-
-export type ImmutableSelector = {
-  __typename?: 'ImmutableSelector';
-  decoration?: Maybe<Scalars['String']['output']>;
-  extras?: Maybe<Scalars['String']['output']>;
-  kind?: Maybe<Scalars['String']['output']>;
-  pattern?: Maybe<Scalars['String']['output']>;
-};
-
-export type Instance = {
-  __typename?: 'Instance';
-  /** The auth credential data if exists */
-  authInfo?: Maybe<Scalars['JSON']['output']>;
-  /** The authentication way supported */
-  authMode?: Maybe<Scalars['String']['output']>;
-  /** Whether the instance is default or not */
-  default?: Maybe<Scalars['Boolean']['output']>;
-  /** Description of instance */
-  description?: Maybe<Scalars['String']['output']>;
-  /** Whether the instance is activated or not */
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  /** The service endpoint of this instance */
-  endpoint?: Maybe<Scalars['String']['output']>;
-  /** Unique ID */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** Whether the instance endpoint is insecure or not */
-  insecure?: Maybe<Scalars['Boolean']['output']>;
-  /** Instance name */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The timestamp of instance setting up */
-  setupTimestamp?: Maybe<Scalars['BigInt']['output']>;
-  /** The health status */
-  status?: Maybe<Scalars['String']['output']>;
-  /** Based on which driver, identified by ID */
-  vendor?: Maybe<Scalars['String']['output']>;
 };
 
 /**
@@ -640,14 +255,6 @@ export type InstanceRefInput = {
    * empty in case of cluster-wide resources.
    */
   namespace?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type IntegerConfigItem = {
-  __typename?: 'IntegerConfigItem';
-  /** The configure item can be updated or not */
-  editable?: Maybe<Scalars['Boolean']['output']>;
-  /** The integer value of current config item */
-  value?: Maybe<Scalars['Int']['output']>;
 };
 
 /** DeleteOptions may be provided when deleting an API object. */
@@ -1123,6 +730,48 @@ export type ItPolitoCrownlabsV1alpha2InstanceUpdate = {
   updateType?: Maybe<UpdateType>;
 };
 
+/** SharedVolume describes a shared volume between tenants in CrownLabs. */
+export type ItPolitoCrownlabsV1alpha2SharedVolume = {
+  __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume';
+  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+  apiVersion?: Maybe<Scalars['String']['output']>;
+  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+  kind?: Maybe<Scalars['String']['output']>;
+  /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
+  metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ObjectMeta>;
+  /** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
+  spec?: Maybe<Spec5>;
+  /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
+  status?: Maybe<Status5>;
+};
+
+/** SharedVolume describes a shared volume between tenants in CrownLabs. */
+export type ItPolitoCrownlabsV1alpha2SharedVolumeInput = {
+  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+  apiVersion?: InputMaybe<Scalars['String']['input']>;
+  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+  kind?: InputMaybe<Scalars['String']['input']>;
+  /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
+  metadata?: InputMaybe<IoK8sApimachineryPkgApisMetaV1ObjectMetaInput>;
+  /** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
+  spec?: InputMaybe<Spec5Input>;
+  /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
+  status?: InputMaybe<Status5Input>;
+};
+
+/** SharedVolumeList is a list of SharedVolume */
+export type ItPolitoCrownlabsV1alpha2SharedVolumeList = {
+  __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList';
+  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+  apiVersion?: Maybe<Scalars['String']['output']>;
+  /** List of sharedvolumes. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md */
+  items: Array<Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>>;
+  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+  kind?: Maybe<Scalars['String']['output']>;
+  /** ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}. */
+  metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ListMeta>;
+};
+
 /** Template describes the template of a CrownLabs environment to be instantiated. */
 export type ItPolitoCrownlabsV1alpha2Template = {
   __typename?: 'ItPolitoCrownlabsV1alpha2Template';
@@ -1133,7 +782,7 @@ export type ItPolitoCrownlabsV1alpha2Template = {
   /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
   metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ObjectMeta>;
   /** TemplateSpec is the specification of the desired state of the Template. */
-  spec?: Maybe<Spec5>;
+  spec?: Maybe<Spec6>;
   /** TemplateStatus reflects the most recently observed status of the Template. */
   status?: Maybe<Scalars['JSON']['output']>;
 };
@@ -1147,7 +796,7 @@ export type ItPolitoCrownlabsV1alpha2TemplateInput = {
   /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
   metadata?: InputMaybe<IoK8sApimachineryPkgApisMetaV1ObjectMetaInput>;
   /** TemplateSpec is the specification of the desired state of the Template. */
-  spec?: InputMaybe<Spec5Input>;
+  spec?: InputMaybe<Spec6Input>;
   /** TemplateStatus reflects the most recently observed status of the Template. */
   status?: InputMaybe<Scalars['JSON']['input']>;
 };
@@ -1181,9 +830,9 @@ export type ItPolitoCrownlabsV1alpha2Tenant = {
   /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
   metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ObjectMeta>;
   /** TenantSpec is the specification of the desired state of the Tenant. */
-  spec?: Maybe<Spec6>;
+  spec?: Maybe<Spec7>;
   /** TenantStatus reflects the most recently observed status of the Tenant. */
-  status?: Maybe<Status6>;
+  status?: Maybe<Status7>;
 };
 
 /** Tenant describes a user of CrownLabs. */
@@ -1195,9 +844,9 @@ export type ItPolitoCrownlabsV1alpha2TenantInput = {
   /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
   metadata?: InputMaybe<IoK8sApimachineryPkgApisMetaV1ObjectMetaInput>;
   /** TenantSpec is the specification of the desired state of the Tenant. */
-  spec?: InputMaybe<Spec6Input>;
+  spec?: InputMaybe<Spec7Input>;
   /** TenantStatus reflects the most recently observed status of the Tenant. */
-  status?: InputMaybe<Status6Input>;
+  status?: InputMaybe<Status7Input>;
 };
 
 /** TenantList is a list of Tenant */
@@ -1217,114 +866,6 @@ export type ItPolitoCrownlabsV1alpha2TenantUpdate = {
   __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate';
   payload?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
   updateType?: Maybe<UpdateType>;
-};
-
-/** the job queue info */
-export type JobQueue = {
-  __typename?: 'JobQueue';
-  /** The count of jobs in the job queue */
-  count?: Maybe<Scalars['Int']['output']>;
-  /** The type of the job queue */
-  jobType?: Maybe<Scalars['String']['output']>;
-  /** The latency the job queue (seconds) */
-  latency?: Maybe<Scalars['Int']['output']>;
-  /** The paused status of the job queue */
-  paused?: Maybe<Scalars['Boolean']['output']>;
-};
-
-export type Label = {
-  __typename?: 'Label';
-  /** The color the label */
-  color?: Maybe<Scalars['String']['output']>;
-  /** The creation time the label */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The description the label */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The ID of the label */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The name the label */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The ID of project that the label belongs to */
-  projectId?: Maybe<Scalars['BigInt']['output']>;
-  /** The scope the label */
-  scope?: Maybe<Scalars['String']['output']>;
-  /** The update time of the label */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The ldap configure properties */
-export type LdapConfInput = {
-  /** The base dn of ldap service. */
-  ldapBaseDn?: InputMaybe<Scalars['String']['input']>;
-  /** The connect timeout of ldap service(second). */
-  ldapConnectionTimeout?: InputMaybe<Scalars['BigInt']['input']>;
-  /** The serach filter of ldap service. */
-  ldapFilter?: InputMaybe<Scalars['String']['input']>;
-  /** The serach scope of ldap service. */
-  ldapScope?: InputMaybe<Scalars['BigInt']['input']>;
-  /** The search dn of ldap service. */
-  ldapSearchDn?: InputMaybe<Scalars['String']['input']>;
-  /** The search password of ldap service. */
-  ldapSearchPassword?: InputMaybe<Scalars['String']['input']>;
-  /** The serach uid from ldap service attributes. */
-  ldapUid?: InputMaybe<Scalars['String']['input']>;
-  /** The url of ldap service. */
-  ldapUrl?: InputMaybe<Scalars['String']['input']>;
-  /** Verify Ldap server certificate. */
-  ldapVerifyCert?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-/** The ldap ping result */
-export type LdapPingResult = {
-  __typename?: 'LdapPingResult';
-  /** The ping operation output message. */
-  message?: Maybe<Scalars['String']['output']>;
-  /** Test success */
-  success?: Maybe<Scalars['Boolean']['output']>;
-};
-
-export type LdapUser = {
-  __typename?: 'LdapUser';
-  /** The user email address from "mail" or "email" attribute. */
-  email?: Maybe<Scalars['String']['output']>;
-  /** The user realname from "uid" or "cn" attribute. */
-  realname?: Maybe<Scalars['String']['output']>;
-  /** ldap username. */
-  username?: Maybe<Scalars['String']['output']>;
-};
-
-export type Metadata = {
-  __typename?: 'Metadata';
-  /** icon */
-  icon?: Maybe<Scalars['String']['output']>;
-  /** id */
-  id?: Maybe<Scalars['String']['output']>;
-  /** maintainers */
-  maintainers?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** name */
-  name?: Maybe<Scalars['String']['output']>;
-  /** source */
-  source?: Maybe<Scalars['String']['output']>;
-  /** version */
-  version?: Maybe<Scalars['String']['output']>;
-};
-
-export type Metrics = {
-  __typename?: 'Metrics';
-  /** The count of error task */
-  errorTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of pending task */
-  pendingTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of running task */
-  runningTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of scheduled task */
-  scheduledTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of stopped task */
-  stoppedTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of success task */
-  successTaskCount?: Maybe<Scalars['Int']['output']>;
-  /** The count of task */
-  taskCount?: Maybe<Scalars['Int']['output']>;
 };
 
 export enum Mode {
@@ -1359,6 +900,12 @@ export type Mutation = {
    * Equivalent to POST /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots
    */
   createCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
+  /**
+   * create a SharedVolume
+   *
+   * Equivalent to POST /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes
+   */
+  createCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
   /**
    * create a Template
    *
@@ -1408,6 +955,12 @@ export type Mutation = {
    */
   deleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstanceSnapshot?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
   /**
+   * delete collection of SharedVolume
+   *
+   * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes
+   */
+  deleteCrownlabsPolitoItV1alpha2CollectionNamespacedSharedVolume?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
+  /**
    * delete collection of Template
    *
    * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates
@@ -1431,6 +984,12 @@ export type Mutation = {
    * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
    */
   deleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
+  /**
+   * delete a SharedVolume
+   *
+   * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}
+   */
+  deleteCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
   /**
    * delete a Template
    *
@@ -1492,6 +1051,18 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstanceStatus?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
+   * partially update the specified SharedVolume
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
+   * partially update status of the specified SharedVolume
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}/status
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatus?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
    * partially update the specified Template
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}
@@ -1515,44 +1086,6 @@ export type Mutation = {
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/tenants/{name}/status
    */
   patchCrownlabsPolitoItV1alpha2TenantStatus?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
-  /**
-   * Create a robot account
-   *
-   * Equivalent to POST /robots
-   */
-  reg_createRobot?: Maybe<RobotCreated>;
-  /**
-   * Create a robot account
-   *
-   * Equivalent to POST /projects/{project_name_or_id}/robots
-   */
-  reg_createRobotV1?: Maybe<RobotCreated>;
-  /**
-   * Deletes the specified scanner registration.
-   *
-   *
-   * Equivalent to DELETE /scanners/{registration_id}
-   */
-  reg_deleteScanner?: Maybe<ScannerRegistration>;
-  /**
-   * Export scan data for selected projects
-   *
-   * Equivalent to POST /export/cve
-   */
-  reg_exportScanData?: Maybe<ScanDataExportJob>;
-  /**
-   * This endpoint ping the available ldap service for test related configuration parameters.
-   *
-   *
-   * Equivalent to POST /ldap/ping
-   */
-  reg_pingLdap?: Maybe<LdapPingResult>;
-  /**
-   * Refresh the robot secret
-   *
-   * Equivalent to PATCH /robots/{robot_id}
-   */
-  reg_refreshSec?: Maybe<RobotSec>;
   /**
    * replace the specified ImageList
    *
@@ -1601,6 +1134,18 @@ export type Mutation = {
    * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}/status
    */
   replaceCrownlabsPolitoItV1alpha2NamespacedInstanceStatus?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
+  /**
+   * replace the specified SharedVolume
+   *
+   * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}
+   */
+  replaceCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
+   * replace status of the specified SharedVolume
+   *
+   * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}/status
+   */
+  replaceCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatus?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
   /**
    * replace the specified Template
    *
@@ -1661,6 +1206,16 @@ export type MutationCreateCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArg
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   itPolitoCrownlabsV1alpha2InstanceSnapshotInput: ItPolitoCrownlabsV1alpha2InstanceSnapshotInput;
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationCreateCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  itPolitoCrownlabsV1alpha2SharedVolumeInput: ItPolitoCrownlabsV1alpha2SharedVolumeInput;
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1769,6 +1324,22 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstanceS
 };
 
 
+export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedSharedVolumeArgs = {
+  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
+  continue?: InputMaybe<Scalars['String']['input']>;
+  fieldSelector?: InputMaybe<Scalars['String']['input']>;
+  labelSelector?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
+  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
+  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
+  watch?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
 export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedTemplateArgs = {
   allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
   continue?: InputMaybe<Scalars['String']['input']>;
@@ -1813,6 +1384,18 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 
 
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  propagationPolicy?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
@@ -1939,6 +1522,30 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs =
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
+  applicationApplyPatchYamlInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusArgs = {
+  applicationApplyPatchYamlInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
@@ -1982,38 +1589,6 @@ export type MutationPatchCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   force?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationReg_CreateRobotArgs = {
-  robotCreateInput: RobotCreateInput;
-};
-
-
-export type MutationReg_CreateRobotV1Args = {
-  projectNameOrId: Scalars['String']['input'];
-  robotCreateV1Input: RobotCreateV1Input;
-};
-
-
-export type MutationReg_DeleteScannerArgs = {
-  registrationId: Scalars['String']['input'];
-};
-
-
-export type MutationReg_ExportScanDataArgs = {
-  scanDataExportRequestInput: ScanDataExportRequestInput;
-};
-
-
-export type MutationReg_PingLdapArgs = {
-  ldapConfInput?: InputMaybe<LdapConfInput>;
-};
-
-
-export type MutationReg_RefreshSecArgs = {
-  robotId: Scalars['Int']['input'];
-  robotSecInput: RobotSecInput;
 };
 
 
@@ -2101,6 +1676,28 @@ export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs
 };
 
 
+export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  itPolitoCrownlabsV1alpha2SharedVolumeInput: ItPolitoCrownlabsV1alpha2SharedVolumeInput;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusArgs = {
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  itPolitoCrownlabsV1alpha2SharedVolumeInput: ItPolitoCrownlabsV1alpha2SharedVolumeInput;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
@@ -2159,45 +1756,6 @@ export type NamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type OidcUserInfo = {
-  __typename?: 'OIDCUserInfo';
-  /** The creation time of the OIDC user info record. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** the ID of the OIDC info record */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** the secret of the OIDC user that can be used for CLI to push/pull artifacts */
-  secret?: Maybe<Scalars['String']['output']>;
-  /** the concatenation of sub and issuer in the ID token */
-  subiss?: Maybe<Scalars['String']['output']>;
-  /** The update time of the OIDC user info record. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  /** the ID of the user */
-  userId?: Maybe<Scalars['Int']['output']>;
-};
-
-/** The system health status */
-export type OverallHealthStatus = {
-  __typename?: 'OverallHealthStatus';
-  components?: Maybe<Array<Maybe<ComponentHealthStatus>>>;
-  /** The overall health status. It is "healthy" only when all the components' status are "healthy" */
-  status?: Maybe<Scalars['String']['output']>;
-};
-
-/** The parameters of the policy, the values are dependent on the type of the policy. */
-export type Parameter = {
-  __typename?: 'Parameter';
-  /** The offset in seconds of UTC 0 o'clock, only valid when the policy type is "daily" */
-  dailyTime?: Maybe<Scalars['Int']['output']>;
-};
-
-export type Permission = {
-  __typename?: 'Permission';
-  /** The permission action */
-  action?: Maybe<Scalars['String']['output']>;
-  /** The permission resoruce */
-  resource?: Maybe<Scalars['String']['output']>;
-};
-
 /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
 export type PersonalNamespace = {
   __typename?: 'PersonalNamespace';
@@ -2236,178 +1794,15 @@ export enum Phase2 {
   Empty = '_EMPTY_'
 }
 
-export type Platform = {
-  __typename?: 'Platform';
-  /** The architecture that the artifact applys to */
-  architecture?: Maybe<Scalars['String']['output']>;
-  /** The OS that the artifact applys to */
-  os?: Maybe<Scalars['String']['output']>;
-  /** The features of the OS that the artifact applys to */
-  osFeatures?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** The version of the OS that the artifact applys to */
-  osVersion?: Maybe<Scalars['String']['output']>;
-  /** The variant of the CPU */
-  variant?: Maybe<Scalars['String']['output']>;
-};
-
-export type PreheatPolicy = {
-  __typename?: 'PreheatPolicy';
-  /** The Create Time of preheat policy */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The Description of preheat policy */
-  description?: Maybe<Scalars['String']['output']>;
-  /** Whether the preheat policy enabled */
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  /** The Filters of preheat policy */
-  filters?: Maybe<Scalars['String']['output']>;
-  /** The ID of preheat policy */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The Name of preheat policy */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The ID of preheat policy project */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  /** The ID of preheat policy provider */
-  providerId?: Maybe<Scalars['Int']['output']>;
-  /** The Name of preheat policy provider */
-  providerName?: Maybe<Scalars['String']['output']>;
-  /** The Trigger of preheat policy */
-  trigger?: Maybe<Scalars['String']['output']>;
-  /** The Update Time of preheat policy */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-export type Project2 = {
-  __typename?: 'Project2';
-  /** The total number of charts under this project. */
-  chartCount?: Maybe<Scalars['Int']['output']>;
-  /** The creation time of the project. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The role ID with highest permission of the current user who triggered the API (for UI).  This attribute is deprecated and will be removed in future versions. */
-  currentUserRoleId?: Maybe<Scalars['Int']['output']>;
-  /** The list of role ID of the current user who triggered the API (for UI) */
-  currentUserRoleIds?: Maybe<Array<Maybe<Scalars['Int']['output']>>>;
-  /** The CVE Allowlist for system or project */
-  cveAllowlist?: Maybe<CveAllowlist>;
-  /** A deletion mark of the project. */
-  deleted?: Maybe<Scalars['Boolean']['output']>;
-  metadata?: Maybe<ProjectMetadata>;
-  /** The name of the project. */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The owner ID of the project always means the creator of the project. */
-  ownerId?: Maybe<Scalars['Int']['output']>;
-  /** The owner name of the project. */
-  ownerName?: Maybe<Scalars['String']['output']>;
-  /** Project ID */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  /** The ID of referenced registry when the project is a proxy cache project. */
-  registryId?: Maybe<Scalars['BigInt']['output']>;
-  /** The number of the repositories under this project. */
-  repoCount?: Maybe<Scalars['Int']['output']>;
-  /** Correspond to the UI about whether the project's publicity is  updatable (for UI) */
-  togglable?: Maybe<Scalars['Boolean']['output']>;
-  /** The update time of the project. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectDeletable = {
-  __typename?: 'ProjectDeletable';
-  /** Whether the project can be deleted. */
-  deletable?: Maybe<Scalars['Boolean']['output']>;
-  /** The detail message when the project can not be deleted. */
-  message?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectMemberEntity = {
-  __typename?: 'ProjectMemberEntity';
-  /** the id of entity, if the member is a user, it is user_id in user table. if the member is a user group, it is the user group's ID in user_group table. */
-  entityId?: Maybe<Scalars['Int']['output']>;
-  /** the name of the group member. */
-  entityName?: Maybe<Scalars['String']['output']>;
-  /** the entity's type, u for user entity, g for group entity. */
-  entityType?: Maybe<Scalars['String']['output']>;
-  /** the project member id */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** the project id */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  /** the role id */
-  roleId?: Maybe<Scalars['Int']['output']>;
-  /** the name of the role */
-  roleName?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectMetadata = {
-  __typename?: 'ProjectMetadata';
-  /** Whether scan images automatically when pushing. The valid values are "true", "false". */
-  autoScan?: Maybe<Scalars['String']['output']>;
-  /** Whether content trust is enabled or not. If it is enabled, user can't pull unsigned images from this project. The valid values are "true", "false". */
-  enableContentTrust?: Maybe<Scalars['String']['output']>;
-  /** Whether cosign content trust is enabled or not. If it is enabled, user can't pull images without cosign signature from this project. The valid values are "true", "false". */
-  enableContentTrustCosign?: Maybe<Scalars['String']['output']>;
-  /** Whether prevent the vulnerable images from running. The valid values are "true", "false". */
-  preventVul?: Maybe<Scalars['String']['output']>;
-  /** The public status of the project. The valid values are "true", "false". */
-  public?: Maybe<Scalars['String']['output']>;
-  /** The ID of the tag retention policy for the project */
-  retentionId?: Maybe<Scalars['String']['output']>;
-  /** Whether this project reuse the system level CVE allowlist as the allowlist of its own.  The valid values are "true", "false". If it is set to "true" the actual allowlist associate with this project, if any, will be ignored. */
-  reuseSysCveAllowlist?: Maybe<Scalars['String']['output']>;
-  /** If the vulnerability is high than severity defined here, the images can't be pulled. The valid values are "none", "low", "medium", "high", "critical". */
-  severity?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectRepository = {
-  __typename?: 'ProjectRepository';
-  /** The count of the artifacts inside the repository */
-  artifactCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The creation time of the repository */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The description of the repository */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The ID of the repository */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The name of the repository */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The ID of the project that the repository belongs to */
-  projectId?: Maybe<Scalars['BigInt']['output']>;
-  /** The count that the artifact inside the repository pulled */
-  pullCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The update time of the repository */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectSummary = {
-  __typename?: 'ProjectSummary';
-  /** The total number of charts under this project. */
-  chartCount?: Maybe<Scalars['Int']['output']>;
-  /** The total number of developer members. */
-  developerCount?: Maybe<Scalars['Int']['output']>;
-  /** The total number of guest members. */
-  guestCount?: Maybe<Scalars['Int']['output']>;
-  /** The total number of limited guest members. */
-  limitedGuestCount?: Maybe<Scalars['Int']['output']>;
-  /** The total number of maintainer members. */
-  maintainerCount?: Maybe<Scalars['Int']['output']>;
-  /** The total number of project admin members. */
-  projectAdminCount?: Maybe<Scalars['Int']['output']>;
-  quota?: Maybe<ProjectSummaryQuota>;
-  registry?: Maybe<Registry>;
-  /** The number of the repositories under this project. */
-  repoCount?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ProjectSummaryQuota = {
-  __typename?: 'ProjectSummaryQuota';
-  hard?: Maybe<Scalars['JSON']['output']>;
-  used?: Maybe<Scalars['JSON']['output']>;
-};
-
-export type ProviderUnderProject = {
-  __typename?: 'ProviderUnderProject';
-  default?: Maybe<Scalars['Boolean']['output']>;
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  id?: Maybe<Scalars['Int']['output']>;
-  provider?: Maybe<Scalars['String']['output']>;
-};
+export enum Phase3 {
+  Deleting = 'DELETING',
+  Error = 'ERROR',
+  Pending = 'PENDING',
+  Provisioning = 'PROVISIONING',
+  Ready = 'READY',
+  ResourceQuotaExceeded = 'RESOURCE_QUOTA_EXCEEDED',
+  Empty = '_EMPTY_'
+}
 
 export type Query = {
   __typename?: 'Query';
@@ -2460,6 +1855,18 @@ export type Query = {
    */
   itPolitoCrownlabsV1alpha2InstanceSnapshotList?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotList>;
   /**
+   * read the specified SharedVolume
+   *
+   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}
+   */
+  itPolitoCrownlabsV1alpha2SharedVolume?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
+   * list objects of kind SharedVolume
+   *
+   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes
+   */
+  itPolitoCrownlabsV1alpha2SharedVolumeList?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolumeList>;
+  /**
    * read the specified Template
    *
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}
@@ -2496,6 +1903,12 @@ export type Query = {
    */
   listCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotList>;
   /**
+   * list objects of kind SharedVolume
+   *
+   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/sharedvolumes
+   */
+  listCrownlabsPolitoItV1alpha2SharedVolumeForAllNamespaces?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolumeList>;
+  /**
    * list objects of kind Template
    *
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/templates
@@ -2526,6 +1939,12 @@ export type Query = {
    */
   readCrownlabsPolitoItV1alpha2NamespacedInstanceStatus?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
+   * read status of the specified SharedVolume
+   *
+   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}/status
+   */
+  readCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatus?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
    * read status of the specified Template
    *
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}/status
@@ -2537,656 +1956,6 @@ export type Query = {
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/tenants/{name}/status
    */
   readCrownlabsPolitoItV1alpha2TenantStatus?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
-  /**
-   * Get the artifact specified by the reference under the project and repository. The reference can be digest or tag.
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}
-   */
-  reg_artifact?: Maybe<Artifact>;
-  /**
-   * This endpoint let user see the recent operation logs of the projects which he is member of
-   *
-   *
-   * Equivalent to GET /audit-logs
-   */
-  reg_auditLogs?: Maybe<Array<Maybe<AuditLog>>>;
-  /**
-   * Get the system level allowlist of CVE.  This API can be called by all authenticated users.
-   *
-   * Equivalent to GET /system/CVEAllowlist
-   */
-  reg_cVEAllowlist?: Maybe<CveAllowlist>;
-  /**
-   * This endpoint is for retrieving system configurations that only provides for admin user.
-   *
-   *
-   * Equivalent to GET /configurations
-   */
-  reg_configurationsResponse?: Maybe<ConfigurationsResponse>;
-  /**
-   * This endpoint let user get purge job status filtered by specific ID.
-   *
-   * Equivalent to GET /system/purgeaudit/{purge_id}
-   */
-  reg_execHistory?: Maybe<ExecHistory>;
-  /**
-   * Get a execution detail by id
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies/{preheat_policy_name}/executions/{execution_id}
-   */
-  reg_execution?: Maybe<Execution>;
-  /**
-   * Download the scan data report. Default format is CSV
-   *
-   * Equivalent to GET /export/cve/download/{execution_id}
-   */
-  reg_exportCveDownload?: Maybe<Scalars['String']['output']>;
-  /**
-   * This endpoint is for get schedule of gc job.
-   *
-   * Equivalent to GET /system/gc/schedule
-   */
-  reg_gCHistory?: Maybe<GcHistory>;
-  /**
-   * This API is for retrieving general system info, this can be called by anonymous request.  Some attributes will be omitted in the response when this API is called by anonymous request.
-   *
-   *
-   * Equivalent to GET /systeminfo
-   */
-  reg_generalInfo?: Maybe<GeneralInfo>;
-  /**
-   * This endpoint let user get gc status filtered by specific ID.
-   *
-   * Equivalent to GET /system/gc/{gc_id}
-   */
-  reg_getGC?: Maybe<GcHistory>;
-  /**
-   * Get the metrics of the latest scheduled scan all process
-   *
-   * Equivalent to GET /scans/schedule/metrics
-   */
-  reg_getLatestScheduledScanAllMetrics?: Maybe<Stats>;
-  /**
-   * This endpoint is for get schedule of purge job.
-   *
-   * Equivalent to GET /system/purgeaudit/schedule
-   */
-  reg_getPurgeSchedule?: Maybe<ExecHistory>;
-  /**
-   * This endpoint returns specific robot account information by robot ID.
-   *
-   * Equivalent to GET /robots/{robot_id}
-   */
-  reg_getRobotByID?: Maybe<Robot>;
-  /**
-   * Retruns the details of the specified scanner registration.
-   *
-   *
-   * Equivalent to GET /scanners/{registration_id}
-   */
-  reg_getScanner?: Maybe<ScannerRegistration>;
-  /**
-   * Get a user's profile.
-   *
-   * Equivalent to GET /users/{user_id}
-   */
-  reg_getUser?: Maybe<UserResp>;
-  /**
-   * Get the artifact icon with the specified digest. As the original icon image is resized and encoded before returning, the parameter "digest" in the path doesn't match the hash of the returned content
-   *
-   * Equivalent to GET /icons/{digest}
-   */
-  reg_icon?: Maybe<Icon>;
-  /**
-   * Get a P2P provider instance
-   *
-   * Equivalent to GET /p2p/preheat/instances/{preheat_instance_name}
-   */
-  reg_instance?: Maybe<Instance>;
-  /**
-   * This endpoint is for retrieving system configurations that only provides for internal api call.
-   *
-   *
-   * Equivalent to GET /internalconfig
-   */
-  reg_internalConfigurationsResponse?: Maybe<Scalars['JSON']['output']>;
-  /**
-   * Get workers in current pool
-   *
-   * Equivalent to GET /jobservice/pools/{pool_id}/workers
-   */
-  reg_jobservicePoolWorkers?: Maybe<Array<Maybe<Worker>>>;
-  /**
-   * Get worker pools
-   *
-   * Equivalent to GET /jobservice/pools
-   */
-  reg_jobservicePools?: Maybe<Array<Maybe<WorkerPool>>>;
-  /**
-   * list job queue
-   *
-   * Equivalent to GET /jobservice/queues
-   */
-  reg_jobserviceQueues?: Maybe<Array<Maybe<JobQueue>>>;
-  /**
-   * This endpoint let user get the label by specific ID.
-   *
-   *
-   * Equivalent to GET /labels/{label_id}
-   */
-  reg_label?: Maybe<Label>;
-  /**
-   * This endpoint let user list labels by name, scope and project_id
-   *
-   *
-   * Equivalent to GET /labels
-   */
-  reg_labels?: Maybe<Array<Maybe<Label>>>;
-  /**
-   * This endpoint searches the available ldap groups based on related configuration parameters. support to search by groupname or groupdn.
-   *
-   *
-   * Equivalent to GET /ldap/groups/search
-   */
-  reg_ldapGroupsSearch?: Maybe<Array<Maybe<UserGroup>>>;
-  /**
-   * This endpoint searches the available ldap users based on related configuration parameters. Support searched by input ladp configuration, load configuration from the system and specific filter.
-   *
-   *
-   * Equivalent to GET /ldap/users/search
-   */
-  reg_ldapUsersSearch?: Maybe<Array<Maybe<LdapUser>>>;
-  /**
-   * Check the status of Harbor components
-   *
-   * Equivalent to GET /health
-   */
-  reg_overallHealthStatus?: Maybe<OverallHealthStatus>;
-  /**
-   * List P2P provider instances
-   *
-   * Equivalent to GET /p2p/preheat/instances
-   */
-  reg_p2pPreheatInstances?: Maybe<Array<Maybe<Instance>>>;
-  /**
-   * List P2P providers
-   *
-   * Equivalent to GET /p2p/preheat/providers
-   */
-  reg_p2pPreheatProviders?: Maybe<Array<Maybe<Metadata>>>;
-  /**
-   * This API simply replies a pong to indicate the process to handle API is up, disregarding the health status of dependent components.
-   *
-   * Equivalent to GET /ping
-   */
-  reg_ping?: Maybe<Scalars['String']['output']>;
-  /**
-   * Get a preheat policy
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies/{preheat_policy_name}
-   */
-  reg_preheatPolicy?: Maybe<PreheatPolicy>;
-  /**
-   * This endpoint returns specific project information by project ID.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}
-   */
-  reg_project2?: Maybe<Project2>;
-  /**
-   * Get the deletable status of the project
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/_deletable
-   */
-  reg_projectDeletable?: Maybe<ProjectDeletable>;
-  /**
-   * This endpoint returns the immutable tag rules of a project
-   *
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/immutabletagrules
-   */
-  reg_projectImmutabletagrules?: Maybe<Array<Maybe<ImmutableRule>>>;
-  /**
-   * Get recent logs of the projects
-   *
-   * Equivalent to GET /projects/{project_name}/logs
-   */
-  reg_projectLogs?: Maybe<Array<Maybe<AuditLog>>>;
-  /**
-   * Get the project member information
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/members/{mid}
-   */
-  reg_projectMemberEntity?: Maybe<ProjectMemberEntity>;
-  /**
-   * Get all project member information
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/members
-   */
-  reg_projectMembers?: Maybe<Array<Maybe<ProjectMemberEntity>>>;
-  /**
-   * Get the specific metadata of the specific project
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/metadatas/{meta_name}
-   */
-  reg_projectMetadata2?: Maybe<Scalars['JSON']['output']>;
-  /**
-   * Get the metadata of the specific project
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/metadatas/
-   */
-  reg_projectMetadatas?: Maybe<Scalars['JSON']['output']>;
-  /**
-   * List preheat policies
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies
-   */
-  reg_projectPreheatPolicies?: Maybe<Array<Maybe<PreheatPolicy>>>;
-  /**
-   * Get the log text stream of the specified task for the given execution
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies/{preheat_policy_name}/executions/{execution_id}/tasks/{task_id}/logs
-   */
-  reg_projectPreheatPolicyExecutionTaskLogs?: Maybe<Scalars['String']['output']>;
-  /**
-   * List all the related tasks for the given execution
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies/{preheat_policy_name}/executions/{execution_id}/tasks
-   */
-  reg_projectPreheatPolicyExecutionTasks?: Maybe<Array<Maybe<Task>>>;
-  /**
-   * List executions for the given policy
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/policies/{preheat_policy_name}/executions
-   */
-  reg_projectPreheatPolicyExecutions?: Maybe<Array<Maybe<Execution>>>;
-  /**
-   * Get all providers at project level
-   *
-   * Equivalent to GET /projects/{project_name}/preheat/providers
-   */
-  reg_projectPreheatProviders?: Maybe<Array<Maybe<ProviderUnderProject>>>;
-  /**
-   * List repositories of the specified project
-   *
-   * Equivalent to GET /projects/{project_name}/repositories
-   */
-  reg_projectRepositories?: Maybe<Array<Maybe<ProjectRepository>>>;
-  /**
-   * Get the repository specified by name
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}
-   */
-  reg_projectRepository?: Maybe<ProjectRepository>;
-  /**
-   * List artifacts under the specific project and repository. Except the basic properties, the other supported queries in "q" includes "tags=*" to list only tagged artifacts, "tags=nil" to list only untagged artifacts, "tags=~v" to list artifacts whose tag fuzzy matches "v", "tags=v" to list artifact whose tag exactly matches "v", "labels=(id1, id2)" to list artifacts that both labels with id1 and id2 are added to
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts
-   */
-  reg_projectRepositoryArtifacts?: Maybe<Array<Maybe<Artifact>>>;
-  /**
-   * List accessories of the specific artifact
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}/accessories
-   */
-  reg_projectRepositoryArtifactsAccessories?: Maybe<Array<Maybe<Accessory>>>;
-  /**
-   * Get the addition of the artifact specified by the reference under the project and repository.
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}/additions/{addition}
-   */
-  reg_projectRepositoryArtifactsAddition?: Maybe<Scalars['String']['output']>;
-  /**
-   * Get the vulnerabilities addition of the artifact specified by the reference under the project and repository.
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}/additions/vulnerabilities
-   */
-  reg_projectRepositoryArtifactsAdditionsVulnerabilities?: Maybe<Scalars['String']['output']>;
-  /**
-   * Get the log of the scan report
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}/scan/{report_id}/log
-   */
-  reg_projectRepositoryArtifactsScanLog?: Maybe<Scalars['String']['output']>;
-  /**
-   * List tags of the specific artifact
-   *
-   * Equivalent to GET /projects/{project_name}/repositories/{repository_name}/artifacts/{reference}/tags
-   */
-  reg_projectRepositoryArtifactsTags?: Maybe<Array<Maybe<Tag>>>;
-  /**
-   * Get all robot accounts of specified project
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/robots
-   */
-  reg_projectRobots?: Maybe<Array<Maybe<Robot>>>;
-  /**
-   * Retrieve the system configured scanner registrations as candidates of setting project level scanner.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/scanner/candidates
-   */
-  reg_projectScannerCandidates?: Maybe<Array<Maybe<ScannerRegistration>>>;
-  /**
-   * Get summary of the project.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/summary
-   */
-  reg_projectSummary?: Maybe<ProjectSummary>;
-  /**
-   * This endpoint returns webhook jobs of a project.
-   *
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/webhook/jobs
-   */
-  reg_projectWebhookJobs?: Maybe<Array<Maybe<WebhookJob>>>;
-  /**
-   * This endpoint returns last trigger information of project webhook policy.
-   *
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/webhook/lasttrigger
-   */
-  reg_projectWebhookLasttrigger?: Maybe<Array<Maybe<WebhookLastTrigger>>>;
-  /**
-   * This endpoint returns webhook policies of a project.
-   *
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/webhook/policies
-   */
-  reg_projectWebhookPolicies?: Maybe<Array<Maybe<WebhookPolicy>>>;
-  /**
-   * This endpoint returns projects created by Harbor.
-   *
-   * Equivalent to GET /projects
-   */
-  reg_projects?: Maybe<Array<Maybe<Project2>>>;
-  /**
-   * Get the specified quota
-   *
-   * Equivalent to GET /quotas/{id}
-   */
-  reg_quota?: Maybe<Quota>;
-  /**
-   * List quotas
-   *
-   * Equivalent to GET /quotas
-   */
-  reg_quotas?: Maybe<Array<Maybe<Quota>>>;
-  /**
-   * List the registries
-   *
-   * Equivalent to GET /registries
-   */
-  reg_registries?: Maybe<Array<Maybe<Registry>>>;
-  /**
-   * Get the specific registry
-   *
-   * Equivalent to GET /registries/{id}
-   */
-  reg_registry?: Maybe<Registry>;
-  /**
-   * Get the registry info
-   *
-   * Equivalent to GET /registries/{id}/info
-   */
-  reg_registryInfo?: Maybe<RegistryInfo>;
-  /**
-   * List all registered registry provider information
-   *
-   * Equivalent to GET /replication/adapterinfos
-   */
-  reg_replicationAdapterinfos?: Maybe<Scalars['JSON']['output']>;
-  /**
-   * List registry adapters
-   *
-   * Equivalent to GET /replication/adapters
-   */
-  reg_replicationAdapters?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /**
-   * Get the replication execution specified by ID
-   *
-   * Equivalent to GET /replication/executions/{id}
-   */
-  reg_replicationExecution?: Maybe<ReplicationExecution>;
-  /**
-   * Get the log of the specific replication task
-   *
-   * Equivalent to GET /replication/executions/{id}/tasks/{task_id}/log
-   */
-  reg_replicationExecutionTaskLog?: Maybe<Scalars['String']['output']>;
-  /**
-   * List replication tasks for a specific execution
-   *
-   * Equivalent to GET /replication/executions/{id}/tasks
-   */
-  reg_replicationExecutionTasks?: Maybe<Array<Maybe<ReplicationTask>>>;
-  /**
-   * List replication executions
-   *
-   * Equivalent to GET /replication/executions
-   */
-  reg_replicationExecutions?: Maybe<Array<Maybe<ReplicationExecution>>>;
-  /**
-   * List replication policies
-   *
-   * Equivalent to GET /replication/policies
-   */
-  reg_replicationPolicies?: Maybe<Array<Maybe<ReplicationPolicy>>>;
-  /**
-   * Get the specific replication policy
-   *
-   * Equivalent to GET /replication/policies/{id}
-   */
-  reg_replicationPolicy?: Maybe<ReplicationPolicy>;
-  /**
-   * List all authorized repositories
-   *
-   * Equivalent to GET /repositories
-   */
-  reg_repositories?: Maybe<Array<Maybe<ProjectRepository>>>;
-  /**
-   * Get Retention job task log, tags ratain or deletion detail will be shown in a table.
-   *
-   * Equivalent to GET /retentions/{id}/executions/{eid}/tasks/{tid}
-   */
-  reg_retentionExecutionTask2?: Maybe<Scalars['String']['output']>;
-  /**
-   * Get Retention tasks, each repository as a task.
-   *
-   * Equivalent to GET /retentions/{id}/executions/{eid}/tasks
-   */
-  reg_retentionExecutionTasks?: Maybe<Array<Maybe<RetentionExecutionTask>>>;
-  /**
-   * Get Retention executions, execution status may be delayed before job service schedule it up.
-   *
-   * Equivalent to GET /retentions/{id}/executions
-   */
-  reg_retentionExecutions?: Maybe<Array<Maybe<RetentionExecution>>>;
-  /**
-   * Get Retention Metadatas.
-   *
-   * Equivalent to GET /retentions/metadatas
-   */
-  reg_retentionMetadata?: Maybe<RetentionMetadata>;
-  /**
-   * Get Retention Policy.
-   *
-   * Equivalent to GET /retentions/{id}
-   */
-  reg_retentionPolicy?: Maybe<RetentionPolicy>;
-  /**
-   * This endpoint returns specific robot account information by robot ID.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/robots/{robot_id}
-   */
-  reg_robot?: Maybe<Robot>;
-  /**
-   * List the robot accounts with the specified level and project.
-   *
-   * Equivalent to GET /robots
-   */
-  reg_robots?: Maybe<Array<Maybe<Robot>>>;
-  /**
-   * Get the scan data export execution specified by ID
-   *
-   * Equivalent to GET /export/cve/execution/{execution_id}
-   */
-  reg_scanDataExportExecution?: Maybe<ScanDataExportExecution>;
-  /**
-   * Get a list of specific scan data export execution jobs for a specified user
-   *
-   * Equivalent to GET /export/cve/executions
-   */
-  reg_scanDataExportExecutionList?: Maybe<ScanDataExportExecutionList>;
-  /**
-   * Get the metadata of the specified scanner registration, including the capabilities and customized properties.
-   *
-   *
-   * Equivalent to GET /scanners/{registration_id}/metadata
-   */
-  reg_scannerAdapterMetadata?: Maybe<ScannerAdapterMetadata>;
-  /**
-   * Get the scanner registration of the specified project. If no scanner registration is configured for the specified project, the system default scanner registration will be returned.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/scanner
-   */
-  reg_scannerRegistration?: Maybe<ScannerRegistration>;
-  /**
-   * Returns a list of currently configured scanner registrations.
-   *
-   *
-   * Equivalent to GET /scanners
-   */
-  reg_scanners?: Maybe<Array<Maybe<ScannerRegistration>>>;
-  /**
-   * This endpoint is for getting a schedule for the scan all job, which scans all of images in Harbor.
-   *
-   * Equivalent to GET /system/scanAll/schedule
-   */
-  reg_schedule?: Maybe<Schedule>;
-  /**
-   * Get scheduler paused status
-   *
-   * Equivalent to GET /schedules/{job_type}/paused
-   */
-  reg_schedulerStatus?: Maybe<SchedulerStatus>;
-  /**
-   * List schedules
-   *
-   * Equivalent to GET /schedules
-   */
-  reg_schedules?: Maybe<Array<Maybe<ScheduleTask>>>;
-  /**
-   * The Search endpoint returns information about the projects, repositories and helm charts offered at public status or related to the current logged in user. The response includes the project, repository list and charts in a proper display order.
-   *
-   * Equivalent to GET /search
-   */
-  reg_search?: Maybe<Search>;
-  /**
-   * Get the statistic information about the projects and repositories
-   *
-   * Equivalent to GET /statistics
-   */
-  reg_statistic?: Maybe<Statistic>;
-  /**
-   * Get the metrics of the latest scan all process
-   *
-   * Equivalent to GET /scans/all/metrics
-   */
-  reg_stats?: Maybe<Stats>;
-  /**
-   * Get supportted event types and notify types.
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/webhook/events
-   */
-  reg_supportedWebhookEventTypes?: Maybe<SupportedWebhookEventTypes>;
-  /**
-   * This endpoint let user get gc execution history.
-   *
-   * Equivalent to GET /system/gc
-   */
-  reg_systemGc?: Maybe<Array<Maybe<GcHistory>>>;
-  /**
-   * This endpoint let user get gc job logs filtered by specific ID.
-   *
-   * Equivalent to GET /system/gc/{gc_id}/log
-   */
-  reg_systemGcLog?: Maybe<Scalars['String']['output']>;
-  /**
-   * This endpoint is for retrieving system volume info that only provides for admin user.  Note that the response only reflects the storage status of local disk.
-   *
-   *
-   * Equivalent to GET /systeminfo/volumes
-   */
-  reg_systemInfo?: Maybe<SystemInfo>;
-  /**
-   * get purge job execution history.
-   *
-   * Equivalent to GET /system/purgeaudit
-   */
-  reg_systemPurgeaudit?: Maybe<Array<Maybe<ExecHistory>>>;
-  /**
-   * This endpoint let user get purge job logs filtered by specific ID.
-   *
-   * Equivalent to GET /system/purgeaudit/{purge_id}/log
-   */
-  reg_systemPurgeauditLog?: Maybe<Scalars['String']['output']>;
-  /**
-   * This endpoint is for downloading a default root certificate.
-   *
-   *
-   * Equivalent to GET /systeminfo/getcert
-   */
-  reg_systeminfoGetcert?: Maybe<Scalars['String']['output']>;
-  /**
-   * Get user group information
-   *
-   * Equivalent to GET /usergroups/{group_id}
-   */
-  reg_userGroup?: Maybe<UserGroup>;
-  /**
-   * Get current user info.
-   *
-   * Equivalent to GET /users/current
-   */
-  reg_userResp?: Maybe<UserResp>;
-  /**
-   * Get all user groups information, it is open for system admin
-   *
-   * Equivalent to GET /usergroups
-   */
-  reg_usergroups?: Maybe<Array<Maybe<UserGroup>>>;
-  /**
-   * This endpoint is to search groups by group name.  It's open for all authenticated requests.
-   *
-   *
-   * Equivalent to GET /usergroups/search
-   */
-  reg_usergroupsSearch?: Maybe<Array<Maybe<UserGroupSearchItem>>>;
-  /**
-   * List users
-   *
-   * Equivalent to GET /users
-   */
-  reg_users?: Maybe<Array<Maybe<UserResp>>>;
-  /**
-   * Get current user permissions.
-   *
-   * Equivalent to GET /users/current/permissions
-   */
-  reg_usersCurrentPermissions?: Maybe<Array<Maybe<Permission>>>;
-  /**
-   * This endpoint is to search the users by username.  It's open for all authenticated requests.
-   *
-   *
-   * Equivalent to GET /users/search
-   */
-  reg_usersSearch?: Maybe<Array<Maybe<UserSearchRespItem>>>;
-  /**
-   * This endpoint returns specified webhook policy of a project.
-   *
-   *
-   * Equivalent to GET /projects/{project_name_or_id}/webhook/policies/{webhook_policy_id}
-   */
-  reg_webhookPolicy?: Maybe<WebhookPolicy>;
 };
 
 
@@ -3280,6 +2049,30 @@ export type QueryItPolitoCrownlabsV1alpha2InstanceSnapshotListArgs = {
 };
 
 
+export type QueryItPolitoCrownlabsV1alpha2SharedVolumeArgs = {
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryItPolitoCrownlabsV1alpha2SharedVolumeListArgs = {
+  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
+  continue?: InputMaybe<Scalars['String']['input']>;
+  fieldSelector?: InputMaybe<Scalars['String']['input']>;
+  labelSelector?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
+  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
+  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
+  watch?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
 export type QueryItPolitoCrownlabsV1alpha2TemplateArgs = {
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -3358,6 +2151,21 @@ export type QueryListCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
 };
 
 
+export type QueryListCrownlabsPolitoItV1alpha2SharedVolumeForAllNamespacesArgs = {
+  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
+  continue?: InputMaybe<Scalars['String']['input']>;
+  fieldSelector?: InputMaybe<Scalars['String']['input']>;
+  labelSelector?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
+  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
+  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
+  watch?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
 export type QueryListCrownlabsPolitoItV1alpha2TemplateForAllNamespacesArgs = {
   allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
   continue?: InputMaybe<Scalars['String']['input']>;
@@ -3403,6 +2211,14 @@ export type QueryReadCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs = {
 };
 
 
+export type QueryReadCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusArgs = {
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QueryReadCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs = {
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -3417,619 +2233,15 @@ export type QueryReadCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   resourceVersion?: InputMaybe<Scalars['String']['input']>;
 };
 
-
-export type QueryReg_ArtifactArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  reference: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-  withAccessory?: InputMaybe<Scalars['Boolean']['input']>;
-  withImmutableStatus?: InputMaybe<Scalars['Boolean']['input']>;
-  withLabel?: InputMaybe<Scalars['Boolean']['input']>;
-  withScanOverview?: InputMaybe<Scalars['Boolean']['input']>;
-  withSignature?: InputMaybe<Scalars['Boolean']['input']>;
-  withTag?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QueryReg_AuditLogsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ExecHistoryArgs = {
-  purgeId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_ExecutionArgs = {
-  executionId: Scalars['Int']['input'];
-  preheatPolicyName: Scalars['String']['input'];
-  projectName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ExportCveDownloadArgs = {
-  executionId: Scalars['Int']['input'];
-  format?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_GetGcArgs = {
-  gcId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_GetRobotByIdArgs = {
-  robotId: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_GetScannerArgs = {
-  registrationId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_GetUserArgs = {
-  userId: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_IconArgs = {
-  digest: Scalars['String']['input'];
-};
-
-
-export type QueryReg_InstanceArgs = {
-  preheatInstanceName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_JobservicePoolWorkersArgs = {
-  poolId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_LabelArgs = {
-  labelId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_LabelsArgs = {
-  name?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectId?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  scope?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_LdapGroupsSearchArgs = {
-  groupdn?: InputMaybe<Scalars['String']['input']>;
-  groupname?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_LdapUsersSearchArgs = {
-  username?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_P2pPreheatInstancesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_PreheatPolicyArgs = {
-  preheatPolicyName: Scalars['String']['input'];
-  projectName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_Project2Args = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectDeletableArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectImmutabletagrulesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectNameOrId: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectLogsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectMemberEntityArgs = {
-  mid: Scalars['BigInt']['input'];
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectMembersArgs = {
-  entityname?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectMetadata2Args = {
-  metaName: Scalars['String']['input'];
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectMetadatasArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectPreheatPoliciesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectPreheatPolicyExecutionTaskLogsArgs = {
-  executionId: Scalars['Int']['input'];
-  preheatPolicyName: Scalars['String']['input'];
-  projectName: Scalars['String']['input'];
-  taskId: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_ProjectPreheatPolicyExecutionTasksArgs = {
-  executionId: Scalars['Int']['input'];
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  preheatPolicyName: Scalars['String']['input'];
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectPreheatPolicyExecutionsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  preheatPolicyName: Scalars['String']['input'];
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectPreheatProvidersArgs = {
-  projectName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectRepositoriesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectRepositoryArgs = {
-  projectName: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  repositoryName: Scalars['String']['input'];
-  sort?: InputMaybe<Scalars['String']['input']>;
-  withAccessory?: InputMaybe<Scalars['Boolean']['input']>;
-  withImmutableStatus?: InputMaybe<Scalars['Boolean']['input']>;
-  withLabel?: InputMaybe<Scalars['Boolean']['input']>;
-  withScanOverview?: InputMaybe<Scalars['Boolean']['input']>;
-  withSignature?: InputMaybe<Scalars['Boolean']['input']>;
-  withTag?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsAccessoriesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  reference: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsAdditionArgs = {
-  addition: Addition;
-  projectName: Scalars['String']['input'];
-  reference: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsAdditionsVulnerabilitiesArgs = {
-  projectName: Scalars['String']['input'];
-  reference: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsScanLogArgs = {
-  projectName: Scalars['String']['input'];
-  reference: Scalars['String']['input'];
-  reportId: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectRepositoryArtifactsTagsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectName: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  reference: Scalars['String']['input'];
-  repositoryName: Scalars['String']['input'];
-  sort?: InputMaybe<Scalars['String']['input']>;
-  withImmutableStatus?: InputMaybe<Scalars['Boolean']['input']>;
-  withSignature?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QueryReg_ProjectRobotsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectNameOrId: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectScannerCandidatesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectNameOrId: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectSummaryArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectWebhookJobsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  policyId: Scalars['BigInt']['input'];
-  projectNameOrId: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-  status?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
-};
-
-
-export type QueryReg_ProjectWebhookLasttriggerArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ProjectWebhookPoliciesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  projectNameOrId: Scalars['String']['input'];
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ProjectsArgs = {
-  name?: InputMaybe<Scalars['String']['input']>;
-  owner?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  public?: InputMaybe<Scalars['Boolean']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-  withDetail?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QueryReg_QuotaArgs = {
-  id: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_QuotasArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  reference?: InputMaybe<Scalars['String']['input']>;
-  referenceId?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_RegistriesArgs = {
-  name?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_RegistryArgs = {
-  id: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_RegistryInfoArgs = {
-  id: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_ReplicationExecutionArgs = {
-  id: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_ReplicationExecutionTaskLogArgs = {
-  id: Scalars['BigInt']['input'];
-  taskId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_ReplicationExecutionTasksArgs = {
-  id: Scalars['BigInt']['input'];
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  resourceType?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ReplicationExecutionsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  policyId?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-  status?: InputMaybe<Scalars['String']['input']>;
-  trigger?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ReplicationPoliciesArgs = {
-  name?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ReplicationPolicyArgs = {
-  id: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_RepositoriesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_RetentionExecutionTask2Args = {
-  eid: Scalars['BigInt']['input'];
-  id: Scalars['BigInt']['input'];
-  tid: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_RetentionExecutionTasksArgs = {
-  eid: Scalars['BigInt']['input'];
-  id: Scalars['BigInt']['input'];
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-
-export type QueryReg_RetentionExecutionsArgs = {
-  id: Scalars['BigInt']['input'];
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-
-export type QueryReg_RetentionPolicyArgs = {
-  id: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_RobotArgs = {
-  projectNameOrId: Scalars['String']['input'];
-  robotId: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_RobotsArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_ScanDataExportExecutionArgs = {
-  executionId: Scalars['Int']['input'];
-};
-
-
-export type QueryReg_ScannerAdapterMetadataArgs = {
-  registrationId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ScannerRegistrationArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_ScannersArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_SchedulerStatusArgs = {
-  jobType: Scalars['String']['input'];
-};
-
-
-export type QueryReg_SchedulesArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-
-export type QueryReg_SearchArgs = {
-  q: Scalars['String']['input'];
-};
-
-
-export type QueryReg_SupportedWebhookEventTypesArgs = {
-  projectNameOrId: Scalars['String']['input'];
-};
-
-
-export type QueryReg_SystemGcArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_SystemGcLogArgs = {
-  gcId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_SystemPurgeauditArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_SystemPurgeauditLogArgs = {
-  purgeId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_UserGroupArgs = {
-  groupId: Scalars['BigInt']['input'];
-};
-
-
-export type QueryReg_UsergroupsArgs = {
-  groupName?: InputMaybe<Scalars['String']['input']>;
-  ldapGroupDn?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-
-export type QueryReg_UsergroupsSearchArgs = {
-  groupname: Scalars['String']['input'];
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-
-export type QueryReg_UsersArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  q?: InputMaybe<Scalars['String']['input']>;
-  sort?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_UsersCurrentPermissionsArgs = {
-  relative?: InputMaybe<Scalars['Boolean']['input']>;
-  scope?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReg_UsersSearchArgs = {
-  page?: InputMaybe<Scalars['BigInt']['input']>;
-  pageSize?: InputMaybe<Scalars['BigInt']['input']>;
-  username: Scalars['String']['input'];
-};
-
-
-export type QueryReg_WebhookPolicyArgs = {
-  projectNameOrId: Scalars['String']['input'];
-  webhookPolicyId: Scalars['BigInt']['input'];
-};
-
-/** The quota object */
+/** The amount of resources associated with this workspace, and inherited by enrolled tenants. */
 export type Quota = {
   __typename?: 'Quota';
   /** The maximum amount of CPU required by this Workspace. */
   cpu: Scalars['JSON']['output'];
-  /** the creation time of the quota */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  hard?: Maybe<Scalars['JSON']['output']>;
-  /** ID of the quota */
-  id?: Maybe<Scalars['Int']['output']>;
   /** The maximum number of concurrent instances required by this Workspace. */
   instances: Scalars['Int']['output'];
   /** The maximum amount of RAM memory required by this Workspace. */
   memory: Scalars['JSON']['output'];
-  ref?: Maybe<Scalars['JSON']['output']>;
-  /** the update time of the quota */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  used?: Maybe<Scalars['JSON']['output']>;
 };
 
 /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
@@ -4084,415 +2296,63 @@ export type QuotaInput = {
   memory: Scalars['JSON']['input'];
 };
 
-export type Reference = {
-  __typename?: 'Reference';
-  annotations?: Maybe<Scalars['JSON']['output']>;
-  /** The digest of the child artifact */
-  childDigest?: Maybe<Scalars['String']['output']>;
-  /** The child ID of the reference */
-  childId?: Maybe<Scalars['BigInt']['output']>;
-  /** The parent ID of the reference */
-  parentId?: Maybe<Scalars['BigInt']['output']>;
-  platform?: Maybe<Platform>;
-  /** The download URLs */
-  urls?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-};
-
-export type Registry = {
-  __typename?: 'Registry';
-  /** The create time of the policy. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  credential?: Maybe<RegistryCredential>;
-  /** Description of the registry. */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The registry ID. */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** Whether or not the certificate will be verified when Harbor tries to access the server. */
-  insecure?: Maybe<Scalars['Boolean']['output']>;
-  /** The registry name. */
-  name?: Maybe<Scalars['String']['output']>;
-  /** Health status of the registry. */
-  status?: Maybe<Scalars['String']['output']>;
-  /** Type of the registry, e.g. 'harbor'. */
-  type?: Maybe<Scalars['String']['output']>;
-  /** The update time of the policy. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  /** The registry URL string. */
-  url?: Maybe<Scalars['String']['output']>;
-};
-
-export type RegistryCredential = {
-  __typename?: 'RegistryCredential';
-  /** Access key, e.g. user name when credential type is 'basic'. */
-  accessKey?: Maybe<Scalars['String']['output']>;
-  /** Access secret, e.g. password when credential type is 'basic'. */
-  accessSecret?: Maybe<Scalars['String']['output']>;
-  /** Credential type, such as 'basic', 'oauth'. */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-/** The registry info contains the base info and capability declarations of the registry */
-export type RegistryInfo = {
-  __typename?: 'RegistryInfo';
-  /** The description */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The registry whether support copy by chunk. */
-  supportedCopyByChunk?: Maybe<Scalars['Boolean']['output']>;
-  /** The filters that the registry supports */
-  supportedResourceFilters?: Maybe<Array<Maybe<FilterStyle>>>;
-  /** The triggers that the registry supports */
-  supportedTriggers?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** The registry type */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-/** The replication execution */
-export type ReplicationExecution = {
-  __typename?: 'ReplicationExecution';
-  /** The end time */
-  endTime?: Maybe<Scalars['String']['output']>;
-  /** The count of failed executions */
-  failed?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the execution */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The count of in_progress executions */
-  inProgress?: Maybe<Scalars['Int']['output']>;
-  /** The ID if the policy that the execution belongs to */
-  policyId?: Maybe<Scalars['Int']['output']>;
-  /** The start time */
-  startTime?: Maybe<Scalars['String']['output']>;
-  /** The status of the execution */
-  status?: Maybe<Scalars['String']['output']>;
-  /** The status text */
-  statusText?: Maybe<Scalars['String']['output']>;
-  /** The count of stopped executions */
-  stopped?: Maybe<Scalars['Int']['output']>;
-  /** The count of succeed executions */
-  succeed?: Maybe<Scalars['Int']['output']>;
-  /** The total count of all executions */
-  total?: Maybe<Scalars['Int']['output']>;
-  /** The trigger mode */
-  trigger?: Maybe<Scalars['String']['output']>;
-};
-
-export type ReplicationFilter = {
-  __typename?: 'ReplicationFilter';
-  /** matches or excludes the result */
-  decoration?: Maybe<Scalars['String']['output']>;
-  /** The replication policy filter type. */
-  type?: Maybe<Scalars['String']['output']>;
-  /** The value of replication policy filter. */
-  value?: Maybe<Scalars['JSON']['output']>;
-};
-
-export type ReplicationPolicy = {
-  __typename?: 'ReplicationPolicy';
-  /** Whether to enable copy by chunk. */
-  copyByChunk?: Maybe<Scalars['Boolean']['output']>;
-  /** The create time of the policy. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** Deprecated, use "replicate_deletion" instead. Whether to replicate the deletion operation. */
-  deletion?: Maybe<Scalars['Boolean']['output']>;
-  /** The description of the policy. */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The destination namespace. */
-  destNamespace?: Maybe<Scalars['String']['output']>;
-  /**
-   * Specify how many path components will be replaced by the provided destination namespace.
-   * The default value is -1 in which case the legacy mode will be applied.
-   */
-  destNamespaceReplaceCount?: Maybe<Scalars['Int']['output']>;
-  destRegistry?: Maybe<Registry>;
-  /** Whether the policy is enabled or not. */
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  /** The replication policy filter array. */
-  filters?: Maybe<Array<Maybe<ReplicationFilter>>>;
-  /** The policy ID. */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The policy name. */
-  name?: Maybe<Scalars['String']['output']>;
-  /** Whether to override the resources on the destination registry. */
-  override?: Maybe<Scalars['Boolean']['output']>;
-  /** Whether to replicate the deletion operation. */
-  replicateDeletion?: Maybe<Scalars['Boolean']['output']>;
-  /** speed limit for each task */
-  speed?: Maybe<Scalars['Int']['output']>;
-  srcRegistry?: Maybe<Registry>;
-  trigger?: Maybe<ReplicationTrigger>;
-  /** The update time of the policy. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The replication task */
-export type ReplicationTask = {
-  __typename?: 'ReplicationTask';
-  /** The destination resource that the task operates */
-  dstResource?: Maybe<Scalars['String']['output']>;
-  /** The end time of the task */
-  endTime?: Maybe<Scalars['String']['output']>;
-  /** The ID of the execution that the task belongs to */
-  executionId?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the task */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the underlying job that the task related to */
-  jobId?: Maybe<Scalars['String']['output']>;
-  /** The operation of the task */
-  operation?: Maybe<Scalars['String']['output']>;
-  /** The type of the resource that the task operates */
-  resourceType?: Maybe<Scalars['String']['output']>;
-  /** The source resource that the task operates */
-  srcResource?: Maybe<Scalars['String']['output']>;
-  /** The start time of the task */
-  startTime?: Maybe<Scalars['String']['output']>;
-  /** The status of the task */
-  status?: Maybe<Scalars['String']['output']>;
-};
-
-export type ReplicationTrigger = {
-  __typename?: 'ReplicationTrigger';
-  triggerSettings?: Maybe<ReplicationTriggerSettings>;
-  /** The replication policy trigger type. The valid values are manual, event_based and scheduled. */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-export type ReplicationTriggerSettings = {
-  __typename?: 'ReplicationTriggerSettings';
-  /** The cron string for scheduled trigger */
-  cron?: Maybe<Scalars['String']['output']>;
-};
-
 /** The amount of computational resources associated with the environment. */
 export type Resources = {
   __typename?: 'Resources';
-  /** The maximum number of CPU cores made available to the environment (at least 1 core). This maps to the 'limits' specified for the actual pod representing the environment. */
+  /**
+   * The maximum number of CPU cores made available to the environment
+   * (at least 1 core). This maps to the 'limits' specified
+   * for the actual pod representing the environment.
+   */
   cpu: Scalars['Int']['output'];
-  /** The size of the persistent disk allocated for the given environment. This field is meaningful only in case of persistent or container-based environments, while it is silently ignored in the other cases. In case of containers, when this field is not specified, an emptyDir will be attached to the pod but this could result in data loss whenever the pod dies. */
+  /**
+   * The size of the persistent disk allocated for the given environment.
+   * This field is meaningful only in case of persistent or container-based
+   * environments, while it is silently ignored in the other cases.
+   * In case of containers, when this field is not specified, an emptyDir will be
+   * attached to the pod but this could result in data loss whenever the pod dies.
+   */
   disk?: Maybe<Scalars['JSON']['output']>;
-  /** The amount of RAM memory assigned to the given environment. Requests and limits do correspond to avoid OOMKill issues. */
+  /**
+   * The amount of RAM memory assigned to the given environment. Requests and
+   * limits do correspond to avoid OOMKill issues.
+   */
   memory: Scalars['JSON']['output'];
-  /** The percentage of reserved CPU cores, ranging between 1 and 100, with respect to the 'CPU' value. Essentially, this corresponds to the 'requests' specified for the actual pod representing the environment. */
+  /**
+   * The percentage of reserved CPU cores, ranging between 1 and 100, with
+   * respect to the 'CPU' value. Essentially, this corresponds to the 'requests'
+   * specified for the actual pod representing the environment.
+   */
   reservedCPUPercentage: Scalars['Int']['output'];
 };
 
 /** The amount of computational resources associated with the environment. */
 export type ResourcesInput = {
-  /** The maximum number of CPU cores made available to the environment (at least 1 core). This maps to the 'limits' specified for the actual pod representing the environment. */
+  /**
+   * The maximum number of CPU cores made available to the environment
+   * (at least 1 core). This maps to the 'limits' specified
+   * for the actual pod representing the environment.
+   */
   cpu: Scalars['Int']['input'];
-  /** The size of the persistent disk allocated for the given environment. This field is meaningful only in case of persistent or container-based environments, while it is silently ignored in the other cases. In case of containers, when this field is not specified, an emptyDir will be attached to the pod but this could result in data loss whenever the pod dies. */
+  /**
+   * The size of the persistent disk allocated for the given environment.
+   * This field is meaningful only in case of persistent or container-based
+   * environments, while it is silently ignored in the other cases.
+   * In case of containers, when this field is not specified, an emptyDir will be
+   * attached to the pod but this could result in data loss whenever the pod dies.
+   */
   disk?: InputMaybe<Scalars['JSON']['input']>;
-  /** The amount of RAM memory assigned to the given environment. Requests and limits do correspond to avoid OOMKill issues. */
+  /**
+   * The amount of RAM memory assigned to the given environment. Requests and
+   * limits do correspond to avoid OOMKill issues.
+   */
   memory: Scalars['JSON']['input'];
-  /** The percentage of reserved CPU cores, ranging between 1 and 100, with respect to the 'CPU' value. Essentially, this corresponds to the 'requests' specified for the actual pod representing the environment. */
+  /**
+   * The percentage of reserved CPU cores, ranging between 1 and 100, with
+   * respect to the 'CPU' value. Essentially, this corresponds to the 'requests'
+   * specified for the actual pod representing the environment.
+   */
   reservedCPUPercentage: Scalars['Int']['input'];
-};
-
-export type RetentionExecution = {
-  __typename?: 'RetentionExecution';
-  dryRun?: Maybe<Scalars['Boolean']['output']>;
-  endTime?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['BigInt']['output']>;
-  policyId?: Maybe<Scalars['BigInt']['output']>;
-  startTime?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  trigger?: Maybe<Scalars['String']['output']>;
-};
-
-export type RetentionExecutionTask = {
-  __typename?: 'RetentionExecutionTask';
-  endTime?: Maybe<Scalars['String']['output']>;
-  executionId?: Maybe<Scalars['BigInt']['output']>;
-  id?: Maybe<Scalars['BigInt']['output']>;
-  jobId?: Maybe<Scalars['String']['output']>;
-  repository?: Maybe<Scalars['String']['output']>;
-  retained?: Maybe<Scalars['Int']['output']>;
-  startTime?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  statusCode?: Maybe<Scalars['Int']['output']>;
-  statusRevision?: Maybe<Scalars['BigInt']['output']>;
-  total?: Maybe<Scalars['Int']['output']>;
-};
-
-/** the tag retention metadata */
-export type RetentionMetadata = {
-  __typename?: 'RetentionMetadata';
-  /** supported scope selectors */
-  scopeSelectors?: Maybe<Array<Maybe<RetentionSelectorMetadata>>>;
-  /** supported tag selectors */
-  tagSelectors?: Maybe<Array<Maybe<RetentionSelectorMetadata>>>;
-  /** templates */
-  templates?: Maybe<Array<Maybe<RetentionRuleMetadata>>>;
-};
-
-/** retention policy */
-export type RetentionPolicy = {
-  __typename?: 'RetentionPolicy';
-  algorithm?: Maybe<Scalars['String']['output']>;
-  id?: Maybe<Scalars['BigInt']['output']>;
-  rules?: Maybe<Array<Maybe<RetentionRule>>>;
-  scope?: Maybe<RetentionPolicyScope>;
-  trigger?: Maybe<RetentionRuleTrigger>;
-};
-
-export type RetentionPolicyScope = {
-  __typename?: 'RetentionPolicyScope';
-  level?: Maybe<Scalars['String']['output']>;
-  ref?: Maybe<Scalars['Int']['output']>;
-};
-
-export type RetentionRule = {
-  __typename?: 'RetentionRule';
-  action?: Maybe<Scalars['String']['output']>;
-  disabled?: Maybe<Scalars['Boolean']['output']>;
-  id?: Maybe<Scalars['Int']['output']>;
-  params?: Maybe<Scalars['JSON']['output']>;
-  priority?: Maybe<Scalars['Int']['output']>;
-  scopeSelectors?: Maybe<Scalars['JSON']['output']>;
-  tagSelectors?: Maybe<Array<Maybe<RetentionSelector>>>;
-  template?: Maybe<Scalars['String']['output']>;
-};
-
-/** the tag retention rule metadata */
-export type RetentionRuleMetadata = {
-  __typename?: 'RetentionRuleMetadata';
-  /** rule action */
-  action?: Maybe<Scalars['String']['output']>;
-  /** rule display text */
-  displayText?: Maybe<Scalars['String']['output']>;
-  /** rule params */
-  params?: Maybe<Array<Maybe<RetentionRuleParamMetadata>>>;
-  /** rule id */
-  ruleTemplate?: Maybe<Scalars['String']['output']>;
-};
-
-/** rule param */
-export type RetentionRuleParamMetadata = {
-  __typename?: 'RetentionRuleParamMetadata';
-  required?: Maybe<Scalars['Boolean']['output']>;
-  type?: Maybe<Scalars['String']['output']>;
-  unit?: Maybe<Scalars['String']['output']>;
-};
-
-export type RetentionRuleTrigger = {
-  __typename?: 'RetentionRuleTrigger';
-  kind?: Maybe<Scalars['String']['output']>;
-  references?: Maybe<Scalars['JSON']['output']>;
-  settings?: Maybe<Scalars['JSON']['output']>;
-};
-
-export type RetentionSelector = {
-  __typename?: 'RetentionSelector';
-  decoration?: Maybe<Scalars['String']['output']>;
-  extras?: Maybe<Scalars['String']['output']>;
-  kind?: Maybe<Scalars['String']['output']>;
-  pattern?: Maybe<Scalars['String']['output']>;
-};
-
-/** retention selector */
-export type RetentionSelectorMetadata = {
-  __typename?: 'RetentionSelectorMetadata';
-  decorations?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  displayText?: Maybe<Scalars['String']['output']>;
-  kind?: Maybe<Scalars['String']['output']>;
-};
-
-export type Robot = {
-  __typename?: 'Robot';
-  /** The creation time of the robot. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The description of the robot */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The disable status of the robot */
-  disable?: Maybe<Scalars['Boolean']['output']>;
-  /** The duration of the robot in days */
-  duration?: Maybe<Scalars['BigInt']['output']>;
-  /** The editable status of the robot */
-  editable?: Maybe<Scalars['Boolean']['output']>;
-  /** The expiration data of the robot */
-  expiresAt?: Maybe<Scalars['BigInt']['output']>;
-  /** The ID of the robot */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The level of the robot, project or system */
-  level?: Maybe<Scalars['String']['output']>;
-  /** The name of the tag */
-  name?: Maybe<Scalars['String']['output']>;
-  permissions?: Maybe<Array<Maybe<RobotPermission>>>;
-  /** The secret of the robot */
-  secret?: Maybe<Scalars['String']['output']>;
-  /** The update time of the robot. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The request for robot account creation. */
-export type RobotCreateInput = {
-  /** The description of the robot */
-  description?: InputMaybe<Scalars['String']['input']>;
-  /** The disable status of the robot */
-  disable?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The duration of the robot in days */
-  duration?: InputMaybe<Scalars['BigInt']['input']>;
-  /** The level of the robot, project or system */
-  level?: InputMaybe<Scalars['String']['input']>;
-  /** The name of the tag */
-  name?: InputMaybe<Scalars['String']['input']>;
-  permissions?: InputMaybe<Array<InputMaybe<RobotPermissionInput>>>;
-  /** The secret of the robot */
-  secret?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type RobotCreateV1Input = {
-  /** The permission of robot account */
-  access?: InputMaybe<Array<InputMaybe<Access2Input>>>;
-  /** The description of robot account */
-  description?: InputMaybe<Scalars['String']['input']>;
-  /** The expiration time on or after which the JWT MUST NOT be accepted for processing. */
-  expiresAt?: InputMaybe<Scalars['Int']['input']>;
-  /** The name of robot account */
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** The response for robot account creation. */
-export type RobotCreated = {
-  __typename?: 'RobotCreated';
-  /** The creation time of the robot. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The expiration data of the robot */
-  expiresAt?: Maybe<Scalars['BigInt']['output']>;
-  /** The ID of the robot */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The name of the tag */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The secret of the robot */
-  secret?: Maybe<Scalars['String']['output']>;
-};
-
-export type RobotPermission = {
-  __typename?: 'RobotPermission';
-  access?: Maybe<Array<Maybe<Access2>>>;
-  /** The kind of the permission */
-  kind?: Maybe<Scalars['String']['output']>;
-  /** The namespace of the permission */
-  namespace?: Maybe<Scalars['String']['output']>;
-};
-
-export type RobotPermissionInput = {
-  access?: InputMaybe<Array<InputMaybe<Access2Input>>>;
-  /** The kind of the permission */
-  kind?: InputMaybe<Scalars['String']['input']>;
-  /** The namespace of the permission */
-  namespace?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** The response for refresh/update robot account secret. */
-export type RobotSec = {
-  __typename?: 'RobotSec';
-  /** The secret of the robot */
-  secret?: Maybe<Scalars['String']['output']>;
-};
-
-/** The response for refresh/update robot account secret. */
-export type RobotSecInput = {
-  /** The secret of the robot */
-  secret?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum Role {
@@ -4518,224 +2378,48 @@ export type SandboxNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type ScanAllPolicy = {
-  __typename?: 'ScanAllPolicy';
-  /** The parameters of the policy, the values are dependent on the type of the policy. */
-  parameter?: Maybe<Parameter>;
-  /** The type of scan all policy, currently the valid values are "none" and "daily" */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-/** The replication execution */
-export type ScanDataExportExecution = {
-  __typename?: 'ScanDataExportExecution';
-  /** The end time */
-  endTime?: Maybe<Scalars['String']['output']>;
-  /** Indicates whether the export artifact is present in registry */
-  filePresent?: Maybe<Scalars['Boolean']['output']>;
-  /** The ID of the execution */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The start time */
-  startTime?: Maybe<Scalars['String']['output']>;
-  /** The status of the execution */
-  status?: Maybe<Scalars['String']['output']>;
-  /** The status text */
-  statusText?: Maybe<Scalars['String']['output']>;
-  /** The trigger mode */
-  trigger?: Maybe<Scalars['String']['output']>;
-  /** The ID if the user triggering the export job */
-  userId?: Maybe<Scalars['Int']['output']>;
-  /** The name of the user triggering the job */
-  userName?: Maybe<Scalars['String']['output']>;
-};
-
-/** The list of scan data export executions */
-export type ScanDataExportExecutionList = {
-  __typename?: 'ScanDataExportExecutionList';
-  /** The list of scan data export executions */
-  items?: Maybe<Array<Maybe<ScanDataExportExecution>>>;
-};
-
-/** The metadata associated with the scan data export job */
-export type ScanDataExportJob = {
-  __typename?: 'ScanDataExportJob';
-  /** The id of the scan data export job */
-  id?: Maybe<Scalars['BigInt']['output']>;
-};
-
-/** The criteria to select the scan data to export. */
-export type ScanDataExportRequestInput = {
-  /** CVE-IDs for which to export data. Multiple CVE-IDs can be specified by separating using ',' and enclosed between '{}'. Defaults to all if empty */
-  cveIds?: InputMaybe<Scalars['String']['input']>;
-  /** Name of the scan data export job */
-  jobName?: InputMaybe<Scalars['String']['input']>;
-  /** A list of one or more labels for which to export the scan data, defaults to all if empty */
-  labels?: InputMaybe<Array<InputMaybe<Scalars['BigInt']['input']>>>;
-  /** A list of one or more projects for which to export the scan data, currently only one project is supported due to performance concerns, but define as array for extension in the future. */
-  projects?: InputMaybe<Array<InputMaybe<Scalars['BigInt']['input']>>>;
-  /** A list of repositories for which to export the scan data, defaults to all if empty */
-  repositories?: InputMaybe<Scalars['String']['input']>;
-  /** A list of tags enclosed within '{}'. Defaults to all if empty */
-  tags?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type Scanner = {
-  __typename?: 'Scanner';
-  /** Name of the scanner */
-  name?: Maybe<Scalars['String']['output']>;
-  /** Name of the scanner provider */
-  vendor?: Maybe<Scalars['String']['output']>;
-  /** Version of the scanner adapter */
-  version?: Maybe<Scalars['String']['output']>;
-};
-
-/** The metadata info of the scanner adapter */
-export type ScannerAdapterMetadata = {
-  __typename?: 'ScannerAdapterMetadata';
-  capabilities?: Maybe<Array<Maybe<ScannerCapability>>>;
-  properties?: Maybe<Scalars['JSON']['output']>;
-  scanner?: Maybe<Scanner>;
-};
-
-export type ScannerCapability = {
-  __typename?: 'ScannerCapability';
-  consumesMimeTypes?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  producesMimeTypes?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-};
-
-/**
- * Registration represents a named configuration for invoking a scanner via its adapter.
- *
- */
-export type ScannerRegistration = {
-  __typename?: 'ScannerRegistration';
+/** The reference of the Shared Volume this Mount Info is related to. */
+export type SharedVolume = {
+  __typename?: 'SharedVolume';
+  /** The name of the resource to be referenced. */
+  name: Scalars['String']['output'];
   /**
-   * An optional value of the HTTP Authorization header sent with each request to the Scanner Adapter API.
-   *
+   * The namespace containing the resource to be referenced. It should be left
+   * empty in case of cluster-wide resources.
    */
-  accessCredential?: Maybe<Scalars['String']['output']>;
-  /** Optional property to describe the name of the scanner registration */
-  adapter?: Maybe<Scalars['String']['output']>;
+  namespace?: Maybe<Scalars['String']['output']>;
+};
+
+/** The reference of the Shared Volume this Mount Info is related to. */
+export type SharedVolumeInput = {
+  /** The name of the resource to be referenced. */
+  name: Scalars['String']['input'];
   /**
-   * Specify what authentication approach is adopted for the HTTP communications.
-   * Supported types Basic", "Bearer" and api key header "X-ScannerAdapter-API-Key"
-   *
+   * The namespace containing the resource to be referenced. It should be left
+   * empty in case of cluster-wide resources.
    */
-  auth?: Maybe<Scalars['String']['output']>;
-  /** The creation time of this registration */
-  createTime?: Maybe<Scalars['String']['output']>;
-  /** An optional description of this registration. */
-  description?: Maybe<Scalars['String']['output']>;
-  /** Indicate whether the registration is enabled or not */
-  disabled?: Maybe<Scalars['Boolean']['output']>;
-  /** Indicate the healthy of the registration */
-  health?: Maybe<Scalars['String']['output']>;
-  /** Indicate if the registration is set as the system default one */
-  isDefault?: Maybe<Scalars['Boolean']['output']>;
-  /** The name of this registration. */
-  name?: Maybe<Scalars['String']['output']>;
-  /** Indicate if skip the certificate verification when sending HTTP requests */
-  skipCertVerify?: Maybe<Scalars['Boolean']['output']>;
-  /** The update time of this registration */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  /** A base URL of the scanner adapter */
-  url?: Maybe<Scalars['String']['output']>;
-  /** Indicate whether use internal registry addr for the scanner to pull content or not */
-  useInternalAddr?: Maybe<Scalars['Boolean']['output']>;
-  /** The unique identifier of this registration. */
-  uuid?: Maybe<Scalars['String']['output']>;
-  /** Optional property to describe the vendor of the scanner registration */
-  vendor?: Maybe<Scalars['String']['output']>;
-  /** Optional property to describe the version of the scanner registration */
-  version?: Maybe<Scalars['String']['output']>;
+  namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type Schedule = {
-  __typename?: 'Schedule';
-  /** the creation time of the schedule. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The id of the schedule. */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The parameters of schedule job */
-  parameters?: Maybe<Scalars['JSON']['output']>;
-  schedule?: Maybe<ScheduleObj>;
-  /** The status of the schedule. */
-  status?: Maybe<Scalars['String']['output']>;
-  /** the update time of the schedule. */
-  updateTime?: Maybe<Scalars['String']['output']>;
+/** SharedVolumeMountInfo contains mount information for a Shared Volume. */
+export type SharedVolumeMountsListItem = {
+  __typename?: 'SharedVolumeMountsListItem';
+  /** The path the Shared Volume will be mounted in. */
+  mountPath: Scalars['String']['output'];
+  /** Whether this Shared Volume should be mounted with R/W or R/O permission. */
+  readOnly: Scalars['Boolean']['output'];
+  /** The reference of the Shared Volume this Mount Info is related to. */
+  sharedVolume: SharedVolume;
 };
 
-export type ScheduleObj = {
-  __typename?: 'ScheduleObj';
-  /** A cron expression, a time-based job scheduler. */
-  cron?: Maybe<Scalars['String']['output']>;
-  /** The next time to schedule to run the job. */
-  nextScheduledTime?: Maybe<Scalars['String']['output']>;
-  /**
-   * The schedule type. The valid values are 'Hourly', 'Daily', 'Weekly', 'Custom', 'Manual' and 'None'.
-   * 'Manual' means to trigger it right away and 'None' means to cancel the schedule.
-   *
-   */
-  type?: Maybe<Type>;
-};
-
-/** the schedule task info */
-export type ScheduleTask = {
-  __typename?: 'ScheduleTask';
-  /** the cron of the current schedule task */
-  cron?: Maybe<Scalars['String']['output']>;
-  /** the id of the Schedule task */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** the update time of the schedule task */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  /** the vendor id of the current task */
-  vendorId?: Maybe<Scalars['Int']['output']>;
-  /** the vendor type of the current schedule task */
-  vendorType?: Maybe<Scalars['String']['output']>;
-};
-
-/** the scheduler status */
-export type SchedulerStatus = {
-  __typename?: 'SchedulerStatus';
-  /** if the scheduler is paused */
-  paused?: Maybe<Scalars['Boolean']['output']>;
-};
-
-export type Search = {
-  __typename?: 'Search';
-  /** Search results of the charts that macthed the filter keywords. */
-  chart?: Maybe<Array<Maybe<SearchResult>>>;
-  /** Search results of the projects that matched the filter keywords. */
-  project?: Maybe<Array<Maybe<Project2>>>;
-  /** Search results of the repositories that matched the filter keywords. */
-  repository?: Maybe<Array<Maybe<SearchRepository>>>;
-};
-
-export type SearchRepository = {
-  __typename?: 'SearchRepository';
-  /** The count of artifacts in the repository */
-  artifactCount?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the project that the repository belongs to */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  /** The name of the project that the repository belongs to */
-  projectName?: Maybe<Scalars['String']['output']>;
-  /** The flag to indicate the publicity of the project that the repository belongs to (1 is public, 0 is not) */
-  projectPublic?: Maybe<Scalars['Boolean']['output']>;
-  /** The count how many times the repository is pulled */
-  pullCount?: Maybe<Scalars['Int']['output']>;
-  /** The name of the repository */
-  repositoryName?: Maybe<Scalars['String']['output']>;
-};
-
-/** The chart search result item */
-export type SearchResult = {
-  __typename?: 'SearchResult';
-  /** A specified chart entry */
-  chart?: Maybe<ChartVersion>;
-  /** The chart name with repo name */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The matched level */
-  score?: Maybe<Scalars['Int']['output']>;
+/** SharedVolumeMountInfo contains mount information for a Shared Volume. */
+export type SharedVolumeMountsListItemInput = {
+  /** The path the Shared Volume will be mounted in. */
+  mountPath: Scalars['String']['input'];
+  /** Whether this Shared Volume should be mounted with R/W or R/O permission. */
+  readOnly: Scalars['Boolean']['input'];
+  /** The reference of the Shared Volume this Mount Info is related to. */
+  sharedVolume: SharedVolumeInput;
 };
 
 /** ImageListSpec is the specification of the desired state of the ImageList. */
@@ -4832,10 +2516,32 @@ export type Spec4Input = {
   instanceRef: InstanceRefInput;
 };
 
-/** TemplateSpec is the specification of the desired state of the Template. */
+/** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
 export type Spec5 = {
   __typename?: 'Spec5';
-  /** The maximum lifetime of an Instance referencing the current Template. Once this period is expired, the Instance may be automatically deleted or stopped to save resources. If set to "never", the instance will not be automatically terminated. */
+  /** The human-readable name of the Shared Volume. */
+  prettyName: Scalars['String']['output'];
+  /** The size of the volume. */
+  size: Scalars['JSON']['output'];
+};
+
+/** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
+export type Spec5Input = {
+  /** The human-readable name of the Shared Volume. */
+  prettyName: Scalars['String']['input'];
+  /** The size of the volume. */
+  size: Scalars['JSON']['input'];
+};
+
+/** TemplateSpec is the specification of the desired state of the Template. */
+export type Spec6 = {
+  __typename?: 'Spec6';
+  /**
+   * The maximum lifetime of an Instance referencing the current Template.
+   * Once this period is expired, the Instance may be automatically deleted
+   * or stopped to save resources. If set to "never", the instance will not be
+   * automatically terminated.
+   */
   deleteAfter?: Maybe<Scalars['String']['output']>;
   /** A textual description of the Template. */
   description: Scalars['String']['output'];
@@ -4848,8 +2554,13 @@ export type Spec5 = {
 };
 
 /** TemplateSpec is the specification of the desired state of the Template. */
-export type Spec5Input = {
-  /** The maximum lifetime of an Instance referencing the current Template. Once this period is expired, the Instance may be automatically deleted or stopped to save resources. If set to "never", the instance will not be automatically terminated. */
+export type Spec6Input = {
+  /**
+   * The maximum lifetime of an Instance referencing the current Template.
+   * Once this period is expired, the Instance may be automatically deleted
+   * or stopped to save resources. If set to "never", the instance will not be
+   * automatically terminated.
+   */
   deleteAfter?: InputMaybe<Scalars['String']['input']>;
   /** A textual description of the Template. */
   description: Scalars['String']['input'];
@@ -4862,8 +2573,8 @@ export type Spec5Input = {
 };
 
 /** TenantSpec is the specification of the desired state of the Tenant. */
-export type Spec6 = {
-  __typename?: 'Spec6';
+export type Spec7 = {
+  __typename?: 'Spec7';
   /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
   createSandbox?: Maybe<Scalars['Boolean']['output']>;
   /** The email associated with the Tenant, which will be used to log-in into the system. */
@@ -4883,7 +2594,7 @@ export type Spec6 = {
 };
 
 /** TenantSpec is the specification of the desired state of the Tenant. */
-export type Spec6Input = {
+export type Spec7Input = {
   /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
   createSandbox?: InputMaybe<Scalars['Boolean']['input']>;
   /** The email associated with the Tenant, which will be used to log-in into the system. */
@@ -4908,39 +2619,6 @@ export type SpecInput = {
   images: Array<InputMaybe<ImagesListItemInput>>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['input'];
-};
-
-export type Statistic = {
-  __typename?: 'Statistic';
-  /** The count of the private projects */
-  privateProjectCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The count of the private repositories */
-  privateRepoCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The count of the public projects */
-  publicProjectCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The count of the public repositories */
-  publicRepoCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The count of the total projects, only be seen by the system admin */
-  totalProjectCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The count of the total repositories, only be seen by the system admin */
-  totalRepoCount?: Maybe<Scalars['BigInt']['output']>;
-  /** The total storage consumption of blobs, only be seen by the system admin */
-  totalStorageConsumption?: Maybe<Scalars['BigInt']['output']>;
-};
-
-/** Stats provides the overall progress of the scan all process. */
-export type Stats = {
-  __typename?: 'Stats';
-  /** The number of the finished scan processes triggered by the scan all action */
-  completed?: Maybe<Scalars['Int']['output']>;
-  /** The metrics data for the each status */
-  metrics?: Maybe<Scalars['JSON']['output']>;
-  /** A flag indicating job status of scan all. */
-  ongoing?: Maybe<Scalars['Boolean']['output']>;
-  /** The total number of scan processes triggered by the scan all action */
-  total?: Maybe<Scalars['Int']['output']>;
-  /** The trigger of the scan all job. */
-  trigger?: Maybe<Trigger>;
 };
 
 /** WorkspaceStatus reflects the most recently observed status of the Workspace. */
@@ -5010,9 +2688,30 @@ export type Status4Input = {
   phase: Phase2;
 };
 
+/** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
+export type Status5 = {
+  __typename?: 'Status5';
+  /** The NFS path. */
+  exportPath?: Maybe<Scalars['String']['output']>;
+  /** The current phase of the lifecycle of the Shared Volume. */
+  phase?: Maybe<Phase3>;
+  /** The NFS server address. */
+  serverAddress?: Maybe<Scalars['String']['output']>;
+};
+
+/** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
+export type Status5Input = {
+  /** The NFS path. */
+  exportPath?: InputMaybe<Scalars['String']['input']>;
+  /** The current phase of the lifecycle of the Shared Volume. */
+  phase?: InputMaybe<Phase3>;
+  /** The NFS server address. */
+  serverAddress?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** TenantStatus reflects the most recently observed status of the Tenant. */
-export type Status6 = {
-  __typename?: 'Status6';
+export type Status7 = {
+  __typename?: 'Status7';
   /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
   failingWorkspaces: Array<Maybe<Scalars['String']['output']>>;
   /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
@@ -5028,7 +2727,7 @@ export type Status6 = {
 };
 
 /** TenantStatus reflects the most recently observed status of the Tenant. */
-export type Status6Input = {
+export type Status7Input = {
   /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
   failingWorkspaces: Array<InputMaybe<Scalars['String']['input']>>;
   /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
@@ -5041,22 +2740,6 @@ export type Status6Input = {
   sandboxNamespace: SandboxNamespaceInput;
   /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
   subscriptions: Scalars['JSON']['input'];
-};
-
-export type Storage2 = {
-  __typename?: 'Storage2';
-  /** Free volume size. */
-  free?: Maybe<Scalars['Int']['output']>;
-  /** Total volume size. */
-  total?: Maybe<Scalars['Int']['output']>;
-};
-
-export type StringConfigItem = {
-  __typename?: 'StringConfigItem';
-  /** The configure item can be updated or not */
-  editable?: Maybe<Scalars['Boolean']['output']>;
-  /** The string value of current config item */
-  value?: Maybe<Scalars['String']['output']>;
 };
 
 export type Subscription = {
@@ -5111,62 +2794,6 @@ export type SubscriptionItPolitoCrownlabsV1alpha2TenantUpdateArgs = {
   namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Supportted webhook event types and notify types. */
-export type SupportedWebhookEventTypes = {
-  __typename?: 'SupportedWebhookEventTypes';
-  eventType?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  notifyType?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-};
-
-export type SystemInfo = {
-  __typename?: 'SystemInfo';
-  /** The storage of system. */
-  storage?: Maybe<Array<Maybe<Storage2>>>;
-};
-
-export type Tag = {
-  __typename?: 'Tag';
-  /** The ID of the artifact that the tag attached to */
-  artifactId?: Maybe<Scalars['BigInt']['output']>;
-  /** The ID of the tag */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The immutable status of the tag */
-  immutable?: Maybe<Scalars['Boolean']['output']>;
-  /** The name of the tag */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The latest pull time of the tag */
-  pullTime?: Maybe<Scalars['String']['output']>;
-  /** The push time of the tag */
-  pushTime?: Maybe<Scalars['String']['output']>;
-  /** The ID of the repository that the tag belongs to */
-  repositoryId?: Maybe<Scalars['BigInt']['output']>;
-  /** The attribute indicates whether the tag is signed or not */
-  signed?: Maybe<Scalars['Boolean']['output']>;
-};
-
-export type Task = {
-  __typename?: 'Task';
-  /** The creation time of task */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The end time of task */
-  endTime?: Maybe<Scalars['String']['output']>;
-  /** The ID of task execution */
-  executionId?: Maybe<Scalars['Int']['output']>;
-  extraAttrs?: Maybe<Scalars['JSON']['output']>;
-  /** The ID of task */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The count of task run */
-  runCount?: Maybe<Scalars['Int']['output']>;
-  /** The start time of task */
-  startTime?: Maybe<Scalars['String']['output']>;
-  /** The status of task */
-  status?: Maybe<Scalars['String']['output']>;
-  /** The status message of task */
-  statusMessage?: Maybe<Scalars['String']['output']>;
-  /** The update time of task */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
 /** The reference to the Template to be instantiated. */
 export type TemplateCrownlabsPolitoItTemplateRef = {
   __typename?: 'TemplateCrownlabsPolitoItTemplateRef';
@@ -5213,187 +2840,21 @@ export type TenantV1alpha2Wrapper = {
   itPolitoCrownlabsV1alpha2Tenant?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
 };
 
-export enum Trigger {
-  Event = 'EVENT',
-  Manual = 'MANUAL',
-  Schedule = 'SCHEDULE'
-}
-
-export enum Type {
-  Custom = 'CUSTOM',
-  Daily = 'DAILY',
-  Hourly = 'HOURLY',
-  Manual = 'MANUAL',
-  None = 'NONE',
-  Weekly = 'WEEKLY'
-}
-
 export enum UpdateType {
   Added = 'ADDED',
   Deleted = 'DELETED',
   Modified = 'MODIFIED'
 }
 
-export type UserGroup = {
-  __typename?: 'UserGroup';
-  /** The name of the user group */
-  groupName?: Maybe<Scalars['String']['output']>;
-  /** The group type, 1 for LDAP group, 2 for HTTP group, 3 for OIDC group. */
-  groupType?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the user group */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The DN of the LDAP group if group type is 1 (LDAP group). */
-  ldapGroupDn?: Maybe<Scalars['String']['output']>;
-};
-
-export type UserGroupSearchItem = {
-  __typename?: 'UserGroupSearchItem';
-  /** The name of the user group */
-  groupName?: Maybe<Scalars['String']['output']>;
-  /** The group type, 1 for LDAP group, 2 for HTTP group, 3 for OIDC group. */
-  groupType?: Maybe<Scalars['Int']['output']>;
-  /** The ID of the user group */
-  id?: Maybe<Scalars['Int']['output']>;
-};
-
-export type UserResp = {
-  __typename?: 'UserResp';
-  /** indicate the admin privilege is grant by authenticator (LDAP), is always false unless it is the current login user */
-  adminRoleInAuth?: Maybe<Scalars['Boolean']['output']>;
-  comment?: Maybe<Scalars['String']['output']>;
-  /** The creation time of the user. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  email?: Maybe<Scalars['String']['output']>;
-  oidcUserMeta?: Maybe<OidcUserInfo>;
-  realname?: Maybe<Scalars['String']['output']>;
-  sysadminFlag?: Maybe<Scalars['Boolean']['output']>;
-  /** The update time of the user. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-  userId?: Maybe<Scalars['Int']['output']>;
-  username?: Maybe<Scalars['String']['output']>;
-};
-
-export type UserSearchRespItem = {
-  __typename?: 'UserSearchRespItem';
-  /** The ID of the user. */
-  userId?: Maybe<Scalars['Int']['output']>;
-  username?: Maybe<Scalars['String']['output']>;
-};
-
-/** The webhook job. */
-export type WebhookJob = {
-  __typename?: 'WebhookJob';
-  /** The webhook job creation time. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The webhook job event type. */
-  eventType?: Maybe<Scalars['String']['output']>;
-  /** The webhook job ID. */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The webhook job notify detailed data. */
-  jobDetail?: Maybe<Scalars['String']['output']>;
-  /** The webhook job notify type. */
-  notifyType?: Maybe<Scalars['String']['output']>;
-  /** The webhook policy ID. */
-  policyId?: Maybe<Scalars['BigInt']['output']>;
-  /** The webhook job status. */
-  status?: Maybe<Scalars['String']['output']>;
-  /** The webhook job update time. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The webhook policy and last trigger time group by event type. */
-export type WebhookLastTrigger = {
-  __typename?: 'WebhookLastTrigger';
-  /** The creation time of webhook policy. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** Whether or not the webhook policy enabled. */
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  /** The webhook event type. */
-  eventType?: Maybe<Scalars['String']['output']>;
-  /** The last trigger time of webhook policy. */
-  lastTriggerTime?: Maybe<Scalars['String']['output']>;
-  /** The webhook policy name. */
-  policyName?: Maybe<Scalars['String']['output']>;
-};
-
-/** The webhook policy object */
-export type WebhookPolicy = {
-  __typename?: 'WebhookPolicy';
-  /** The create time of the webhook policy. */
-  creationTime?: Maybe<Scalars['String']['output']>;
-  /** The creator of the webhook policy. */
-  creator?: Maybe<Scalars['String']['output']>;
-  /** The description of webhook policy. */
-  description?: Maybe<Scalars['String']['output']>;
-  /** Whether the webhook policy is enabled or not. */
-  enabled?: Maybe<Scalars['Boolean']['output']>;
-  eventTypes?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
-  /** The webhook policy ID. */
-  id?: Maybe<Scalars['BigInt']['output']>;
-  /** The name of webhook policy. */
-  name?: Maybe<Scalars['String']['output']>;
-  /** The project ID of webhook policy. */
-  projectId?: Maybe<Scalars['Int']['output']>;
-  targets?: Maybe<Array<Maybe<WebhookTargetObject>>>;
-  /** The update time of the webhook policy. */
-  updateTime?: Maybe<Scalars['String']['output']>;
-};
-
-/** The webhook policy target object. */
-export type WebhookTargetObject = {
-  __typename?: 'WebhookTargetObject';
-  /** The webhook target address. */
-  address?: Maybe<Scalars['String']['output']>;
-  /** The webhook auth header. */
-  authHeader?: Maybe<Scalars['String']['output']>;
-  /** Whether or not to skip cert verify. */
-  skipCertVerify?: Maybe<Scalars['Boolean']['output']>;
-  /** The webhook target notify type. */
-  type?: Maybe<Scalars['String']['output']>;
-};
-
-/** worker in the pool */
-export type Worker = {
-  __typename?: 'Worker';
-  /** the checkin of the running job in the worker */
-  checkIn?: Maybe<Scalars['String']['output']>;
-  /** The checkin time of the worker */
-  checkinAt?: Maybe<Scalars['String']['output']>;
-  /** the id of the worker */
-  id?: Maybe<Scalars['String']['output']>;
-  /** the id of the running job in the worker */
-  jobId?: Maybe<Scalars['String']['output']>;
-  /** the name of the running job in the worker */
-  jobName?: Maybe<Scalars['String']['output']>;
-  /** the id of the worker pool */
-  poolId?: Maybe<Scalars['String']['output']>;
-  /** The start time of the worker */
-  startAt?: Maybe<Scalars['String']['output']>;
-};
-
-/** the worker pool of job service */
-export type WorkerPool = {
-  __typename?: 'WorkerPool';
-  /** The concurrency of the work pool */
-  concurrency?: Maybe<Scalars['Int']['output']>;
-  /** The heartbeat time of the work pool */
-  heartbeatAt?: Maybe<Scalars['String']['output']>;
-  /** The host of the work pool */
-  host?: Maybe<Scalars['String']['output']>;
-  /** the process id of jobservice */
-  pid?: Maybe<Scalars['Int']['output']>;
-  /** The start time of the work pool */
-  startAt?: Maybe<Scalars['String']['output']>;
-  /** the id of the worker pool */
-  workerPoolId?: Maybe<Scalars['String']['output']>;
-};
-
 /** The reference to the Workspace this Template belongs to. */
 export type WorkspaceCrownlabsPolitoItWorkspaceRef = {
   __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef';
   /** The name of the resource to be referenced. */
   name: Scalars['String']['output'];
-  /** The namespace containing the resource to be referenced. It should be left empty in case of cluster-wide resources. */
+  /**
+   * The namespace containing the resource to be referenced. It should be left
+   * empty in case of cluster-wide resources.
+   */
   namespace?: Maybe<Scalars['String']['output']>;
 };
 
@@ -5401,7 +2862,10 @@ export type WorkspaceCrownlabsPolitoItWorkspaceRef = {
 export type WorkspaceCrownlabsPolitoItWorkspaceRefInput = {
   /** The name of the resource to be referenced. */
   name: Scalars['String']['input'];
-  /** The namespace containing the resource to be referenced. It should be left empty in case of cluster-wide resources. */
+  /**
+   * The namespace containing the resource to be referenced. It should be left
+   * empty in case of cluster-wide resources.
+   */
   namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -5438,6 +2902,16 @@ export type ApplyInstanceMutationVariables = Exact<{
 
 export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null } | null } | null };
 
+export type ApplySharedVolumeMutationVariables = Exact<{
+  workspaceNamespace: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  patchJson: Scalars['String']['input'];
+  manager: Scalars['String']['input'];
+}>;
+
+
+export type ApplySharedVolumeMutation = { __typename?: 'Mutation', applySharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, status?: { __typename?: 'Status5', phase?: Phase3 | null } | null } | null };
+
 export type ApplyTemplateMutationVariables = Exact<{
   templateId: Scalars['String']['input'];
   workspaceNamespace: Scalars['String']['input'];
@@ -5446,7 +2920,7 @@ export type ApplyTemplateMutationVariables = Exact<{
 }>;
 
 
-export type ApplyTemplateMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', description: string, name: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', id?: string | null } | null } | null };
+export type ApplyTemplateMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', description: string, name: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', id?: string | null } | null } | null };
 
 export type ApplyTenantMutationVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -5455,7 +2929,7 @@ export type ApplyTenantMutationVariables = Exact<{
 }>;
 
 
-export type ApplyTenantMutation = { __typename?: 'Mutation', applyTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec6', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
+export type ApplyTenantMutation = { __typename?: 'Mutation', applyTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
 
 export type CreateInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -5466,7 +2940,17 @@ export type CreateInstanceMutationVariables = Exact<{
 }>;
 
 
-export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null };
+export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null };
+
+export type CreateSharedVolumeMutationVariables = Exact<{
+  workspaceNamespace: Scalars['String']['input'];
+  prettyName: Scalars['String']['input'];
+  size: Scalars['JSON']['input'];
+  generateName?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type CreateSharedVolumeMutation = { __typename?: 'Mutation', createdSharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase3 | null } | null } | null };
 
 export type CreateTemplateMutationVariables = Exact<{
   workspaceId: Scalars['String']['input'];
@@ -5480,10 +2964,11 @@ export type CreateTemplateMutationVariables = Exact<{
   resources: ResourcesInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
   environmentType: EnvironmentType;
+  sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
 }>;
 
 
-export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
 export type DeleteInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -5500,6 +2985,14 @@ export type DeleteLabelSelectorInstancesMutationVariables = Exact<{
 
 
 export type DeleteLabelSelectorInstancesMutation = { __typename?: 'Mutation', deleteLabelSelectorInstances?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
+
+export type DeleteSharedVolumeMutationVariables = Exact<{
+  workspaceNamespace: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+}>;
+
+
+export type DeleteSharedVolumeMutation = { __typename?: 'Mutation', deleteCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
 
 export type DeleteTemplateMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -5519,28 +3012,35 @@ export type OwnedInstancesQueryVariables = Exact<{
 }>;
 
 
-export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type InstancesLabelSelectorQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec6', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+
+export type WorkspaceSharedVolumesQueryVariables = Exact<{
+  workspaceNamespace: Scalars['String']['input'];
+}>;
+
+
+export type WorkspaceSharedVolumesQuery = { __typename?: 'Query', sharedvolumeList?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList', sharedvolumes: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase3 | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type WorkspaceTemplatesQueryVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
 }>;
 
 
-export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec6', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status6', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null };
+export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null };
 
 export type TenantsQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -5548,7 +3048,7 @@ export type TenantsQueryVariables = Exact<{
 }>;
 
 
-export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec6', firstName: string, lastName: string, email: string, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
+export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
 
 export type WorkspacesQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -5563,14 +3063,14 @@ export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null } | null };
+export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null } | null };
 
 export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec6', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null } | null };
+export type UpdatedInstancesLabelSelectorSubscription = { __typename?: 'Subscription', updateInstanceLabelSelector?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase | null, url?: string | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null } | null };
 
 export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -5578,14 +3078,14 @@ export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: UpdateType | null, template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec5', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null } | null };
+export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: UpdateType | null, template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null } | null };
 
 export type UpdatedTenantSubscriptionVariables = Exact<{
   tenantId: Scalars['String']['input'];
 }>;
 
 
-export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec6', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status6', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null } | null };
+export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null } | null };
 
 
 export const ApplyInstanceDocument = gql`
@@ -5633,6 +3133,58 @@ export function useApplyInstanceMutation(baseOptions?: Apollo.MutationHookOption
 export type ApplyInstanceMutationHookResult = ReturnType<typeof useApplyInstanceMutation>;
 export type ApplyInstanceMutationResult = Apollo.MutationResult<ApplyInstanceMutation>;
 export type ApplyInstanceMutationOptions = Apollo.BaseMutationOptions<ApplyInstanceMutation, ApplyInstanceMutationVariables>;
+export const ApplySharedVolumeDocument = gql`
+    mutation applySharedVolume($workspaceNamespace: String!, $name: String!, $patchJson: String!, $manager: String!) {
+  applySharedVolume: patchCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    namespace: $workspaceNamespace
+    name: $name
+    force: true
+    fieldManager: $manager
+    applicationApplyPatchYamlInput: $patchJson
+  ) {
+    spec {
+      prettyName
+      size
+    }
+    metadata {
+      name
+      namespace
+    }
+    status {
+      phase
+    }
+  }
+}
+    `;
+export type ApplySharedVolumeMutationFn = Apollo.MutationFunction<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>;
+
+/**
+ * __useApplySharedVolumeMutation__
+ *
+ * To run a mutation, you first call `useApplySharedVolumeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplySharedVolumeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applySharedVolumeMutation, { data, loading, error }] = useApplySharedVolumeMutation({
+ *   variables: {
+ *      workspaceNamespace: // value for 'workspaceNamespace'
+ *      name: // value for 'name'
+ *      patchJson: // value for 'patchJson'
+ *      manager: // value for 'manager'
+ *   },
+ * });
+ */
+export function useApplySharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>(ApplySharedVolumeDocument, options);
+      }
+export type ApplySharedVolumeMutationHookResult = ReturnType<typeof useApplySharedVolumeMutation>;
+export type ApplySharedVolumeMutationResult = Apollo.MutationResult<ApplySharedVolumeMutation>;
+export type ApplySharedVolumeMutationOptions = Apollo.BaseMutationOptions<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>;
 export const ApplyTemplateDocument = gql`
     mutation applyTemplate($templateId: String!, $workspaceNamespace: String!, $patchJson: String!, $manager: String!) {
   applyTemplate: patchCrownlabsPolitoItV1alpha2NamespacedTemplate(
@@ -5652,6 +3204,14 @@ export const ApplyTemplateDocument = gql`
           cpu
           disk
           memory
+        }
+        sharedVolumeMounts {
+          sharedVolume {
+            namespace
+            name
+          }
+          mountPath
+          readOnly
         }
       }
     }
@@ -5813,11 +3373,60 @@ export function useCreateInstanceMutation(baseOptions?: Apollo.MutationHookOptio
 export type CreateInstanceMutationHookResult = ReturnType<typeof useCreateInstanceMutation>;
 export type CreateInstanceMutationResult = Apollo.MutationResult<CreateInstanceMutation>;
 export type CreateInstanceMutationOptions = Apollo.BaseMutationOptions<CreateInstanceMutation, CreateInstanceMutationVariables>;
+export const CreateSharedVolumeDocument = gql`
+    mutation createSharedVolume($workspaceNamespace: String!, $prettyName: String!, $size: JSON!, $generateName: String = "shvol-") {
+  createdSharedVolume: createCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    namespace: $workspaceNamespace
+    itPolitoCrownlabsV1alpha2SharedVolumeInput: {kind: "SharedVolume", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $prettyName, size: $size}, metadata: {generateName: $generateName, namespace: $workspaceNamespace}}
+  ) {
+    metadata {
+      name
+      namespace
+    }
+    spec {
+      prettyName
+      size
+    }
+    status {
+      phase
+    }
+  }
+}
+    `;
+export type CreateSharedVolumeMutationFn = Apollo.MutationFunction<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
+
+/**
+ * __useCreateSharedVolumeMutation__
+ *
+ * To run a mutation, you first call `useCreateSharedVolumeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateSharedVolumeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createSharedVolumeMutation, { data, loading, error }] = useCreateSharedVolumeMutation({
+ *   variables: {
+ *      workspaceNamespace: // value for 'workspaceNamespace'
+ *      prettyName: // value for 'prettyName'
+ *      size: // value for 'size'
+ *      generateName: // value for 'generateName'
+ *   },
+ * });
+ */
+export function useCreateSharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>(CreateSharedVolumeDocument, options);
+      }
+export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSharedVolumeMutation>;
+export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
+export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput]) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume, sharedVolumeMounts: $sharedVolumeMounts}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName
@@ -5865,6 +3474,7 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      resources: // value for 'resources'
  *      templateId: // value for 'templateId'
  *      environmentType: // value for 'environmentType'
+ *      sharedVolumeMounts: // value for 'sharedVolumeMounts'
  *   },
  * });
  */
@@ -5949,6 +3559,43 @@ export function useDeleteLabelSelectorInstancesMutation(baseOptions?: Apollo.Mut
 export type DeleteLabelSelectorInstancesMutationHookResult = ReturnType<typeof useDeleteLabelSelectorInstancesMutation>;
 export type DeleteLabelSelectorInstancesMutationResult = Apollo.MutationResult<DeleteLabelSelectorInstancesMutation>;
 export type DeleteLabelSelectorInstancesMutationOptions = Apollo.BaseMutationOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>;
+export const DeleteSharedVolumeDocument = gql`
+    mutation deleteSharedVolume($workspaceNamespace: String!, $name: String!) {
+  deleteCrownlabsPolitoItV1alpha2NamespacedSharedVolume(
+    name: $name
+    namespace: $workspaceNamespace
+  ) {
+    kind
+  }
+}
+    `;
+export type DeleteSharedVolumeMutationFn = Apollo.MutationFunction<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>;
+
+/**
+ * __useDeleteSharedVolumeMutation__
+ *
+ * To run a mutation, you first call `useDeleteSharedVolumeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteSharedVolumeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteSharedVolumeMutation, { data, loading, error }] = useDeleteSharedVolumeMutation({
+ *   variables: {
+ *      workspaceNamespace: // value for 'workspaceNamespace'
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useDeleteSharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>(DeleteSharedVolumeDocument, options);
+      }
+export type DeleteSharedVolumeMutationHookResult = ReturnType<typeof useDeleteSharedVolumeMutation>;
+export type DeleteSharedVolumeMutationResult = Apollo.MutationResult<DeleteSharedVolumeMutation>;
+export type DeleteSharedVolumeMutationOptions = Apollo.BaseMutationOptions<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>;
 export const DeleteTemplateDocument = gql`
     mutation deleteTemplate($workspaceNamespace: String!, $templateId: String!) {
   deletedTemplate: deleteCrownlabsPolitoItV1alpha2NamespacedTemplate(
@@ -6191,6 +3838,60 @@ export type InstancesLabelSelectorQueryHookResult = ReturnType<typeof useInstanc
 export type InstancesLabelSelectorLazyQueryHookResult = ReturnType<typeof useInstancesLabelSelectorLazyQuery>;
 export type InstancesLabelSelectorSuspenseQueryHookResult = ReturnType<typeof useInstancesLabelSelectorSuspenseQuery>;
 export type InstancesLabelSelectorQueryResult = Apollo.QueryResult<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>;
+export const WorkspaceSharedVolumesDocument = gql`
+    query workspaceSharedVolumes($workspaceNamespace: String!) {
+  sharedvolumeList: itPolitoCrownlabsV1alpha2SharedVolumeList(
+    namespace: $workspaceNamespace
+  ) {
+    sharedvolumes: items {
+      spec {
+        prettyName
+        size
+      }
+      status {
+        phase
+      }
+      metadata {
+        name
+        namespace
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useWorkspaceSharedVolumesQuery__
+ *
+ * To run a query within a React component, call `useWorkspaceSharedVolumesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useWorkspaceSharedVolumesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useWorkspaceSharedVolumesQuery({
+ *   variables: {
+ *      workspaceNamespace: // value for 'workspaceNamespace'
+ *   },
+ * });
+ */
+export function useWorkspaceSharedVolumesQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables> & ({ variables: WorkspaceSharedVolumesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+      }
+export function useWorkspaceSharedVolumesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+        }
+export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+        }
+export type WorkspaceSharedVolumesQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesQuery>;
+export type WorkspaceSharedVolumesLazyQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesLazyQuery>;
+export type WorkspaceSharedVolumesSuspenseQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesSuspenseQuery>;
+export type WorkspaceSharedVolumesQueryResult = Apollo.QueryResult<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>;
 export const WorkspaceTemplatesDocument = gql`
     query workspaceTemplates($workspaceNamespace: String!) {
   templateList: itPolitoCrownlabsV1alpha2TemplateList(

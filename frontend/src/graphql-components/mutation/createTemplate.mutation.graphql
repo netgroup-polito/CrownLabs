@@ -10,6 +10,7 @@ mutation createTemplate(
   $resources: ResourcesInput!
   $templateId: String = "template-"
   $environmentType: EnvironmentType!
+  $sharedVolumeMounts: [SharedVolumeMountsListItemInput]
 ) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
@@ -28,6 +29,7 @@ mutation createTemplate(
             persistent: $persistent
             resources: $resources
             mountMyDriveVolume: $mountMyDriveVolume
+            sharedVolumeMounts: $sharedVolumeMounts
           }
         ]
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }

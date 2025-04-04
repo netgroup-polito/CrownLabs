@@ -8,6 +8,7 @@ import {
   PauseCircleOutlined,
 } from '@ant-design/icons';
 import { Phase } from '../../../../generated-types';
+import { findKeyByValue } from '../../../../utils';
 
 export interface IRowInstanceStatusProps {
   status: Phase;
@@ -52,7 +53,7 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={status || Phase.Starting}>
+      <Tooltip title={findKeyByValue(Phase, status || Phase.Starting)}>
         {statusIcon[status || Phase.Starting]}
       </Tooltip>
     </div>
