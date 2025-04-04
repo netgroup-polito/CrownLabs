@@ -1,0 +1,12 @@
+{
+    "security.workspace.trust.enabled": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.startupEditor": "none",
+    "window.menuBarVisibility": "visible",
+    "output.smartScroll.enabled": false,
+    "chat.commandCenter.enabled": false,
+    "code-runner.executorMap": {
+        "rust": "cd $dir.. && cargo run"
+    },
+    "rust-analyzer.cache.warmup": false
+}
