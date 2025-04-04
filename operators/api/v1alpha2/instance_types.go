@@ -88,6 +88,9 @@ type InstanceSpec struct {
 	// +kubebuilder:validation:Optional
 	PrettyName string `json:"prettyName"`
 
+	// Labels that are used for the selection of the node.
+	LabelSelector map[string]string `json:"labelSelector,omitempty"`
+
 	// Optional urls for advanced integration features.
 	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
 }
