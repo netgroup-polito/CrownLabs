@@ -1,7 +1,7 @@
 import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
 import Button from 'antd-button-color';
 import { approximate, convertToGB, SharedVolume } from '../../../utils';
-import { FC, useContext, useState } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import {
   useApplySharedVolumeMutation,
   useCreateSharedVolumeMutation,
@@ -75,24 +75,21 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const [intervalReload, setIntervalReload] = useState<NodeJS.Timeout>();
   const reloadSharedVolumes = async () => {
-    if (intervalReload) clearInterval(intervalReload);
-
-    let intv = setInterval(async () => {
-      let res = await refetchSharedVolumes();
-      setDataShVols(
-        res.data?.sharedvolumeList?.sharedvolumes
-          ?.map(sv => makeGuiSharedVolume(sv))
-          .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-          ) ?? []
-      );
-    }, 1500);
-    setIntervalReload(intv);
-
-    setTimeout(() => clearInterval(intv), 15000);
+    let res = await refetchSharedVolumes();
+    setDataShVols(
+      res.data?.sharedvolumeList?.sharedvolumes
+        ?.map(sv => makeGuiSharedVolume(sv))
+        .sort((a, b) =>
+          (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
+        ) ?? []
+    );
   };
+
+  useEffect(() => {
+    const reloadHandler = setInterval(reloadSharedVolumes, 5000);
+    return () => clearInterval(reloadHandler);
+  });
 
   const columns = [
     {
