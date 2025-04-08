@@ -9,22 +9,23 @@ COPY ./rust/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
 
 # Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && \
-    apt-get install -y gcc curl && \
+    apt-get install -y curl gcc bash-completion && \
     apt-get clean && \
     apt-get remove --autoremove --purge -y apt sudo --allow-remove-essential
 
-# Install extensions
+# Install extensions and setup permissions
 RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension formulahendry.code-runner && \
     code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension rust-lang.rust-analyzer && \
-    code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension vadimcn.vscode-lldb
-
-# Setup permissions
-RUN chown -R ${USER}:${USER} ${VSCODE_SRV_DIR}
+    code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension vadimcn.vscode-lldb && \
+    chown -R ${USER}:${USER} ${VSCODE_SRV_DIR}
 
 # Install Rust and create example project
 USER ${USER}
 ENV HOME=${VSCODE_SRV_DIR}
 RUN curl -sSf https://sh.rustup.rs | /bin/bash -s -- -y -v && \
+    ${RSPATH}/rustup component remove rust-docs && \
+    ${RSPATH}/rustup completions bash >> $HOME/.bashrc && \
+    ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc && \
     cd $HOME/workspace && \
     ${RSPATH}/cargo new example_project
 
