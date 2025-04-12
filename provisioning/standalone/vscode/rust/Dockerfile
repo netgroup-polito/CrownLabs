@@ -10,13 +10,15 @@ COPY ./rust/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
 # Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && \
     apt-get install -y curl gcc bash-completion && \
+    curl -L -o /tmp/codelldb-linux-x64.vsix https://github.com/vadimcn/codelldb/releases/download/v1.11.4/codelldb-linux-x64.vsix && \
     apt-get clean && \
     apt-get remove --autoremove --purge -y apt sudo --allow-remove-essential
 
 # Install extensions and setup permissions
 RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension formulahendry.code-runner && \
     code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension rust-lang.rust-analyzer && \
-    code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension vadimcn.vscode-lldb && \
+    code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension /tmp/codelldb-linux-x64.vsix && \
+    rm -f /tmp/codelldb-linux-x64.vsix && \
     chown -R ${USER}:${USER} ${VSCODE_SRV_DIR}
 
 # Install Rust and create example project
