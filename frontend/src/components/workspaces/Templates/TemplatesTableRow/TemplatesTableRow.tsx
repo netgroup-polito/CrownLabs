@@ -3,22 +3,24 @@ import {
   DesktopOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { Space, Tooltip } from 'antd';
+import { Space, Tooltip, Dropdown, Menu } from 'antd';
 import Button from 'antd-button-color';
 import { FetchResult } from '@apollo/client';
-import { FC, useContext, useState } from 'react';
+import { FC, useContext, useMemo, useState } from 'react';
 import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   CreateInstanceMutation,
   DeleteTemplateMutation,
   useInstancesLabelSelectorQuery,
+  useNodesLabelsQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { Template, WorkspaceRole } from '../../../../utils';
+import { cleanupLabels, Template, WorkspaceRole } from '../../../../utils';
 import Badge from '../../../common/Badge';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
+import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
 
 export interface ITemplatesTableRowProps {
   template: Template;
@@ -36,7 +38,8 @@ export interface ITemplatesTableRowProps {
   >;
   deleteTemplateLoading: boolean;
   createInstance: (
-    id: string
+    id: string,
+    labelSelector?: JSON
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -63,6 +66,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     deleteTemplateLoading,
     expandRow,
   } = props;
+
+  const {
+    data: labelsData,
+    loading: loadingLabels,
+    error: labelsError,
+  } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
 
   const { data, refreshClock } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -93,6 +102,45 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   };
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
+
+  const nodesLabels = useMemo(() => {
+    const handleNodeLabelClick = (info: { key: string }) => {
+      createInstance(template.id, JSON.parse(info.key))
+        .then(() => {
+          refreshClock();
+          setTimeout(setCreateDisabled, 400, false);
+          expandRow(template.id, true);
+        })
+        .catch(() => setCreateDisabled(false));
+    };
+
+    return (
+      <Menu onClick={handleNodeLabelClick}>
+        {loadingLabels ? (
+          <Menu.Item disabled>Loading...</Menu.Item>
+        ) : labelsError ? (
+          <Menu.Item disabled>Error loading labels</Menu.Item>
+        ) : (
+          labelsData?.labels?.map(({ key, value }) => {
+            const label = JSON.stringify({ [key]: value });
+            return (
+              <Menu.Item key={label}>
+                {`${cleanupLabels(key)}=${value}`}
+              </Menu.Item>
+            );
+          })
+        )}
+      </Menu>
+    );
+  }, [
+    loadingLabels,
+    labelsError,
+    labelsData,
+    createInstance,
+    expandRow,
+    refreshClock,
+    template.id,
+  ]);
 
   return (
     <>
@@ -183,6 +231,14 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                   </div>
                 </Tooltip>
               )}
+              {template.nodeSelector && (
+                <div className="ml-3 flex items-center">
+                  <NodeSelectorIcon
+                    isOnWorkspace={true}
+                    nodeSelector={template.nodeSelector}
+                  />
+                </div>
+              )}
             </div>
           </Space>
         </div>
@@ -269,6 +325,18 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 </Button>
               </span>
             </Tooltip>
+          ) : template.nodeSelector &&
+            JSON.stringify(template.nodeSelector) === '{}' ? (
+            <Dropdown.Button
+              overlay={nodesLabels}
+              onClick={createInstanceHandler}
+              // className="hidden xs:block"
+              disabled={totalInstances === instancesLimit || createDisabled}
+              type="primary"
+              size={'middle'}
+            >
+              Create
+            </Dropdown.Button>
           ) : (
             <Button
               onClick={createInstanceHandler}

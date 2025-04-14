@@ -4,6 +4,7 @@ mutation createInstance(
   $workspaceNamespace: String!
   $tenantId: String!
   $generateName: String = "instance-"
+  $nodeSelector: JSON
 ) {
   createdInstance: createCrownlabsPolitoItV1alpha2NamespacedInstance(
     namespace: $tenantNamespace
@@ -20,6 +21,7 @@ mutation createInstance(
           name: $tenantId
           namespace: $tenantNamespace
         }
+        nodeSelector: $nodeSelector
       }
     }
   ) {
@@ -33,10 +35,13 @@ mutation createInstance(
       ip
       phase
       url
+      nodeName
+      nodeSelector
     }
     spec {
       running
       prettyName
+      nodeSelector
       templateCrownlabsPolitoItTemplateRef {
         name
         namespace

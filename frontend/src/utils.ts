@@ -28,6 +28,7 @@ export type Template = {
   name: string;
   gui: boolean;
   persistent: boolean;
+  nodeSelector?: JSON;
   resources: Resources;
   instances: Array<Instance>;
   workspaceName: string;
@@ -53,6 +54,8 @@ export type Instance = {
   timeStamp: string;
   workspaceName: string;
   running: boolean;
+  nodeSelector?: JSON;
+  nodeName?: string;
 };
 
 export type SharedVolume = {
@@ -220,3 +223,20 @@ export const approximate = (value: number, n: number): number => {
   const factor = Math.pow(10, n);
   return Math.round(value * factor) / factor;
 };
+
+export const camelize = (str: string) =>
+  str
+    .replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, (match, index) =>
+      +match === 0
+        ? ''
+        : index === 0
+        ? match.toLowerCase()
+        : match.toUpperCase()
+    )
+    .replace(/-/g, '');
+
+export const cleanupLabels = (s?: string) =>
+  camelize(
+    s?.replace('crownlabs.polito.it/', '').replace('crownlabsPolitoIt', '') ||
+      ''
+  );

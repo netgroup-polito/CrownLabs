@@ -33,7 +33,8 @@ export interface ITemplatesTableProps {
   >;
   deleteTemplateLoading: boolean;
   createInstance: (
-    id: string
+    id: string,
+    labelSelector?: JSON
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,

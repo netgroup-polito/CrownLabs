@@ -66,7 +66,9 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
             </Switch>
           ) : (
             <FullPageLoader
-              text={`Welcome back ${tenantName}!`}
+              text={
+                tenantName ? `Welcome back ${tenantName}!` : 'Welcome back!'
+              }
               subtext="Settings things back up... Hold tight!"
             />
           )}
