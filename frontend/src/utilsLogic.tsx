@@ -63,6 +63,7 @@ export const makeGuiTemplate = (
     name: tq.alias.name ?? '',
     gui: !!environment?.guiEnabled,
     persistent: !!environment?.persistent,
+    nodeSelector: environment?.nodeSelector,
     resources: {
       cpu: environment?.resources?.cpu ?? 0,
       memory: environment?.resources?.memory ?? '',
@@ -195,6 +196,8 @@ export const makeGuiInstance = (
     workspaceName:
       getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
     running: running,
+    nodeName: status?.nodeName,
+    nodeSelector: status?.nodeSelector,
   } as Instance;
 };
 

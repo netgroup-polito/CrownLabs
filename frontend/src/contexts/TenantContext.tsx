@@ -100,7 +100,7 @@ const TenantContextProvider: FC<PropsWithChildren<{}>> = props => {
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!data?.tenant?.metadata?.name || !userId) return;
     applyTenantMutation({
       variables: {
         tenantId: userId,

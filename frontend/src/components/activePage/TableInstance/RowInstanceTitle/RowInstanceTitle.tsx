@@ -8,6 +8,7 @@ import { Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
+import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
 
 const { Text } = Typography;
 export interface IRowInstanceTitleProps {
@@ -38,6 +39,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
     tenantDisplayName,
     status,
     persistent,
+    nodeSelector,
     gui,
   } = instance;
 
@@ -148,6 +150,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 </Text>
               )}
               {persistent && extended && <PersistentIcon />}
+              {nodeSelector && extended && (
+                <NodeSelectorIcon
+                  isOnWorkspace={false}
+                  nodeSelector={nodeSelector}
+                />
+              )}
             </>
           )}
         </Space>
