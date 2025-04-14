@@ -31,8 +31,15 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
-  const { ip, environmentType, status, templatePrettyName, name, prettyName } =
-    instance;
+  const {
+    ip,
+    environmentType,
+    status,
+    templatePrettyName,
+    name,
+    prettyName,
+    nodeName,
+  } = instance;
 
   const sshDisabled =
     status !== Phase.Ready ||
@@ -46,6 +53,10 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         <Text type="warning" copyable={!!ip}>
           {ip ?? 'unknown'}
         </Text>
+      </p>
+      <p className="m-0">
+        <strong>Node: </strong>
+        <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
       </p>
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0">

@@ -1,0 +1,6 @@
+query nodesLabels {
+  labels: getLabels {
+    key
+    value
+  }
+}

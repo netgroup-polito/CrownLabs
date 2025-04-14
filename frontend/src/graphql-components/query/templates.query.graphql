@@ -9,6 +9,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
         environmentList {
           guiEnabled
           persistent
+          nodeSelector
           resources {
             cpu
             disk

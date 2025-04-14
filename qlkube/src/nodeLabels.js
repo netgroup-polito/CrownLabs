@@ -45,7 +45,7 @@ type Query {
 }
 type Label {
     key: String!
-    value: String
+    value: String!
 }`;
 const resolvers = {
   Query: {
