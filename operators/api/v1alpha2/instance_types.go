@@ -107,6 +107,36 @@ type InstanceAutomationStatus struct {
 	SubmissionTime metav1.Time `json:"submissionTime,omitempty"`
 }
 
+type InstanceStatusEnv struct {
+	// The current status Instance, with reference to the associated environment
+	// (e.g. VM). This conveys which resource is being created, as well as
+	// whether the associated VM is being scheduled, is running or ready to
+	// accept incoming connections.
+	Phase EnvironmentPhase `json:"phase,omitempty"`
+
+	// The URL where it is possible to access the remote desktop of the instance
+	// (in case of graphical environments)
+	URL string `json:"url,omitempty"`
+
+	// The internal IP address associated with the remote environment, which can
+	// be used to access it through the SSH protocol (leveraging the SSH bastion
+	// in case it is not contacted from another CrownLabs Instance).
+	IP string `json:"ip,omitempty"`
+
+	// The amount of time the Instance required to become ready for the first time
+	// upon creation.
+	InitialReadyTime string `json:"initialReadyTime,omitempty"`
+
+	// Timestamps of the Instance automation phases (check, termination and submission).
+	Automation InstanceAutomationStatus `json:"automation,omitempty"`
+
+	// The node on which the Instance is running.
+	NodeName string `json:"nodeName,omitempty"`
+
+	// The actual nodeSelector assigned to the Instance.
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+}
+
 // InstanceStatus reflects the most recently observed status of the Instance.
 type InstanceStatus struct {
 	// The current status Instance, with reference to the associated environment
@@ -136,6 +166,8 @@ type InstanceStatus struct {
 
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	Environments []InstanceStatusEnv `json:"environments,omitempty"`
 }
 
 // +kubebuilder:object:root=true

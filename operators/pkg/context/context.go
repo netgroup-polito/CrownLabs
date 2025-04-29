@@ -33,6 +33,11 @@ const (
 	templateKey    ctxValueKey = "template"
 	environmentKey ctxValueKey = "environment"
 	tenantKey      ctxValueKey = "tenant"
+
+	//
+	//
+	//
+	environmentIndexKey ctxValueKey = "environment-index"
 )
 
 // InstanceInto returns a copy of the context and the respective logger with the given instance embedded.
@@ -96,4 +101,12 @@ func objectInto(ctx context.Context, key ctxValueKey, object client.Object) (con
 	log := ctrl.LoggerFrom(ctx, key, klog.KObj(object))
 	ctx = context.WithValue(ctrl.LoggerInto(ctx, log), key, object)
 	return ctx, log
+}
+
+func EnvironmentIndexInto(ctx context.Context, index int) context.Context {
+	return context.WithValue(ctx, environmentIndexKey, index)
+}
+
+func EnvironmentIndexFrom(ctx context.Context) int {
+	return ctx.Value(environmentIndexKey).(int)
 }

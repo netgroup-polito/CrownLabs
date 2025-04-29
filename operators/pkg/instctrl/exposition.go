@@ -46,6 +46,21 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
+	//
+	//
+	//
+
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+
+	//index out of range
+	if envIndex >= len(instance.Status.Environments) {
+		return nil
+	}
+
+	//
+	//
+	//
+
 	// Enforce the service presence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
@@ -70,7 +85,18 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return err
 	}
 	log.V(utils.FromResult(res)).Info("object enforced", "service", klog.KObj(&service), "result", res)
-	instance.Status.IP = service.Spec.ClusterIP
+
+	//
+	//
+	//
+
+	instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
+
+	//
+	//
+	//
+
+	// instance.Status.IP = service.Spec.ClusterIP
 
 	// No need to create ingress resources in case of gui-less VMs.
 	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
@@ -107,7 +133,18 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
-	instance.Status.URL = forge.IngressGuiStatusURL(host, environment, instance)
+
+	//
+	//
+	//
+
+	instance.Status.Environments[envIndex].URL = forge.IngressGuiStatusURL(host, environment, instance)
+
+	//
+	//
+	//
+
+	// instance.Status.URL = forge.IngressGuiStatusURL(host, environment, instance)
 
 	return nil
 }
@@ -115,8 +152,34 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 // enforceInstanceExpositionAbsence ensures the absence of the objects required to expose an environment (i.e. service, ingress).
 func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
-	instance.Status.IP = ""
-	instance.Status.URL = ""
+
+	//
+	//
+	//
+
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	// instanceStatusEnv := instance.Status.Environments[envIndex]
+
+	// instanceStatusEnv.IP = ""
+	// instanceStatusEnv.URL = ""
+
+	// check if Status.Environments has enough capacity
+	if len(instance.Status.Environments) <= envIndex {
+		// extend the array to envIndex+1 elements
+		newEnvs := make([]clv1alpha2.InstanceStatusEnv, envIndex+1)
+		copy(newEnvs, instance.Status.Environments)
+		instance.Status.Environments = newEnvs
+	}
+
+	instance.Status.Environments[envIndex].IP = ""
+	instance.Status.Environments[envIndex].URL = ""
+
+	//
+	//
+	//
+
+	// instance.Status.IP = ""
+	// instance.Status.URL = ""
 
 	// Enforce service absence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}

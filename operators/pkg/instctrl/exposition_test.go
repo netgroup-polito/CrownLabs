@@ -62,6 +62,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
+		index       int
 
 		serviceName types.NamespacedName
 		service     corev1.Service
@@ -90,14 +91,23 @@ var _ = Describe("Generation of the exposition environment", func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 
+		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard, EnvironmentType: clv1alpha2.ClassContainer}
+
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
 			Spec: clv1alpha2.InstanceSpec{
 				Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
+			Status: clv1alpha2.InstanceStatus{
+				Environments: []clv1alpha2.InstanceStatusEnv{
+					{Phase: ""},
+					{Phase: ""},
+					{Phase: ""},
+				},
+			},
 		}
-		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard, EnvironmentType: clv1alpha2.ClassContainer}
+		index = 0
 
 		serviceName = forge.NamespacedName(&instance)
 		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix)
@@ -121,6 +131,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		ctx = clctx.EnvironmentIndexInto(ctx, index)
 		err = reconciler.EnforceInstanceExposition(ctx)
 	})
 
@@ -144,8 +155,19 @@ var _ = Describe("Generation of the exposition environment", func() {
 			svc.ClusterIP = clusterIP
 			return svc
 		},
-		EmptySpec:              corev1.ServiceSpec{ClusterIP: clusterIP},
-		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.IP },
+		EmptySpec: corev1.ServiceSpec{ClusterIP: clusterIP},
+		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
+			//
+			//
+			//
+			//return inst.Status.IP
+			if index >= len(inst.Status.Environments) {
+				return ""
+			}
+
+			return inst.Status.Environments[index].IP
+
+		},
 		InstanceStatusExpected: clusterIP,
 	}
 
@@ -155,8 +177,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
-		EmptySpec:              netv1.IngressSpec{},
-		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.URL },
+		EmptySpec: netv1.IngressSpec{},
+		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
+			//return inst.Status.URL
+			//
+			//
+			//
+			if index >= len(inst.Status.Environments) {
+				return ""
+			}
+			return inst.Status.Environments[index].URL
+		},
 		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/", host, instanceUID),
 	}
 
@@ -166,8 +197,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
-		EmptySpec:              netv1.IngressSpec{},
-		InstanceStatusGetter:   func(inst *clv1alpha2.Instance) string { return inst.Status.URL },
+		EmptySpec: netv1.IngressSpec{},
+		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
+			//return inst.Status.URL
+			//
+			//
+			//
+			if index >= len(inst.Status.Environments) {
+				return ""
+			}
+			return inst.Status.Environments[index].URL
+		},
 		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/app/", host, instanceUID),
 	}
 
@@ -305,6 +345,24 @@ var _ = Describe("Generation of the exposition environment", func() {
 			Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
 		})
+
+		Context("The instance is multi-environment", func() {
+
+			Context("The environment has an index greater than 1", func() {
+				BeforeEach(func() {
+					index = 1
+				})
+				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+			})
+
+			Context("The index is out of range", func() {
+				BeforeEach(func() {
+					index = 3
+				})
+				Describe("Assessing the service absence", func() { DescribeBodyAbsent(DescribeBodyParametersService) })
+			})
+		})
+
 	})
 
 	Context("The instance is not running", func() {

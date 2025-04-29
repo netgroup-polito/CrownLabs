@@ -48,6 +48,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
+		index       int
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -99,6 +100,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
+			Status: clv1alpha2.InstanceStatus{
+				Environments: []clv1alpha2.InstanceStatusEnv{
+					{Phase: ""},
+					{Phase: ""},
+					{Phase: ""},
+				},
+			},
 		}
 		environment = clv1alpha2.Environment{
 			Name:            environmentName,
@@ -118,7 +126,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				EnvironmentList: []clv1alpha2.Environment{environment},
 			},
 		}
-
+		index = 0
 		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
 		objectName = forge.NamespacedName(&instance)
@@ -145,6 +153,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
+		ctx = clctx.EnvironmentIndexInto(ctx, index)
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
@@ -211,7 +220,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should leave the instance phase unset", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[0].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
 			})
 
@@ -230,7 +243,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -262,7 +279,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should set the correct instance phase", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
 				})
 			})
 
@@ -279,7 +300,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -320,7 +345,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should leave the instance phase unset", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
 			})
 
@@ -351,7 +380,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 
 				It("Should set the correct instance phase", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
+					//
+					//
+					//
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
 				})
 
 				Context("The instance is running", func() {

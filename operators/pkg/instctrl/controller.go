@@ -17,7 +17,6 @@ package instctrl
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -108,7 +107,23 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		// If the reconciliation failed with an error, set the instance phase to CreationLoopBackOff.
 		// Do not set the CreationLoopBackOff phase in case of conflicts, to prevent transients.
 		if err != nil && !kerrors.IsConflict(err) {
-			instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+
+			//
+			//
+			//
+
+			// for _, instanceStatusEnv := range instance.Status.Environments {
+			//	instanceStatusEnv.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+			// } // pare che se for _, value := slice, value e' copia non reference
+
+			for i := range instance.Status.Environments {
+				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+			}
+			//
+			//
+			//
+
+			// instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
 		}
 
 		// Avoid triggering the status update if not necessary.
@@ -186,17 +201,31 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
+	// forse serve
+	//instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, len(template.Spec.EnvironmentList))
+
 	for i := range template.Spec.EnvironmentList {
 		environment := &template.Spec.EnvironmentList[i]
-		ctx, log := clctx.EnvironmentInto(ctx, environment)
+		// ctx, log := clctx.EnvironmentInto(ctx, environment)
 
-		// Currently, only instances composed of a single environment are supported.
-		// Nonetheless, we return nil in the end, since it is useless to retry later.
-		if i >= 1 {
-			err := fmt.Errorf("instances composed of multiple environments are currently not supported")
-			log.Error(err, "failed to process environment")
-			return nil
-		}
+		// // Currently, only instances composed of a single environment are supported.
+		// // Nonetheless, we return nil in the end, since it is useless to retry later.
+		// if i >= 1 {
+		// 	err := fmt.Errorf("instances composed of multiple environments are currently not supported")
+		// 	log.Error(err, "failed to process environment")
+		// 	return nil
+		// }
+
+		//
+		//
+		//
+
+		ctx, _ := clctx.EnvironmentInto(ctx, environment)
+		ctx = clctx.EnvironmentIndexInto(ctx, i)
+
+		//
+		//
+		//
 
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
@@ -220,28 +249,68 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 // prometheus metric, in case it was not already present and the instance is currently ready.
 func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context) {
 	instance := clctx.InstanceFrom(ctx)
-	if instance.Status.Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.InitialReadyTime != "" {
-		return
+
+	//
+	//
+	//
+	// same here
+	// for _, instanceStatusEnv := range instance.Status.Environments {
+	//	if instanceStatusEnv.Phase != clv1alpha2.EnvironmentPhaseReady || instanceStatusEnv.InitialReadyTime != "" {
+	//		return
+	//	}
+	for i := range instance.Status.Environments {
+		if instance.Status.Environments[i].Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.Environments[i].InitialReadyTime != "" {
+			return
+		}
+		duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
+		instance.Status.Environments[i].InitialReadyTime = duration.String()
+
+		//duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
+		//instanceStatusEnv.InitialReadyTime = duration.String()
+
+		// Filter out possible outliers from the prometheus metrics.
+		if duration > 30*time.Minute {
+			return
+		}
+
+		template := clctx.TemplateFrom(ctx)
+		environment := clctx.EnvironmentFrom(ctx)
+
+		metricInitialReadyTimes.With(prometheus.Labels{
+			metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
+			metricInitialReadyTimesLabelTemplate:    template.GetName(),
+			metricInitialReadyTimesLabelEnvironment: environment.Name,
+			metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
+			metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
+		}).Observe(duration.Seconds())
+
 	}
+	//
+	//
+	//
 
-	duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
-	instance.Status.InitialReadyTime = duration.String()
+	// if instance.Status.Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.InitialReadyTime != "" {
+	// 	return
+	// }
 
-	// Filter out possible outliers from the prometheus metrics.
-	if duration > 30*time.Minute {
-		return
-	}
+	// duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
+	// instance.Status.InitialReadyTime = duration.String()
 
-	template := clctx.TemplateFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
+	// // Filter out possible outliers from the prometheus metrics.
+	// if duration > 30*time.Minute {
+	// 	return
+	// }
 
-	metricInitialReadyTimes.With(prometheus.Labels{
-		metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
-		metricInitialReadyTimesLabelTemplate:    template.GetName(),
-		metricInitialReadyTimesLabelEnvironment: environment.Name,
-		metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
-		metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
-	}).Observe(duration.Seconds())
+	// template := clctx.TemplateFrom(ctx)
+	// environment := clctx.EnvironmentFrom(ctx)
+
+	// metricInitialReadyTimes.With(prometheus.Labels{
+	// 	metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
+	// 	metricInitialReadyTimesLabelTemplate:    template.GetName(),
+	// 	metricInitialReadyTimesLabelEnvironment: environment.Name,
+	// 	metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
+	// 	metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
+	// }).Observe(duration.Seconds())
 }
 
 // SetupWithManager registers a new controller for Instance resources.
