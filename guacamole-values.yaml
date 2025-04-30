@@ -1,0 +1,82 @@
+# Guacamole Configuration Values for CrownLabs
+# Add these to the existing values.yaml for CrownLabs
+
+guacamole:
+  # Enable or disable Guacamole deployment
+  enabled: true
+  
+  # Number of replicas for Guacamole deployment
+  replicas: 2
+  
+  # Guacamole images
+  guacdImage: "guacamole/guacd:1.4.0"
+  guacamoleImage: "guacamole/guacamole:1.4.0"
+  
+  # Resources for Guacamole
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  
+  # Resources for guacd
+  guacd:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "256Mi"
+  
+  # Authentication configuration
+  enableAuth: true
+  
+  # OIDC integration settings
+  oidc:
+    authorizationEndpoint: "https://keycloak.crownlabs.example.com/auth/realms/crownlabs/protocol/openid-connect/auth"
+    jwksEndpoint: "https://keycloak.crownlabs.example.com/auth/realms/crownlabs/protocol/openid-connect/certs"
+    issuer: "https://keycloak.crownlabs.example.com/auth/realms/crownlabs"
+    clientId: "guacamole"
+    redirectUri: "https://guacamole.crownlabs.example.com/guacamole/"
+  
+  # Cross-origin resource sharing settings
+  corsAllowedOrigins: "*"
+  
+  # Ingress configuration
+  ingress:
+    host: "guacamole.crownlabs.example.com"
+    tlsSecretName: "crownlabs-ingress-secret"
+
+# Update the instance operator configuration
+instanceOperator:
+  # Add GuacamoleNamespace to ServiceUrls
+  serviceUrls:
+    websiteBaseURL: "crownlabs.example.com"
+    instancesAuthURL: "https://crownlabs.example.com/oauth2"
+    guacamoleNamespace: "crownlabs-system"  # New field for Guacamole namespace
+    guacamoleURL: "http://guacamole.crownlabs-system.svc.cluster.local:8080"  # New field for Guacamole URL
+
+# Constants for service port configuration
+# Add the RDP port to the environment types
+constants:
+  # These are the ports exposed by the different environments
+  vmSsh: 22  # Standard SSH port
+  guiVnc: 6080  # Existing VNC port (to be replaced with RDP)
+  guiRdp: 3389  # New RDP port
+  guiStandalone: 5000  # Standard port for standalone applications
+
+# Container images
+# Add image for RDP container and update VM templates
+images:
+  # Update the VM provisioning image to include xRDP
+  vmProvisioning: "crownlabs/vm-provisioning:latest"  # Update this image with xRDP support
+  
+  # Remove the VNC image
+  # vncImage: "crownlabs/tigervnc:latest"
+  
+  # Add Guacamole images
+  guacamole: "guacamole/guacamole:1.4.0"
+  guacd: "guacamole/guacd:1.4.0" 

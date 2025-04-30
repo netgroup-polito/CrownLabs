@@ -1,0 +1,263 @@
+---
+# Ansible tasks for CrownLabs VM setup with xRDP instead of VNC
+# To be included in provisioning/virtual-machines/ansible/roles/crownlabs/tasks/main.yml
+
+# xRDP Configuration
+- name: Set the xRDP variables
+  set_fact:
+    xrdp_version: "0.9.21"  # Current stable version
+    xrdp_service_name: "xrdp.service"
+    xrdp_port: "3389"  # Standard RDP port
+    xrdp_service_path: "/etc/systemd/system"
+    xrdp_conf_path: "/etc/xrdp"
+
+- name: Install xRDP and dependencies
+  apt:
+    name: 
+      - xrdp
+      - xorgxrdp
+      - xauth
+      - pulseaudio-utils  # For audio support
+      - dbus-x11  # Required for proper session handling
+    state: present
+    update_cache: yes
+
+- name: Create xrdp directory for configuration
+  file:
+    path: "{{ xrdp_conf_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure main xRDP configuration
+  template:
+    src: templates/xrdp.ini.j2
+    dest: "{{ xrdp_conf_path }}/xrdp.ini"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure sesman (session manager)
+  template:
+    src: templates/sesman.ini.j2
+    dest: "{{ xrdp_conf_path }}/sesman.ini"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Set up xrdp users
+  copy:
+    content: |
+      [Globals]
+      ; empty for now
+    dest: "{{ xrdp_conf_path }}/xrdp_keyboard.ini"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create RDP certificate directory
+  file:
+    path: "{{ xrdp_conf_path }}/cert"
+    state: directory
+    mode: '0755'
+
+- name: Generate self-signed certificate for xRDP
+  shell: |
+    cd {{ xrdp_conf_path }}/cert && \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout key.pem -out cert.pem \
+    -subj "/C=US/ST=State/L=City/O=CrownLabs/CN=crownlabs.vm"
+  args:
+    creates: "{{ xrdp_conf_path }}/cert/cert.pem"
+
+- name: Create custom xRDP startup script
+  copy:
+    dest: /usr/local/bin/xrdp-start.sh
+    content: |
+      #!/bin/bash
+      # Start xRDP in a way compatible with CrownLabs
+      /usr/sbin/xrdp -nodaemon
+    mode: '0755'
+
+- name: Create xRDP systemd service
+  template:
+    src: templates/xrdp.service.j2
+    dest: "{{ xrdp_service_path }}/{{ xrdp_service_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure firewall for xRDP
+  ufw:
+    rule: allow
+    port: "{{ xrdp_port }}"
+    proto: tcp
+  when: ansible_os_family == "Debian"
+
+- name: Allow user to connect without password via RDP
+  lineinfile:
+    path: /etc/pam.d/xrdp-sesman
+    regexp: '^@include common-auth'
+    line: '#@include common-auth'
+    state: present
+
+- name: Create xrdp configuration templates
+  copy:
+    dest: "/home/{{ ansible_user }}/.xsession"
+    content: |
+      #!/bin/bash
+      # Start desktop session when connecting via xRDP
+      if [ -f /etc/X11/Xsession ]; then
+        exec /etc/X11/Xsession
+      else
+        exec startxfce4  # Assumes XFCE desktop
+      fi
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Enable the xRDP service
+  systemd:
+    name: "{{ xrdp_service_name }}"
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+# Create systemd service templates
+- name: Create xrdp.service template
+  copy:
+    dest: templates/xrdp.service.j2
+    content: |
+      [Unit]
+      Description=xRDP Remote Desktop Service
+      After=network.target network-online.target
+      Requires=network-online.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/xrdp-start.sh
+      User=root
+      Group=root
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Create xrdp.ini template
+  copy:
+    dest: templates/xrdp.ini.j2
+    content: |
+      [Globals]
+      ; xrdp.ini file version number
+      ini_version=1
+
+      ; fork a new process for each connection
+      fork=true
+
+      ; ports to listen on, ip addresses to listen on
+      ; use port=3389 to listen on all interfaces
+      port={{ xrdp_port }}
+      use_vsock=false
+
+      ; Security layer can be 'tls', 'rdp' or 'negotiate'
+      ; for client compatible layer
+      security_layer=negotiate
+      
+      ; Specify if the ssl certificate/private key is raw or DER formatted
+      certificate_path={{ xrdp_conf_path }}/cert/cert.pem
+      key_path={{ xrdp_conf_path }}/cert/key.pem
+
+      ; set SSL protocols
+      ssl_protocols=TLSv1.2, TLSv1.3
+      
+      ; Session variables
+      allow_channels=true
+      allow_multimon=true
+      bitmap_cache=true
+      bitmap_compression=true
+      bulk_compression=true
+      
+      ; Defines session log path/file
+      LogLevel=INFO
+      LogPath={{ xrdp_conf_path }}
+      
+      ; Disable the ability to set RDP password
+      TerminalName=xrdp
+      AutoRunProgram=
+      
+      [Xorg]
+      name=Xorg
+      lib=libxup.so
+      username=ask
+      password=ask
+      ip=127.0.0.1
+      port=-1
+      code=20
+      
+      [Xvnc]
+      name=Xvnc
+      lib=libvnc.so
+      username=ask
+      password=ask
+      ip=127.0.0.1
+      port=5900
+      
+      [Reconnect]
+      name=Reconnect
+      lib=libvnc.so
+      username=ask
+      password=ask
+      ip=127.0.0.1
+      port=5900
+    mode: '0644'
+
+- name: Create sesman.ini template
+  copy:
+    dest: templates/sesman.ini.j2
+    content: |
+      [Globals]
+      ListenAddress=127.0.0.1
+      ListenPort=3350
+      EnableUserWindowManager=true
+      UserWindowManager=startwm.sh
+      DefaultWindowManager=startwm.sh
+      
+      [Security]
+      AllowRootLogin=true
+      MaxLoginRetry=4
+      TerminalServerUsers=tsusers
+      TerminalServerAdmins=tsadmins
+      
+      [Sessions]
+      X11DisplayOffset=10
+      MaxSessions=50
+      KillDisconnected=false
+      DisconnectedTimeLimit=0
+      IdleTimeLimit=0
+      
+      [Logging]
+      LogFile={{ xrdp_conf_path }}/xrdp-sesman.log
+      LogLevel=INFO
+      EnableSyslog=1
+      SyslogLevel=INFO
+    mode: '0644'
+
+# Remove unnecessary VNC components
+- name: Stop and disable VNC services if they exist
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  with_items:
+    - "vncserver@:1.service"
+    - "novnc.service"
+  ignore_errors: yes  # In case the services don't exist
+
+- name: Remove VNC packages
+  apt:
+    name:
+      - tigervnc-*
+      - novnc
+    state: absent
+  ignore_errors: yes  # In case packages are not installed 

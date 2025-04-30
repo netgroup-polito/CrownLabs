@@ -1,0 +1,166 @@
+---
+# Kubernetes resources for deploying Apache Guacamole
+# This should be placed in deploy/crownlabs/templates/guacamole.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guacamole-properties
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: guacamole
+data:
+  guacamole.properties: |
+    # Guacamole configuration
+    guacd-hostname: localhost
+    guacd-port: 4822
+    
+    # Authentication
+    enable-auth: {{ .Values.guacamole.enableAuth | default "true" }}
+    
+    # OIDC integration with Keycloak for authentication
+    openid-authorization-endpoint: {{ .Values.guacamole.oidc.authorizationEndpoint | default "https://keycloak.example.com/auth/realms/crownlabs/protocol/openid-connect/auth" }}
+    openid-jwks-endpoint: {{ .Values.guacamole.oidc.jwksEndpoint | default "https://keycloak.example.com/auth/realms/crownlabs/protocol/openid-connect/certs" }}
+    openid-issuer: {{ .Values.guacamole.oidc.issuer | default "https://keycloak.example.com/auth/realms/crownlabs" }}
+    openid-client-id: {{ .Values.guacamole.oidc.clientId | default "guacamole" }}
+    openid-redirect-uri: {{ .Values.guacamole.oidc.redirectUri | default "https://guacamole.crownlabs.example.com/guacamole/" }}
+    
+    # Additional settings
+    cors-allowed-origins: {{ .Values.guacamole.corsAllowedOrigins | default "*" }}
+    
+    # User configuration
+    # Auto-create users that successfully authenticate when using OIDC
+    openid-claim-username: preferred_username
+    openid-claim-email: email
+    openid-claim-name: name
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: guacamole
+spec:
+  replicas: {{ .Values.guacamole.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: guacamole
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: guacamole
+    spec:
+      volumes:
+        - name: guacamole-properties
+          configMap:
+            name: guacamole-properties
+      containers:
+        - name: guacd
+          image: {{ .Values.guacamole.guacdImage | default "guacamole/guacd:1.4.0" }}
+          ports:
+            - containerPort: 4822
+              name: guacd
+          resources:
+            requests:
+              cpu: {{ .Values.guacamole.guacd.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.guacamole.guacd.resources.requests.memory | default "128Mi" }}
+            limits:
+              cpu: {{ .Values.guacamole.guacd.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.guacamole.guacd.resources.limits.memory | default "256Mi" }}
+          livenessProbe:
+            tcpSocket:
+              port: 4822
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 4822
+            initialDelaySeconds: 5
+            periodSeconds: 5
+        
+        - name: guacamole
+          image: {{ .Values.guacamole.guacamoleImage | default "guacamole/guacamole:1.4.0" }}
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: guacamole-properties
+              mountPath: /etc/guacamole/guacamole.properties
+              subPath: guacamole.properties
+          env:
+            - name: GUACD_HOSTNAME
+              value: localhost
+            - name: GUACD_PORT
+              value: "4822"
+          resources:
+            requests:
+              cpu: {{ .Values.guacamole.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.guacamole.resources.requests.memory | default "256Mi" }}
+            limits:
+              cpu: {{ .Values.guacamole.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.guacamole.resources.limits.memory | default "512Mi" }}
+          livenessProbe:
+            httpGet:
+              path: /guacamole/
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /guacamole/
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guacamole
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: guacamole
+spec:
+  selector:
+    app: guacamole
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: guacamole
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: guacamole
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/rewrite-target: /guacamole/$2
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.guacamole.ingress.host | default "guacamole.crownlabs.example.com" }}
+      secretName: {{ .Values.guacamole.ingress.tlsSecretName | default "crownlabs-ingress-secret" }}
+  rules:
+    - host: {{ .Values.guacamole.ingress.host | default "guacamole.crownlabs.example.com" }}
+      http:
+        paths:
+          - path: /guacamole(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: guacamole
+                port:
+                  name: http 
