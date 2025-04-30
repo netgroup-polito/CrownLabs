@@ -3,8 +3,9 @@
     "workbench.colorTheme": "Default Dark Modern",
     "workbench.startupEditor": "none",
     "window.menuBarVisibility": "visible",
+    "output.smartScroll.enabled": false,
     "code-runner.executorMap": {
         "rust": "cd $dir.. && cargo run"
     },
-    "output.smartScroll.enabled": false
+    "rust-analyzer.cache.warmup": false
 }

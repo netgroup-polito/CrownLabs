@@ -6,6 +6,9 @@ ENV SUDO_FORCE_REMOVE yes
 ENV RSPATH=${VSCODE_SRV_DIR}/.cargo/bin
 
 COPY ./rust/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
+COPY ./rust/launch.json ${VSCODE_SRV_DIR}/workspace/.vscode/launch.json
+COPY ./rust/tasks.json ${VSCODE_SRV_DIR}/workspace/.vscode/tasks.json
+COPY ./rust/config.toml ${RSPATH}/../config.toml
 
 # Install required packages and remove apt and useless/dangerous packages
 RUN apt-get update && \
@@ -28,7 +31,7 @@ RUN curl -sSf https://sh.rustup.rs | /bin/bash -s -- -y -v && \
     ${RSPATH}/rustup component remove rust-docs && \
     ${RSPATH}/rustup completions bash >> $HOME/.bashrc && \
     ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc && \
-    cd $HOME/workspace && \
-    ${RSPATH}/cargo new example_project
+    cd $HOME && \
+    ${RSPATH}/cargo init workspace
 
 ENTRYPOINT [ "/start.sh" ]
