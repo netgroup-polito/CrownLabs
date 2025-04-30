@@ -6,7 +6,7 @@ ENV SUDO_FORCE_REMOVE yes
 ENV RSPATH=${VSCODE_SRV_DIR}/.cargo/bin
 
 COPY ./rust/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
-COPY ./rust/_vscode ${VSCODE_SRV_DIR}/workspace/.vscode
+COPY --chown=${USER}:${USER} ./rust/project /example_project/project
 COPY ./rust/config.toml ${RSPATH}/../config.toml
 
 # Install required packages and remove apt and useless/dangerous packages
@@ -21,16 +21,16 @@ RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extensio
     code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension rust-lang.rust-analyzer && \
     code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions --install-extension /tmp/codelldb-linux-x64.vsix && \
     rm -f /tmp/codelldb-linux-x64.vsix && \
-    chown -R ${USER}:${USER} ${VSCODE_SRV_DIR}
+    chown -R ${USER}:${USER} ${VSCODE_SRV_DIR} && \
+    chown -R ${USER}:${USER} /example_project
 
-# Install Rust and create example project
+# Install Rust
 USER ${USER}
 ENV HOME=${VSCODE_SRV_DIR}
 RUN curl -sSf https://sh.rustup.rs | /bin/bash -s -- -y -v && \
     ${RSPATH}/rustup component remove rust-docs && \
     ${RSPATH}/rustup completions bash >> $HOME/.bashrc && \
-    ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc && \
-    cd $HOME && \
-    ${RSPATH}/cargo init workspace
+    ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc
 
 ENTRYPOINT [ "/start.sh" ]
+CMD [ "--load-example", "/vscode/workspace/project" ]

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 shopt -s dotglob
 
+TARGETDIR="$VSCODE_SRV_DIR/workspace"
+
 # Check if in the passed arguments is specified to disable workspace through the option --disable-marketplace
 for ARGUMENT in "$@"; do
     if [ "$ARGUMENT" == "--disable-marketplace" ] ; then
@@ -14,7 +16,9 @@ for ARGUMENT in "$@"; do
             echo "[Persistent Only Feature]" > "$VSCODE_SRV_DIR/workspace/.vscode/.startup"
             echo "If your CrownLabs instance is persistent, delete this file if you want to reset the workspace on next startup." >> "$VSCODE_SRV_DIR/workspace/.vscode/.startup"
         fi
-
+    fi
+    if [ -d "$ARGUMENT" ] ; then
+        TARGETDIR="$ARGUMENT"
     fi
 done
 
@@ -26,4 +30,4 @@ code-server \
 --user-data-dir "$VSCODE_SRV_DIR/data" \
 --extensions-dir "$VSCODE_SRV_DIR/extensions" \
 --disable-telemetry \
-"$VSCODE_SRV_DIR/workspace"
+"$TARGETDIR"
