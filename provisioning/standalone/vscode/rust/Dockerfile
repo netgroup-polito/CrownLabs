@@ -6,7 +6,7 @@ ENV SUDO_FORCE_REMOVE yes
 ENV RSPATH=${VSCODE_SRV_DIR}/.cargo/bin
 
 COPY ./rust/settings.json ${VSCODE_SRV_DIR}/data/User/settings.json
-COPY ./rust/._vscode ${VSCODE_SRV_DIR}/workspace/.vscode
+COPY ./rust/_vscode ${VSCODE_SRV_DIR}/workspace/.vscode
 COPY ./rust/config.toml ${RSPATH}/../config.toml
 
 # Install required packages and remove apt and useless/dangerous packages
