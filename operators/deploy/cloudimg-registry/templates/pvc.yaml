@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "{{ include "cloudimg-registry.fullname" . }}-pvc"
+  labels:
+    {{ include "cloudimg-registry.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - {{ .Values.configurations.volume.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.configurations.volume.size }}
+  storageClassName: {{ .Values.configurations.volume.storageClass }}
