@@ -69,9 +69,9 @@ jobs:
               - 'operators/**'
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version-file: ./operators/go.mod
 
       - uses: actions/setup-python@v4
         with:
@@ -79,7 +79,7 @@ jobs:
 
       - name: Install Kubebuilder
         run: |
-          version=3.14.1 # latest stable version
+          version=4.6.0 # latest stable version
           kubernetes_version=1.28.0
           curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
           curl --fail -sSLo envtest-bins.tar.gz "https://go.kubebuilder.io/test-tools/${kubernetes_version}/$(go env GOOS)/$(go env GOARCH)"
@@ -118,9 +118,9 @@ jobs:
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
+          go-version-file: ./operators/go.mod
 
       - name: Run the automatic generation
         working-directory: operators/
@@ -214,7 +214,9 @@ jobs:
 
       - name: Save the rendered manifests
         run: |
-          echo '${{ steps.helm-template.outputs.helm_output }}' > ./deploy/crownlabs/rendered.yaml
+          cat << 'EOF' > ./deploy/crownlabs/rendered.yaml
+          ${{ steps.helm-template.outputs.helm_output }}
+          EOF
 
       - name: KubeScore Check
         run: |

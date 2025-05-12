@@ -69,7 +69,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		klog.Errorf("Error when getting InstanceSnapshot %s before starting reconcile -> %s", isnap.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		klog.Infof("InstanceSnapshot %s already deleted", req.NamespacedName.Name)
+		klog.Infof("InstanceSnapshot %s already deleted", req.Name)
 		return ctrl.Result{}, nil
 	}
 
