@@ -1,0 +1,74 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package tenant
+
+import (
+	"context"
+	"regexp"
+	"strings"
+
+	"github.com/go-logr/logr"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+)
+
+func (r *Reconciler) enforcePreservingStatus(
+	ctx context.Context,
+	log logr.Logger,
+	tn *v1alpha2.Tenant,
+) error {
+	// the update function will overwrite the status, so we need to save it
+	// and restore it after the update
+	prevStatus := tn.Status
+	if err := r.Update(ctx, tn); err != nil {
+		log.Error(err, "Error when updating tenant", "tenant", tn.Name)
+		return err
+	}
+	tn.Status = prevStatus
+
+	return nil
+}
+
+// CleanName sanitizes a name by replacing spaces with underscores and removing
+// any characters that are not alphanumeric or underscores. It also trims leading
+// and trailing underscores.
+func CleanName(name string) string {
+	okRegex := regexp.MustCompile("^[a-zA-Z0-9_]+$")
+	name = strings.ReplaceAll(name, " ", "_")
+
+	if !okRegex.MatchString(name) {
+		problemChars := make([]string, 0)
+		for _, c := range name {
+			if !okRegex.MatchString(string(c)) {
+				problemChars = append(problemChars, string(c))
+			}
+		}
+		for _, v := range problemChars {
+			name = strings.Replace(name, v, "", 1)
+		}
+	}
+
+	return strings.Trim(name, "_")
+}
+
+func (r *Reconciler) enforceTnResourceCommonLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
+	}
+	labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
+	labels["crownlabs.polito.it/managed-by"] = "tenant"
+
+	return labels
+}
