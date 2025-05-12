@@ -4,9 +4,16 @@
 
 replicaCount: 1
 
+configurations:
+  sshTrackerInterface: any
+  sshTrackerPort: 22
+  sshTrackerSnaplen: 1600
+  sshTrackerMetricsAddr: ":8082"
+
 image:
   repositoryBastion: crownlabs/ssh-bastion
   repositorySidecar: crownlabs/bastion-operator
+  repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
@@ -29,7 +36,7 @@ securityContexts:
     runAsUser: 1000
     runAsGroup: 1000
     privileged: false
-  sidecar:
+  operatorSidecar:
     capabilities:
       drop:
       - ALL
@@ -37,6 +44,18 @@ securityContexts:
     runAsNonRoot: true
     runAsUser: 100000
     runAsGroup: 100000
+    privileged: false
+  trackerSidecar:
+    capabilities:
+      drop:
+      - ALL
+      add:
+      - NET_RAW
+      - NET_ADMIN
+    readOnlyRootFilesystem: true
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
     privileged: false
   hookCreateSecret:
     capabilities:
@@ -48,6 +67,7 @@ securityContexts:
     runAsGroup: 65534
     privileged: false
 
+
 resources:
   bastion:
     limits:
@@ -56,7 +76,14 @@ resources:
     requests:
       memory: 100Mi
       cpu: 100m
-  sidecar:
+  operatorSidecar:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 100Mi
+      cpu: 100m
+  trackerSidecar:
     limits:
       memory: 250Mi
       cpu: 1000m
