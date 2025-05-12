@@ -18,6 +18,8 @@ package forge
 
 import (
 	"fmt"
+	"maps"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -34,6 +36,13 @@ const (
 	ProvisionJobMaxRetries = 3
 	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
+
+	// NFSSecretName -> NFS secret name for MyDrive.
+	NFSSecretName = "mydrive-info"
+	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
+	NFSSecretServerNameKey = "server-name"
+	// NFSSecretPathKey -> NFS path key in NFS secret.
+	NFSSecretPathKey = "path"
 )
 
 // NFSVolumeMountInfo contains information about a volume that has to be mounted through NFS.
@@ -162,4 +171,63 @@ func PVCProvisioningJobSpec(pvc *v1.PersistentVolumeClaim) batchv1.JobSpec {
 			},
 		},
 	}
+}
+
+// GetMyDrivePVCName returns the name for a tenant's MyDrive PVC.
+func GetMyDrivePVCName(tenantName string) string {
+	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tenantName, ".", "-"))
+}
+
+// ConfigureMyDrivePVC configures a PVC for tenant's MyDrive storage.
+func ConfigureMyDrivePVC(pvc *v1.PersistentVolumeClaim, storageClassName string, storageSize resource.Quantity, labels map[string]string) {
+	// Set the labels
+	if pvc.Labels == nil {
+		pvc.Labels = make(map[string]string)
+	}
+
+	// Copy the provided labels
+	maps.Copy(pvc.Labels, labels)
+
+	// Configure the PVC spec
+	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
+	pvc.Spec.StorageClassName = &storageClassName
+
+	// Set resources if the current ones are missing or smaller than the requested ones
+	if pvc.Spec.Resources.Requests == nil {
+		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: storageSize}
+	} else if oldSize := *pvc.Spec.Resources.Requests.Storage(); storageSize.Cmp(oldSize) > 0 || oldSize.IsZero() {
+		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: storageSize}
+	}
+}
+
+// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access.
+func ConfigureMyDriveSecret(secret *v1.Secret, serverName, path string, labels map[string]string) {
+	// Set the labels
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+
+	// Copy the provided labels
+	maps.Copy(secret.Labels, labels)
+
+	// Configure the Secret data
+	secret.Type = v1.SecretTypeOpaque
+	secret.Data = make(map[string][]byte, 2)
+	secret.Data[NFSSecretServerNameKey] = []byte(serverName)
+	secret.Data[NFSSecretPathKey] = []byte(path)
+}
+
+// UpdatePVCProvisioningJobLabel updates the provisioning job label for a PVC.
+func UpdatePVCProvisioningJobLabel(pvc *v1.PersistentVolumeClaim, value string) {
+	if pvc.Labels == nil {
+		pvc.Labels = make(map[string]string)
+	}
+	pvc.Labels[ProvisionJobLabel] = value
+}
+
+// ConfigureMyDriveProvisioningJob configures a Job for provisioning a PVC.
+func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
+	// Set job spec using PVCProvisioningJobSpec
+	jobSpec := PVCProvisioningJobSpec(pvc)
+	job.Spec = jobSpec
 }

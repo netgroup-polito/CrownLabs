@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -643,6 +644,35 @@ var _ = Describe("Labels forging", func() {
 
 		It("Should have the same labels", func() {
 			Expect(output).To(Equal(expected))
+		})
+	})
+
+	Describe("UpdateWorkspaceResourceCommonLabels", func() {
+		It("Should add target label and managed-by label to existing labels", func() {
+			inputLabels := map[string]string{
+				"existing-label": "existing-value",
+			}
+
+			targetLabel := common.NewLabel("test-key", "test-value")
+
+			resultLabels := forge.UpdateWorkspaceResourceCommonLabels(inputLabels, targetLabel)
+
+			Expect(resultLabels).To(HaveLen(3))
+			Expect(resultLabels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(resultLabels).To(HaveKeyWithValue("test-key", "test-value"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "workspace"))
+		})
+
+		It("Should initialize labels map when nil", func() {
+			var inputLabels map[string]string
+
+			targetLabel := common.NewLabel("test-key", "test-value")
+
+			resultLabels := forge.UpdateWorkspaceResourceCommonLabels(inputLabels, targetLabel)
+
+			Expect(resultLabels).To(HaveLen(2))
+			Expect(resultLabels).To(HaveKeyWithValue("test-key", "test-value"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "workspace"))
 		})
 	})
 })

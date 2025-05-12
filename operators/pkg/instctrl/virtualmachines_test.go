@@ -273,7 +273,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("The VMI should still be present and have unmodified specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
-					Expect(vmi.ObjectMeta.Labels).To(Equal(existing.ObjectMeta.Labels))
+					Expect(vmi.Labels).To(Equal(existing.Labels))
 					Expect(vmi.Spec).To(Equal(existing.Spec))
 					Expect(vmi.Status).To(Equal(existing.Status))
 				})

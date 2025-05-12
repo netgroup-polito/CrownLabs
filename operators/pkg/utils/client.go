@@ -37,3 +37,18 @@ func EnforceObjectAbsence(ctx context.Context, c client.Client, obj client.Objec
 
 	return nil
 }
+
+// PatchObject applies a patch to a Kubernetes object, allowing for modifications without overwriting the entire object.
+func PatchObject[T interface {
+	client.Object
+	DeepCopy() T
+}](ctx context.Context, c client.Client, obj T, mutation func(T) T) error {
+	orig := obj.DeepCopy()
+	mutated := mutation(obj)
+
+	if err := c.Patch(ctx, mutated, client.MergeFrom(orig)); err != nil {
+		return err
+	}
+
+	return nil
+}
