@@ -136,10 +136,11 @@ go build ./cmd/instance-operator/main.go
 
 ## SSH bastion
 
-The SSH bastion is composed of two basic blocks:
+The SSH bastion is composed of three basic blocks:
 
 1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
 2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+3. `bastion-ssh-tracker`: a golang app based on Google `gopacket` that tracks the SSH connections going from the bastion host to target hosts, exposing them as metrics for Prometheus.
 
 #### SSH Key generation
 
