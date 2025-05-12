@@ -84,6 +84,7 @@ run-instance: generate
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: samples-local install-local run-instance
 
+# TODO: run config
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
