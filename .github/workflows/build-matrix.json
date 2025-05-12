@@ -7,10 +7,10 @@
         "harbor-project": "crownlabs-core"
     },
     {
-        "component": "tenant-operator",
+        "component": "operator",
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
-        "build-args": "COMPONENT=tenant-operator",
+        "build-args": "COMPONENT=operator",
         "harbor-project": "crownlabs-core"
     },
     {
@@ -53,7 +53,6 @@
         "dockerfile": "./operators/build/delete-stale-instances/Dockerfile",
         "harbor-project": "crownlabs-core"
     },
-
     {
         "component": "frontend-app",
         "context": "./frontend",
@@ -65,7 +64,6 @@
         "context": "./qlkube",
         "harbor-project": "crownlabs-core"
     },
-
     {
         "component": "tigervnc",
         "context": "./provisioning/containers/gui-common/tigervnc",
@@ -86,7 +84,6 @@
         "context": "./provisioning/containers/utils/content-uploader",
         "harbor-project": "crownlabs-container-envs-tools"
     },
-
     {
         "component": "ssh-bastion",
         "context": "./operators/build/ssh-bastion",
@@ -97,7 +94,6 @@
         "context": "./operators/build/img-exporter",
         "harbor-project": "crownlabs-vm-envs-tools"
     },
-
     {
         "component": "pycharm",
         "context": "./provisioning/containers/pycharm",
