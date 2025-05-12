@@ -46,35 +46,66 @@ spec:
               name : host-keys
           resources:
             {{- toYaml .Values.resources.bastion | nindent 12 }}
-        - name: {{ .Chart.Name }}-sidecar
+        - name: {{ .Chart.Name }}-operator-sidecar
           securityContext:
-            {{- toYaml .Values.securityContexts.sidecar | nindent 12 }}
+            {{- toYaml .Values.securityContexts.operatorSidecar | nindent 12 }}
           image: "{{ .Values.image.repositorySidecar }}:{{ include "bastion-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: metrics
+            - name: op-metrics
               containerPort: 8080
               protocol: TCP
-            - name: probes
+            - name: op-probes
               containerPort: 8081
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
-              port: probes
+              port: op-probes
             initialDelaySeconds: 3
             periodSeconds: 3
           readinessProbe:
             httpGet:
               path: /ready
-              port: probes
+              port: op-probes
             initialDelaySeconds: 3
             periodSeconds: 3
           volumeMounts:
             - name: authorized-keys
               mountPath: /auth-keys-vol
           resources:
-            {{- toYaml .Values.resources.sidecar | nindent 12 }}
+            {{- toYaml .Values.resources.operatorSidecar | nindent 12 }}
+        - name: {{ .Chart.Name }}-tracker-sidecar
+          securityContext:
+            {{- toYaml .Values.securityContexts.trackerSidecar | nindent 12 }}
+          image: "{{ .Values.image.repositoryTrackerSidecar }}:{{ include "bastion-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--ssh-tracker-interface={{ .Values.configurations.sshTrackerInterface }}"
+            - "--ssh-tracker-port={{ .Values.configurations.sshTrackerPort }}"
+            - "--ssh-tracker-snaplen={{ .Values.configurations.sshTrackerSnaplen }}"
+            - "--ssh-tracker-metrics-addr={{ .Values.configurations.sshTrackerMetricsAddr }}"
+          ports:
+            - name: trk-metrics
+              containerPort: 8082
+              protocol: TCP
+            - name: trk-probes
+              containerPort: 8083
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: trk-probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: trk-probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources.trackerSidecar | nindent 12 }}
       volumes:
         - name: authorized-keys
           emptyDir: {}

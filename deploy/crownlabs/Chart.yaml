@@ -41,7 +41,7 @@ dependencies:
   condition: tenant-operator.enabled
 
 - name: bastion-operator
-  version: "0.1.0"
+  version: "0.1.1"
   repository: file://../../operators/deploy/bastion-operator
   condition: bastion-operator.enabled
 

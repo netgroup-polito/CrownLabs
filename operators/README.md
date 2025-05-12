@@ -136,10 +136,34 @@ go build ./cmd/instance-operator/main.go
 
 ## SSH bastion
 
-The SSH bastion is composed of two basic blocks:
+The SSH bastion is composed of three basic blocks:
 
 1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
 2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+3. `bastion-ssh-tracker`: a golang app based on Google `gopacket` that passively tracks outbound SSH connections going from the **bastion host** to the associated **target instances**, exposing them as metrics for Prometheus.
+
+### Bastion SSH Tracker
+The `bastion-ssh-tracker` enables lightweight and non-intrusive monitoring of SSH activity from the bastion, complementing monitoring focused on RDP accesses coming from the ingress.
+The idea is to track each time a new SSH session is established from a user to an instance (e.g., VM), in order to monitor whether the instance is currently being used by its owner, or it is a 'stale' instance which consumes resources for no reason.
+This is done by tracking all the TCP SYN packets from the SSH bastion to any instance; when such a packet is detected, the corresponding Prometheus metric is incremented.
+
+An example of the metric exposed by the tracker is the following:
+```
+bastion_ssh_connections{container="bastion-operator-tracker-sidecar", destination_ip="1.2.3.4", destination_port="22", endpoint="metrics", instance="10.244.1.195:8082", job="bastion-bastion-operator-metrics", namespace="default", pod="bastion-bastion-operator-67b688c479-dlx49", service="bastion-bastion-operator-metrics"}
+```
+with its corresponding counter value, which is incremented each time a new SSH connection is established to the instance with IP `1.2.3.4`.
+
+The Bastion SSH Tracker captures raw Ethernet frames using Linux's `AF_PACKET` interface in `TPACKET_V3` mode, a memory-mapped ring buffer mechanism that allows efficient, low-overhead packet capture in user space without interfering with in-kernel networking.
+
+The tracker:
+* Attaches to a specific network interface (via `--ssh-tracker-interface`)
+* Applies a BPF filter that matches outbound TCP SYN packets on a configurable destination port (via `--ssh-tracker-port`)
+* Parses only IPv4 TCP packets with the SYN flag set to detect new SSH connections
+* Exposes Prometheus metrics labeled by destination IP
+* Leaves the original packets untouched, allowing them to pass through the kernel normally without drops or redirection
+
+This tracker runs as a sidecar container within the `bastion` deployment, which is needed to share the same network namespace and see the SSH traffic directly.
+The container requires more privileges to open raw sockets and apply BPF filters, but it avoids full privilege escalation. It needs in fact to run as root inside the container to access the `AF_PACKET` interface, but it drops all other capabilities apart from the required `NET_RAW` and `NET_ADMIN`.
 
 #### SSH Key generation
 

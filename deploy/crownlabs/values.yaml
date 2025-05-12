@@ -107,12 +107,18 @@ bastion-operator:
   image:
     repositoryBastion: crownlabs/ssh-bastion
     repositorySidecar: crownlabs/bastion-operator
+    repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   rbacResourcesName: crownlabs-bastion-operator
   serviceAnnotations: {}
   service:
     type: LoadBalancer
     port: 22
     externalTrafficPolicy: Cluster
+  configurations:
+    sshTrackerInterface: any
+    sshTrackerPort: 22
+    sshTrackerSnaplen: 1600
+    sshTrackerMetricsAddr: ":8082"
 
 image-list:
   replicaCount: 1

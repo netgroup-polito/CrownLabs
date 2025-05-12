@@ -21,6 +21,13 @@
         "harbor-project": "crownlabs-core"
     },
     {
+        "component": "bastion-ssh-tracker",
+        "context": "./operators",
+        "dockerfile": "./operators/build/ssh-tracker/Dockerfile",
+        "build-args": "COMPONENT=bastion-ssh-tracker",
+        "harbor-project": "crownlabs-core"
+    },
+    {
         "component": "exam-agent",
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
