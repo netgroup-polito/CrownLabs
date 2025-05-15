@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.rbacResourcesName }}
+  labels:
+    {{- include "instance-automation.labels" . | nindent 4 }}
+rules:
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["instances", "instances/status"]
+  verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
+
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["instancesnapshots", "instancesnapshots/status"]
+  verbs: ["get","list","watch","create","update","patch"]
+
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["templates", "tenants"]
+  verbs: ["get","list","watch"]
+
+- apiGroups: [""]
+  resources: ["namespaces","persistentvolumes","pods"]
+  verbs: ["get","list","watch"]
+
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get","list","watch","create","patch","update", "delete"]
+
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+
