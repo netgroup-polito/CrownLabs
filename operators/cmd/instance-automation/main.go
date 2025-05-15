@@ -73,7 +73,7 @@ func main() {
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
 
-	maxInactiveConcurrentTerminationReconciles := flag.Int("max-inactive-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
+	//maxInactiveConcurrentTerminationReconciles := flag.Int("max-inactive-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationStatusCheckInterval := flag.Duration("instance-inactive-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 
@@ -150,7 +150,7 @@ func main() {
 		NamespaceWhitelist:          nsWhitelist,
 		StatusCheckRequestTimeout:   *instanceInactiveTerminationStatusCheckTimeout,
 		InstanceStatusCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr, *maxInactiveConcurrentTerminationReconciles); err != nil {
+	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 		os.Exit(1)
 	}

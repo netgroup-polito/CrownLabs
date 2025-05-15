@@ -72,7 +72,7 @@ func main() {
 
 	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
 
-	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
+	maxConcurrentShVolReconciles := flag.Int("max-concurrent-reconciles-shvol", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Shared Volume controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -138,7 +138,7 @@ func main() {
 		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
 		NamespaceWhitelist: nsWhitelist,
 		PVCStorageClass:    *sharedVolumeStorageClass,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
+	}).SetupWithManager(mgr, *maxConcurrentShVolReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}

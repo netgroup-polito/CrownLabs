@@ -8,6 +8,9 @@ dependencies:
 - name: instance-operator
   repository: file://../../operators/deploy/instance-operator
   version: 0.1.1
+- name: instance-automation
+  repository: file://../../operators/deploy/instance-automation
+  version: 0.0.1
 - name: tenant-operator
   repository: file://../../operators/deploy/tenant-operator
   version: 0.1.0
@@ -26,5 +29,5 @@ dependencies:
 - name: policies
   repository: file://../../policies
   version: 0.1.0
-digest: sha256:94f282fd3eb152d3693b5d98117d3cd48ca6570be13a48552de2b3b036696f46
-generated: "2022-07-08T12:10:33.942195264+02:00"
+digest: sha256:aafcd0ada3f3e2b351b448bbf3c85444c7d5c47ac3f10b34f4e0c5f94994e5c2
+generated: "2025-05-15T11:58:23.752546+02:00"
