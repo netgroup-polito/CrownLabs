@@ -40,6 +40,7 @@ import (
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instinactivectrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -78,6 +79,10 @@ func main() {
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
+
+	maxInactiveConcurrentTerminationReconciles := flag.Int("max-inactive-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
+	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
+	instanceInactiveTerminationStatusCheckInterval := flag.Duration("instance-inactive-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -173,6 +178,20 @@ func main() {
 		NamespaceWhitelist: nsWhitelist,
 	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSubmission)
+		os.Exit(1)
+	}
+
+	// Configure the Instance Inactive termination controller
+	instanceInactiveTermination := "InstanceInactiveTermination"
+	if err := (&instinactivectrl.InstanceInactiveTerminationReconciler{
+		Client:                      mgr.GetClient(),
+		Scheme:                      mgr.GetScheme(),
+		EventsRecorder:              mgr.GetEventRecorderFor(instanceInactiveTermination),
+		NamespaceWhitelist:          nsWhitelist,
+		StatusCheckRequestTimeout:   *instanceInactiveTerminationStatusCheckTimeout,
+		InstanceStatusCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
+	}).SetupWithManager(mgr, *maxInactiveConcurrentTerminationReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 		os.Exit(1)
 	}
 
