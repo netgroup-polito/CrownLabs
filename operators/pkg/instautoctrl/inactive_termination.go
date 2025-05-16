@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package instautoctrl contains the controller for Instance Inactive Termination
-package instinactivectrl
+package instautoctrl
 
 import (
 	"context"
@@ -278,17 +278,20 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 	query := `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`
 	result, _, err := v1api.Query(ctx, query, time.Now())
 	if err != nil {
+		log.Error(err, "Failed to query Prometheus for ingress metrics")
 		return false, err
 	}
 
 	vec, ok := result.(model.Vector)
 	if !ok || len(vec) == 0 {
+		log.Info("No ingress metrics available on worker nodes")
 		return false, nil
 	}
 
 	nodeCount := int(vec[0].Value)
 	if nodeCount == 0 {
 		// No nodes have ingress metrics available
+		log.Info("No nodes have ingress metrics available")
 		return false, nil
 	}
 
@@ -297,8 +300,9 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 }
 
 func (r *InstanceInactiveTerminationReconciler) getPrometheusURL() string {
-	// TODO: check
-	return "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
+	// TODO: from inside the cluster use "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
+	// TODO: why port 80 from inside? Are we reaching this from inside or outside? We need internal unauthenticated access
+	return "http://172.19.0.120:80"
 }
 
 // TerminateInstance terminates the Instance.
