@@ -2585,13 +2585,6 @@ export type Spec5Input = {
 /** TemplateSpec is the specification of the desired state of the Template. */
 export type Spec6 = {
   __typename?: 'Spec6';
-  /**
-   * The maximum lifetime of an Instance referencing the current Template.
-   * Once this period is expired, the Instance may be automatically deleted
-   * or stopped to save resources. If set to "never", the instance will not be
-   * automatically terminated.
-   */
-  deleteAfter?: Maybe<Scalars['String']['output']>;
   /** A textual description of the Template. */
   description: Scalars['String']['output'];
   /** The list of environments (i.e. VMs or containers) that compose the Template. */
@@ -2604,13 +2597,6 @@ export type Spec6 = {
 
 /** TemplateSpec is the specification of the desired state of the Template. */
 export type Spec6Input = {
-  /**
-   * The maximum lifetime of an Instance referencing the current Template.
-   * Once this period is expired, the Instance may be automatically deleted
-   * or stopped to save resources. If set to "never", the instance will not be
-   * automatically terminated.
-   */
-  deleteAfter?: InputMaybe<Scalars['String']['input']>;
   /** A textual description of the Template. */
   description: Scalars['String']['input'];
   /** The list of environments (i.e. VMs or containers) that compose the Template. */
