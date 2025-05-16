@@ -34,7 +34,6 @@ spec:
         reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: tea
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -57,7 +56,6 @@ spec:
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee
-  deleteAfter: 1h
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -84,7 +82,6 @@ spec:
       rewriteURL: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -111,7 +108,6 @@ spec:
       persistent: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -135,4 +131,3 @@ spec:
         reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d

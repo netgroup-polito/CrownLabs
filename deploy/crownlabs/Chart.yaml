@@ -55,11 +55,6 @@ dependencies:
   repository: file://../../operators/deploy/image-list
   condition: image-list.enabled
 
-- name: delete-stale-instances
-  version: "0.1.0"
-  repository: file://../../operators/deploy/delete-stale-instances
-  condition: delete-stale-instances.enabled
-
 - name: exam-agent
   version: "0.1.0"
   repository: file://../../operators/deploy/exam-agent

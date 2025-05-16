@@ -36,7 +36,6 @@ spec:
           persistent: false
     workspace.crownlabs.polito.it/WorkspaceRef:
         name: sid
-    deleteAfter: 30d
 ```
 
 Then we will create an **instance**, either through a **yaml** file or using the **CrownLabs frontend**. The generated **URL** to access the **instance** would resemble `https://crownlabs.polito.it/instance/4e46/app/`. So, when we will send a request to this **URL**, the **application** will receive a **request** for `/instance/4e46/app/` and not just `/`. Hence, the **application** has to be aware of it (see the [example](example.md)).

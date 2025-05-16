@@ -144,14 +144,6 @@ image-list:
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
 
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
-
 exam-agent:
   replicaCount: 1
   configurations:
