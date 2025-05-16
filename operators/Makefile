@@ -20,9 +20,6 @@ gen: generate fmt vet manifests
 test:
 	go test ./... -coverprofile coverage.out -covermode=count
 
-test-python: python-dependencies
-	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
-
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f deploy/crds
@@ -108,9 +105,6 @@ run-tenant: generate
 install-local: manifests
 	kubectl apply -f deploy/crds
 	kubectl apply -f tests/crds
-
-python-dependencies:
-	pip3 install -r ./build/delete-stale-instances/requirements.txt
 
 samples-local:
 	kubectl apply -f ./samples/
