@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "instance-operator.fullname" . }}
+  name: {{ include "instance-automation.fullname" . }}
   labels:
-    {{- include "instance-operator.labels" . | nindent 4 }}
+    {{- include "instance-automation.labels" . | nindent 4 }}
 {{- with .Values.deploymentAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -12,7 +12,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+      {{- include "instance-automation.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.podAnnotations }}
@@ -20,24 +20,24 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
-        {{- include "instance-operator.selectorLabels" . | nindent 8 }}
+        {{- include "instance-automation.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "instance-operator.fullname" . }}
+      serviceAccountName: {{ include "instance-automation.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
+          image: "{{ .Values.image.repository }}:{{ include "instance-automation.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
             - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
             - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
-            - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
+            - "--container-env-sidecars-tag={{ include "instance-automation.containerEnvironmentSidecarsTag" . }}"
             - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
             - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
@@ -45,11 +45,21 @@ spec:
             - "--container-env-instmetrics-server-endpoint={{ .Values.configurations.containerEnvironmentOptions.instmetricsServerEndpoint }}"
             - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
             - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
-            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
+            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-automation.containerExportImageTag" . }}"
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
-            - "--max-concurrent-reconciles-shvol={{ .Values.configurations.automation.maxConcurrentShVolReconciles }}"
-            - "--shared-volume-storage-class={{ .Values.configurations.sharedVolumeOptions.storageClass }}"
+            - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
+            - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
+            - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
+            - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
+            - "--instance-inactive-termination-status-check-timeout={{ .Values.configurations.automation.inactiveTerminationStatusCheckTimeout }}"
+            - "--instance-inactive-termination-status-check-interval={{ .Values.configurations.automation.inactiveTerminationStatusCheckInterval }}"
+            - "--smtp-server={{ .Values.configurations.smtp.server }}"
+            - "--smtp-port={{ .Values.configurations.smtp.port }}"
+            - "--smtp-identity={{ .Values.configurations.smtp.identity }}"
+            - "--smtp-username={{ .Values.configurations.smtp.username }}"
+            - "--smtp-password={{ .Values.configurations.smtp.password }}"
+            - "--smtp-from={{ .Values.configurations.smtp.from }}"
           ports:
             - name: metrics
               containerPort: 8080
@@ -79,5 +89,5 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchLabels:
-                  {{- include "instance-operator.selectorLabels" . | nindent 18 }}
+                  {{- include "instance-automation.selectorLabels" . | nindent 18 }}
               topologyKey: kubernetes.io/hostname

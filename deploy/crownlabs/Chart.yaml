@@ -35,6 +35,11 @@ dependencies:
   repository: file://../../operators/deploy/instance-operator
   condition: instance-operator.enabled
 
+- name: instance-automation
+  version: "0.0.1"
+  repository: file://../../operators/deploy/instance-automation
+  condition: instance-automation.enabled
+
 - name: tenant-operator
   version: "0.1.0"
   repository: file://../../operators/deploy/tenant-operator

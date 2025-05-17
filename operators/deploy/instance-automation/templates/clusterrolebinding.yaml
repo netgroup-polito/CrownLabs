@@ -3,12 +3,12 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ .Values.rbacResourcesName }}
   labels:
-    {{- include "delete-stale-instances.labels" . | nindent 4 }}
+    {{- include "instance-automation.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ .Values.rbacResourcesName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "delete-stale-instances.fullname" . }}
+    name: {{ include "instance-automation.fullname" . }}
     namespace: {{ .Release.Namespace }}
