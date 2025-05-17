@@ -91,6 +91,18 @@ type TenantSpec struct {
 	Quota *TenantResourceQuota `json:"quota,omitempty"`
 }
 
+// KeycloakStatus defines the status of the authentication flow with Keycloak.
+type KeycloakStatus struct {
+	// Whether the Tenant has successfully been created in Keycloak.
+	// This is set to true only if the Tenant has been created in Keycloak
+	UserCreated NameCreated `json:"userCreated"`
+
+	// Whether the Tenant has confirmed his/her email address.
+	// Only if the Tenant has confirmed his/her email address, his/her
+	// resources will be created in the cluster.
+	UserConfirmed bool `json:"userConfirmed"`
+}
+
 // TenantResourceQuota defines resource quota for each Tenant.
 type TenantResourceQuota struct {
 	// The maximum amount of CPU which can be used by this Tenant.
@@ -125,6 +137,9 @@ type TenantStatus struct {
 	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
 	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
+
+	// The status of Keycloak authentication flow
+	Keycloak KeycloakStatus `json:"keycloak"`
 
 	// Whether all subscriptions and resource creations succeeded or an error
 	// occurred. In case of errors, the other status fields provide additional

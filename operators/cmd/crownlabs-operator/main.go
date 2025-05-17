@@ -56,10 +56,12 @@ func main() {
 	// General settings
 	var metricsAddr string
 	var enableLeaderElection bool
+	var targetLabelStr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&targetLabelStr, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
 
 	// Enabling modules
 	var enableTenant bool
@@ -97,6 +99,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	targetLabel, err := utils.ParseLabel(targetLabelStr)
+	if err != nil {
+		log.Error(err, "Unable to parse target label")
+		os.Exit(1)
+	}
+	log.Info("Selecting resources with label", "label", targetLabelStr)
+
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak := enableTenant // TODO || enableWorkspace
 	// enabling Keycloak if all the settings are provided
@@ -122,7 +131,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setup_tenant(mgr)
+		err := setup_tenant(mgr, targetLabel)
 		if err != nil {
 			log.Error(err, "Unable to create tenant controller")
 			os.Exit(1)

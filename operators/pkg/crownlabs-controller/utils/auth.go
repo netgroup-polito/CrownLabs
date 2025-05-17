@@ -17,18 +17,21 @@ package utils
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"sync"
 
 	"github.com/Nerzal/gocloak/v13"
 	"k8s.io/klog/v2"
 )
 
 // KcActor contains the needed objects and infos to use keycloak functionalities.
-type KcActor struct {
+type KeycloakActor struct {
 	initialized bool
 	Client      *gocloak.GoCloak
 	Realm       string
-	// token                 *gocloak.JWT
-	// tokenMutex            sync.RWMutex
+	token       *gocloak.JWT
+	tokenMutex  sync.RWMutex
 	// UserRequiredActions   []string
 	// EmailActionsLifeSpanS int
 	credentials struct {
@@ -37,7 +40,7 @@ type KcActor struct {
 	}
 }
 
-var actor KcActor
+var actor KeycloakActor
 
 func SetupKeycloakActor(
 	url string,
@@ -69,26 +72,90 @@ func SetupKeycloakActor(
 }
 
 // GetKeycloakActor returns the KcActor currently used.
-func GetKeycloakActor() *KcActor {
+func GetKeycloakActor() *KeycloakActor {
 	return &actor
 }
 
-// func (a *KcActor) GetAccessToken() string {
-// 	a.tokenMutex.RLock()
-// 	defer a.tokenMutex.RUnlock()
+func (a *KeycloakActor) IsInitialized() bool {
+	return a.initialized
+}
 
-// 	if a.token == nil {
-// 		return ""
-// 	}
-// 	return a.token.AccessToken
-// }
+// GetAccessToken returns the access token of the actor.
+// It tries to refresh the token if it is nil or expired.
+func (a *KeycloakActor) GetAccessToken() string {
+	a.tokenMutex.RLock()
+	defer a.tokenMutex.RUnlock()
 
-// func (a *KcActor) SetToken(token *gocloak.JWT) {
-// 	a.tokenMutex.Lock()
-// 	defer a.tokenMutex.Unlock()
+	if a.token == nil || a.token.ExpiresIn <= 0 {
+		klog.Info("Keycloak token is nil or expired, refreshing it")
+		ctx := context.Background()
+		token, err := a.Client.LoginClient(ctx, a.credentials.ClientID, a.credentials.ClientSecret, a.Realm)
+		if err != nil {
+			klog.Error("Unable to refresh keycloak token", err)
+			os.Exit(1)
+		}
+		a.token = token
+		klog.Info("Keycloak token refreshed")
+	}
 
-// 	if token == nil {
-// 		return
-// 	}
-// 	a.token = token
-// }
+	return a.token.AccessToken
+}
+
+// GetUser returns the user associated with the given username.
+func (a *KeycloakActor) GetUser(ctx context.Context, username string) (*gocloak.User, error) {
+
+	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(), a.Realm, gocloak.GetUsersParams{
+		Username: &username,
+	})
+	if err != nil {
+		klog.Error("Unable to get user from keycloak", err)
+		return nil, err
+	}
+
+	if len(users) != 1 {
+		klog.Warningf("User %s not found in Keycloak", username)
+		return nil, fmt.Errorf("404")
+	}
+
+	user := users[0]
+
+	return user, nil
+}
+
+// CreateUser creates a user in Keycloak.
+func (a *KeycloakActor) CreateUser(
+	ctx context.Context,
+	username string,
+	email string,
+	firstName string,
+	lastName string,
+) (string, error) {
+	user := gocloak.User{
+		Username:      &username,
+		Email:         &email,
+		FirstName:     &firstName,
+		LastName:      &lastName,
+		Enabled:       gocloak.BoolP(true),
+		EmailVerified: gocloak.BoolP(false),
+	}
+
+	userID, err := a.Client.CreateUser(ctx, a.GetAccessToken(), a.Realm, user)
+	if err != nil {
+		return "", err
+	}
+
+	// Set the required actions for the user
+	requiredActions := []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
+	// user should do it in the next 30 days
+	lifespan := 60 * 60 * 24 * 30
+	err = a.Client.ExecuteActionsEmail(ctx, a.GetAccessToken(), a.Realm, gocloak.ExecuteActionsEmail{
+		UserID:   &userID,
+		Actions:  &requiredActions,
+		Lifespan: &lifespan,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return userID, nil
+}

@@ -17,16 +17,20 @@ package main
 
 import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-func setup_tenant(mgr manager.Manager) error {
+func setup_tenant(
+	mgr manager.Manager,
+	targetLabel utils.Label,
+) error {
 	// TODO manage webhook
-	// TODO connect to keycloak
 	// TODO setup tenant reconciler
 	if err := (&tenant.TenantReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		TargetLabel: targetLabel,
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
