@@ -35,6 +35,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
 )
 
 var (
@@ -64,6 +65,20 @@ func main() {
 	var enableTenant bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 
+	// Auth settings
+	var keycloakURL string
+	var keycloakAdminRealm string
+	var keycloakAdminUsername string
+	var keycloakAdminPassword string
+	var keycloakTargetRealm string
+	var keycloakTargetClientID string
+	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL.")
+	flag.StringVar(&keycloakAdminRealm, "keycloak-admin-realm", "", "Keycloak admin realm.")
+	flag.StringVar(&keycloakAdminUsername, "keycloak-admin-username", "", "Keycloak admin username.")
+	flag.StringVar(&keycloakAdminPassword, "keycloak-admin-password", "", "Keycloak admin password.")
+	flag.StringVar(&keycloakTargetRealm, "keycloak-target-realm", "", "Keycloak target realm.")
+	flag.StringVar(&keycloakTargetClientID, "keycloak-target-client-id", "", "Keycloak target client ID.")
+
 	klog.InitFlags(nil)
 	flag.Parse()
 
@@ -84,6 +99,33 @@ func main() {
 	if err != nil {
 		log.Error(err, "Unable to create manager")
 		os.Exit(1)
+	}
+
+	// enabling Keycloak if modules that needs it are enabled
+	enableKeycloak := enableTenant // TODO || enableWorkspace
+	// enabling Keycloak if all the settings are provided
+	enableKeycloak = enableKeycloak && keycloakURL != ""
+	enableKeycloak = enableKeycloak && keycloakAdminRealm != ""
+	enableKeycloak = enableKeycloak && keycloakAdminUsername != ""
+	enableKeycloak = enableKeycloak && keycloakAdminPassword != ""
+	enableKeycloak = enableKeycloak && keycloakTargetRealm != ""
+	enableKeycloak = enableKeycloak && keycloakTargetClientID != ""
+	if enableKeycloak {
+		log.Info("Keycloak settings provided, initializing Keycloak actor")
+		err = utils.SetupKeycloakActor(
+			keycloakURL,
+			keycloakAdminRealm,
+			keycloakAdminUsername,
+			keycloakAdminPassword,
+			keycloakTargetRealm,
+			keycloakTargetClientID,
+		)
+		if err != nil {
+			log.Error(err, "Unable to initialize Keycloak actor")
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Keycloak actor will not be initialized (not needed or settings not provided)")
 	}
 
 	if enableTenant {
