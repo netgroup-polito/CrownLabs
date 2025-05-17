@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package tenant_controller groups the functionalities related to the Tenant controller.
-package tenant_controller
+package tenant
 
 import (
 	"context"

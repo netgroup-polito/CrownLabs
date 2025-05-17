@@ -29,12 +29,12 @@ import (
 	// cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	tenant_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant"
 )
 
 var (
@@ -52,13 +52,17 @@ func init() {
 }
 
 func main() {
+	// General settings
 	var metricsAddr string
 	var enableLeaderElection bool
-
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+
+	// Enabling modules
+	var enableTenant bool
+	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -82,35 +86,43 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO manage webhook
-	// TODO connect to keycloak
-	// TODO setup tenant reconciler
-	if err = (&tenant_controller.TenantReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "Unable to create controller", "controller", "tenant")
-		os.Exit(1)
+	if enableTenant {
+		log.Info("Starting the tenant controller")
+		err := setup_tenant(mgr)
+		if err != nil {
+			log.Error(err, "Unable to create tenant controller")
+			os.Exit(1)
+		}
 	}
 
 	// TODO setup workspace reconciler
 
-	// Add readiness probe
-	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
-	if err != nil {
-		log.Error(err, "Unable to add the readiness check")
+	// Setup operator probes
+	if err := addOperatorProbes(mgr); err != nil {
+		log.Error(err, "Unable to set up operator probes")
 		os.Exit(1)
 	}
 
-	// Add liveness probe
-	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
-	if err != nil {
-		log.Error(err, "Unable to add the health check")
-		os.Exit(1)
-	}
+	// Start the operator
 	klog.Info("Starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		log.Error(err, "Failed starting manager")
 		os.Exit(1)
 	}
+}
+
+func addOperatorProbes(mgr manager.Manager) error {
+	// Add readiness probe
+	err := mgr.AddReadyzCheck("ready-ping", healthz.Ping)
+	if err != nil {
+		return err
+	}
+
+	// Add liveness probe
+	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
