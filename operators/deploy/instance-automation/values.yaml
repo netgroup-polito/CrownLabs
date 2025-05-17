@@ -31,7 +31,13 @@ configurations:
     maxConcurrentSubmissionReconciles: 1
     inactiveTerminationStatusCheckTimeout: "3s"
     inactiveTerminationStatusCheckInterval: "2m" #modify according to your needs
-
+  smtp:
+    server: 
+    port: 
+    identity:
+    username:
+    password:
+    from:
 
 image:
   repository: crownlabs/instance-automation

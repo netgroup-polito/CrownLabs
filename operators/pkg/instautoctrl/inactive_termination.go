@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/smtp"
 	"strconv"
 	"time"
 
@@ -52,6 +51,7 @@ type InstanceInactiveTerminationReconciler struct {
 	NamespaceWhitelist          metav1.LabelSelector
 	StatusCheckRequestTimeout   time.Duration
 	InstanceStatusCheckInterval time.Duration
+	MailClient                  *MailClient
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -62,13 +62,6 @@ var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
 
 const maxNumberOfAlerts = 4
 const terminationInterval = 2 * time.Minute
-
-var mailClient = &MailClient{
-	SMTPServer: "smtp.polito.it",
-	SMTPPort:   587,
-	auth:       smtp.PlainAuth("identity", "crownlabs", "password", "smtp.polito.it"),
-	From:       "crownlabs@polito.it",
-}
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
@@ -343,7 +336,7 @@ func (r *InstanceInactiveTerminationReconciler) SendNotification(ctx context.Con
 		"Please log in to your instance if you wish to keep it running.\n\n"+
 		"Best regards,\n"+
 		"CrownLabs Team", instance.Name)
-	mailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
+	r.MailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
 
 	// increment the number of termination alerts
 	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[alertAnnotation])

@@ -54,6 +54,12 @@ spec:
             - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
             - "--instance-inactive-termination-status-check-timeout={{ .Values.configurations.automation.inactiveTerminationStatusCheckTimeout }}"
             - "--instance-inactive-termination-status-check-interval={{ .Values.configurations.automation.inactiveTerminationStatusCheckInterval }}"
+            - "--smtp-server={{ .Values.configurations.smtp.server }}"
+            - "--smtp-port={{ .Values.configurations.smtp.port }}"
+            - "--smtp-identity={{ .Values.configurations.smtp.identity }}"
+            - "--smtp-username={{ .Values.configurations.smtp.username }}"
+            - "--smtp-password={{ .Values.configurations.smtp.password }}"
+            - "--smtp-from={{ .Values.configurations.smtp.from }}"
           ports:
             - name: metrics
               containerPort: 8080

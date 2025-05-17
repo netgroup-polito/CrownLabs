@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"net/smtp"
 	"os"
 	"strings"
 	"time"
@@ -43,7 +44,8 @@ import (
 )
 
 var (
-	scheme = runtime.NewScheme()
+	scheme     = runtime.NewScheme()
+	mailClient *instautoctrl.MailClient
 )
 
 func init() {
@@ -87,9 +89,23 @@ func main() {
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
 	flag.StringVar(&containerEnvOpts.InstMetricsEndpoint, "container-env-instmetrics-server-endpoint", "instmetrics:9090", "The endpoint of the InstMetrics gRPC server")
 
+	smtpServer := flag.String("smtp-server", "smtp.polito.it", "SMTP server for sending emails")
+	smtpPort := flag.Int("smtp-port", 587, "SMTP server port")
+	smtpIdentity := flag.String("smtp-identity", "", "SMTP identity for authentication")
+	smtpUsername := flag.String("smtp-username", "", "SMTP username for authentication")
+	smtpPassword := flag.String("smtp-password", "", "SMTP password for authentication")
+	smtpFrom := flag.String("smtp-from", "crownlabs@polito.it", "Email sender address")
+
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
+
+	mailClient = &instautoctrl.MailClient{
+		SMTPServer: *smtpServer,
+		SMTPPort:   *smtpPort,
+		Auth:       smtp.PlainAuth(*smtpIdentity, *smtpUsername, *smtpPassword, *smtpServer),
+		From:       *smtpFrom,
+	}
 
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
@@ -150,6 +166,7 @@ func main() {
 		NamespaceWhitelist:          nsWhitelist,
 		StatusCheckRequestTimeout:   *instanceInactiveTerminationStatusCheckTimeout,
 		InstanceStatusCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
+		MailClient:                  mailClient,
 	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 		os.Exit(1)
