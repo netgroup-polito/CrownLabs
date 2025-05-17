@@ -73,10 +73,10 @@ func main() {
 	var keycloakTargetRealm string
 	var keycloakTargetClientID string
 	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL.")
-	flag.StringVar(&keycloakAdminRealm, "keycloak-admin-realm", "", "Keycloak admin realm.")
+	flag.StringVar(&keycloakAdminRealm, "keycloak-admin-realm", "", "Keycloak admin realm, in which the admin user is located.")
 	flag.StringVar(&keycloakAdminUsername, "keycloak-admin-username", "", "Keycloak admin username.")
 	flag.StringVar(&keycloakAdminPassword, "keycloak-admin-password", "", "Keycloak admin password.")
-	flag.StringVar(&keycloakTargetRealm, "keycloak-target-realm", "", "Keycloak target realm.")
+	flag.StringVar(&keycloakTargetRealm, "keycloak-target-realm", "", "Keycloak target realm, in which the tenant resources are located.")
 	flag.StringVar(&keycloakTargetClientID, "keycloak-target-client-id", "", "Keycloak target client ID.")
 
 	klog.InitFlags(nil)
