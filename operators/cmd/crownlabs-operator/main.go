@@ -67,17 +67,13 @@ func main() {
 
 	// Auth settings
 	var keycloakURL string
-	var keycloakAdminRealm string
-	var keycloakAdminUsername string
-	var keycloakAdminPassword string
-	var keycloakTargetRealm string
-	var keycloakTargetClientID string
+	var keycloakRealm string
+	var keycloakClientID string
+	var keycloakClientSecret string
 	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL.")
-	flag.StringVar(&keycloakAdminRealm, "keycloak-admin-realm", "", "Keycloak admin realm, in which the admin user is located.")
-	flag.StringVar(&keycloakAdminUsername, "keycloak-admin-username", "", "Keycloak admin username.")
-	flag.StringVar(&keycloakAdminPassword, "keycloak-admin-password", "", "Keycloak admin password.")
-	flag.StringVar(&keycloakTargetRealm, "keycloak-target-realm", "", "Keycloak target realm, in which the tenant resources are located.")
-	flag.StringVar(&keycloakTargetClientID, "keycloak-target-client-id", "", "Keycloak target client ID.")
+	flag.StringVar(&keycloakRealm, "keycloak-realm", "", "Keycloak realm.")
+	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak client ID.")
+	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak client secret.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -105,20 +101,16 @@ func main() {
 	enableKeycloak := enableTenant // TODO || enableWorkspace
 	// enabling Keycloak if all the settings are provided
 	enableKeycloak = enableKeycloak && keycloakURL != ""
-	enableKeycloak = enableKeycloak && keycloakAdminRealm != ""
-	enableKeycloak = enableKeycloak && keycloakAdminUsername != ""
-	enableKeycloak = enableKeycloak && keycloakAdminPassword != ""
-	enableKeycloak = enableKeycloak && keycloakTargetRealm != ""
-	enableKeycloak = enableKeycloak && keycloakTargetClientID != ""
+	enableKeycloak = enableKeycloak && keycloakRealm != ""
+	enableKeycloak = enableKeycloak && keycloakClientID != ""
+	enableKeycloak = enableKeycloak && keycloakClientSecret != ""
 	if enableKeycloak {
 		log.Info("Keycloak settings provided, initializing Keycloak actor")
 		err = utils.SetupKeycloakActor(
 			keycloakURL,
-			keycloakAdminRealm,
-			keycloakAdminUsername,
-			keycloakAdminPassword,
-			keycloakTargetRealm,
-			keycloakTargetClientID,
+			keycloakClientID,
+			keycloakClientSecret,
+			keycloakRealm,
 		)
 		if err != nil {
 			log.Error(err, "Unable to initialize Keycloak actor")

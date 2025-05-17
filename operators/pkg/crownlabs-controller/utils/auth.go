@@ -17,8 +17,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
-	"sync"
 
 	"github.com/Nerzal/gocloak/v13"
 	"k8s.io/klog/v2"
@@ -26,53 +24,47 @@ import (
 
 // KcActor contains the needed objects and infos to use keycloak functionalities.
 type KcActor struct {
-	Client                *gocloak.GoCloak
-	token                 *gocloak.JWT
-	tokenMutex            sync.RWMutex
-	TargetRealm           string
-	TargetClientID        string
-	UserRequiredActions   []string
-	EmailActionsLifeSpanS int
+	initialized bool
+	Client      *gocloak.GoCloak
+	Realm       string
+	// token                 *gocloak.JWT
+	// tokenMutex            sync.RWMutex
+	// UserRequiredActions   []string
+	// EmailActionsLifeSpanS int
+	credentials struct {
+		ClientID     string
+		ClientSecret string
+	}
 }
 
 var actor KcActor
-var initialized bool
 
 func SetupKeycloakActor(
 	url string,
-	adminRealm string,
-	adminUsername string,
-	adminPassword string,
-	targetRealm string,
-	targetClientId string,
+	clientID string,
+	clientSecret string,
+	realm string,
 ) error {
-	if initialized {
+	if actor.initialized {
 		return nil
 	}
 
 	actor.Client = gocloak.NewClient(url)
 
 	// login to keycloak
-	token, err := actor.Client.LoginAdmin(context.Background(), adminUsername, adminPassword, adminRealm)
+	_, err := actor.Client.LoginClient(context.Background(), clientID, clientSecret, realm)
 	if err != nil {
 		klog.Error("Unable to login as admin on keycloak", err)
 		return err
 	}
-	actor.SetToken(token)
 
-	actor.TargetRealm = targetRealm
+	// actor.UserRequiredActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
+	// actor.EmailActionsLifeSpanS = 60 * 60 * 24 * 30 // 30 Days
 
-	// get the target client id
-	err = getClientIdFromName(targetClientId)
-	if err != nil {
-		klog.Errorf("Error when getting client id for %s", targetClientId)
-		return err
-	}
-
-	actor.UserRequiredActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
-	actor.EmailActionsLifeSpanS = 60 * 60 * 24 * 30 // 30 Days
-
-	initialized = true
+	actor.Realm = realm
+	actor.credentials.ClientID = clientID
+	actor.credentials.ClientSecret = clientSecret
+	actor.initialized = true
 	return nil
 }
 
@@ -81,38 +73,22 @@ func GetKeycloakActor() *KcActor {
 	return &actor
 }
 
-func (a *KcActor) GetToken() string {
-	a.tokenMutex.RLock()
-	defer a.tokenMutex.RUnlock()
+// func (a *KcActor) GetAccessToken() string {
+// 	a.tokenMutex.RLock()
+// 	defer a.tokenMutex.RUnlock()
 
-	if a.token == nil {
-		return ""
-	}
-	return a.token.AccessToken
-}
+// 	if a.token == nil {
+// 		return ""
+// 	}
+// 	return a.token.AccessToken
+// }
 
-func (a *KcActor) SetToken(token *gocloak.JWT) {
-	a.tokenMutex.Lock()
-	defer a.tokenMutex.Unlock()
+// func (a *KcActor) SetToken(token *gocloak.JWT) {
+// 	a.tokenMutex.Lock()
+// 	defer a.tokenMutex.Unlock()
 
-	if token == nil {
-		return
-	}
-	a.token = token
-}
-
-// getClientIdFromName returns the ID of the target client given the human id, to be used with the gocloak library.
-func getClientIdFromName(clientName string) error {
-	clients, err := actor.Client.GetClients(context.Background(), actor.token.AccessToken, actor.TargetRealm, gocloak.GetClientsParams{
-		ClientID: &clientName,
-	})
-	if err != nil {
-		return err
-	}
-	if len(clients) != 1 {
-		return fmt.Errorf("client %s not found in realm %s", clientName, actor.TargetRealm)
-	}
-
-	actor.TargetClientID = *clients[0].ID
-	return nil
-}
+// 	if token == nil {
+// 		return
+// 	}
+// 	a.token = token
+// }
