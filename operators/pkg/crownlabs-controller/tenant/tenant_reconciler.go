@@ -30,12 +30,17 @@ import (
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
+
+	  "time"
+    "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
 )
 
 type TenantReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
 	TargetLabel utils.Label
+	namespaceManager *namespaces.NamespaceManager
+	KeepAliveTime    time.Duration
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -54,11 +59,29 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+
+
 	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsible for this controller, skipping reconcile")
 		return ctrl.Result{}, nil
 	}
+
+	// Add namespace reconciliation
+    nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
+    
+    keepNsOpen, err := r.namespaceManager.CheckNamespaceKeepAlive(ctx, &tn, nsName)
+    if err != nil {
+        log.Error(err, "Failed to check namespace keep-alive status")
+        return ctrl.Result{}, err
+    }
+
+    _, err = r.namespaceManager.EnforceClusterResources(ctx, &tn, nsName, keepNsOpen)
+    if err != nil {
+        log.Error(err, "Failed to enforce cluster resources")
+        return ctrl.Result{}, err
+    }
+
 
 	r.CheckKeycloakStatus(ctx, &tn)
 
@@ -67,6 +90,14 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Set up the NamespaceManager
+	 r.namespaceManager = namespaces.NewNamespaceManager(
+        r.Client,
+        r.Scheme,
+        r.KeepAliveTime,
+        r.TargetLabel.Key,
+        r.TargetLabel.Value,
+    )
 	labelPredicate, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		return err
