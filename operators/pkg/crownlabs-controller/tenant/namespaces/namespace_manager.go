@@ -89,7 +89,7 @@ func (nm *NamespaceManager) updateNamespaceLabels(ns *v1.Namespace, tnName strin
 func (nm *NamespaceManager) EnforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (bool, error) {
     if keepNsOpen {
         ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
-        if _, err := ctrl.CreateOrUpdate(ctx, nm.client, &ns, func() error {
+        if _, err := ctrl.CreateOrUpdate(ctx, nm.client, &ns, func() error {  //TODO replace CreateOrUpdate with createOrUpdateClusterResources
             nm.updateNamespaceLabels(&ns, tn.Name)
             return ctrl.SetControllerReference(tn, &ns, nm.scheme)
         }); err != nil {
