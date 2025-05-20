@@ -1,7 +1,9 @@
 import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
-import Button from 'antd-button-color';
-import { approximate, convertToGB, SharedVolume } from '../../../utils';
-import { FC, useContext, useEffect, useState } from 'react';
+import { Button } from 'antd';
+import type { SharedVolume } from '../../../utils';
+import { approximate, convertToGB } from '../../../utils';
+import type { FC } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
   useApplySharedVolumeMutation,
   useCreateSharedVolumeMutation,
@@ -10,7 +12,7 @@ import {
 } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
-import { FetchPolicy } from '@apollo/client';
+import type { FetchPolicy } from '@apollo/client';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import RowShVolStatus from './RowShVolStatus/RowShVolStatus';
 import SharedVolumeForm, {
@@ -54,8 +56,8 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
         data.sharedvolumeList?.sharedvolumes
           ?.map(sv => makeGuiSharedVolume(sv))
           .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-          ) ?? []
+            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+          ) ?? [],
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -76,13 +78,13 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
     });
 
   const reloadSharedVolumes = async () => {
-    let res = await refetchSharedVolumes();
+    const res = await refetchSharedVolumes();
     setDataShVols(
       res.data?.sharedvolumeList?.sharedvolumes
         ?.map(sv => makeGuiSharedVolume(sv))
         .sort((a, b) =>
-          (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-        ) ?? []
+          (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+        ) ?? [],
     );
   };
 
@@ -175,11 +177,11 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
             placement="bottom"
             height={open ? 300 : 0}
             getContainer={false}
-            destroyOnClose={true}
+            destroyOnHidden={true}
             open={open}
             closable={true}
             onClose={() => setOpen(false)}
-            style={{
+            rootStyle={{
               position: 'absolute',
               opacity: open ? 1 : 0,
               transition: 'all 0.3',
@@ -251,7 +253,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                       key={1}
                       shape="round"
                       className="ml-2 w-24"
-                      type="danger"
+                      color="red"
                       onClick={async () => {
                         if (selectedShVol) {
                           await deleteShVolMutation({

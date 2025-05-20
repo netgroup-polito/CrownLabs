@@ -1,9 +1,11 @@
 import { Alert, Space, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { ApolloError } from '@apollo/client';
-import { KeycloakError } from 'keycloak-js';
-import { FC, useState } from 'react';
-import { CustomError, ErrorTypes } from '../utils';
+import { Button } from 'antd';
+import type { ApolloError } from '@apollo/client';
+import type { KeycloakError } from 'keycloak-js';
+import type { FC } from 'react';
+import { useState } from 'react';
+import type { CustomError } from '../utils';
+import { ErrorTypes } from '../utils';
 
 const { Text } = Typography;
 

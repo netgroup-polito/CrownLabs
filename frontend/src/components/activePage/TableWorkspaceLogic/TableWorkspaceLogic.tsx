@@ -1,28 +1,20 @@
-import { FetchPolicy } from '@apollo/client';
+import type { FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
-import {
-  Dispatch,
-  FC,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import type { Dispatch, FC, SetStateAction } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
-import {
+import type {
   InstancesLabelSelectorQuery,
-  UpdatedInstancesLabelSelectorDocument,
   UpdatedInstancesLabelSelectorSubscriptionResult,
+} from '../../../generated-types';
+import {
+  UpdatedInstancesLabelSelectorDocument,
   useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import {
-  JSONDeepCopy,
-  multiStringIncludes,
-  User,
-  Workspace,
-} from '../../../utils';
+import type { User, Workspace } from '../../../utils';
+import { JSONDeepCopy, multiStringIncludes } from '../../../utils';
 import {
   getManagerInstances,
   getSubObjTypeK8s,
@@ -84,7 +76,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   const handleManagerSorting = (
     sortingType: string,
     sorting: number,
-    sortingTemplate: string
+    sortingTemplate: string,
   ) => {
     const old = sortingData.filter(d => d.sortingTemplate !== sortingTemplate);
     setSortingData([...old, { sortingTemplate, sorting, sortingType }]);
@@ -121,10 +113,10 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
 
           if (!data?.updateInstanceLabelSelector?.instance) return prev;
 
-          const { instance, updateType } = data?.updateInstanceLabelSelector;
+          const { instance, updateType } = data.updateInstanceLabelSelector;
           const { namespace: ns } = instance.metadata!;
           let notify = false;
-          let newItem = JSONDeepCopy(prev);
+          const newItem = JSONDeepCopy(prev);
           let objType;
           const matchNS = ns === tenantNamespace;
 
@@ -183,8 +175,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
         multiStringIncludes(
           filter,
           instance.tenantId!,
-          instance.tenantDisplayName!
-        ) || selectiveDestroy.includes(instance.id)
+          instance.tenantDisplayName!,
+        ) || selectiveDestroy.includes(instance.id),
     ) || [];
 
   const templatesMapped = getTemplatesMapped(instancesFiltered, sortingData!);
@@ -209,7 +201,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       setSelectedPersistent={setSelectedPersistent}
     />
   ) : (
-    <div className="flex justify-center h-full items-center">
+    <div className="flex justify-center h-full items-center mt-16">
       {loadingInstances ? (
         <Spin size="large" spinning={loadingInstances} />
       ) : (

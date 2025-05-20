@@ -1,5 +1,7 @@
-import React, { Dispatch, FC, ReactNode, SetStateAction } from 'react';
-import { Modal, Alert, AlertProps, Checkbox } from 'antd';
+import type { Dispatch, FC, ReactNode, SetStateAction } from 'react';
+import React from 'react';
+import type { AlertProps } from 'antd';
+import { Modal, Alert, Checkbox } from 'antd';
 
 export interface IModalAlertProps extends AlertProps {
   headTitle: ReactNode;
@@ -32,7 +34,7 @@ const ModalAlert: FC<IModalAlertProps> = ({ ...props }) => {
       footer={false}
       centered
       title={headTitle}
-      visible={show}
+      open={show}
       onCancel={() => setShow(false)}
     >
       <Alert message={message} description={description} type={type} showIcon />

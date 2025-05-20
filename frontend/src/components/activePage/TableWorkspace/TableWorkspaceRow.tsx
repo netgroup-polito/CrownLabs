@@ -1,6 +1,5 @@
-import { Space, Typography } from 'antd';
-import { FC } from 'react';
-import Badge from '../../common/Badge';
+import { Badge, Space, Typography } from 'antd';
+import type { FC } from 'react';
 
 const { Text } = Typography;
 export interface ITableWorkspaceRowProps {
@@ -18,7 +17,7 @@ const TableWorkspaceRow: FC<ITableWorkspaceRowProps> = ({ ...props }) => {
       onClick={() => expandRow(id)}
     >
       <Space size="middle">
-        <Badge size="small" value={nActive} className="mx-0" color="green" />
+        <Badge count={nActive} className="mx-0" color="green" />
         <Text className="font-bold w-48 xs:w-56 sm:w-max" ellipsis>
           {title}
         </Text>

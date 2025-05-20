@@ -1,7 +1,9 @@
 import { Input, Form, Button, Row, AutoComplete, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { FC, useState } from 'react';
-import { UserAccountPage, filterUser } from '../../../utils';
+import type { FC } from 'react';
+import { useState } from 'react';
+import type { UserAccountPage } from '../../../utils';
+import { filterUser } from '../../../utils';
 import { Role } from '../../../generated-types';
 export interface IUserListFormProps {
   onAddUser: (newUser: UserAccountPage, role: Role) => void;
@@ -61,7 +63,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
   const handleSelect = (value: string) => {
     setSearched(true);
     const selectedUser: UserAccountPage = users.filter(
-      user => user.userid === value
+      user => user.userid === value,
     )[0];
 
     form.setFieldsValue({

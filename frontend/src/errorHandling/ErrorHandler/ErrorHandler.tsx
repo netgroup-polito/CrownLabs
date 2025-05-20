@@ -1,9 +1,10 @@
 import { CloseOutlined } from '@ant-design/icons';
 import { Modal, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { FC } from 'react';
+import { Button } from 'antd';
+import type { FC } from 'react';
 import { ErrorItem } from '.';
-import { CustomError, ErrorTypes } from '../utils';
+import type { CustomError } from '../utils';
+import { ErrorTypes } from '../utils';
 
 const { Text } = Typography;
 
@@ -37,7 +38,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
             ''
           )
         }
-        visible={show}
+        open={show}
         closable={false}
         width={800}
       >
@@ -54,7 +55,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
               size="large"
               shape="round"
               icon={<CloseOutlined />}
-              type="danger"
+              color="red"
               onClick={dismiss}
             >
               Dismiss

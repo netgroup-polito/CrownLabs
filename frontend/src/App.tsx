@@ -5,7 +5,7 @@ import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLog
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import AppLayout from './components/common/AppLayout';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
-import ThemeContextProvider from './contexts/ThemeContext';
+import ThemeContextProvider from './contexts/ThemeContextProvider';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 

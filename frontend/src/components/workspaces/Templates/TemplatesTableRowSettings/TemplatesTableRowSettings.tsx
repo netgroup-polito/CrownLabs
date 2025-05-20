@@ -1,18 +1,18 @@
 import { Menu, Dropdown, Tooltip } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import {
   PlayCircleOutlined,
   EditOutlined,
   DeleteOutlined,
   EllipsisOutlined,
 } from '@ant-design/icons';
-import { FetchResult } from '@apollo/client';
-import { CreateInstanceMutation } from '../../../../generated-types';
+import type { FetchResult } from '@apollo/client';
+import type { CreateInstanceMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowSettingsProps {
   id: string;
   createInstance: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -58,11 +58,10 @@ const TemplatesTableRowSettings = ({ ...props }) => {
           </Menu.Item>
         </Menu>
       }
-      placement="bottomCenter"
+      placement="bottom"
       trigger={['click']}
     >
       <Button
-        with="link"
         type="text"
         size="middle"
         shape="circle"

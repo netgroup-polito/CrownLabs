@@ -1,5 +1,5 @@
-import { ApolloError } from '@apollo/client';
-import { KeycloakError } from 'keycloak-js';
+import type { ApolloError } from '@apollo/client';
+import type { KeycloakError } from 'keycloak-js';
 
 export enum ErrorTypes {
   ApolloError,

@@ -1,7 +1,7 @@
-// tailwind.config.js
-module.exports = {
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
-  darkMode: false,
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./**/*.html', './src/**/*.{js,jsx,ts,tsx,vue}'],
+  darkMode: 'media',
   theme: {
     extend: {},
     screens: {

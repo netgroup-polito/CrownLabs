@@ -1,15 +1,15 @@
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import Text from 'antd/lib/typography/Text';
-import { FC, SetStateAction, useContext, useState } from 'react';
+import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
   Phase,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
-import { Instance, WorkspaceRole } from '../../../../utils';
+import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 
 export interface IRowInstanceActionsDefaultProps {
@@ -71,17 +71,17 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   const classFromProps = () => {
     if (!connectDisabled) {
       if (extended) return 'primary';
-      else return 'success';
+      else return 'green';
     }
     return 'primary';
   };
 
   const classFromPropsMobile = () => {
     if (!connectDisabled) {
-      if (extended) return 'link';
-      else return 'success';
+      if (extended) return 'default';
+      else return 'green';
     }
-    return 'link';
+    return 'default';
   };
 
   const connectDisabled =
@@ -121,7 +121,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             key={1}
             shape="round"
             className="ml-2 w-24"
-            type="danger"
+            color="danger"
             onClick={() =>
               deleteInstanceMutation({
                 variables: {
@@ -170,7 +170,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
         >
           <Button
             className={`${connectDisabled ? 'pointer-events-none' : ''}`}
-            type={classFromProps()}
+            color={classFromProps()}
             shape="round"
             size="middle"
             {...connectOptions}
@@ -194,8 +194,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             className={`${
               connectDisabled ? 'pointer-events-none' : ''
             } flex items-center justify-center p-0 border-0`}
-            with={!extended ? 'link' : undefined}
-            type={classFromPropsMobile()}
+            type={!extended ? 'link' : 'default'}
+            color={classFromPropsMobile()}
             shape="circle"
             size="middle"
             {...connectOptions}

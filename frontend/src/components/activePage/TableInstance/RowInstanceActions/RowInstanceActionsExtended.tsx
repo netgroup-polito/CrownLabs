@@ -1,15 +1,15 @@
-import { FC, SetStateAction } from 'react';
+import type { FC, SetStateAction } from 'react';
 import { Popover, Tooltip, Typography } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
-import { Instance, WorkspaceRole } from '../../../../utils';
+import { type Instance, WorkspaceRole } from '../../../../utils';
 import { EnvironmentType, Phase } from '../../../../generated-types';
 
 const { Text } = Typography;
 
 const getSSHTooltipText = (
   isInstanceReady: boolean,
-  environmentType: EnvironmentType
+  environmentType: EnvironmentType,
 ) => {
   if (environmentType === EnvironmentType.Standalone)
     return 'Standalone applications do not support SSH connection (yet!)';
