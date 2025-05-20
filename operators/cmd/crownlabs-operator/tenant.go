@@ -19,11 +19,13 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"time"
 )
 
 func setup_tenant(
 	mgr manager.Manager,
 	targetLabel utils.Label,
+	keepAliveTime time.Duration,
 ) error {
 	// TODO manage webhook
 	// TODO setup tenant reconciler
@@ -31,6 +33,7 @@ func setup_tenant(
 		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
 		TargetLabel: targetLabel,
+		KeepAliveTime: keepAliveTime,
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}

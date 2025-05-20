@@ -18,6 +18,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -36,6 +37,8 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
 )
 
 var (
@@ -72,10 +75,23 @@ func main() {
 	var keycloakRealm string
 	var keycloakClientID string
 	var keycloakClientSecret string
+
 	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL.")
 	flag.StringVar(&keycloakRealm, "keycloak-realm", "", "Keycloak realm.")
 	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak client ID.")
 	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak client secret.")
+
+
+	var tenantNSKeepAlive   time.Duration
+	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
+        "Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
+
+	   mydrivePVCsSize := args.NewQuantity("1Gi")
+	var mydrivePVCsStorageClassName string
+	var myDrivePVCsNamespace string
+	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
+	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
+	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -131,7 +147,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setup_tenant(mgr, targetLabel)
+		err := setup_tenant(mgr, targetLabel, tenantNSKeepAlive )
 		if err != nil {
 			log.Error(err, "Unable to create tenant controller")
 			os.Exit(1)

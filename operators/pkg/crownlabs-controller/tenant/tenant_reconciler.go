@@ -17,7 +17,8 @@ package tenant
 
 import (
 	"context"
-
+	"fmt"
+	"strings"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -95,8 +96,8 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
         r.Client,
         r.Scheme,
         r.KeepAliveTime,
-        r.TargetLabel.Key,
-        r.TargetLabel.Value,
+        r.TargetLabel.GetKey(),
+        r.TargetLabel.GetValue(),
     )
 	labelPredicate, err := r.TargetLabel.GetPredicate()
 	if err != nil {

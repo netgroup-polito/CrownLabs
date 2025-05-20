@@ -23,6 +23,23 @@ type NamespaceManager struct {
     targetLabelValue string
 }
 
+// NewNamespaceManager creates a new NamespaceManager instance
+func NewNamespaceManager(
+    client client.Client,
+    scheme *runtime.Scheme,
+    keepAliveTime time.Duration,
+    targetLabelKey string,
+    targetLabelValue string,
+) *NamespaceManager {
+    return &NamespaceManager{
+        client:          client,
+        scheme:          scheme,
+        keepAliveTime:   keepAliveTime,
+        targetLabelKey:  targetLabelKey,
+        targetLabelValue: targetLabelValue,
+    }
+}
+
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
 func (nm *NamespaceManager) CheckNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (keepNsOpen bool, err error) {
     sPassed := time.Since(tn.Spec.LastLogin.Time)
