@@ -16,7 +16,7 @@ function App() {
       <AppLayout
         TooltipButtonLink={
           'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
-          tenantData?.tenant?.status?.personalNamespace?.name!
+          tenantData?.tenant?.status?.personalNamespace?.name
         }
         TooltipButtonData={{
           tooltipPlacement: 'left',
@@ -27,7 +27,7 @@ function App() {
               className="flex items-center justify-center "
             />
           ),
-          type: 'success',
+          color: 'green',
         }}
         routes={[
           {

@@ -1,6 +1,7 @@
 import {
   type FC,
   type PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -83,11 +84,10 @@ const TenantContextProvider: FC<PropsWithChildren> = props => {
     return () => clearInterval(timerHandler);
   }, []);
 
-  useEffect(() => {
-    if (!data?.tenant?.metadata?.name || !userId) return;
+  const patchTenantLastLogin = useCallback((tenantId: string) => {
     applyTenantMutation({
       variables: {
-        tenantId: userId,
+        tenantId,
         patchJson: getTenantPatchJson({
           lastLogin: new Date(),
         }),
@@ -96,7 +96,12 @@ const TenantContextProvider: FC<PropsWithChildren> = props => {
       onError: apolloErrorCatcher,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, []);
+
+  useEffect(() => {
+    if (!data?.tenant?.metadata?.name || !userId) return;
+    patchTenantLastLogin(userId);
+  }, [userId, data?.tenant?.metadata?.name, patchTenantLastLogin]);
 
   const tSpec = data?.tenant?.spec;
   const displayName = tSpec

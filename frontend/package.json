@@ -23,7 +23,7 @@
     "start": "vite",
     "build-app": "tsc -b && vite build",
     "lint": "eslint .",
-    "prepare": "cd .. && husky install frontend/.husky",
+    "prepare": "husky",
     "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} --write && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0 --fix",
     "pre-commit": "lint-staged",
     "generate": "graphql-codegen"
@@ -44,7 +44,6 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^16.0.0",
-    "husky": "^6.0.0",
     "less": "^4.3.0",
     "lint-staged": "^10.5.4",
     "typescript": "~5.8.3",
