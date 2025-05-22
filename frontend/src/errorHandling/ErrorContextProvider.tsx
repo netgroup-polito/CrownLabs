@@ -1,5 +1,6 @@
 import {
   Component,
+  useCallback,
   useEffect,
   useState,
   type FC,
@@ -77,11 +78,12 @@ const ErrorContextProvider: FC<PropsWithChildren> = props => {
     setExecLogin(true);
   };
 
-  const makeErrorCatcher = <T extends SupportedError>(
-    errorType: ErrorTypes,
-  ) => {
-    return (err: T) => dispatchError(new CustomError(errorType, err));
-  };
+  const makeErrorCatcher = useCallback(
+    <T extends SupportedError>(errorType: ErrorTypes) => {
+      return (err: T) => dispatchError(new CustomError(errorType, err));
+    },
+    [],
+  );
 
   const apolloErrorCatcher = makeErrorCatcher(ErrorTypes.ApolloError);
 

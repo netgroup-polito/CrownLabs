@@ -55,7 +55,7 @@ const TenantContextProvider: FC<PropsWithChildren> = props => {
   useEffect(() => {
     if (userId && !loading && !error && !errorsQueue.length) {
       const unsubscribe = subscribeToMore({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
+        onError: makeErrorCatcher(ErrorTypes.ApolloError),
         variables: { tenantId: userId ?? '' },
         document: updatedTenant,
         updateQuery: (prev, { subscriptionData: { data } }) => {

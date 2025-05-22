@@ -20,7 +20,7 @@ import {
 } from '../../../generated-types';
 import type { FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import ShVolFormItem from './ShVolFormItem';
+import ShVolFormItem, { type ShVolFormItemValue } from './ShVolFormItem';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
@@ -69,8 +69,8 @@ export interface IModalCreateTemplateProps {
   ) => Promise<
     FetchResult<
       CreateTemplateMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   loading: boolean;
@@ -155,7 +155,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       !errorFetchTemplates &&
       !loadingFetchTemplates &&
       dataFetchTemplates?.templateList?.templates
-        ?.map((t: any) => t?.spec?.prettyName)
+        ?.map(t => t?.spec?.prettyName)
         .includes(formTemplate.name.trim())
     ) {
       setValid(old => {
@@ -217,7 +217,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const onSubmit = () => {
-    const shvolMounts: any[] = form.getFieldValue('shvolss');
+    const shvolMounts: ShVolFormItemValue[] = form.getFieldValue('shvolss');
     const sharedVolumeMountInfos: SharedVolumeMountsListItem[] =
       shvolMounts.map(obj => ({
         sharedVolume: {

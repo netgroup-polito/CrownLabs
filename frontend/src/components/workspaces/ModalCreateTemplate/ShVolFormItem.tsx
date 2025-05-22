@@ -12,6 +12,12 @@ export interface IShVolFormItemProps {
   workspaceNamespace: string;
 }
 
+export interface ShVolFormItemValue {
+  shvol: string; // id del volume selezionato
+  mountpath: string;
+  readonly?: boolean;
+}
+
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 const fullLayout = {
   wrapperCol: { offset: 0, span: 24 },

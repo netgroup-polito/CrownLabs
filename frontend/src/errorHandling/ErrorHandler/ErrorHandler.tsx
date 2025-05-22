@@ -19,7 +19,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
 
   const titleFromType = {
     [ErrorTypes.ApolloError]: 'Server Error',
-    [ErrorTypes.KeycloakError]: 'Keycloack Server Error',
+    [ErrorTypes.AuthError]: 'Authentication Error',
     [ErrorTypes.RenderError]: 'Application Error',
     [ErrorTypes.GenericError]: 'Generic Error',
   };
@@ -34,9 +34,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
             <Text type="danger" strong className="text-2xl">
               {titleFromType[errorsQueue[0].getType()]}
             </Text>
-          ) : (
-            ''
-          )
+          ) : null
         }
         open={show}
         closable={false}

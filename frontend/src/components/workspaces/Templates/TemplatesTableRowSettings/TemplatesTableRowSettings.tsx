@@ -1,4 +1,4 @@
-import { Menu, Dropdown, Tooltip } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import { Button } from 'antd';
 import {
   PlayCircleOutlined,
@@ -16,8 +16,8 @@ export interface ITemplatesTableRowSettingsProps {
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   editTemplate: (id: string) => void;
@@ -28,36 +28,38 @@ const TemplatesTableRowSettings = ({ ...props }) => {
 
   return (
     <Dropdown
-      overlay={
-        <Menu>
-          <Menu.Item
-            onClick={() => createInstance(id)}
-            className="xs:hidden block"
-            key="1"
-            icon={<PlayCircleOutlined />}
-          >
-            Create
-          </Menu.Item>
-          <Menu.Item
-            disabled
-            key="2"
-            icon={<EditOutlined />}
-            onClick={() => editTemplate(id)}
-          >
-            <Tooltip title="Coming soon" placement="left">
-              Edit
-            </Tooltip>
-          </Menu.Item>
-          <Menu.Item
-            danger
-            key="3"
-            icon={<DeleteOutlined />}
-            onClick={deleteTemplate}
-          >
-            Delete
-          </Menu.Item>
-        </Menu>
-      }
+      menu={{
+        items: [
+          {
+            type: 'item',
+            key: 1,
+            label: 'Create',
+            icon: <PlayCircleOutlined />,
+            className: 'xs:hidden block',
+            onClick: () => createInstance(id),
+          },
+          {
+            type: 'item',
+            key: 2,
+            label: (
+              <Tooltip title="Coming soon" placement="left">
+                Edit
+              </Tooltip>
+            ),
+            icon: <EditOutlined />,
+            disabled: true,
+            onClick: () => editTemplate(id),
+          },
+          {
+            type: 'item',
+            key: 3,
+            label: 'Delete',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: deleteTemplate,
+          },
+        ],
+      }}
       placement="bottom"
       trigger={['click']}
     >

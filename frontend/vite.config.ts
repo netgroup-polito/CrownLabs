@@ -9,6 +9,9 @@ export default defineConfig({
     port: 3000,
   },
   plugins: [react(), svgr(), tailwindcss()],
+  build: {
+    sourcemap: true,
+  },
   css: {
     preprocessorOptions: {
       less: {

@@ -22,7 +22,7 @@ const AuthContextProvider: FC<PropsWithChildren> = props => {
   useEffect(() => {
     if (execLogin && !isLoading && !isAuthenticated) {
       signinRedirect()
-        .catch(makeErrorCatcher(ErrorTypes.KeycloakError))
+        .catch(makeErrorCatcher(ErrorTypes.AuthError))
         .finally(() => setExecLogin(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
