@@ -1,14 +1,15 @@
-/* eslint-disable react/no-multi-comp */
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import { FetchResult } from '@apollo/client';
-import { FC, useContext, useEffect, useState } from 'react';
-import {
+import type { FetchResult } from '@apollo/client';
+import type { FC } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import type {
   CreateInstanceMutation,
   DeleteTemplateMutation,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { makeListToggler, Template, WorkspaceRole } from '../../../../utils';
+import type { Template } from '../../../../utils';
+import { makeListToggler, WorkspaceRole } from '../../../../utils';
 import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
 import { TemplatesTableRow } from '../TemplatesTableRow';
@@ -23,23 +24,23 @@ export interface ITemplatesTableProps {
   role: WorkspaceRole;
   editTemplate: (id: string) => void;
   deleteTemplate: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       DeleteTemplateMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
 }
@@ -64,7 +65,6 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     {
       title: 'Template',
       key: 'template',
-      // eslint-disable-next-line react/no-multi-comp
       render: (record: Template) => (
         <TemplatesTableRow
           template={record}
@@ -97,11 +97,10 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
         columns={columns}
         dataSource={templates}
         pagination={false}
-        onExpand={(expanded, record) => listToggler(`${record.id}`, false)}
         expandable={{
+          onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
           rowExpandable: record => !!record.instances.length,
           expandedRowKeys: expandedId,
-          // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) =>
             record.instances.length ? (
               <CaretRightOutlined
@@ -115,7 +114,6 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           /**
            * Here we render the expandable content, for example with a nested Table
            */
-          // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: template => (
             <TableInstance
               showGuiIcon={false}

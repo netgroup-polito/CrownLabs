@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Row, Col, Avatar, Tabs, Button } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import UserInfo from '../UserInfo/UserInfo';
@@ -56,7 +56,7 @@ const UserPanel: FC<IUserPanelProps> = props => {
             </Button>
             <Modal
               title="New SSH key"
-              visible={showSSHModal}
+              open={showSSHModal}
               footer={null}
               onCancel={closeModal}
             >

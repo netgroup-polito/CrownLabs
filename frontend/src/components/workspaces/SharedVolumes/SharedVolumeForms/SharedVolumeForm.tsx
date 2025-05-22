@@ -1,6 +1,7 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Button, Form, Input, InputNumber, Modal, Tooltip } from 'antd';
-import { FC, useEffect } from 'react';
+import type { FC } from 'react';
+import { useEffect } from 'react';
 import { getShVolPatchJson } from '../../../../graphql-components/utils';
 import { findKeyByValue } from '../../../../utils';
 
@@ -115,7 +116,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
                 value && value.trim().length > 2
                   ? Promise.resolve()
                   : Promise.reject(
-                      new Error('Name must be at least 3 characters long')
+                      new Error('Name must be at least 3 characters long'),
                     ),
             },
           ]}

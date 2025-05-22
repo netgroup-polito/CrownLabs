@@ -1,9 +1,10 @@
-import { FC, useContext } from 'react';
-import Button from 'antd-button-color';
+import type { FC } from 'react';
+import { useContext } from 'react';
+import { Button } from 'antd';
 import { Result } from 'antd';
 import { ErrorContext } from '../ErrorContext';
 import { ErrorItem } from '../ErrorHandler';
-import { CustomError } from '../utils';
+import type { CustomError } from '../utils';
 
 export interface IRenderErrorHandlerProps {
   className?: string;

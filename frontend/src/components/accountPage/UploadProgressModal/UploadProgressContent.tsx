@@ -1,12 +1,13 @@
-import { FC, useState, useEffect } from 'react';
-import { UserAccountPage } from '../../../utils';
+import type { FC } from 'react';
+import { useState, useEffect } from 'react';
+import type { UserAccountPage } from '../../../utils';
 import { Row, Button, Upload, Typography, Steps, Col, Progress } from 'antd';
 import { UploadOutlined, LoadingOutlined } from '@ant-design/icons';
 import EditableTable from './EditableTable';
 import { StepStatus } from './UploadProgressModal';
 import Papa from 'papaparse';
 import { Role } from '../../../generated-types';
-import { SupportedError } from '../../../errorHandling/utils';
+import type { SupportedError } from '../../../errorHandling/utils';
 const { Text } = Typography;
 const { Step } = Steps;
 export interface IUploadProgressContent {
@@ -42,7 +43,7 @@ enum CSVFields {
 const UploadProgressContent: FC<IUploadProgressContent> = props => {
   const [fileError, setFileError] = useState<string>('');
   const [statusProgressBar, setStatusProgessBar] = useState<StatusProgressBar>(
-    StatusProgressBar.active
+    StatusProgressBar.active,
   );
   const { usersCSV, setUsersCSV } = props;
 
@@ -54,7 +55,6 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
   };
 
   const handleUserId = (userId: string) => {
-    // eslint-disable-next-line no-empty-character-class
     const regex = new RegExp(/^[0-9]{6}$/);
     return regex.test(userId)
       ? 's' + userId.trim()
@@ -80,7 +80,7 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
       name: capitalizeName(user[CSVFields.name]) ?? '',
       surname:
         capitalizeName(
-          user[CSVFields.surname_inserted].replace(/\(\*+\)/, '')
+          user[CSVFields.surname_inserted].replace(/\(\*+\)/, ''),
         ) ??
         capitalizeName(user[CSVFields.surname]) ??
         '',
@@ -108,13 +108,13 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
             !line[CSVFields.email]
           ) {
             setFileError(
-              'Invalid file format, must contain <MATRICOLA, NOME, COGNOME (o COGNOME - (*) Inserito dal docente), EMAIL>'
+              'Invalid file format, must contain <MATRICOLA, NOME, COGNOME (o COGNOME - (*) Inserito dal docente), EMAIL>',
             );
             return;
           }
         }
-        const users = result.data.map((user: any, index: Number) =>
-          handleUserCSV(user)
+        const users = result.data.map((user: any, index: number) =>
+          handleUserCSV(user),
         );
         setUsersCSV(users);
         props.setStepCurrent(1);
@@ -202,7 +202,7 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
               type="circle"
               status={statusProgressBar}
               percent={Math.floor(
-                (props.uploadedNumber * 100) / usersCSV.length
+                (props.uploadedNumber * 100) / usersCSV.length,
               )}
             />
           )}

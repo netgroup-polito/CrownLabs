@@ -1,5 +1,6 @@
 import { Input, Form, Button, Row } from 'antd';
-import { FC, useState } from 'react';
+import type { FC } from 'react';
+import { useState } from 'react';
 
 export interface ISSHKeysFormProps {
   onSaveKey: (newKey: { name: string; key: string }) => void;
@@ -39,7 +40,7 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
   // Used to disable Save button
   const handleChange = async (
     _: any,
-    { name, key }: { name: string; key: string }
+    { name, key }: { name: string; key: string },
   ) => {
     try {
       if (key && name) {

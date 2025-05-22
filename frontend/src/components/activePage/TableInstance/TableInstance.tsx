@@ -1,11 +1,10 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Table } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useContext, useState } from 'react';
+import { Button, Table } from 'antd';
+import { type FC, useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { Instance, WorkspaceRole } from '../../../utils';
+import { type Instance, WorkspaceRole } from '../../../utils';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
@@ -25,7 +24,7 @@ export interface ITableInstanceProps {
   handleManagerSorting?: (
     sortingType: string,
     sorting: number,
-    sortingTemplate: string
+    sortingTemplate: string,
   ) => void;
   selectiveDestroy?: string[];
   selectToDestroy?: (instanceId: string) => void;
@@ -79,7 +78,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     // Protect from group selection if selectToDestroy is not defined
     if (!selectToDestroy) return;
     // remap each instance to its ID
-    let instIds = instances.map(({ id }) => id);
+    const instIds = instances.map(({ id }) => id);
     // Check if some instance in the List is already selected
     // (Remember each TableInstance represents a grouped list of instances that belong to a single Template)
     if (checked)
@@ -105,7 +104,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             showHeader={false}
             pagination={false}
             rowClassName=""
-            rowKey={i => 1}
+            rowKey={_i => 1}
           >
             <Column
               title="Header"
@@ -187,7 +186,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       {extended && viewMode === WorkspaceRole.user && (
         <div className="w-full pt-5 flex justify-center ">
           <Button
-            type="danger"
+            color="danger"
             shape="round"
             size="large"
             icon={<DeleteOutlined />}

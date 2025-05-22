@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Input, Form } from 'antd';
-import { UserAccountPage } from '../../../utils';
+import type { UserAccountPage } from '../../../utils';
 
 export interface EditableCellProps {
   editing: boolean;

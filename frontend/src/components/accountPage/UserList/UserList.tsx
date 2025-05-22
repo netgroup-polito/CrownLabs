@@ -1,6 +1,5 @@
-import { FC, useState } from 'react';
-import { Table, Modal, Row, Input, Spin } from 'antd';
-import Button from 'antd-button-color';
+import { type FC, useState } from 'react';
+import { Table, Modal, Row, Input, Spin, Button } from 'antd';
 import {
   UploadOutlined,
   PlusOutlined,
@@ -13,9 +12,9 @@ import Column from 'antd/lib/table/Column';
 import { Role } from '../../../generated-types';
 import { Tooltip } from 'antd';
 import UserListFormLogic from '../UserListFormLogic/UserListFormLogic';
-import { UserAccountPage, filterUser } from '../../../utils';
+import { type UserAccountPage, filterUser } from '../../../utils';
 import UploadProgressModal from '../UploadProgressModal/UploadProgressModal';
-import { SupportedError } from '../../../errorHandling/utils';
+import { type SupportedError } from '../../../errorHandling/utils';
 
 export interface IUserListProps {
   onAddUser: (users: UserAccountPage[], workspaces: any[]) => Promise<boolean>;
@@ -86,7 +85,7 @@ const UserList: FC<IUserListProps> = props => {
               ? props.users.filter(user => filterUser(user, searchText))
               : props.users.sort(
                   (u1: UserAccountPage, u2: UserAccountPage) =>
-                    u1.currentRole?.localeCompare(u2.currentRole!) || 0
+                    u1.currentRole?.localeCompare(u2.currentRole!) || 0,
                 )
           }
           size="small"
@@ -198,9 +197,9 @@ const UserList: FC<IUserListProps> = props => {
           </Row>
         </Row>
         <Modal
-          destroyOnClose={true}
+          destroyOnHidden={true}
           title="Add new User"
-          visible={showUserListModal}
+          open={showUserListModal}
           footer={null}
           onCancel={closeModal}
         >

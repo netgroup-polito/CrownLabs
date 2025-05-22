@@ -12,6 +12,7 @@ const {
   uncapitalizeType,
   getUid,
   logger,
+  normalizeAllFieldsRecursive,
 } = require('./utils');
 
 const cacheSubscriptions = {};
@@ -353,12 +354,15 @@ function decorateSubscription(baseSchema, targetType, enumType) {
          */
         resolve: async (payload, args, context, info) => {
           logger.info({ ruid: payload.ruid, fieldName: info.fieldName }, 'Resolving subscription');
+          if (payload.type === 'DELETED') {
+            return normalizeAllFieldsRecursive(payload);
+          }
           return payload;
         },
       },
     },
     [subscriptionType]: {
-      /** Retrieve from the father the enum tyme */
+      /** Retrieve from the father the enum type */
       updateType: (payload, _args, _context, _info) => payload.type,
       /** Retrieve from the father the new values */
       payload: (payload, _args, _context, _info) => payload.apiObj
@@ -507,12 +511,15 @@ function decorateLabelsSubscription(
          */
         resolve: async (payload, args, context, info) => {
           logger.info({ ruid: payload.ruid, fieldName: info.fieldName }, 'Resolving subscription');
+          if (payload.type === 'DELETED') {
+            return normalizeAllFieldsRecursive(payload);
+          }
           return payload;
         },
       },
     },
     [subscriptionType]: {
-      /** Retrieve from the father the enum tyme */
+      /** Retrieve from the father the enum type */
       updateType: (payload, _args, _context, _info) => payload.type,
       /** Retrieve from the father the new values */
       payload: (payload, _args, _context, _info) => payload.apiObj
