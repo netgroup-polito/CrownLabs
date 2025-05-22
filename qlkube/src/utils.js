@@ -18,11 +18,11 @@ const logger = pino({
  *      query type: ItPolitoCrownlabsV1alpha2Instance
  */
 function capitalizeType(name) {
-  return name[0].toUpperCase() + name.slice(1);
+  return name && name[0].toUpperCase() + name.slice(1);
 }
 
 function uncapitalizeType(name) {
-  return name[0].toLowerCase() + name.slice(1);
+  return name && name[0].toLowerCase() + name.slice(1);
 }
 
 function getBearerToken(connectionParams) {
@@ -87,6 +87,32 @@ function getQueryField(queryObj, targetField) {
   return objTarget;
 }
 
+function normalizeField(field) {
+  if (!/[a-z.]+\/[A-Za-z]+/.test(field)) return field;
+  const [domain, path] = field.split('/');
+  const bits = domain.split('.');
+  return uncapitalizeType(
+    bits
+      .filter((e) => e)
+      .map(capitalizeType)
+      .join('') + (path || ''),
+  );
+}
+
+function normalizeAllFieldsRecursive(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+
+  const normalizedObj = {};
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      normalizedObj[normalizeField(key)] = normalizeAllFieldsRecursive(obj[key]);
+    }
+  }
+
+  return normalizedObj;
+}
+
 function getUid() {
   const head = Date.now().toString(36);
   const tail = Math.random().toString(36).substr(2);
@@ -132,4 +158,6 @@ module.exports = {
   getQueryField,
   getUid,
   fetchJson,
+  normalizeField,
+  normalizeAllFieldsRecursive,
 };
