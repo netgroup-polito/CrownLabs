@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 
 	"github.com/prometheus/client_golang/api"
@@ -109,12 +108,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("instance retrieved")
 
-	// Skip if the instance has not to be terminated.
-	if !utils.CheckSingleLabel(&instance, forge.InstanceTerminationSelectorLabel, strconv.FormatBool(true)) {
-		dbgLog.Info("skipping instance", "reason", "label selector not matching", "label", forge.InstanceTerminationSelectorLabel)
-		return ctrl.Result{}, nil
-	}
-
 	// Check the selector label, in order to know whether to perform or not reconciliation.
 	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
 		if err != nil {
@@ -122,6 +115,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 		return ctrl.Result{}, err
 	}
+
+	// check specific namespace
+	// TODO
 
 	tracer.Step("labels checked")
 
@@ -178,9 +174,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 
-	if time.Since(instance.CreationTimestamp.Time) > 2*time.Minute {
-		return true, nil
-	}
+	//to make a local test, uncomment the following lines
+	// if time.Since(instance.CreationTimestamp.Time) > 2*time.Minute {
+	// 	return true, nil
+	// }
 
 	promURL := r.getPrometheusURL()
 
@@ -295,7 +292,7 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 func (r *InstanceInactiveTerminationReconciler) getPrometheusURL() string {
 	// TODO: from inside the cluster use "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
 	// TODO: why port 80 from inside? Are we reaching this from inside or outside? We need internal unauthenticated access
-	return "http://172.19.0.120:80"
+	return "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
 }
 
 // TerminateInstance terminates the Instance.
