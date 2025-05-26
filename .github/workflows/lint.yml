@@ -156,12 +156,12 @@ jobs:
       - name: Setup nodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version-file: ./qlkube/.nvmrc
 
       - name: Install the packages necessary for lint checking
         working-directory: ./qlkube
-        run: yarn install
+        run: npm ci
 
       - name: Check linting
         working-directory: ./qlkube
-        run: yarn check-format-lint
+        run: npm run check-format-lint
