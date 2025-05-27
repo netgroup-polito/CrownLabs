@@ -242,25 +242,15 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 	// Verify connection to Prometheus health endpoint
 	promURL := r.getPrometheusURL()
 	healthEndpoint := fmt.Sprintf("%s/-/healthy", promURL)
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthEndpoint, nil)
-	if err != nil {
-		log.Error(err, "Failed to create HTTP request for Prometheus health check")
-		return false, fmt.Errorf("failed to create health check request: %w", err)
-	}
-
-	resp, err := client.Do(req)
+	statusCode, _, err := utils.HTTPGet(ctx, healthEndpoint, 5*time.Second)
 	if err != nil {
 		log.Error(err, "Failed to connect to Prometheus health endpoint")
 		return false, fmt.Errorf("prometheus health check failed: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Info("Prometheus health check returned non-OK status", "statusCode", resp.StatusCode)
+	if statusCode != http.StatusOK {
+		log.Info("Prometheus health check returned non-OK status", "statusCode", statusCode)
 		return false, nil
 	}
 
