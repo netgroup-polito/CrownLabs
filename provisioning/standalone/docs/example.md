@@ -58,6 +58,8 @@ metadata:
     name: echotest
     namespace: workspace-sid # a workspace where you have the permission to create templates
 spec:
+    deleteAfter: never
+    inactivityTimeout: 2w
     description: An http server used for testing
     environmentList:
         - environmentType: Standalone
