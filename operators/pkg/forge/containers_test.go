@@ -37,6 +37,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 	var (
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		mountInfos  []forge.NFSVolumeMountInfo
 		opts        forge.ContainerEnvOpts
@@ -46,6 +47,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	// example values
 	const (
 		instanceName         = "kubernetes-0000"
+		templateName         = "test-template"
 		envName              = "test-environment"
 		instanceNamespace    = "tenant-tester"
 		image                = "internal/registry/image:v1.0"
@@ -97,6 +99,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				ReservedCPUPercentage: cpuReserved,
 				Memory:                resource.MustParse(memory),
 				Disk:                  resource.MustParse(disk),
+			},
+		}
+
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
 			},
 		}
 
@@ -218,14 +227,14 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec appsv1.DeploymentSpec
 
 		JustBeforeEach(func() {
-			spec = forge.DeploymentSpec(&instance, &environment, mountInfos, &opts)
+			spec = forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the correct template labels", func() {
 			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, mountInfos, &opts)))
+			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &template, &environment, mountInfos, &opts)))
 		})
 		It("Should set the correct selector", func() {
 			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
@@ -254,7 +263,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		JustBeforeEach(func() {
-			spec = forge.PodSpec(&instance, &environment, mountInfos, &opts)
+			spec = forge.PodSpec(&instance, &template, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the security context", func() {
@@ -274,7 +283,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 
 		It("Should set the node selector labels accordingly", func() {
-			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &environment)))
+			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &template)))
 		})
 
 		When("the environment type is Standalone", func() {
@@ -1324,11 +1333,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		WhenBody := func(c NodeSelectorLabelsCase, desc string) func() {
 			return func() {
 				BeforeEach(func() {
-					environment.NodeSelector = c.TemplateLabelSelector
+					template.Spec.NodeSelector = c.TemplateLabelSelector
 					instance.Spec.NodeSelector = c.InstanceLabelSelector
 				})
 				It("Should return the right set of labels: "+desc, func() {
-					Expect(forge.NodeSelectorLabels(&instance, &environment)).To(Equal(c.ExpectedOutput))
+					Expect(forge.NodeSelectorLabels(&instance, &template)).To(Equal(c.ExpectedOutput))
 				})
 			}
 		}

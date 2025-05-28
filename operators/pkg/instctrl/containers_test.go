@@ -62,6 +62,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		index       int
 
@@ -160,6 +161,13 @@ var _ = Describe("Generation of the container based instances", func() {
 			},
 		}
 
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+			},
+		}
+
 		index = 0
 
 		objectName = forge.NamespacedName(&instance)
@@ -212,6 +220,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
+		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 		ctx = clctx.EnvironmentIndexInto(ctx, index)
 
@@ -239,7 +248,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -397,7 +406,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -540,7 +549,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and with the correct volumes spec", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
 
 				Expect(deploy.Spec.Template.Spec.Volumes).To(Equal(expected.Template.Spec.Volumes))
 			})

@@ -23,18 +23,18 @@ spec:
     - jsonPath: .spec.running
       name: Running
       type: string
-    - jsonPath: .status.phase
+    - jsonPath: .status.environments[0].phase
       name: Phase
       type: string
-    - jsonPath: .status.url
+    - jsonPath: .status.environments[0].url
       name: URL
       priority: 10
       type: string
-    - jsonPath: .status.ip
+    - jsonPath: .status.environments[0].ip
       name: IP Address
       priority: 10
       type: string
-    - jsonPath: .status.initialReadyTime
+    - jsonPath: .status.environments[0].initialReadyTime
       name: Ready In
       type: string
     - jsonPath: .metadata.creationTimestamp
@@ -147,68 +147,11 @@ spec:
             description: InstanceStatus reflects the most recently observed status
               of the Instance.
             properties:
-              automation:
-                description: Timestamps of the Instance automation phases (check,
-                  termination and submission).
-                properties:
-                  lastCheckTime:
-                    description: The last time the Instance desired status was checked.
-                    format: date-time
-                    type: string
-                  submissionTime:
-                    description: The time the Instance content submission has been
-                      completed.
-                    format: date-time
-                    type: string
-                  terminationTime:
-                    description: The (possibly expected) termination time of the Instance.
-                    format: date-time
-                    type: string
-                type: object
-              initialReadyTime:
-                description: |-
-                  The amount of time the Instance required to become ready for the first time
-                  upon creation.
-                type: string
-              ip:
-                description: |-
-                  The internal IP address associated with the remote environment, which can
-                  be used to access it through the SSH protocol (leveraging the SSH bastion
-                  in case it is not contacted from another CrownLabs Instance).
-                type: string
-              nodeName:
-                description: The node on which the Instance is running.
-                type: string
-              nodeSelector:
-                additionalProperties:
-                  type: string
-                description: The actual nodeSelector assigned to the Instance.
-                type: object
-              phase:
-                description: |-
-                  The current status Instance, with reference to the associated environment
-                  (e.g. VM). This conveys which resource is being created, as well as
-                  whether the associated VM is being scheduled, is running or ready to
-                  accept incoming connections.
-                enum:
-                - ""
-                - Importing
-                - Starting
-                - ResourceQuotaExceeded
-                - Running
-                - Ready
-                - Stopping
-                - "Off"
-                - Failed
-                - CreationLoopBackoff
-                type: string
-              url:
-                description: |-
-                  The URL where it is possible to access the remote desktop of the instance
-                  (in case of graphical environments)
-                type: string
               environments:
+                description: Environments contains the status of the instance's environments.
                 items:
+                  description: InstanceStatusEnv reflects the status of an instance's
+                    environment.
                   properties:
                     automation:
                       description: Timestamps of the Instance automation phases (check,
@@ -241,14 +184,6 @@ spec:
                         be used to access it through the SSH protocol (leveraging the SSH bastion
                         in case it is not contacted from another CrownLabs Instance).
                       type: string
-                    nodeName:
-                      description: The node on which the Instance is running.
-                      type: string
-                    nodeSelector:
-                      additionalProperties:
-                        type: string
-                      description: The actual nodeSelector assigned to the Instance.
-                      type: object
                     phase:
                       description: |-
                         The current status Instance, with reference to the associated environment
@@ -274,17 +209,6 @@ spec:
                       type: string
                   type: object
                 type: array
-              initialReadyTime:
-                description: |-
-                  The amount of time the Instance required to become ready for the first time
-                  upon creation.
-                type: string
-              ip:
-                description: |-
-                  The internal IP address associated with the remote environment, which can
-                  be used to access it through the SSH protocol (leveraging the SSH bastion
-                  in case it is not contacted from another CrownLabs Instance).
-                type: string
               nodeName:
                 description: The node on which the Instance is running.
                 type: string
@@ -293,29 +217,6 @@ spec:
                   type: string
                 description: The actual nodeSelector assigned to the Instance.
                 type: object
-              phase:
-                description: |-
-                  The current status Instance, with reference to the associated environment
-                  (e.g. VM). This conveys which resource is being created, as well as
-                  whether the associated VM is being scheduled, is running or ready to
-                  accept incoming connections.
-                enum:
-                - ""
-                - Importing
-                - Starting
-                - ResourceQuotaExceeded
-                - Running
-                - Ready
-                - Stopping
-                - "Off"
-                - Failed
-                - CreationLoopBackoff
-                type: string
-              url:
-                description: |-
-                  The URL where it is possible to access the remote desktop of the instance
-                  (in case of graphical environments)
-                type: string
             type: object
         type: object
     served: true

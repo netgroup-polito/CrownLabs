@@ -420,7 +420,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("Pod doesn't have kubevirt.io/schedulable label", func() {
 			BeforeEach(func() {
 				testName = "pod-kubevirt-label"
-				runInstance = true
+				runInstance = false
 				environment.EnvironmentType = clv1alpha2.ClassVM
 				environment.Persistent = true
 				pod.Spec.NodeName = testName
@@ -430,8 +430,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			})
 
 			It("Should do no operation", func() {
+				Expect(RunReconciler()).To(Succeed())
+
 				Expect(k8sClient.Create(ctx, &pod)).To(Succeed())
 
+				instance.Spec.Running = true
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
 				Expect(RunReconciler()).To(Succeed())
 
 				Expect(instance.Status.NodeSelector).To(Equal(map[string]string{"key": "value"}))

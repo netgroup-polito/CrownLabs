@@ -216,7 +216,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vmi.Spec.NodeSelector = map[string]string{}
-					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &environment)))
+					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
 				})
 
 				It("Should leave the instance phase unset", func() {
@@ -336,7 +336,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &environment)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {

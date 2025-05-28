@@ -64,13 +64,14 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &vm, func() error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
-			vm.Spec = forge.VirtualMachineSpec(instance, environment)
+			vm.Spec = forge.VirtualMachineSpec(instance, template, environment)
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
@@ -126,6 +127,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMeta(instance)}
 	var phase clv1alpha2.EnvironmentPhase
@@ -138,7 +140,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			// VirtualMachineInstance specifications are forged only at creation time, as changing them later may be
 			// either rejected by the webhook or cause the restart of the VMI itself, with consequent data loss.
 			if vmi.CreationTimestamp.IsZero() {
-				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, environment)
+				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment)
 			}
 			vmi.SetLabels(forge.InstanceObjectLabels(vmi.GetLabels(), instance))
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)

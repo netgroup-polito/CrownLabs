@@ -31,11 +31,13 @@ import (
 var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 	var (
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 	)
 
 	const (
 		instanceName      = "kubernetes-0000"
+		templateName      = "test-template"
 		instanceNamespace = "tenant-tester"
 		image             = "internal/registry/image:v1.0"
 		cpu               = 2
@@ -58,20 +60,26 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				Disk:                  resource.MustParse(disk),
 			},
 		}
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+			},
+		}
 	})
 
 	Describe("The forge.VirtualMachineSpec function", func() {
 		var spec virtv1.VirtualMachineSpec
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineSpec(&instance, &environment)
+			spec = forge.VirtualMachineSpec(&instance, &template, &environment)
 		})
 
 		It("Should set the correct template labels", func() {
 			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &environment)))
+			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
 		})
 		It("Should set the correct datavolume template", func() {
 			Expect(spec.DataVolumeTemplates).To(ContainElement(
@@ -83,7 +91,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var spec virtv1.VirtualMachineInstanceSpec
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineInstanceSpec(&instance, &environment)
+			spec = forge.VirtualMachineInstanceSpec(&instance, &template, &environment)
 		})
 
 		It("Should set the correct domain", func() {

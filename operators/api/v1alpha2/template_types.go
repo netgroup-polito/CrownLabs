@@ -71,6 +71,11 @@ type TemplateSpec struct {
 	// or stopped to save resources. If set to "never", the instance will not be
 	// automatically terminated.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
+
+	// Labels that are used for the selection of the node.
+	// They are given by means of a pointer to check the presence of the field.
+	// In case it is present, the labels that are chosen are the ones present on the instance
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
@@ -129,11 +134,6 @@ type Environment struct {
 
 	// The list of information about Shared Volumes that has to be mounted to the instance.
 	SharedVolumeMounts []SharedVolumeMountInfo `json:"sharedVolumeMounts,omitempty"`
-
-	// Labels that are used for the selection of the node.
-	// They are given by means of a pointer to check the presence of the field.
-	// In case it is present, the labels that are chosen are the ones present on the instance
-	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

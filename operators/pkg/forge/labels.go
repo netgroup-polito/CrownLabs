@@ -65,7 +65,7 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
 	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
-	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(template.Spec.EnvironmentList, instance)) || update
+	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(instance, template)) || update
 
 	if instance != nil {
 		instCustomizationUrls := instance.Spec.CustomizationUrls
@@ -189,13 +189,11 @@ func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
 }
 
 // nodeSelectorLabelValue returns the value to be assigned to the node selector label, depending on the presence or the absence of the field.
-func nodeSelectorLabelValue(environmentList []clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
-	if instance != nil {
-		for i := range environmentList {
-			nodeSel := NodeSelectorLabels(instance, &environmentList[i])
-			if len(nodeSel) > 0 {
-				return strconv.FormatBool(true)
-			}
+func nodeSelectorLabelValue(instance *clv1alpha2.Instance, template *clv1alpha2.Template) string {
+	if instance != nil && template != nil {
+		nodeSel := NodeSelectorLabels(instance, template)
+		if len(nodeSel) > 0 {
+			return strconv.FormatBool(true)
 		}
 	}
 	return strconv.FormatBool(false)

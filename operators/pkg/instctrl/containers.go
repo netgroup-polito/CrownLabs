@@ -82,6 +82,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
 
@@ -112,7 +113,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 		// Deployment specifications are forged only at creation time, as changing them later may be
 		// either rejected or cause the restart of the Pod, with consequent possible data loss.
 		if depl.CreationTimestamp.IsZero() {
-			depl.Spec = forge.DeploymentSpec(instance, environment, mountInfos, &r.ContainerEnvOpts)
+			depl.Spec = forge.DeploymentSpec(instance, template, environment, mountInfos, &r.ContainerEnvOpts)
 		}
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())

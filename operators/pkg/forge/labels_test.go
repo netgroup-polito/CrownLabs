@@ -54,7 +54,7 @@ var _ = Describe("Labels forging", func() {
 		}
 
 		type NodeSelectorEnabledLabelCase struct {
-			EnvironmentList      []clv1alpha2.Environment
+			TemplateNodeSelector *map[string]string
 			InstanceNodeSelector map[string]string
 			ExpectedValue        string
 		}
@@ -158,58 +158,58 @@ var _ = Describe("Labels forging", func() {
 
 		DescribeTable("Correctly configures the node selection presence label",
 			func(c NodeSelectorEnabledLabelCase) {
-				template.Spec.EnvironmentList = c.EnvironmentList
+				template.Spec.NodeSelector = c.TemplateNodeSelector
 				instance.Spec.NodeSelector = c.InstanceNodeSelector
 				output, _ := forge.InstanceLabels(map[string]string{}, &template, &instance)
 				Expect(output).To(HaveKeyWithValue("crownlabs.polito.it/has-node-selector", c.ExpectedValue))
 			},
 			Entry("When the node selector of the environment and the instance are present and different", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key1": "val1"}}},
+				TemplateNodeSelector: &map[string]string{"key1": "val1"},
 				InstanceNodeSelector: map[string]string{"key2": "val2"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment and the instance are present and equal", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is empty and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is present and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is present and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is nil and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				TemplateNodeSelector: nil,
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment is nil and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is empty and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment and the node selector of the instance are empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment and the node selector of the instance are nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				TemplateNodeSelector: nil,
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "false",
 			}),

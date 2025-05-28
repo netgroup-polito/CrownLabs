@@ -220,8 +220,8 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		//
 		//
 
-		ctx, _ := clctx.EnvironmentInto(ctx, environment)
-		ctx = clctx.EnvironmentIndexInto(ctx, i)
+		innCtx, _ := clctx.EnvironmentInto(ctx, environment)
+		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
 		//
 		//
@@ -229,18 +229,18 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-			if err := r.EnforceVMEnvironment(ctx); err != nil {
+			if err := r.EnforceVMEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
-			if err := r.EnforceContainerEnvironment(ctx); err != nil {
+			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
 		}
 
-		r.setInitialReadyTimeIfNecessary(ctx)
+		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
 	return nil
 }
