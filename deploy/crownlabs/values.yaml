@@ -156,6 +156,17 @@ instmetrics:
     updatePeriod: 4s
     grpcPort: 9090
 
+cloudimg-registry:
+  replicaCount: 1
+  configurations:
+    volume:
+      size: "100Gi"
+      accessMode: "ReadWriteMany"
+      storageClass: "rook-cephfs-primary"
+  image:
+    repository: crownlabs/cloudimg-registry
+    pullPolicy: IfNotPresent
+
 policies:
   ingressHostnamePattern: s??????.sandbox.crownlabs.polito.it
   namespaceSelector:
