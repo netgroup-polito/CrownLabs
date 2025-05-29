@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 
 	"github.com/prometheus/client_golang/api"
@@ -45,12 +46,14 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder              record.EventRecorder
-	Scheme                      *runtime.Scheme
-	NamespaceWhitelist          metav1.LabelSelector
-	StatusCheckRequestTimeout   time.Duration
-	InstanceStatusCheckInterval time.Duration
-	MailClient                  *MailClient
+	EventsRecorder                  record.EventRecorder
+	Scheme                          *runtime.Scheme
+	NamespaceWhitelist              metav1.LabelSelector
+	StatusCheckRequestTimeout       time.Duration // could be deleted if not used (eg. for timeout in Thanos)
+	InstanceInactivityCheckInterval time.Duration
+	InstanceMaxNumberOfAlerts       int
+	InstanceInactiveDefaultTimeout  string
+	MailClient                      *MailClient
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -58,9 +61,6 @@ type InstanceInactiveTerminationReconciler struct {
 }
 
 var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
-
-const maxNumberOfAlerts = 4
-const terminationInterval = 2 * time.Minute
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
@@ -116,8 +116,11 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
-	// check specific namespace
-	// TODO
+	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific user
+	if stop := utils.CheckSingleLabel(&instance, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
+		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
+		return ctrl.Result{}, nil
+	}
 
 	tracer.Step("labels checked")
 
@@ -156,9 +159,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, err
 		}
 
-		if numberAlertSent < maxNumberOfAlerts {
+		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
 			r.SendNotification(ctx, &instance, user.Spec.Email)
-		} else if numberAlertSent >= maxNumberOfAlerts && instance.Spec.Running == true {
+		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running == true {
 			r.TerminateInstance(ctx, &instance)
 		}
 	} else {
@@ -167,7 +170,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	dbgLog.Info("requeueing instance")
 	// TODO: where to put delay time? general for all crownlab machines?
-	return ctrl.Result{RequeueAfter: terminationInterval}, nil
+	return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
@@ -205,9 +208,16 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	tenantNS := instance.Namespace
 	instanceName := instance.Name
 
-	// Proper PromQL query to check for activity in the last 2 weeks
-	query := fmt.Sprintf(`sum(changes(nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}[2w])) > 0`,
-		tenantNS, instanceName)
+	// get the inactivity timeout from the instance template
+	inactivityTimeout, err := r.getInactivityTimeout(ctx, instance)
+	if err != nil {
+		log.Error(err, "failed retrieving inactivity timeout from instance template")
+		return false, err
+	}
+
+	// Proper PromQL query to check for activity
+	query := fmt.Sprintf(`sum(changes(nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}[%s])) > 0`,
+		tenantNS, instanceName, inactivityTimeout)
 
 	result, warnings, err := v1api.Query(ctx, query, time.Now())
 	if err != nil {
@@ -232,7 +242,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 
 	// No activity detected
 	log.Info("No activity detected", "instance", instanceName)
-	return true, nil
+	return false, nil
 }
 
 // isPrometheusHealthy checks if Prometheus and required metrics are available
@@ -373,4 +383,25 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 	annotationString = strconv.Itoa(annotationInt)
 	log.Info("converting int to string updated annotation", "annotation", annotationString)
 	return annotationString, nil
+}
+
+// retrieve the inactivity timeout from the instance template
+// This function should return the inactivity timeout for the instance based on its template.
+func (r *InstanceInactiveTerminationReconciler) getInactivityTimeout(ctx context.Context, instance *clv1alpha2.Instance) (string, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("get-inactivity-timeout")
+	// retrieve the template from the instance
+	var template clv1alpha2.Template
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Spec.Template.Namespace,
+	}, &template); err != nil {
+		log.Error(err, "Unable to fetch the instance template.")
+		return r.InstanceInactiveDefaultTimeout, nil
+	}
+
+	templateInactivityTimeout := template.Spec.InactivityTimeout
+	if templateInactivityTimeout == "" {
+		return r.InstanceInactiveDefaultTimeout, nil
+	}
+	return templateInactivityTimeout, nil
 }
