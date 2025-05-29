@@ -31,6 +31,8 @@ configurations:
     maxConcurrentSubmissionReconciles: 1
     inactiveTerminationStatusCheckTimeout: "3s"
     inactiveTerminationStatusCheckInterval: "5m" #modify according to your needs
+    inactiveTerminationMaxNumberOfAlerts: 3
+    inactiveTerminationDefaultTimeout: "8w" 
   smtp:
     server: 
     port: 
