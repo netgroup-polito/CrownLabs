@@ -109,7 +109,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			},
 		}
 		environment = clv1alpha2.Environment{
-			Name:            "app",
+			Name:            "app1",
 			Image:           "some-image:v0",
 			EnvironmentType: clv1alpha2.ClassVM,
 			Persistent:      false,
@@ -124,7 +124,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			MountMyDriveVolume: false,
 		}
 		environmentSV = clv1alpha2.Environment{
-			Name:            "app",
+			Name:            "app1",
 			Image:           "some-image:v0",
 			EnvironmentType: clv1alpha2.ClassVM,
 			Persistent:      false,

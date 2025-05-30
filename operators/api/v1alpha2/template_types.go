@@ -61,6 +61,9 @@ type TemplateSpec struct {
 	WorkspaceRef GenericRef `json:"workspace.crownlabs.polito.it/WorkspaceRef,omitempty"`
 
 	// The list of environments (i.e. VMs or containers) that compose the Template.
+	// Each environment must have a unique name within the Template.
+	// +listType=map
+	// +listMapKey=name
 	EnvironmentList []Environment `json:"environmentList"`
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
@@ -85,6 +88,10 @@ type TemplateStatus struct {
 // Environment defines the characteristics of an environment composing the Template.
 type Environment struct {
 	// The name identifying the specific environment.
+	// The name must be unique within the Template and must follow the Kubernetes
+	// naming conventions, i.e. it must consist of lower case alphanumeric characters,
+	// '-' or '.', must start and end with an alphanumeric character.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
 	Name string `json:"name"`
 
 	// The VM or container to be started when instantiating the environment.

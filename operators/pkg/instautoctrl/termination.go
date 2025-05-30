@@ -134,11 +134,8 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
 func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	if instance.Spec.CustomizationUrls == nil {
-		return false, errors.New("customization urls field is not set for Instance")
-	}
 
-	statusCheckURL := instance.Spec.CustomizationUrls.StatusCheck
+	statusCheckURL := instance.Spec.StatusCheckUrl
 	if statusCheckURL == "" {
 		return false, errors.New("status check url field is not set for Instance")
 	}
@@ -217,6 +214,8 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 			submissionRequired = true
 			log.Info("submission required")
 		}
+		instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), environment.Name, submissionRequired))
+
 	}
 
 	//
@@ -235,8 +234,6 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 	// 	submissionRequired = true
 	// 	log.Info("submission required")
 	// }
-
-	instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), submissionRequired))
 
 	instance.Spec.Running = false
 

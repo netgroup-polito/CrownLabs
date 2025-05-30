@@ -72,7 +72,7 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 
 	spec := corev1.ServiceSpec{
 		Type:     corev1.ServiceTypeClusterIP,
-		Selector: InstanceSelectorLabels(instance),
+		Selector: EnvironmentSelectorLabels(instance, environment),
 		Ports:    ports,
 	}
 

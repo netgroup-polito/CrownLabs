@@ -49,7 +49,7 @@ const (
 	EnvironmentPhaseCreationLoopBackoff EnvironmentPhase = "CreationLoopBackoff"
 )
 
-// InstanceCustomizationUrls specifies optional urls for advanced integration features.
+/* // InstanceCustomizationUrls specifies optional urls for advanced integration features.
 type InstanceCustomizationUrls struct {
 	// URL from which GET the archive to be extracted into Template.ContainerStartupOptions.ContentPath. This field, if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
 	ContentOrigin string `json:"contentOrigin,omitempty"`
@@ -59,6 +59,15 @@ type InstanceCustomizationUrls struct {
 
 	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output a JSON with a `deadline` field containing a ISO_8601 compliant date/time string of the expected instance termination time. See instautoctrl.StatusCheckResponse for exact definition.
 	StatusCheck string `json:"statusCheck,omitempty"`
+} */
+
+// InstanceContentUrls specifies optional urls for advanced integration features.
+type InstanceContentUrls struct {
+	// URL from which GET the archive to be extracted into Template.ContainerStartupOptions.ContentPath. This field, if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
+	Origin string `json:"origin,omitempty"`
+
+	// URL to which POST an archive with the contents found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
+	Destination string `json:"destination,omitempty"`
 }
 
 // InstanceSpec is the specification of the desired state of the Instance.
@@ -92,7 +101,9 @@ type InstanceSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Optional urls for advanced integration features.
-	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
+	StatusCheckUrl string `json:"statusCheckUrl,omitempty"`
+
+	ContentUrls map[string]*InstanceContentUrls `json:"contentUrls,omitempty"`
 }
 
 // InstanceAutomationStatus reflects the status of the instance's automation (termination and submission).

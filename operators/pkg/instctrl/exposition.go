@@ -62,7 +62,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	//
 
 	// Enforce the service presence
-	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
+	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
 		// Service specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the backend
@@ -71,7 +71,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			service.Spec = forge.ServiceSpec(instance, environment)
 		}
 
-		labels := forge.InstanceObjectLabels(service.GetLabels(), instance)
+		labels := forge.EnvironmentObjectLabels(service.GetLabels(), instance, environment)
 		if environment.EnvironmentType == clv1alpha2.ClassContainer {
 			labels = forge.MonitorableServiceLabels(labels)
 		}
@@ -107,8 +107,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
 
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUIName(environment))}
-
+	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+forge.IngressGUIName(environment))}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
 		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
@@ -116,7 +115,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			ingressGUI.Spec = forge.IngressSpec(host, forge.IngressGUIPath(instance, environment),
 				forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
 		}
-		ingressGUI.SetLabels(forge.InstanceObjectLabels(ingressGUI.GetLabels(), instance))
+		ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
@@ -152,6 +151,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 // enforceInstanceExpositionAbsence ensures the absence of the objects required to expose an environment (i.e. service, ingress).
 func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
 
 	//
 	//
@@ -182,13 +182,13 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	// instance.Status.URL = ""
 
 	// Enforce service absence
-	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
+	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &service, "service"); err != nil {
 		return err
 	}
 
 	// Enforce gui ingress absence
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUINameSuffix)}
+	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+forge.IngressGUINameSuffix)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
 		return err
 	}

@@ -109,8 +109,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 		}
 		index = 0
 
-		serviceName = forge.NamespacedName(&instance)
-		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix)
+		serviceName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
+		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, environment.Name+"-"+forge.IngressGUINameSuffix)
 
 		service = corev1.Service{}
 		ingress = netv1.Ingress{}
@@ -188,7 +188,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			}
 			return inst.Status.Environments[index].URL
 		},
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/", host, instanceUID),
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v-%v/", host, instanceUID, environmentName),
 	}
 
 	DescribeBodyParametersIngressGUIContainer := DescribeBodyParameters{
@@ -208,7 +208,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			}
 			return inst.Status.Environments[index].URL
 		},
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v/app/", host, instanceUID),
+		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v-%v/app/", host, instanceUID, environmentName),
 	}
 
 	Context("The instance is running", func() {

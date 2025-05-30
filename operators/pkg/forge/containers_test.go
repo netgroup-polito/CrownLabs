@@ -231,13 +231,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &template, &environment, mountInfos, &opts)))
 		})
 		It("Should set the correct selector", func() {
-			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
+			Expect(spec.Selector.MatchLabels).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 	})
 
@@ -774,8 +774,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		BeforeEach(func() {
 			environment.Persistent = true
-			instance.Spec.CustomizationUrls = &clv1alpha2.InstanceCustomizationUrls{
-				ContentDestination: httpPath,
+			if instance.Spec.ContentUrls == nil {
+				instance.Spec.ContentUrls = make(map[string]*clv1alpha2.InstanceContentUrls)
+			}
+			instance.Spec.ContentUrls[environment.Name] = &clv1alpha2.InstanceContentUrls{
+				Destination: httpPath,
 			}
 		})
 
@@ -790,7 +793,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
-							forge.ContentUploaderJobContainer(httpPath, instance.Name, &opts),
+							forge.ContentUploaderJobContainer(httpPath, instance.Name+"-"+environment.Name, &opts),
 						},
 						Volumes:                      forge.ContainerVolumes(&instance, &environment, nil),
 						SecurityContext:              forge.PodSecurityContext(),
@@ -807,7 +810,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual, expected corev1.Container
 
 		JustBeforeEach(func() {
-			actual = forge.ContentUploaderJobContainer(httpPath, instanceName, &opts)
+			actual = forge.ContentUploaderJobContainer(httpPath, instanceName+"-"+environment.Name, &opts)
 		})
 
 		It("Should set the correct container name and image", func() {
@@ -832,7 +835,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct environment variables", func() {
 			forge.AddEnvVariableToContainer(&expected, "SOURCE_PATH", forge.PersistentDefaultMountPath)
 			forge.AddEnvVariableToContainer(&expected, "DESTINATION_URL", httpPath)
-			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName)
+			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName+"-"+environment.Name)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})
@@ -1189,7 +1192,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.NeedsInitContainer function", func() {
 		type NeedsInitContainerCase struct {
 			StartupOpts          *clv1alpha2.ContainerStartupOpts
-			InstCustomOpts       *clv1alpha2.InstanceCustomizationUrls
+			InstCustomOpts       *clv1alpha2.InstanceContentUrls
 			ExpectedOutputVal    bool
 			ExpectedOutputOrigin string
 		}
@@ -1198,7 +1201,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			return func() {
 				BeforeEach(func() {
 					environment.ContainerStartupOptions = c.StartupOpts
-					instance.Spec.CustomizationUrls = c.InstCustomOpts
+					if instance.Spec.ContentUrls == nil {
+						instance.Spec.ContentUrls = make(map[string]*clv1alpha2.InstanceContentUrls)
+					}
+					instance.Spec.ContentUrls[environment.Name] = c.InstCustomOpts
 				})
 
 				It("Should return the correct values", func() {
@@ -1232,20 +1238,20 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		Context("no template custom options are provied", func() {
 			When("no source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{},
+				InstCustomOpts:       &clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    false,
 				ExpectedOutputOrigin: "",
 			}))
 			When("a source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPath},
+				InstCustomOpts:       &clv1alpha2.InstanceContentUrls{Origin: httpPath},
 				ExpectedOutputVal:    true,
 				ExpectedOutputOrigin: httpPath,
 			}))
 		})
 		When("both template and instance custom options are provided", WhenBody(NeedsInitContainerCase{
 			StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPathAlternative},
+			InstCustomOpts:       &clv1alpha2.InstanceContentUrls{Origin: httpPathAlternative},
 			ExpectedOutputVal:    true,
 			ExpectedOutputOrigin: httpPathAlternative,
 		}))

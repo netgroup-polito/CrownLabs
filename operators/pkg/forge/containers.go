@@ -149,12 +149,12 @@ func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Enviro
 // containing the needed sidecars for X-VNC based container instances.
 func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
 	return appsv1.DeploymentSpec{
-		Selector: &metav1.LabelSelector{MatchLabels: InstanceSelectorLabels(instance)},
+		Selector: &metav1.LabelSelector{MatchLabels: EnvironmentSelectorLabels(instance, environment)},
 		Strategy: appsv1.DeploymentStrategy{
 			Type: appsv1.RecreateDeploymentStrategyType,
 		},
 		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{Labels: InstanceSelectorLabels(instance)},
+			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
 			Spec:       PodSpec(instance, template, environment, mountInfos, opts),
 		},
 	}
@@ -183,7 +183,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
-					ContentUploaderJobContainer(instance.Spec.CustomizationUrls.ContentDestination, instance.Name, opts),
+					ContentUploaderJobContainer(instance.Spec.ContentUrls[environment.Name].Destination, instance.Name+"-"+environment.Name, opts),
 				},
 				Volumes:                      ContainerVolumes(instance, environment, nil),
 				SecurityContext:              PodSecurityContext(),
@@ -491,8 +491,10 @@ func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 
 // NeedsInitContainer returns true if the environment requires an initcontainer in order to be prepopulated.
 func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (value bool, contentOrigin string) {
-	if icu := instance.Spec.CustomizationUrls; icu != nil && icu.ContentOrigin != "" {
-		return true, icu.ContentOrigin
+	if icu := instance.Spec.ContentUrls; icu[environment.Name] != nil {
+		if envUrls := icu[environment.Name]; envUrls != nil && envUrls.Origin != "" {
+			return true, envUrls.Origin
+		}
 	}
 	if cso := environment.ContainerStartupOptions; cso != nil && cso.SourceArchiveURL != "" {
 		return true, cso.SourceArchiveURL

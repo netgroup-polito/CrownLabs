@@ -88,7 +88,7 @@ func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv
 
 // CheckEnvironmentValidity checks whether the given environment is valid and returns it (there must be one environment that must be persistent and contestDestination within instance spec customization urls must be present).
 func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) error {
-	if instance.Spec.CustomizationUrls == nil || instance.Spec.CustomizationUrls.ContentDestination == "" {
+	if instance.Spec.ContentUrls == nil || instance.Spec.ContentUrls[environment.Name].Destination == "" {
 		return fmt.Errorf("missing content-destination field for instance")
 	}
 

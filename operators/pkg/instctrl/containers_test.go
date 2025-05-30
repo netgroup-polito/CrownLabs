@@ -170,7 +170,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		index = 0
 
-		objectName = forge.NamespacedName(&instance)
+		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 
 		svc = corev1.Service{}
 		deploy = appsv1.Deployment{}
@@ -242,7 +242,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -325,7 +325,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should still be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -357,7 +357,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should still be present and have unmodified specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					// Here we overwrite the replicas value, as it is checked in a different It clause.
 					deploy.Spec.Replicas = nil
 					Expect(deploy.Spec).To(Equal(appsv1.DeploymentSpec{}))
@@ -385,7 +385,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		When("the PVC is not yet present", func() {
 			It("The PVC should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(pvc.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(pvc.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -400,7 +400,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -449,7 +449,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The PVC should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(pvc.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(pvc.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -474,7 +474,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should still be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 

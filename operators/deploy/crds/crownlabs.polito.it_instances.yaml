@@ -66,27 +66,21 @@ spec:
             description: InstanceSpec is the specification of the desired state of
               the Instance.
             properties:
-              customizationUrls:
-                description: Optional urls for advanced integration features.
-                properties:
-                  contentDestination:
-                    description: URL to which POST an archive with the contents found
-                      (at instance termination) in Template.ContainerStartupOptions.ContentPath.
-                    type: string
-                  contentOrigin:
-                    description: URL from which GET the archive to be extracted into
-                      Template.ContainerStartupOptions.ContentPath. This field, if
-                      set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
-                    type: string
-                  statusCheck:
-                    description: URL which is periodically checked (with a GET request)
-                      to determine automatic instance shutdown. Should return any
-                      2xx status code if the instance has to keep running, any 4xx
-                      otherwise. In case of 2xx response, it should output a JSON
-                      with a `deadline` field containing a ISO_8601 compliant date/time
-                      string of the expected instance termination time. See instautoctrl.StatusCheckResponse
-                      for exact definition.
-                    type: string
+              contentUrls:
+                additionalProperties:
+                  description: InstanceContentUrls specifies optional urls for advanced
+                    integration features.
+                  properties:
+                    destination:
+                      description: URL to which POST an archive with the contents
+                        found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
+                      type: string
+                    origin:
+                      description: URL from which GET the archive to be extracted
+                        into Template.ContainerStartupOptions.ContentPath. This field,
+                        if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
+                      type: string
+                  type: object
                 type: object
               nodeSelector:
                 additionalProperties:
@@ -111,6 +105,9 @@ spec:
                   effectively unreachable from outside the cluster, but allowing the
                   subsequent recreation without data loss.
                 type: boolean
+              statusCheckUrl:
+                description: Optional urls for advanced integration features.
+                type: string
               template.crownlabs.polito.it/TemplateRef:
                 description: The reference to the Template to be instantiated.
                 properties:

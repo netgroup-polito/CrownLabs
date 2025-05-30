@@ -282,6 +282,7 @@ var _ = Describe("Ingresses", func() {
 			instanceName      = "kubernetes-0000"
 			instanceNamespace = "tenant-tester"
 			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+			environmentName   = "environment-name"
 			host              = "crownlabs.example.com"
 		)
 
@@ -289,6 +290,7 @@ var _ = Describe("Ingresses", func() {
 			instance = clv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
 			}
+			environment.Name = environmentName
 		})
 
 		Describe("The forge.HostName function", func() {
@@ -334,7 +336,7 @@ var _ = Describe("Ingresses", func() {
 					})
 					Context("The instance has no special configurations", func() {
 						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app(/|$)(.*)"))
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "-" + environment.Name + "/app(/|$)(.*)"))
 						})
 					})
 				})
@@ -344,7 +346,7 @@ var _ = Describe("Ingresses", func() {
 					})
 					Context("The instance has no special configurations", func() {
 						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "-" + environment.Name + "/app"))
 						})
 					})
 				})
@@ -356,7 +358,7 @@ var _ = Describe("Ingresses", func() {
 				})
 				Context("The instance has no special configurations", func() {
 					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
+						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "-" + environment.Name + "/app"))
 					})
 				})
 			})
@@ -372,7 +374,7 @@ var _ = Describe("Ingresses", func() {
 					environment.EnvironmentType = clv1alpha2.ClassStandalone
 				})
 				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
+					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "-" + environment.Name + "/app/"))
 				})
 			})
 			When("EnvironmentType is not ClassStandalone", func() {
@@ -380,7 +382,7 @@ var _ = Describe("Ingresses", func() {
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 				})
 				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
+					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "-" + environment.Name + "/app/"))
 				})
 			})
 		})

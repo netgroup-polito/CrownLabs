@@ -57,14 +57,14 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMeta(instance)}
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
 		if pvc.ObjectMeta.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.InstancePVCSpec(environment)
 		}
-		pvc.SetLabels(forge.InstanceObjectLabels(pvc.GetLabels(), instance))
+		pvc.SetLabels(forge.EnvironmentObjectLabels(pvc.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
 	})
 	if err != nil {
@@ -84,7 +84,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
-	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
+	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	mountInfos := []forge.NFSVolumeMountInfo{}
 
@@ -118,7 +118,7 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())
 
-		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
+		depl.SetLabels(forge.EnvironmentObjectLabels(depl.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	})
 

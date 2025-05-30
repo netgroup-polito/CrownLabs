@@ -82,8 +82,9 @@ spec:
                 description: A textual description of the Template.
                 type: string
               environmentList:
-                description: The list of environments (i.e. VMs or containers) that
-                  compose the Template.
+                description: |-
+                  The list of environments (i.e. VMs or containers) that compose the Template.
+                  Each environment must have a unique name within the Template.
                 items:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
@@ -152,7 +153,12 @@ spec:
                         volume
                       type: boolean
                     name:
-                      description: The name identifying the specific environment.
+                      description: |-
+                        The name identifying the specific environment.
+                        The name must be unique within the Template and must follow the Kubernetes
+                        naming conventions, i.e. it must consist of lower case alphanumeric characters,
+                        '-' or '.', must start and end with an alphanumeric character.
+                      pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                       type: string
                     persistent:
                       default: false
@@ -260,6 +266,9 @@ spec:
                   - resources
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               nodeSelector:
                 additionalProperties:
                   type: string
