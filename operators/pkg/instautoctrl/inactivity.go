@@ -22,6 +22,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,16 +34,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
-
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
@@ -73,7 +72,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 		// Do not requeue on update events
 		// Inactive Instance Controller is triggered only by requeue events
 		WithEventFilter(predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
+			UpdateFunc: func(_ event.UpdateEvent) bool {
 				return false
 			},
 		}).
@@ -90,12 +89,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	dbgLog := log.V(utils.LogDebugLevel)
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
-
-	// if dbgLog.Enabled() {
-	// 	defer tracer.Log()
-	// } else {
-	// 	defer tracer.LogIfLong(r.StatusCheckRequestTimeout / 2)
-	// }
 
 	// Get the instance object.
 	var instance clv1alpha2.Instance
@@ -127,7 +120,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// add the annotation if not present to check the number of termination alerts
 	if instance.ObjectMeta.Annotations == nil {
 		instance.ObjectMeta.Annotations = make(map[string]string)
-
 	}
 	patch := client.MergeFrom(instance.DeepCopy())
 	if _, ok := instance.ObjectMeta.Annotations[alertAnnotation]; !ok {
@@ -160,9 +152,17 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			r.SendNotification(ctx, &instance, user.Spec.Email)
-		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running == true {
-			r.TerminateInstance(ctx, &instance)
+			err := r.SendNotification(ctx, &instance, user.Spec.Email)
+			if err != nil {
+				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
+				return ctrl.Result{}, err
+			}
+		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
+			err := r.TerminateInstance(ctx, &instance)
+			if err != nil {
+				log.Error(err, "failed terminating instance", "instance", instance.Name)
+				return ctrl.Result{}, err
+			}
 		}
 	} else {
 		log.Info("instance is not yet to be terminated", "instance", instance.Name)
@@ -177,7 +177,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 
-	//to make a local test, uncomment the following lines
+	// to make a local test, uncomment the following lines
 	// if time.Since(instance.CreationTimestamp.Time) > 2*time.Minute {
 	// 	return true, nil
 	// }
@@ -188,12 +188,12 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 		Address: promURL,
 	}
 
-	client, err := api.NewClient(config)
+	promClient, err := api.NewClient(config)
 	if err != nil {
 		return false, fmt.Errorf("error creating prometheus client: %w", err)
 	}
 
-	v1api := v1.NewAPI(client)
+	v1api := v1.NewAPI(promClient)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -216,7 +216,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	}
 
 	// Proper PromQL query to check for activity
-	query := fmt.Sprintf(`sum(changes(nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}[%s])) > 0`,
+	query := fmt.Sprintf(`sum(changes(nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}[%q])) > 0`,
 		tenantNS, instanceName, inactivityTimeout)
 
 	result, warnings, err := v1api.Query(ctx, query, time.Now())
@@ -245,7 +245,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	return false, nil
 }
 
-// isPrometheusHealthy checks if Prometheus and required metrics are available
+// isPrometheusHealthy checks if Prometheus and required metrics are available.
 func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.Context, v1api v1.API) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("prometheus-health")
 
@@ -310,17 +310,15 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 		return err
 	}
 
-	//TODO check all the environments?
+	// TODO check all the environments?
 	var environment = template.Spec.EnvironmentList[0]
 	if environment.Persistent {
 		log.Info("Stopping persistent instance...")
 		instance.Spec.Running = false
 		return r.Update(ctx, instance)
-	} else {
-		log.Info("Deleting non-persistent instance...")
-		return r.Delete(ctx, instance)
 	}
-
+	log.Info("Deleting non-persistent instance...")
+	return r.Delete(ctx, instance)
 }
 
 // SendNotification sends an email to the user to notify that the instance will be terminated/stopped if they do not use it anymore.
@@ -333,22 +331,29 @@ func (r *InstanceInactiveTerminationReconciler) SendNotification(ctx context.Con
 		"Please log in to your instance if you wish to keep it running.\n\n"+
 		"Best regards,\n"+
 		"CrownLabs Team", instance.Name)
-	r.MailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
+	err := r.MailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
+	if err != nil {
+		log.Error(err, "failed sending email notification")
+		return err
+	}
 
 	// increment the number of termination alerts
 	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[alertAnnotation])
 	if err != nil {
 		log.Error(err, "failed incrementing annotation")
+		return err
 	}
 	instance.ObjectMeta.Annotations[alertAnnotation] = newNumberOfAlerts
 	// update the status of the instance
 	if err := r.Update(ctx, instance); err != nil {
 		log.Error(err, "failed updating instance annotations")
+		return err
 	}
 
 	return nil
 }
 
+// GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func (r *InstanceInactiveTerminationReconciler) GetTenantFromInstance(ctx context.Context, instance *clv1alpha2.Instance) (clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
 	log.Info("getting user from instance", "instance", instance.Name)
@@ -368,6 +373,7 @@ func (r *InstanceInactiveTerminationReconciler) GetTenantFromInstance(ctx contex
 	return *tenant, nil
 }
 
+// IncrementAnnotation increments the value of the annotation string by 1.
 func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.Context, annotationString string) (string, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("string-to-int-annotation")
 	log.Info("converting string to int annotation", "annotation", annotationString)
