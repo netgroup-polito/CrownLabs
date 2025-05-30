@@ -25,7 +25,7 @@ import (
 func setup_tenant(
 	mgr manager.Manager,
 	targetLabel utils.Label,
-	keepAliveTime time.Duration,
+	TenantNSKeepAlive  time.Duration,
 ) error {
 	// TODO manage webhook
 	// TODO setup tenant reconciler
@@ -33,7 +33,7 @@ func setup_tenant(
 		Client:      mgr.GetClient(),
 		Scheme:      mgr.GetScheme(),
 		TargetLabel: targetLabel,
-		KeepAliveTime: keepAliveTime,
+		TenantNSKeepAlive : TenantNSKeepAlive ,
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}

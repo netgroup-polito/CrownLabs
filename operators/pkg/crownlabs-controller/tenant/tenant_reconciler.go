@@ -17,12 +17,11 @@ package tenant
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,16 +31,40 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
 
+
 	  "time"
-    "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
+   // "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
+	
+)
+
+const (
+	// NoWorkspacesLabel -> label to be set (to true) when no workspaces are associated to the tenant.
+	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
+	// NFSSecretName -> NFS secret name.
+	NFSSecretName = "mydrive-info"
+	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
+	NFSSecretServerNameKey = "server-name"
+	// NFSSecretPathKey -> NFS path key in NFS secret.
+	NFSSecretPathKey = "path"
+	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job.
+	ProvisionJobBaseImage = "busybox"
+	// ProvisionJobMaxRetries -> Maximum number of retries for Provision jobs.
+	ProvisionJobMaxRetries = 3
+	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
+	ProvisionJobTTLSeconds = 3600 * 24 * 7
 )
 
 type TenantReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
 	TargetLabel utils.Label
-	namespaceManager *namespaces.NamespaceManager
-	KeepAliveTime    time.Duration
+	//KeepAliveTime    time.Duration
+	TenantNSKeepAlive    time.Duration
+	TargetLabelKey              string
+	TargetLabelValue            string
+	MyDrivePVCsSize             resource.Quantity
+	MyDrivePVCsStorageClassName string
+	MyDrivePVCsNamespace        string
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -68,20 +91,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	// Add namespace reconciliation
-    nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
-    
-    keepNsOpen, err := r.namespaceManager.CheckNamespaceKeepAlive(ctx, &tn, nsName)
-    if err != nil {
-        log.Error(err, "Failed to check namespace keep-alive status")
-        return ctrl.Result{}, err
-    }
-
-    _, err = r.namespaceManager.EnforceClusterResources(ctx, &tn, nsName, keepNsOpen)
-    if err != nil {
-        log.Error(err, "Failed to enforce cluster resources")
-        return ctrl.Result{}, err
-    }
 
 
 	r.CheckKeycloakStatus(ctx, &tn)
@@ -91,14 +100,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Set up the NamespaceManager
-	 r.namespaceManager = namespaces.NewNamespaceManager(
-        r.Client,
-        r.Scheme,
-        r.KeepAliveTime,
-        r.TargetLabel.GetKey(),
-        r.TargetLabel.GetValue(),
-    )
+	
 	labelPredicate, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		return err
