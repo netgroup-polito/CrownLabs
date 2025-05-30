@@ -2592,6 +2592,11 @@ export type Spec6 = {
    * automatically terminated.
    */
   deleteAfter?: Maybe<Scalars['String']['output']>;
+
+  // The maximum period of inactivity after which an Instance referencing
+	// the current Template will be automatically stopped or deleted to
+	// save resources.
+  inactivityTimeout?: Maybe<Scalars['String']['output']>;
   /** A textual description of the Template. */
   description: Scalars['String']['output'];
   /** The list of environments (i.e. VMs or containers) that compose the Template. */
@@ -2611,6 +2616,11 @@ export type Spec6Input = {
    * automatically terminated.
    */
   deleteAfter?: InputMaybe<Scalars['String']['input']>;
+    // The maximum period of inactivity after which an Instance referencing
+	// the current Template will be automatically stopped or deleted to
+	// save resources.
+  inactivityTimeout?: Maybe<Scalars['String']['output']>;
+
   /** A textual description of the Template. */
   description: Scalars['String']['input'];
   /** The list of environments (i.e. VMs or containers) that compose the Template. */

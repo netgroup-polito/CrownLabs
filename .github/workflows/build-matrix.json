@@ -7,6 +7,13 @@
         "harbor-project": "crownlabs-core"
     },
     {
+      "component": "instance-automation",
+      "context": "./operators",
+      "dockerfile": "./operators/build/golang-common/Dockerfile",
+      "build-args": "COMPONENT=instance-automation",
+      "harbor-project": "crownlabs-core"
+    },
+    {
         "component": "tenant-operator",
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
@@ -38,12 +45,6 @@
         "component": "crownlabs-image-list",
         "context": "./operators",
         "dockerfile": "./operators/build/crownlabs-image-list/Dockerfile",
-        "harbor-project": "crownlabs-core"
-    },
-    {
-        "component": "delete-stale-instances",
-        "context": "./operators",
-        "dockerfile": "./operators/build/delete-stale-instances/Dockerfile",
         "harbor-project": "crownlabs-core"
     },
 

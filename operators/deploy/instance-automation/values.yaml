@@ -1,4 +1,4 @@
-# Default values for instance-operator.
+# Default values for instance-automation.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -25,12 +25,24 @@ configurations:
     secretName: registry-credentials
   maxConcurrentReconciles: 1
   automation:
-    maxConcurrentShVolReconciles: 1 
-  sharedVolumeOptions:
-    storageClass: rook-nfs
+    maxConcurrentTerminationReconciles: 1
+    terminationStatusCheckTimeout: "3s"
+    terminationStatusCheckInterval: "2m" 
+    maxConcurrentSubmissionReconciles: 1
+    inactiveTerminationStatusCheckTimeout: "3s"
+    inactiveTerminationStatusCheckInterval: "5m" #modify according to your needs
+    inactiveTerminationMaxNumberOfAlerts: 3
+    inactiveTerminationDefaultTimeout: "8w" 
+  smtp:
+    server: 
+    port: 
+    identity:
+    username:
+    password:
+    from:
 
 image:
-  repository: crownlabs/instance-operator
+  repository: crownlabs/instance-automation
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
@@ -61,4 +73,4 @@ resources:
     memory: 250Mi
     cpu: 100m
 
-rbacResourcesName: crownlabs-instance-operator
+rbacResourcesName: crownlabs-instance-automation

@@ -80,6 +80,25 @@ instance-operator:
       secretName: registry-credentials
     maxConcurrentReconciles: 1
 
+instance-automation:
+  replicaCount: 1
+  image:
+    repository: crownlabs/instance-automation
+  rbacResourcesName: crownlabs-instance-automation
+  configurations:
+    generic:
+      whitelistLabels: crownlabs.polito.it/operator-selector=production
+      websiteBaseUrl: crownlabs.example.com
+      instancesAuthUrl: https://crownlabs.example.com/auth
+    containerEnvironmentOptions:
+      tag: ""
+      vncImage: crownlabs/tigervnc
+      websockifyImage: crownlabs/websockify
+    privateContainerRegistry:
+      url: registry.crownlabs.example.com
+      secretName: registry-credentials
+    maxConcurrentReconciles: 1
+
 tenant-operator:
   replicaCount: 1
   image:
@@ -124,14 +143,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
 
 exam-agent:
   replicaCount: 1
