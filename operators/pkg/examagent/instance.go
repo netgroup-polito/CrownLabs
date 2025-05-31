@@ -41,13 +41,13 @@ import (
 
 // InstanceAdapter represents an Instance within the examagent.
 type InstanceAdapter struct {
-	ID                string                               `json:"id"`
-	Template          string                               `json:"template"`
-	Running           *bool                                `json:"running,omitempty"`
-	CustomizationUrls clv1alpha2.InstanceCustomizationUrls `json:"customizationUrls"`
-	Phase             string                               `json:"phase"`
-	URL               string                               `json:"url,omitempty"`
-	Labels            map[string]string                    `json:"labels"`
+	ID          string                         `json:"id"`
+	Template    string                         `json:"template"`
+	Running     *bool                          `json:"running,omitempty"`
+	ContentUrls clv1alpha2.InstanceContentUrls `json:"contentUrls"`
+	Phase       string                         `json:"phase"`
+	URL         string                         `json:"url,omitempty"`
+	Labels      map[string]string              `json:"labels"`
 }
 
 // InstanceHandler is the handler for the InstanceAdapter.
@@ -289,6 +289,10 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 // InstanceSpecFromAdapter creates an InstanceSpec from a given InstanceAdapter.
 func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 	running := ptr.Deref(instReq.Running, true)
+
+	contentUrls := make(map[string]*clv1alpha2.InstanceContentUrls)
+	contentUrls["default"] = &instReq.ContentUrls
+
 	return clv1alpha2.InstanceSpec{
 		Template: clv1alpha2.GenericRef{
 			Name:      instReq.Template,
@@ -298,8 +302,8 @@ func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 		Tenant: clv1alpha2.GenericRef{
 			Name: clv1alpha2.SVCTenantName,
 		},
-		PrettyName:        fmt.Sprintf("Exam %s", instReq.ID),
-		CustomizationUrls: &instReq.CustomizationUrls,
+		PrettyName:  fmt.Sprintf("Exam %s", instReq.ID),
+		ContentUrls: contentUrls,
 	}
 }
 
@@ -323,8 +327,12 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		adapter.URL = ""
 	}
 
-	if inst.Spec.CustomizationUrls != nil {
-		adapter.CustomizationUrls = *inst.Spec.CustomizationUrls
+	// get the first ContentUrl if available
+	if len(inst.Spec.ContentUrls) > 0 {
+		for _, contentUrl := range inst.Spec.ContentUrls {
+			adapter.ContentUrls = *contentUrl
+			break
+		}
 	}
 
 	return adapter

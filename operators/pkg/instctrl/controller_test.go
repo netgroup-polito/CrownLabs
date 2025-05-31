@@ -230,9 +230,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-persistent"
-				for _, env := range template.Spec.EnvironmentList {
-					env.Persistent = true
-					env.EnvironmentType = clv1alpha2.ClassStandalone
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+					environmentList[i].Persistent = true
 				}
 				runInstance = false
 			})
@@ -242,9 +242,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-not-persistent"
-				for _, env := range template.Spec.EnvironmentList {
-					env.Persistent = false
-					env.EnvironmentType = clv1alpha2.ClassStandalone
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+					environmentList[i].Persistent = false
 				}
 				runInstance = false
 			})
@@ -256,9 +256,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() {
 				testName = "test-container-persistent"
-				for _, env := range template.Spec.EnvironmentList {
-					env.Persistent = true
-					env.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].Persistent = true
 				}
 				runInstance = false
 			})
@@ -267,9 +267,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-container-not-persistent"
-				for _, env := range template.Spec.EnvironmentList {
-					env.Persistent = false
-					env.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList { // use index
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].Persistent = false
 				}
 				runInstance = false
 			})
@@ -282,9 +282,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			ContextBody := func(envType clv1alpha2.EnvironmentType, name string) {
 				BeforeEach(func() {
 					testName = name
-					for _, env := range template.Spec.EnvironmentList {
-						env.EnvironmentType = envType
-						env.Persistent = true
+					for i := range environmentList {
+						environmentList[i].EnvironmentType = envType
+						environmentList[i].Persistent = true
 					}
 					runInstance = false
 				})
@@ -302,9 +302,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					}
 
 					By("Asserting the VM has been created", func() {
-						var vm virtv1.VirtualMachine
 						for _, env := range template.Spec.EnvironmentList {
-							if env.EnvironmentType == clv1alpha2.ClassVM {
+							var vm virtv1.VirtualMachine
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
+
 								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
 								Expect(vm.Spec.Running).To(PointTo(BeFalse()))
 							}
@@ -341,7 +342,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the state is coherent", func() {
 						var vm virtv1.VirtualMachine
 						for _, env := range template.Spec.EnvironmentList {
-							if env.EnvironmentType == clv1alpha2.ClassVM {
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
 								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
 								vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
 								Expect(k8sClient.Update(ctx, &vm)).To(Succeed())
@@ -360,7 +361,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the VM spec has been changed", func() {
 						var vm virtv1.VirtualMachine
 						for _, env := range template.Spec.EnvironmentList {
-							if env.EnvironmentType == clv1alpha2.ClassVM {
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
 								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
 								Expect(vm.Spec.Running).To(PointTo(BeTrue()))
 							}
@@ -378,9 +379,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-vm-not-persistent"
-				for _, env := range template.Spec.EnvironmentList {
-					env.EnvironmentType = clv1alpha2.ClassVM
-					env.Persistent = false
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassVM
+					environmentList[i].Persistent = false
 				}
 				runInstance = false
 			})
@@ -461,9 +462,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			testName = t
 
 			runInstance = false
-			for i := range template.Spec.EnvironmentList {
-				template.Spec.EnvironmentList[i].EnvironmentType = envtype
-				template.Spec.EnvironmentList[i].Persistent = persistent
+			for i := range environmentList {
+				environmentList[i].EnvironmentType = envtype
+				environmentList[i].Persistent = persistent
 			}
 
 			pod.Spec.NodeName = testName
@@ -510,9 +511,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "pod-kubevirt-label"
 				runInstance = false
-				for i := range template.Spec.EnvironmentList {
-					template.Spec.EnvironmentList[i].EnvironmentType = clv1alpha2.ClassVM
-					template.Spec.EnvironmentList[i].Persistent = true
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassVM
+					environmentList[i].Persistent = true
 				}
 				pod.Spec.NodeName = testName
 
