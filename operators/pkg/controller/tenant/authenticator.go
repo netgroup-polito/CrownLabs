@@ -62,6 +62,13 @@ func (r *TenantReconciler) CheckKeycloakUserVerified(
 			klog.Errorf("Error checking Keycloak status for tenant %s: %v", tenant.Name, err)
 			return false, err
 		}
+	} else if tenant.Status.Keycloak.UserCreated.Name != *user.ID {
+		klog.Infof("Tenant %s exists in Keycloak but with a different ID (%s), updating status", tenant.Name, *user.ID)
+		// Update the tenant status in the cluster
+		tenant.Status.Keycloak.UserCreated = crownlabsv1alpha2.NameCreated{
+			Name:    *user.ID,
+			Created: true,
+		}
 	}
 
 	if *user.EmailVerified != tenant.Status.Keycloak.UserConfirmed {

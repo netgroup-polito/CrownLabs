@@ -101,7 +101,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// if the Tenant has not been verified, we can skip the reconciliation
 		// and wait for the next reconcile loop
 		log.Info("Tenant not verified, skipping reconciliation")
-		return ctrl.Result{}, nil
+	}
+
+	// update the Tenant status
+	if err := r.Status().Update(ctx, &tn); err != nil {
+		klog.Errorf("Error updating status for tenant %s: %v", tn.Name, err)
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil

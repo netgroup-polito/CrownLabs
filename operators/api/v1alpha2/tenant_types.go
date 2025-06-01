@@ -131,12 +131,12 @@ type TenantStatus struct {
 	// The list of Workspaces that are throwing errors during subscription.
 	// This mainly happens if .spec.Workspaces contains references to Workspaces
 	// which do not exist.
-	FailingWorkspaces []string `json:"failingWorkspaces"`
+	FailingWorkspaces []string `json:"failingWorkspaces,omitempty"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
 	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
-	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
+	Subscriptions map[string]SubscriptionStatus `json:"subscriptions,omitempty"`
 
 	// The status of Keycloak authentication flow
 	Keycloak KeycloakStatus `json:"keycloak"`
