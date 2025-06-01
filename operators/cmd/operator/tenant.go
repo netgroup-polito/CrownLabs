@@ -16,6 +16,7 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
@@ -23,10 +24,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+var tenantNSKeepAlive time.Duration
+
+func init() {
+	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
+		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
+
+	// mydrivePVCsSize := args.NewQuantity("1Gi")
+	// var mydrivePVCsStorageClassName string
+	// var myDrivePVCsNamespace string
+	// flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
+	// flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
+	// flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
+}
+
 func setup_tenant(
 	mgr manager.Manager,
 	targetLabel utils.Label,
-	TenantNSKeepAlive time.Duration,
 ) error {
 	// TODO manage webhook
 	// TODO setup tenant reconciler
@@ -34,7 +48,7 @@ func setup_tenant(
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		TargetLabel:       targetLabel,
-		TenantNSKeepAlive: TenantNSKeepAlive,
+		TenantNSKeepAlive: tenantNSKeepAlive,
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
