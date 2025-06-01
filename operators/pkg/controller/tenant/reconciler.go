@@ -33,7 +33,6 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 
 	"time"
-	// "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
 )
 
 const (
@@ -78,17 +77,32 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		klog.Infof("Tenant %s deleted", req.Name)
+		log.Info("Tenant %s deleted", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
-		log.Info("Tenant is not responsible for this controller, skipping reconcile")
+		log.Info("Tenant is not responsibility of this controller, skipping reconcile")
 		return ctrl.Result{}, nil
 	}
 
-	r.CheckKeycloakStatus(ctx, &tn)
+	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
+	if err != nil {
+		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	if verified {
+		// if the Tenant has already been verified, we can proceed with the reconciliation
+		// and create related resources
+		log.Info("create resources")
+	} else {
+		// if the Tenant has not been verified, we can skip the reconciliation
+		// and wait for the next reconcile loop
+		log.Info("Tenant not verified, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -119,76 +133,4 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// }).
 		// WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
 		Complete(r)
-}
-
-// CheckKeycloakStatus checks if the Tenant has already been created in Keycloak.
-// If it has not been created, it creates it.
-// It returns true if the Tenant has confrmed his/her email, false otherwise.
-func (r *TenantReconciler) CheckKeycloakStatus(
-	ctx context.Context,
-	tenant *crownlabsv1alpha2.Tenant,
-) (bool, error) {
-	actor := utils.GetKeycloakActor()
-	if !actor.IsInitialized() {
-		klog.Warningf("Keycloak actor not initialized, skipping Keycloak status check for tenant %s", tenant.Name)
-		return true, nil
-	}
-
-	// Check if the tenant exists in Keycloak
-	_, err := actor.GetUser(ctx, tenant.Name)
-	if err != nil {
-		if err.Error() == "404" {
-			klog.Infof("Tenant %s not found in Keycloak, creating it", tenant.Name)
-
-			// Create the tenant in Keycloak
-			err = r.createTenantInKeycloak(ctx, tenant)
-			if err != nil {
-				klog.Errorf("Error creating tenant %s in Keycloak: %v", tenant.Name, err)
-				return false, err
-			}
-
-			klog.Infof("Tenant %s created in Keycloak", tenant.Name)
-		} else {
-			klog.Errorf("Error checking Keycloak status for tenant %s: %v", tenant.Name, err)
-			return false, err
-		}
-	}
-
-	// TODO check if the mail is confirmed
-
-	return false, nil
-}
-
-func (r *TenantReconciler) createTenantInKeycloak(
-	ctx context.Context,
-	tenant *crownlabsv1alpha2.Tenant,
-) error {
-	actor := utils.GetKeycloakActor()
-	if !actor.IsInitialized() {
-		klog.Warningf("Keycloak actor not initialized, skipping Keycloak creation for tenant %s", tenant.Name)
-		return nil
-	}
-
-	// Create the tenant in Keycloak
-	userId, err := actor.CreateUser(
-		ctx,
-		tenant.Name,
-		tenant.Spec.Email,
-		tenant.Spec.FirstName,
-		tenant.Spec.LastName,
-	)
-	if err != nil {
-		klog.Errorf("Error creating tenant %s in Keycloak: %v", tenant.Name, err)
-		return err
-	}
-
-	tenant.Status.Keycloak = crownlabsv1alpha2.KeycloakStatus{
-		UserCreated: crownlabsv1alpha2.NameCreated{
-			Name:    userId,
-			Created: true,
-		},
-		UserConfirmed: false,
-	}
-
-	return nil
 }
