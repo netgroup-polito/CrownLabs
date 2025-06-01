@@ -17,6 +17,8 @@ package tenant
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -85,6 +87,30 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		log.Info("Tenant %s deleted", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+
+	// Determine if the personal namespace should be deleted
+
+	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
+
+	// Test if namespace has been open for too long; check if it is ok to delete
+	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName)
+	if err != nil {
+		klog.Errorf("Error checking whether tenant namespace %s should be kept alive: %s", nsName, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+		return ctrl.Result{}, err
+	}
+
+	// update resource quota in the status of the tenant after checking validity of workspaces.
+	//tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
+
+	_, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
+	if err != nil {
+		klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+		return ctrl.Result{}, err
+	}
+
 
 	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
