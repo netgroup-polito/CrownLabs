@@ -24,10 +24,14 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
@@ -60,6 +64,7 @@ type TenantReconciler struct {
 	TenantNSKeepAlive           time.Duration
 	TargetLabelKey              string
 	TargetLabelValue            string
+	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
 	MyDrivePVCsSize             resource.Quantity
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
@@ -119,6 +124,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err != nil {
 		return err
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelPredicate)).
 		Owns(&v1.Secret{}).
@@ -130,6 +136,20 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&netv1.NetworkPolicy{}).
 		Owns(&batchv1.Job{}).
+		WatchesRawSource(
+			&source.Channel{
+				Source: r.TriggerReconcileChannel,
+			},
+			handler.Funcs{
+				GenericFunc: func(_ context.Context, e event.GenericEvent, q workqueue.RateLimitingInterface) {
+					q.Add(ctrl.Request{
+						NamespacedName: client.ObjectKey{
+							Name: e.Object.GetName(),
+						},
+					})
+				},
+			},
+		).
 		// TODO
 		// Watches(&crownlabsv1alpha1.Workspace{},
 		// 	handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).

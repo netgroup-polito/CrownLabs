@@ -22,10 +22,12 @@ import (
 	"k8s.io/klog/v2"
 )
 
-var keycloakURL string
-var keycloakClientID string
-var keycloakClientSecret string
-var keycloakRealm string
+var (
+	keycloakURL          string
+	keycloakClientID     string
+	keycloakClientSecret string
+	keycloakRealm        string
+)
 
 func init() {
 	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL")
@@ -36,10 +38,10 @@ func init() {
 
 func setup_keycloak(
 	log klog.Logger,
-) {
+) error {
 	if keycloakURL != "" && (keycloakClientID == "" || keycloakClientSecret == "" || keycloakRealm == "") {
 		log.Info("Keycloak actor will not be initialized (settings not provided)")
-		return
+		return nil
 	}
 
 	log.Info("Keycloak settings provided, initializing Keycloak actor")
@@ -49,7 +51,5 @@ func setup_keycloak(
 		keycloakClientSecret,
 		keycloakRealm,
 	)
-	if err != nil {
-		klog.Fatal(err, "Unable to initialize Keycloak actor")
-	}
+	return err
 }

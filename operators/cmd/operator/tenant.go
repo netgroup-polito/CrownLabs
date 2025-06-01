@@ -17,16 +17,28 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-var tenantNSKeepAlive time.Duration
+var (
+	tenantWebhookPort int
+	tenantNSKeepAlive time.Duration
+)
+
+const (
+	tenantWebhookPath = "/tenant-webhook"
+)
 
 func init() {
+	flag.IntVar(&tenantWebhookPort, "tenant-webhook-port", 8082, "Port for the tenant webhook server for Keycloak events")
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
 		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
 
@@ -43,15 +55,37 @@ func setup_tenant(
 	targetLabel utils.Label,
 ) error {
 	// TODO manage webhook
-	// TODO setup tenant reconciler
-	if err := (&tenant.TenantReconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		TargetLabel:       targetLabel,
-		TenantNSKeepAlive: tenantNSKeepAlive,
-	}).SetupWithManager(mgr); err != nil {
+
+	tn := &tenant.TenantReconciler{
+		Client:                  mgr.GetClient(),
+		Scheme:                  mgr.GetScheme(),
+		TargetLabel:             targetLabel,
+		TenantNSKeepAlive:       tenantNSKeepAlive,
+		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
+	}
+
+	if err := tn.SetupWithManager(mgr); err != nil {
 		return err
 	}
 
+	go startHTTPServer(tn)
+
 	return nil
+}
+
+func startHTTPServer(tn *tenant.TenantReconciler) {
+	mux := http.NewServeMux()
+
+	// registering the handler for the tenant webhook path
+	mux.HandleFunc(tenantWebhookPath, func(w http.ResponseWriter, r *http.Request) {
+		tn.KeycloakEventHandler(w, r)
+	})
+
+	addr := fmt.Sprintf(":%d", tenantWebhookPort)
+	log.Printf("HTTP server for Keycloak events listening on port %d", tenantWebhookPort)
+
+	err := http.ListenAndServe(addr, mux)
+	if err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 }

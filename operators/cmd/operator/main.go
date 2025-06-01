@@ -96,7 +96,10 @@ func main() {
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak := enableTenant // TODO || enableWorkspace
 	if enableKeycloak {
-		setup_keycloak(log)
+		err := setup_keycloak(log)
+		if err != nil {
+			klog.Fatal(err, "Unable to setup Keycloak actor")
+		}
 	} else {
 		log.Info("Keycloak actor will not be initialized (not needed)")
 	}
