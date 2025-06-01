@@ -36,7 +36,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
 )
@@ -81,12 +81,11 @@ func main() {
 	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak client ID.")
 	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak client secret.")
 
-
-	var tenantNSKeepAlive   time.Duration
+	var tenantNSKeepAlive time.Duration
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
-        "Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
+		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
 
-	   mydrivePVCsSize := args.NewQuantity("1Gi")
+	mydrivePVCsSize := args.NewQuantity("1Gi")
 	var mydrivePVCsStorageClassName string
 	var myDrivePVCsNamespace string
 	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
@@ -147,7 +146,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setup_tenant(mgr, targetLabel, tenantNSKeepAlive )
+		err := setup_tenant(mgr, targetLabel, tenantNSKeepAlive)
 		if err != nil {
 			log.Error(err, "Unable to create tenant controller")
 			os.Exit(1)

@@ -17,6 +17,7 @@ package tenant
 
 import (
 	"context"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -29,12 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 
-
-	  "time"
-   // "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
-	
+	"time"
+	// "github.com/netgroup-polito/CrownLabs/operators/pkg/crownlabs-controller/tenant/namespaces"
 )
 
 const (
@@ -59,7 +58,7 @@ type TenantReconciler struct {
 	Scheme      *runtime.Scheme
 	TargetLabel utils.Label
 	//KeepAliveTime    time.Duration
-	TenantNSKeepAlive    time.Duration
+	TenantNSKeepAlive           time.Duration
 	TargetLabelKey              string
 	TargetLabelValue            string
 	MyDrivePVCsSize             resource.Quantity
@@ -83,15 +82,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-
-
 	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsible for this controller, skipping reconcile")
 		return ctrl.Result{}, nil
 	}
-
-
 
 	r.CheckKeycloakStatus(ctx, &tn)
 
@@ -100,7 +95,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	
+
 	labelPredicate, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		return err
