@@ -18,7 +18,9 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -60,6 +62,7 @@ type InstanceInactiveTerminationReconciler struct {
 }
 
 var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
+var deleteAfterRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
@@ -109,10 +112,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
-	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific user
+	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
 	if stop := utils.CheckSingleLabel(&instance, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
 		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
 	}
 
 	tracer.Step("labels checked")
@@ -129,7 +132,16 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		// update the instance with the new annotation
 		_ = r.Patch(ctx, &instance, patch)
 	}
-
+	// check if the instance reached the maximum time of lifetime and delete it if so
+	isDeleted, err := r.delete_stale_instances(ctx, &instance, false)
+	if err != nil {
+		log.Error(err, "failed delete-stale-instances")
+	}
+	if isDeleted {
+		log.Info("instance is deleted, skipping inactivity check", "instance", instance.Name)
+		return ctrl.Result{}, nil
+	}
+	// check for inactivity and decide whether to terminate the instance or not
 	terminate, err := r.CheckInstanceTermination(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
@@ -410,4 +422,100 @@ func (r *InstanceInactiveTerminationReconciler) getInactivityTimeout(ctx context
 		return r.InstanceInactiveDefaultTimeout, nil
 	}
 	return templateInactivityTimeout, nil
+}
+
+func convertToSeconds(deleteAfter string) (float64, error) {
+	if deleteAfter == "never" {
+		return math.Inf(1), nil
+	}
+
+	matches := deleteAfterRegex.FindStringSubmatch(deleteAfter)
+	if matches == nil {
+		return 0, fmt.Errorf("invalid deleteAfter format: %s", deleteAfter)
+	}
+
+	value, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0, err
+	}
+
+	unit := matches[2]
+	switch unit {
+	case "m":
+		return float64(value * 60), nil
+	case "h":
+		return float64(value * 3600), nil
+	case "d":
+		return float64(value * 86400), nil
+	default:
+		return 0, fmt.Errorf("unsupported time unit: %s", unit)
+	}
+}
+
+func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
+	created, err := time.Parse(time.RFC3339, creationTimestamp)
+	if err != nil {
+		return false, err
+	}
+	duration := time.Since(created).Seconds()
+	return duration > lifespan, nil
+}
+
+func (r *InstanceInactiveTerminationReconciler) delete_stale_instances(ctx context.Context, instance *clv1alpha2.Instance, dryrun bool) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
+
+	// get the template from the instance
+	template := &clv1alpha2.Template{}
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Spec.Template.Namespace,
+	}, template)
+
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, fmt.Errorf("template not found", instance.Spec.Template.Name, instance.Spec.Template.Namespace)
+		}
+		return false, fmt.Errorf("failed to retrieve template for instance %s: %w", instance.Name, err)
+	}
+
+	//get the deleteAfter field from the template
+	deleteAfter := template.Spec.DeleteAfter
+	if deleteAfter == "never" {
+		return false, fmt.Errorf("template has deleteAfter set to 'never', skipping deletion", template.Name)
+	}
+
+	lifespan, err := convertToSeconds(deleteAfter)
+	if err != nil {
+		return false, err
+	}
+
+	creationTimestamp := instance.GetCreationTimestamp().Time.Format(time.RFC3339)
+	expired, err := isInstanceExpired(creationTimestamp, lifespan)
+	if err != nil {
+		return false, fmt.Errorf("failed to compute expiration: %w", err)
+	}
+
+	if expired {
+		var deleteOpts []client.DeleteOption
+		if dryrun {
+			deleteOpts = append(deleteOpts, &client.DeleteOptions{
+				DryRun: []string{metav1.DryRunAll},
+			})
+		}
+		err := r.Client.Delete(ctx, instance, deleteOpts...)
+		if err != nil {
+			if kerrors.IsNotFound(err) {
+				log.Info("Instance already deleted", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+				return false, nil
+			}
+			return false, fmt.Errorf("failed to delete instance", instance.GetName(), instance.GetNamespace(), err)
+		}
+		log.Info("Instance is expired and has been deleted", instance.GetName(), instance.GetNamespace())
+		return true, nil
+
+	} else {
+		log.Info("Instance is not expired, skipping deletion", instance.GetName(), instance.GetNamespace())
+	}
+
+	return false, nil
 }
