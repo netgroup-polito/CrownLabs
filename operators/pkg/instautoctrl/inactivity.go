@@ -133,7 +133,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		_ = r.Patch(ctx, &instance, patch)
 	}
 	// check if the instance reached the maximum time of lifetime and delete it if so
-	isDeleted, err := r.delete_stale_instances(ctx, &instance, false)
+	isDeleted, err := r.deleteStaleInstances(ctx, &instance, false)
 	if err != nil {
 		log.Error(err, "failed delete-stale-instances")
 	}
@@ -461,7 +461,7 @@ func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error)
 	return duration > lifespan, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) delete_stale_instances(ctx context.Context, instance *clv1alpha2.Instance, dryrun bool) (bool, error) {
+func (r *InstanceInactiveTerminationReconciler) deleteStaleInstances(ctx context.Context, instance *clv1alpha2.Instance, dryrun bool) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
 
 	// get the template from the instance
@@ -473,15 +473,15 @@ func (r *InstanceInactiveTerminationReconciler) delete_stale_instances(ctx conte
 
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return false, fmt.Errorf("template not found", instance.Spec.Template.Name, instance.Spec.Template.Namespace)
+			return false, fmt.Errorf("template not found: name=%s, namespace=%s", instance.Spec.Template.Name, instance.Spec.Template.Namespace)
 		}
 		return false, fmt.Errorf("failed to retrieve template for instance %s: %w", instance.Name, err)
 	}
 
-	//get the deleteAfter field from the template
+	// get the deleteAfter field from the template
 	deleteAfter := template.Spec.DeleteAfter
 	if deleteAfter == "never" {
-		return false, fmt.Errorf("template has deleteAfter set to 'never', skipping deletion", template.Name)
+		return false, fmt.Errorf("template %s has deleteAfter set to 'never', skipping deletion", template.Name)
 	}
 
 	lifespan, err := convertToSeconds(deleteAfter)
@@ -508,14 +508,11 @@ func (r *InstanceInactiveTerminationReconciler) delete_stale_instances(ctx conte
 				log.Info("Instance already deleted", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 				return false, nil
 			}
-			return false, fmt.Errorf("failed to delete instance", instance.GetName(), instance.GetNamespace(), err)
+			return false, fmt.Errorf("failed to delete instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
 		}
 		log.Info("Instance is expired and has been deleted", instance.GetName(), instance.GetNamespace())
 		return true, nil
-
-	} else {
-		log.Info("Instance is not expired, skipping deletion", instance.GetName(), instance.GetNamespace())
 	}
-
+	log.Info("Instance is not expired, skipping deletion", instance.GetName(), instance.GetNamespace())
 	return false, nil
 }
