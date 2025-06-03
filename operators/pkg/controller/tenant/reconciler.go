@@ -146,13 +146,9 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
-	labelPredicate, err := r.TargetLabel.GetPredicate()
-	if err != nil {
-		return err
-	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelPredicate)).
+		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue))).
 		Owns(&v1.Secret{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&v1.Namespace{}).

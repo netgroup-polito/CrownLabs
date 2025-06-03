@@ -59,7 +59,8 @@ func setup_tenant(
 	tn := &tenant.TenantReconciler{
 		Client:                  mgr.GetClient(),
 		Scheme:                  mgr.GetScheme(),
-		TargetLabel:             targetLabel,
+		TargetLabelKey:             targetLabel.GetKey(),
+		TargetLabelValue:        targetLabel.GetValue(),
 		TenantNSKeepAlive:       tenantNSKeepAlive,
 		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
 	}
