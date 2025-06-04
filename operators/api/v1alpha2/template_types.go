@@ -72,7 +72,7 @@ type TemplateSpec struct {
 	// automatically terminated.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
+	// +kubebuilder:validation:Pattern="^([0-9]+[mhd])$"
 	// +kubebuilder:default="60d"
 	// The maximum period of inactivity after which an Instance referencing
 	// the current Template will be automatically stopped or deleted to
