@@ -181,18 +181,12 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	dbgLog.Info("requeueing instance")
-	// TODO: where to put delay time? general for all crownlab machines?
 	return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
 func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
-
-	// to make a local test, uncomment the following lines
-	// if time.Since(instance.CreationTimestamp.Time) > 2*time.Minute {
-	// 	return true, nil
-	// }
 
 	promURL := r.getPrometheusURL()
 
@@ -302,8 +296,6 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 }
 
 func (r *InstanceInactiveTerminationReconciler) getPrometheusURL() string {
-	// TODO: from inside the cluster use "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
-	// TODO: why port 80 from inside? Are we reaching this from inside or outside? We need internal unauthenticated access
 	return "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
 }
 
@@ -322,7 +314,6 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 		return err
 	}
 
-	// TODO check all the environments?
 	var environment = template.Spec.EnvironmentList[0]
 	if environment.Persistent {
 		log.Info("Stopping persistent instance...")
