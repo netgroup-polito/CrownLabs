@@ -37,11 +37,10 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
   const [selectedPersistent, setSelectedPersistent] = useState<boolean>(false);
 
-  const selectToDestroy = (instanceId: string) => {
+  const selectToDestroy = (instanceId: string) =>
     selectiveDestroy.includes(instanceId)
       ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
       : setSelectiveDestroy(old => [...old, instanceId]);
-  };
 
   const deselectAll = () => setSelectiveDestroy([]);
 

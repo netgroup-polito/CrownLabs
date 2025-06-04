@@ -27,7 +27,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
   };
 
   // Used to disable Save button
-  const handleChange = async (_: any, _user: UserAccountPage) => {
+  const handleChange = async (_: unknown, _user: UserAccountPage) => {
     try {
       await form.validateFields(['userid']);
       await form.validateFields(['email']);
@@ -35,12 +35,13 @@ const UserListForm: FC<IUserListFormProps> = props => {
       await form.validateFields(['surname']);
       setValidForm(true);
     } catch (e) {
+      console.error('Form validation failed:', e);
       setValidForm(false);
     }
   };
 
-  const submitForm = (user: any) => {
-    const { searchInput, ...newUser } = user;
+  const submitForm = (user: UserAccountPage) => {
+    const { ...newUser } = user;
     onAddUser(newUser, role);
     setSearched(false);
     form.resetFields();

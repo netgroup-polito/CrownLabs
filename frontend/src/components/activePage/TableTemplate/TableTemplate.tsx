@@ -63,11 +63,10 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     setCollapseAll(false);
   };
 
-  const expandRow = (rowId: string) => {
+  const expandRow = (rowId: string) =>
     expandedId.includes(rowId)
       ? setExpandedId(old => old.filter(id => id !== rowId))
       : setExpandedId(old => [...old, rowId]);
-  };
 
   const destroyAll = (templateId: string) => {
     templates
@@ -86,7 +85,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     {
       title: 'Template',
       key: 'template',
-      // eslint-disable-next-line react/no-multi-comp
       render: (template: Template) => (
         <TableTemplateRow
           key={template.id}
@@ -123,7 +121,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         expandable={{
           onExpand: (_expanded, ws) => expandRow(ws.id),
           expandedRowKeys: expandedId,
-          // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) => (
             <CaretRightOutlined
               className="transition-icon"
@@ -131,7 +128,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               rotate={expanded ? 90 : 0}
             />
           ),
-          // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: ({ instances }) => (
             <TableInstance
               showGuiIcon={false}

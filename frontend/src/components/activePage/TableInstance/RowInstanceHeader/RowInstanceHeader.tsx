@@ -1,4 +1,4 @@
-import { type FC, useState } from 'react';
+import { type FC, useCallback, useMemo, useState } from 'react';
 import { Checkbox, Typography } from 'antd';
 import { WorkspaceRole } from '../../../../utils';
 import {
@@ -48,36 +48,54 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
     | 'timeStamp'
     | 'prettyName';
 
-  // get a value for sorting direction
-  const getSorting = (value: number) => (value <= 0 ? 1 : -1);
+  const varByKey = useMemo(
+    () => ({
+      tenantId: tenantIdOrder,
+      tenantDisplayName: tenantDisplayNameOrder,
+      templatePrettyName: templatePrettyNameOrder,
+      timeStamp: timeStampOrder,
+      prettyName: prettyNameOrder,
+    }),
+    [
+      tenantIdOrder,
+      tenantDisplayNameOrder,
+      templatePrettyNameOrder,
+      timeStampOrder,
+      prettyNameOrder,
+    ],
+  );
 
-  const varByKey = {
-    tenantId: tenantIdOrder,
-    tenantDisplayName: tenantDisplayNameOrder,
-    templatePrettyName: templatePrettyNameOrder,
-    timeStamp: timeStampOrder,
-    prettyName: prettyNameOrder,
-  };
+  const setSort = useCallback(
+    (key: sortKey) => {
+      // get a value for sorting direction
+      const getSorting = (value: number) => (value <= 0 ? 1 : -1);
 
-  const selectOrder = (key: sortKey) => {
-    setSort(key);
-    viewMode === WorkspaceRole.manager
-      ? handleManagerSorting(key, varByKey[key], tkey)
-      : handleSorting(key, varByKey[key]);
-  };
+      setTemplatePrettyNameOrder(
+        key === 'templatePrettyName' ? getSorting(varByKey[key]) : 0,
+      );
+      setTimeStampOrder(key === 'timeStamp' ? getSorting(varByKey[key]) : 0);
 
-  const setSort = (key: sortKey) => {
-    setTemplatePrettyNameOrder(
-      key === 'templatePrettyName' ? getSorting(varByKey[key]) : 0,
-    );
-    setTimeStampOrder(key === 'timeStamp' ? getSorting(varByKey[key]) : 0);
+      setTenantIdOrder(key === 'tenantId' ? getSorting(varByKey[key]) : 0);
+      setPrettyNameOrder(key === 'prettyName' ? getSorting(varByKey[key]) : 0);
+      setTenantDisplayNameOrder(
+        key === 'tenantDisplayName' ? getSorting(varByKey[key]) : 0,
+      );
+    },
+    [varByKey],
+  );
 
-    setTenantIdOrder(key === 'tenantId' ? getSorting(varByKey[key]) : 0);
-    setPrettyNameOrder(key === 'prettyName' ? getSorting(varByKey[key]) : 0);
-    setTenantDisplayNameOrder(
-      key === 'tenantDisplayName' ? getSorting(varByKey[key]) : 0,
-    );
-  };
+  const selectOrder = useCallback(
+    (key: sortKey) => {
+      // Move setSort inside useCallback to avoid dependency issues
+      setSort(key);
+      if (viewMode === WorkspaceRole.manager) {
+        handleManagerSorting(key, varByKey[key], tkey);
+      } else {
+        handleSorting(key, varByKey[key]);
+      }
+    },
+    [handleManagerSorting, handleSorting, tkey, viewMode, varByKey, setSort],
+  );
 
   const getArrow = (value: number, alpha: boolean) => {
     if (value > 0) {

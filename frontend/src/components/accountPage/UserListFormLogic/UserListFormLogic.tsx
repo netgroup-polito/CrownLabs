@@ -3,7 +3,7 @@ import type { FC } from 'react';
 import { useEffect, useState, useContext } from 'react';
 import { useTenantsQuery } from '../../../generated-types';
 import UserListForm from '../UserListForm/UserListForm';
-import type { UserAccountPage } from '../../../utils';
+import type { UserAccountPage, WorkspaceEntry } from '../../../utils';
 import type { Role } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import type { SupportedError } from '../../../errorHandling/utils';
@@ -12,7 +12,7 @@ import { ErrorTypes } from '../../../errorHandling/utils';
 export interface IUserListFormLogicProps {
   onAddUser: (
     newUser: UserAccountPage,
-    workspaces: unknown[],
+    workspaces: WorkspaceEntry[],
   ) => Promise<boolean>;
   onCancel: () => void;
   workspaceNamespace: string;

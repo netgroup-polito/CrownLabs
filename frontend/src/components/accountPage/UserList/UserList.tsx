@@ -12,15 +12,25 @@ import Column from 'antd/lib/table/Column';
 import { Role } from '../../../generated-types';
 import { Tooltip } from 'antd';
 import UserListFormLogic from '../UserListFormLogic/UserListFormLogic';
-import { type UserAccountPage, filterUser } from '../../../utils';
+import {
+  type UserAccountPage,
+  type WorkspaceEntry,
+  filterUser,
+} from '../../../utils';
 import UploadProgressModal from '../UploadProgressModal/UploadProgressModal';
-import { type SupportedError } from '../../../errorHandling/utils';
+import {
+  type EnrichedError,
+  type SupportedError,
+} from '../../../errorHandling/utils';
 
 export interface IUserListProps {
-  onAddUser: (users: UserAccountPage[], workspaces: any[]) => Promise<boolean>;
+  onAddUser: (
+    users: UserAccountPage[],
+    workspaces: WorkspaceEntry[],
+  ) => Promise<boolean>;
   onUpdateUser: (user: UserAccountPage, role: Role) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
-  setUploadingErrors: (errors: any[]) => void;
+  setUploadingErrors: (errors: EnrichedError[]) => void;
   genericErrorCatcher: (err: SupportedError) => void;
   refreshUserList: () => void;
   abortUploading: boolean;
@@ -30,7 +40,7 @@ export interface IUserListProps {
   workspaceName: string;
   uploadedNumber: number;
   uploadedUserNumber: number;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
 }
 
 const UserList: FC<IUserListProps> = props => {
@@ -63,8 +73,10 @@ const UserList: FC<IUserListProps> = props => {
     props.onUpdateUser(record, newRole);
   };
 
-  const handleAddUser = async (newUser: UserAccountPage, workspaces: any) =>
-    await props.onAddUser([newUser], workspaces);
+  const handleAddUser = async (
+    newUser: UserAccountPage,
+    workspaces: WorkspaceEntry[],
+  ) => await props.onAddUser([newUser], workspaces);
 
   return (
     <>
@@ -141,7 +153,7 @@ const UserList: FC<IUserListProps> = props => {
             title="Action"
             key="x"
             width={60}
-            render={(_: any, record: UserAccountPage) =>
+            render={(_: unknown, record: UserAccountPage) =>
               props.users.length >= 1 ? (
                 <div className="flex justify-center">
                   {record.currentRole === Role.Candidate ? (

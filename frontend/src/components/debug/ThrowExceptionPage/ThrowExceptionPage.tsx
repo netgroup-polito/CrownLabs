@@ -4,7 +4,7 @@ import { useContext } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 
-const ThrowExceptionPage: FC = ({}) => {
+const ThrowExceptionPage: FC = () => {
   const { makeErrorCatcher } = useContext(ErrorContext);
   const renderErrorCatcher = makeErrorCatcher(ErrorTypes.RenderError);
   const triggerError = (n: number) => {

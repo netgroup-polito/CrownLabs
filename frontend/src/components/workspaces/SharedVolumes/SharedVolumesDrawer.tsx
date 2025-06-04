@@ -20,6 +20,7 @@ import SharedVolumeForm, {
 } from './SharedVolumeForms/SharedVolumeForm';
 import { ModalAlert } from '../../common/ModalAlert';
 import Text from 'antd/lib/typography/Text';
+import { getShVolPatchJson } from '../../../graphql-components/utils';
 
 export interface ISharedVolumesDrawerProps {
   workspaceNamespace: string;
@@ -115,8 +116,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
       title: 'Action',
       dataIndex: 'id',
       key: 'action',
-      // eslint-disable-next-line react/no-multi-comp
-      render: (_: any, shvol: SharedVolume) => (
+      render: (_: unknown, shvol: SharedVolume) => (
         <span style={{ display: 'flex', gap: '8px' }}>
           <EditOutlined
             style={{ cursor: 'pointer' }}
@@ -201,8 +201,17 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   open={isCreateOpen}
                   setOpen={setCreateOpen}
                   workspaceNamespace={workspaceNamespace}
+                  workspaceName={''}
                   action={Actions.Create}
-                  mutation={createShVolMutation}
+                  mutation={p =>
+                    createShVolMutation({
+                      variables: {
+                        prettyName: p.prettyName,
+                        size: p.size,
+                        workspaceNamespace: p.wsNs,
+                      },
+                    })
+                  }
                   loading={loadingCreateShVolMutation}
                   reload={reloadSharedVolumes}
                   initialSize={0.5}
@@ -222,7 +231,19 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   action={Actions.Update}
                   initialName={editName}
                   initialSize={editSize}
-                  mutation={applyShVolMutation}
+                  mutation={p =>
+                    applyShVolMutation({
+                      variables: {
+                        workspaceNamespace: p.wsNs,
+                        name: p.wsName,
+                        patchJson: getShVolPatchJson({
+                          prettyName: p.prettyName,
+                          size: p.size,
+                        }),
+                        manager: 'frontend-shvol-editor',
+                      },
+                    })
+                  }
                   loading={loadingApplyShVolMutation}
                   reload={reloadSharedVolumes}
                 />

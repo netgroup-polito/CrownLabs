@@ -27,7 +27,7 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
     form.resetFields();
     onCancel();
   };
-  const validateSSHKey = async (_rules: any, key: string) => {
+  const validateSSHKey = async (_rules: unknown, key: string) => {
     if (!key) throw new Error('Key field is mandatory');
     const result = key.split(/\s+/); // split regardless the amount of spaces
     if (result.length !== 2 && result.length !== 3)
@@ -39,7 +39,7 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
 
   // Used to disable Save button
   const handleChange = async (
-    _: any,
+    _: unknown,
     { name, key }: { name: string; key: string },
   ) => {
     try {
@@ -102,7 +102,6 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
             .join(', ')}`}
         />
       </Form.Item>
-      ​
       <Form.Item>
         <Row justify="end">
           <Button type="default" htmlType="button" onClick={cancelForm}>

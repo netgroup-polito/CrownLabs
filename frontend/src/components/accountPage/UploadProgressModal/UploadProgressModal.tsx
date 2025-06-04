@@ -5,29 +5,33 @@ import {
   CaretLeftOutlined,
 } from '@ant-design/icons';
 import { type FC, useEffect, useState } from 'react';
-import { type UserAccountPage } from '../../../utils';
+import { type UserAccountPage, type WorkspaceEntry } from '../../../utils';
 
 import UploadProgressContent from './UploadProgressContent';
 import { Role } from '../../../generated-types';
 import UploadProgressErrorsModal from './UploadProgressErrorsModal';
-import { type SupportedError } from '../../../errorHandling/utils';
+import {
+  type EnrichedError,
+  type SupportedError,
+} from '../../../errorHandling/utils';
 export interface IUploadProgressModalInterface {
   onClose: () => void;
   confirmUpload: (
     users: UserAccountPage[],
-    workspaces: any[],
+    workspaces: WorkspaceEntry[],
   ) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
-  setUploadingErrors: (errors: any) => void;
+  setUploadingErrors: (errors: EnrichedError[]) => void;
   genericErrorCatcher: (err: SupportedError) => void;
   show: boolean;
   workspaceName: string;
   uploadedNumber: number;
   abortUploading: boolean;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
   uploadedUserNumber: number;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum StepStatus {
   finish = 'finish',
   error = 'error',
@@ -78,11 +82,10 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
     uploadingStatusResult,
   ]);
   useEffect(() => {
-    const doAlert = (ev: any) => {
+    const doAlert = (ev: Event) => {
       ev.preventDefault();
       setAbortUploading(true);
-      return (ev.returnValue =
-        "WARNING. If you close this window the import process will be interrupted, resulting in an incomplete import. If you proceed, you'll need to run the procedure from the beginning!");
+      return "WARNING. If you close this window the import process will be interrupted, resulting in an incomplete import. If you proceed, you'll need to run the procedure from the beginning!";
     };
     window.addEventListener('beforeunload', doAlert);
     return () => window.removeEventListener('beforeunload', doAlert);

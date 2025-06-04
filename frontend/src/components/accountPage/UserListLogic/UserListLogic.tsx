@@ -10,10 +10,15 @@ import {
   makeRandomDigits,
   type UserAccountPage,
   type Workspace,
+  type WorkspaceEntry,
 } from '../../../utils';
 import { Role } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { ErrorTypes, type SupportedError } from '../../../errorHandling/utils';
+import {
+  ErrorTypes,
+  type EnrichedError,
+  type SupportedError,
+} from '../../../errorHandling/utils';
 import { AuthContext } from '../../../contexts/AuthContext';
 
 export interface IUserListLogicProps {
@@ -26,7 +31,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   const { userId } = useContext(AuthContext);
   const { workspace } = props;
   const [loadingSpinner, setLoadingSpinner] = useState(false);
-  const [errors, setErrors] = useState<any[]>([]);
+  const [errors, setErrors] = useState<EnrichedError[]>([]);
   // Used to handle stop while uploading users from CSV
   const [abortUploading, setAbortUploading] = useState<boolean>(false);
   const abortUploadingRef = useRef(false);
@@ -67,8 +72,8 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
           )?.role,
           workspaces:
             user?.spec?.workspaces?.map(workspace => ({
-              role: workspace?.role! as Role,
-              name: workspace?.name! as string,
+              role: workspace?.role as Role,
+              name: workspace?.name as string,
             })) || [],
         })) || [],
       );
@@ -120,7 +125,10 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     return true;
   };
 
-  const addUser = async (usersToAdd: UserAccountPage[], workspaces: any) => {
+  const addUser = async (
+    usersToAdd: UserAccountPage[],
+    workspaces: WorkspaceEntry[],
+  ) => {
     try {
       setLoadingSpinner(true);
       setUploadedNumber(0);
@@ -147,7 +155,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
             },
             onError: apolloErrorCatcher,
           });
-          user.workspaces?.push(workspaces);
+          user.workspaces?.push(...workspaces);
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {

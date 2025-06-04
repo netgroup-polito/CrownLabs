@@ -140,6 +140,8 @@ export function makeListToggler<T>(
 export const JSONDeepCopy = <T>(obj: T) =>
   obj && (JSON.parse(JSON.stringify(obj)) as T);
 
+export type WorkspaceEntry = { role: Role; name: string };
+
 export type UserAccountPage = {
   key: string;
   userid: string;
@@ -147,7 +149,7 @@ export type UserAccountPage = {
   surname: string;
   email: string;
   currentRole?: string;
-  workspaces?: { role: Role; name: string }[];
+  workspaces?: WorkspaceEntry[];
 };
 
 export function makeRandomDigits(value: number) {

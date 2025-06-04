@@ -96,13 +96,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const dropdownHandler = (key: DropDownAction) => {
     switch (key) {
       case DropDownAction.start:
-        persistent && mutateInstanceStatus(true);
+        if (persistent) mutateInstanceStatus(true);
         break;
       case DropDownAction.stop:
-        persistent && mutateInstanceStatus(false);
+        if (persistent) mutateInstanceStatus(false);
         break;
       case DropDownAction.connect:
-        gui ? window.open(url!, '_blank') : setSshModal(true);
+        if (gui) window.open(url!, '_blank');
+        else setSshModal(true);
         break;
       case DropDownAction.destroy:
         deleteInstanceMutation({

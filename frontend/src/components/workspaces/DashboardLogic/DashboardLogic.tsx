@@ -113,10 +113,12 @@ const DashboardLogic: FC = () => {
     dashboard.set(String(!loadCandidates));
   };
 
-  return !tenantLoading && tenantData && !tenantError ? (
+  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  return !tenantLoading && tenantData && !tenantError && tenantNs ? (
     <>
       <Dashboard
-        tenantNamespace={tenantData.tenant?.status?.personalNamespace?.name!}
+        tenantNamespace={tenantNs}
         workspaces={viewWs}
         candidatesButton={{
           show: ws.some(w => wsIsManagedWithApproval(w)),

@@ -7,7 +7,11 @@ import EditableTable from './EditableTable';
 import { StepStatus } from './UploadProgressModal';
 import Papa from 'papaparse';
 import { Role } from '../../../generated-types';
-import type { SupportedError } from '../../../errorHandling/utils';
+import type {
+  EnrichedError,
+  SupportedError,
+} from '../../../errorHandling/utils';
+import type { UploadChangeParam } from 'antd/lib/upload';
 const { Text } = Typography;
 const { Step } = Steps;
 export interface IUploadProgressContent {
@@ -20,7 +24,7 @@ export interface IUploadProgressContent {
   setUsersCSV: (users: UserAccountPage[]) => void;
   uploadedNumber: number;
   abortUploading: boolean;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
   uploadedUserNumber: number;
   genericErrorCatcher: (err: SupportedError) => void;
 }
@@ -74,13 +78,13 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
     props.abortUploading,
   ]);
 
-  const handleUserCSV = (user: any) => {
+  const handleUserCSV = (user: Record<string, string>) => {
     return {
       key: user[CSVFields.userid].trim(),
       name: capitalizeName(user[CSVFields.name]) ?? '',
       surname:
         capitalizeName(
-          user[CSVFields.surname_inserted].replace(/\(\*+\)/, ''),
+          user[CSVFields.surname_inserted]?.replace(/\(\*+\)/, '') ?? '',
         ) ??
         capitalizeName(user[CSVFields.surname]) ??
         '',
@@ -90,13 +94,13 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
       workspaces: [],
     };
   };
-  const onCsvUploaded = (fileInfo: any) => {
+  const onCsvUploaded = (fileInfo: UploadChangeParam) => {
     if (fileInfo.file.status === 'removed') {
       setUsersCSV([]);
       return;
     }
 
-    Papa.parse<any>(fileInfo.file, {
+    Papa.parse<Record<string, string>>(fileInfo.file.originFileObj as File, {
       header: true,
       skipEmptyLines: true,
       complete: (result, _) => {
@@ -113,9 +117,7 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
             return;
           }
         }
-        const users = result.data.map((user: any, _index: number) =>
-          handleUserCSV(user),
-        );
+        const users = result.data.map((user, _index) => handleUserCSV(user));
         setUsersCSV(users);
         props.setStepCurrent(1);
         setFileError('');

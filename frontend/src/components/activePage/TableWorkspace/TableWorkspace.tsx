@@ -63,11 +63,10 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     setExpandedId([]);
   };
 
-  const expandRow = (rowId: string) => {
+  const expandRow = (rowId: string) =>
     expandedId.includes(rowId)
       ? setExpandedId(old => old.filter(id => id !== rowId))
       : setExpandedId(old => [...old, rowId]);
-  };
 
   const getActives = (templates?: Template[]) => {
     return (
@@ -93,7 +92,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     {
       title: 'Template',
       key: 'template',
-      // eslint-disable-next-line react/no-multi-comp
       render: ({ prettyName, templates, name }: Workspace) => (
         <TableWorkspaceRow
           title={prettyName}

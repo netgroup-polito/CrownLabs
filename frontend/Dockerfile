@@ -8,9 +8,7 @@ USER node
 WORKDIR /tmp/frontend
 
 COPY --chown=node:node ./package*.json .
-
 RUN npm ci
-
 COPY --chown=node:node . .
 
 ARG BUILD_TARGET

@@ -14,6 +14,10 @@ export type ApolloErrorCatcher = {
 
 export type SupportedError = ApolloError | ErrorContext | Error;
 
+export type EnrichedError = SupportedError & {
+  entity?: string;
+};
+
 export class CustomError {
   private type: ErrorTypes;
   private error: ApolloError | ErrorContext | Error;

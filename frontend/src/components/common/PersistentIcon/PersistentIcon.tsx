@@ -3,9 +3,7 @@ import { Tooltip } from 'antd';
 
 import SvgInfinite from '../../../assets/infinite.svg?react';
 
-export interface IPersistentIconProps {}
-
-const PersistentIcon: FC<IPersistentIconProps> = ({}) => {
+const PersistentIcon: FC = () => {
   return (
     <Tooltip
       title={

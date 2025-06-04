@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.BASE_URL || '/',
+  base: process.env.PUBLIC_URL || '/',
   server: {
     port: 3000,
   },

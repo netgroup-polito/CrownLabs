@@ -45,7 +45,7 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
         title="Action"
         key="x"
         width={60}
-        render={(_: any, record: { name: string; key: string }) =>
+        render={(_: unknown, record: { name: string; key: string }) =>
           sshKeys?.length && (
             <>
               <ModalAlert

@@ -6,7 +6,7 @@ import { WorkspaceRole } from '../../../utils';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 
-const ActiveViewLogic: FC = ({}) => {
+const ActiveViewLogic: FC = () => {
   const {
     data: tenantData,
     loading: tenantLoading,
@@ -20,12 +20,16 @@ const ActiveViewLogic: FC = ({}) => {
     ws => ws.role === WorkspaceRole.manager,
   );
 
-  return !tenantLoading && tenantData && !tenantError ? (
+  const tenantId = tenantData?.tenant?.metadata?.name;
+  const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  return !tenantLoading &&
+    tenantData &&
+    !tenantError &&
+    tenantId &&
+    tenantNamespace ? (
     <ActiveView
-      user={{
-        tenantId: tenantData.tenant?.metadata?.name!,
-        tenantNamespace: tenantData!.tenant?.status?.personalNamespace?.name!,
-      }}
+      user={{ tenantId, tenantNamespace }}
       managerView={managerWorkspaces.length > 0}
       workspaces={managerWorkspaces}
     />
