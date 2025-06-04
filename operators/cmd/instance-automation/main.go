@@ -39,7 +39,6 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -60,7 +59,6 @@ func init() {
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	svcUrls := instctrl.ServiceUrls{}
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -70,16 +68,18 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
-	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
+	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
+
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
+
+	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
+	maxConcurrentInactiveTerminationReconciles := flag.Int("max-concurrent-reconciles-inactive-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Inactive Termination controller")
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationStatusCheckInterval := flag.Duration("instance-inactive-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
-	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
@@ -167,7 +167,8 @@ func main() {
 		InstanceInactivityCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
 		InstanceMaxNumberOfAlerts:       *instanceInactiveTerminationMaxNumberOfAlerts,
 		MailClient:                      mailClient,
-	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
+		PrometheusURL:                   *prometheusURL,
+	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 		os.Exit(1)
 	}

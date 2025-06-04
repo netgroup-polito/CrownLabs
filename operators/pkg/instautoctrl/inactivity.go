@@ -54,6 +54,7 @@ type InstanceInactiveTerminationReconciler struct {
 	InstanceInactivityCheckInterval time.Duration
 	InstanceMaxNumberOfAlerts       int
 	MailClient                      *MailClient
+	PrometheusURL                   string
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -203,7 +204,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 }
 
 // getLastActivityTime retrieves the last time an instance was accessed.
-func getLastActivityTime(client v1.API, tenantNS, instanceName string, interval time.Duration) (time.Time, error) {
+func getLastActivityTime(promClient v1.API, tenantNS, instanceName string, interval time.Duration) (time.Time, error) {
 	query := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, tenantNS, instanceName)
 
 	end := time.Now()
@@ -215,7 +216,7 @@ func getLastActivityTime(client v1.API, tenantNS, instanceName string, interval 
 		Step:  time.Minute,
 	}
 
-	result, warnings, err := client.QueryRange(context.Background(), query, r)
+	result, warnings, err := promClient.QueryRange(context.Background(), query, r)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("query failed: %w", err)
 	}
@@ -256,7 +257,7 @@ func getLastActivityTime(client v1.API, tenantNS, instanceName string, interval 
 func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 
-	promURL := r.getPrometheusURL()
+	promURL := r.PrometheusURL
 
 	config := api.Config{
 		Address: promURL,
@@ -323,7 +324,7 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 	log := ctrl.LoggerFrom(ctx).WithName("prometheus-health")
 
 	// Verify connection to Prometheus health endpoint
-	promURL := r.getPrometheusURL()
+	promURL := r.PrometheusURL
 	healthEndpoint := fmt.Sprintf("%s/-/healthy", promURL)
 
 	statusCode, _, err := utils.HTTPGet(ctx, healthEndpoint, 5*time.Second)
@@ -360,10 +361,6 @@ func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.
 
 	// At least one node has ingress metrics available
 	return true, nil
-}
-
-func (r *InstanceInactiveTerminationReconciler) getPrometheusURL() string {
-	return "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local"
 }
 
 // TerminateInstance terminates the Instance.
