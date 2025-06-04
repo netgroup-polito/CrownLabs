@@ -31,14 +31,9 @@ dependencies:
   condition: qlkube.enabled
 
 - name: instance-operator
-  version: "0.1.1"
+  version: "0.1.2"
   repository: file://../../operators/deploy/instance-operator
   condition: instance-operator.enabled
-
-- name: instance-automation
-  version: "0.0.1"
-  repository: file://../../operators/deploy/instance-automation
-  condition: instance-automation.enabled
 
 - name: tenant-operator
   version: "0.1.0"
