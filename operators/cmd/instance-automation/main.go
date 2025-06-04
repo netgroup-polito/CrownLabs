@@ -78,7 +78,6 @@ func main() {
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationStatusCheckInterval := flag.Duration("instance-inactive-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
-	InstanceInactiveTerminationDefaultTimeout := flag.String("instance-inactive-termination-default-timeout", "8w", "The default timeout for terminating an inactive Instance")
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
@@ -167,7 +166,6 @@ func main() {
 		StatusCheckRequestTimeout:       *instanceInactiveTerminationStatusCheckTimeout,
 		InstanceInactivityCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
 		InstanceMaxNumberOfAlerts:       *instanceInactiveTerminationMaxNumberOfAlerts,
-		InstanceInactiveDefaultTimeout:  *InstanceInactiveTerminationDefaultTimeout,
 		MailClient:                      mailClient,
 	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)

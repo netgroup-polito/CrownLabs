@@ -53,7 +53,6 @@ type InstanceInactiveTerminationReconciler struct {
 	StatusCheckRequestTimeout       time.Duration // could be deleted if not used (eg. for timeout in Thanos)
 	InstanceInactivityCheckInterval time.Duration
 	InstanceMaxNumberOfAlerts       int
-	InstanceInactiveDefaultTimeout  string
 	MailClient                      *MailClient
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -133,7 +132,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		_ = r.Patch(ctx, &instance, patch)
 	}
 	// check if the instance reached the maximum time of lifetime and delete it if so
-	isDeleted, err := r.deleteStaleInstances(ctx, &instance, false)
+	isDeleted, err := r.deleteStaleInstances(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed delete-stale-instances")
 	}
@@ -405,13 +404,10 @@ func (r *InstanceInactiveTerminationReconciler) getInactivityTimeout(ctx context
 		Namespace: instance.Spec.Template.Namespace,
 	}, &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
-		return r.InstanceInactiveDefaultTimeout, nil
+		return "", err
 	}
 
 	templateInactivityTimeout := template.Spec.InactivityTimeout
-	if templateInactivityTimeout == "" {
-		return r.InstanceInactiveDefaultTimeout, nil
-	}
 	return templateInactivityTimeout, nil
 }
 
@@ -452,7 +448,7 @@ func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error)
 	return duration > lifespan, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) deleteStaleInstances(ctx context.Context, instance *clv1alpha2.Instance, dryrun bool) (bool, error) {
+func (r *InstanceInactiveTerminationReconciler) deleteStaleInstances(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
 
 	// get the template from the instance
@@ -487,13 +483,7 @@ func (r *InstanceInactiveTerminationReconciler) deleteStaleInstances(ctx context
 	}
 
 	if expired {
-		var deleteOpts []client.DeleteOption
-		if dryrun {
-			deleteOpts = append(deleteOpts, &client.DeleteOptions{
-				DryRun: []string{metav1.DryRunAll},
-			})
-		}
-		err := r.Client.Delete(ctx, instance, deleteOpts...)
+		err := r.Client.Delete(ctx, instance)
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				log.Info("Instance already deleted", "instance", instance.GetName(), "namespace", instance.GetNamespace())
