@@ -96,10 +96,6 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	}
 	phase := r.RetrievePhaseFromVM(&vm, &vmi)
 
-	//
-	//
-	//
-
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 	instanceStatusEnv := &instance.Status.Environments[envIndex]
 
@@ -108,16 +104,6 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
 		instanceStatusEnv.Phase = phase
 	}
-
-	//
-	//
-	//
-
-	// if phase != instance.Status.Phase {
-	// 	log.Info("phase changed", "virtualmachine", klog.KObj(&vm),
-	// 		"previous", string(instance.Status.Phase), "current", string(phase))
-	// 	instance.Status.Phase = phase
-	// }
 
 	return nil
 }
@@ -156,10 +142,6 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 		phase = clv1alpha2.EnvironmentPhaseOff
 	}
 
-	//
-	//
-	//
-
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 	instanceStatusEnv := &instance.Status.Environments[envIndex]
 
@@ -168,16 +150,6 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
 		instanceStatusEnv.Phase = phase
 	}
-
-	//
-	//
-	//
-
-	// if phase != instance.Status.Phase {
-	// 	log.Info("phase changed", "virtualmachineinstance", klog.KObj(&vmi),
-	// 		"previous", string(instance.Status.Phase), "current", string(phase))
-	// 	instance.Status.Phase = phase
-	// }
 
 	return nil
 }

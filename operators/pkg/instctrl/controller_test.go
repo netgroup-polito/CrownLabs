@@ -161,9 +161,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		It("Should correctly reconcile the instance", func() {
 			Expect(RunReconciler()).To(Succeed())
 
-			//
-			//
-			//
 			Expect(instance.Status.Environments).ToNot(BeEmpty())
 			for _, env := range instance.Status.Environments {
 				Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
@@ -207,9 +204,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			})
 
 			By("Asserting the state is coherent", func() {
-				//
-				//
-				//
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
 				for _, env := range instance.Status.Environments {
 					Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
@@ -293,9 +287,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(RunReconciler()).To(Succeed())
 
 					// Check the status phase is unset since it's retrieved from the VM (and the kubervirt operator is not available in the test env)
-					//
-					//
-					//
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
 					for _, env := range instance.Status.Environments {
 						Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
@@ -349,9 +340,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 							}
 						}
 						Expect(RunReconciler()).To(Succeed())
-						//
-						//
-						//
+
 						Expect(instance.Status.Environments).ToNot(BeEmpty())
 						for _, env := range instance.Status.Environments {
 							Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
@@ -388,9 +377,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 			It("Should correctly reconcile the instance", func() {
 				Expect(RunReconciler()).To(Succeed())
-				//
-				//
-				//
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
 				for i := range instance.Status.Environments {
 					Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
@@ -445,9 +431,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 				By("Asserting the state is coherent", func() {
 					Expect(RunReconciler()).To(Succeed())
-					//
-					//
-					//
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
 					for i := range instance.Status.Environments {
 						Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
