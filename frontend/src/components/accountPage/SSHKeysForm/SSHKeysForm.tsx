@@ -1,5 +1,6 @@
 import { Input, Form, Button, Row } from 'antd';
-import { FC, useState } from 'react';
+import type { FC } from 'react';
+import { useState } from 'react';
 
 export interface ISSHKeysFormProps {
   onSaveKey: (newKey: { name: string; key: string }) => void;
@@ -26,7 +27,7 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
     form.resetFields();
     onCancel();
   };
-  const validateSSHKey = async (rules: any, key: string) => {
+  const validateSSHKey = async (_rules: any, key: string) => {
     if (!key) throw new Error('Key field is mandatory');
     const result = key.split(/\s+/); // split regardless the amount of spaces
     if (result.length !== 2 && result.length !== 3)
@@ -39,7 +40,7 @@ const SSHKeysForm: FC<ISSHKeysFormProps> = props => {
   // Used to disable Save button
   const handleChange = async (
     _: any,
-    { name, key }: { name: string; key: string }
+    { name, key }: { name: string; key: string },
   ) => {
     try {
       if (key && name) {

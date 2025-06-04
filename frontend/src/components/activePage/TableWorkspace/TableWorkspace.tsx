@@ -1,16 +1,10 @@
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import {
-  Dispatch,
-  FC,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import type { Dispatch, FC, SetStateAction } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
-import { Instance, Template, Workspace } from '../../../utils';
+import type { Instance, Template, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
@@ -28,7 +22,7 @@ export interface ITableWorkspaceProps {
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
-    sortingTemplate: string
+    sortingTemplate: string,
   ) => void;
   destroySelectedTrigger: boolean;
   setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
@@ -79,7 +73,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     return (
       templates?.reduce(
         (total, { instances }) => (total += instances.length),
-        0
+        0,
       ) || 0
     );
   };
@@ -115,7 +109,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     const persistent =
       (instances &&
         instances.filter(
-          i => selectiveDestroy.includes(i.id) && i.persistent
+          i => selectiveDestroy.includes(i.id) && i.persistent,
         )) ||
       [];
     setSelectedPersistent(persistent.length > 0);
@@ -151,10 +145,9 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
         dataSource={workspaces}
         pagination={false}
         showHeader={false}
-        onExpand={(expanded, ws) => expandRow(ws.name)}
         expandable={{
+          onExpand: (_expanded, ws) => expandRow(ws.name),
           expandedRowKeys: expandedId,
-          // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) => (
             <CaretRightOutlined
               className="transition-icon"
@@ -162,7 +155,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
               rotate={expanded ? 90 : 0}
             />
           ),
-          // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: record => (
             <TableTemplate
               templates={record.templates!}

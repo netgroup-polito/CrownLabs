@@ -7,8 +7,8 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { Divider, Input, Popover, Switch } from 'antd';
-import Button from 'antd-button-color';
-import { Dispatch, FC, SetStateAction, useState } from 'react';
+import { Button } from 'antd';
+import { useState, type Dispatch, type FC, type SetStateAction } from 'react';
 
 const { Search } = Input;
 
@@ -100,7 +100,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
         Destroy Selected{` (${selectiveDestroy.length})`}
       </Button>
       <Button
-        type={!selectiveDestroy.length ? 'primary' : 'warning'}
+        color={!selectiveDestroy.length ? 'primary' : 'orange'}
         ghost
         shape="round"
         size="middle"
@@ -136,11 +136,11 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
         }
         placement="bottomRight"
         trigger="click"
-        visible={searchPopover}
-        onVisibleChange={() => setSearchPopover(old => !old)}
+        open={searchPopover}
+        onOpenChange={() => setSearchPopover(old => !old)}
       >
         <Button
-          type={searchPopover ? 'danger' : 'primary'}
+          color={searchPopover ? 'danger' : 'primary'}
           shape="circle"
           size="middle"
           icon={!searchPopover ? <SearchOutlined /> : <CloseOutlined />}
@@ -205,7 +205,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
       </Button>
       <Button
         className="hidden 2xl:block"
-        type={!selectiveDestroy.length ? 'primary' : 'warning'}
+        color={!selectiveDestroy.length ? 'primary' : 'orange'}
         ghost
         shape="round"
         size="middle"
@@ -219,11 +219,11 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
         content={mobileContent}
         placement="bottom"
         trigger="click"
-        visible={toolboxPopover}
-        onVisibleChange={() => setToolboxPopover(old => !old)}
+        open={toolboxPopover}
+        onOpenChange={() => setToolboxPopover(old => !old)}
       >
         <Button
-          type={toolboxPopover ? 'danger' : 'primary'}
+          color={toolboxPopover ? 'danger' : 'primary'}
           ghost
           shape="circle"
           size="middle"

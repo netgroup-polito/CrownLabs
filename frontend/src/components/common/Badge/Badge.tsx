@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { BadgeSize } from '../../../utils';
+import type { FC } from 'react';
+import type { BadgeSize } from '../../../utils';
 
 export interface IBadgeProps {
   value: number;

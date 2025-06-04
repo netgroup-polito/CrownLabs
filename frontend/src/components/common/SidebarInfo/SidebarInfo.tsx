@@ -1,4 +1,4 @@
-import { FC, SetStateAction } from 'react';
+import type { FC, SetStateAction } from 'react';
 import { Drawer, List } from 'antd';
 import {
   GithubOutlined,
@@ -9,7 +9,7 @@ import {
   YoutubeFilled,
 } from '@ant-design/icons';
 import Logo from '../Logo';
-import { Dispatch } from 'react';
+import type { Dispatch } from 'react';
 
 export interface ISidebarInfoProps {
   setShow: Dispatch<SetStateAction<boolean>>;
@@ -20,20 +20,20 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
   const { setShow, show, position } = props;
   return (
     <Drawer
-      headerStyle={{
-        borderBottom: `solid #1c7afd`,
-        borderBottomWidth: '1px',
+      classNames={{ body: 'p-0', footer: 'p-0' }}
+      styles={{
+        content:
+          position === 'left'
+            ? {
+                borderRight: `solid #1c7afd`,
+                borderRightWidth: '1px',
+              }
+            : { borderLeft: `solid #1c7afd`, borderLeftWidth: '1px' },
+        header: {
+          borderBottom: `solid #1c7afd`,
+          borderBottomWidth: '1px',
+        },
       }}
-      contentWrapperStyle={
-        position === 'left'
-          ? {
-              borderRight: `solid #1c7afd`,
-              borderRightWidth: '1px',
-            }
-          : { borderLeft: `solid #1c7afd`, borderLeftWidth: '1px' }
-      }
-      bodyStyle={{ padding: '0px' }}
-      footerStyle={{ padding: '0px' }}
       title={
         <>
           <div className="flex">
@@ -52,7 +52,7 @@ const SidebarInfo: FC<ISidebarInfoProps> = ({ ...props }) => {
       placement={position}
       closable={true}
       onClose={() => setShow(false)}
-      visible={show}
+      open={show}
       width={350}
       footer={
         <>

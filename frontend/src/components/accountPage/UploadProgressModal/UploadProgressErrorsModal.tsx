@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Alert, Modal, Button } from 'antd';
 export interface IUploadProgressErrorsModal {
   errors: any[];
@@ -51,7 +51,7 @@ const UploadProgressErrorsModal: FC<IUploadProgressErrorsModal> = props => {
         />
       )}
       <Modal
-        visible={showModal}
+        open={showModal}
         closable={true}
         onCancel={() => setShowModal(false)}
       >

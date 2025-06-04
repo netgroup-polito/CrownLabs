@@ -4,19 +4,23 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Menu } from 'antd';
-import Button from 'antd-button-color';
-import { FetchResult } from '@apollo/client';
-import { FC, useContext, useMemo, useState } from 'react';
-import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
+import { Button } from 'antd';
+import type { FetchResult } from '@apollo/client';
+import type { FC } from 'react';
+import { useContext, useMemo, useState } from 'react';
+import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import {
+import type {
   CreateInstanceMutation,
   DeleteTemplateMutation,
+} from '../../../../generated-types';
+import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { cleanupLabels, Template, WorkspaceRole } from '../../../../utils';
+import type { Template } from '../../../../utils';
+import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import Badge from '../../../common/Badge';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
@@ -28,23 +32,23 @@ export interface ITemplatesTableRowProps {
   totalInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       DeleteTemplateMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   expandRow: (value: string, create: boolean) => void;
@@ -182,12 +186,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             key={1}
             shape="round"
             className="ml-2 w-24"
-            type="danger"
+            color="danger"
             loading={deleteTemplateLoading}
             onClick={() =>
               deleteTemplate(template.id)
                 .then(() => setShowDeleteModalConfirm(false))
-                .catch(err => null)
+                .catch(console.warn)
             }
           >
             {!deleteTemplateLoading && 'Delete'}
@@ -266,7 +270,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               </>
             }
           >
-            <Button with="link" type="warning" size="middle" className="px-0">
+            <Button type="link" color="orange" size="middle" className="px-0">
               Info
             </Button>
           </Tooltip>
@@ -282,7 +286,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       setShowDeleteModalConfirm(true);
                     else setShowDeleteModalNotPossible(true);
                   })
-                  .catch(err => null);
+                  .catch(console.warn);
               }}
             />
           ) : (
@@ -290,8 +294,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               <Button
                 onClick={createInstanceHandler}
                 className="xs:hidden block"
-                with="link"
-                type="primary"
+                type="link"
+                color="primary"
                 size="large"
                 icon={<PlayCircleOutlined style={{ fontSize: '22px' }} />}
               />

@@ -1,8 +1,6 @@
-import { FC } from 'react';
-import {
-  WorkspacesAvailable,
-  WorkspacesAvailableAction,
-} from '../../../../utils';
+import type { FC } from 'react';
+import type { WorkspacesAvailable } from '../../../../utils';
+import { WorkspacesAvailableAction } from '../../../../utils';
 import { Button, Space } from 'antd';
 
 export interface IWorkspaceRowProps {

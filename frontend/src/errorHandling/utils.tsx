@@ -1,9 +1,9 @@
-import { ApolloError } from '@apollo/client';
-import { KeycloakError } from 'keycloak-js';
+import type { ApolloError } from '@apollo/client';
+import type { ErrorContext } from 'react-oidc-context';
 
 export enum ErrorTypes {
   ApolloError,
-  KeycloakError,
+  AuthError,
   RenderError,
   GenericError,
 }
@@ -12,12 +12,12 @@ export type ApolloErrorCatcher = {
   onError: (err: ApolloError) => void;
 };
 
-export type SupportedError = ApolloError | KeycloakError | Error;
+export type SupportedError = ApolloError | ErrorContext | Error;
 
 export class CustomError {
   private type: ErrorTypes;
-  private error: ApolloError | KeycloakError | Error;
-  constructor(type: ErrorTypes, error: ApolloError | KeycloakError | Error) {
+  private error: ApolloError | ErrorContext | Error;
+  constructor(type: ErrorTypes, error: ApolloError | ErrorContext | Error) {
     this.type = type;
     this.error = error;
   }
@@ -29,9 +29,9 @@ export class CustomError {
       case ErrorTypes.RenderError:
         err = this.error as Error;
         return err.message;
-      case ErrorTypes.KeycloakError:
-        err = this.error as KeycloakError;
-        return err.error;
+      case ErrorTypes.AuthError:
+        err = this.error as ErrorContext;
+        return err.message;
       case ErrorTypes.ApolloError:
         err = this.error as ApolloError;
         return err.message;

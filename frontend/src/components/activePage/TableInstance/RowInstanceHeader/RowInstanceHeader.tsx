@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Checkbox, Typography } from 'antd';
 import { WorkspaceRole } from '../../../../utils';
 import {
@@ -16,7 +16,7 @@ export interface IRowInstanceHeaderProps {
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
-    sortingTemplate: string
+    sortingTemplate: string,
   ) => void;
   showCheckbox: boolean;
   checked: boolean;
@@ -68,14 +68,14 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
 
   const setSort = (key: sortKey) => {
     setTemplatePrettyNameOrder(
-      key === 'templatePrettyName' ? getSorting(varByKey[key]) : 0
+      key === 'templatePrettyName' ? getSorting(varByKey[key]) : 0,
     );
     setTimeStampOrder(key === 'timeStamp' ? getSorting(varByKey[key]) : 0);
 
     setTenantIdOrder(key === 'tenantId' ? getSorting(varByKey[key]) : 0);
     setPrettyNameOrder(key === 'prettyName' ? getSorting(varByKey[key]) : 0);
     setTenantDisplayNameOrder(
-      key === 'tenantDisplayName' ? getSorting(varByKey[key]) : 0
+      key === 'tenantDisplayName' ? getSorting(varByKey[key]) : 0,
     );
   };
 
@@ -91,7 +91,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
   };
 
   return (
-    <div className="w-100 flex justify-between items-center h-10 rowHeader-bg-color">
+    <div className="w-full flex justify-between items-center h-10 rowHeader-bg-color">
       <div
         className={
           viewMode === WorkspaceRole.user
@@ -195,7 +195,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
             </div>
           </div>
           <div
-            className={`flex justify-end items-center gap-2 w-100 ${
+            className={`flex justify-end items-center gap-2 w-full ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-3/5 xl:w-5/12 2xl:w-1/2'
                 : 'lg:w-2/3 xl:w-1/2'

@@ -6,10 +6,11 @@ import {
   CloseOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { UserAccountPage } from '../../../utils';
-import { FC, useState } from 'react';
+import type { UserAccountPage } from '../../../utils';
+import type { FC } from 'react';
+import { useState } from 'react';
 import EditableCell from './EditableCell';
-import { SupportedError } from '../../../errorHandling/utils';
+import type { SupportedError } from '../../../errorHandling/utils';
 export interface IEditableTableProps {
   data: UserAccountPage[];
   updateUserCSV: (user: UserAccountPage[]) => void;
@@ -54,8 +55,8 @@ const EditableTable: FC<IEditableTableProps> = props => {
         setEditingKey('');
         props.updateUserCSV(
           props.data.map(user =>
-            user.key === updatedUser.key ? updatedUser : user
-          )
+            user.key === updatedUser.key ? updatedUser : user,
+          ),
         );
         props.setEditing(false);
       }
@@ -125,7 +126,7 @@ const EditableTable: FC<IEditableTableProps> = props => {
               title="Sure to delete?"
               onConfirm={() =>
                 props.updateUserCSV(
-                  props.data.filter(user => user.key !== record.key)
+                  props.data.filter(user => user.key !== record.key),
                 )
               }
             >
@@ -152,7 +153,7 @@ const EditableTable: FC<IEditableTableProps> = props => {
       : {
           ...col,
           onCell: (record: UserAccountPage) => makeOnCellCallback(record, col),
-        }
+        },
   );
 
   return (

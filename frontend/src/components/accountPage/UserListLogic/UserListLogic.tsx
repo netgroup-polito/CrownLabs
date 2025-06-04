@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useRef, useContext } from 'react';
+import { type FC, useState, useEffect, useRef, useContext } from 'react';
 import { Spin } from 'antd';
 import {
   useTenantsQuery,
@@ -6,11 +6,15 @@ import {
 } from '../../../generated-types';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
-import { makeRandomDigits, UserAccountPage, Workspace } from '../../../utils';
-import { AuthContext } from '../../../contexts/AuthContext';
+import {
+  makeRandomDigits,
+  type UserAccountPage,
+  type Workspace,
+} from '../../../utils';
 import { Role } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { ErrorTypes, SupportedError } from '../../../errorHandling/utils';
+import { ErrorTypes, type SupportedError } from '../../../errorHandling/utils';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 export interface IUserListLogicProps {
   workspace: Workspace;
@@ -53,20 +57,20 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     if (!loading) {
       setUsers(
         data?.tenants?.items?.map(user => ({
-          key: user?.metadata?.name!,
-          userid: user?.metadata?.name!,
-          name: user?.spec?.firstName!,
-          surname: user?.spec?.lastName!,
-          email: user?.spec?.email!,
+          key: user?.metadata?.name || '',
+          userid: user?.metadata?.name || '',
+          name: user?.spec?.firstName || '',
+          surname: user?.spec?.lastName || '',
+          email: user?.spec?.email || '',
           currentRole: user?.spec?.workspaces?.find(
-            roles => roles?.name === workspace.name
-          )?.role!,
+            roles => roles?.name === workspace.name,
+          )?.role,
           workspaces:
             user?.spec?.workspaces?.map(workspace => ({
               role: workspace?.role! as Role,
               name: workspace?.name! as string,
             })) || [],
-        })) || []
+        })) || [],
       );
     }
   }, [loading, data, workspace.name]);
@@ -75,7 +79,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
-      let workspaces = users
+      const workspaces = users
         .find(u => u.userid === user.userid)!
         .workspaces?.filter(w => w.name === workspace.name)
         .map(({ name }) => ({ name, role: newRole }));
@@ -105,7 +109,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
           } else {
             return u;
           }
-        })
+        }),
       );
     } catch (error) {
       genericErrorCatcher(error as SupportedError);
@@ -122,7 +126,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       setUploadedNumber(0);
       setUploadedUserNumber(0);
       setErrors([]);
-      let usersAdded: UserAccountPage[] = [];
+      const usersAdded: UserAccountPage[] = [];
 
       for (const user of usersToAdd) {
         if (abortUploadingRef.current) break;
@@ -138,7 +142,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
                   lastName: user.surname,
                   workspaces,
                 },
-                user.userid
+                user.userid,
               ),
             },
             onError: apolloErrorCatcher,

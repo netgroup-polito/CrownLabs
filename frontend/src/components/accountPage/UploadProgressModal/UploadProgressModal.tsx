@@ -4,18 +4,18 @@ import {
   CaretRightOutlined,
   CaretLeftOutlined,
 } from '@ant-design/icons';
-import { FC, useEffect, useState } from 'react';
-import { UserAccountPage } from '../../../utils';
+import { type FC, useEffect, useState } from 'react';
+import { type UserAccountPage } from '../../../utils';
 
 import UploadProgressContent from './UploadProgressContent';
 import { Role } from '../../../generated-types';
 import UploadProgressErrorsModal from './UploadProgressErrorsModal';
-import { SupportedError } from '../../../errorHandling/utils';
+import { type SupportedError } from '../../../errorHandling/utils';
 export interface IUploadProgressModalInterface {
   onClose: () => void;
   confirmUpload: (
     users: UserAccountPage[],
-    workspaces: any[]
+    workspaces: any[],
   ) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
   setUploadingErrors: (errors: any) => void;
@@ -69,7 +69,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
           !props.uploadingErrors.length &&
           uploadingStatusResult
           ? StepStatus.finish
-          : StepStatus.error
+          : StepStatus.error,
       );
   }, [
     props.abortUploading,
@@ -105,7 +105,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
 
   return (
     <Modal
-      visible={props.show}
+      open={props.show}
       width="800px"
       closable={false}
       footer={[
@@ -143,7 +143,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
         ),
         stepCurrent === 3 && <Button onClick={props.onClose}>Close</Button>,
       ]}
-      destroyOnClose={true}
+      destroyOnHidden={true}
     >
       <UploadProgressContent
         setStepCurrent={setStepCurrent}

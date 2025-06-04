@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { WorkspacesAvailable } from '../../../../utils';
+import type { FC } from 'react';
+import type { WorkspacesAvailable } from '../../../../utils';
 import { Empty, Table } from 'antd';
 import { WorkspaceRow } from '../WorkspaceRow';
 
@@ -15,7 +15,6 @@ const WorkspacesList: FC<IWorkspaceListProps> = ({ ...args }) => {
     {
       title: 'Workspace',
       key: 'workspace',
-      // eslint-disable-next-line react/no-multi-comp
       render: (record: WorkspacesAvailable) => (
         <WorkspaceRow workspace={record} action={action}></WorkspaceRow>
       ),

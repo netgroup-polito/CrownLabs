@@ -1,13 +1,14 @@
-import { FC } from 'react';
-import Button, { ButtonType } from 'antd-button-color';
-import { Tooltip } from 'antd';
-import { TooltipPlacement } from 'antd/lib/tooltip';
+import type { FC } from 'react';
+import { Button, Tooltip } from 'antd';
+import type { TooltipPlacement } from 'antd/lib/tooltip';
+import type { ButtonColorType, ButtonType } from 'antd/lib/button';
 
 export type TooltipButtonData = {
   tooltipTitle?: string;
   tooltipPlacement?: TooltipPlacement;
   icon: React.ReactNode;
-  type: ButtonType;
+  type?: ButtonType;
+  color?: ButtonColorType;
 };
 
 export interface ITooltipButtonProps {

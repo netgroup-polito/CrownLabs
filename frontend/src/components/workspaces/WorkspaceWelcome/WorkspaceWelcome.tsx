@@ -1,10 +1,8 @@
 import Box from '../../common/Box';
-import { FC } from 'react';
+import type { FC } from 'react';
 import Logo from '../../common/Logo';
 
-export interface IWorkspaceWelcomeProps {}
-
-const WorkspaceWelcome: FC<IWorkspaceWelcomeProps> = ({ ...args }) => {
+const WorkspaceWelcome: FC = () => {
   return (
     <Box
       header={{
