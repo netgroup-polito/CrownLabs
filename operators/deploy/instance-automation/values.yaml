@@ -6,7 +6,7 @@ replicaCount: 1
 
 configurations:
   generic:
-    whitelistLabels: crownlabs.polito.it/operator-selector=production
+    whitelistLabels: crownlabs.polito.it/operator-selector=changeme-when-sure
     websiteBaseUrl: crownlabs.example.com
     instancesAuthUrl: https://crownlabs.example.com/auth
   privateContainerRegistry:
