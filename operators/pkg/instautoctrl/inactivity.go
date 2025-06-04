@@ -50,7 +50,7 @@ type InstanceInactiveTerminationReconciler struct {
 	EventsRecorder                  record.EventRecorder
 	Scheme                          *runtime.Scheme
 	NamespaceWhitelist              metav1.LabelSelector
-	StatusCheckRequestTimeout       time.Duration // could be deleted if not used (eg. for timeout in Thanos)
+	StatusCheckRequestTimeout       time.Duration
 	InstanceInactivityCheckInterval time.Duration
 	InstanceMaxNumberOfAlerts       int
 	MailClient                      *MailClient
@@ -61,6 +61,7 @@ type InstanceInactiveTerminationReconciler struct {
 }
 
 var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
+var lastActivityAnnotation = "crownlabs.polito.it/last-activity"
 var deleteAfterRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
@@ -131,6 +132,24 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		// update the instance with the new annotation
 		_ = r.Patch(ctx, &instance, patch)
 	}
+
+	// add the annotation if not present to check the last activity time
+	if instance.ObjectMeta.Annotations == nil {
+		instance.ObjectMeta.Annotations = make(map[string]string)
+	}
+	patch = client.MergeFrom(instance.DeepCopy())
+	if _, ok := instance.Annotations[lastActivityAnnotation]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", lastActivityAnnotation)
+		instance.ObjectMeta.Annotations[lastActivityAnnotation] = time.Now().Format(time.RFC3339)
+		// update the instance with the new annotation
+		_ = r.Patch(ctx, &instance, patch)
+	}
+
+	// update the last login time of the instance
+	if err := r.UpdateInstanceLastLogin(ctx, &instance); err != nil {
+		log.Error(err, "failed updating last login time of the instance")
+		return ctrl.Result{}, err
+	}
 	// check if the instance reached the maximum time of lifetime and delete it if so
 	isDeleted, err := r.deleteStaleInstances(ctx, &instance)
 	if err != nil {
@@ -183,9 +202,59 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
 }
 
-// CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
+// getLastActivityTime retrieves the last time an instance was accessed.
+func getLastActivityTime(client v1.API, tenantNS, instanceName string, interval time.Duration) (time.Time, error) {
+	query := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, tenantNS, instanceName)
+
+	end := time.Now()
+	start := end.Add(-interval)
+
+	r := v1.Range{
+		Start: start,
+		End:   end,
+		Step:  time.Minute,
+	}
+
+	result, warnings, err := client.QueryRange(context.Background(), query, r)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("query failed: %w", err)
+	}
+	if len(warnings) > 0 {
+		fmt.Println("Warnings:", warnings)
+	}
+
+	matrix, ok := result.(model.Matrix)
+	if !ok {
+		return time.Time{}, fmt.Errorf("unexpected result format")
+	}
+
+	var lastChange time.Time
+
+	for _, stream := range matrix {
+		var prevValue model.SampleValue
+		first := true
+		for _, sample := range stream.Values {
+			if first {
+				prevValue = sample.Value
+				first = false
+				continue
+			}
+			if sample.Value != prevValue {
+				lastChange = sample.Timestamp.Time()
+				prevValue = sample.Value
+			}
+		}
+	}
+
+	if lastChange.IsZero() {
+		return time.Time{}, fmt.Errorf("no changes detected")
+	}
+	return lastChange, nil
+}
+
+// UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance) error {
+	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 
 	promURL := r.getPrometheusURL()
 
@@ -195,7 +264,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 
 	promClient, err := api.NewClient(config)
 	if err != nil {
-		return false, fmt.Errorf("error creating prometheus client: %w", err)
+		return fmt.Errorf("error creating prometheus client: %w", err)
 	}
 
 	v1api := v1.NewAPI(promClient)
@@ -206,12 +275,23 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	healthy, err := r.isPrometheusHealthy(ctx, v1api)
 	if err != nil || !healthy {
 		log.Info("Prometheus is not healthy", "error", err)
-		return false, err
+		return err
 	}
 
 	// Get instance activity data
-	tenantNS := instance.Namespace
-	instanceName := instance.Name
+	lastActivityTime, err := getLastActivityTime(v1api, instance.Namespace, instance.Name, r.InstanceInactivityCheckInterval)
+
+	if err != nil {
+		return fmt.Errorf("failed retrieving last activity time from Prometheus: %w", err)
+	}
+
+	instance.ObjectMeta.Annotations[lastActivityAnnotation] = lastActivityTime.Format(time.RFC3339)
+	return nil
+}
+
+// CheckInstanceTermination checks if the Instance has to be terminated.
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 
 	// get the inactivity timeout from the instance template
 	inactivityTimeout, err := r.getInactivityTimeout(ctx, instance)
@@ -220,33 +300,21 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 		return false, err
 	}
 
-	// Proper PromQL query to check for activity
-	query := fmt.Sprintf(`sum(changes(nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}[%q])) > 0`,
-		tenantNS, instanceName, inactivityTimeout)
-
-	result, warnings, err := v1api.Query(ctx, query, time.Now())
+	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[lastActivityAnnotation])
 	if err != nil {
-		return false, fmt.Errorf("error querying prometheus: %w", err)
+		log.Error(err, "failed parsing LastLogin time")
+		return false, err
+	}
+	timeoutDuration, err := time.ParseDuration(inactivityTimeout)
+	if err != nil {
+		log.Error(err, "failed parsing inactivity timeout duration")
+		return false, err
+	}
+	if time.Since(lastLogin) > timeoutDuration {
+		log.Info("Instance inactivity detected", "instance", instance.Name)
+		return true, nil
 	}
 
-	if len(warnings) > 0 {
-		log.Info("Prometheus query warnings", "warnings", warnings)
-	}
-
-	vec, ok := result.(model.Vector)
-	if !ok {
-		return false, fmt.Errorf("unexpected result format: %T", result)
-	}
-
-	// If we got any results with value > 0, there's been activity
-	for _, sample := range vec {
-		if sample.Value > 0 {
-			return false, nil
-		}
-	}
-
-	// No activity detected
-	log.Info("No activity detected", "instance", instanceName)
 	return false, nil
 }
 
