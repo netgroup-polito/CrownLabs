@@ -48,7 +48,6 @@ spec:
             - "--instance-inactive-termination-status-check-timeout={{ .Values.configurations.automation.inactiveTerminationStatusCheckTimeout }}"
             - "--instance-inactive-termination-status-check-interval={{ .Values.configurations.automation.inactiveTerminationStatusCheckInterval }}"
             - "--instance-inactive-termination-max-number-of-alerts={{.Values.configurations.automation.inactiveTerminationMaxNumberOfAlerts}}" 
-            - "--instance-inactive-termination-default-timeout={{.Values.configurations.automation.inactiveTerminationDefaultTimeout}}"
             - "--smtp-server={{ .Values.configurations.smtp.server }}"
             - "--smtp-port={{ .Values.configurations.smtp.port }}"
             - "--smtp-identity={{ .Values.configurations.smtp.identity }}"
