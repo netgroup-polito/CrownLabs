@@ -12,7 +12,8 @@ import {
   VITE_APP_CROWNLABS_OIDC_CLIENT_ID,
 } from './env';
 import { WebStorageStateStore } from 'oidc-client-ts';
-import FullPageLoader from './components/common/FullPageLoader';
+import ApolloClientSetup from './graphql-components/apolloClientSetup/ApolloClientSetup';
+import ThemeContextProvider from './contexts/ThemeContextProvider';
 
 const oidcConfig: AuthProviderProps = {
   authority: VITE_APP_CROWNLABS_OIDC_AUTHORITY,
@@ -25,24 +26,22 @@ const oidcConfig: AuthProviderProps = {
   userStore: new WebStorageStateStore({ store: window.localStorage }),
 };
 
-const ApolloClientSetup = React.lazy(
-  () => import('./graphql-components/apolloClientSetup/ApolloClientSetup'),
-);
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorContextProvider>
-      <React.Suspense fallback={<FullPageLoader />}>
-        <AuthProvider {...oidcConfig}>
-          <AuthContextProvider>
-            <ApolloClientSetup>
-              <TenantContextProvider>
-                <App />
-              </TenantContextProvider>
-            </ApolloClientSetup>
-          </AuthContextProvider>
-        </AuthProvider>
-      </React.Suspense>
-    </ErrorContextProvider>
-  </React.StrictMode>,
-);
+document.addEventListener('DOMContentLoaded', () => {
+  ReactDOM.createRoot(document.body).render(
+    <React.StrictMode>
+      <ThemeContextProvider>
+        <ErrorContextProvider>
+          <AuthProvider {...oidcConfig}>
+            <AuthContextProvider>
+              <ApolloClientSetup>
+                <TenantContextProvider>
+                  <App />
+                </TenantContextProvider>
+              </ApolloClientSetup>
+            </AuthContextProvider>
+          </AuthProvider>
+        </ErrorContextProvider>
+      </ThemeContextProvider>
+    </React.StrictMode>,
+  );
+});

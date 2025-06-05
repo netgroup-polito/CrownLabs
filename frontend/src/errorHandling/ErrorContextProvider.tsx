@@ -1,6 +1,7 @@
 import {
   Component,
   lazy,
+  Suspense,
   useCallback,
   useEffect,
   useState,
@@ -109,18 +110,20 @@ const ErrorContextProvider: FC<PropsWithChildren> = props => {
         flushRenderError,
       }}
     >
-      <ErrorBoundary makeErrorCatcher={makeErrorCatcher}>
-        <ErrorHandler
-          errorsQueue={filteredErrorQueue}
-          show={filteredErrorQueue.length > 0}
-          dismiss={getNextError}
-        />
-        {!hasRenderingError(errorsQueue) ? (
-          children
-        ) : (
-          <RenderErrorHandler errors={renderErrorQueue} />
-        )}
-      </ErrorBoundary>
+      <Suspense>
+        <ErrorBoundary makeErrorCatcher={makeErrorCatcher}>
+          <ErrorHandler
+            errorsQueue={filteredErrorQueue}
+            show={filteredErrorQueue.length > 0}
+            dismiss={getNextError}
+          />
+          {!hasRenderingError(errorsQueue) ? (
+            children
+          ) : (
+            <RenderErrorHandler errors={renderErrorQueue} />
+          )}
+        </ErrorBoundary>
+      </Suspense>
     </ErrorContext.Provider>
   );
 };
