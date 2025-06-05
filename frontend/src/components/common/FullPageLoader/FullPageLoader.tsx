@@ -1,10 +1,10 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import './FullPageLoader.less';
 import CrownLoader from '../../misc/CrownLoader';
 
 export interface IFullPageLoaderProps {
-  text: string;
-  subtext: string;
+  text?: string;
+  subtext?: string;
 }
 
 const FullPageLoader: FC<IFullPageLoaderProps> = ({ ...props }) => {
@@ -13,8 +13,8 @@ const FullPageLoader: FC<IFullPageLoaderProps> = ({ ...props }) => {
   return (
     <div className="cl-full-page-loader text-center">
       <CrownLoader size={'min(40vw, 30vh)'} duration={3} />
-      <h1>{text}</h1>
-      <span>{subtext}</span>
+      <h1>{text || 'Loading...'}</h1>
+      <span>{subtext || 'Hold tight!'}</span>
     </div>
   );
 };

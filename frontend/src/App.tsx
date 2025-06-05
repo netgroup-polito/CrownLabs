@@ -1,22 +1,33 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
-import { useContext } from 'react';
+import { lazy, Suspense, useContext } from 'react';
 import './App.css';
-import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
-import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
-import AppLayout from './components/common/AppLayout';
-import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
-import ThemeContextProvider from './contexts/ThemeContext';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
+import FullPageLoader from './components/common/FullPageLoader';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
+
+  const AppLayout = lazy(
+    () => import('./components/common/AppLayout/AppLayout'),
+  );
+
+  const ActiveViewLogic = lazy(
+    () => import('./components/activePage/ActiveViewLogic/ActiveViewLogic'),
+  );
+  const UserPanelLogic = lazy(
+    () => import('./components/accountPage/UserPanelLogic/UserPanelLogic'),
+  );
+  const DashboardLogic = lazy(
+    () => import('./components/workspaces/DashboardLogic/DashboardLogic'),
+  );
+
   return (
-    <ThemeContextProvider>
+    <Suspense fallback={<FullPageLoader />}>
       <AppLayout
         TooltipButtonLink={
           'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
-          tenantData?.tenant?.status?.personalNamespace?.name!
+          tenantData?.tenant?.status?.personalNamespace?.name
         }
         TooltipButtonData={{
           tooltipPlacement: 'left',
@@ -27,7 +38,7 @@ function App() {
               className="flex items-center justify-center "
             />
           ),
-          type: 'success',
+          color: 'green',
         }}
         routes={[
           {
@@ -41,7 +52,10 @@ function App() {
             linkPosition: LinkPosition.NavbarButton,
           },
           {
-            route: { name: 'Drive', path: 'https://crownlabs.polito.it/cloud' },
+            route: {
+              name: 'Drive',
+              path: 'https://crownlabs.polito.it/cloud',
+            },
             linkPosition: LinkPosition.NavbarButton,
           },
           {
@@ -62,7 +76,7 @@ function App() {
           },
         ]}
       />
-    </ThemeContextProvider>
+    </Suspense>
   );
 }
 

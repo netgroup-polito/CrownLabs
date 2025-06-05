@@ -1,9 +1,10 @@
 import { Button } from 'antd';
-import { FC, useContext } from 'react';
+import type { FC } from 'react';
+import { useContext } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 
-const ThrowExceptionPage: FC<{}> = ({ ...props }) => {
+const ThrowExceptionPage: FC = () => {
   const { makeErrorCatcher } = useContext(ErrorContext);
   const renderErrorCatcher = makeErrorCatcher(ErrorTypes.RenderError);
   const triggerError = (n: number) => {

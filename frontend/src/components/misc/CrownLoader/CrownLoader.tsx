@@ -1,5 +1,5 @@
-import { Property } from 'csstype';
-import { FC } from 'react';
+import type { Property } from 'csstype';
+import type { FC } from 'react';
 import './CrownLoader.css';
 
 export interface ICrownLoaderProps {

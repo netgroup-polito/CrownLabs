@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import Button from 'antd-button-color';
+import type { FC } from 'react';
+import { Button } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 
@@ -21,7 +21,7 @@ const LogoutButton: FC<ILogoutButtonProps> = ({ ...props }) => {
         className
       }
       size="large"
-      type="danger"
+      color="red"
       shape={'circle'}
       icon={
         <Tooltip trigger="hover" placement="bottom" title="Logout">

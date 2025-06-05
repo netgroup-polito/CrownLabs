@@ -1,7 +1,9 @@
 import { Input, Form, Button, Row, AutoComplete, Select } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { FC, useState } from 'react';
-import { UserAccountPage, filterUser } from '../../../utils';
+import type { FC } from 'react';
+import { useState } from 'react';
+import type { UserAccountPage } from '../../../utils';
+import { filterUser } from '../../../utils';
 import { Role } from '../../../generated-types';
 export interface IUserListFormProps {
   onAddUser: (newUser: UserAccountPage, role: Role) => void;
@@ -25,7 +27,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
   };
 
   // Used to disable Save button
-  const handleChange = async (_: any, user: UserAccountPage) => {
+  const handleChange = async (_: unknown, _user: UserAccountPage) => {
     try {
       await form.validateFields(['userid']);
       await form.validateFields(['email']);
@@ -33,12 +35,13 @@ const UserListForm: FC<IUserListFormProps> = props => {
       await form.validateFields(['surname']);
       setValidForm(true);
     } catch (e) {
+      console.error('Form validation failed:', e);
       setValidForm(false);
     }
   };
 
-  const submitForm = (user: any) => {
-    const { searchInput, ...newUser } = user;
+  const submitForm = (user: UserAccountPage) => {
+    const { ...newUser } = user;
     onAddUser(newUser, role);
     setSearched(false);
     form.resetFields();
@@ -61,7 +64,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
   const handleSelect = (value: string) => {
     setSearched(true);
     const selectedUser: UserAccountPage = users.filter(
-      user => user.userid === value
+      user => user.userid === value,
     )[0];
 
     form.setFieldsValue({

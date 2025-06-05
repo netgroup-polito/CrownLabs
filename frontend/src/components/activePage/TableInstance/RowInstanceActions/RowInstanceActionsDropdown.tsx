@@ -1,6 +1,6 @@
-import { FC, SetStateAction, useContext, useState } from 'react';
+import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { Dropdown, Menu } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import {
   ExportOutlined,
   CodeOutlined,
@@ -11,7 +11,7 @@ import {
   CaretRightOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { Instance } from '../../../../utils';
+import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
   Phase,
@@ -61,7 +61,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         const result = await setInstanceRunning(
           running,
           instance,
-          applyInstanceMutation
+          applyInstanceMutation,
         );
         if (result) setTimeout(setDisabled, 400, false);
       } catch {
@@ -96,13 +96,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const dropdownHandler = (key: DropDownAction) => {
     switch (key) {
       case DropDownAction.start:
-        persistent && mutateInstanceStatus(true);
+        if (persistent) mutateInstanceStatus(true);
         break;
       case DropDownAction.stop:
-        persistent && mutateInstanceStatus(false);
+        if (persistent) mutateInstanceStatus(false);
         break;
       case DropDownAction.connect:
-        gui ? window.open(url!, '_blank') : setSshModal(true);
+        if (gui) window.open(url!, '_blank');
+        else setSshModal(true);
         break;
       case DropDownAction.destroy:
         deleteInstanceMutation({
@@ -208,8 +209,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               : 'sm:hidden'
             : ''
         } flex justify-center items-center`}
-        type="default"
-        with="link"
+        color="default"
+        type="link"
         shape="circle"
         size="middle"
         icon={<MoreOutlined className="flex items-center" style={font20px} />}

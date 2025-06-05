@@ -1,10 +1,8 @@
 import Box from '../../common/Box';
-import { FC } from 'react';
+import type { FC } from 'react';
 import { WorkspacesListLogic } from './WorkspacesListLogic';
 
-export interface IWorkspaceAddProps {}
-
-const WorkspaceAdd: FC<IWorkspaceAddProps> = ({ ...args }) => {
+const WorkspaceAdd: FC = () => {
   return (
     <Box
       header={{

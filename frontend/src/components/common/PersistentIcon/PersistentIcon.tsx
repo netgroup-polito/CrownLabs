@@ -1,11 +1,9 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Tooltip } from 'antd';
 
-import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
+import SvgInfinite from '../../../assets/infinite.svg?react';
 
-export interface IPersistentIconProps {}
-
-const PersistentIcon: FC<IPersistentIconProps> = ({ ...props }) => {
+const PersistentIcon: FC = () => {
   return (
     <Tooltip
       title={

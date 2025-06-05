@@ -4,20 +4,17 @@ This file describes the structure and general coding guidelines of the CrownLabs
 
 ## Setup
 
-Before starting set the necessary environment variables either using a `.env` file (preferred on windows) or by defining them on your local machine. To setup the repo, use the following commands ([yarn](https://yarnpkg.com/cli/install) use is mandatory).
+Before starting set the necessary environment variables either using a `.env` file (preferred on windows) or by defining them on your local machine. To setup the repo, use the following commands.
 
 ```bash
-# If you don't have yarn installed
-npm install -g yarn
-
 # install necessary packages
-yarn install
+npm install
 
 # To run the app locally
-yarn start
+npm start
 
 # To build the app locally
-yarn build-app
+npm build-app
 
 ```
 
@@ -32,6 +29,13 @@ The application is made to be deployed using docker and can be hosted on a custo
 ## CI checks
 
 We use ESLint to enforce linting and code quality. We use Prettier to have a uniform code style. These checks are enforced by a GitHub Action run on PRs. Also locally a pre-commit hook written with [husky](https://typicode.github.io/husky/#/) uses [lint-staged](https://github.com/okonet/lint-staged) to format and check files in the staging area before each commit.
+
+Be sure to add the following to `~/.config/husky/init.sh` if you're using `nvm` (which is strongly advised)
+
+```sh
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+```
 
 ## Guidelines
 
@@ -100,6 +104,7 @@ Additionally:
     </Button>
   );
   ```
+
 ## Useful links
 
 - [Useful answer for deploying react app on subroute](https://stackoverflow.com/a/58508562/11143279)

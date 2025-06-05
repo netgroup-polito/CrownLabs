@@ -1,0 +1,4 @@
+ignorePatterns:
+  - pattern: "^https://.*\\.example\\.com/.*$"
+dirs:
+  - .

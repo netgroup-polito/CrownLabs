@@ -1,12 +1,12 @@
 import { Spin } from 'antd';
 import { useContext } from 'react';
-import { AuthContext } from '../../../contexts/AuthContext';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useApplyTenantMutation } from '../../../generated-types';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserPanel from '../UserPanel';
 import UserPanelContainer from '../UserPanelContainer/UserPanelContainer';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 const getKeyName = (sshKey: string) => {
   const keyParts = sshKey.split(/\s+/g);
@@ -40,7 +40,7 @@ function UserPanelLogic() {
   const updateKeys = async (
     key: { name: string; key: string },
     // TODO: switch to generalized enum
-    action: 'ADD' | 'REMOVE'
+    action: 'ADD' | 'REMOVE',
   ) => {
     try {
       const newKeys =
@@ -58,19 +58,19 @@ function UserPanelLogic() {
         },
         onError: apolloErrorCatcher,
       });
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
     return true;
   };
 
-  return !loading && data && !error ? (
+  return tenantSpec && userId && !loading && data && !error ? (
     <UserPanelContainer>
       <UserPanel
-        firstName={tenantSpec?.firstName!}
-        lastName={tenantSpec?.lastName!}
-        email={tenantSpec?.email!}
-        username={userId!}
+        firstName={tenantSpec.firstName}
+        lastName={tenantSpec.lastName}
+        email={tenantSpec.email}
+        username={userId}
         sshKeys={publicKeys.map((key, i) => ({
           name: getKeyName(key) ?? `Key ${i} `,
           key,
