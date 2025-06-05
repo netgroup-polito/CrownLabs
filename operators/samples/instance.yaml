@@ -4,18 +4,18 @@ metadata:
   name: tenant-john-doe
   labels:
     crownlabs.polito.it/operator-selector: local
----
-apiVersion: crownlabs.polito.it/v1alpha2
-kind: Instance
-metadata:
-  name: green-tea-6831
-  namespace: tenant-john-doe
-spec:
-  template.crownlabs.polito.it/TemplateRef:
-    name: green-tea
-    namespace: workspace-tea
-  tenant.crownlabs.polito.it/TenantRef:
-    name: john.doe
+# ---
+# apiVersion: crownlabs.polito.it/v1alpha2
+# kind: Instance
+# metadata:
+#   name: green-tea-6831
+#   namespace: tenant-john-doe
+# spec:
+#   template.crownlabs.polito.it/TemplateRef:
+#     name: green-tea
+#     namespace: workspace-tea
+#   tenant.crownlabs.polito.it/TenantRef:
+#     name: john.doe
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Instance

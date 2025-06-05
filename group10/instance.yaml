@@ -1,0 +1,19 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: netshoot-test7
+  namespace: tenant-john-doe
+spec:
+  template.crownlabs.polito.it/TemplateRef:
+    name: netshoot
+    namespace: workspace-standalone
+  tenant.crownlabs.polito.it/TenantRef:
+    name: john.doe
+  publicExposure:
+    services:
+      - name: ssh
+        port: 0
+        targetPort: 22
+      - name: http
+        port: 0
+        targetPort: 80

@@ -42,9 +42,17 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+
+	publicexposure "github.com/netgroup-polito/CrownLabs/operators/pkg/public-exposure"
 )
 
-// InstanceReconciler reconciles a Instance object.
+const (
+	metallbPoolName = "my-ip-pool"
+	sharedIPValue   = "true"
+	basePort        = 30000
+)
+
+// InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
@@ -57,6 +65,9 @@ type InstanceReconciler struct {
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
+
+	// Aggiungi il manager per l'esposizione pubblica
+	ExposureManager *publicexposure.Manager
 }
 
 // ServiceUrls holds URL parameters for the instance reconciler.
@@ -172,6 +183,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, err
 	}
 
+	// Gestisci l'esposizione pubblica dell'istanza
+	if err := r.ExposureManager.ReconcileExposure(ctx, &instance); err != nil {
+		log.Error(err, "Failed to reconcile instance exposure")
+		return ctrl.Result{}, err
+	}
+
 	if err = r.podScheduleStatusIntoInstance(ctx, &instance); err != nil {
 		log.Error(err, "unable to retrieve pod schedule status")
 	}
@@ -247,10 +264,16 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
+
+	// Inizializza il manager per l'esposizione pubblica con lo scheme
+	r.ExposureManager = publicexposure.NewManager(mgr.GetClient(), mgr.GetScheme())
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
+		// RIMUOVI QUESTA LINEA per evitare loop infiniti
+		// Owns(&v1.Service{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).

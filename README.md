@@ -6,7 +6,7 @@
 
 # CrownLabs
 
-CrownLabs is a set of services designed to deliver **remote computing labs** through **per-user environments**, based either on virtual machines or lightweight containers.
+CrownLabs is a set of software services designed to deliver **remote computing labs** through **per-user environments**, based either on virtual machines or lightweight containers.
 
 Instructors can provision a set of environments (e.g., VMs), properly installed with the software required for a given lab (e.g., compilers, simulation software, etc).
 

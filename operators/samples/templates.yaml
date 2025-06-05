@@ -13,52 +13,52 @@ kind: Namespace
 metadata:
   name: workspace-standalone
 ---
-apiVersion: crownlabs.polito.it/v1alpha2
-kind: Template
-metadata:
-  name: green-tea
-  namespace: workspace-tea
-spec:
-  prettyName: Green Tea
-  description: Green tea is a type of tea that is made from ...
-  environmentList:
-    - name: green-tea-1
-      environmentType: VirtualMachine
-      image: registry.crownlabs.example.com/tea/green:finest
-      guiEnabled: true
-      mountMyDriveVolume: false
-      persistent: false
-      resources:
-        cpu: 2
-        memory: 2G
-        reservedCPUPercentage: 25
-  workspace.crownlabs.polito.it/WorkspaceRef:
-    name: tea
-  deleteAfter: 30d
----
-apiVersion: crownlabs.polito.it/v1alpha2
-kind: Template
-metadata:
-  name: dark-coffee
-  namespace: workspace-coffee
-spec:
-  prettyName: Dark coffee
-  description: Too strong to keep it running for a long time
-  environmentList:
-    - name: dark-coffee-1
-      environmentType: Container
-      image: registry.crownlabs.example.com/coffee/dark:strongest
-      guiEnabled: false
-      persistent: true
-      mountMyDriveVolume: false
-      resources:
-        cpu: 4
-        memory: 1G
-        reservedCPUPercentage: 50
-  workspace.crownlabs.polito.it/WorkspaceRef:
-    name: coffee
-  deleteAfter: 1h
----
+# apiVersion: crownlabs.polito.it/v1alpha2
+# kind: Template
+# metadata:
+#   name: green-tea
+#   namespace: workspace-tea
+# spec:
+#   prettyName: Green Tea
+#   description: Green tea is a type of tea that is made from ...
+#   environmentList:
+#     - name: green-tea-1
+#       environmentType: VirtualMachine
+#       image: registry.crownlabs.example.com/tea/green:finest
+#       guiEnabled: true
+#       mountMyDriveVolume: false
+#       persistent: false
+#       resources:
+#         cpu: 2
+#         memory: 2G
+#         reservedCPUPercentage: 25
+#   workspace.crownlabs.polito.it/WorkspaceRef:
+#     name: tea
+#   deleteAfter: 30d
+# ---
+# apiVersion: crownlabs.polito.it/v1alpha2
+# kind: Template
+# metadata:
+#   name: dark-coffee
+#   namespace: workspace-coffee
+# spec:
+#   prettyName: Dark coffee
+#   description: Too strong to keep it running for a long time
+#   environmentList:
+#     - name: dark-coffee-1
+#       environmentType: Container
+#       image: registry.crownlabs.example.com/coffee/dark:strongest
+#       guiEnabled: false
+#       persistent: true
+#       mountMyDriveVolume: false
+#       resources:
+#         cpu: 4
+#         memory: 1G
+#         reservedCPUPercentage: 50
+#   workspace.crownlabs.polito.it/WorkspaceRef:
+#     name: coffee
+#   deleteAfter: 1h
+# ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
@@ -72,7 +72,7 @@ spec:
       environmentType: Standalone
       mode: Standard
       mountMyDriveVolume: false
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
         startupArgs:
@@ -99,7 +99,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
       resources:
@@ -126,7 +126,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
       containerStartupOptions:
         contentPath: /home/crownlabs
       resources:
