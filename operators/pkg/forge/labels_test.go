@@ -54,15 +54,16 @@ var _ = Describe("Labels forging", func() {
 		}
 
 		type NodeSelectorEnabledLabelCase struct {
-			EnvironmentList      []clv1alpha2.Environment
+			TemplateNodeSelector *map[string]string
 			InstanceNodeSelector map[string]string
 			ExpectedValue        string
 		}
 
 		type InstanceAutomationLabelCase struct {
-			Input                     map[string]string
-			InstanceCustomizationUrls *clv1alpha2.InstanceCustomizationUrls
-			ExpectedValue             string
+			Input          map[string]string
+			ContentUrls    map[string]*clv1alpha2.InstanceContentUrls
+			StatusCheckUrl string
+			ExpectedValue  string
 		}
 
 		BeforeEach(func() {
@@ -158,58 +159,58 @@ var _ = Describe("Labels forging", func() {
 
 		DescribeTable("Correctly configures the node selection presence label",
 			func(c NodeSelectorEnabledLabelCase) {
-				template.Spec.EnvironmentList = c.EnvironmentList
+				template.Spec.NodeSelector = c.TemplateNodeSelector
 				instance.Spec.NodeSelector = c.InstanceNodeSelector
 				output, _ := forge.InstanceLabels(map[string]string{}, &template, &instance)
 				Expect(output).To(HaveKeyWithValue("crownlabs.polito.it/has-node-selector", c.ExpectedValue))
 			},
 			Entry("When the node selector of the environment and the instance are present and different", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key1": "val1"}}},
+				TemplateNodeSelector: &map[string]string{"key1": "val1"},
 				InstanceNodeSelector: map[string]string{"key2": "val2"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment and the instance are present and equal", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is empty and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is present and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is present and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is nil and the node selector of the instance is present", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				TemplateNodeSelector: nil,
 				InstanceNodeSelector: map[string]string{"key": "val"},
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment is nil and the node selector of the instance is empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{"key": "val"}}},
+				TemplateNodeSelector: &map[string]string{"key": "val"},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "true",
 			}),
 			Entry("When the node selector of the environment is empty and the node selector of the instance is nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment and the node selector of the instance are empty", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: &map[string]string{}}},
+				TemplateNodeSelector: &map[string]string{},
 				InstanceNodeSelector: map[string]string{},
 				ExpectedValue:        "false",
 			}),
 			Entry("When the node selector of the environment and the node selector of the instance are nil", NodeSelectorEnabledLabelCase{
-				EnvironmentList:      []clv1alpha2.Environment{{NodeSelector: nil}},
+				TemplateNodeSelector: nil,
 				InstanceNodeSelector: nil,
 				ExpectedValue:        "false",
 			}),
@@ -219,7 +220,12 @@ var _ = Describe("Labels forging", func() {
 			func(c InstanceAutomationLabelCase) {
 				output, _ := forge.InstanceLabels(c.Input, &template, &clv1alpha2.Instance{
 					Spec: clv1alpha2.InstanceSpec{
-						CustomizationUrls: c.InstanceCustomizationUrls,
+						ContentUrls: map[string]*clv1alpha2.InstanceContentUrls{
+							environmentName: {
+								Destination: "",
+							},
+						},
+						StatusCheckUrl: c.StatusCheckUrl,
 					},
 				})
 				if c.ExpectedValue != "" {
@@ -229,26 +235,26 @@ var _ = Describe("Labels forging", func() {
 				}
 			},
 			Entry("When the Instance customizationUrls is nil", InstanceAutomationLabelCase{
-				Input:                     map[string]string{},
-				InstanceCustomizationUrls: nil,
-				ExpectedValue:             "",
+				Input:          map[string]string{},
+				StatusCheckUrl: "",
+				ExpectedValue:  "",
 			}),
 			Entry("When the Instance customizationUrls statusCheck is not set", InstanceAutomationLabelCase{
-				Input:                     map[string]string{},
-				InstanceCustomizationUrls: &clv1alpha2.InstanceCustomizationUrls{},
-				ExpectedValue:             "",
+				Input:          map[string]string{},
+				StatusCheckUrl: "",
+				ExpectedValue:  "",
 			}),
 			Entry("When the Instance customizationUrls statusCheck is set", InstanceAutomationLabelCase{
-				Input:                     map[string]string{},
-				InstanceCustomizationUrls: &clv1alpha2.InstanceCustomizationUrls{StatusCheck: statusCheckURL},
-				ExpectedValue:             "true",
+				Input:          map[string]string{},
+				StatusCheckUrl: statusCheckURL,
+				ExpectedValue:  "true",
 			}),
 			Entry("When the Instance termination label was already set", InstanceAutomationLabelCase{
 				Input: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 				},
-				InstanceCustomizationUrls: &clv1alpha2.InstanceCustomizationUrls{StatusCheck: statusCheckURL},
-				ExpectedValue:             "false",
+				StatusCheckUrl: statusCheckURL,
+				ExpectedValue:  "false",
 			}),
 		)
 
@@ -444,7 +450,7 @@ var _ = Describe("Labels forging", func() {
 		}
 		DescribeTable("Correctly populates the labels set",
 			func(c AutomationLabelsOnTerminationCase) {
-				Expect(forge.InstanceAutomationLabelsOnTermination(c.Input, c.InputSubmissionNeeded)).To(Equal(c.ExpectedOutput))
+				Expect(forge.InstanceAutomationLabelsOnTermination(c.Input, environmentName, c.InputSubmissionNeeded)).To(Equal(c.ExpectedOutput))
 			},
 			Entry("When the input labels map is nil", AutomationLabelsOnTerminationCase{
 				Input:                 nil,
@@ -452,6 +458,7 @@ var _ = Describe("Labels forging", func() {
 				ExpectedOutput: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 					forge.InstanceSubmissionSelectorLabel:  "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the submission is not needed", AutomationLabelsOnTerminationCase{
@@ -460,6 +467,7 @@ var _ = Describe("Labels forging", func() {
 				ExpectedOutput: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 					forge.InstanceSubmissionSelectorLabel:  "false",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the input labels map contains other values", AutomationLabelsOnTerminationCase{
@@ -469,17 +477,20 @@ var _ = Describe("Labels forging", func() {
 					"some-key":                             "some-value",
 					forge.InstanceTerminationSelectorLabel: "false",
 					forge.InstanceSubmissionSelectorLabel:  "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the input labels map is already compliant", AutomationLabelsOnTerminationCase{
 				Input: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 					forge.InstanceSubmissionSelectorLabel:  "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 				InputSubmissionNeeded: true,
 				ExpectedOutput: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 					forge.InstanceSubmissionSelectorLabel:  "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 		)
@@ -489,7 +500,7 @@ var _ = Describe("Labels forging", func() {
 				input = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
 				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
 			})
-			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnTermination(input, true) })
+			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnTermination(input, environmentName, true) })
 			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
 		})
 	})
@@ -503,7 +514,7 @@ var _ = Describe("Labels forging", func() {
 
 		DescribeTable("Correctly populates the labels set",
 			func(c AutomationLabelsOnSubmissionCase) {
-				Expect(forge.InstanceAutomationLabelsOnSubmission(c.Input, c.InputSubmissionSuccess)).To(Equal(c.ExpectedOutput))
+				Expect(forge.InstanceAutomationLabelsOnSubmission(c.Input, environmentName, c.InputSubmissionSuccess)).To(Equal(c.ExpectedOutput))
 			},
 			Entry("When the input labels map contains other values", AutomationLabelsOnSubmissionCase{
 				Input:                  map[string]string{"some-key": "some-value"},
@@ -512,6 +523,7 @@ var _ = Describe("Labels forging", func() {
 					"some-key":                             "some-value",
 					forge.InstanceSubmissionSelectorLabel:  "false",
 					forge.InstanceSubmissionCompletedLabel: "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the input labels map is nil", AutomationLabelsOnSubmissionCase{
@@ -520,17 +532,20 @@ var _ = Describe("Labels forging", func() {
 				ExpectedOutput: map[string]string{
 					forge.InstanceSubmissionSelectorLabel:  "false",
 					forge.InstanceSubmissionCompletedLabel: "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the input labels map is already compliant", AutomationLabelsOnSubmissionCase{
 				Input: map[string]string{
 					forge.InstanceSubmissionSelectorLabel:  "false",
 					forge.InstanceSubmissionCompletedLabel: "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 				InputSubmissionSuccess: true,
 				ExpectedOutput: map[string]string{
 					forge.InstanceSubmissionSelectorLabel:  "false",
 					forge.InstanceSubmissionCompletedLabel: "true",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 			Entry("When the submission is not successful", AutomationLabelsOnSubmissionCase{
@@ -539,6 +554,7 @@ var _ = Describe("Labels forging", func() {
 				ExpectedOutput: map[string]string{
 					forge.InstanceSubmissionSelectorLabel:  "false",
 					forge.InstanceSubmissionCompletedLabel: "false",
+					forge.EnvironmentNameLabel:             environmentName,
 				},
 			}),
 		)
@@ -551,7 +567,7 @@ var _ = Describe("Labels forging", func() {
 				expectedInput = map[string]string{"crownlabs.polito.it/managed-by": "whatever"}
 			})
 
-			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnSubmission(input, false) })
+			JustBeforeEach(func() { forge.InstanceAutomationLabelsOnSubmission(input, environmentName, false) })
 			It("The original labels map is not modified", func() { Expect(input).To(Equal(expectedInput)) })
 		})
 	})
