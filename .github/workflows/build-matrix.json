@@ -40,12 +40,6 @@
         "dockerfile": "./operators/build/crownlabs-image-list/Dockerfile",
         "harbor-project": "crownlabs-core"
     },
-    {
-        "component": "delete-stale-instances",
-        "context": "./operators",
-        "dockerfile": "./operators/build/delete-stale-instances/Dockerfile",
-        "harbor-project": "crownlabs-core"
-    },
 
     {
         "component": "frontend-app",

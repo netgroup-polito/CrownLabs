@@ -68,8 +68,10 @@ instance-operator:
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
+      vncImage: crownlabs/tigervnc
+      contentDownloaderImage: crownlabs/content-downloader
+      contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
@@ -79,6 +81,27 @@ instance-operator:
       url: registry.crownlabs.example.com
       secretName: registry-credentials
     maxConcurrentReconciles: 1
+    maxAutomationConcurrentReconciles: 1
+    sharedVolumeOptions:
+      storageClass: rook-nfs
+    monitoring:
+      prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+    automation:
+      maxConcurrentTerminationReconciles: 1
+      maxConcurrentInactiveTerminationReconciles: 1
+      maxConcurrentSubmissionReconciles: 1
+      terminationStatusCheckTimeout: "3s"
+      terminationStatusCheckInterval: "2m" 
+      inactiveTerminationStatusCheckTimeout: "3s"
+      inactiveTerminationStatusCheckInterval: "24h"
+      inactiveTerminationMaxNumberOfAlerts: 3
+    smtp:
+      server: smtp.example.com
+      port: 123
+      identity: example
+      username: example
+      password: example
+      from: example@example.com
 
 tenant-operator:
   replicaCount: 1
@@ -124,14 +147,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
 
 exam-agent:
   replicaCount: 1

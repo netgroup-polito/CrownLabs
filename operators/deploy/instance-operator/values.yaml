@@ -24,13 +24,27 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
-  automation:
-    maxConcurrentTerminationReconciles: 1
-    terminationStatusCheckTimeout: "3s"
-    terminationStatusCheckInterval: "2m"
-    maxConcurrentSubmissionReconciles: 1
+  maxConcurrentShVolReconciles: 1 
   sharedVolumeOptions:
     storageClass: rook-nfs
+  monitoring:
+    prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+  automation:
+    maxConcurrentTerminationReconciles: 1
+    maxConcurrentInactiveTerminationReconciles: 1
+    maxConcurrentSubmissionReconciles: 1
+    terminationStatusCheckTimeout: "3s"
+    terminationStatusCheckInterval: "2m" 
+    inactiveTerminationStatusCheckTimeout: "3s"
+    inactiveTerminationStatusCheckInterval: "24h"
+    inactiveTerminationMaxNumberOfAlerts: 3
+  smtp:
+    server: smtp.example.com
+    port: 123
+    identity: example
+    username: example
+    password: example
+    from: example@example.com
 
 image:
   repository: crownlabs/instance-operator

@@ -20,9 +20,6 @@ gen: generate fmt vet manifests
 test:
 	go test ./... -coverprofile coverage.out -covermode=count
 
-test-python: python-dependencies
-	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
-
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f deploy/crds
@@ -79,11 +76,20 @@ run-instance: generate
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
 				--container-env-sidecars-tag=v0.14.5
 
+run-instance-automation: generate
+	go run cmd/instance-automation/main.go\
+				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
+				--website-base-url=${DOMAIN}\
+				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
+				--container-env-sidecars-tag=v0.14.5
+
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: samples-local install-local run-instance
 
+run-instance-automation-local: DOMAIN="crownlabsfake.polito.it"
+run-instance-automation-local: samples-local install-local run-instance-automation
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
@@ -99,9 +105,6 @@ run-tenant: generate
 install-local: manifests
 	kubectl apply -f deploy/crds
 	kubectl apply -f tests/crds
-
-python-dependencies:
-	pip3 install -r ./build/delete-stale-instances/requirements.txt
 
 samples-local:
 	kubectl apply -f ./samples/

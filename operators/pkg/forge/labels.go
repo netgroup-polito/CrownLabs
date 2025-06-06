@@ -42,6 +42,9 @@ const (
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
 
+	// InstanceInactivityIgnoreNamespace -> label added to the Namespace to ignore inactivity termination for Instances in it.
+	InstanceInactivityIgnoreNamespace = "crownlabs.polito.it/instance-inactivity-ignore"
+
 	labelManagedByInstanceValue = "instance"
 	labelManagedByTenantValue   = "tenant"
 	labelTypeSandboxValue       = "sandbox"

@@ -59,6 +59,7 @@ jobs:
         uses: dorny/paths-filter@v2
         id: pathFilter
         with:
+          base: 'HEAD'
           filters: |
             operators:
               - 'operators/**'
@@ -86,7 +87,6 @@ jobs:
         working-directory: operators/
         run: |
           make test
-          make test-python
 
       - name: Send coverage
         if: steps.pathFilter.outputs.operators == 'true'
