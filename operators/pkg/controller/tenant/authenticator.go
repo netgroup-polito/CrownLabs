@@ -121,6 +121,39 @@ func (r *TenantReconciler) createTenantInKeycloak(
 	return nil
 }
 
+func (r *TenantReconciler) deleteTenantInKeycloak(
+	ctx context.Context,
+	tenant *crownlabsv1alpha2.Tenant,
+) error {
+	actor := utils.GetKeycloakActor()
+	if !actor.IsInitialized() {
+		klog.Info("Keycloak actor not initialized, skipping Keycloak deletion")
+		return nil
+	}
+
+	if !tenant.Status.Keycloak.UserCreated.Created {
+		klog.Infof("Tenant %s not created in Keycloak, skipping deletion", tenant.Name)
+		return nil
+	}
+
+	// Delete the tenant in Keycloak
+	if err := actor.DeleteUser(ctx, tenant.Status.Keycloak.UserCreated.Name); err != nil {
+		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tenant.Name, err)
+		return fmt.Errorf("error deleting tenant %s in Keycloak: %w", tenant.Name, err)
+	} else {
+		klog.Infof("Tenant %s deleted in Keycloak", tenant.Name)
+	}
+	// Reset the Keycloak status in the tenant
+	tenant.Status.Keycloak = crownlabsv1alpha2.KeycloakStatus{
+		UserCreated: crownlabsv1alpha2.NameCreated{
+			Name:    "",
+			Created: false,
+		},
+		UserConfirmed: false,
+	}
+	return nil
+}
+
 func (r *TenantReconciler) KeycloakEventHandler(
 	hw http.ResponseWriter,
 	hr *http.Request,

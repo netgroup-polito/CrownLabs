@@ -162,3 +162,7 @@ func (a *KeycloakActor) CreateUser(
 
 	return userID, nil
 }
+
+func (a *KeycloakActor) DeleteUser(ctx context.Context, userID string) error {
+	return a.Client.DeleteUser(ctx, a.GetAccessToken(), a.Realm, userID)
+}

@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -89,7 +90,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
-		log.Info("Tenant %s deleted", req.Name)
+		log.Info("Tenant deleted", "name", req.Name)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -97,6 +98,25 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsibility of this controller, skipping reconcile")
 		return ctrl.Result{}, nil
+	}
+
+	// check if the Tenant is being deleted
+	if !tn.DeletionTimestamp.IsZero() {
+		err := r.deleteTenant(ctx, &tn)
+		if err != nil {
+			klog.Errorf("Error deleting tenant %s: %v", tn.Name, err)
+			return ctrl.Result{}, err
+		}
+	}
+
+	// add the finalizer if it is not already present
+	if !controllerutil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
+		controllerutil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+		if err := r.Update(ctx, &tn); err != nil {
+			klog.Errorf("Error adding finalizer to tenant %s: %v", tn.Name, err)
+			return ctrl.Result{}, err
+		}
+		klog.Infof("Finalizer %s added to tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
 	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
@@ -199,6 +219,31 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// }).
 		// WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
 		Complete(r)
+}
+
+func (r *TenantReconciler) deleteTenant(
+	ctx context.Context,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	// TODO delete all resources related to the tenant
+
+	// remove the tenant from Keycloak
+	err := r.deleteTenantInKeycloak(ctx, tn)
+	if err != nil {
+		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
+		return err
+	}
+
+	// delete the finalizer
+	if controllerutil.ContainsFinalizer(tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
+		controllerutil.RemoveFinalizer(tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+		if err := r.Update(ctx, tn); err != nil {
+			klog.Errorf("Error removing finalizer from tenant %s: %v", tn.Name, err)
+			return err
+		}
+		klog.Infof("Finalizer %s removed from tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
+	}
+	return nil
 }
 
 func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
