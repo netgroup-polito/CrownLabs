@@ -1,6 +1,8 @@
-- client -> settings -> service account roles (enabled)
-- users -> service-account-crownlabs -> Role mapping -> Assign role -> (realm-management) manage-users
+- client -> settings -> service account roles (enabled), Standard flow (disabled)
+- client -> Service account roles -> Assign role -> (realm-management) manage-users, manage-events, view-events
   (if you don't see the user, go to Clients -> crownlabs -> service account roles -> link to service-account-crownlabs)
+
+**NOTE**: the client MUST be different from the one used to sign in the users (frontend and k8s API gateway).
 
 
 # Webhooks

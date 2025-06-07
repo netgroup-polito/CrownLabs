@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/Nerzal/gocloak/v13"
 	"k8s.io/klog/v2"
@@ -27,18 +28,19 @@ import (
 
 // KcActor contains the needed objects and infos to use keycloak functionalities.
 type KeycloakActor struct {
-	initialized bool
-	Client      *gocloak.GoCloak
-	Realm       string
-	token       *gocloak.JWT
-	tokenMutex  sync.RWMutex
-	// UserRequiredActions   []string
-	// EmailActionsLifeSpanS int
-	credentials struct {
+	initialized    bool
+	Client         *gocloak.GoCloak
+	Realm          string
+	token          *gocloak.JWT
+	tokenMutex     sync.RWMutex
+	tokenExpiresAt int64
+	credentials    struct {
 		ClientID     string
 		ClientSecret string
 	}
 }
+
+const tokenRefreshBuffer = 30 // the token is considered about to expire if it has less than this many seconds left
 
 var actor KeycloakActor
 
@@ -60,9 +62,6 @@ func SetupKeycloakActor(
 		klog.Error("Unable to login as admin on keycloak", err)
 		return err
 	}
-
-	// actor.UserRequiredActions = []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
-	// actor.EmailActionsLifeSpanS = 60 * 60 * 24 * 30 // 30 Days
 
 	actor.Realm = realm
 	actor.credentials.ClientID = clientID
@@ -86,16 +85,20 @@ func (a *KeycloakActor) GetAccessToken() string {
 	a.tokenMutex.RLock()
 	defer a.tokenMutex.RUnlock()
 
-	if a.token == nil || a.token.ExpiresIn <= 0 {
-		klog.Info("Keycloak token is nil or expired, refreshing it")
+	now := time.Now().Unix()
+	// renew rhe token if it is nil or about to expire
+	if a.token == nil || now >= (a.tokenExpiresAt-tokenRefreshBuffer) {
+		klog.Info("Keycloak token is not present or about to expire, refreshing it")
 		ctx := context.Background()
 		token, err := a.Client.LoginClient(ctx, a.credentials.ClientID, a.credentials.ClientSecret, a.Realm)
 		if err != nil {
 			klog.Error("Unable to refresh keycloak token", err)
 			os.Exit(1)
 		}
+
 		a.token = token
-		klog.Info("Keycloak token refreshed")
+		// set the token expiration time
+		a.tokenExpiresAt = now + int64(token.ExpiresIn)
 	}
 
 	return a.token.AccessToken
