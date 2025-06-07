@@ -31,9 +31,9 @@ var (
 
 func init() {
 	flag.StringVar(&keycloakURL, "keycloak-url", "", "Keycloak URL")
+	flag.StringVar(&keycloakRealm, "keycloak-realm", "", "Keycloak Realm")
 	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak Client ID")
 	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak Client Secret")
-	flag.StringVar(&keycloakRealm, "keycloak-realm", "", "Keycloak Realm")
 }
 
 func setup_keycloak(

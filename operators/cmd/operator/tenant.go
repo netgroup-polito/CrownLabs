@@ -17,7 +17,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -29,7 +28,7 @@ import (
 )
 
 var (
-	tenantWebhookPort int
+	tenantWebhookAddr string
 	tenantNSKeepAlive time.Duration
 )
 
@@ -38,7 +37,7 @@ const (
 )
 
 func init() {
-	flag.IntVar(&tenantWebhookPort, "tenant-webhook-port", 8082, "Port for the tenant webhook server for Keycloak events")
+	flag.StringVar(&tenantWebhookAddr, "tenant-webhook-port", ":8082", "Port for the tenant webhook server for Keycloak events")
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
 		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
 
@@ -81,10 +80,9 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 		tn.KeycloakEventHandler(w, r)
 	})
 
-	addr := fmt.Sprintf(":%d", tenantWebhookPort)
-	log.Printf("HTTP server for Keycloak events listening on port %d", tenantWebhookPort)
+	log.Printf("HTTP server for Keycloak events listening on %s", tenantWebhookAddr)
 
-	err := http.ListenAndServe(addr, mux)
+	err := http.ListenAndServe(tenantWebhookAddr, mux)
 	if err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "operator.fullname" . }}-keycloak-webhook
+spec:
+  selector:
+    {{- include "operator.selectorLabels" . | nindent 6 }}
+  ports:
+  - name: http
+    port: 80
+    targetPort: keycloack-webhook
