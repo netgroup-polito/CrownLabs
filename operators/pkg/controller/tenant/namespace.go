@@ -1,29 +1,27 @@
 package tenant
+
 import (
 	"context"
 	"fmt"
-	
+
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/klog/v2"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
-
 )
-	
 
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.
 func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
@@ -37,7 +35,6 @@ func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crown
 
 	return err
 }
-
 
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
 func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (keepNsOpen bool, err error) {
@@ -105,7 +102,6 @@ func (r *TenantReconciler) enforceClusterResources(ctx context.Context, tn *crow
 	return nsOk, err
 }
 
-
 // updateTnNamespace updates the tenant namespace.
 func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
@@ -113,7 +109,6 @@ func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 	ns.Labels["crownlabs.polito.it/name"] = tnName
 	ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 }
-
 
 // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
 func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
@@ -214,13 +209,12 @@ func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, t
 	return true, retErr
 }
 
-//other stuff that need to be moved later on 
+// other stuff that need to be moved later on
 func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}
-	labels[r.TargetLabelKey] = r.TargetLabelValue
+	labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
 	labels["crownlabs.polito.it/managed-by"] = "tenant"
 	return labels
 }
-

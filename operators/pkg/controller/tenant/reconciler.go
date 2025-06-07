@@ -34,14 +34,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
@@ -72,8 +71,6 @@ type TenantReconciler struct {
 	TargetLabel utils.Label
 	//KeepAliveTime    time.Duration
 	TenantNSKeepAlive           time.Duration
-	TargetLabelKey              string
-	TargetLabelValue            string
 	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
 	MyDrivePVCsSize             resource.Quantity
 	MyDrivePVCsStorageClassName string
@@ -96,37 +93,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if tn.Labels[r.TargetLabelKey] != r.TargetLabelValue {
-		// if entered here it means that is in the reconcile
-		// which has been requed after
-		// the last successful one with the old target label
-		return ctrl.Result{}, nil
-	}
-
-	
-	// Determine if the personal namespace should be deleted
-
-	nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
-
-	// Test if namespace has been open for too long; check if it is ok to delete
-	keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName)
-	if err != nil {
-		klog.Errorf("Error checking whether tenant namespace %s should be kept alive: %s", nsName, err)
-		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
-		return ctrl.Result{}, err
-	}
-
-	// update resource quota in the status of the tenant after checking validity of workspaces.
-	//tn.Status.Quota = forge.TenantResourceList(workspaces, tn.Spec.Quota)
-
-	_, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
-	if err != nil {
-		klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
-		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
-		return ctrl.Result{}, err
-	}
-
-
 	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsibility of this controller, skipping reconcile")
@@ -142,7 +108,40 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if verified {
 		// if the Tenant has already been verified, we can proceed with the reconciliation
 		// and create related resources
-		log.Info("create resources")
+
+		// --v-- TODO --v--
+
+		// guardare l'utlimo accesso checkNamespaceKeepAlive
+		// if la funzione da true {
+		//   andiamo a cercare se il pers nams è creato o meno e nel caso lo creiamo
+		//   andiamo acontare le quota
+		//   occupiamoci del sandbox
+		//   e di tutte le altre cose che ci sono nelle funzioni
+		//}
+		// altrimenti cancelliamo le risorse -> deleteAllResources
+
+		// --^-- TODO --^--
+		// --v-- fake implementation --v--
+
+		nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
+
+		// Test if namespace has been open for too long; check if it is ok to delete
+		keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName)
+		if err != nil {
+			klog.Errorf("Error checking whether tenant namespace %s should be kept alive: %s", nsName, err)
+			tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+			return ctrl.Result{}, err
+		}
+
+		_, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
+		// if err != nil {
+		// 	klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
+		// 	tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+		// 	return ctrl.Result{}, err
+		// }
+
+		// --^-- fake implementation --^--
+
 	} else {
 		// if the Tenant has not been verified, we can skip the reconciliation
 		// and wait for the next reconcile loop
@@ -161,9 +160,14 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
+	pred, err := r.TargetLabel.GetPredicate()
+	if err != nil {
+		klog.Errorf("Error creating predicate for tenant controller: %v", err)
+		return fmt.Errorf("error creating predicate for tenant controller: %w", err)
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(labelSelectorPredicate(r.TargetLabelKey, r.TargetLabelValue))).
+		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(pred)).
 		Owns(&v1.Secret{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&v1.Namespace{}).
@@ -326,7 +330,6 @@ func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v
 	}
 }
 
-
 func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
 	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
 
@@ -336,13 +339,11 @@ func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path strin
 	sec.Data[NFSSecretPathKey] = []byte(path)
 }
 
-
 func (r *TenantReconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
 }
-
 
 func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
