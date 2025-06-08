@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-trk-metrics
+  labels:
+    {{- include "bastion-operator.labels" . | nindent 4 }}
+    {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: trk-metrics
+      protocol: TCP
+      name: trk-metrics
+  selector:
+    {{- include "bastion-operator.selectorLabels" . | nindent 4 }}
