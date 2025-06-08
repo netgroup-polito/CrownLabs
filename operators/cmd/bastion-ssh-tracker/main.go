@@ -46,7 +46,7 @@ func main() {
 	iface := flag.String("ssh-tracker-interface", "any", "The network interface on which the SSH tracker will listen for connections.")
 	port := flag.Int("ssh-tracker-port", 22, "The port on which the SSH tracker will listen for connections.")
 	snaplen := flag.Int("ssh-tracker-snaplen", 1600, "The snaplen for the SSH tracker.")
-	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	metricsAddr := flag.String("ssh-tracker-metrics-addr", ":8082", "The address the metric endpoint binds to.")
 
 	flag.Parse()
 
@@ -113,6 +113,7 @@ func main() {
 	sshTracker := tracker.NewSSHTracker()
 	go func() {
 		trackerRunning.Store(true)
+		log.Printf("Starting SSH tracker on interface %s, port %d, snaplen %d", *iface, *port, *snaplen)
 		if err := sshTracker.Start(*iface, *port, *snaplen); err != nil {
 			healthMutex.Lock()
 			trackerError = err
