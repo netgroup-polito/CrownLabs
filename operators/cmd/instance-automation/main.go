@@ -78,7 +78,6 @@ func main() {
 	maxConcurrentInactiveTerminationReconciles := flag.Int("max-concurrent-reconciles-inactive-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Inactive Termination controller")
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
-	instanceInactiveTerminationStatusCheckInterval := flag.Duration("instance-inactive-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
@@ -159,15 +158,14 @@ func main() {
 	// Configure the Instance Inactive termination controller
 	instanceInactiveTermination := "InstanceInactiveTermination"
 	if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-		Client:                          mgr.GetClient(),
-		Scheme:                          mgr.GetScheme(),
-		EventsRecorder:                  mgr.GetEventRecorderFor(instanceInactiveTermination),
-		NamespaceWhitelist:              nsWhitelist,
-		StatusCheckRequestTimeout:       *instanceInactiveTerminationStatusCheckTimeout,
-		InstanceInactivityCheckInterval: *instanceInactiveTerminationStatusCheckInterval,
-		InstanceMaxNumberOfAlerts:       *instanceInactiveTerminationMaxNumberOfAlerts,
-		MailClient:                      mailClient,
-		PrometheusURL:                   *prometheusURL,
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceInactiveTermination),
+		NamespaceWhitelist:        nsWhitelist,
+		StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
+		InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
+		MailClient:                mailClient,
+		PrometheusURL:             *prometheusURL,
 	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 		os.Exit(1)

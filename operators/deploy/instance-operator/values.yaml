@@ -36,7 +36,6 @@ configurations:
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m" 
     inactiveTerminationStatusCheckTimeout: "3s"
-    inactiveTerminationStatusCheckInterval: "24h"
     inactiveTerminationMaxNumberOfAlerts: 3
   smtp:
     server: smtp.example.com
