@@ -169,7 +169,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("stale instances done")
 
 	// check for inactivity and decide whether to terminate the instance or not
-	terminate, err := r.CheckInstanceTermination(ctx, &instance)
+	terminate, remainingTime, err := r.CheckInstanceTermination(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -212,8 +212,15 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("Inactive termination done")
 
+	// Calculate requeue time at the instance inactive deadline time:
+	// if the instance is not yet to be terminated, we requeue it after the remaining time
+	requeueTime := remainingTime
+	// add 1 minute to the remaining time to avoid requeueing just before the deadline
+	// avoiding a double requeue
+	requeueTime += 1 * time.Minute
+
 	dbgLog.Info("requeueing instance")
-	return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
+	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
 // getLastActivityTime retrieves the last time an instance was accessed.
@@ -293,7 +300,17 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// Get instance activity data
-	lastActivityTime, err := getLastActivityTime(v1api, instance.Namespace, instance.Name, r.InstanceInactivityCheckInterval)
+	interval, err := r.getInactivityTimeout(ctx, instance)
+	if err != nil {
+		log.Error(err, "failed retrieving inactivity timeout from instance template")
+		return err
+	}
+	intervalDuration, err := time.ParseDuration(interval)
+	if err != nil {
+		log.Error(err, "failed parsing inactivity timeout duration")
+		return err
+	}
+	lastActivityTime, err := getLastActivityTime(v1api, instance.Namespace, instance.Name, intervalDuration)
 
 	if err != nil {
 		return fmt.Errorf("failed retrieving last activity time from Prometheus: %w", err)
@@ -304,32 +321,36 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
+	var remainingTime time.Duration
 
 	// get the inactivity timeout from the instance template
 	inactivityTimeout, err := r.getInactivityTimeout(ctx, instance)
 	if err != nil {
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
-		return false, err
+		return false, 0, err
 	}
 
 	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[lastActivityAnnotation])
 	if err != nil {
 		log.Error(err, "failed parsing LastLogin time")
-		return false, err
+		return false, 0, err
 	}
 	timeoutDuration, err := time.ParseDuration(inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed parsing inactivity timeout duration")
-		return false, err
-	}
-	if time.Since(lastLogin) > timeoutDuration {
-		log.Info("Instance inactivity detected", "instance", instance.Name)
-		return true, nil
+		return false, 0, err
 	}
 
-	return false, nil
+	// Check if the instance has been inactive for longer than the timeout duration
+	remainingTime = timeoutDuration - time.Since(lastLogin)
+	if remainingTime <= 0 {
+		log.Info("Instance inactivity detected", "instance", instance.Name)
+		return true, 0, nil
+	}
+
+	return false, remainingTime, nil
 }
 
 // isPrometheusHealthy checks if Prometheus and required metrics are available.
