@@ -146,11 +146,16 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		_ = r.Patch(ctx, &instance, patch)
 	}
 
+	tracer.Step("annotations checked")
+
 	// update the last login time of the instance
 	if err := r.UpdateInstanceLastLogin(ctx, &instance); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
+
+	tracer.Step("instance last login updated")
+
 	// check if the instance reached the maximum time of lifetime and delete it if so
 	isDeleted, err := r.deleteStaleInstances(ctx, &instance)
 	if err != nil {
@@ -160,12 +165,18 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		log.Info("instance is deleted, skipping inactivity check", "instance", instance.Name)
 		return ctrl.Result{}, nil
 	}
+
+	tracer.Step("stale instances done")
+
 	// check for inactivity and decide whether to terminate the instance or not
 	terminate, err := r.CheckInstanceTermination(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
 	}
+
+	tracer.Step("Inactive termination check done")
+
 	log.Info("instance termination check", "terminate", terminate)
 	if terminate {
 		// retrieve the user owner of the instance
@@ -198,6 +209,8 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	} else {
 		log.Info("instance is not yet to be terminated", "instance", instance.Name)
 	}
+
+	tracer.Step("Inactive termination done")
 
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
