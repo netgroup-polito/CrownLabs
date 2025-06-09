@@ -47,14 +47,13 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder                  record.EventRecorder
-	Scheme                          *runtime.Scheme
-	NamespaceWhitelist              metav1.LabelSelector
-	StatusCheckRequestTimeout       time.Duration
-	InstanceInactivityCheckInterval time.Duration
-	InstanceMaxNumberOfAlerts       int
-	MailClient                      *MailClient
-	PrometheusURL                   string
+	EventsRecorder            record.EventRecorder
+	Scheme                    *runtime.Scheme
+	NamespaceWhitelist        metav1.LabelSelector
+	StatusCheckRequestTimeout time.Duration
+	InstanceMaxNumberOfAlerts int
+	MailClient                *MailClient
+	PrometheusURL             string
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -76,8 +75,18 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 		// Do not requeue on update events
 		// Inactive Instance Controller is triggered only by requeue events
 		WithEventFilter(predicate.Funcs{
-			UpdateFunc: func(_ event.UpdateEvent) bool {
-				return false
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldInstance, oldOk := e.ObjectOld.(*clv1alpha2.Instance)
+				newInstance, newOk := e.ObjectNew.(*clv1alpha2.Instance)
+				if !oldOk || !newOk {
+					return false
+				}
+
+				oldValue := oldInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
+				newValue := newInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
+
+				// Requeue only if the IstanceInactivityIgnoreNamespace label has changed
+				return oldValue != newValue
 			},
 		}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceInactiveTermination")).
@@ -116,7 +125,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
 	if stop := utils.CheckSingleLabel(&instance, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
 		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
-		return ctrl.Result{RequeueAfter: r.InstanceInactivityCheckInterval}, nil
+		return ctrl.Result{}, nil
 	}
 
 	tracer.Step("labels checked")
