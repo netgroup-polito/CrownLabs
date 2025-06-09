@@ -9,7 +9,10 @@ spec:
   endpoints:
     - interval: 15s
       path: /metrics
-      port: metrics
+      port: op-metrics
+    - interval: 15s
+      path: /metrics
+      port: trk-metrics
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
