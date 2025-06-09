@@ -233,9 +233,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 }
 
 // getLastActivityTime retrieves the last time an instance was accessed.
-func getLastActivityTime(promClient v1.API, tenantNS, instanceName string, interval time.Duration) (time.Time, error) {
-	query := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, tenantNS, instanceName)
-
+func getLastActivityTime(query string, promClient v1.API, interval time.Duration) (time.Time, error) {
 	end := time.Now()
 	start := end.Add(-interval)
 
@@ -307,7 +305,6 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
 	}
-
 	// Get instance activity data
 	interval, err := r.getInactivityTimeout(ctx, instance)
 	if err != nil {
@@ -319,13 +316,26 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		log.Error(err, "failed parsing inactivity timeout duration")
 		return err
 	}
-	lastActivityTime, err := getLastActivityTime(v1api, instance.Namespace, instance.Name, intervalDuration)
 
-	if err != nil {
-		return fmt.Errorf("failed retrieving last activity time from Prometheus: %w", err)
+	// Get instance activity data
+	queryNginx := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, instance.Namespace, instance.Name)
+	lastActivityTimeNginx, errNginx := getLastActivityTime(queryNginx, v1api, intervalDuration)
+
+	querySSH := fmt.Sprintf(`bation_ssh_conntections{namespace=%q, destination_Ip=%q}`, instance.Namespace, instance.Status.IP)
+	lastActivityTimeSSH, errSSH := getLastActivityTime(querySSH, v1api, intervalDuration)
+
+	if errNginx != nil && errSSH != nil {
+		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
 	}
 
-	instance.ObjectMeta.Annotations[lastActivityAnnotation] = lastActivityTime.Format(time.RFC3339)
+	var maxLastActivityTime time.Time
+	if lastActivityTimeNginx.After(lastActivityTimeSSH) {
+		maxLastActivityTime = lastActivityTimeNginx
+	} else {
+		maxLastActivityTime = lastActivityTimeSSH
+	}
+
+	instance.ObjectMeta.Annotations[lastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
 	return nil
 }
 
