@@ -42,6 +42,12 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
+
+	kamajiv1alpha1 "github.com/clastix/cluster-api-control-plane-provider-kamaji/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 var (
@@ -56,6 +62,12 @@ func init() {
 
 	utilruntime.Must(virtv1.AddToScheme(scheme))
 	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+
+	utilruntime.Must(capiv1.AddToScheme(scheme))         // core Cluster API kinds
+	utilruntime.Must(infrav1.AddToScheme(scheme))        // KubeVirt infrastructure provider
+	utilruntime.Must(bootstrapv1.AddToScheme(scheme))    // KubeadmConfig / … templates
+	utilruntime.Must(controlplanev1.AddToScheme(scheme)) // KubeadmControlPlane
+	utilruntime.Must(kamajiv1alpha1.AddToScheme(scheme)) // KubeadmControlPlane
 }
 
 func main() {

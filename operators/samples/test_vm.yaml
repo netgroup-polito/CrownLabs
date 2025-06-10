@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testvm
+  labels:
+    crownlabs.polito.it/operator-selector: local
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: instance-jupyterlab
+  namespace: testvm
+spec:
+  template.crownlabs.polito.it/TemplateRef:
+    name: jupyterlab
+    namespace: workspace-standalone
+  tenant.crownlabs.polito.it/TenantRef:
+    name: john.doe
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-standalone
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: vscode-c-cpp-persistent
+  namespace: workspace-standalone
+spec:
+  prettyName: vscode c-cpp persistent
+  description: A template about vscode
+  environmentList:
+    - name: vscode-environment
+      mountMyDriveVolume: false
+      environmentType: Standalone
+      mode: Standard
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
+      containerStartupOptions:
+        contentPath: /config/workspace
+      resources:
+        cpu: 2
+        memory: 2G
+        disk: 4G
+        reservedCPUPercentage: 25
+      rewriteURL: true
+      persistent: true
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: standalone
+  deleteAfter: 30d
