@@ -13,6 +13,7 @@ configurations:
 image:
   repositoryBastion: crownlabs/ssh-bastion
   repositorySidecar: crownlabs/bastion-operator
+  repositoryWebBastion: crownlabs/webssh-bastion
   repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
@@ -97,12 +98,18 @@ resources:
     requests:
       memory: 100Mi
       cpu: 10m
+  webssh:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 100Mi
+      cpu: 100m
 
 service:
   type: LoadBalancer
   port: 22
   externalTrafficPolicy: Cluster
-
 
 sshKeysSecret:
   name: crownlabs-bastion-operator-ssh-keys
@@ -110,3 +117,33 @@ sshKeysSecret:
   kubectlImage: bitnami/kubectl:1.19
 
 rbacResourcesName: crownlabs-bastion-operator
+
+webssh:
+  ingress:
+    enabled: true
+    annotations:
+      #cert-manager.io/cluster-issuer: letsencrypt-production
+      nginx.ingress.kubernetes.io/custom-http-errors: "418"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      nginx.ingress.kubernetes.io/websocket-services: "{{ include \"bastion-operator.fullname\" . }}-webssh"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    hostname: crownlabs.example.com
+    path: /webssh
+    pathType: Prefix
+    secret: frontend-app-certificate # reuse the frontend secret
+  service:
+    type: ClusterIP
+    port: 8085
+    targetPort: http
+  masterKey:
+    secretName: crownlabs-bastion-operator-web-master-key
+    type: ed25519
+    name: webssh-bastion-master
+    comment: webssh-bastion-master-key
+  config:
+    user: crownlabs
+    timeoutDuration: 30 # minutes
+    maxConCount: 1000
+    vmPort: 22
+    webSocketPort: 8085

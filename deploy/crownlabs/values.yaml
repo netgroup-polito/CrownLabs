@@ -118,6 +118,15 @@ bastion-operator:
     sshTrackerPort: 22
     sshTrackerSnaplen: 1600
     sshTrackerMetricsAddr: ":8082"
+    
+  webssh:
+    ingress:
+      enabled: true
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+      hostname: crownlabs.example.com
+      path: /webssh
+      pathType: Prefix
 
 image-list:
   replicaCount: 1
