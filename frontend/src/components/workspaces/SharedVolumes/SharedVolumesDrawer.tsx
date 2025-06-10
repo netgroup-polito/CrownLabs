@@ -19,7 +19,6 @@ import SharedVolumeForm, {
   Actions,
 } from './SharedVolumeForms/SharedVolumeForm';
 import { ModalAlert } from '../../common/ModalAlert';
-import Text from 'antd/lib/typography/Text';
 import { getShVolPatchJson } from '../../../graphql-components/utils';
 
 export interface ISharedVolumesDrawerProps {
@@ -251,11 +250,9 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   headTitle="Confirm Shared Volume deletion"
                   message={
                     <>
-                      <Text>
-                        Do you really want to delete{' '}
-                        <b>{selectedShVol?.prettyName}</b>?<br />
-                        All data will be lost.
-                      </Text>
+                      Do you really want to delete{' '}
+                      <b>{selectedShVol?.prettyName}</b>?<br />
+                      All data will be lost.
                     </>
                   }
                   description={`Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}

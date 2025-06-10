@@ -1,7 +1,6 @@
 import type { FC } from 'react';
-import { Row, Col } from 'antd';
+import { Row, Col, Badge } from 'antd';
 import './WorkspaceGridItem.less';
-import Badge from '../../../common/Badge';
 
 export interface IWorkspaceGridItemProps {
   id: number;
@@ -36,9 +35,9 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
           </label>
           {badgeValue && (
             <Badge
-              value={badgeValue}
-              size="middle"
+              count={badgeValue}
               className="absolute top-0 right-0"
+              color="blue"
             />
           )}
         </button>

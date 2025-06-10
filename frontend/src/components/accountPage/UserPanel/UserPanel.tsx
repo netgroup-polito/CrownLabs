@@ -1,9 +1,8 @@
 import { type FC, useState } from 'react';
-import { Row, Col, Avatar, Tabs, Button } from 'antd';
+import { Row, Col, Avatar, Tabs, Button, Modal } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import UserInfo from '../UserInfo/UserInfo';
 import SSHKeysTable from '../SSHKeysTable';
-import Modal from 'antd/lib/modal/Modal';
 import SSHKeysForm from '../SSHKeysForm';
 import { generateAvatarUrl } from '../../../utils';
 

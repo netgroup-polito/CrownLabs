@@ -1,7 +1,5 @@
 import {
   Component,
-  lazy,
-  Suspense,
   useCallback,
   useEffect,
   useState,
@@ -16,6 +14,8 @@ import {
   type SupportedError,
 } from './utils';
 import { ErrorContext } from './ErrorContext';
+import { ErrorHandler } from './ErrorHandler';
+import RenderErrorHandler from './RenderErrorHandler';
 
 interface PropsErrorBoundary {
   children: ReactNode;
@@ -49,9 +49,6 @@ const ErrorContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;
 
   const [errorsQueue, setErrorsQueue] = useState<Array<CustomError>>([]);
-
-  const ErrorHandler = lazy(() => import('./ErrorHandler/ErrorHandler'));
-  const RenderErrorHandler = lazy(() => import('./RenderErrorHandler'));
 
   const [execLogin, setExecLogin] = useState(true);
   useEffect(() => {
@@ -110,20 +107,18 @@ const ErrorContextProvider: FC<PropsWithChildren> = props => {
         flushRenderError,
       }}
     >
-      <Suspense>
-        <ErrorBoundary makeErrorCatcher={makeErrorCatcher}>
-          <ErrorHandler
-            errorsQueue={filteredErrorQueue}
-            show={filteredErrorQueue.length > 0}
-            dismiss={getNextError}
-          />
-          {!hasRenderingError(errorsQueue) ? (
-            children
-          ) : (
-            <RenderErrorHandler errors={renderErrorQueue} />
-          )}
-        </ErrorBoundary>
-      </Suspense>
+      <ErrorBoundary makeErrorCatcher={makeErrorCatcher}>
+        <ErrorHandler
+          errorsQueue={filteredErrorQueue}
+          show={filteredErrorQueue.length > 0}
+          dismiss={getNextError}
+        />
+        {!hasRenderingError(errorsQueue) ? (
+          children
+        ) : (
+          <RenderErrorHandler errors={renderErrorQueue} />
+        )}
+      </ErrorBoundary>
     </ErrorContext.Provider>
   );
 };

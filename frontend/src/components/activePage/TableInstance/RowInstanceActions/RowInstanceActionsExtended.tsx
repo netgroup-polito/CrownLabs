@@ -39,6 +39,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     name,
     prettyName,
     nodeName,
+    running,
   } = instance;
 
   const sshDisabled =
@@ -49,20 +50,22 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const infoContent = (
     <>
       <p className="m-0">
-        <strong>IP: </strong>
-        <Text type="warning" copyable={!!ip}>
-          {ip ?? 'unknown'}
-        </Text>
+        <strong>Instance ID: </strong>
+        <Text italic>{name}</Text>
       </p>
-      <p className="m-0">
-        <strong>Node: </strong>
-        <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
-      </p>
-      {viewMode === WorkspaceRole.manager && (
-        <p className="m-0">
-          <strong>Instance ID: </strong>
-          <Text italic>{name}</Text>
-        </p>
+      {running && (
+        <>
+          <p className="m-0">
+            <strong>IP: </strong>
+            <Text type="warning" copyable={!!ip}>
+              {ip ?? 'unknown'}
+            </Text>
+          </p>
+          <p className="m-0">
+            <strong>Node: </strong>
+            <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
+          </p>
+        </>
       )}
       {viewMode === WorkspaceRole.manager && (
         <p className="m-0 lg:hidden">
@@ -84,11 +87,13 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   return (
     <>
       <div className="inline-flex border-box justify-center xl:pl-4">
-        <Popover placement="top" content={infoContent} trigger="click">
-          <Button shape="circle" className="hidden sm:block mr-3">
-            <InfoOutlined />
-          </Button>
-        </Popover>
+        {
+          <Popover placement="top" content={infoContent} trigger="click">
+            <Button shape="circle" className="hidden sm:block mr-3">
+              <InfoOutlined />
+            </Button>
+          </Popover>
+        }
 
         <Tooltip
           title={getSSHTooltipText(status === Phase.Ready, environmentType!)}

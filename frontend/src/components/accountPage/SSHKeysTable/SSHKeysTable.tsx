@@ -2,7 +2,8 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { Button, Table } from 'antd';
 import { type FC, useState } from 'react';
 import { ModalAlert } from '../../common/ModalAlert';
-import Column from 'antd/lib/table/Column';
+
+const Column = Table.Column;
 
 export interface ISSHKeysTableProps {
   sshKeys?: { name: string; key: string }[];

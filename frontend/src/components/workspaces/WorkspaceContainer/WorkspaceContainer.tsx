@@ -1,5 +1,5 @@
 import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
-import { Modal, Tooltip } from 'antd';
+import { Badge, Modal, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
@@ -20,7 +20,6 @@ import type {
   Template,
 } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
-import Badge from '../../common/Badge';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -141,8 +140,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                 >
                   {workspace.waitingTenants && (
                     <Badge
-                      value={workspace.waitingTenants}
-                      size="small"
+                      count={workspace.waitingTenants}
                       color="yellow"
                       className="absolute -top-2.5 -right-2.5"
                     />

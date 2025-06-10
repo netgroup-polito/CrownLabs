@@ -6,36 +6,31 @@ import {
 } from '@ant-design/icons';
 import { Badge, Dropdown, Space, Tooltip, Typography } from 'antd';
 import { Button } from 'antd';
-import { type FC, useState } from 'react';
+import { type FC, useMemo, useState } from 'react';
 import SvgInfinite from '../../../assets/infinite.svg?react';
 import { type Template, WorkspaceRole } from '../../../utils';
-import { DropDownAction } from '../../../utilsLogic';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 
 const { Text } = Typography;
 export interface ITableTemplateRowProps {
   template: Template;
-  nActive: number;
   destroyAll: () => void;
   expandRow: (rowId: string) => void;
 }
 
 const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
-  const { template, nActive, destroyAll, expandRow } = props;
+  const { template, destroyAll, expandRow } = props;
 
   const { id, name, persistent, gui } = template;
 
   const [showAlert, setShowAlert] = useState(false);
 
-  const dropdownHandler = (key: DropDownAction) => {
-    switch (key) {
-      case DropDownAction.destroy_all:
-        setShowAlert(true);
-        break;
-      default:
-        break;
-    }
-  };
+  const { nRunning, nTotal } = useMemo(() => {
+    const nTotal = template.instances.length;
+    const nRunning = template.instances.filter(i => i.running).length;
+    return { nTotal, nRunning };
+  }, [template.instances]);
+
   return (
     <>
       <div
@@ -54,7 +49,12 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
               style={{ fontSize: '24px' }}
             />
           )}
-          <Badge size="small" text={nActive} className="mx-0" />
+          <Badge
+            size="small"
+            color="blue"
+            count={`${nRunning}/${nTotal}`}
+            className="mx-0"
+          />
           <Text className="font-bold w-28 xs:w-48 sm:w-max" ellipsis>
             {name}
           </Text>
@@ -98,12 +98,12 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           menu={{
             items: [
               {
-                key: DropDownAction.destroy_all,
+                key: 'destroy_all',
                 icon: <DeleteOutlined className="text-lg" />,
                 danger: true,
               },
             ],
-            onClick: ({ key }) => dropdownHandler(key as DropDownAction),
+            onClick: () => setShowAlert(true),
           }}
         >
           <Button

@@ -1,7 +1,6 @@
 import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import { Button } from 'antd';
-import Text from 'antd/lib/typography/Text';
 import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
@@ -101,9 +100,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       <ModalAlert
         headTitle="Confirm Instance deletion"
         message={
-          <Text>
+          <>
             Do you really want to delete <b>{prettyName}</b> ?
-          </Text>
+          </>
         }
         description={`Instance ID: ${name}`}
         type="warning"
@@ -121,7 +120,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             key={1}
             shape="round"
             className="ml-2 w-24"
-            color="danger"
+            type="primary"
+            danger
             onClick={() =>
               deleteInstanceMutation({
                 variables: {
@@ -171,6 +171,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           <Button
             className={`${connectDisabled ? 'pointer-events-none' : ''}`}
             color={classFromProps()}
+            type="primary"
+            variant="solid"
             shape="round"
             size="middle"
             {...connectOptions}

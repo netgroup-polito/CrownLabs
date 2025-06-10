@@ -586,16 +586,6 @@ export function sorter<T>(a: T, b: T, key: keyof T, value: number): number {
   return value === 1 ? result : result * -1;
 }
 
-export enum DropDownAction {
-  start = 'start',
-  stop = 'stop',
-  destroy = 'destroy',
-  connect = 'connect',
-  ssh = 'ssh',
-  upload = 'upload',
-  destroy_all = 'destroy_all',
-}
-
 export const setInstanceRunning = async (
   running: boolean,
   instance: Nullable<Instance>,

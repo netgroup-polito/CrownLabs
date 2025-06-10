@@ -4,6 +4,7 @@ import './App.css';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 import FullPageLoader from './components/common/FullPageLoader';
+import { Layout } from 'antd';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -23,7 +24,15 @@ function App() {
   );
 
   return (
-    <Suspense fallback={<FullPageLoader />}>
+    <Suspense
+      fallback={
+        <Layout>
+          <Layout.Content>
+            <FullPageLoader />
+          </Layout.Content>
+        </Layout>
+      }
+    >
       <AppLayout
         TooltipButtonLink={
           'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +

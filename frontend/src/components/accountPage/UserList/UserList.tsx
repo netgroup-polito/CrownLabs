@@ -8,7 +8,6 @@ import {
   RedoOutlined,
   CheckOutlined,
 } from '@ant-design/icons';
-import Column from 'antd/lib/table/Column';
 import { Role } from '../../../generated-types';
 import { Tooltip } from 'antd';
 import UserListFormLogic from '../UserListFormLogic/UserListFormLogic';
@@ -22,6 +21,8 @@ import {
   type EnrichedError,
   type SupportedError,
 } from '../../../errorHandling/utils';
+
+const { Column } = Table;
 
 export interface IUserListProps {
   onAddUser: (

@@ -4,7 +4,7 @@ import type { Dispatch, FC, SetStateAction } from 'react';
 import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
-import type { Instance, Template, Workspace } from '../../../utils';
+import type { Instance, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
@@ -68,15 +68,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       ? setExpandedId(old => old.filter(id => id !== rowId))
       : setExpandedId(old => [...old, rowId]);
 
-  const getActives = (templates?: Template[]) => {
-    return (
-      templates?.reduce(
-        (total, { instances }) => (total += instances.length),
-        0,
-      ) || 0
-    );
-  };
-
   const destroySelected = async () => {
     const selection = instances.filter(i => selectiveDestroy.includes(i.id));
     for (const { tenantNamespace, name: instanceId, id } of selection) {
@@ -96,7 +87,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
         <TableWorkspaceRow
           title={prettyName}
           id={name}
-          nActive={getActives(templates)}
+          templates={templates || []}
           expandRow={expandRow}
         />
       ),

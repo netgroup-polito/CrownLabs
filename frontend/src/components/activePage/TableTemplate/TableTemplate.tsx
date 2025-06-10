@@ -89,7 +89,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         <TableTemplateRow
           key={template.id}
           template={template}
-          nActive={template.instances.length}
           destroyAll={() => destroyAll(template.id)}
           expandRow={expandRow}
         />

@@ -3,11 +3,11 @@ import {
   DesktopOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { Space, Tooltip, Dropdown, Menu } from 'antd';
+import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
 import type { FetchResult } from '@apollo/client';
 import type { FC } from 'react';
-import { useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
@@ -21,7 +21,6 @@ import {
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
 import { cleanupLabels, WorkspaceRole } from '../../../../utils';
-import Badge from '../../../common/Badge';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
@@ -94,7 +93,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   const [createDisabled, setCreateDisabled] = useState(false);
 
-  const createInstanceHandler = () => {
+  const createInstanceHandler = useCallback(() => {
     setCreateDisabled(true);
     createInstance(template.id)
       .then(() => {
@@ -103,48 +102,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
-  };
+  }, [createInstance, expandRow, refreshClock, template.id]);
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
-
-  const nodesLabels = useMemo(() => {
-    const handleNodeLabelClick = (info: { key: string }) => {
-      createInstance(template.id, JSON.parse(info.key))
-        .then(() => {
-          refreshClock();
-          setTimeout(setCreateDisabled, 400, false);
-          expandRow(template.id, true);
-        })
-        .catch(() => setCreateDisabled(false));
-    };
-
-    return (
-      <Menu onClick={handleNodeLabelClick}>
-        {loadingLabels ? (
-          <Menu.Item disabled>Loading...</Menu.Item>
-        ) : labelsError ? (
-          <Menu.Item disabled>Error loading labels</Menu.Item>
-        ) : (
-          labelsData?.labels?.map(({ key, value }) => {
-            const label = JSON.stringify({ [key]: value });
-            return (
-              <Menu.Item key={label}>
-                {`${cleanupLabels(key)}=${value}`}
-              </Menu.Item>
-            );
-          })
-        )}
-      </Menu>
-    );
-  }, [
-    loadingLabels,
-    labelsError,
-    labelsData,
-    createInstance,
-    expandRow,
-    refreshClock,
-    template.id,
-  ]);
 
   return (
     <>
@@ -247,11 +207,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           </Space>
         </div>
         <Space size="small">
-          <Badge
-            value={template.instances.length}
-            size="small"
-            className="mx-2"
-          />
+          {template.instances.length ? (
+            <Badge
+              count={template.instances.length}
+              color="blue"
+              className="mx-2"
+            />
+          ) : (
+            ''
+          )}
           <Tooltip
             placement="left"
             title={
@@ -332,7 +296,33 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           ) : template.nodeSelector &&
             JSON.stringify(template.nodeSelector) === '{}' ? (
             <Dropdown.Button
-              overlay={nodesLabels}
+              menu={{
+                items:
+                  loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                          disabled: true,
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        disabled: loadingLabels,
+                        onClick: () => {
+                          createInstance(template.id, JSON.parse(key))
+                            .then(() => {
+                              refreshClock();
+                              setTimeout(setCreateDisabled, 400, false);
+                              expandRow(template.id, true);
+                            })
+                            .catch(() => setCreateDisabled(false));
+                        },
+                      })) || [],
+              }}
               onClick={createInstanceHandler}
               // className="hidden xs:block"
               disabled={totalInstances === instancesLimit || createDisabled}

@@ -45,43 +45,47 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
           transparent={transparentNavbar}
         />
         <Content className="flex">
-          {tenantNsIsReady ? (
-            <Routes>
-              {routes
-                .filter(r => r.content)
-                .map(r => (
-                  <Route
-                    key={r.route.path}
-                    path={r.route.path}
-                    element={
-                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                        <Col span={0} lg={1} xxl={2}></Col>
-                        <Suspense fallback={<FullPageLoader />}>
-                          {r.content}
-                        </Suspense>
-                        <Col span={0} lg={1} xxl={2}></Col>
-                      </Row>
-                    }
-                  />
-                ))}
-              <Route
-                element={
-                  <div className="flex justify-center items-center w-full">
-                    <Result
-                      status="404"
-                      title="404"
-                      subTitle="Sorry, the page you visited does not exist."
+          <Suspense fallback={<FullPageLoader />}>
+            {tenantNsIsReady ? (
+              <Routes>
+                {routes
+                  .filter(r => r.content)
+                  .map(r => (
+                    <Route
+                      key={r.route.path}
+                      path={r.route.path}
+                      element={
+                        <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                          <Col span={0} lg={1} xxl={2}></Col>
+                          <Suspense fallback={<FullPageLoader />}>
+                            {r.content}
+                          </Suspense>
+                          <Col span={0} lg={1} xxl={2}></Col>
+                        </Row>
+                      }
                     />
-                  </div>
+                  ))}
+                <Route
+                  element={
+                    <div className="flex justify-center items-center w-full">
+                      <Result
+                        status="404"
+                        title="404"
+                        subTitle="Sorry, the page you visited does not exist."
+                      />
+                    </div>
+                  }
+                />
+              </Routes>
+            ) : (
+              <FullPageLoader
+                text={
+                  firstName ? `Welcome back ${firstName}!` : 'Welcome back!'
                 }
+                subtext="Settings things back up... Hold tight!"
               />
-            </Routes>
-          ) : (
-            <FullPageLoader
-              text={firstName ? `Welcome back ${firstName}!` : 'Welcome back!'}
-              subtext="Settings things back up... Hold tight!"
-            />
-          )}
+            )}
+          </Suspense>
         </Content>
         <div className="left-TooltipButton">
           <TooltipButton
