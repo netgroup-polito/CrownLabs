@@ -64,4 +64,8 @@ resources:
     memory: 250Mi
     cpu: 100m
 
+webBastionMasterKey:
+  secretName: crownlabs-bastion-operator-web-master-key
+  keyName: ssh_web_bastion_master
+
 rbacResourcesName: crownlabs-instance-operator

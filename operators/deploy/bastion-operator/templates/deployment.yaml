@@ -44,6 +44,8 @@ spec:
               name: authorized-keys
             - mountPath: /host-keys
               name : host-keys
+            - mountPath: /web-keys
+              name: web-keys
           resources:
             {{- toYaml .Values.resources.bastion | nindent 12 }}
         - name: {{ .Chart.Name }}-sidecar
@@ -81,6 +83,10 @@ spec:
         - name: host-keys
           secret:
             secretName: {{ .Values.sshKeysSecret.name }}
+            defaultMode: 0444
+        - name: web-keys
+          secret:
+            secretName: {{ .Values.sshKeysSecret.webBastionMasterKey.secretName }}
             defaultMode: 0444
       affinity:
         podAntiAffinity:

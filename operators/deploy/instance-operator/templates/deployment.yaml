@@ -74,7 +74,15 @@ spec:
             periodSeconds: 3
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
+          volumeMounts:
+            - name: webBastion-master-key
+              mountPath: /webbastion-key
+              readOnly: true
+      volumes:
+        - name: webBastion-master-key
+          secret:
+            secretName: {{ .Values.webBastionMasterKey.secretName }}
+            defaultMode: 0444
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
