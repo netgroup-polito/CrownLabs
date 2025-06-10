@@ -19,7 +19,7 @@ const oidcConfig: AuthProviderProps = {
   authority: VITE_APP_CROWNLABS_OIDC_AUTHORITY,
   client_id: VITE_APP_CROWNLABS_OIDC_CLIENT_ID,
   loadUserInfo: true,
-  redirect_uri: window.location.origin,
+  redirect_uri: window.location.href,
   post_logout_redirect_uri: 'https://crownlabs.polito.it/',
   automaticSilentRenew: true,
   scope: 'openid profile email api',
