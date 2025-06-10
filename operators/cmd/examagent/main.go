@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2/textlogger"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/examagent"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	k8sClient, err := examagent.NewK8sClient()
+	k8sClient, err := utils.NewK8sClient()
 	if err != nil {
 		log.Error(err, "unable to prepare k8s client")
 		os.Exit(1)
