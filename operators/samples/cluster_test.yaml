@@ -1,0 +1,80 @@
+# config/samples/crownlabs_v1alpha2_template.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-e
+  labels:
+    crownlabs.polito.it/operator-selector: local
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-123
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: green-tea-6831
+  namespace: tenant-e
+spec:
+  template.crownlabs.polito.it/TemplateRef:
+    name: green-tea
+    namespace: workspace-123
+  tenant.crownlabs.polito.it/TenantRef:
+    name: john.doe
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Tenant
+metadata:
+  name: john.doe
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  firstName: John
+  lastName: Doe
+  email: jonh.doe@email.com
+  workspaces:
+    - name: tea
+      role: user
+    - name: coffee
+      role: manager
+  publicKeys:
+    - type1 key1 comment1
+    - type2 key2 comment3
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: green-tea
+  namespace: workspace-123
+spec:
+  prettyName: Green Tea
+  description: "This is an example."
+  environmentList:
+  - name: green-tea-1
+    image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v1.30.3
+    environmentType: Cluster
+    guiEnabled: false
+    persistent: true
+    resources:
+        cpu: 2
+        memory: 4G
+        reservedCPUPercentage: 50
+    mode: Standard
+    mountMyDriveVolume: false
+    cluster:
+      name: testdemo
+      version: v1.30.2
+      serviceType: ClusterIP
+      clusterNet:
+        pods: "10.80.0.0/16"
+        services: "10.95.0.0/16"
+        cni: cilium
+        nginxtargetport: "1234"
+        nginxport: "31343"
+
+      controlPlane:
+        provider: kamaji
+        replicas: 1
+      machineDeployment:
+        replicas: 1
