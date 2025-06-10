@@ -18,6 +18,7 @@ package main
 import (
 	"flag"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -72,6 +73,8 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
+	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
+
 	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
 
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
@@ -124,13 +127,27 @@ func main() {
 
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
+
+	// read the webssh public key form the secret
+	var pubKeyBytes []byte
+	if *websshKeyPathFlag != "" {
+		pubKeyBytes, err = os.ReadFile(filepath.Clean(*websshKeyPathFlag))
+		if err != nil {
+			log.Error(err, "failed to read webssh public key", "path", *websshKeyPathFlag)
+		}
+		log.Info("webssh public key correctly retrieved")
+	} else {
+		log.Error(err, "no path provided for webssh public key")
+	}
+
 	if err = (&instctrl.InstanceReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist: nsWhitelist,
-		ServiceUrls:        svcUrls,
-		ContainerEnvOpts:   containerEnvOpts,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		EventsRecorder:        mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:    nsWhitelist,
+		ServiceUrls:           svcUrls,
+		ContainerEnvOpts:      containerEnvOpts,
+		WebSSHMasterPublicKey: pubKeyBytes,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
