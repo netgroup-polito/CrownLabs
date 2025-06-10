@@ -76,6 +76,8 @@ spec:
           volumeMounts:
             - name: authorized-keys
               mountPath: /auth-keys-vol
+            - mountPath: /web-keys
+              name: web-keys
           resources:
             {{- toYaml .Values.resources.operatorSidecar | nindent 12 }}
         - name: {{ .Chart.Name }}-tracker-sidecar
@@ -116,6 +118,10 @@ spec:
           secret:
             secretName: {{ .Values.sshKeysSecret.name }}
             defaultMode: 0444
+        - name: web-keys
+          secret:
+            secretName: {{ .Values.sshKeysSecret.webBastionMasterKey.secretName }}
+            defaultMode: 0444
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -125,3 +131,58 @@ spec:
                 matchLabels:
                   {{- include "bastion-operator.selectorLabels" . | nindent 18 }}
               topologyKey: kubernetes.io/hostname
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webssh
+  labels:
+    {{ include "webssh.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{ include "webssh.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "webssh.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: webssh
+          image: "{{ .Values.image.repositorySidecar }}:{{ include "bastion-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 8080
+            - name: probes
+              containerPort: 8081
+            - name: webssh
+              containerPort: {{ .Values.webSshConfig.WebSshWebskPort }}
+              protocol: TCP
+          env:
+            - name: WEBSSH_USER
+              value: {{ .Values.webSshConfig.webSshUser | quote }}
+            - name: WEBSSH_PRIVATE_KEY_PATH
+              value: {{ .Values.webSshConfig.webSshPrivateKeyPath | quote }}
+            - name: WEBSSH_TIMEOUT_DURATION
+              value: {{ .Values.webSshConfig.webSshTimeoutDuration | quote }}
+            - name: WEBSSH_MAX_CONN_COUNT
+              value: {{ .Values.webSshConfig.WebSshMaxConCount | quote }}
+            - name: WEBSSH_VM_PORT
+              value: {{ .Values.webSshConfig.WebSshVmPort | quote }}
+            - name: WEBSSH_WEBSOCKET_PORT
+              value: {{ .Values.webSshConfig.WebSshWebskPort | quote }}
+          volumeMounts:
+            - mountPath: /web-keys
+              name: web-keys
+          resources:
+            {{- toYaml .Values.resources.sidecar | nindent 12 }}
+      volumes:
+        - name: web-keys
+          secret:
+            secretName: {{ .Values.sshKeysSecret.webBastionMasterKey.secretName }}
+            defaultMode: 0444
+

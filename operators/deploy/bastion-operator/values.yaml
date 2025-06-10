@@ -127,6 +127,10 @@ sshKeysSecret:
   name: crownlabs-bastion-operator-ssh-keys
   keygenImage: kroniak/ssh-client:3.9
   kubectlImage: bitnami/kubectl:1.19
+  webBastionMasterKey:
+    secretName: crownlabs-bastion-operator-web-master-key
+    type: ed25519
+    comment: "Web SSH Bastion Master Key"
 
 rbacResourcesName: crownlabs-bastion-operator
 

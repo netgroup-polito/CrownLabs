@@ -16,8 +16,15 @@ package utils
 
 import (
 	"context"
+	"fmt"
 
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,4 +43,27 @@ func EnforceObjectAbsence(ctx context.Context, c client.Client, obj client.Objec
 	}
 
 	return nil
+}
+
+// NewK8sClient initializes the global k8s client.
+func NewK8sClient() (client.Client, error) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
+
+	kubeconfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("k8s config error: %w", err)
+	}
+
+	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})
+}
+
+// NewK8sClientWithConfig initializes a k8s client with the provided configuration.
+func NewK8sClientWithConfig(kubeconfig *rest.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
+
+	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})
 }
