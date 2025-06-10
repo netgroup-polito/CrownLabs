@@ -122,3 +122,59 @@ spec:
                 matchLabels:
                   {{- include "bastion-operator.selectorLabels" . | nindent 18 }}
               topologyKey: kubernetes.io/hostname
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webssh
+  labels:
+    {{ include "webssh.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{ include "webssh.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "webssh.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: webssh
+          image: "{{ .Values.image.repositoryWebBastion  }}:{{ include "bastion-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.webssh.service.targetPort }}
+              containerPort: {{ .Values.webssh.config.webSocketPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.webssh.service.targetPort }}
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ .Values.webssh.service.targetPort }}
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          volumeMounts:
+            - mountPath: /web-keys
+              name: web-keys
+          resources:
+            {{- toYaml .Values.resources.webssh | nindent 12 }}
+          args:
+            - "--websshuser={{ .Values.webssh.config.user }}"
+            - "--websshprivatekeypath=/web-keys/{{ .Values.webssh.masterKey.name }}"
+            - "--websshmaxconncount={{ .Values.webssh.config.maxConnCount }}"
+            - "--websshvmport={{ .Values.webssh.config.vmPort }}"
+            - "--websshwebsocketport={{ .Values.webssh.config.webSocketPort }}"
+      volumes:
+        - name: web-keys
+          secret:
+            secretName: {{ .Values.webssh.masterKey.secretName }}
+            defaultMode: 0444
+
