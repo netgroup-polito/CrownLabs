@@ -1,6 +1,6 @@
 import { InfoOutlined } from '@ant-design/icons';
 import { Col, Layout, Result, Row } from 'antd';
-import { type FC, Suspense, useContext, useState } from 'react';
+import { type FC, useContext, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { BASE_URL } from '../../../env';
@@ -45,47 +45,41 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
           transparent={transparentNavbar}
         />
         <Content className="flex">
-          <Suspense fallback={<FullPageLoader />}>
-            {tenantNsIsReady ? (
-              <Routes>
-                {routes
-                  .filter(r => r.content)
-                  .map(r => (
-                    <Route
-                      key={r.route.path}
-                      path={r.route.path}
-                      element={
-                        <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                          <Col span={0} lg={1} xxl={2}></Col>
-                          <Suspense fallback={<FullPageLoader />}>
-                            {r.content}
-                          </Suspense>
-                          <Col span={0} lg={1} xxl={2}></Col>
-                        </Row>
-                      }
+          {tenantNsIsReady ? (
+            <Routes>
+              {routes
+                .filter(r => r.content)
+                .map(r => (
+                  <Route
+                    key={r.route.path}
+                    path={r.route.path}
+                    element={
+                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                        <Col span={0} lg={1} xxl={2}></Col>
+                        {r.content}
+                        <Col span={0} lg={1} xxl={2}></Col>
+                      </Row>
+                    }
+                  />
+                ))}
+              <Route
+                element={
+                  <div className="flex justify-center items-center w-full">
+                    <Result
+                      status="404"
+                      title="404"
+                      subTitle="Sorry, the page you visited does not exist."
                     />
-                  ))}
-                <Route
-                  element={
-                    <div className="flex justify-center items-center w-full">
-                      <Result
-                        status="404"
-                        title="404"
-                        subTitle="Sorry, the page you visited does not exist."
-                      />
-                    </div>
-                  }
-                />
-              </Routes>
-            ) : (
-              <FullPageLoader
-                text={
-                  firstName ? `Welcome back ${firstName}!` : 'Welcome back!'
+                  </div>
                 }
-                subtext="Settings things back up... Hold tight!"
               />
-            )}
-          </Suspense>
+            </Routes>
+          ) : (
+            <FullPageLoader
+              text={firstName ? `Welcome back ${firstName}!` : 'Welcome back!'}
+              subtext="Settings things back up... Hold tight!"
+            />
+          )}
         </Content>
         <div className="left-TooltipButton">
           <TooltipButton

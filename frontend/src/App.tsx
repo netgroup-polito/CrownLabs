@@ -1,91 +1,69 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
-import { lazy, Suspense, useContext } from 'react';
+import { useContext } from 'react';
 import './App.css';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
-import FullPageLoader from './components/common/FullPageLoader';
-import { Layout } from 'antd';
+import AppLayout from './components/common/AppLayout';
+import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
+import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
+import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
 
-  const AppLayout = lazy(
-    () => import('./components/common/AppLayout/AppLayout'),
-  );
-
-  const ActiveViewLogic = lazy(
-    () => import('./components/activePage/ActiveViewLogic/ActiveViewLogic'),
-  );
-  const UserPanelLogic = lazy(
-    () => import('./components/accountPage/UserPanelLogic/UserPanelLogic'),
-  );
-  const DashboardLogic = lazy(
-    () => import('./components/workspaces/DashboardLogic/DashboardLogic'),
-  );
-
   return (
-    <Suspense
-      fallback={
-        <Layout>
-          <Layout.Content>
-            <FullPageLoader />
-          </Layout.Content>
-        </Layout>
+    <AppLayout
+      TooltipButtonLink={
+        'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
+        tenantData?.tenant?.status?.personalNamespace?.name
       }
-    >
-      <AppLayout
-        TooltipButtonLink={
-          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
-          tenantData?.tenant?.status?.personalNamespace?.name
-        }
-        TooltipButtonData={{
-          tooltipPlacement: 'left',
-          tooltipTitle: 'Statistics',
-          icon: (
-            <BarChartOutlined
-              style={{ fontSize: '22px' }}
-              className="flex items-center justify-center "
-            />
-          ),
-          color: 'green',
-        }}
-        routes={[
-          {
-            route: { name: 'Dashboard', path: '/' },
-            content: <DashboardLogic key="/" />,
-            linkPosition: LinkPosition.NavbarButton,
+      TooltipButtonData={{
+        tooltipPlacement: 'left',
+        tooltipTitle: 'Statistics',
+        icon: (
+          <BarChartOutlined
+            style={{ fontSize: '22px' }}
+            className="flex items-center justify-center "
+          />
+        ),
+        color: 'green',
+      }}
+      routes={[
+        {
+          route: { name: 'Dashboard', path: '/' },
+          content: <DashboardLogic key="/" />,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: { name: 'Active', path: '/active' },
+          content: <ActiveViewLogic key="/active" />,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Drive',
+            path: 'https://crownlabs.polito.it/cloud',
           },
-          {
-            route: { name: 'Active', path: '/active' },
-            content: <ActiveViewLogic key="/active" />,
-            linkPosition: LinkPosition.NavbarButton,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Support',
+            path: 'https://support.crownlabs.polito.it/',
           },
-          {
-            route: {
-              name: 'Drive',
-              path: 'https://crownlabs.polito.it/cloud',
-            },
-            linkPosition: LinkPosition.NavbarButton,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Manage account',
+            path: '/account',
+            navbarMenuIcon: <UserOutlined />,
           },
-          {
-            route: {
-              name: 'Support',
-              path: 'https://support.crownlabs.polito.it/',
-            },
-            linkPosition: LinkPosition.NavbarButton,
-          },
-          {
-            route: {
-              name: 'Manage account',
-              path: '/account',
-              navbarMenuIcon: <UserOutlined />,
-            },
-            content: <UserPanelLogic key="/account" />,
-            linkPosition: LinkPosition.MenuButton,
-          },
-        ]}
-      />
-    </Suspense>
+          content: <UserPanelLogic key="/account" />,
+          linkPosition: LinkPosition.MenuButton,
+        },
+      ]}
+    />
   );
 }
 

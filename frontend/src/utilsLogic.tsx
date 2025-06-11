@@ -28,7 +28,11 @@ import type {
   Workspace,
   WorkspacesAvailable,
 } from './utils';
-import { WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import {
+  JSONDeepCopy,
+  WorkspaceRole,
+  WorkspacesAvailableAction,
+} from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 
 type Nullable<T> = T | null | undefined;
@@ -238,24 +242,27 @@ export const updateQueryOwnedInstancesQuery = (
     let notify = false;
 
     setDataInstances(old => {
+      let newData = JSONDeepCopy(old);
       const instance = makeGuiInstance(instanceK8s, userId);
-      const found = old.find(i => i.id === instance.id);
+      const found = newData.find(i => i.id === instance.id);
       const objType = getSubObjTypeCustom(found, instance, updateType);
       switch (objType) {
         case SubObjType.Deletion:
-          old = old.filter(i => i.id !== instance.id);
+          newData = newData.filter(i => i.id !== instance.id);
           notify = false;
           break;
         case SubObjType.Addition:
-          old = !old.find(i => i.id === instance.id) ? [...old, instance] : old;
+          newData = !newData.find(i => i.id === instance.id)
+            ? [...old, instance]
+            : old;
           notify = true;
           break;
         case SubObjType.PrettyName:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
+          newData = newData?.map(i => (i.id === instance.id ? instance : i));
           notify = false;
           break;
         case SubObjType.UpdatedInfo:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
+          newData = newData?.map(i => (i.id === instance.id ? instance : i));
           notify = true;
           break;
         case SubObjType.Drop:
@@ -268,7 +275,7 @@ export const updateQueryOwnedInstancesQuery = (
       if (notify)
         notifyStatus(instanceK8s.status?.phase, instanceK8s, updateType);
 
-      return old;
+      return newData;
     });
 
     return prev;

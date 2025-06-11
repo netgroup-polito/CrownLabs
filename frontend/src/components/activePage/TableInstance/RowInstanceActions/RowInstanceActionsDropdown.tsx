@@ -74,40 +74,34 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     [Phase.Ready]: {
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
-      action: () => mutateInstanceStatus(false),
+      menuAction: () => mutateInstanceStatus(false),
     },
     [Phase.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
-      action: () => mutateInstanceStatus(false),
+      menuAction: () => mutateInstanceStatus(true),
     },
     Other: {
       menuIcon: <ExclamationCircleOutlined style={font20px} />,
       menuText: '',
-      action: () => null,
+      menuAction: () => null,
     },
   };
 
-  const { menuIcon, menuText, action } =
+  const { menuIcon, menuText, menuAction } =
     status === Phase.Ready || status === Phase.Off
       ? statusComponents[status]
       : statusComponents.Other;
 
-  const sshDisabled =
-    status !== Phase.Ready ||
+  const isContainer =
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
-  const fileManagerDisabled =
-    status !== Phase.Ready &&
-    (environmentType === EnvironmentType.Container ||
-      environmentType === EnvironmentType.Standalone);
+  const sshDisabled = status !== Phase.Ready || isContainer;
 
-  const connectDisabled =
-    status !== Phase.Ready ||
-    ((environmentType === EnvironmentType.Container ||
-      environmentType === EnvironmentType.Standalone) &&
-      !gui);
+  const fileManagerDisabled = status !== Phase.Ready && isContainer;
+
+  const connectDisabled = status !== Phase.Ready || (isContainer && !gui);
 
   return (
     <Dropdown
@@ -135,7 +129,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                 key: 'persistent',
                 label: menuText,
                 icon: menuIcon,
-                onClick: () => action,
+                onClick: () => menuAction,
                 className: `flex items-center ${
                   extended ? ' sm:hidden' : 'xs:hidden'
                 }`,
@@ -157,13 +151,11 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           },
           {
             key: 'upload',
-            label:
-              environmentType === EnvironmentType.Container ||
-              environmentType === EnvironmentType.Standalone
-                ? 'File Manager'
-                : environmentType === EnvironmentType.VirtualMachine
-                  ? 'Drive'
-                  : '',
+            label: isContainer
+              ? 'File Manager'
+              : environmentType === EnvironmentType.VirtualMachine
+                ? 'Drive'
+                : '',
             icon: <FolderOpenOutlined style={font20px} />,
             disabled: fileManagerDisabled,
             className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
