@@ -15,8 +15,8 @@
 package instautoctrl
 
 import (
+	"fmt"
 	"net/smtp"
-	"strconv"
 )
 
 // MailClient is a simple SMTP client for sending emails.
@@ -29,6 +29,7 @@ type MailClient struct {
 
 // SendMail sends an email using the SMTP server configured in the MailClient.
 func (m *MailClient) SendMail(to []string, subject, body string) error {
-	msg := []byte("Subject: " + subject + "\n\n" + body)
-	return smtp.SendMail(m.SMTPServer+":"+strconv.Itoa(m.SMTPPort), m.Auth, m.From, to, msg)
+	msg := []byte(fmt.Sprintf("Subject: %s\n\n%s", subject, body))
+	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
+	return smtp.SendMail(address, m.Auth, m.From, to, msg)
 }
