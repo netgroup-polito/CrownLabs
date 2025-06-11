@@ -1,7 +1,7 @@
 import { type FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { type FC } from 'react';
 import {
   useCreateInstanceMutation,
@@ -27,6 +27,7 @@ import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
+import { TenantContext } from '../../../../contexts/TenantContext';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -44,6 +45,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { tenantNamespace, workspaceNamespace, workspaceName, role } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
+
+  const notifier = useContext(TenantContext).notify;
 
   const {
     loading: loadingInstances,
@@ -74,6 +77,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         updateQuery: updateQueryOwnedInstancesQuery(
           setDataInstances,
           userId ?? '',
+          notifier,
         ),
       });
       return unsubscribe;
@@ -160,7 +164,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       return i;
     });
 
-  const templates = joinInstancesAndTemplates(dataTemplate, dataInstances);
+  const templates = useMemo(
+    () => joinInstancesAndTemplates(dataTemplate, dataInstances),
+    [dataTemplate, dataInstances],
+  );
 
   return (
     <Spin size="large" spinning={loadingTemplate || loadingInstances}>

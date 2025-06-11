@@ -1,5 +1,5 @@
 # Builder image for the frontend
-FROM node:20 as builder
+FROM node:20 AS builder
 
 ## Switch to an unprivileged user (avoids problems with npm)
 USER node

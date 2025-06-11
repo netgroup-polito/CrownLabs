@@ -1,20 +1,22 @@
-import type { FC } from 'react';
+import { useContext, type FC } from 'react';
 import { Button } from 'antd';
 import { LogoutOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 export interface ILogoutButtonProps {
-  logoutHandler: () => void;
   className?: string;
   iconStyle?: React.CSSProperties;
   buttonStyle?: React.CSSProperties;
 }
 
 const LogoutButton: FC<ILogoutButtonProps> = ({ ...props }) => {
-  const { logoutHandler, iconStyle, className, buttonStyle } = props;
+  const { logout } = useContext(AuthContext);
+
+  const { iconStyle, className, buttonStyle } = props;
   return (
     <Button
-      onClick={logoutHandler}
+      onClick={logout}
       style={{ ...buttonStyle }}
       className={
         'm-0 p-0 flex h-auto items-center bg-transparent border-0 text-red-400 hover:text-red-500 ' +

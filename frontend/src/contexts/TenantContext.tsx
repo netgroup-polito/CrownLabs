@@ -1,6 +1,13 @@
 import type { ApolloError } from '@apollo/client';
 import type { TenantQuery } from '../generated-types';
 import { createContext } from 'react';
+import type { JointContent } from 'antd/lib/message/interface';
+
+export type Notifier = (
+  type: 'warning' | 'success',
+  key: string,
+  content: JointContent,
+) => void;
 
 interface ITenantContext {
   data?: TenantQuery;
@@ -10,6 +17,7 @@ interface ITenantContext {
   hasSSHKeys: boolean;
   now: Date;
   refreshClock: () => void;
+  notify: Notifier;
 }
 
 export const TenantContext = createContext<ITenantContext>({
@@ -20,4 +28,5 @@ export const TenantContext = createContext<ITenantContext>({
   hasSSHKeys: false,
   now: new Date(),
   refreshClock: () => null,
+  notify: () => void 0,
 });

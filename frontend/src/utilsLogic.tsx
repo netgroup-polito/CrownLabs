@@ -3,7 +3,7 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { FetchResult, MutationFunctionOptions } from '@apollo/client';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
   ApplyInstanceMutation,
@@ -28,12 +28,10 @@ import type {
   Workspace,
   WorkspacesAvailable,
 } from './utils';
-import {
-  JSONDeepCopy,
-  WorkspaceRole,
-  WorkspacesAvailableAction,
-} from './utils';
+import { WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
+import type { JointContent } from 'antd/lib/message/interface';
+import type { Notifier } from './contexts/TenantContext';
 
 type Nullable<T> = T | null | undefined;
 
@@ -228,6 +226,7 @@ interface InstancesSubscriptionData {
 export const updateQueryOwnedInstancesQuery = (
   setDataInstances: Dispatch<SetStateAction<Instance[]>>,
   userId: string,
+  notifier: Notifier,
 ) => {
   return (
     prev: OwnedInstancesQuery,
@@ -242,27 +241,24 @@ export const updateQueryOwnedInstancesQuery = (
     let notify = false;
 
     setDataInstances(old => {
-      let newData = JSONDeepCopy(old);
       const instance = makeGuiInstance(instanceK8s, userId);
-      const found = newData.find(i => i.id === instance.id);
+      const found = old.find(i => i.id === instance.id);
       const objType = getSubObjTypeCustom(found, instance, updateType);
       switch (objType) {
         case SubObjType.Deletion:
-          newData = newData.filter(i => i.id !== instance.id);
+          old = old.filter(i => i.id !== instance.id);
           notify = false;
           break;
         case SubObjType.Addition:
-          newData = !newData.find(i => i.id === instance.id)
-            ? [...old, instance]
-            : old;
+          old = !old.find(i => i.id === instance.id) ? [...old, instance] : old;
           notify = true;
           break;
         case SubObjType.PrettyName:
-          newData = newData?.map(i => (i.id === instance.id ? instance : i));
+          old = old?.map(i => (i.id === instance.id ? instance : i));
           notify = false;
           break;
         case SubObjType.UpdatedInfo:
-          newData = newData?.map(i => (i.id === instance.id ? instance : i));
+          old = old?.map(i => (i.id === instance.id ? instance : i));
           notify = true;
           break;
         case SubObjType.Drop:
@@ -273,9 +269,14 @@ export const updateQueryOwnedInstancesQuery = (
       }
 
       if (notify)
-        notifyStatus(instanceK8s.status?.phase, instanceK8s, updateType);
+        notifyStatus(
+          instanceK8s.status?.phase,
+          instanceK8s,
+          updateType,
+          notifier,
+        );
 
-      return newData;
+      return old;
     });
 
     return prev;
@@ -530,19 +531,20 @@ const makeNotificationContent = (
     icon: <></>,
     className: 'mr-6 flex justify-end',
     duration: 5,
-  };
+  } as JointContent;
 };
 
 export const notifyStatus = (
   status: Nullable<string>,
   instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   updateType: Nullable<UpdateType>,
+  notify: Notifier,
 ) => {
   if (!instance) {
     throw new Error('notifyStatus error: instance parameter is undefined');
   }
   if (updateType !== UpdateType.Deleted) {
-    const { name } = instance.metadata ?? {};
+    const { name, namespace } = instance.metadata ?? {};
     const { prettyName } = instance.spec ?? {};
     const { url } = instance.status ?? {};
     const { prettyName: templateName } =
@@ -552,14 +554,18 @@ export const notifyStatus = (
     switch (status) {
       case Phase.Off:
         if (!instance.spec?.running) {
-          message.warning(
+          notify(
+            'warning',
+            `${namespace}/${name}/stopped`,
             makeNotificationContent(templateName, prettyName || name, status),
           );
         }
         break;
       case Phase.Ready:
         if (instance.spec?.running) {
-          message.success(
+          notify(
+            'success',
+            `${namespace}/${name}/ready`,
             makeNotificationContent(
               templateName,
               prettyName || name,

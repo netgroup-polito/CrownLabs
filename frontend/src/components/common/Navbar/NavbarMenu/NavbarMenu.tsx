@@ -7,6 +7,7 @@ import { TenantContext } from '../../../../contexts/TenantContext';
 import { generateAvatarUrl } from '../../../../utils';
 import { type RouteData } from '../Navbar';
 import type { MenuItemType } from 'antd/lib/menu/interface';
+import { AuthContext } from '../../../../contexts/AuthContext';
 
 export interface INavbarMenuProps {
   routes: Array<RouteData>;
@@ -15,6 +16,7 @@ export interface INavbarMenuProps {
 const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
   const { routes } = props;
   const { data, displayName } = useContext(TenantContext);
+  const { logout } = useContext(AuthContext);
   const tenantId = data?.tenant?.metadata?.name;
   const currentPath = useLocation().pathname;
 
@@ -85,6 +87,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
             label: 'Logout',
             danger: true,
             icon: <LogoutOutlined />,
+            onClick: logout,
           },
         ],
       }}

@@ -1,7 +1,7 @@
 import type { FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 import type { Dispatch, FC, SetStateAction } from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import type {
@@ -24,6 +24,7 @@ import {
   SubObjType,
 } from '../../../utilsLogic';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
+import { TenantContext } from '../../../contexts/TenantContext';
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
@@ -62,6 +63,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     setSelectedPersistent,
   } = props;
 
+  const { notify: notifier } = useContext(TenantContext);
+
   const { tenantId, tenantNamespace } = user;
   const [sortingData, setSortingData] = useState<
     Array<{
@@ -70,8 +73,10 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
       sortingTemplate: string;
     }>
   >([]);
-  const [dataInstances, setDataInstances] =
-    useState<InstancesLabelSelectorQuery>();
+
+  const [dataInstances, setDataInstances] = useState<
+    NonNullable<InstancesLabelSelectorQuery['instanceList']>['instances']
+  >([]);
 
   const handleManagerSorting = (
     sortingType: string,
@@ -96,7 +101,8 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     variables: {
       labels,
     },
-    onCompleted: setDataInstances,
+    onCompleted: o =>
+      setDataInstances(JSONDeepCopy(o.instanceList?.instances || [])),
     onError: apolloErrorCatcher,
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -110,18 +116,17 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
         updateQuery: (prev, { subscriptionData }) => {
           const { data } =
             subscriptionData as UpdatedInstancesLabelSelectorSubscriptionResult;
-
           if (!data?.updateInstanceLabelSelector?.instance) return prev;
 
           const { instance, updateType } = data.updateInstanceLabelSelector;
-          const { namespace: ns } = instance.metadata!;
+          if (!instance.metadata) return prev;
+
+          const { namespace: ns } = instance.metadata;
           let notify = false;
-          const newItem = JSONDeepCopy(prev);
           let objType;
           const matchNS = ns === tenantNamespace;
 
-          if (newItem.instanceList?.instances) {
-            let { instances } = newItem.instanceList;
+          setDataInstances(instances => {
             const found = instances.find(matchK8sObject(instance, false));
             objType = getSubObjTypeK8s(found, instance, updateType);
 
@@ -148,16 +153,18 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
               default:
                 break;
             }
-            newItem.instanceList.instances = instances;
-          }
 
-          if (notify && matchNS) {
-            notifyStatus(instance.status?.phase, instance, updateType);
-          }
+            if (notify && matchNS) {
+              notifyStatus(
+                instance.status?.phase,
+                instance,
+                updateType,
+                notifier,
+              );
+            }
+            return instances;
+          });
 
-          if (objType !== SubObjType.Drop) {
-            setDataInstances(newItem);
-          }
           return prev;
         },
       });
@@ -166,24 +173,36 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
-  const instancesMapped =
-    dataInstances?.instanceList?.instances?.map(getManagerInstances);
+  const instancesMapped = useMemo(
+    () => dataInstances.map(getManagerInstances),
+    [dataInstances],
+  );
 
-  const instancesFiltered =
-    instancesMapped?.filter(
-      instance =>
-        multiStringIncludes(
-          filter,
-          instance.tenantId!,
-          instance.tenantDisplayName!,
-        ) || selectiveDestroy.includes(instance.id),
-    ) || [];
+  const instancesFiltered = useMemo(
+    () =>
+      instancesMapped.filter(
+        instance =>
+          multiStringIncludes(
+            filter,
+            instance.prettyName!,
+            instance.tenantId!,
+            instance.tenantDisplayName!,
+          ) || selectiveDestroy.includes(instance.id),
+      ),
+    [filter, instancesMapped, selectiveDestroy],
+  );
 
-  const templatesMapped = getTemplatesMapped(instancesFiltered, sortingData!);
+  const templatesMapped = useMemo(
+    () => getTemplatesMapped(instancesFiltered, sortingData),
+    [instancesFiltered, sortingData],
+  );
 
-  const workspacesMapped = getWorkspacesMapped(templatesMapped, workspaces);
+  const workspacesMapped = useMemo(
+    () => getWorkspacesMapped(templatesMapped, workspaces),
+    [templatesMapped, workspaces],
+  );
 
-  return !loadingInstances && !errorInstances && templatesMapped ? (
+  return !loadingInstances && !errorInstances ? (
     <TableWorkspace
       instances={instancesMapped!}
       workspaces={workspacesMapped}

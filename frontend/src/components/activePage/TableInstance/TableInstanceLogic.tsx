@@ -34,7 +34,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
   const { tenantNamespace, tenantId } = user;
-  const { hasSSHKeys } = useContext(TenantContext);
+  const { hasSSHKeys, notify: notifier } = useContext(TenantContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
@@ -106,7 +106,12 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           }
 
           if (notify) {
-            notifyStatus(instance.status?.phase, instance, updateType);
+            notifyStatus(
+              instance.status?.phase,
+              instance,
+              updateType,
+              notifier,
+            );
           }
 
           if (objType !== SubObjType.Drop) {
@@ -126,6 +131,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     errorInstances,
     apolloErrorCatcher,
     makeErrorCatcher,
+    notifier,
   ]);
 
   const instances =

@@ -11,7 +11,7 @@ import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
 import type { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import './AppLayout.less';
-import { useAuth } from 'react-oidc-context';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 const { Content } = Layout;
 
@@ -23,7 +23,7 @@ export interface IAppLayoutProps {
 }
 
 const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
-  const auth = useAuth();
+  const { profile } = useContext(AuthContext);
 
   const [sideLeftShow, setSideLeftShow] = useState(false);
   const { routes, transparentNavbar, TooltipButtonData, TooltipButtonLink } =
@@ -32,18 +32,12 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   const { data: tenantData } = useContext(TenantContext);
   const tenantNsIsReady =
     tenantData?.tenant?.status?.personalNamespace?.created ?? false;
-  const firstName = auth.user?.profile?.given_name;
+  const firstName = profile?.given_name;
 
   return (
     <BrowserRouter basename={BASE_URL}>
       <Layout className="h-full">
-        <Navbar
-          logoutHandler={() =>
-            auth.removeUser().then(() => auth.signoutRedirect())
-          }
-          routes={routes}
-          transparent={transparentNavbar}
-        />
+        <Navbar routes={routes} transparent={transparentNavbar} />
         <Content className="flex">
           {tenantNsIsReady ? (
             <Routes>

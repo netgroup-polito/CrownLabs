@@ -21,6 +21,8 @@ import { updatedTenant } from '../graphql-components/subscription';
 import { getTenantPatchJson } from '../graphql-components/utils';
 import { TenantContext } from './TenantContext';
 import { AuthContext } from './AuthContext';
+import { message } from 'antd';
+import type { JointContent } from 'antd/lib/message/interface';
 
 const TenantContextProvider: FC<PropsWithChildren> = props => {
   const { userId } = useContext(AuthContext);
@@ -103,6 +105,35 @@ const TenantContextProvider: FC<PropsWithChildren> = props => {
     patchTenantLastLogin(userId);
   }, [userId, data?.tenant?.metadata?.name, patchTenantLastLogin]);
 
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const [messages, setMessages] = useState<
+    {
+      type: 'warning' | 'success';
+      key: string;
+      content: JointContent;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const [msg] = messages;
+    if (!msg) return;
+    messageApi[msg.type](msg.content);
+    setMessages(messages => messages.filter(m => m.key !== msg.key));
+  }, [messageApi, messages, setMessages]);
+
+  const notify = useCallback(
+    (type: 'warning' | 'success', key: string, content: JointContent) => {
+      setMessages(messages => {
+        if (messages.find(m => m.key === key)) {
+          return messages;
+        }
+        return [...messages, { type, key, content }];
+      });
+    },
+    [setMessages],
+  );
+
   const tSpec = data?.tenant?.spec;
   const displayName = tSpec
     ? `${tSpec.firstName} ${tSpec.lastName}`
@@ -119,8 +150,10 @@ const TenantContextProvider: FC<PropsWithChildren> = props => {
         refreshClock,
         hasSSHKeys,
         displayName,
+        notify,
       }}
     >
+      {contextHolder}
       {children}
     </TenantContext.Provider>
   );

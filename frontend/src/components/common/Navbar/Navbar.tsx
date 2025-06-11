@@ -21,11 +21,10 @@ const { Title } = Typography;
 export interface INavbarProps {
   routes: Array<RouteDescriptor>;
   transparent?: boolean;
-  logoutHandler: () => void;
 }
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
-  const { routes, transparent, logoutHandler } = props;
+  const { routes, transparent } = props;
   const routesData = routes.map(r => r.route);
   const {
     data,
@@ -184,7 +183,6 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               >{`${data?.tenant?.metadata?.name}`}</Title>
             )}
             <LogoutButton
-              logoutHandler={logoutHandler}
               iconStyle={{ fontSize: '24px' }}
               buttonStyle={{ width: '48px' }}
               className="justify-end"
