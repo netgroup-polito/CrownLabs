@@ -82,8 +82,6 @@ instance-operator:
       secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
-    sharedVolumeOptions:
-      storageClass: rook-nfs
     monitoring:
       prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
     automation:
