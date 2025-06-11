@@ -311,6 +311,14 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
 		return err
 	}
+	//FIXME
+	// If the interval is set to "never", we do not update the last activity time
+	// and return early, as there is no inactivity timeout to check.
+	if interval == "never" {
+		log.Info("Inactivity timeout is set to 'never', skipping last activity update", "instance", instance.Name)
+		return nil
+	}
+
 	intervalDuration, err := time.ParseDuration(interval)
 	if err != nil {
 		log.Error(err, "failed parsing inactivity timeout duration")
@@ -349,6 +357,10 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	if err != nil {
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
 		return false, 0, err
+	}
+	if inactivityTimeout == "never" {
+		log.Info("Instance inactivity timeout is set to 'never', skipping termination check", "instance", instance.Name)
+		return false, 0, nil
 	}
 
 	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[lastActivityAnnotation])
