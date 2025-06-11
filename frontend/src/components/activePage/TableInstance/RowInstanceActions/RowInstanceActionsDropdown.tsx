@@ -1,6 +1,6 @@
-import { FC, SetStateAction, useContext, useState } from 'react';
-import { Dropdown, Menu } from 'antd';
-import Button from 'antd-button-color';
+import { type FC, type SetStateAction, useContext, useState } from 'react';
+import { Dropdown } from 'antd';
+import { Button } from 'antd';
 import {
   ExportOutlined,
   CodeOutlined,
@@ -11,14 +11,14 @@ import {
   CaretRightOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { Instance } from '../../../../utils';
+import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
   Phase,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
-import { DropDownAction, setInstanceRunning } from '../../../../utilsLogic';
+import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 
 export interface IRowInstanceActionsDropdownProps {
@@ -61,7 +61,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         const result = await setInstanceRunning(
           running,
           instance,
-          applyInstanceMutation
+          applyInstanceMutation,
         );
         if (result) setTimeout(setDisabled, 400, false);
       } catch {
@@ -72,133 +72,117 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const statusComponents = {
     [Phase.Ready]: {
-      menuKey: 'stop',
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
+      menuAction: () => mutateInstanceStatus(false),
     },
     [Phase.Off]: {
-      menuKey: 'start',
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
+      menuAction: () => mutateInstanceStatus(true),
     },
     Other: {
-      menuKey: '',
       menuIcon: <ExclamationCircleOutlined style={font20px} />,
       menuText: '',
+      menuAction: () => null,
     },
   };
 
-  const { menuKey, menuIcon, menuText } =
-    statusComponents[
-      status === Phase.Ready || status === Phase.Off ? status : 'Other'
-    ];
+  const { menuIcon, menuText, menuAction } =
+    status === Phase.Ready || status === Phase.Off
+      ? statusComponents[status]
+      : statusComponents.Other;
 
-  const dropdownHandler = (key: DropDownAction) => {
-    switch (key) {
-      case DropDownAction.start:
-        persistent && mutateInstanceStatus(true);
-        break;
-      case DropDownAction.stop:
-        persistent && mutateInstanceStatus(false);
-        break;
-      case DropDownAction.connect:
-        gui ? window.open(url!, '_blank') : setSshModal(true);
-        break;
-      case DropDownAction.destroy:
-        deleteInstanceMutation({
-          variables: {
-            instanceId: name,
-            tenantNamespace: tenantNamespace!,
-          },
-        });
-        break;
-      case DropDownAction.ssh:
-        setSshModal(true);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const sshDisabled =
-    status !== Phase.Ready ||
+  const isContainer =
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
-  const fileManagerDisabled =
-    status !== Phase.Ready &&
-    (environmentType === EnvironmentType.Container ||
-      environmentType === EnvironmentType.Standalone);
+  const sshDisabled = status !== Phase.Ready || isContainer;
 
-  const connectDisabled =
-    status !== Phase.Ready ||
-    ((environmentType === EnvironmentType.Container ||
-      environmentType === EnvironmentType.Standalone) &&
-      !gui);
+  const fileManagerDisabled = status !== Phase.Ready && isContainer;
+
+  const connectDisabled = status !== Phase.Ready || (isContainer && !gui);
 
   return (
     <Dropdown
       trigger={['click']}
-      overlay={
-        <Menu onClick={({ key }) => dropdownHandler(key as DropDownAction)}>
-          <Menu.Item
-            disabled={connectDisabled}
-            key="connect"
-            className={`flex items-center sm:hidden ${
+      menu={{
+        items: [
+          {
+            key: 'connect',
+            label: 'Connect',
+            disabled: connectDisabled,
+            icon: <ExportOutlined style={font20px} />,
+            onClick: gui
+              ? () => window.open(url!, '_blank')
+              : () => setSshModal(true),
+            className: `flex items-center sm:hidden ${
               !connectDisabled
                 ? extended
                   ? 'primary-color-fg'
                   : 'success-color-fg xs:hidden'
                 : 'pointer-events-none'
-            }`}
-            icon={<ExportOutlined style={font20px} />}
-          >
-            Connect
-          </Menu.Item>
-          {persistent && (
-            <Menu.Item
-              key={menuKey}
-              className={`flex items-center ${
-                extended ? ' sm:hidden' : 'xs:hidden'
-              }`}
-              icon={menuIcon}
-            >
-              {menuText}
-            </Menu.Item>
-          )}
-          <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
-          <Menu.Item
-            key="ssh"
-            className={`flex items-center ${extended ? 'xl:hidden' : ''} `}
-            disabled={sshDisabled}
-            icon={<CodeOutlined style={font20px} />}
-          >
-            SSH
-          </Menu.Item>
-          <Menu.Item
-            key="upload"
-            className={`flex items-center ${extended ? 'xl:hidden' : ''} `}
-            disabled={fileManagerDisabled}
-            icon={<FolderOpenOutlined style={font20px} />}
-          >
-            {environmentType === EnvironmentType.Container ||
-            environmentType === EnvironmentType.Standalone
+            }`,
+          },
+          persistent
+            ? {
+                key: 'persistent',
+                label: menuText,
+                icon: menuIcon,
+                onClick: () => menuAction,
+                className: `flex items-center ${
+                  extended ? ' sm:hidden' : 'xs:hidden'
+                }`,
+              }
+            : null,
+          {
+            type: 'divider',
+            className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
+          },
+          {
+            key: 'ssh',
+            label: 'SSH',
+            icon: <CodeOutlined style={font20px} />,
+            onClick: () => setSshModal(true),
+            className: `flex items-center ${
+              extended ? 'xl:hidden' : ''
+            } ${sshDisabled ? 'pointer-events-none' : ''}`,
+            disabled: sshDisabled,
+          },
+          {
+            key: 'upload',
+            label: isContainer
               ? 'File Manager'
-              : environmentType === EnvironmentType.VirtualMachine && 'Drive'}
-          </Menu.Item>
-          <Menu.Divider className={`${extended ? 'sm:hidden' : 'xs:hidden'}`} />
-          <Menu.Item
-            key="destroy"
-            className={`flex items-center ${
+              : environmentType === EnvironmentType.VirtualMachine
+                ? 'Drive'
+                : '',
+            icon: <FolderOpenOutlined style={font20px} />,
+            disabled: fileManagerDisabled,
+            className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
+            onClick: () => {},
+          },
+          {
+            type: 'divider',
+            className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
+          },
+          {
+            key: 'destroy',
+            label: 'Destroy',
+            danger: true,
+            icon: <DeleteOutlined style={font20px} />,
+            onClick: () =>
+              deleteInstanceMutation({
+                variables: {
+                  instanceId: name,
+                  tenantNamespace: tenantNamespace!,
+                },
+              }),
+            className: `flex items-center ${
               extended ? ' sm:hidden' : 'xs:hidden'
-            }`}
-            danger
-            icon={<DeleteOutlined style={font20px} />}
-          >
-            Destroy
-          </Menu.Item>
-        </Menu>
-      }
+            }`,
+          },
+        ],
+      }}
     >
       <Button
         className={`${
@@ -208,8 +192,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               : 'sm:hidden'
             : ''
         } flex justify-center items-center`}
-        type="default"
-        with="link"
+        color="default"
+        type="link"
         shape="circle"
         size="middle"
         icon={<MoreOutlined className="flex items-center" style={font20px} />}

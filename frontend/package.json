@@ -1,113 +1,58 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "crownlabs-frontend",
+  "version": "0.2.0",
   "private": true,
+  "type": "module",
   "dependencies": {
-    "@ant-design/icons": "^4.6.2",
-    "@apollo/client": "^3.3.20",
-    "@craco/craco": "^6.1.1",
-    "@types/jest": "^26.0.15",
-    "@types/node": "^12.0.0",
-    "@types/papaparse": "^5.2.6",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
-    "@types/react-router-dom": "^5.1.7",
-    "antd": "^4.24.16",
-    "antd-button-color": "^1.0.4",
-    "craco-less": "^1.17.1",
-    "graphql": "^15.5.1",
-    "graphql-tag": "^2.12.5",
+    "@ant-design/cssinjs": "^1.23.0",
+    "@ant-design/icons": "^5.6.1",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
+    "@apollo/client": "^3.13.8",
+    "@tailwindcss/vite": "^4.1.5",
+    "antd": "^5.25.0",
     "graphql-ws": "^5.16.0",
-    "keycloak-js": "12.0.4",
-    "papaparse": "^5.3.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3",
-    "typescript": "^5.6.3",
-    "web-vitals": "^1.0.1",
-    "ws": "^8.17.1"
+    "oidc-client-ts": "^3.2.1",
+    "papaparse": "^5.5.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-oidc-context": "^3.3.0",
+    "react-router-dom": "^7.5.3",
+    "tailwindcss": "^4.1.5"
   },
   "scripts": {
-    "start": "craco --openssl-legacy-provider start",
-    "build-app": "craco --openssl-legacy-provider build",
-    "prepare": "cd .. && husky install frontend/.husky",
-    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0",
+    "start": "vite",
+    "build-app": "tsc -b && vite build",
+    "lint": "eslint .",
+    "prepare": "husky || true",
+    "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} --write && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0 --fix",
     "pre-commit": "lint-staged",
     "generate": "graphql-codegen"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "plugin:prettier/recommended"
-    ],
-    "overrides": [
-      {
-        "files": [
-          "**/*.stories.*"
-        ],
-        "rules": {
-          "import/no-anonymous-default-export": "off"
-        }
-      }
-    ],
-    "rules": {
-      "react/no-multi-comp": "error",
-      "react/jsx-pascal-case": "error",
-      "react/prop-types": "off",
-      "no-nested-ternary": "off",
-      "no-console": [
-        "warn",
-        {
-          "allow": [
-            "error",
-            "info"
-          ]
-        }
-      ],
-      "react/jsx-indent": "off",
-      "react/jsx-wrap-multilines": [
-        "error",
-        {
-          "declaration": false
-        }
-      ]
-    }
-  },
-  "eslintIgnore": [
-    "**/generated-types.tsx"
-  ],
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.3",
-    "@graphql-codegen/typescript": "^4.1.1",
-    "@graphql-codegen/typescript-operations": "^4.3.1",
+    "@eslint/js": "^9.25.0",
+    "@graphql-codegen/cli": "^5.0.6",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-operations": "^4.6.1",
     "@graphql-codegen/typescript-react-apollo": "^4.3.2",
-    "@tailwindcss/postcss7-compat": "npm:@tailwindcss/postcss7-compat",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^3.4.0",
-    "husky": "^6.0.0",
+    "@types/papaparse": "^5.3.16",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react-swc": "^3.9.0",
+    "eslint": "^9.25.0",
+    "eslint-config-prettier": "^10.1.3",
+    "eslint-plugin-prettier": "^5.4.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "less": "^4.3.0",
     "lint-staged": "^10.5.4",
-    "postcss": "^8",
-    "prettier": "^2.2.1",
-    "tailwindcss": "npm:@tailwindcss/postcss7-compat"
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.5",
+    "vite-plugin-svgr": "^4.3.0"
   },
-  "resolutions": {
-    "babel-loader": "8.1.0"
-  },
-  "homepage": "/",
   "prettier": {
     "printWidth": 80,
     "tabWidth": 2,

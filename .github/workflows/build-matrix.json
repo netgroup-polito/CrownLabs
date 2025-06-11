@@ -50,7 +50,7 @@
     {
         "component": "frontend-app",
         "context": "./frontend",
-        "build-args": "BUILD_TARGET=app\nSUBROUTE=/app",
+        "build-args": "BUILD_TARGET=app\nSUBROUTE=/app/",
         "harbor-project": "crownlabs-core"
     },
     {

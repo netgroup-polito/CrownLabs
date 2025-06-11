@@ -1,11 +1,12 @@
-import { FC, useContext } from 'react';
+import type { FC } from 'react';
+import { useContext } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 
-const ActiveViewLogic: FC<{}> = ({ ...props }) => {
+const ActiveViewLogic: FC = () => {
   const {
     data: tenantData,
     loading: tenantLoading,
@@ -16,15 +17,19 @@ const ActiveViewLogic: FC<{}> = ({ ...props }) => {
     tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
 
   const managerWorkspaces = workspaces?.filter(
-    ws => ws.role === WorkspaceRole.manager
+    ws => ws.role === WorkspaceRole.manager,
   );
 
-  return !tenantLoading && tenantData && !tenantError ? (
+  const tenantId = tenantData?.tenant?.metadata?.name;
+  const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  return !tenantLoading &&
+    tenantData &&
+    !tenantError &&
+    tenantId &&
+    tenantNamespace ? (
     <ActiveView
-      user={{
-        tenantId: tenantData.tenant?.metadata?.name!,
-        tenantNamespace: tenantData!.tenant?.status?.personalNamespace?.name!,
-      }}
+      user={{ tenantId, tenantNamespace }}
       managerView={managerWorkspaces.length > 0}
       workspaces={managerWorkspaces}
     />

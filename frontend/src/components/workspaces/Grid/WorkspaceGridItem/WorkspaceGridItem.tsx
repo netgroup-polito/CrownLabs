@@ -1,7 +1,6 @@
-import { FC } from 'react';
-import { Row, Col } from 'antd';
+import type { FC } from 'react';
+import { Row, Col, Badge } from 'antd';
 import './WorkspaceGridItem.less';
-import Badge from '../../../common/Badge';
 
 export interface IWorkspaceGridItemProps {
   id: number;
@@ -23,12 +22,10 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
     <Row className="sm:px-0 md:px-4">
       <Col span={24} className="flex justify-center pb-2">
         <button
-          className={`cursor-pointer row shadow-lg h-24 w-24 2xl:h-28 2xl:w-28 workspaceitem ${
+          className={`cursor-pointer row shadow-lg h-24 w-24 workspaceitem ${
             isActive ? 'active' : ''
           }`}
-          onClick={() => {
-            onClick(id);
-          }}
+          onClick={() => onClick(id)}
         >
           <label
             className="cursor-pointer font-mono font-semibold flex justify-center items-center pt-2 "
@@ -38,15 +35,15 @@ const WorkspaceGridItem: FC<IWorkspaceGridItemProps> = ({ ...props }) => {
           </label>
           {badgeValue && (
             <Badge
-              value={badgeValue}
-              size="middle"
+              count={badgeValue}
               className="absolute top-0 right-0"
+              color="blue"
             />
           )}
         </button>
       </Col>
       <Col span={24} className="flex justify-center pb-0">
-        <p className="w-28 h-6 lg:h-8 2xl:h-12 2xl:w-32 text-center text-xs 2xl:text-sm pb-0">
+        <p className="w-28 h-6 lg:h-8 2xl:h-20 2xl:w-32 text-center text-xs 2xl:text-sm pb-0">
           {title}
         </p>
       </Col>

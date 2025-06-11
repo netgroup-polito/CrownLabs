@@ -1,16 +1,27 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Alert, Modal, Button } from 'antd';
+import type { ApolloError } from '@apollo/client';
+import type { EnrichedError } from '../../../errorHandling/utils';
 export interface IUploadProgressErrorsModal {
-  errors: any[];
+  errors: EnrichedError[];
   uploadedUserNumber: number;
 }
 
-const tryExtractError = (e: any): string => {
+const unknownError = 'Unknown error (see details)';
+
+const tryExtractError = (e: EnrichedError): string => {
   try {
-    return e.graphQLErrors[0].extensions.k8s.reason;
+    if (typeof e === 'object' && e !== null && 'graphQLErrors' in e) {
+      const err = e as ApolloError;
+      const k8s = err.graphQLErrors?.[0]?.extensions?.k8s;
+      return typeof k8s === 'object' && k8s !== null && 'reason' in k8s
+        ? ((k8s as { reason?: string }).reason ?? unknownError)
+        : unknownError;
+    }
   } catch (_) {
-    return 'Unknown error (see details)';
+    /* empty */
   }
+  return unknownError;
 };
 
 const UploadProgressErrorsModal: FC<IUploadProgressErrorsModal> = props => {
@@ -51,7 +62,7 @@ const UploadProgressErrorsModal: FC<IUploadProgressErrorsModal> = props => {
         />
       )}
       <Modal
-        visible={showModal}
+        open={showModal}
         closable={true}
         onCancel={() => setShowModal(false)}
       >

@@ -1,18 +1,18 @@
-import { Empty, Spin } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useContext, useEffect, useState } from 'react';
+import { Button, Empty, Spin } from 'antd';
+import { type FC, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import {
-  OwnedInstancesQuery,
-  UpdatedOwnedInstancesSubscriptionResult,
+  type OwnedInstancesQuery,
+  type UpdatedOwnedInstancesSubscriptionResult,
   useOwnedInstancesQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import { Instance, JSONDeepCopy, User, WorkspaceRole } from '../../../utils';
+import type { WorkspaceRole } from '../../../utils';
+import { type Instance, JSONDeepCopy, type User } from '../../../utils';
 import {
   getSubObjTypeK8s,
   makeGuiInstance,
@@ -34,7 +34,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
   const { tenantNamespace, tenantId } = user;
-  const { hasSSHKeys } = useContext(TenantContext);
+  const { hasSSHKeys, notify: notifier } = useContext(TenantContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
@@ -69,9 +69,9 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
           if (!data?.updateInstance?.instance) return prev;
 
-          const { instance, updateType } = data?.updateInstance;
+          const { instance, updateType } = data.updateInstance;
           let notify = false;
-          let newItem = JSONDeepCopy(prev);
+          const newItem = JSONDeepCopy(prev);
           let objType;
 
           if (newItem.instanceList?.instances) {
@@ -106,7 +106,12 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           }
 
           if (notify) {
-            notifyStatus(instance.status?.phase, instance, updateType);
+            notifyStatus(
+              instance.status?.phase,
+              instance,
+              updateType,
+              notifier,
+            );
           }
 
           if (objType !== SubObjType.Drop) {
@@ -126,6 +131,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     errorInstances,
     apolloErrorCatcher,
     makeErrorCatcher,
+    notifier,
   ]);
 
   const instances =
@@ -136,8 +142,8 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           a,
           b,
           sortingData.sortingType as keyof Instance,
-          sortingData.sorting
-        )
+          sortingData.sorting,
+        ),
       ) || [];
 
   return (
@@ -171,15 +177,13 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           </div>
         )
       ) : (
-        <>
-          <div className="flex justify-center h-full items-center">
-            {loadingInstances ? (
-              <Spin size="large" spinning={loadingInstances} />
-            ) : (
-              <>{errorInstances && <p>{errorInstances.message}</p>}</>
-            )}
-          </div>
-        </>
+        <div className="flex justify-center h-full items-center">
+          {loadingInstances ? (
+            <Spin size="large" spinning={loadingInstances} />
+          ) : (
+            <>{errorInstances && <p>{errorInstances.message}</p>}</>
+          )}
+        </div>
       )}
     </>
   );

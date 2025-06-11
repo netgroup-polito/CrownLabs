@@ -1,4 +1,4 @@
-import { CodegenConfig } from '@graphql-codegen/cli';
+import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const schemaUrl =
   (process.env.GRAPHQL_URL || 'https://graphql.preprod.crownlabs.polito.it') +

@@ -1,4 +1,3 @@
-/* eslint-disable react/no-multi-comp */
 import { Table, Form, Popconfirm, Tooltip } from 'antd';
 import {
   EditOutlined,
@@ -6,10 +5,12 @@ import {
   CloseOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { UserAccountPage } from '../../../utils';
-import { FC, useState } from 'react';
+import type { UserAccountPage } from '../../../utils';
+import type { FC } from 'react';
+import { useState } from 'react';
 import EditableCell from './EditableCell';
-import { SupportedError } from '../../../errorHandling/utils';
+import type { SupportedError } from '../../../errorHandling/utils';
+import type { ColumnType } from 'antd/lib/table';
 export interface IEditableTableProps {
   data: UserAccountPage[];
   updateUserCSV: (user: UserAccountPage[]) => void;
@@ -54,8 +55,8 @@ const EditableTable: FC<IEditableTableProps> = props => {
         setEditingKey('');
         props.updateUserCSV(
           props.data.map(user =>
-            user.key === updatedUser.key ? updatedUser : user
-          )
+            user.key === updatedUser.key ? updatedUser : user,
+          ),
         );
         props.setEditing(false);
       }
@@ -64,7 +65,7 @@ const EditableTable: FC<IEditableTableProps> = props => {
     }
   };
 
-  const columns = [
+  const columns: (ColumnType<UserAccountPage> & { editable?: boolean })[] = [
     {
       title: 'User ID',
       key: 'userid',
@@ -96,7 +97,7 @@ const EditableTable: FC<IEditableTableProps> = props => {
     {
       title: 'Action',
       dataIndex: 'operation',
-      render: (_: any, record: UserAccountPage) => {
+      render: (_: unknown, record: UserAccountPage, _index: number) => {
         const editable = isEditing(record);
         return editable ? (
           <span>
@@ -116,16 +117,14 @@ const EditableTable: FC<IEditableTableProps> = props => {
               <EditOutlined
                 className="mx-1"
                 disabled={editingKey !== ''}
-                onClick={() => {
-                  edit(record);
-                }}
+                onClick={() => edit(record)}
               />
             </Tooltip>
             <Popconfirm
               title="Sure to delete?"
               onConfirm={() =>
                 props.updateUserCSV(
-                  props.data.filter(user => user.key !== record.key)
+                  props.data.filter(user => user.key !== record.key),
                 )
               }
             >
@@ -139,20 +138,24 @@ const EditableTable: FC<IEditableTableProps> = props => {
     },
   ];
 
-  const makeOnCellCallback = (record: UserAccountPage, col: any) => ({
+  const makeOnCellCallback = (
+    record: UserAccountPage,
+    col: ColumnType<UserAccountPage>,
+  ) => ({
     record,
     inputType: 'text',
     dataIndex: col.dataIndex,
-    title: col.title,
+    title: typeof col.title === 'string' ? col.title : undefined,
     editing: isEditing(record),
   });
-  const mergedColumns = columns.map(col =>
+
+  const mergedColumns: ColumnType<UserAccountPage>[] = columns.map(col =>
     !col.editable
       ? col
       : {
           ...col,
           onCell: (record: UserAccountPage) => makeOnCellCallback(record, col),
-        }
+        },
   );
 
   return (
