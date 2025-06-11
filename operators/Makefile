@@ -82,7 +82,7 @@ run-instance: generate
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
-run-instance-local: samples-local install-local run-instance
+run-instance-local: install-local samples-local run-instance
 
 
 run-tenant: generate

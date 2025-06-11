@@ -1,0 +1,80 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servicerequests.networking.example.com
+spec:
+  group: networking.example.com
+  names:
+    kind: ServiceRequest
+    listKind: ServiceRequestList
+    plural: servicerequests
+    singular: servicerequest
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            properties:
+              namespace:
+                type: string
+                description: "Il namespace in cui creare la VM."
+              vmName:
+                type: string
+                description: "Il nome della VM. Se non specificato, verrà generato automaticamente."
+              services:
+                type: array
+                description: "L'elenco dei servizi associati alla VM."
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: "Il nome del servizio."
+                    targetPort:
+                      type: integer
+                      description: "La porta di destinazione del servizio."
+                      minimum: 1
+                    port:
+                      type: integer
+                      description: "La porta del servizio. Se non specificata, verrà generata automaticamente."
+                      minimum: 0
+                      maximum: 65535  
+            required:
+            - vmName 
+            - namespace
+            - services
+          status:
+            type: object
+            properties:
+              status:
+                type: string
+                description: "Lo stato della richiesta."
+              assignedPorts:
+                type: array
+                description: "L'elenco dei servizi con le porte assegnate."
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: "Il nome del servizio."
+                    targetPort:
+                      type: integer
+                      description: "La porta di destinazione del servizio."
+                    assignedPort:
+                      type: integer
+                      description: "La porta assegnata al servizio."
+    subresources:
+      status: {}

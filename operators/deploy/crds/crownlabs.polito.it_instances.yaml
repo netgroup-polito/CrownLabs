@@ -98,6 +98,37 @@ spec:
                   Custom name the user can assign and change at any time
                   in order to more easily identify the instance.
                 type: string
+              publicExposure:
+                description: |-
+                  Optional specification of the Instance service exposure.
+                  If set, it will be used to expose the Instance services to the outside world.
+                  LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+                properties:
+                  servicesportmappings:
+                    items:
+                      description: ServicePortMapping definisce il mapping delle porte
+                        per un servizio
+                      properties:
+                        assignedPort:
+                          format: int32
+                          type: integer
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        targetPort:
+                          format: int32
+                          type: integer
+                      required:
+                      - name
+                      - port
+                      - targetPort
+                      type: object
+                    type: array
+                required:
+                - servicesportmappings
+                type: object
               running:
                 default: true
                 description: |-
@@ -202,6 +233,34 @@ spec:
                 - Failed
                 - CreationLoopBackoff
                 type: string
+              publicExposureStatus:
+                description: The status of the Instance service exposure, if any.
+                properties:
+                  assignedPorts:
+                    items:
+                      description: ServicePortMapping definisce il mapping delle porte
+                        per un servizio
+                      properties:
+                        assignedPort:
+                          format: int32
+                          type: integer
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        targetPort:
+                          format: int32
+                          type: integer
+                      required:
+                      - name
+                      - port
+                      - targetPort
+                      type: object
+                    type: array
+                  externalIP:
+                    type: string
+                type: object
               url:
                 description: |-
                   The URL where it is possible to access the remote desktop of the instance
