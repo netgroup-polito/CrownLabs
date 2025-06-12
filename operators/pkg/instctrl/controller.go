@@ -51,7 +51,6 @@ type InstanceReconciler struct {
 	EventsRecorder     record.EventRecorder
 	NamespaceWhitelist metav1.LabelSelector
 	ServiceUrls        ServiceUrls
-	ContainerEnvOpts   forge.ContainerEnvOpts
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
