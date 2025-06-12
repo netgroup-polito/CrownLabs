@@ -17,7 +17,8 @@ configurations:
 #   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
   tenantNamespaceKeepAlive: 168h
-#     resourcecaps:
+  tenant:
+    resourcecaps: {}
 #       # Maximum number of virtual cpus that can be requested by a tenant. 0 means unlimited.
 #       cpu: 25
 #       # Maximum amount of memory that can be requested by a tenant (expressed in GB). 0 means unlimited.

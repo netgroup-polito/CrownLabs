@@ -57,10 +57,10 @@ spec:
             - name: probes
               containerPort: 8081
               protocol: TCP
-            - name: k8s-webhook
+            - name: k8s-wh
               containerPort: 9443
               protocol: TCP
-            - name: keycloak-webhook
+            - name: keycloak-wh
               containerPort: 8082
               protocol: TCP
           livenessProbe:
