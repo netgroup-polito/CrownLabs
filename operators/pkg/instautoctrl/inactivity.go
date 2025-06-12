@@ -52,7 +52,7 @@ type InstanceInactiveTerminationReconciler struct {
 	NamespaceWhitelist        metav1.LabelSelector
 	StatusCheckRequestTimeout time.Duration
 	InstanceMaxNumberOfAlerts int
-	MailClient                *MailClient
+	MailClient                *utils.MailClient
 	PrometheusURL             string
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
