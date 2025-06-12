@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,8 +123,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
+	var namespace corev1.Namespace
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Namespace}, &namespace); err != nil {
+		log.Error(err, "failed retrieving instance namespace", "instance", instance.Name)
+		return ctrl.Result{}, err
+	}
+
 	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
-	if stop := utils.CheckSingleLabel(&instance, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
+	if stop := utils.CheckSingleLabel(&namespace, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
 		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
 		return ctrl.Result{}, nil
 	}
