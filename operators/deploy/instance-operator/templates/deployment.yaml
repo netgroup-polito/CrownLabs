@@ -51,7 +51,6 @@ spec:
             - "--max-concurrent-reconciles-shvol={{ .Values.configurations.maxConcurrentShVolReconciles }}"
             - "--shared-volume-storage-class={{ .Values.configurations.sharedVolumeOptions.storageClass }}"
             - "--monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}"
-            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
             - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
             - "--max-concurrent-inactive-reconciles-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}"
             - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
