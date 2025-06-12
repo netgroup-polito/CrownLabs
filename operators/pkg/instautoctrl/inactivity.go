@@ -183,6 +183,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
 	}
+	if !terminate && remainingTime == 0 {
+		return ctrl.Result{}, nil
+	}
 
 	tracer.Step("Inactive termination check done")
 
