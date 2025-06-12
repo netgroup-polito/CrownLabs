@@ -16,17 +16,20 @@ package tenant_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/mock_utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,10 +39,11 @@ import (
 
 var _ = Describe("Authenticator", func() {
 	var (
-		ctx           context.Context
-		reconciler    *tntctrl.TenantReconciler
-		tenant        *crownlabsv1alpha2.Tenant
-		keycloakActor *utils.KeycloakActor
+		mockCtrl   *gomock.Controller
+		ctx        context.Context
+		reconciler *tntctrl.TenantReconciler
+		tenant     *crownlabsv1alpha2.Tenant
+		mKcAct     *mock_utils.MockKeycloakActorIface
 	)
 
 	const (
@@ -49,6 +53,9 @@ var _ = Describe("Authenticator", func() {
 	)
 
 	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mKcAct = mock_utils.NewMockKeycloakActorIface(mockCtrl)
+
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 
 		tenant = &crownlabsv1alpha2.Tenant{
@@ -68,18 +75,17 @@ var _ = Describe("Authenticator", func() {
 			Scheme: scheme.Scheme,
 		}
 
-		keycloakActor = utils.GetKeycloakActor()
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	Describe("CheckKeycloakUserVerified", func() {
 		Context("When Keycloak actor is not initialized", func() {
-			BeforeEach(func() {
-				// Ensure Keycloak actor is not initialized
-				keycloakActor.Reset()
-			})
-
 			It("should return true and no error", func() {
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, keycloakActor)
+				mKcAct.EXPECT().IsInitialized().Return(false)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 			})
@@ -87,22 +93,101 @@ var _ = Describe("Authenticator", func() {
 
 		Context("When Keycloak actor is initialized", func() {
 			BeforeEach(func() {
-				// Initialize Keycloak actor
-				err := utils.SetupKeycloakActor("http://test", "test-client", "test-secret", "test-realm")
-				Expect(err).NotTo(HaveOccurred())
+				mKcAct.EXPECT().IsInitialized().Return(true).AnyTimes()
+				mKcAct.EXPECT().GetAccessToken().Return("mock-access-token").AnyTimes()
 			})
 
 			It("should return true and no error if user is created and email is confirmed", func() {
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, keycloakActor)
+				mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+					ID:            gocloak.StringP("user-id"),
+					EmailVerified: gocloak.BoolP(true),
+				}, nil)
+
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
+				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+					Name:    "user-id",
+					Created: true,
+				}))
+				Expect(tenant.Status.Keycloak.UserConfirmed).To(BeTrue())
 			})
 
 			It("should return false and no error if user is created but email is not confirmed", func() {
-				tenant.Status.Keycloak.UserConfirmed = false
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, keycloakActor)
+				mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+					ID:            gocloak.StringP("user-id"),
+					EmailVerified: gocloak.BoolP(false),
+				}, nil)
+
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
+				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+					Name:    "user-id",
+					Created: true,
+				}))
+				Expect(tenant.Status.Keycloak.UserConfirmed).To(BeFalse())
+			})
+
+			Context("When there is an error retrieving the user", func() {
+				It("should return an error ", func() {
+					mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, gocloak.APIError{
+						Message: "error retrieving user",
+						Code:    500,
+					})
+
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					Expect(err).To(HaveOccurred())
+					Expect(verified).To(BeFalse())
+					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
+				})
+			})
+
+			Context("When the user does not exists in Keycloak", func() {
+				It("should create the user", func() {
+					gomock.InOrder(
+						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
+						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("user-id", nil),
+						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+							ID:            gocloak.StringP("user-id"),
+							EmailVerified: gocloak.BoolP(false),
+						}, nil),
+					)
+
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(verified).To(BeFalse())
+					Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+						Name:    "user-id",
+						Created: true,
+					}))
+					Expect(tenant.Status.Keycloak.UserConfirmed).To(BeFalse())
+				})
+
+				It("should return an error if user creation fails", func() {
+					gomock.InOrder(
+						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
+						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("", fmt.Errorf("error creating user")),
+					)
+
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					Expect(err).To(HaveOccurred())
+					Expect(verified).To(BeFalse())
+					Expect(err.Error()).To(ContainSubstring("error creating user"))
+				})
+
+				It("should return an error if it is unable to retrieve the newly created user", func() {
+					gomock.InOrder(
+						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
+						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("user-id", nil),
+						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("error retrieving user")),
+					)
+
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					Expect(err).To(HaveOccurred())
+					Expect(verified).To(BeFalse())
+					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
+				})
 			})
 		})
 	})

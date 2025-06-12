@@ -228,7 +228,7 @@ func (r *TenantReconciler) deleteTenant(
 	// TODO delete all resources related to the tenant
 
 	// remove the tenant from Keycloak
-	err := r.deleteTenantInKeycloak(ctx, tn)
+	err := r.deleteTenantInKeycloak(ctx, utils.GetKeycloakActor(), tn)
 	if err != nil {
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
 		return err
