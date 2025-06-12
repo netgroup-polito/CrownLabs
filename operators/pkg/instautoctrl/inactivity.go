@@ -18,9 +18,7 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
-	"math"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -65,7 +63,6 @@ type InstanceInactiveTerminationReconciler struct {
 
 var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
 var lastActivityAnnotation = "crownlabs.polito.it/last-activity"
-var deleteAfterRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
@@ -180,18 +177,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("instance last login updated")
 
-	// check if the instance reached the maximum time of lifetime and delete it if so
-	isDeleted, err := r.deleteStaleInstances(ctx, &instance)
-	if err != nil {
-		log.Error(err, "failed delete-stale-instances")
-	}
-	if isDeleted {
-		log.Info("instance is deleted, skipping inactivity check", "instance", instance.Name)
-		return ctrl.Result{}, nil
-	}
-
-	tracer.Step("stale instances done")
-
 	// check for inactivity and decide whether to terminate the instance or not
 	terminate, remainingTime, err := r.CheckInstanceTermination(ctx, &instance)
 	if err != nil {
@@ -221,6 +206,18 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			err := r.SendNotification(ctx, &instance, user.Spec.Email)
 			if err != nil {
 				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
+				return ctrl.Result{}, err
+			}
+			// increment the number of termination alerts
+			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[alertAnnotation])
+			if err != nil {
+				log.Error(err, "failed incrementing annotation")
+				return ctrl.Result{}, err
+			}
+			instance.ObjectMeta.Annotations[alertAnnotation] = newNumberOfAlerts
+			// update the status of the instance
+			if err := r.Update(ctx, &instance); err != nil {
+				log.Error(err, "failed updating instance annotations")
 				return ctrl.Result{}, err
 			}
 		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
@@ -484,23 +481,11 @@ func (r *InstanceInactiveTerminationReconciler) SendNotification(ctx context.Con
 		return err
 	}
 
-	// increment the number of termination alerts
-	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[alertAnnotation])
-	if err != nil {
-		log.Error(err, "failed incrementing annotation")
-		return err
-	}
-	instance.ObjectMeta.Annotations[alertAnnotation] = newNumberOfAlerts
-	// update the status of the instance
-	if err := r.Update(ctx, instance); err != nil {
-		log.Error(err, "failed updating instance annotations")
-		return err
-	}
-
 	return nil
 }
 
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
+// TODO move somewhere else, as it is used in other controllers too.
 func (r *InstanceInactiveTerminationReconciler) GetTenantFromInstance(ctx context.Context, instance *clv1alpha2.Instance) (clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
 	log.Info("getting user from instance", "instance", instance.Name)
@@ -554,91 +539,4 @@ func (r *InstanceInactiveTerminationReconciler) getInactivityTimeout(ctx context
 
 	templateInactivityTimeout := template.Spec.InactivityTimeout
 	return templateInactivityTimeout, nil
-}
-
-func convertToSeconds(deleteAfter string) (float64, error) {
-	if deleteAfter == "never" {
-		return math.Inf(1), nil
-	}
-
-	matches := deleteAfterRegex.FindStringSubmatch(deleteAfter)
-	if matches == nil {
-		return 0, fmt.Errorf("invalid deleteAfter format: %s", deleteAfter)
-	}
-
-	value, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return 0, err
-	}
-
-	unit := matches[2]
-	switch unit {
-	case "m":
-		return float64(value * 60), nil
-	case "h":
-		return float64(value * 3600), nil
-	case "d":
-		return float64(value * 86400), nil
-	default:
-		return 0, fmt.Errorf("unsupported time unit: %s", unit)
-	}
-}
-
-func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
-	created, err := time.Parse(time.RFC3339, creationTimestamp)
-	if err != nil {
-		return false, err
-	}
-	duration := time.Since(created).Seconds()
-	return duration > lifespan, nil
-}
-
-func (r *InstanceInactiveTerminationReconciler) deleteStaleInstances(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
-
-	// get the template from the instance
-	template := &clv1alpha2.Template{}
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, template)
-
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return false, fmt.Errorf("template not found: name=%s, namespace=%s", instance.Spec.Template.Name, instance.Spec.Template.Namespace)
-		}
-		return false, fmt.Errorf("failed to retrieve template for instance %s: %w", instance.Name, err)
-	}
-
-	// get the deleteAfter field from the template
-	deleteAfter := template.Spec.DeleteAfter
-	if deleteAfter == "never" {
-		return false, fmt.Errorf("template %s has deleteAfter set to 'never', skipping deletion", template.Name)
-	}
-
-	lifespan, err := convertToSeconds(deleteAfter)
-	if err != nil {
-		return false, err
-	}
-
-	creationTimestamp := instance.GetCreationTimestamp().Time.Format(time.RFC3339)
-	expired, err := isInstanceExpired(creationTimestamp, lifespan)
-	if err != nil {
-		return false, fmt.Errorf("failed to compute expiration: %w", err)
-	}
-
-	if expired {
-		err := r.Client.Delete(ctx, instance)
-		if err != nil {
-			if kerrors.IsNotFound(err) {
-				log.Info("Instance already deleted", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-				return false, nil
-			}
-			return false, fmt.Errorf("failed to delete instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
-		}
-		log.Info("Instance is expired and has been deleted", instance.GetName(), instance.GetNamespace())
-		return true, nil
-	}
-	log.Info("Instance is not expired, skipping deletion", instance.GetName(), instance.GetNamespace())
-	return false, nil
 }
