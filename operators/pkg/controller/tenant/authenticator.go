@@ -36,8 +36,8 @@ import (
 func (r *TenantReconciler) CheckKeycloakUserVerified(
 	ctx context.Context,
 	tenant *crownlabsv1alpha2.Tenant,
+	actor *utils.KeycloakActor,
 ) (bool, error) {
-	actor := utils.GetKeycloakActor()
 	if !actor.IsInitialized() {
 		klog.Warningf("Keycloak actor not initialized, skipping Keycloak status check for tenant %s", tenant.Name)
 		return true, nil
@@ -167,6 +167,12 @@ func (r *TenantReconciler) KeycloakEventHandler(
 
 	username, err := extractUsernameFromKeycloakEvent(body)
 	if err != nil {
+		hw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if username == "" {
+		klog.Warning("Received Keycloak event with empty username")
 		hw.WriteHeader(http.StatusBadRequest)
 		return
 	}

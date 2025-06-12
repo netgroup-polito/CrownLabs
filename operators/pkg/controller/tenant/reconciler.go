@@ -69,7 +69,7 @@ const (
 type TenantReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
-	TargetLabel utils.Label
+	TargetLabel utils.KVLabel
 	//KeepAliveTime    time.Duration
 	TenantNSKeepAlive           time.Duration
 	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
@@ -119,7 +119,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Infof("Finalizer %s added to tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
-	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
+	verified, err := r.CheckKeycloakUserVerified(ctx, &tn, utils.GetKeycloakActor())
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
 		return ctrl.Result{}, err

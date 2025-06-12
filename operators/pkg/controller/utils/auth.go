@@ -79,6 +79,19 @@ func (a *KeycloakActor) IsInitialized() bool {
 	return a.initialized
 }
 
+func (a *KeycloakActor) Reset() {
+	a.tokenMutex.Lock()
+	defer a.tokenMutex.Unlock()
+	a.initialized = false
+	a.Client = nil
+	a.Realm = ""
+	a.token = nil
+	a.tokenExpiresAt = 0
+	a.credentials.ClientID = ""
+	a.credentials.ClientSecret = ""
+	klog.Info("Keycloak actor has been reset")
+}
+
 // GetAccessToken returns the access token of the actor.
 // It tries to refresh the token if it is nil or expired.
 func (a *KeycloakActor) GetAccessToken() string {

@@ -23,40 +23,40 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-type Label struct {
+type KVLabel struct {
 	key   string
 	value string
 }
 
 // NewLabel creates a new Label instance.
-func NewLabel(key, value string) Label {
-	return Label{
+func NewLabel(key, value string) KVLabel {
+	return KVLabel{
 		key:   key,
 		value: value,
 	}
 }
 
 // ParseLabel parses a label string key=value into a Label instance.
-func ParseLabel(label string) (Label, error) {
+func ParseLabel(label string) (KVLabel, error) {
 	parts := strings.SplitN(label, "=", 2)
 	if len(parts) != 2 {
-		return Label{}, fmt.Errorf("invalid label format: %s", label)
+		return KVLabel{}, fmt.Errorf("invalid label format: %s", label)
 	}
 	return NewLabel(parts[0], parts[1]), nil
 }
 
 // GetKey returns the key of the label.
-func (l Label) GetKey() string {
+func (l KVLabel) GetKey() string {
 	return l.key
 }
 
 // GetValue returns the value of the label.
-func (l Label) GetValue() string {
+func (l KVLabel) GetValue() string {
 	return l.value
 }
 
 // GetPredicate returns a Predicate for builder.
-func (l Label) GetPredicate() (predicate.Predicate, error) {
+func (l KVLabel) GetPredicate() (predicate.Predicate, error) {
 	labelSelector := metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			l.key: l.value,
@@ -72,7 +72,7 @@ func (l Label) GetPredicate() (predicate.Predicate, error) {
 }
 
 // IsIncluded checks if the label is included in the given labels.
-func (l Label) IsIncluded(labels map[string]string) bool {
+func (l KVLabel) IsIncluded(labels map[string]string) bool {
 	if labels == nil {
 		return false
 	}
