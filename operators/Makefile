@@ -74,6 +74,7 @@ run-instance: generate
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
+				--container-env-sidecars-tag=v0.14.5
 
 run-instance-automation: generate
 	go run cmd/instance-automation/main.go\
