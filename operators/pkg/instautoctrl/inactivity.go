@@ -33,11 +33,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -55,6 +54,7 @@ type InstanceInactiveTerminationReconciler struct {
 	InstanceMaxNumberOfAlerts int
 	MailClient                *utils.MailClient
 	PrometheusURL             string
+	InactivityInterval        time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -71,29 +71,64 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 		Watches(
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-				return []reconcile.Request{}
+				var requests []reconcile.Request
+
+				template, ok := obj.(*clv1alpha2.Template)
+				if !ok || template.Spec.InactivityTimeout == "never" {
+					return requests
+				}
+
+				var instances clv1alpha2.InstanceList
+				if err := r.Client.List(ctx, &instances,
+					client.InNamespace(template.Namespace),
+					client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
+				); err != nil {
+					ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
+					return requests
+				}
+
+				for _, instance := range instances.Items {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      instance.Name,
+							Namespace: instance.Namespace,
+						},
+					})
+				}
+
+				return requests
 			}),
+			builder.WithPredicates(inactivityTimeoutChanged),
+		).
+		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+			var requests []reconcile.Request
+			namespace, ok := obj.(*corev1.Namespace)
+			if !ok || namespace.Labels[forge.InstanceInactivityIgnoreNamespace] == "true" {
+				return requests
+			}
+
+			fmt.Println("Namespace changed:", namespace.Name)
+			var instances clv1alpha2.InstanceList
+			if err := r.List(ctx, &instances, client.InNamespace(namespace.Namespace)); err != nil {
+				return requests
+			}
+
+			for _, instance := range instances.Items {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      instance.Name,
+						Namespace: instance.Namespace,
+					},
+				})
+			}
+			fmt.Println("Enqueued requests for namespace:", namespace.Name, "with", len(requests), "instances", requests)
+			return requests
+		}),
+			builder.WithPredicates(inactivityIgnoreNamespace),
 		).
 		Named("instance-inactive-termination").
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
-		}).
-		// Do not requeue on update events
-		// Inactive Instance Controller is triggered only by requeue events
-		WithEventFilter(predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldInstance, oldOk := e.ObjectOld.(*clv1alpha2.Instance)
-				newInstance, newOk := e.ObjectNew.(*clv1alpha2.Instance)
-				if !oldOk || !newOk {
-					return false
-				}
-
-				oldValue := oldInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
-				newValue := newInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
-
-				// Requeue only if the IstanceInactivityIgnoreNamespace label has changed
-				return oldValue != newValue
-			},
 		}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceInactiveTermination")).
 		Complete(r)
@@ -137,7 +172,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
 	if stop := utils.CheckSingleLabel(&namespace, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
 		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: r.InactivityInterval}, nil
 	}
 
 	tracer.Step("labels checked")
@@ -184,7 +219,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 	if !terminate && remainingTime == 0 {
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: r.InactivityInterval}, nil
 	}
 
 	tracer.Step("Inactive termination check done")

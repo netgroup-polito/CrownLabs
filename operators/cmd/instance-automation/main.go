@@ -167,8 +167,23 @@ func main() {
 		InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
 		MailClient:                mailClient,
 		PrometheusURL:             *prometheusURL,
+		InactivityInterval:        *instanceTerminationStatusCheckInterval,
 	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
+		os.Exit(1)
+	}
+
+	// Configure the Instance Expiration controller
+	instanceExpiration := "InstanceExpiration"
+	if err := (&instautoctrl.InstanceExpirationReconciler{
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceExpiration),
+		NamespaceWhitelist:        nsWhitelist,
+		StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
+		MailClient:                mailClient,
+	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", instanceExpiration)
 		os.Exit(1)
 	}
 
