@@ -17,6 +17,8 @@ package instctrl
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -171,6 +173,16 @@ func (r *InstanceReconciler) GetPublicKeys(ctx context.Context) ([]string, error
 		if managers.Items[i].Name != tenant.Name {
 			publicKeys = append(publicKeys, managers.Items[i].Spec.PublicKeys...)
 		}
+	}
+
+	// add the web pulic key
+	webPublicKeyPath := "/webbastion-key/ssh_web_bastion_master.pub"
+
+	pubKeyBytes, err := os.ReadFile(filepath.Clean(webPublicKeyPath))
+	if err == nil {
+		publicKeys = append(publicKeys, string(pubKeyBytes))
+	} else {
+		log.Error(err, "failed to read web bastion public key", "path", webPublicKeyPath)
 	}
 
 	return publicKeys, nil
