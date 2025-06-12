@@ -73,3 +73,17 @@ Create a qualified app name for the webhook components.
 {{- define "operator.webhookname" -}}
 {{ .Values.rbacResourcesName }}
 {{- end }}
+
+{{/*
+Create the name of the Keycloak webhook service endpoint.
+*/}}
+{{- define "operator.keycloakWebhookServiceName" -}}
+{{ include "operator.fullname" . }}-keycloak-wh
+{{- end }}
+
+{{/*
+Create the URL of the Keycloak webhook service endpoint.
+*/}}
+{{- define "operator.keycloakWebhookServiceURL" -}}
+http://{{ include "operator.keycloakWebhookServiceName" . }}.{{ .Release.Namespace }}.svc
+{{- end }}
