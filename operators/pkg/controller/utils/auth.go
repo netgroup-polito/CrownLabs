@@ -29,7 +29,7 @@ import (
 // KcActor contains the needed objects and infos to use keycloak functionalities.
 type KeycloakActor struct {
 	initialized    bool
-	Client         *gocloak.GoCloak
+	Client         GoCloakIface
 	Realm          string
 	token          *gocloak.JWT
 	tokenMutex     sync.RWMutex
@@ -54,12 +54,14 @@ func SetupKeycloakActor(
 		return nil
 	}
 
-	actor.Client = gocloak.NewClient(url)
+	if actor.Client == nil {
+		actor.Client = gocloak.NewClient(url)
+	}
 
 	// login to keycloak
 	_, err := actor.Client.LoginClient(context.Background(), clientID, clientSecret, realm)
 	if err != nil {
-		klog.Error("Unable to login as admin on keycloak", err)
+		klog.Error("Unable to login as admin on keycloak: ", err)
 		return err
 	}
 

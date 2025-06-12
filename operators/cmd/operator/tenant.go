@@ -51,7 +51,7 @@ func init() {
 
 func setup_tenant(
 	mgr manager.Manager,
-	targetLabel utils.Label,
+	targetLabel utils.KVLabel,
 ) error {
 	// TODO manage webhook
 
