@@ -30,15 +30,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -65,29 +63,38 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 		Watches(
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-				return []reconcile.Request{}
+				var requests []reconcile.Request
+
+				template, ok := obj.(*clv1alpha2.Template)
+				if !ok || template.Spec.DeleteAfter == "never" {
+					return requests
+				}
+
+				var instances clv1alpha2.InstanceList
+				if err := r.Client.List(ctx, &instances,
+					client.InNamespace(template.Namespace),
+					client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
+				); err != nil {
+					ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
+					return requests
+				}
+
+				for _, instance := range instances.Items {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      instance.Name,
+							Namespace: instance.Namespace,
+						},
+					})
+				}
+
+				return requests
 			}),
+			builder.WithPredicates(deleteAfterChanged), // opzionale ma consigliato
 		).
 		Named("instance-expiration-termination").
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
-		}).
-		// Do not requeue on update events
-		// Inactive Instance Controller is triggered only by requeue events
-		WithEventFilter(predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldInstance, oldOk := e.ObjectOld.(*clv1alpha2.Instance)
-				newInstance, newOk := e.ObjectNew.(*clv1alpha2.Instance)
-				if !oldOk || !newOk {
-					return false
-				}
-
-				oldValue := oldInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
-				newValue := newInstance.Labels[forge.InstanceInactivityIgnoreNamespace]
-
-				// Requeue only if the IstanceInactivityIgnoreNamespace label has changed
-				return oldValue != newValue
-			},
 		}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceExpiration")).
 		Complete(r)
