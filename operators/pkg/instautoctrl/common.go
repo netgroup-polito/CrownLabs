@@ -19,11 +19,15 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -61,4 +65,58 @@ func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1al
 	}
 
 	return nil
+}
+
+var deleteAfterChanged = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldTemplate, oldOk := e.ObjectOld.(*clv1alpha2.Template)
+		newTemplate, newOk := e.ObjectNew.(*clv1alpha2.Template)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldTemplate.Spec.DeleteAfter
+		newValue := newTemplate.Spec.DeleteAfter
+		fmt.Printf("template %s/%s: old deleteAfter=%s, new deleteAfter=%s\n",
+			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
+
+		// Requeue only if the deleteAfter field has changed
+		return oldValue == "never" && newValue != "never"
+	},
+}
+
+var inactivityTimeoutChanged = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldTemplate, oldOk := e.ObjectOld.(*clv1alpha2.Template)
+		newTemplate, newOk := e.ObjectNew.(*clv1alpha2.Template)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldTemplate.Spec.InactivityTimeout
+		newValue := newTemplate.Spec.InactivityTimeout
+		fmt.Printf("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s\n",
+			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
+
+		// Requeue only if the deleteAfter field has changed
+		return oldValue == "never" && newValue != "never"
+	},
+}
+
+var inactivityIgnoreNamespace = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldNs, oldOk := e.ObjectOld.(*corev1.Namespace)
+		newNs, newOk := e.ObjectNew.(*corev1.Namespace)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldNs.Labels[forge.InstanceInactivityIgnoreNamespace]
+		newValue := newNs.Labels[forge.InstanceInactivityIgnoreNamespace]
+		fmt.Printf("namespace %s: old labelValue=%s, new labelValue=%s\n",
+			oldNs.Namespace, oldValue, newValue)
+
+		// Requeue only if the label on the namespace has changed
+		return oldValue == forge.InstanceInactivityIgnoreNamespace && newValue == ""
+	},
 }
