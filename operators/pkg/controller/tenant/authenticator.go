@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -36,21 +35,20 @@ import (
 func (r *TenantReconciler) CheckKeycloakUserVerified(
 	ctx context.Context,
 	tenant *crownlabsv1alpha2.Tenant,
-	actor utils.KeycloakActorIface,
 ) (bool, error) {
-	if !actor.IsInitialized() {
+	if !r.KeycloakActor.IsInitialized() {
 		klog.Warningf("Keycloak actor not initialized, skipping Keycloak status check for tenant %s", tenant.Name)
 		return true, nil
 	}
 
 	// Check if the tenant exists in Keycloak
-	user, err := actor.GetUser(ctx, tenant.Name)
+	user, err := r.KeycloakActor.GetUser(ctx, tenant.Name)
 	if err != nil {
 		if err.Error() == "404" {
 			klog.Infof("Tenant %s not found in Keycloak, creating it", tenant.Name)
 
 			// Create the tenant in Keycloak
-			err = r.createTenantInKeycloak(ctx, actor, tenant)
+			err = r.createTenantInKeycloak(ctx, tenant)
 			if err != nil {
 				klog.Errorf("Error creating tenant %s in Keycloak: %v", tenant.Name, err)
 				return false, err
@@ -59,7 +57,7 @@ func (r *TenantReconciler) CheckKeycloakUserVerified(
 			klog.Infof("Tenant %s created in Keycloak", tenant.Name)
 
 			// retrive newly created user
-			user, err = actor.GetUser(ctx, tenant.Name)
+			user, err = r.KeycloakActor.GetUser(ctx, tenant.Name)
 			if err != nil {
 				klog.Errorf("Error retrieving newly created tenant %s in Keycloak: %v", tenant.Name, err)
 				return false, err
@@ -89,16 +87,15 @@ func (r *TenantReconciler) CheckKeycloakUserVerified(
 
 func (r *TenantReconciler) createTenantInKeycloak(
 	ctx context.Context,
-	actor utils.KeycloakActorIface,
 	tenant *crownlabsv1alpha2.Tenant,
 ) error {
-	if !actor.IsInitialized() {
+	if !r.KeycloakActor.IsInitialized() {
 		klog.Warningf("Keycloak actor not initialized, skipping Keycloak creation for tenant %s", tenant.Name)
 		return nil
 	}
 
 	// Create the tenant in Keycloak
-	userId, err := actor.CreateUser(
+	userId, err := r.KeycloakActor.CreateUser(
 		ctx,
 		tenant.Name,
 		tenant.Spec.Email,
@@ -123,10 +120,9 @@ func (r *TenantReconciler) createTenantInKeycloak(
 
 func (r *TenantReconciler) deleteTenantInKeycloak(
 	ctx context.Context,
-	actor utils.KeycloakActorIface,
 	tenant *crownlabsv1alpha2.Tenant,
 ) error {
-	if !actor.IsInitialized() {
+	if !r.KeycloakActor.IsInitialized() {
 		klog.Info("Keycloak actor not initialized, skipping Keycloak deletion")
 		return nil
 	}
@@ -137,7 +133,7 @@ func (r *TenantReconciler) deleteTenantInKeycloak(
 	}
 
 	// Delete the tenant in Keycloak
-	if err := actor.DeleteUser(ctx, tenant.Status.Keycloak.UserCreated.Name); err != nil {
+	if err := r.KeycloakActor.DeleteUser(ctx, tenant.Status.Keycloak.UserCreated.Name); err != nil {
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tenant.Name, err)
 		return fmt.Errorf("error deleting tenant %s in Keycloak: %w", tenant.Name, err)
 	} else {

@@ -71,8 +71,9 @@ var _ = Describe("Authenticator", func() {
 
 		cl := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		reconciler = &tntctrl.TenantReconciler{
-			Client: cl,
-			Scheme: scheme.Scheme,
+			Client:        cl,
+			Scheme:        scheme.Scheme,
+			KeycloakActor: mKcAct,
 		}
 
 	})
@@ -85,7 +86,7 @@ var _ = Describe("Authenticator", func() {
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
 				mKcAct.EXPECT().IsInitialized().Return(false)
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 			})
@@ -103,7 +104,7 @@ var _ = Describe("Authenticator", func() {
 					EmailVerified: gocloak.BoolP(true),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -119,7 +120,7 @@ var _ = Describe("Authenticator", func() {
 					EmailVerified: gocloak.BoolP(false),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
 				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -136,7 +137,7 @@ var _ = Describe("Authenticator", func() {
 						Code:    500,
 					})
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -154,7 +155,7 @@ var _ = Describe("Authenticator", func() {
 						}, nil),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -170,7 +171,7 @@ var _ = Describe("Authenticator", func() {
 						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("", fmt.Errorf("error creating user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error creating user"))
@@ -183,7 +184,7 @@ var _ = Describe("Authenticator", func() {
 						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("error retrieving user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant, mKcAct)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))

@@ -76,6 +76,7 @@ type TenantReconciler struct {
 	MyDrivePVCsSize             resource.Quantity
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
+	KeycloakActor               utils.KeycloakActorIface
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -119,7 +120,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Infof("Finalizer %s added to tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
-	verified, err := r.CheckKeycloakUserVerified(ctx, &tn, utils.GetKeycloakActor())
+	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
 		return ctrl.Result{}, err
@@ -228,7 +229,7 @@ func (r *TenantReconciler) deleteTenant(
 	// TODO delete all resources related to the tenant
 
 	// remove the tenant from Keycloak
-	err := r.deleteTenantInKeycloak(ctx, utils.GetKeycloakActor(), tn)
+	err := r.deleteTenantInKeycloak(ctx, tn)
 	if err != nil {
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
 		return err

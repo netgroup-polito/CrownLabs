@@ -61,6 +61,7 @@ func setup_tenant(
 		TargetLabel:             targetLabel,
 		TenantNSKeepAlive:       tenantNSKeepAlive,
 		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
+		KeycloakActor:           utils.GetKeycloakActor(),
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {
