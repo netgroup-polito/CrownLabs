@@ -87,7 +87,8 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 					return requests
 				}
 
-				for _, instance := range instances.Items {
+				for i := range instances.Items {
+					instance := &instances.Items[i]
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      instance.Name,
@@ -113,7 +114,8 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 				return requests
 			}
 
-			for _, instance := range instances.Items {
+			for i := range instances.Items {
+				instance := &instances.Items[i]
 				requests = append(requests, reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      instance.Name,
