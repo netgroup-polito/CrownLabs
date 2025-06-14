@@ -101,6 +101,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
+	defer func() {
+		// update the Tenant status
+		if err := r.Status().Update(ctx, &tn); err != nil {
+			klog.Errorf("Error updating status for tenant %s: %v", tn.Name, err)
+		}
+	}()
+
 	// check if the Tenant is being deleted
 	if !tn.DeletionTimestamp.IsZero() {
 		err := r.deleteTenant(ctx, &tn)
@@ -108,6 +115,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			klog.Errorf("Error deleting tenant %s: %v", tn.Name, err)
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
 
 	// add the finalizer if it is not already present
@@ -120,10 +128,18 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		klog.Infof("Finalizer %s added to tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
+	if tn.Status.Subscriptions == nil {
+		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
+	}
+
 	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+		tn.Status.Ready = false
 		return ctrl.Result{}, err
+	} else {
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
 	if verified {
@@ -167,12 +183,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// if the Tenant has not been verified, we can skip the reconciliation
 		// and wait for the next reconcile loop
 		log.Info("Tenant not verified, skipping reconciliation")
-	}
-
-	// update the Tenant status
-	if err := r.Status().Update(ctx, &tn); err != nil {
-		klog.Errorf("Error updating status for tenant %s: %v", tn.Name, err)
-		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
