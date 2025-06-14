@@ -36,6 +36,7 @@ import (
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -228,7 +229,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// WithOptions(controller.Options{
 		// 	MaxConcurrentReconciles: r.Concurrency,
 		// }).
-		// WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
+		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
 		Complete(r)
 }
 

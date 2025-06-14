@@ -66,7 +66,9 @@ func main() {
 
 	// Enabling modules
 	var enableTenant bool
+	var enableWorkspace bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
+	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -96,7 +98,7 @@ func main() {
 	log.Info("Selecting resources with label", "label", targetLabelStr)
 
 	// enabling Keycloak if modules that needs it are enabled
-	enableKeycloak := enableTenant // TODO || enableWorkspace
+	enableKeycloak := enableTenant || enableWorkspace
 	if enableKeycloak {
 		err := setup_keycloak(log)
 		if err != nil {
@@ -115,6 +117,13 @@ func main() {
 	}
 
 	// TODO setup workspace reconciler
+	if enableWorkspace {
+		log.Info("Starting the workspace controller")
+		err := setup_workspace(mgr, targetLabel)
+		if err != nil {
+			klog.Fatal(err, "Unable to create workspace controller")
+		}
+	}
 
 	// Setup operator probes
 	if err := addOperatorProbes(mgr); err != nil {
