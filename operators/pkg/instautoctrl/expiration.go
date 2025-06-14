@@ -63,33 +63,11 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 		Watches(
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-				var requests []reconcile.Request
-
 				template, ok := obj.(*clv1alpha2.Template)
 				if !ok || template.Spec.DeleteAfter == "never" {
-					return requests
+					return nil
 				}
-
-				var instances clv1alpha2.InstanceList
-				if err := r.Client.List(ctx, &instances,
-					client.InNamespace(template.Namespace),
-					client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
-				); err != nil {
-					ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
-					return requests
-				}
-
-				for i := range instances.Items {
-					instance := &instances.Items[i]
-					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      instance.Name,
-							Namespace: instance.Namespace,
-						},
-					})
-				}
-
-				return requests
+				return getTemplateInstanceRequests(ctx, r.Client, template)
 			}),
 			builder.WithPredicates(deleteAfterChanged), // opzionale ma consigliato
 		).

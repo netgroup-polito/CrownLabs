@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -65,6 +66,31 @@ func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1al
 	}
 
 	return nil
+}
+
+func getTemplateInstanceRequests(ctx context.Context, c client.Client, template *clv1alpha2.Template) []reconcile.Request {
+	var requests []reconcile.Request
+
+	var instances clv1alpha2.InstanceList
+	if err := c.List(ctx, &instances,
+		client.InNamespace(template.Namespace),
+		client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
+		return requests
+	}
+
+	for i := range instances.Items {
+		instance := &instances.Items[i]
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+			},
+		})
+	}
+
+	return requests
 }
 
 var deleteAfterChanged = predicate.Funcs{
