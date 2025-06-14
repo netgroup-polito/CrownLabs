@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -44,7 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 
 	"time"
 )
@@ -69,14 +69,14 @@ const (
 type TenantReconciler struct {
 	client.Client
 	Scheme      *runtime.Scheme
-	TargetLabel utils.KVLabel
+	TargetLabel common.KVLabel
 	//KeepAliveTime    time.Duration
 	TenantNSKeepAlive           time.Duration
 	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
 	MyDrivePVCsSize             resource.Quantity
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
-	KeycloakActor               utils.KeycloakActorIface
+	KeycloakActor               common.KeycloakActorIface
 }
 
 // Reconcile reconciles the state of a tenant resource.

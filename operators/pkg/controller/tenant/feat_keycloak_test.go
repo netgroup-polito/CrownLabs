@@ -22,9 +22,9 @@ import (
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/mock_utils"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
@@ -87,7 +87,7 @@ var _ = Describe("Features -> Keycloak", func() {
 			Client:            cl,
 			Scheme:            scheme.Scheme,
 			KeycloakActor:     keycloakActor,
-			TargetLabel:       utils.NewLabel("crownlabs.polito.it/operator-selector", "keycloak-test"),
+			TargetLabel:       common.NewLabel("crownlabs.polito.it/operator-selector", "keycloak-test"),
 			TenantNSKeepAlive: 24 * time.Hour,
 		}
 

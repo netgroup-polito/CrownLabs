@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -51,7 +51,7 @@ func init() {
 
 func setup_tenant(
 	mgr manager.Manager,
-	targetLabel utils.KVLabel,
+	targetLabel common.KVLabel,
 ) error {
 	// TODO manage webhook
 
@@ -61,7 +61,7 @@ func setup_tenant(
 		TargetLabel:             targetLabel,
 		TenantNSKeepAlive:       tenantNSKeepAlive,
 		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
-		KeycloakActor:           utils.GetKeycloakActor(),
+		KeycloakActor:           common.GetKeycloakActor(),
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {

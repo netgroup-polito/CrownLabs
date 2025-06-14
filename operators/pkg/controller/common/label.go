@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package main contains the entrypoint for the Crownlabs unified operator.
-package utils
+package common
 
 import (
 	"fmt"

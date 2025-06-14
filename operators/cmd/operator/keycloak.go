@@ -18,7 +18,7 @@ package main
 import (
 	"flag"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"k8s.io/klog/v2"
 )
 
@@ -45,7 +45,7 @@ func setup_keycloak(
 	}
 
 	log.Info("Keycloak settings provided, initializing Keycloak actor")
-	err := utils.SetupKeycloakActor(
+	err := common.SetupKeycloakActor(
 		keycloakURL,
 		keycloakClientID,
 		keycloakClientSecret,

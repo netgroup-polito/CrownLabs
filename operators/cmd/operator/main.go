@@ -34,7 +34,7 @@ import (
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 var (
@@ -89,7 +89,7 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	targetLabel, err := utils.ParseLabel(targetLabelStr)
+	targetLabel, err := common.ParseLabel(targetLabelStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse target label")
 	}

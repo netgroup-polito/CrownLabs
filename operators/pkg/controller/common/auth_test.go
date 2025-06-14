@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package common
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/utils/mock_utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common/mock_utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
