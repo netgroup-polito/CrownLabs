@@ -40,7 +40,7 @@ func (r *WorkspaceReconciler) manageNamespace(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
-		return controllerutil.SetControllerReference(ws, ns, r.Scheme())
+		return controllerutil.SetControllerReference(ws, ns, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating namespace %s for workspace %s: %w",
 			ns.Name, ws.Name, err)

@@ -1,0 +1,120 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package tenant_controller groups the functionalities related to the Tenant controller.
+package workspace
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+)
+
+func (r *WorkspaceReconciler) manageClusterRoleBinding(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+) error {
+	// Create or update the ClusterRoleBinding for managing the instances of the Workspace.
+	if err := r.createOrUpdateSingleCrb(ctx, ws, "instances", "crownlabs-manage-instances"); err != nil {
+		return err
+	}
+
+	// Create or update the ClusterRoleBinding for managing the tenants of the Workspace.
+	if err := r.createOrUpdateSingleCrb(ctx, ws, "tenants", "crownlabs-manage-tenants"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *WorkspaceReconciler) createOrUpdateSingleCrb(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+	kind string,
+	roleName string,
+) error {
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   getClusterRoleBindingName(ws, kind),
+			Labels: r.updateWsResourceCommonLabels(nil),
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			Name:     roleName,
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     "Group",
+				Name:     fmt.Sprintf("kubernetes:%s", workspaceRoleName(ws, v1alpha2.Manager)),
+				APIGroup: "rbac.authorization.k8s.io",
+			},
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
+		return controllerutil.SetControllerReference(ws, crb, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error while creating/updating %s ClusterRoleBinding for workspace %s: %w",
+			kind, ws.Name, err)
+	}
+
+	return nil
+}
+
+// deleteClusterRoleBinding deletes the ClusterRoleBinding associated with the Workspace.
+func (r *WorkspaceReconciler) deleteClusterRoleBinding(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+) error {
+	// Delete the ClusterRoleBinding for managing the instances of the Workspace.
+	if err := r.deleteSingleCrb(ctx, ws, "instances"); err != nil {
+		return err
+	}
+
+	// Delete the ClusterRoleBinding for managing the tenants of the Workspace.
+	if err := r.deleteSingleCrb(ctx, ws, "tenants"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *WorkspaceReconciler) deleteSingleCrb(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+	kind string,
+) error {
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: getClusterRoleBindingName(ws, kind),
+		},
+	}
+
+	if err := r.Client.Delete(ctx, crb); err != nil {
+		return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
+			kind, ws.Name, err)
+	}
+
+	return nil
+}
+
+func getClusterRoleBindingName(ws *v1alpha1.Workspace, kind string) string {
+	return fmt.Sprintf("crownlabs-manage-%s-%s", kind, ws.Name)
+}

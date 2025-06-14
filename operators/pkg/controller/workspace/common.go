@@ -15,6 +15,13 @@
 // Package tenant_controller groups the functionalities related to the Tenant controller.
 package workspace
 
+import (
+	"fmt"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+)
+
 func (r *WorkspaceReconciler) updateWsResourceCommonLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
@@ -23,4 +30,11 @@ func (r *WorkspaceReconciler) updateWsResourceCommonLabels(labels map[string]str
 	labels["crownlabs.polito.it/managed-by"] = "workspace"
 
 	return labels
+}
+
+func workspaceRoleName(
+	ws *v1alpha1.Workspace,
+	role v1alpha2.WorkspaceUserRole,
+) string {
+	return fmt.Sprintf("workspace-%s-%s", ws.Name, role)
 }

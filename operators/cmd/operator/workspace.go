@@ -30,6 +30,7 @@ func setup_workspace(
 	// Create the WorkspaceReconciler
 	wr := &workspace.WorkspaceReconciler{
 		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
 		TargetLabel: targetLabel,
 	}
 

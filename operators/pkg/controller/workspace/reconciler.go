@@ -21,6 +21,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -36,6 +37,7 @@ import (
 
 type WorkspaceReconciler struct {
 	client.Client
+	Scheme      *runtime.Scheme
 	TargetLabel common.KVLabel
 }
 
@@ -151,6 +153,13 @@ func (r *WorkspaceReconciler) manageSubresources(
 	}
 	log.Info("Namespace created/updated for workspace", "name", ws.Name)
 
+	// Manage the ClusterRoleBinding for the Workspace
+	if err := r.manageClusterRoleBinding(ctx, ws); err != nil {
+		klog.Errorf("Error managing ClusterRoleBinding for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error managing ClusterRoleBinding for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("ClusterRoleBinding created/updated for workspace", "name", ws.Name)
+
 	return nil
 }
 
@@ -159,6 +168,13 @@ func (r *WorkspaceReconciler) deleteSubresources(
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
 ) error {
+	// Delete the ClusterRoleBinding for the Workspace
+	if err := r.deleteClusterRoleBinding(ctx, ws); err != nil {
+		klog.Errorf("Error deleting ClusterRoleBinding for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error deleting ClusterRoleBinding for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("ClusterRoleBinding deleted for workspace", "name", ws.Name)
+
 	// Delete the Namespace for the Workspace
 	if err := r.deleteNamespace(ctx, ws); err != nil {
 		klog.Errorf("Error deleting namespace for workspace %s: %v", ws.Name, err)
