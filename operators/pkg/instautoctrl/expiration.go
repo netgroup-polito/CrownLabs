@@ -140,7 +140,13 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Error(err, "failed retrieving tenant from instance")
 			return ctrl.Result{}, err
 		}
-		r.SendNotification(ctx, &instance, tenant.Spec.Email)
+		err = r.SendNotification(ctx, &instance, tenant.Spec.Email)
+		if err != nil {
+			log.Error(err, "failed sending notification email")
+			return ctrl.Result{}, err
+		}
+		log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
+		tracer.Step("Stale instance deleted")
 		return ctrl.Result{}, nil
 	}
 
