@@ -361,7 +361,6 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
 		return err
 	}
-	//FIXME
 	// If the interval is set to "never", we do not update the last activity time
 	// and return early, as there is no inactivity timeout to check.
 	if interval == "never" {

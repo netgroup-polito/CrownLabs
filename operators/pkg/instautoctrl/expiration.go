@@ -153,11 +153,11 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer.Step("stale instance done")
 
 	dbgLog.Info("requeueing instance")
-	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil //TODO revisit this value, it is a placeholder
+	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil // TODO revisit this value, it is a placeholder.
 }
 
 // TerminateInstance terminates the Instance.
-// TODO move somewhere else, as it is used in other controllers too
+// TODO move somewhere else, as it is used in other controllers too.
 func (r *InstanceExpirationReconciler) TerminateInstance(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
 	log.Info("Terminating instance", "instance", instance.Name, " in namespace", instance.Namespace)
