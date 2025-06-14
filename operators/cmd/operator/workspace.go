@@ -29,6 +29,7 @@ func setup_workspace(
 ) error {
 	// Create the WorkspaceReconciler
 	wr := &workspace.WorkspaceReconciler{
+		Client:      mgr.GetClient(),
 		TargetLabel: targetLabel,
 	}
 
