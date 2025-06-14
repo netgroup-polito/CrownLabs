@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "instance-operator.fullname" . }}-automation
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+    {{- include "instance-operator.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: auto-metrics
+      protocol: TCP
+      name: auto-metrics
+  selector:
+    {{- include "instance-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: automation
