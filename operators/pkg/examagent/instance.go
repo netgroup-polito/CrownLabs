@@ -102,10 +102,6 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 		return
 	}
 
-	//
-	//
-	//
-
 	// estrai il phase del primo environment o usa off
 	var phase clv1alpha2.EnvironmentPhase = clv1alpha2.EnvironmentPhaseOff
 	if len(inst.Status.Environments) > 0 {
@@ -290,8 +286,8 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 	running := ptr.Deref(instReq.Running, true)
 
-	contentUrls := make(map[string]*clv1alpha2.InstanceContentUrls)
-	contentUrls["default"] = &instReq.ContentUrls
+	contentUrls := make(map[string]clv1alpha2.InstanceContentUrls)
+	contentUrls["default"] = instReq.ContentUrls
 
 	return clv1alpha2.InstanceSpec{
 		Template: clv1alpha2.GenericRef{
@@ -330,7 +326,7 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 	// get the first ContentUrl if available
 	if len(inst.Spec.ContentUrls) > 0 {
 		for _, contentUrl := range inst.Spec.ContentUrls {
-			adapter.ContentUrls = *contentUrl
+			adapter.ContentUrls = contentUrl
 			break
 		}
 	}

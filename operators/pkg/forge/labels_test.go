@@ -220,7 +220,7 @@ var _ = Describe("Labels forging", func() {
 			func(c InstanceAutomationLabelCase) {
 				output, _ := forge.InstanceLabels(c.Input, &template, &clv1alpha2.Instance{
 					Spec: clv1alpha2.InstanceSpec{
-						ContentUrls: map[string]*clv1alpha2.InstanceContentUrls{
+						ContentUrls: map[string]clv1alpha2.InstanceContentUrls{
 							environmentName: {
 								Destination: "",
 							},

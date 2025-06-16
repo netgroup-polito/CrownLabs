@@ -297,18 +297,9 @@ func (in *InstanceSpec) DeepCopyInto(out *InstanceSpec) {
 	}
 	if in.ContentUrls != nil {
 		in, out := &in.ContentUrls, &out.ContentUrls
-		*out = make(map[string]*InstanceContentUrls, len(*in))
+		*out = make(map[string]InstanceContentUrls, len(*in))
 		for key, val := range *in {
-			var outVal *InstanceContentUrls
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				inVal := (*in)[key]
-				in, out := &inVal, &outVal
-				*out = new(InstanceContentUrls)
-				**out = **in
-			}
-			(*out)[key] = outVal
+			(*out)[key] = val
 		}
 	}
 }

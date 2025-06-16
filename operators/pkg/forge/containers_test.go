@@ -775,9 +775,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		BeforeEach(func() {
 			environment.Persistent = true
 			if instance.Spec.ContentUrls == nil {
-				instance.Spec.ContentUrls = make(map[string]*clv1alpha2.InstanceContentUrls)
+				instance.Spec.ContentUrls = make(map[string]clv1alpha2.InstanceContentUrls)
 			}
-			instance.Spec.ContentUrls[environment.Name] = &clv1alpha2.InstanceContentUrls{
+			instance.Spec.ContentUrls[environment.Name] = clv1alpha2.InstanceContentUrls{
 				Destination: httpPath,
 			}
 		})
@@ -1192,7 +1192,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.NeedsInitContainer function", func() {
 		type NeedsInitContainerCase struct {
 			StartupOpts          *clv1alpha2.ContainerStartupOpts
-			InstCustomOpts       *clv1alpha2.InstanceContentUrls
+			InstCustomOpts       clv1alpha2.InstanceContentUrls
 			ExpectedOutputVal    bool
 			ExpectedOutputOrigin string
 		}
@@ -1202,7 +1202,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				BeforeEach(func() {
 					environment.ContainerStartupOptions = c.StartupOpts
 					if instance.Spec.ContentUrls == nil {
-						instance.Spec.ContentUrls = make(map[string]*clv1alpha2.InstanceContentUrls)
+						instance.Spec.ContentUrls = make(map[string]clv1alpha2.InstanceContentUrls)
 					}
 					instance.Spec.ContentUrls[environment.Name] = c.InstCustomOpts
 				})
@@ -1217,20 +1217,20 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("No origin is provided", WhenBody(NeedsInitContainerCase{
 			StartupOpts:          nil,
-			InstCustomOpts:       nil,
+			InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 			ExpectedOutputVal:    false,
 			ExpectedOutputOrigin: "",
 		}))
 		Context("no instance custom options are provided", func() {
 			When("no source archive is specified in the template", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          &clv1alpha2.ContainerStartupOpts{},
-				InstCustomOpts:       nil,
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    false,
 				ExpectedOutputOrigin: "",
 			}))
 			When("a source archive is specified in the template", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-				InstCustomOpts:       nil,
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    true,
 				ExpectedOutputOrigin: httpPath,
 			}))
@@ -1238,20 +1238,20 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		Context("no template custom options are provied", func() {
 			When("no source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceContentUrls{},
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    false,
 				ExpectedOutputOrigin: "",
 			}))
 			When("a source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceContentUrls{Origin: httpPath},
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{Origin: httpPath},
 				ExpectedOutputVal:    true,
 				ExpectedOutputOrigin: httpPath,
 			}))
 		})
 		When("both template and instance custom options are provided", WhenBody(NeedsInitContainerCase{
 			StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			InstCustomOpts:       &clv1alpha2.InstanceContentUrls{Origin: httpPathAlternative},
+			InstCustomOpts:       clv1alpha2.InstanceContentUrls{Origin: httpPathAlternative},
 			ExpectedOutputVal:    true,
 			ExpectedOutputOrigin: httpPathAlternative,
 		}))

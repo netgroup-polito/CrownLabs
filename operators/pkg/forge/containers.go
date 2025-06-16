@@ -491,9 +491,11 @@ func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 
 // NeedsInitContainer returns true if the environment requires an initcontainer in order to be prepopulated.
 func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (value bool, contentOrigin string) {
-	if icu := instance.Spec.ContentUrls; icu[environment.Name] != nil {
-		if envUrls := icu[environment.Name]; envUrls != nil && envUrls.Origin != "" {
-			return true, envUrls.Origin
+	if icu := instance.Spec.ContentUrls; icu != nil {
+		if envUrls, ok := icu[environment.Name]; ok {
+			if envUrls.Origin != "" {
+				return true, envUrls.Origin
+			}
 		}
 	}
 	if cso := environment.ContainerStartupOptions; cso != nil && cso.SourceArchiveURL != "" {
