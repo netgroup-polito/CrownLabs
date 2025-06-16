@@ -26,17 +26,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *WorkspaceReconciler) manageClusterRoleBinding(
+func (r *WorkspaceReconciler) manageClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
 	// Create or update the ClusterRoleBinding for managing the instances of the Workspace.
-	if err := r.createOrUpdateSingleCrb(ctx, ws, "instances", "crownlabs-manage-instances"); err != nil {
+	if err := r.createOrUpdateSingleCrb(
+		ctx,
+		ws,
+		"instances",
+		"crownlabs-manage-instances",
+	); err != nil {
 		return err
 	}
 
 	// Create or update the ClusterRoleBinding for managing the tenants of the Workspace.
-	if err := r.createOrUpdateSingleCrb(ctx, ws, "tenants", "crownlabs-manage-tenants"); err != nil {
+	if err := r.createOrUpdateSingleCrb(
+		ctx,
+		ws,
+		"tenants",
+		"crownlabs-manage-tenants",
+	); err != nil {
 		return err
 	}
 
@@ -51,24 +61,24 @@ func (r *WorkspaceReconciler) createOrUpdateSingleCrb(
 ) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   getClusterRoleBindingName(ws, kind),
-			Labels: r.updateWsResourceCommonLabels(nil),
+			Name: getClusterRoleBindingName(ws, kind),
 		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     roleName,
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-		Subjects: []rbacv1.Subject{
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
+		crb.Labels = r.updateWsResourceCommonLabels(crb.Labels)
+		crb.RoleRef.Kind = "ClusterRole"
+		crb.RoleRef.Name = roleName
+		crb.RoleRef.APIGroup = "rbac.authorization.k8s.io"
+
+		crb.Subjects = []rbacv1.Subject{
 			{
 				Kind:     "Group",
 				Name:     fmt.Sprintf("kubernetes:%s", workspaceRoleName(ws, v1alpha2.Manager)),
 				APIGroup: "rbac.authorization.k8s.io",
 			},
-		},
-	}
+		}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
 		return controllerutil.SetControllerReference(ws, crb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating %s ClusterRoleBinding for workspace %s: %w",
@@ -79,7 +89,7 @@ func (r *WorkspaceReconciler) createOrUpdateSingleCrb(
 }
 
 // deleteClusterRoleBinding deletes the ClusterRoleBinding associated with the Workspace.
-func (r *WorkspaceReconciler) deleteClusterRoleBinding(
+func (r *WorkspaceReconciler) deleteClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {

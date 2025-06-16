@@ -154,11 +154,18 @@ func (r *WorkspaceReconciler) manageSubresources(
 	log.Info("Namespace created/updated for workspace", "name", ws.Name)
 
 	// Manage the ClusterRoleBinding for the Workspace
-	if err := r.manageClusterRoleBinding(ctx, ws); err != nil {
+	if err := r.manageClusterRoleBindings(ctx, ws); err != nil {
 		klog.Errorf("Error managing ClusterRoleBinding for workspace %s: %v", ws.Name, err)
 		return fmt.Errorf("error managing ClusterRoleBinding for workspace %s: %w", ws.Name, err)
 	}
-	log.Info("ClusterRoleBinding created/updated for workspace", "name", ws.Name)
+	log.Info("ClusterRoleBindings created/updated for workspace", "name", ws.Name)
+
+	// Manage the RoleBindings for the Workspace
+	if err := r.manageRoleBindings(ctx, ws); err != nil {
+		klog.Errorf("Error managing RoleBindings for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error managing RoleBindings for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("RoleBindings created/updated for workspace", "name", ws.Name)
 
 	return nil
 }
@@ -168,12 +175,19 @@ func (r *WorkspaceReconciler) deleteSubresources(
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
 ) error {
+	// Delete the RoleBindings for the Workspace
+	if err := r.deleteRoleBindings(ctx, ws); err != nil {
+		klog.Errorf("Error deleting RoleBindings for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error deleting RoleBindings for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("RoleBindings deleted for workspace", "name", ws.Name)
+
 	// Delete the ClusterRoleBinding for the Workspace
-	if err := r.deleteClusterRoleBinding(ctx, ws); err != nil {
+	if err := r.deleteClusterRoleBindings(ctx, ws); err != nil {
 		klog.Errorf("Error deleting ClusterRoleBinding for workspace %s: %v", ws.Name, err)
 		return fmt.Errorf("error deleting ClusterRoleBinding for workspace %s: %w", ws.Name, err)
 	}
-	log.Info("ClusterRoleBinding deleted for workspace", "name", ws.Name)
+	log.Info("ClusterRoleBindings deleted for workspace", "name", ws.Name)
 
 	// Delete the Namespace for the Workspace
 	if err := r.deleteNamespace(ctx, ws); err != nil {

@@ -30,16 +30,16 @@ func (r *WorkspaceReconciler) manageNamespace(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
-	lab := r.updateWsResourceCommonLabels(nil)
-	lab["crownlabs.polito.it/type"] = "workspace"
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   getNamespaceName(ws),
-			Labels: lab,
+			Name: getNamespaceName(ws),
 		},
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
+		ns.Labels = r.updateWsResourceCommonLabels(ns.Labels)
+		ns.Labels["crownlabs.polito.it/type"] = "workspace"
+
 		return controllerutil.SetControllerReference(ws, ns, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating namespace %s for workspace %s: %w",
