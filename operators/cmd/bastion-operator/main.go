@@ -16,6 +16,7 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"context"
 	"errors"
 	"flag"
@@ -27,6 +28,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+=======
+	"flag"
+	"os"
+>>>>>>> 2db4b8a4b99c176ac2c23673fcb90285ea413d6c
 
 	"github.com/golang-jwt/jwt/v4"
 	authv1 "k8s.io/api/authorization/v1"
@@ -45,11 +50,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/gorilla/websocket"
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	bastion_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
-	"golang.org/x/crypto/ssh"
+	webssh "github.com/netgroup-polito/CrownLabs/operators/pkg/webssh"
 )
 
 var (
@@ -64,6 +68,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+<<<<<<< HEAD
 const (
 	sshUser            = "crownlabs"
 	privateKeyPath     = "/web-keys/ssh_web_bastion_master"
@@ -434,6 +439,8 @@ func setupWebSSH() {
 	}
 }
 
+=======
+>>>>>>> 2db4b8a4b99c176ac2c23673fcb90285ea413d6c
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -489,7 +496,7 @@ func main() {
 	// Start the WebSocket SSH bridge in a separate goroutine
 	go func() {
 		klog.Info("Starting WebSocket SSH bridge")
-		setupWebSSH()
+		webssh.SetupWebSSH()
 	}()
 
 	klog.Info("starting manager")
