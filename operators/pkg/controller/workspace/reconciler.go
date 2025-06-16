@@ -91,9 +91,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Info("Added finalizer to workspace", "name", ws.Name)
 	}
 
+	// manage subresources for the Workspace
 	err := r.manageSubresources(ctx, log, &ws)
 	if err != nil {
-		// TODO: handle error properly
+		log.Error(err, "Error managing subresources for workspace", "name", ws.Name)
+		return ctrl.Result{}, fmt.Errorf("error managing subresources for workspace %s: %w", ws.Name, err)
+	}
+
+	// manage AutoEnrollment for the Workspace
+	err = r.manageAutoEnrollment(ctx, &ws)
+	if err != nil {
+		log.Error(err, "Error managing AutoEnrollment for workspace", "name", ws.Name)
+		return ctrl.Result{}, fmt.Errorf("error managing AutoEnrollment for workspace %s: %w", ws.Name, err)
+	} else {
+		log.Info("AutoEnrollment managed for workspace", "name", ws.Name)
 	}
 
 	return ctrl.Result{}, nil
