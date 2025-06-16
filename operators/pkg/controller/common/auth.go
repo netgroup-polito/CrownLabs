@@ -38,6 +38,7 @@ type KeycloakActor struct {
 		ClientID     string
 		ClientSecret string
 	}
+	RolesClientID string // The client ID of the client in which the roles are defined.
 }
 
 const tokenRefreshBuffer = 30 // the token is considered about to expire if it has less than this many seconds left
@@ -49,6 +50,7 @@ func SetupKeycloakActor(
 	clientID string,
 	clientSecret string,
 	realm string,
+	rolesClientID string,
 ) error {
 	if actor.initialized {
 		return nil
@@ -68,6 +70,7 @@ func SetupKeycloakActor(
 	actor.Realm = realm
 	actor.credentials.ClientID = clientID
 	actor.credentials.ClientSecret = clientSecret
+	actor.RolesClientID = rolesClientID
 	actor.initialized = true
 	return nil
 }
@@ -120,7 +123,10 @@ func (a *KeycloakActor) GetAccessToken() string {
 }
 
 // GetUser returns the user associated with the given username.
-func (a *KeycloakActor) GetUser(ctx context.Context, username string) (*gocloak.User, error) {
+func (a *KeycloakActor) GetUser(
+	ctx context.Context,
+	username string,
+) (*gocloak.User, error) {
 
 	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(), a.Realm, gocloak.GetUsersParams{
 		Username: &username,
@@ -178,6 +184,115 @@ func (a *KeycloakActor) CreateUser(
 	return userID, nil
 }
 
-func (a *KeycloakActor) DeleteUser(ctx context.Context, userID string) error {
+func (a *KeycloakActor) DeleteUser(
+	ctx context.Context,
+	userID string,
+) error {
 	return a.Client.DeleteUser(ctx, a.GetAccessToken(), a.Realm, userID)
+}
+
+func (a *KeycloakActor) getClientInternalIdentifierByClientID(
+	ctx context.Context,
+	clientID string,
+) (string, error) {
+	clients, err := a.Client.GetClients(ctx, a.GetAccessToken(), a.Realm, gocloak.GetClientsParams{
+		ClientID: &clientID,
+	})
+	if err != nil {
+		klog.Error("Unable to get client from keycloak", err)
+		return "", err
+	}
+	if len(clients) != 1 {
+		klog.Warningf("Client %s not found in Keycloak", clientID)
+		return "", fmt.Errorf("404")
+	}
+	return *clients[0].ID, nil
+}
+
+func (a *KeycloakActor) GetRole(
+	ctx context.Context,
+	roleName string,
+) (*gocloak.Role, error) {
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return nil, err
+	}
+
+	role, err := a.Client.GetClientRole(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		roleName,
+	)
+
+	if err != nil && err.Error() == "404 Not Found: Could not find role" {
+		klog.Warningf("Role %s not found in Keycloak", roleName)
+		return nil, fmt.Errorf("404")
+	} else if err != nil {
+		klog.Error("Unable to get roles from keycloak", err)
+		return nil, err
+	}
+
+	return role, nil
+}
+
+func (a *KeycloakActor) CreateRole(
+	ctx context.Context,
+	roleName string,
+	roleDescription string,
+) (string, error) {
+	role := gocloak.Role{
+		Name:        &roleName,
+		Description: &roleDescription,
+	}
+
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return "", err
+	}
+
+	createdRole, err := a.Client.CreateClientRole(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		role,
+	)
+	if err != nil {
+		klog.Error("Unable to create role in keycloak", err)
+		return "", err
+	}
+
+	return createdRole, nil
+}
+
+func (a *KeycloakActor) DeleteRole(
+	ctx context.Context,
+	roleName string,
+) error {
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return err
+	}
+
+	err = a.Client.DeleteClientRole(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		roleName,
+	)
+
+	if err != nil && err.Error() == "404 Not Found: Could not find role" {
+		return nil
+	} else if err != nil {
+		klog.Error("Unable to delete role from keycloak", err)
+		return err
+	}
+
+	return nil
 }

@@ -18,6 +18,7 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -25,6 +26,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+var rbData = map[v1alpha2.WorkspaceUserRole]map[string]string{
+	v1alpha2.User: {
+		"view-templates": "crownlabs-view-templates",
+	},
+	v1alpha2.Manager: {
+		"manage-templates":     "crownlabs-manage-templates",
+		"manage-sharedvolumes": "crownlabs-manage-sharedvolumes",
+	},
+}
 
 func (r *WorkspaceReconciler) manageRoleBindings(
 	ctx context.Context,
@@ -35,40 +46,13 @@ func (r *WorkspaceReconciler) manageRoleBindings(
 	}
 	namespace := ws.Status.Namespace.Name
 
-	// all Users can view templates
-	if err := r.createOrUpdateSingleRb(
-		ctx,
-		ws,
-		namespace,
-		"view-templates",
-		"crownlabs-view-templates",
-		v1alpha2.User,
-	); err != nil {
-		return err
-	}
-
-	// Managers can manage templates
-	if err := r.createOrUpdateSingleRb(
-		ctx,
-		ws,
-		namespace,
-		"manage-templates",
-		"crownlabs-manage-templates",
-		v1alpha2.Manager,
-	); err != nil {
-		return err
-	}
-
-	// Managers can manage SharedVolumes
-	if err := r.createOrUpdateSingleRb(
-		ctx,
-		ws,
-		namespace,
-		"manage-sharedvolumes",
-		"crownlabs-manage-sharedvolumes",
-		v1alpha2.Manager,
-	); err != nil {
-		return err
+	for authorized, roles := range rbData {
+		for kind, roleName := range roles {
+			if err := r.createOrUpdateSingleRb(ctx, ws, namespace, kind, roleName, authorized); err != nil {
+				return fmt.Errorf("error while creating/updating RoleBinding %s for workspace %s: %w",
+					kind, ws.Name, err)
+			}
+		}
 	}
 
 	return nil
@@ -121,9 +105,12 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	namespace := ws.Status.Namespace.Name
 
 	// Delete all RoleBindings related to the Workspace
-	for _, kind := range []string{"view-templates", "manage-templates", "manage-sharedvolumes"} {
-		if err := r.deleteSingleRb(ctx, ws, namespace, kind); err != nil {
-			return fmt.Errorf("error while deleting RoleBinding %s: %w", kind, err)
+	for _ = range rbData {
+		for kind := range rbData[v1alpha2.User] {
+			if err := r.deleteSingleRb(ctx, ws, namespace, kind); err != nil && !strings.Contains(err.Error(), "not found") {
+				return fmt.Errorf("error while deleting RoleBinding %s for workspace %s: %w",
+					kind, ws.Name, err)
+			}
 		}
 	}
 

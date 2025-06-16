@@ -26,28 +26,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// this function returns a map in which keys are kinds of ClusterRoleBindings
+// and values are the names of the respective ClusterRoles.
+var crbData = map[string]string{
+	"instances": "crownlabs-manage-instances",
+	"tenants":   "crownlabs-manage-tenants",
+}
+
 func (r *WorkspaceReconciler) manageClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
-	// Create or update the ClusterRoleBinding for managing the instances of the Workspace.
-	if err := r.createOrUpdateSingleCrb(
-		ctx,
-		ws,
-		"instances",
-		"crownlabs-manage-instances",
-	); err != nil {
-		return err
-	}
-
-	// Create or update the ClusterRoleBinding for managing the tenants of the Workspace.
-	if err := r.createOrUpdateSingleCrb(
-		ctx,
-		ws,
-		"tenants",
-		"crownlabs-manage-tenants",
-	); err != nil {
-		return err
+	for kind, roleName := range crbData {
+		if err := r.createOrUpdateSingleCrb(ctx, ws, kind, roleName); err != nil {
+			return fmt.Errorf("error while creating/updating %s ClusterRoleBinding for workspace %s: %w",
+				kind, ws.Name, err)
+		}
 	}
 
 	return nil
@@ -93,14 +87,11 @@ func (r *WorkspaceReconciler) deleteClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
-	// Delete the ClusterRoleBinding for managing the instances of the Workspace.
-	if err := r.deleteSingleCrb(ctx, ws, "instances"); err != nil {
-		return err
-	}
-
-	// Delete the ClusterRoleBinding for managing the tenants of the Workspace.
-	if err := r.deleteSingleCrb(ctx, ws, "tenants"); err != nil {
-		return err
+	for kind := range crbData {
+		if err := r.deleteSingleCrb(ctx, ws, kind); err != nil {
+			return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
+				kind, ws.Name, err)
+		}
 	}
 
 	return nil

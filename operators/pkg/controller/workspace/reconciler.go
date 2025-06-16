@@ -37,8 +37,9 @@ import (
 
 type WorkspaceReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	TargetLabel common.KVLabel
+	Scheme        *runtime.Scheme
+	TargetLabel   common.KVLabel
+	KeycloakActor *common.KeycloakActor
 }
 
 // Reconcile reconciles the state of a Workspace resource.
@@ -107,6 +108,20 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Info("AutoEnrollment managed for workspace", "name", ws.Name)
 	}
 
+	if ws.Status.Subscriptions == nil {
+		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
+	}
+
+	// setup roles in Keycloak
+	if err := r.createKeycloakRoles(ctx, &ws); err != nil {
+		log.Error(err, "Error managing Keycloak roles for workspace", "name", ws.Name)
+		return ctrl.Result{}, fmt.Errorf("error managing Keycloak roles for workspace %s: %w", ws.Name, err)
+	} else {
+		log.Info("Keycloak roles managed for workspace", "name", ws.Name)
+	}
+
+	ws.Status.Ready = true
+
 	return ctrl.Result{}, nil
 }
 
@@ -132,6 +147,13 @@ func (r *WorkspaceReconciler) deleteWorkspace(
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
 ) error {
+	// delete roles in Keycloak
+	if err := r.deleteKeycloakRoles(ctx, ws); err != nil {
+		klog.Errorf("Error deleting Keycloak roles for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error deleting Keycloak roles for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("Keycloak roles deleted for workspace", "name", ws.Name)
+
 	// delete subresources
 	if err := r.deleteSubresources(ctx, log, ws); err != nil {
 		klog.Errorf("Error deleting subresources for workspace %s: %v", ws.Name, err)

@@ -27,6 +27,8 @@ var (
 	keycloakClientID     string
 	keycloakClientSecret string
 	keycloakRealm        string
+
+	keycloakRolesClientID string // The client ID of the client in which the roles are defined.
 )
 
 func init() {
@@ -34,6 +36,7 @@ func init() {
 	flag.StringVar(&keycloakRealm, "keycloak-realm", "", "Keycloak Realm")
 	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak Client ID")
 	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak Client Secret")
+	flag.StringVar(&keycloakRolesClientID, "keycloak-roles-client-id", "", "Keycloak Roles Client ID (the client in which the roles are defined)")
 }
 
 func setup_keycloak(
@@ -44,12 +47,17 @@ func setup_keycloak(
 		return nil
 	}
 
+	if keycloakRolesClientID == "" {
+		keycloakRolesClientID = keycloakClientID
+	}
+
 	log.Info("Keycloak settings provided, initializing Keycloak actor")
 	err := common.SetupKeycloakActor(
 		keycloakURL,
 		keycloakClientID,
 		keycloakClientSecret,
 		keycloakRealm,
+		keycloakRolesClientID,
 	)
 	return err
 }

@@ -50,7 +50,7 @@ var _ = Describe("Auth", func() {
 					initialized: true,
 				}
 
-				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm")
+				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm", "rolesClientID")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -62,7 +62,7 @@ var _ = Describe("Auth", func() {
 					Client:      nil,
 					initialized: false,
 				}
-				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm")
+				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm", "rolesClientID")
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("could not get token"))
 			})
@@ -74,7 +74,7 @@ var _ = Describe("Auth", func() {
 
 				mKcClient.EXPECT().LoginClient(gomock.Any(), "clientID", "clientSecret", "realm").Return(&gocloak.JWT{}, nil)
 
-				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm")
+				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm", "rolesClientID")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(actor.initialized).To(BeTrue())
 				Expect(actor.Client).To(Equal(mKcClient))
@@ -91,7 +91,7 @@ var _ = Describe("Auth", func() {
 
 				mKcClient.EXPECT().LoginClient(gomock.Any(), "clientID", "clientSecret", "realm").Return(nil, fmt.Errorf("login failed"))
 
-				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm")
+				err := SetupKeycloakActor("url", "clientID", "clientSecret", "realm", "rolesClientID")
 				Expect(err).To(HaveOccurred())
 			})
 		})

@@ -29,9 +29,10 @@ func setup_workspace(
 ) error {
 	// Create the WorkspaceReconciler
 	wr := &workspace.WorkspaceReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		TargetLabel: targetLabel,
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		TargetLabel:   targetLabel,
+		KeycloakActor: common.GetKeycloakActor(),
 	}
 
 	// Register the WorkspaceReconciler with the manager
