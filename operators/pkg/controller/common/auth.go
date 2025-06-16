@@ -38,7 +38,9 @@ type KeycloakActor struct {
 		ClientID     string
 		ClientSecret string
 	}
-	RolesClientID string // The client ID of the client in which the roles are defined.
+	RolesClientID string            // The client ID of the client in which the roles are defined.
+	clientIDCache map[string]string // Cache for client IDs to avoid multiple requests to Keycloak
+	cacheMutex    sync.RWMutex
 }
 
 const tokenRefreshBuffer = 30 // the token is considered about to expire if it has less than this many seconds left
@@ -71,6 +73,7 @@ func SetupKeycloakActor(
 	actor.credentials.ClientID = clientID
 	actor.credentials.ClientSecret = clientSecret
 	actor.RolesClientID = rolesClientID
+	actor.clientIDCache = make(map[string]string)
 	actor.initialized = true
 	return nil
 }
@@ -86,7 +89,10 @@ func (a *KeycloakActor) IsInitialized() bool {
 
 func (a *KeycloakActor) Reset() {
 	a.tokenMutex.Lock()
+	a.cacheMutex.Lock()
 	defer a.tokenMutex.Unlock()
+	defer a.cacheMutex.Unlock()
+
 	a.initialized = false
 	a.Client = nil
 	a.Realm = ""
@@ -94,6 +100,7 @@ func (a *KeycloakActor) Reset() {
 	a.tokenExpiresAt = 0
 	a.credentials.ClientID = ""
 	a.credentials.ClientSecret = ""
+	a.clientIDCache = nil
 	klog.Info("Keycloak actor has been reset")
 }
 
@@ -195,6 +202,15 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 	ctx context.Context,
 	clientID string,
 ) (string, error) {
+	// Check if the client ID is already in cache
+	a.cacheMutex.RLock()
+	if internalID, exists := a.clientIDCache[clientID]; exists {
+		a.cacheMutex.RUnlock()
+		return internalID, nil
+	}
+	a.cacheMutex.RUnlock()
+
+	// If not in cache, fetch the client from Keycloak
 	clients, err := a.Client.GetClients(ctx, a.GetAccessToken(), a.Realm, gocloak.GetClientsParams{
 		ClientID: &clientID,
 	})
@@ -206,6 +222,12 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 		klog.Warningf("Client %s not found in Keycloak", clientID)
 		return "", fmt.Errorf("404")
 	}
+
+	// Store the client ID in the cache
+	a.cacheMutex.Lock()
+	a.clientIDCache[clientID] = *clients[0].ID
+	a.cacheMutex.Unlock()
+
 	return *clients[0].ID, nil
 }
 
