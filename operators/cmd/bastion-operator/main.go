@@ -16,14 +16,25 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	authv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -76,6 +87,137 @@ var (
 	connMutex         sync.Mutex // Mutex to protect access to activeConnections
 )
 
+// --- JWT extraction ---
+func extractUsernameFromToken(tokenString string) (string, error) {
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return "", err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		// Adatta il claim secondo la configurazione Keycloak (es: "preferred_username" o "sub")
+		if username, ok := claims["preferred_username"].(string); ok {
+			return username, nil
+		}
+		if sub, ok := claims["sub"].(string); ok {
+			return sub, nil
+		}
+	}
+	return "", fmt.Errorf("username not found in token")
+}
+
+// --- RBAC check ---
+func canUserAccessResource(token, namespace, instanceName string) (bool, error) {
+	token = strings.TrimPrefix(token, "Bearer ")
+	host := os.Getenv("KUBERNETES_SERVICE_HOST")
+	port := os.Getenv("KUBERNETES_SERVICE_PORT")
+	if host == "" || port == "" {
+		return false, errors.New("KUBERNETES_SERVICE_HOST or PORT not set")
+	}
+	apiServer := "https://" + host + ":" + port
+
+	config := &rest.Config{
+		Host:        apiServer,
+		BearerToken: token,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+		},
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+
+	ssar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      "get",
+				Group:     "crownlabs.polito.it",
+				Resource:  "instances",
+				Name:      instanceName,
+			},
+		},
+	}
+
+	result, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), ssar, metav1.CreateOptions{})
+	if err != nil {
+		return false, err
+	}
+	return result.Status.Allowed, nil
+}
+
+// --- Instance owner check ---
+func getInstanceOwner(token, namespace, instanceName string) (string, error) {
+	token = strings.TrimPrefix(token, "Bearer ")
+	host := os.Getenv("KUBERNETES_SERVICE_HOST")
+	port := os.Getenv("KUBERNETES_SERVICE_PORT")
+	if host == "" || port == "" {
+		return "", errors.New("KUBERNETES_SERVICE_HOST or PORT not set")
+	}
+	apiServer := "https://" + host + ":" + port
+
+	config := &rest.Config{
+		Host:        apiServer,
+		BearerToken: token,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAFile: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+		},
+	}
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return "", err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "crownlabs.polito.it",
+		Version:  "v1alpha2",
+		Resource: "instances",
+	}
+	inst, err := dynClient.Resource(gvr).Namespace(namespace).Get(context.Background(), instanceName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	labels := inst.GetLabels()
+	owner, ok := labels["crownlabs.polito.it/owner"]
+	if !ok {
+		return "", fmt.Errorf("owner label not found")
+	}
+	return owner, nil
+}
+
+// --- Combined check ---
+func verifyTokenAndOwnership(token, namespace, instanceName string) bool {
+	// 1. RBAC check
+	allowed, err := canUserAccessResource(token, namespace, instanceName)
+	if err != nil {
+		log.Println("K8s permission check error:", err)
+		return false
+	}
+	if !allowed {
+		log.Println("RBAC denied access")
+		return false
+	}
+
+	// 2. Owner check
+	username, err := extractUsernameFromToken(token)
+	if err != nil {
+		log.Println("Token decode error:", err)
+		return false
+	}
+	owner, err := getInstanceOwner(token, namespace, instanceName)
+	if err != nil {
+		log.Println("Error retrieving instance owner:", err)
+		return false
+	}
+	if username != owner {
+		log.Printf("User %s is not the owner (%s) of instance %s\n", username, owner, instanceName)
+		return false
+	}
+	return true
+}
+
+/*
 func verifyToken(token string) bool {
 	if token == "" {
 		log.Println("No token provided")
@@ -92,13 +234,14 @@ func verifyToken(token string) bool {
 		log.Error(err, "error retrieving instance")
 		WriteError(w, r, log, http.StatusInternalServerError, "Cannot retrieve the requested instance.")
 		return
-	}*/
+	}
 
 	// connect to the k8s API server to verify the token
 
 	// TODO: Implement actual token verification logic
 	return true // Replace with actual token verification logic
 }
+*/
 
 func loadPrivateKey() (ssh.Signer, error) {
 	key, err := os.ReadFile(privateKeyPath)
@@ -161,8 +304,15 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Received WebSocket connection")
 
 	token := r.Header.Get("Authorization") // Extract token from Authorization header
+	namespace := r.URL.Query().Get("namespace")
+	instanceName := r.URL.Query().Get("instance")
+	if namespace == "" || instanceName == "" {
+		http.Error(w, "Missing namespace or instance parameter", http.StatusBadRequest)
+		log.Println("Missing namespace or instance in request")
+		return
+	}
 
-	if !verifyToken(token) {
+	if !verifyTokenAndOwnership(token, namespace, instanceName) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		log.Println("Unauthorized access attempt")
 		return
