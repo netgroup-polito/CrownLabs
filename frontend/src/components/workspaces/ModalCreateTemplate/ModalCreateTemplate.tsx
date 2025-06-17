@@ -1,4 +1,5 @@
-import { useState, useEffect, FC, useContext } from 'react';
+import type { FC } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import {
   Modal,
   Slider,
@@ -8,32 +9,34 @@ import {
   Tooltip,
   AutoComplete,
 } from 'antd';
-import Button from 'antd-button-color';
-import {
+import { Button } from 'antd';
+import type {
   CreateTemplateMutation,
-  EnvironmentType,
   SharedVolumeMountsListItem,
+} from '../../../generated-types';
+import {
+  EnvironmentType,
   useWorkspaceTemplatesQuery,
 } from '../../../generated-types';
-import { FetchResult } from '@apollo/client';
+import type { FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import ShVolFormItem from './ShVolFormItem';
+import ShVolFormItem, { type ShVolFormItemValue } from './ShVolFormItem';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
 export type Image = {
   name: string;
-  vmorcontainer: Array<Vmorcontainer>;
+  vmorcontainer: Array<VmOrContainer>;
   registry: string;
 };
 
-type Vmorcontainer = EnvironmentType.VirtualMachine | EnvironmentType.Container;
+type VmOrContainer = EnvironmentType.VirtualMachine | EnvironmentType.Container;
 
 type Template = {
   name?: string;
   image?: string;
   registry?: string;
-  vmorcontainer?: Vmorcontainer;
+  vmorcontainer?: VmOrContainer;
   persistent: boolean;
   mountMyDrive: boolean;
   gui: boolean;
@@ -62,12 +65,12 @@ export interface IModalCreateTemplateProps {
   show: boolean;
   setShow: (status: boolean) => void;
   submitHandler: (
-    t: Template
+    t: Template,
   ) => Promise<
     FetchResult<
       CreateTemplateMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   loading: boolean;
@@ -152,7 +155,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       !errorFetchTemplates &&
       !loadingFetchTemplates &&
       dataFetchTemplates?.templateList?.templates
-        ?.map((t: any) => t?.spec?.prettyName)
+        ?.map(t => t?.spec?.prettyName)
         .includes(formTemplate.name.trim())
     ) {
       setValid(old => {
@@ -214,17 +217,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const onSubmit = () => {
-    let shvolMounts: any[] = form.getFieldValue('shvolss');
-    let sharedVolumeMountInfos: SharedVolumeMountsListItem[] = shvolMounts.map(
-      obj => ({
+    const shvolMounts: ShVolFormItemValue[] = form.getFieldValue('shvolss');
+    const sharedVolumeMountInfos: SharedVolumeMountsListItem[] =
+      shvolMounts.map(obj => ({
         sharedVolume: {
           namespace: obj.shvol.split('/')[0],
           name: obj.shvol.split('/')[1],
         },
         mountPath: obj.mountpath,
         readOnly: Boolean(obj.readonly),
-      })
-    );
+      }));
 
     submitHandler({
       ...formTemplate,
@@ -247,8 +249,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   return (
     <Modal
-      destroyOnClose={true}
-      bodyStyle={{ paddingBottom: '5px' }}
+      destroyOnHidden={true}
+      styles={{ body: { paddingBottom: '5px' } }}
       centered
       footer={null}
       title={template ? 'Modify template' : 'Create a new template'}
@@ -326,11 +328,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }}
               onChange={value => {
                 setImagesSearchOptions(
-                  imagesNoVersion?.filter(s => s.includes(value))
+                  imagesNoVersion?.filter(s => s.includes(value)),
                 );
                 if (value !== formTemplate.image) {
                   const imageFound = images.find(
-                    i => getImageNoVer(i.name) === value
+                    i => getImageNoVer(i.name) === value,
                   );
                   setFormTemplate(old => {
                     return {
@@ -392,9 +394,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         <Form.Item labelAlign="left" className="mt-10" label="CPU" name="cpu">
           <div className="sm:pl-3 pr-1">
             <Slider
-              handleStyle={alternativeHandle}
+              styles={{ handle: alternativeHandle }}
               defaultValue={formTemplate.cpu}
-              tooltipVisible={false}
+              tooltip={{ open: false }}
               value={formTemplate.cpu}
               onChange={(value: number) =>
                 setFormTemplate(old => {
@@ -417,9 +419,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         <Form.Item labelAlign="left" label="RAM" name="ram">
           <div className="sm:pl-3 pr-1">
             <Slider
-              handleStyle={alternativeHandle}
+              styles={{ handle: alternativeHandle }}
               defaultValue={formTemplate.ram}
-              tooltipVisible={false}
+              tooltip={{ open: false }}
               value={formTemplate.ram}
               onChange={(value: number) =>
                 setFormTemplate(old => {
@@ -447,8 +449,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <div className="sm:pl-3 pr-1 ">
             <Slider
-              handleStyle={alternativeHandle}
-              tooltipVisible={false}
+              styles={{ handle: alternativeHandle }}
+              tooltip={{ open: false }}
               value={formTemplate.disk}
               defaultValue={formTemplate.disk}
               onChange={(value: number) =>

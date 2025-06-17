@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import './Logo.less';
-import { ReactComponent as SvgLogo } from '../../../assets/logo.svg';
+import SvgLogo from '../../../assets/logo.svg?react';
 
 export interface ILogoProps {
   widthPx?: number;

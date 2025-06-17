@@ -1,14 +1,21 @@
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { FetchPolicy } from '@apollo/client';
+import type { FetchPolicy } from '@apollo/client';
 import { Button, Checkbox, Form, Input, Select, Space, Tooltip } from 'antd';
-import { FC, useContext, useState } from 'react';
+import type { FC } from 'react';
+import { useContext, useState } from 'react';
 import { useWorkspaceSharedVolumesQuery } from '../../../generated-types';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
-import { SharedVolume } from '../../../utils';
+import type { SharedVolume } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 export interface IShVolFormItemProps {
   workspaceNamespace: string;
+}
+
+export interface ShVolFormItemValue {
+  shvol: string; // id del volume selezionato
+  mountpath: string;
+  readonly?: boolean;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
@@ -32,8 +39,8 @@ const ShVolFormItem: FC<IShVolFormItemProps> = ({ ...props }) => {
           data.sharedvolumeList?.sharedvolumes
             ?.map(sv => makeGuiSharedVolume(sv))
             .sort((a, b) =>
-              (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-            ) ?? []
+              (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+            ) ?? [],
         ),
       fetchPolicy: fetchPolicy_networkOnly,
     });
@@ -73,12 +80,12 @@ const ShVolFormItem: FC<IShVolFormItemProps> = ({ ...props }) => {
                     validator: (_, value) => {
                       if (!value || value.trim() === '') {
                         return Promise.reject(
-                          new Error('Mount Path cannot be empty')
+                          new Error('Mount Path cannot be empty'),
                         );
                       }
                       if (!/^\/([a-zA-Z0-9_-]+\/?)*$/.test(value)) {
                         return Promise.reject(
-                          new Error('Mount Path must be a valid directory')
+                          new Error('Mount Path must be a valid directory'),
                         );
                       }
                       return Promise.resolve();

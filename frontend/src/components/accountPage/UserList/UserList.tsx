@@ -1,6 +1,5 @@
-import { FC, useState } from 'react';
-import { Table, Modal, Row, Input, Spin } from 'antd';
-import Button from 'antd-button-color';
+import { type FC, useState } from 'react';
+import { Table, Modal, Row, Input, Spin, Button } from 'antd';
 import {
   UploadOutlined,
   PlusOutlined,
@@ -9,19 +8,30 @@ import {
   RedoOutlined,
   CheckOutlined,
 } from '@ant-design/icons';
-import Column from 'antd/lib/table/Column';
 import { Role } from '../../../generated-types';
 import { Tooltip } from 'antd';
 import UserListFormLogic from '../UserListFormLogic/UserListFormLogic';
-import { UserAccountPage, filterUser } from '../../../utils';
+import {
+  type UserAccountPage,
+  type WorkspaceEntry,
+  filterUser,
+} from '../../../utils';
 import UploadProgressModal from '../UploadProgressModal/UploadProgressModal';
-import { SupportedError } from '../../../errorHandling/utils';
+import {
+  type EnrichedError,
+  type SupportedError,
+} from '../../../errorHandling/utils';
+
+const { Column } = Table;
 
 export interface IUserListProps {
-  onAddUser: (users: UserAccountPage[], workspaces: any[]) => Promise<boolean>;
+  onAddUser: (
+    users: UserAccountPage[],
+    workspaces: WorkspaceEntry[],
+  ) => Promise<boolean>;
   onUpdateUser: (user: UserAccountPage, role: Role) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
-  setUploadingErrors: (errors: any[]) => void;
+  setUploadingErrors: (errors: EnrichedError[]) => void;
   genericErrorCatcher: (err: SupportedError) => void;
   refreshUserList: () => void;
   abortUploading: boolean;
@@ -31,7 +41,7 @@ export interface IUserListProps {
   workspaceName: string;
   uploadedNumber: number;
   uploadedUserNumber: number;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
 }
 
 const UserList: FC<IUserListProps> = props => {
@@ -44,28 +54,17 @@ const UserList: FC<IUserListProps> = props => {
     setSearchText(value.toLowerCase());
   };
 
-  const handleChangeCurrentRole = (record: UserAccountPage) => {
-    let newRole: Role;
-    switch (record.currentRole) {
-      case Role.Manager:
-        newRole = Role.User;
-        break;
-      case Role.User:
-        newRole = Role.Manager;
-        break;
-      case Role.Candidate:
-        newRole = Role.User;
-        break;
-      default:
-        newRole = Role.User;
-        break;
-    }
-
-    props.onUpdateUser(record, newRole);
+  const handleChangeCurrentRole = (r: UserAccountPage) => {
+    props.onUpdateUser(
+      r,
+      r.currentRole === Role.User ? Role.Manager : Role.User,
+    );
   };
 
-  const handleAddUser = async (newUser: UserAccountPage, workspaces: any) =>
-    await props.onAddUser([newUser], workspaces);
+  const handleAddUser = async (
+    newUser: UserAccountPage,
+    workspaces: WorkspaceEntry[],
+  ) => await props.onAddUser([newUser], workspaces);
 
   return (
     <>
@@ -86,7 +85,7 @@ const UserList: FC<IUserListProps> = props => {
               ? props.users.filter(user => filterUser(user, searchText))
               : props.users.sort(
                   (u1: UserAccountPage, u2: UserAccountPage) =>
-                    u1.currentRole?.localeCompare(u2.currentRole!) || 0
+                    u1.currentRole?.localeCompare(u2.currentRole!) || 0,
                 )
           }
           size="small"
@@ -142,7 +141,7 @@ const UserList: FC<IUserListProps> = props => {
             title="Action"
             key="x"
             width={60}
-            render={(_: any, record: UserAccountPage) =>
+            render={(_: unknown, record: UserAccountPage) =>
               props.users.length >= 1 ? (
                 <div className="flex justify-center">
                   {record.currentRole === Role.Candidate ? (
@@ -174,7 +173,6 @@ const UserList: FC<IUserListProps> = props => {
               onClick={props.refreshUserList}
               className="m-1"
             >
-              {' '}
               Refresh <RedoOutlined />
             </Button>
           </Row>
@@ -198,9 +196,9 @@ const UserList: FC<IUserListProps> = props => {
           </Row>
         </Row>
         <Modal
-          destroyOnClose={true}
+          destroyOnHidden={true}
           title="Add new User"
-          visible={showUserListModal}
+          open={showUserListModal}
           footer={null}
           onCancel={closeModal}
         >

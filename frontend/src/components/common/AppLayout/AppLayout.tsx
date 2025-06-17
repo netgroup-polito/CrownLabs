@@ -1,17 +1,17 @@
 import { InfoOutlined } from '@ant-design/icons';
 import { Col, Layout, Result, Row } from 'antd';
-import { FC, useContext, useState } from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import { logout } from '../../../contexts/AuthContext';
+import { type FC, useContext, useState } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { PUBLIC_URL } from '../../../env';
-import { RouteDescriptor } from '../../../utils';
+import { BASE_URL } from '../../../env';
+import { type RouteDescriptor } from '../../../utils';
 import FullPageLoader from '../FullPageLoader';
 import Navbar from '../Navbar';
 import SidebarInfo from '../SidebarInfo';
 import TooltipButton from '../TooltipButton';
-import { TooltipButtonData } from '../TooltipButton/TooltipButton';
+import type { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import './AppLayout.less';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 const { Content } = Layout;
 
@@ -23,6 +23,8 @@ export interface IAppLayoutProps {
 }
 
 const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
+  const { profile } = useContext(AuthContext);
+
   const [sideLeftShow, setSideLeftShow] = useState(false);
   const { routes, transparentNavbar, TooltipButtonData, TooltipButtonLink } =
     props;
@@ -30,45 +32,45 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
   const { data: tenantData } = useContext(TenantContext);
   const tenantNsIsReady =
     tenantData?.tenant?.status?.personalNamespace?.created ?? false;
-  const tenantName = tenantData?.tenant?.spec?.firstName;
+  const firstName = profile?.given_name;
 
   return (
-    <BrowserRouter basename={PUBLIC_URL}>
+    <BrowserRouter basename={BASE_URL}>
       <Layout className="h-full">
-        <Navbar
-          logoutHandler={logout}
-          routes={routes}
-          transparent={transparentNavbar}
-        />
+        <Navbar routes={routes} transparent={transparentNavbar} />
         <Content className="flex">
           {tenantNsIsReady ? (
-            <Switch>
-              {routes.map(r =>
-                r.content ? (
-                  <Route exact key={r.route.path} path={r.route.path}>
-                    <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                      <Col span={0} lg={1} xxl={2}></Col>
-                      {r.content}
-                      <Col span={0} lg={1} xxl={2}></Col>
-                    </Row>
-                  </Route>
-                ) : null
-              )}
-              <Route>
-                <div className="flex justify-center items-center w-full">
-                  <Result
-                    status="404"
-                    title="404"
-                    subTitle="Sorry, the page you visited does not exist."
+            <Routes>
+              {routes
+                .filter(r => r.content)
+                .map(r => (
+                  <Route
+                    key={r.route.path}
+                    path={r.route.path}
+                    element={
+                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                        <Col span={0} lg={1} xxl={2}></Col>
+                        {r.content}
+                        <Col span={0} lg={1} xxl={2}></Col>
+                      </Row>
+                    }
                   />
-                </div>
-              </Route>
-            </Switch>
+                ))}
+              <Route
+                element={
+                  <div className="flex justify-center items-center w-full">
+                    <Result
+                      status="404"
+                      title="404"
+                      subTitle="Sorry, the page you visited does not exist."
+                    />
+                  </div>
+                }
+              />
+            </Routes>
           ) : (
             <FullPageLoader
-              text={
-                tenantName ? `Welcome back ${tenantName}!` : 'Welcome back!'
-              }
+              text={firstName ? `Welcome back ${firstName}!` : 'Welcome back!'}
               subtext="Settings things back up... Hold tight!"
             />
           )}

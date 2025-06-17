@@ -2,10 +2,10 @@ server {
     listen              8080;
     server_name         localhost;
 
-    location ${SUBROUTE} {
+    location ~ ${SUBROUTE} {
         root   /usr/share/nginx/html;
         index  index.html;
-        try_files $uri ${SUBROUTE}/index.html;
+        try_files $uri ${SUBROUTE}index.html;
 
         # Ensure that non-versioned resources are checked
         # with upstream before using the cached version.
@@ -13,7 +13,12 @@ server {
         expires 0;
     }
 
-    location ~ ${SUBROUTE}/favicon.* {
+    location ~ ${SUBROUTE_REDIR}  {
+        absolute_redirect off;
+        return 301 ${SUBROUTE};
+    }
+
+    location ~ ${SUBROUTE}favicon.* {
         root   /usr/share/nginx/html;
 
         # Allow favicons to be cached, although for shorter periods.
@@ -21,7 +26,7 @@ server {
         expires 1M;
     }
 
-    location ${SUBROUTE}/static {
+    location ${SUBROUTE}static {
         root   /usr/share/nginx/html;
 
         # Allow versioned resources to be cached freely, since a modification

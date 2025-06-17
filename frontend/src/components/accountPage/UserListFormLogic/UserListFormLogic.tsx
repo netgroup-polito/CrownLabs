@@ -1,14 +1,19 @@
 import { Spin } from 'antd';
-import { FC, useEffect, useState, useContext } from 'react';
+import type { FC } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useTenantsQuery } from '../../../generated-types';
 import UserListForm from '../UserListForm/UserListForm';
-import { UserAccountPage } from '../../../utils';
-import { Role } from '../../../generated-types';
+import type { UserAccountPage, WorkspaceEntry } from '../../../utils';
+import type { Role } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { ErrorTypes, SupportedError } from '../../../errorHandling/utils';
+import type { SupportedError } from '../../../errorHandling/utils';
+import { ErrorTypes } from '../../../errorHandling/utils';
 
 export interface IUserListFormLogicProps {
-  onAddUser: (newUser: UserAccountPage, workspaces: any[]) => Promise<Boolean>;
+  onAddUser: (
+    newUser: UserAccountPage,
+    workspaces: WorkspaceEntry[],
+  ) => Promise<boolean>;
   onCancel: () => void;
   workspaceNamespace: string;
   workspaceName: string;
@@ -33,18 +38,20 @@ const UserListFormLogic: FC<IUserListFormLogicProps> = props => {
   useEffect(() => {
     if (!loading) {
       setUsers(
-        data?.tenants?.items?.map(user => ({
-          key: user?.metadata?.name!,
-          userid: user?.metadata?.name!,
-          name: user?.spec?.firstName!,
-          surname: user?.spec?.lastName!,
-          email: user?.spec?.email!,
-          workspaces:
-            user?.spec?.workspaces?.map(workspace => ({
-              role: workspace?.role as Role,
-              name: workspace?.name! as string,
-            })) || [],
-        })) || []
+        data?.tenants?.items
+          ?.map(u => u || {})
+          .map(({ metadata, spec }) => ({
+            key: metadata?.name || '',
+            userid: metadata?.name || '',
+            name: spec?.firstName || '',
+            surname: spec?.lastName || '',
+            email: spec?.email || '',
+            workspaces:
+              spec?.workspaces?.map(w => ({
+                role: w?.role as Role,
+                name: w?.name || '',
+              })) || [],
+          })) || [],
       );
     }
   }, [loading, data, workspaceNamespace]);

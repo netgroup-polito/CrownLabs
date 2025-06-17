@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Tooltip } from 'antd';
 
 import { AimOutlined } from '@ant-design/icons';
@@ -19,8 +19,8 @@ const NodeSelectorIcon: FC<INodeSelectorIconProps> = ({ ...props }) => {
   const tooltipText = !isOnWorkspace
     ? `This instance started on a node with ${displaySel}`
     : displaySel
-    ? `This instance will be started on nodes with ${displaySel}`
-    : 'This instance can be started choosing the target node';
+      ? `This instance will be started on nodes with ${displaySel}`
+      : 'This instance can be started choosing the target node';
 
   return (
     <Tooltip title={<div className="text-center">{tooltipText}</div>}>

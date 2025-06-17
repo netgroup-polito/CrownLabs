@@ -1,4 +1,4 @@
-import { FC, Dispatch, SetStateAction } from 'react';
+import type { FC, Dispatch, SetStateAction } from 'react';
 import { Radio, Tooltip } from 'antd';
 import { TeamOutlined, UserOutlined } from '@ant-design/icons';
 import { WorkspaceRole } from '../../../../utils';

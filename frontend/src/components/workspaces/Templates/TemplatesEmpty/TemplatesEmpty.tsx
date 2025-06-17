@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { AppstoreAddOutlined } from '@ant-design/icons';
 import { Empty } from 'antd';
 import { WorkspaceRole } from '../../../../utils';

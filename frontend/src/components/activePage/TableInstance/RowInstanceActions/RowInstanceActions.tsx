@@ -1,7 +1,7 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Modal, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { Instance, WorkspaceRole } from '../../../../utils';
+import { Button } from 'antd';
+import { type Instance, WorkspaceRole } from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
@@ -79,7 +79,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           </div>
         )}
         <div
-          className={`flex justify-end items-center gap-2 w-100 ${
+          className={`flex justify-end items-center gap-2 w-full ${
             viewMode === WorkspaceRole.manager
               ? 'lg:w-3/5 xl:w-5/12 2xl:w-1/2'
               : 'lg:w-2/3 xl:w-1/2'
@@ -104,7 +104,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
       <Modal
         title="SSH Connection"
         width={550}
-        visible={sshModal}
+        open={sshModal}
         onOk={() => setSshModal(false)}
         onCancel={() => setSshModal(false)}
         footer={<Button onClick={() => setSshModal(false)}>Close</Button>}

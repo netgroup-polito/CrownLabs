@@ -3,21 +3,24 @@ import {
   DesktopOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { Space, Tooltip, Dropdown, Menu } from 'antd';
-import Button from 'antd-button-color';
-import { FetchResult } from '@apollo/client';
-import { FC, useContext, useMemo, useState } from 'react';
-import { ReactComponent as SvgInfinite } from '../../../../assets/infinite.svg';
+import { Space, Tooltip, Dropdown, Badge } from 'antd';
+import { Button } from 'antd';
+import type { FetchResult } from '@apollo/client';
+import type { FC } from 'react';
+import { useCallback, useContext, useState } from 'react';
+import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import {
+import type {
   CreateInstanceMutation,
   DeleteTemplateMutation,
+} from '../../../../generated-types';
+import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { cleanupLabels, Template, WorkspaceRole } from '../../../../utils';
-import Badge from '../../../common/Badge';
+import type { Template } from '../../../../utils';
+import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
@@ -28,23 +31,23 @@ export interface ITemplatesTableRowProps {
   totalInstances: number;
   editTemplate: (id: string) => void;
   deleteTemplate: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       DeleteTemplateMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
-      Record<string, any>,
-      Record<string, any>
+      Record<string, unknown>,
+      Record<string, unknown>
     >
   >;
   expandRow: (value: string, create: boolean) => void;
@@ -90,7 +93,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   const [createDisabled, setCreateDisabled] = useState(false);
 
-  const createInstanceHandler = () => {
+  const createInstanceHandler = useCallback(() => {
     setCreateDisabled(true);
     createInstance(template.id)
       .then(() => {
@@ -99,48 +102,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
-  };
+  }, [createInstance, expandRow, refreshClock, template.id]);
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
-
-  const nodesLabels = useMemo(() => {
-    const handleNodeLabelClick = (info: { key: string }) => {
-      createInstance(template.id, JSON.parse(info.key))
-        .then(() => {
-          refreshClock();
-          setTimeout(setCreateDisabled, 400, false);
-          expandRow(template.id, true);
-        })
-        .catch(() => setCreateDisabled(false));
-    };
-
-    return (
-      <Menu onClick={handleNodeLabelClick}>
-        {loadingLabels ? (
-          <Menu.Item disabled>Loading...</Menu.Item>
-        ) : labelsError ? (
-          <Menu.Item disabled>Error loading labels</Menu.Item>
-        ) : (
-          labelsData?.labels?.map(({ key, value }) => {
-            const label = JSON.stringify({ [key]: value });
-            return (
-              <Menu.Item key={label}>
-                {`${cleanupLabels(key)}=${value}`}
-              </Menu.Item>
-            );
-          })
-        )}
-      </Menu>
-    );
-  }, [
-    loadingLabels,
-    labelsError,
-    labelsData,
-    createInstance,
-    expandRow,
-    refreshClock,
-    template.id,
-  ]);
 
   return (
     <>
@@ -182,12 +146,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             key={1}
             shape="round"
             className="ml-2 w-24"
-            type="danger"
+            color="danger"
             loading={deleteTemplateLoading}
             onClick={() =>
               deleteTemplate(template.id)
                 .then(() => setShowDeleteModalConfirm(false))
-                .catch(err => null)
+                .catch(console.warn)
             }
           >
             {!deleteTemplateLoading && 'Delete'}
@@ -243,16 +207,22 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           </Space>
         </div>
         <Space size="small">
-          <Badge
-            value={template.instances.length}
-            size="small"
-            className="mx-2"
-          />
+          {template.instances.length ? (
+            <Badge
+              count={template.instances.length}
+              color="blue"
+              className="mx-2"
+            />
+          ) : (
+            ''
+          )}
           <Tooltip
             placement="left"
             title={
               <>
-                <div>CPU: {template.resources.cpu || 'unavailable'} Core</div>
+                <div>
+                  CPU: {template.resources.cpu || 'unavailable'} core(s)
+                </div>
                 <div>
                   RAM: {convertInG(template.resources.memory) || 'unavailable'}B
                 </div>
@@ -266,7 +236,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               </>
             }
           >
-            <Button with="link" type="warning" size="middle" className="px-0">
+            <Button type="link" color="orange" size="middle" className="px-0">
               Info
             </Button>
           </Tooltip>
@@ -282,7 +252,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       setShowDeleteModalConfirm(true);
                     else setShowDeleteModalNotPossible(true);
                   })
-                  .catch(err => null);
+                  .catch(console.warn);
               }}
             />
           ) : (
@@ -290,8 +260,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               <Button
                 onClick={createInstanceHandler}
                 className="xs:hidden block"
-                with="link"
-                type="primary"
+                type="link"
+                color="primary"
                 size="large"
                 icon={<PlayCircleOutlined style={{ fontSize: '22px' }} />}
               />
@@ -328,7 +298,33 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           ) : template.nodeSelector &&
             JSON.stringify(template.nodeSelector) === '{}' ? (
             <Dropdown.Button
-              overlay={nodesLabels}
+              menu={{
+                items:
+                  loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                          disabled: true,
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        disabled: loadingLabels,
+                        onClick: () => {
+                          createInstance(template.id, JSON.parse(key))
+                            .then(() => {
+                              refreshClock();
+                              setTimeout(setCreateDisabled, 400, false);
+                              expandRow(template.id, true);
+                            })
+                            .catch(() => setCreateDisabled(false));
+                        },
+                      })) || [],
+              }}
               onClick={createInstanceHandler}
               // className="hidden xs:block"
               disabled={totalInstances === instancesLimit || createDisabled}

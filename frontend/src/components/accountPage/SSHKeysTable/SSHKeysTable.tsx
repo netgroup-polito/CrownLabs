@@ -1,9 +1,9 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Table } from 'antd';
-import Button from 'antd-button-color';
-import Column from 'antd/lib/table/Column';
-import { FC, useState } from 'react';
+import { Button, Table } from 'antd';
+import { type FC, useState } from 'react';
 import { ModalAlert } from '../../common/ModalAlert';
+
+const Column = Table.Column;
 
 export interface ISSHKeysTableProps {
   sshKeys?: { name: string; key: string }[];
@@ -46,7 +46,7 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
         title="Action"
         key="x"
         width={60}
-        render={(_: any, record: { name: string; key: string }) =>
+        render={(_: unknown, record: { name: string; key: string }) =>
           sshKeys?.length && (
             <>
               <ModalAlert
@@ -68,12 +68,12 @@ const SSHKeysTable: FC<ISSHKeysTableProps> = props => {
                     key={1}
                     shape="round"
                     className="ml-2 w-24"
-                    type="danger"
+                    color="danger"
                     onClick={() => {
                       if (recordToDelete) {
                         onDeleteKey(recordToDelete) // Safe to call because recordToDelete is not null
                           .then(() => setRecordToDelete(null)) // Close modal on success
-                          .catch(err => null); // Handle error gracefully
+                          .catch(_ => null); // Handle error gracefully
                       }
                     }}
                   >
