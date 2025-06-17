@@ -31,7 +31,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	bastion_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
-	webssh "github.com/netgroup-polito/CrownLabs/operators/pkg/webssh"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/webssh"
 )
 
 var (
@@ -47,6 +47,13 @@ func init() {
 }
 
 func main() {
+
+	// Start the WebSocket SSH bridge in a separate goroutine
+	go func() {
+		klog.Info("Starting WebSocket SSH bridge")
+		webssh.StartWebSSH()
+	}()
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -97,12 +104,6 @@ func main() {
 	if err != nil {
 		klog.Fatal("Unable add an health check", err)
 	}
-
-	// Start the WebSocket SSH bridge in a separate goroutine
-	go func() {
-		klog.Info("Starting WebSocket SSH bridge")
-		webssh.SetupWebSSH()
-	}()
 
 	klog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

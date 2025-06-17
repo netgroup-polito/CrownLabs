@@ -1,17 +1,24 @@
 package webssh
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -19,17 +26,13 @@ const (
 	privateKeyPath     = "/web-keys/ssh_web_bastion_master"
 	timeoutDuration    = 30 * time.Minute // Duration after which an SSH connection is considered idle and closed
 	maxIdleConnections = 1000             // Maximum number of idle SSH connections to keep open
+	vmPort             = "22"             // Default SSH port for VMs can be overridden in the ClientInitMessage
+	ServerPort         = "8080"           // Port on which the WebSocket server listens
 )
 
 type sshConnInfo struct {
 	conn     *ssh.Client
 	lastUsed time.Time
-}
-
-type ClientInitMessage struct {
-	Token  string `json:"token"`
-	VmIp   string `json:"vmIp"`
-	VmPort string `json:"vmPort"`
 }
 
 var (
@@ -43,32 +46,12 @@ var (
 	connMutex         sync.Mutex // Mutex to protect access to activeConnections
 )
 
-func verifyToken(token string) bool {
-	if token == "" {
-		log.Println("No token provided")
-		return false
-	}
-
-	/*if err := ih.Client.Get(r.Context(), forge.NamespacedName(inst), inst); err != nil {
-			req.toket = token
-		if errors.IsNotFound(err) {
-			log.Error(err, "instance not found")
-			WriteError(w, r, log, http.StatusNotFound, "The requested Instance does not exist.")
-			return
-		}
-		log.Error(err, "error retrieving instance")
-		WriteError(w, r, log, http.StatusInternalServerError, "Cannot retrieve the requested instance.")
-		return
-	}*/
-
-	// connect to the k8s API server to verify the token
-
-	// TODO: Implement actual token verification logic
-	return true // Replace with actual token verification logic
+type ClientInitMessage struct {
+	Token  string `json:"token"`
+	VmIp   string `json:"vmIp"`
+	VmPort string `json:"vmPort"` // Optional, can be used to specify a different port
 }
 
-/*
-// --- JWT extraction ---
 func extractUsernameFromToken(tokenString string) (string, error) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
@@ -76,78 +59,28 @@ func extractUsernameFromToken(tokenString string) (string, error) {
 		return "", err
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		// Adatta il claim secondo la configurazione Keycloak (es: "preferred_username" o "sub")
+
 		if username, ok := claims["preferred_username"].(string); ok {
 			return username, nil
 		}
-		if sub, ok := claims["sub"].(string); ok {
-			return sub, nil
-		}
 	}
-	return "", fmt.Errorf("username not found in token")
+	return "", errors.New("username not found in token claims")
 }
 
-// --- RBAC check ---
-func canUserAccessResource(token, namespace, instanceName string) (bool, error) {
-	token = strings.TrimPrefix(token, "Bearer ")
-	host := os.Getenv("KUBERNETES_SERVICE_HOST")
-	port := os.Getenv("KUBERNETES_SERVICE_PORT")
-	if host == "" || port == "" {
-		return false, errors.New("KUBERNETES_SERVICE_HOST or PORT not set")
-	}
-	apiServer := "https://" + host + ":" + port
-
+func getInstances(token string, namespace string) (map[string]any, error) {
+	// create the Kubernetes client configuration
 	config := &rest.Config{
-		Host:        apiServer,
+		Host:        "https://apiserver.crownlabs.polito.it",
 		BearerToken: token,
 		TLSClientConfig: rest.TLSClientConfig{
-			CAFile: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
-		},
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return false, err
-	}
-
-	ssar := &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      "get",
-				Group:     "crownlabs.polito.it",
-				Resource:  "instances",
-				Name:      instanceName,
-			},
+			Insecure: false, // TLS ??
 		},
 	}
 
-	result, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(context.Background(), ssar, metav1.CreateOptions{})
+	// Create a dynamic client to interact with custom resources
+	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return false, err
-	}
-	return result.Status.Allowed, nil
-}
-
-// --- Instance owner check ---
-func getInstanceOwner(token, namespace, instanceName string) (string, error) {
-	token = strings.TrimPrefix(token, "Bearer ")
-	host := os.Getenv("KUBERNETES_SERVICE_HOST")
-	port := os.Getenv("KUBERNETES_SERVICE_PORT")
-	if host == "" || port == "" {
-		return "", errors.New("KUBERNETES_SERVICE_HOST or PORT not set")
-	}
-	apiServer := "https://" + host + ":" + port
-
-	config := &rest.Config{
-		Host:        apiServer,
-		BearerToken: token,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAFile: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
-		},
-	}
-	dynClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return "", err
+		return nil, errors.New("failed to create dynamic client: " + err.Error())
 	}
 
 	gvr := schema.GroupVersionResource{
@@ -155,94 +88,81 @@ func getInstanceOwner(token, namespace, instanceName string) (string, error) {
 		Version:  "v1alpha2",
 		Resource: "instances",
 	}
-	inst, err := dynClient.Resource(gvr).Namespace(namespace).Get(context.Background(), instanceName, metav1.GetOptions{})
+
+	list, err := dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return "", err
+		return nil, errors.New("failed to list instances: " + err.Error())
 	}
-	labels := inst.GetLabels()
-	owner, ok := labels["crownlabs.polito.it/owner"]
-	if !ok {
-		return "", fmt.Errorf("owner label not found")
+
+	instances := make(map[string]any)
+	for _, item := range list.Items {
+		instanceName := item.GetName()
+		instances[instanceName] = item.Object // Store the entire object or specific fields as needed
 	}
-	return owner, nil
+
+	return instances, nil
 }
-
-// --- Combined check ---
-func verifyTokenAndOwnership(token, namespace, instanceName string) bool {
-	// 1. RBAC check
-	allowed, err := canUserAccessResource(token, namespace, instanceName)
-	if err != nil {
-		log.Println("K8s permission check error:", err)
-		return false
-	}
-	if !allowed {
-		log.Println("RBAC denied access")
-		return false
-	}
-
-	// 2. Owner check
-	username, err := extractUsernameFromToken(token)
-	if err != nil {
-		log.Println("Token decode error:", err)
-		return false
-	}
-	owner, err := getInstanceOwner(token, namespace, instanceName)
-	if err != nil {
-		log.Println("Error retrieving instance owner:", err)
-		return false
-	}
-	if username != owner {
-		log.Printf("User %s is not the owner (%s) of instance %s\n", username, owner, instanceName)
-		return false
-	}
-	return true
-}
-
-/*
-func verifyToken(token string) bool {
-	if token == "" {
-		log.Println("No token provided")
-		return false
-	}
-
-	/*if err := ih.Client.Get(r.Context(), forge.NamespacedName(inst), inst); err != nil {
-			req.toket = token
-		if errors.IsNotFound(err) {
-			log.Error(err, "instance not found")
-			WriteError(w, r, log, http.StatusNotFound, "The requested Instance does not exist.")
-			return
-		}
-		log.Error(err, "error retrieving instance")
-		WriteError(w, r, log, http.StatusInternalServerError, "Cannot retrieve the requested instance.")
-		return
-	}
-
-	// connect to the k8s API server to verify the token
-
-	// TODO: Implement actual token verification logic
-	return true // Replace with actual token verification logic
-}
-*/
 
 func validateRequest(firstMsg []byte) (string, error) {
+
 	var initMsg ClientInitMessage
 	if err := json.Unmarshal(firstMsg, &initMsg); err != nil {
 		log.Println("Invalid JSON from client:", err)
 		return "", errors.New("invalid JSON format")
 	}
 
-	if initMsg.VmIp == "" || initMsg.VmPort == "" || initMsg.Token == "" {
+	if initMsg.VmIp == "" || initMsg.Token == "" {
 		log.Println("Missing required fields in the initialization message")
 		return "", errors.New("missing required fields in the initialization message")
 	}
 
-	if !verifyToken(initMsg.Token) {
-		log.Println("Invalid token provided")
-		return "", errors.New("invalid token")
+	// Extract username from the token
+	username, err := extractUsernameFromToken(initMsg.Token)
+	if err != nil {
+		log.Println("Token decode error:", err)
+		return "", errors.New("invalid token format")
 	}
 
-	vmIp := initMsg.VmIp + ":" + initMsg.VmPort
-	log.Printf("Valid request received for VM IP: %s, token: %s", vmIp, initMsg.Token)
+	namespace := "tenant-" + username
+
+	log.Printf("Validating request for user: %s, namespace: %s", username, namespace)
+
+	// Get the list of instances for the user
+	instances, err := getInstances(initMsg.Token, namespace)
+	if err != nil {
+		log.Println("Error retrieving instances:", err)
+		return "", errors.New("error retrieving instances")
+	}
+
+	// check if the requested VM IP is in the list of instances
+	found := false
+	for _, i := range instances {
+		if instanceMap, ok := i.(map[string]any); ok {
+			if status, ok := instanceMap["status"].(map[string]any); ok {
+				if ip, ok := status["ip"].(string); ok {
+					log.Println("IP: ", ip)
+					if ip == initMsg.VmIp {
+						found = true
+						log.Printf("Found instance with IP: %s in namespace: %s", ip, namespace)
+						break // Exit the loop if we found the instance
+					}
+				}
+			}
+		}
+	}
+
+	if !found {
+		log.Printf("No instance found for VM IP: %s in namespace: %s", initMsg.VmIp, namespace)
+		return "", errors.New("no instance found for the provided VM IP")
+	}
+
+	// ssh port used to connect to the VM
+	port := initMsg.VmPort
+	if port == "" {
+		port = vmPort // Default port if not specified
+	}
+
+	vmIp := initMsg.VmIp + ":" + port // ip:port
 
 	return vmIp, nil
 }
@@ -340,7 +260,6 @@ func startConnectionCleanup(interval time.Duration, timeout time.Duration) {
 		}
 	}()
 }
-
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// upgrade to the WebSocket
@@ -464,13 +383,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SetupWebSSH() {
+func StartWebSSH() {
 	// automatic Cleanup
 	startConnectionCleanup(1*time.Minute, timeoutDuration)
 
 	http.HandleFunc("/ws", wsHandler)
-	log.Println("WebSocket SSH bridge running on :8080")
-	err := http.ListenAndServe(":8080", nil)
+	log.Println("WebSocket SSH bridge running on :" + ServerPort)
+	err := http.ListenAndServe(":"+ServerPort, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
