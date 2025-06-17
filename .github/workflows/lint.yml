@@ -95,9 +95,12 @@ jobs:
           persist-credentials: false
 
       - name: Check the validity of the links in the documentation
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.15
+        uses: umbrelladocs/action-linkspector@v1
         with:
-          use-quiet-mode: "yes"
+          github_token: ${{ secrets.github_token }}
+          fail_level: warning
+          filter_mode: nofilter
+          config_file: .linkspector.yml
 
   shell-lint:
     name: Lint shell files
@@ -131,15 +134,15 @@ jobs:
       - name: Setup nodeJS
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version-file: ./frontend/.nvmrc
 
       - name: Install the packages necessary for lint checking
         working-directory: ./frontend
-        run: yarn install
+        run: npm ci
 
       - name: Check linting
         working-directory: ./frontend
-        run: yarn check-format-lint
+        run: npm run check-format-lint
 
   qlkube-lint:
     name: Lint qlkube files

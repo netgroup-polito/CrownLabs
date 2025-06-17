@@ -1,4 +1,4 @@
-import { CodegenConfig } from '@graphql-codegen/cli';
+import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const schemaUrl =
   (process.env.GRAPHQL_URL || 'https://graphql.preprod.crownlabs.polito.it') +
@@ -8,7 +8,7 @@ const config: CodegenConfig = {
   schema: {
     [schemaUrl]: { handleAsSDL: true },
   },
-  documents: ['./src/**/*.{graphql,ts}'],
+  documents: ['./src/**/*.ts', './src/**/*.graphql'],
   generates: {
     './src/generated-types.tsx': {
       config: {

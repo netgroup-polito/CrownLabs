@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <base href="%BASE_URL%" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1c7afd" />
+  <meta name="description" content="Kubernetes-based Remote Laboratories" />
+  <link rel="icon" href="%BASE_URL%favicon.ico" />
+  <title>CrownLabs</title>
+  <script type="text/javascript" src="%BASE_URL%config.js"></script>
+  <style>
+    body:not(.dark):not(.light) {
+      background: #000;
+      color: #fff;
+
+      @media (prefers-color-scheme: light) {
+        background: #fff;
+        color: #000;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loader">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+      }
+
+      #loader {
+        display: block;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-family: sans-serif;
+      }
+    </style>
+    <div></div>
+    <script type="module">
+      import ReactDOM from 'react-dom/client';
+      import CrownLoader from '/src/components/misc/CrownLoader';
+      ReactDOM.createRoot(document.querySelector('#loader div')).render(CrownLoader({ size: 'min(40vw, 30vh)' }))
+    </script>
+  </div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
+</html>

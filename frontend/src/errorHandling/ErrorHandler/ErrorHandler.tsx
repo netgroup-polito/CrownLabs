@@ -1,9 +1,10 @@
 import { CloseOutlined } from '@ant-design/icons';
 import { Modal, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { FC } from 'react';
+import { Button } from 'antd';
+import type { FC } from 'react';
 import { ErrorItem } from '.';
-import { CustomError, ErrorTypes } from '../utils';
+import type { CustomError } from '../utils';
+import { ErrorTypes } from '../utils';
 
 const { Text } = Typography;
 
@@ -18,7 +19,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
 
   const titleFromType = {
     [ErrorTypes.ApolloError]: 'Server Error',
-    [ErrorTypes.KeycloakError]: 'Keycloack Server Error',
+    [ErrorTypes.AuthError]: 'Authentication Error',
     [ErrorTypes.RenderError]: 'Application Error',
     [ErrorTypes.GenericError]: 'Generic Error',
   };
@@ -33,11 +34,9 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
             <Text type="danger" strong className="text-2xl">
               {titleFromType[errorsQueue[0].getType()]}
             </Text>
-          ) : (
-            ''
-          )
+          ) : null
         }
-        visible={show}
+        open={show}
         closable={false}
         width={800}
       >
@@ -54,7 +53,7 @@ const ErrorHandler: FC<IErrorHandlerProps> = ({ ...props }) => {
               size="large"
               shape="round"
               icon={<CloseOutlined />}
-              type="danger"
+              color="red"
               onClick={dismiss}
             >
               Dismiss

@@ -1,18 +1,18 @@
-import { Empty, Spin } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useContext, useEffect, useState } from 'react';
+import { Button, Empty, Spin } from 'antd';
+import { type FC, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import {
-  OwnedInstancesQuery,
-  UpdatedOwnedInstancesSubscriptionResult,
+  type OwnedInstancesQuery,
+  type UpdatedOwnedInstancesSubscription,
   useOwnedInstancesQuery,
 } from '../../../generated-types';
 import { updatedOwnedInstances } from '../../../graphql-components/subscription';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
-import { Instance, JSONDeepCopy, User, WorkspaceRole } from '../../../utils';
+import type { WorkspaceRole } from '../../../utils';
+import { type Instance, JSONDeepCopy, type User } from '../../../utils';
 import {
   getSubObjTypeK8s,
   makeGuiInstance,
@@ -34,7 +34,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
   const { tenantNamespace, tenantId } = user;
-  const { hasSSHKeys } = useContext(TenantContext);
+  const { hasSSHKeys, notify: notifier } = useContext(TenantContext);
   const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
@@ -59,62 +59,67 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
 
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
-      const unsubscribe = subscribeToMoreInstances({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
-        document: updatedOwnedInstances,
-        variables: { tenantNamespace },
-        updateQuery: (prev, { subscriptionData }) => {
-          const { data } =
-            subscriptionData as UpdatedOwnedInstancesSubscriptionResult;
+      const unsubscribe =
+        subscribeToMoreInstances<UpdatedOwnedInstancesSubscription>({
+          onError: makeErrorCatcher(ErrorTypes.GenericError),
+          document: updatedOwnedInstances,
+          variables: { tenantNamespace },
+          updateQuery: (prev, { subscriptionData }) => {
+            const { data } = subscriptionData;
 
-          if (!data?.updateInstance?.instance) return prev;
+            if (!data?.updateInstance?.instance) return prev;
 
-          const { instance, updateType } = data?.updateInstance;
-          let notify = false;
-          let newItem = JSONDeepCopy(prev);
-          let objType;
+            const { instance, updateType } = data.updateInstance;
+            let notify = false;
+            const newItem = JSONDeepCopy(prev);
+            let objType;
 
-          if (newItem.instanceList?.instances) {
-            let { instances } = newItem.instanceList;
-            const found = instances.find(matchK8sObject(instance, false));
-            objType = getSubObjTypeK8s(found, instance, updateType);
+            if (newItem.instanceList?.instances) {
+              let { instances } = newItem.instanceList;
+              const found = instances.find(matchK8sObject(instance, false));
+              objType = getSubObjTypeK8s(found, instance, updateType);
 
-            switch (objType) {
-              case SubObjType.Deletion:
-                instances = instances.filter(matchK8sObject(instance, true));
-                notify = false;
-                break;
-              case SubObjType.Addition:
-                instances = [...instances, instance];
-                notify = true;
-                break;
-              case SubObjType.PrettyName:
-                instances = instances.map(replaceK8sObject(instance));
-                notify = false;
-                break;
-              case SubObjType.UpdatedInfo:
-                instances = instances.map(replaceK8sObject(instance));
-                notify = true;
-                break;
-              case SubObjType.Drop:
-                notify = false;
-                break;
-              default:
-                break;
+              switch (objType) {
+                case SubObjType.Deletion:
+                  instances = instances.filter(matchK8sObject(instance, true));
+                  notify = false;
+                  break;
+                case SubObjType.Addition:
+                  instances = [...instances, instance];
+                  notify = true;
+                  break;
+                case SubObjType.PrettyName:
+                  instances = instances.map(replaceK8sObject(instance));
+                  notify = false;
+                  break;
+                case SubObjType.UpdatedInfo:
+                  instances = instances.map(replaceK8sObject(instance));
+                  notify = true;
+                  break;
+                case SubObjType.Drop:
+                  notify = false;
+                  break;
+                default:
+                  break;
+              }
+              newItem.instanceList.instances = instances;
             }
-            newItem.instanceList.instances = instances;
-          }
 
-          if (notify) {
-            notifyStatus(instance.status?.phase, instance, updateType);
-          }
+            if (notify) {
+              notifyStatus(
+                instance.status?.phase,
+                instance,
+                updateType,
+                notifier,
+              );
+            }
 
-          if (objType !== SubObjType.Drop) {
-            setDataInstances(newItem);
-          }
-          return newItem;
-        },
-      });
+            if (objType !== SubObjType.Drop) {
+              setDataInstances(newItem);
+            }
+            return newItem;
+          },
+        });
       return unsubscribe;
     }
   }, [
@@ -126,6 +131,7 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     errorInstances,
     apolloErrorCatcher,
     makeErrorCatcher,
+    notifier,
   ]);
 
   const instances =
@@ -136,8 +142,8 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           a,
           b,
           sortingData.sortingType as keyof Instance,
-          sortingData.sorting
-        )
+          sortingData.sorting,
+        ),
       ) || [];
 
   return (
@@ -171,15 +177,13 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
           </div>
         )
       ) : (
-        <>
-          <div className="flex justify-center h-full items-center">
-            {loadingInstances ? (
-              <Spin size="large" spinning={loadingInstances} />
-            ) : (
-              <>{errorInstances && <p>{errorInstances.message}</p>}</>
-            )}
-          </div>
-        </>
+        <div className="flex justify-center h-full items-center">
+          {loadingInstances ? (
+            <Spin size="large" spinning={loadingInstances} />
+          ) : (
+            <>{errorInstances && <p>{errorInstances.message}</p>}</>
+          )}
+        </div>
       )}
     </>
   );

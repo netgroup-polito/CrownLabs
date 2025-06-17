@@ -16,7 +16,7 @@ export interface prettyNamedK8sObject {
  */
 export function compareK8sObjects(
   a?: K8sObject | null,
-  b?: K8sObject | null
+  b?: K8sObject | null,
 ): boolean {
   return (
     a?.metadata?.name === b?.metadata?.name &&
@@ -29,7 +29,7 @@ export function compareK8sObjects(
  */
 export function comparePrettyName(
   a?: prettyNamedK8sObject | null,
-  b?: prettyNamedK8sObject | null
+  b?: prettyNamedK8sObject | null,
 ): boolean {
   return a?.spec?.prettyName === b?.spec?.prettyName;
 }
@@ -41,7 +41,7 @@ export function comparePrettyName(
  */
 export function matchK8sObject(
   obj: K8sObject,
-  inverseMatch?: boolean
+  inverseMatch?: boolean,
 ): (i?: K8sObject | null) => boolean {
   return (o?: K8sObject | null) => {
     const match = compareK8sObjects(obj, o);
@@ -54,7 +54,7 @@ export function matchK8sObject(
  * @param obj object against which compare the ones passed to the lambda
  */
 export function replaceK8sObject<T extends K8sObject>(
-  obj: T
+  obj: T,
 ): (o: T | null) => T | null {
   return (o: T | null) => {
     return compareK8sObjects(obj, o) ? obj : o;

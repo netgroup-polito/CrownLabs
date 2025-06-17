@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Typography, Space } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import { Link } from 'react-router-dom';
 
 const { Text } = Typography;

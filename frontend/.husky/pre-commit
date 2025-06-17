@@ -1,5 +1,2 @@
-#!/bin/sh
-# shellcheck disable=SC1090
-. "$(dirname "$0")/_/husky.sh"
-
-yarn --cwd=frontend pre-commit
+cd "$(dirname "$0")"
+npm run pre-commit

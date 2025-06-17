@@ -1,20 +1,18 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Tooltip } from 'antd';
 
-import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
+import SvgInfinite from '../../../assets/infinite.svg?react';
 
-export interface IPersistentIconProps {}
-
-const PersistentIcon: FC<IPersistentIconProps> = ({ ...props }) => {
+const PersistentIcon: FC = () => {
   return (
     <Tooltip
       title={
         <>
           <div className="text-center">
-            These Instances can be stopped and restarted without being deleted.
+            This instance can be stopped and restarted without being deleted.
           </div>
           <div className="text-center">
-            Your files won't be deleted in case of an internal disservice of
+            Your files will be preserved also in case of a malfunctioning of
             CrownLabs.
           </div>
         </>

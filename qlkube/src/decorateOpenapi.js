@@ -13,11 +13,11 @@ const force = {
 
 /**
  * Recursively add x-graphql-enum-mapping property
- * tho the enum ones which values contain empty string
+ * to the enum ones which values contain empty string
  *
  * @param {Object} obj
  */
-function setGQLEnumNones(obj) {
+function setGQLEnumNodes(obj) {
   const GQL_EXT_ENUM_MAPPING = 'x-graphql-enum-mapping';
   if (!obj.properties) return;
   Object.keys(obj.properties).forEach((prop) => {
@@ -28,19 +28,15 @@ function setGQLEnumNones(obj) {
       }
       p.enum.forEach((v) => {
         if (!p[GQL_EXT_ENUM_MAPPING][v]) {
-          if (v !== '') {
-            p[GQL_EXT_ENUM_MAPPING][v] = v
-              .replace(/([a-z])([A-Z])/g, '$1_$2')
-              .toUpperCase();
-          } else {
+          if (v === '') {
             p[GQL_EXT_ENUM_MAPPING][''] = '_EMPTY_';
           }
         }
       });
     } else if (p?.type === 'object') {
-      setGQLEnumNones(p);
+      setGQLEnumNodes(p);
     } else if (p?.type === 'array') {
-      setGQLEnumNones(p.items);
+      setGQLEnumNodes(p.items);
     }
   });
 }
@@ -93,7 +89,7 @@ function decorateOpenapi(oas) {
     }
   }
 
-  Object.keys(oas.definitions).forEach((k) => setGQLEnumNones(oas.definitions[k]));
+  Object.keys(oas.definitions).forEach((k) => setGQLEnumNodes(oas.definitions[k]));
 
   return oas;
 }

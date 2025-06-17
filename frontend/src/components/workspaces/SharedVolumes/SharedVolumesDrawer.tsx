@@ -1,7 +1,9 @@
 import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
-import Button from 'antd-button-color';
-import { approximate, convertToGB, SharedVolume } from '../../../utils';
-import { FC, useContext, useEffect, useState } from 'react';
+import { Button } from 'antd';
+import type { SharedVolume } from '../../../utils';
+import { approximate, convertToGB } from '../../../utils';
+import type { FC } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
   useApplySharedVolumeMutation,
   useCreateSharedVolumeMutation,
@@ -10,14 +12,14 @@ import {
 } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
-import { FetchPolicy } from '@apollo/client';
+import type { FetchPolicy } from '@apollo/client';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import RowShVolStatus from './RowShVolStatus/RowShVolStatus';
 import SharedVolumeForm, {
   Actions,
 } from './SharedVolumeForms/SharedVolumeForm';
 import { ModalAlert } from '../../common/ModalAlert';
-import Text from 'antd/lib/typography/Text';
+import { getShVolPatchJson } from '../../../graphql-components/utils';
 
 export interface ISharedVolumesDrawerProps {
   workspaceNamespace: string;
@@ -54,8 +56,8 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
         data.sharedvolumeList?.sharedvolumes
           ?.map(sv => makeGuiSharedVolume(sv))
           .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-          ) ?? []
+            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+          ) ?? [],
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -76,13 +78,13 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
     });
 
   const reloadSharedVolumes = async () => {
-    let res = await refetchSharedVolumes();
+    const res = await refetchSharedVolumes();
     setDataShVols(
       res.data?.sharedvolumeList?.sharedvolumes
         ?.map(sv => makeGuiSharedVolume(sv))
         .sort((a, b) =>
-          (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-        ) ?? []
+          (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+        ) ?? [],
     );
   };
 
@@ -113,8 +115,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
       title: 'Action',
       dataIndex: 'id',
       key: 'action',
-      // eslint-disable-next-line react/no-multi-comp
-      render: (_: any, shvol: SharedVolume) => (
+      render: (_: unknown, shvol: SharedVolume) => (
         <span style={{ display: 'flex', gap: '8px' }}>
           <EditOutlined
             style={{ cursor: 'pointer' }}
@@ -175,11 +176,11 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
             placement="bottom"
             height={open ? 300 : 0}
             getContainer={false}
-            destroyOnClose={true}
+            destroyOnHidden={true}
             open={open}
             closable={true}
             onClose={() => setOpen(false)}
-            style={{
+            rootStyle={{
               position: 'absolute',
               opacity: open ? 1 : 0,
               transition: 'all 0.3',
@@ -199,8 +200,17 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   open={isCreateOpen}
                   setOpen={setCreateOpen}
                   workspaceNamespace={workspaceNamespace}
+                  workspaceName={''}
                   action={Actions.Create}
-                  mutation={createShVolMutation}
+                  mutation={p =>
+                    createShVolMutation({
+                      variables: {
+                        prettyName: p.prettyName,
+                        size: p.size,
+                        workspaceNamespace: p.wsNs,
+                      },
+                    })
+                  }
                   loading={loadingCreateShVolMutation}
                   reload={reloadSharedVolumes}
                   initialSize={0.5}
@@ -220,7 +230,19 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   action={Actions.Update}
                   initialName={editName}
                   initialSize={editSize}
-                  mutation={applyShVolMutation}
+                  mutation={p =>
+                    applyShVolMutation({
+                      variables: {
+                        workspaceNamespace: p.wsNs,
+                        name: p.wsName,
+                        patchJson: getShVolPatchJson({
+                          prettyName: p.prettyName,
+                          size: p.size,
+                        }),
+                        manager: 'frontend-shvol-editor',
+                      },
+                    })
+                  }
                   loading={loadingApplyShVolMutation}
                   reload={reloadSharedVolumes}
                 />
@@ -228,11 +250,9 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                   headTitle="Confirm Shared Volume deletion"
                   message={
                     <>
-                      <Text>
-                        Do you really want to delete{' '}
-                        <b>{selectedShVol?.prettyName}</b>?<br />
-                        All data will be lost.
-                      </Text>
+                      Do you really want to delete{' '}
+                      <b>{selectedShVol?.prettyName}</b>?<br />
+                      All data will be lost.
                     </>
                   }
                   description={`Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
@@ -251,7 +271,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                       key={1}
                       shape="round"
                       className="ml-2 w-24"
-                      type="danger"
+                      color="red"
                       onClick={async () => {
                         if (selectedShVol) {
                           await deleteShVolMutation({

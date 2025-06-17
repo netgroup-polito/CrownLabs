@@ -1,10 +1,11 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Card } from 'antd';
 import './Box.less';
-import { BoxHeaderSize } from '../../../utils';
+import type { BoxHeaderSize } from '../../../utils';
 export interface IBoxProps {
   header?: BoxHeader;
   footer?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export type BoxHeader = {
@@ -21,15 +22,16 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
   const classPerSize = {
     small: 'h-14',
     middle: 'h-20',
-    large: 'h-28',
+    large: 'h-24',
   };
 
   return (
     <>
       <Card
         className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box h-full"
-        bordered={false}
-        bodyStyle={{ height: '100%', flexDirection: 'column', display: 'flex' }}
+        styles={{
+          body: { height: '100%', flexDirection: 'column', display: 'flex' },
+        }}
       >
         <div className="w-full flex-none">
           {header && (

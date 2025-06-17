@@ -1,4 +1,4 @@
-import { FC, MouseEventHandler } from 'react';
+import type { FC, MouseEventHandler } from 'react';
 import { Button, Space } from 'antd';
 export interface ResetButtonProps {
   onClick: MouseEventHandler<Element> | undefined;
