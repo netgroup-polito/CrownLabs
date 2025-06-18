@@ -81,5 +81,17 @@ sshKeysSecret:
   name: crownlabs-bastion-operator-ssh-keys
   keygenImage: kroniak/ssh-client:3.9
   kubectlImage: bitnami/kubectl:1.19
+  webBastionMasterKey:
+    secretName: crownlabs-bastion-operator-web-master-key
+    keyName: ssh_web_bastion_master
+    type: ed25519
 
 rbacResourcesName: crownlabs-bastion-operator
+
+webSshConfig:
+  webSshUser: crownlabs
+  webSshPrivateKeyPath: /web-keys/ssh_web_bastion_master
+  webSshTimeoutDuration: 30 # minutes
+  WebSshMaxConCount: 1000
+  WebSshVmPort: 22
+  WebSshWebskPort: 8085
