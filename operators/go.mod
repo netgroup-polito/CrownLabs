@@ -2,7 +2,7 @@ module github.com/netgroup-polito/CrownLabs/operators
 
 go 1.23.0
 
-toolchain go1.24.4
+toolchain go1.23.7
 
 require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
