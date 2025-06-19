@@ -1,0 +1,74 @@
+# Default values for tenant-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+configurations:
+  targetLabel: crownlabs.polito.it/operator-selector=production
+  keycloak:
+    url: "https://auth.crownlabs.example.com/"
+    loginRealm: master
+    targetRealm: crownlabs
+    targetClient: k8s
+    user: username
+    pass: password
+  mydrivePVCsSize: 1Gi
+  mydrivePVCsStorageClassName: rook-nfs
+  mydrivePVCsNamespace: mydrive-pvcs
+  maxConcurrentReconciles: 1
+  sandboxClusterRole: crownlabs-sandbox
+  tenantNamespaceKeepAlive: 168h
+  tenant:
+    resourcecaps:
+      # Maximum number of virtual cpus that can be requested by a tenant. 0 means unlimited.
+      cpu: 25
+      # Maximum amount of memory that can be requested by a tenant (expressed in GB). 0 means unlimited.
+      memory: 50
+      # Maximum number of instances that can be created by a tenant. 0 means unlimited.
+      instances: 10
+
+image:
+  repository: crownlabs/tenant-operator
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart version.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 20000
+  runAsGroup: 20000
+  privileged: false
+
+resources:
+  limits:
+    memory: 500Mi
+    cpu: 1000m
+  requests:
+    memory: 100Mi
+    cpu: 100m
+
+webhook:
+  deployment:
+    certsMount: /tmp/k8s-webhook-server/serving-certs/
+    webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    baseWorkspaces: utilities
+  enableMutating: true
+  clusterIssuer: self-signed
+
+rbacResourcesName: crownlabs-tenant-operator

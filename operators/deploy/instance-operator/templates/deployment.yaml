@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "instance-operator.fullname" . }}
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "instance-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "instance-operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
+            - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
+            - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
+            - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
+            - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
+            - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
+            - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
+            - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
+            - "--container-env-instmetrics-server-endpoint={{ .Values.configurations.containerEnvironmentOptions.instmetricsServerEndpoint }}"
+            - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
+            - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
+            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
+            - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
+            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
+            - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
+            - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
+            - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
+            - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
+            - "--shared-volume-storage-class={{ .Values.configurations.sharedVolumeOptions.storageClass }}"
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: probes
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "instance-operator.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname

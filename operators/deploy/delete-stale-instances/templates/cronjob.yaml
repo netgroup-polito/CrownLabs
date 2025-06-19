@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "delete-stale-instances.fullname" . }}
+  labels:
+    {{- include "delete-stale-instances.labels" . | nindent 4 }}
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "delete-stale-instances.fullname" . }}
+          containers:
+            - name: {{ .Chart.Name }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ include "delete-stale-instances.version" . }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.configurations.dryRun }}
+              args:
+                - --dry-run
+              {{- end }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          restartPolicy: OnFailure
+  schedule: {{ .Values.configurations.schedule | quote }}
+  startingDeadlineSeconds: {{ .Values.configurations.startingDeadlineSeconds }}

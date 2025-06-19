@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "instmetrics.fullname" . }}
+  labels:
+    {{- include "instmetrics.labels" . | nindent 4 }}
+spec:
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: grpc
+    protocol: TCP
+    name: grpc
+  selector:
+    {{- include "instmetrics.selectorLabels" . | nindent 4 }}
+  # Traffic is restricted to be routed only to endpoinds on the same node.
+  # This is because metrics of a specific container are colleted only by 
+  # instmetrics server(s) running on the same Node of the container.
+  internalTrafficPolicy: Local
+  type: {{ .Values.service.type }}

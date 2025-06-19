@@ -1,0 +1,215 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: instances.crownlabs.polito.it
+spec:
+  group: crownlabs.polito.it
+  names:
+    kind: Instance
+    listKind: InstanceList
+    plural: instances
+    shortNames:
+    - inst
+    singular: instance
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.prettyName
+      name: Pretty Name
+      type: string
+    - jsonPath: .spec.running
+      name: Running
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.url
+      name: URL
+      priority: 10
+      type: string
+    - jsonPath: .status.ip
+      name: IP Address
+      priority: 10
+      type: string
+    - jsonPath: .status.initialReadyTime
+      name: Ready In
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: Instance describes the instance of a CrownLabs environment Template.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: InstanceSpec is the specification of the desired state of
+              the Instance.
+            properties:
+              customizationUrls:
+                description: Optional urls for advanced integration features.
+                properties:
+                  contentDestination:
+                    description: URL to which POST an archive with the contents found
+                      (at instance termination) in Template.ContainerStartupOptions.ContentPath.
+                    type: string
+                  contentOrigin:
+                    description: URL from which GET the archive to be extracted into
+                      Template.ContainerStartupOptions.ContentPath. This field, if
+                      set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
+                    type: string
+                  statusCheck:
+                    description: URL which is periodically checked (with a GET request)
+                      to determine automatic instance shutdown. Should return any
+                      2xx status code if the instance has to keep running, any 4xx
+                      otherwise. In case of 2xx response, it should output a JSON
+                      with a `deadline` field containing a ISO_8601 compliant date/time
+                      string of the expected instance termination time. See instautoctrl.StatusCheckResponse
+                      for exact definition.
+                    type: string
+                type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: Labels that are used for the selection of the node.
+                type: object
+              prettyName:
+                description: |-
+                  Custom name the user can assign and change at any time
+                  in order to more easily identify the instance.
+                type: string
+              running:
+                default: true
+                description: |-
+                  Whether the current instance is running or not.
+                  The meaning of this flag is different depending on whether the instance
+                  refers to a persistent environment or not. If the first case, it allows to
+                  stop the environment (e.g. the underlying VM) without deleting the associated
+                  disk. Setting the flag to true will restart the environment, attaching it
+                  to the same disk used previously. Differently, if the environment is not
+                  persistent, it only tears down the exposition objects, making the instance
+                  effectively unreachable from outside the cluster, but allowing the
+                  subsequent recreation without data loss.
+                type: boolean
+              template.crownlabs.polito.it/TemplateRef:
+                description: The reference to the Template to be instantiated.
+                properties:
+                  name:
+                    description: The name of the resource to be referenced.
+                    type: string
+                  namespace:
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
+                    type: string
+                required:
+                - name
+                type: object
+              tenant.crownlabs.polito.it/TenantRef:
+                description: The reference to the Tenant which owns the Instance object.
+                properties:
+                  name:
+                    description: The name of the resource to be referenced.
+                    type: string
+                  namespace:
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - template.crownlabs.polito.it/TemplateRef
+            - tenant.crownlabs.polito.it/TenantRef
+            type: object
+          status:
+            description: InstanceStatus reflects the most recently observed status
+              of the Instance.
+            properties:
+              automation:
+                description: Timestamps of the Instance automation phases (check,
+                  termination and submission).
+                properties:
+                  lastCheckTime:
+                    description: The last time the Instance desired status was checked.
+                    format: date-time
+                    type: string
+                  submissionTime:
+                    description: The time the Instance content submission has been
+                      completed.
+                    format: date-time
+                    type: string
+                  terminationTime:
+                    description: The (possibly expected) termination time of the Instance.
+                    format: date-time
+                    type: string
+                type: object
+              initialReadyTime:
+                description: |-
+                  The amount of time the Instance required to become ready for the first time
+                  upon creation.
+                type: string
+              ip:
+                description: |-
+                  The internal IP address associated with the remote environment, which can
+                  be used to access it through the SSH protocol (leveraging the SSH bastion
+                  in case it is not contacted from another CrownLabs Instance).
+                type: string
+              nodeName:
+                description: The node on which the Instance is running.
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: The actual nodeSelector assigned to the Instance.
+                type: object
+              phase:
+                description: |-
+                  The current status Instance, with reference to the associated environment
+                  (e.g. VM). This conveys which resource is being created, as well as
+                  whether the associated VM is being scheduled, is running or ready to
+                  accept incoming connections.
+                enum:
+                - ""
+                - Importing
+                - Starting
+                - ResourceQuotaExceeded
+                - Running
+                - Ready
+                - Stopping
+                - "Off"
+                - Failed
+                - CreationLoopBackoff
+                type: string
+              url:
+                description: |-
+                  The URL where it is possible to access the remote desktop of the instance
+                  (in case of graphical environments)
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,81 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: imagelists.crownlabs.polito.it
+spec:
+  group: crownlabs.polito.it
+  names:
+    kind: ImageList
+    listKind: ImageListList
+    plural: imagelists
+    singular: imagelist
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.registryName
+      name: Registry Name
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ImageList describes the available VM images in the CrownLabs
+          registry.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ImageListSpec is the specification of the desired state of
+              the ImageList.
+            properties:
+              images:
+                description: The list of VM images currently available in CrownLabs.
+                items:
+                  description: ImageListItem describes a single VM image.
+                  properties:
+                    name:
+                      description: The name identifying a single image.
+                      type: string
+                    versions:
+                      description: The list of versions the image is available in.
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  - versions
+                  type: object
+                type: array
+              registryName:
+                description: The host name that can be used to access the registry.
+                type: string
+            required:
+            - images
+            - registryName
+            type: object
+          status:
+            description: ImageListStatus reflects the most recently observed status
+              of the ImageList.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}
+  labels:
+    {{- include "bastion-operator.labels" . | nindent 4 }}
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bastion-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "bastion-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bastion-operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}-sshd
+          securityContext:
+            {{- toYaml .Values.securityContexts.bastion | nindent 12 }}
+          command: ["/usr/sbin/sshd"]
+          args: ["-D", "-e", "-f","/etc/ssh/sshd_config_custom"]
+          image: "{{ .Values.image.repositoryBastion }}:{{ include "bastion-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: ssh-alt
+              containerPort: 2222
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /home/bastion/.ssh
+              name: authorized-keys
+            - mountPath: /host-keys
+              name : host-keys
+          resources:
+            {{- toYaml .Values.resources.bastion | nindent 12 }}
+        - name: {{ .Chart.Name }}-sidecar
+          securityContext:
+            {{- toYaml .Values.securityContexts.sidecar | nindent 12 }}
+          image: "{{ .Values.image.repositorySidecar }}:{{ include "bastion-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: probes
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          volumeMounts:
+            - name: authorized-keys
+              mountPath: /auth-keys-vol
+          resources:
+            {{- toYaml .Values.resources.sidecar | nindent 12 }}
+      volumes:
+        - name: authorized-keys
+          emptyDir: {}
+        - name: host-keys
+          secret:
+            secretName: {{ .Values.sshKeysSecret.name }}
+            defaultMode: 0444
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "bastion-operator.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname

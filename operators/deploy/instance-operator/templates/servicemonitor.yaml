@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "instance-operator.fullname" . }}
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+    {{- include "instance-operator.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  endpoints:
+    - interval: 15s
+      path: /metrics
+      port: metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+      {{- include "instance-operator.metricsAdditionalLabels" . | nindent 6 }}

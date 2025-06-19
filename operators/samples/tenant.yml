@@ -1,0 +1,18 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Tenant
+metadata:
+  name: john.doe
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  firstName: John
+  lastName: Doe
+  email: jonh.doe@email.com
+  workspaces:
+    - name: tea
+      role: user
+    - name: coffee
+      role: manager
+  publicKeys:
+    - type1 key1 comment1
+    - type2 key2 comment3

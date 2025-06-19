@@ -1,0 +1,11 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "tenant-operator.webhookname" . }}
+spec:
+  secretName: {{ include "tenant-operator.webhookname" . }}
+  dnsNames:
+  - {{ include "tenant-operator.webhookname" . }}.{{ .Release.Namespace }}.svc
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ .Values.webhook.clusterIssuer | default "self-signed" }}

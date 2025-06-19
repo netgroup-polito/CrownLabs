@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}
+  labels:
+    {{- include "bastion-operator.labels" . | nindent 4 }}
+{{- with .Values.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: ssh-alt
+      protocol: TCP
+      name: ssh-alt
+  externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
+  selector:
+    {{- include "bastion-operator.selectorLabels" . | nindent 4 }}

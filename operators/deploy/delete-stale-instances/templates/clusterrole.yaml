@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.rbacResourcesName }}
+  labels:
+    {{- include "delete-stale-instances.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - crownlabs.polito.it
+  resources:
+  - instances
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+
+- apiGroups:
+  - crownlabs.polito.it
+  resources:
+  - templates
+  verbs:
+  - get
+  - list
+  - watch

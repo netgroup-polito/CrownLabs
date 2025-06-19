@@ -1,0 +1,20 @@
+# sshd config
+
+port 2222
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# Close the connection if the client does not respond for 3 minutes (60s*3) 
+ClientAliveCountMax 3
+ClientAliveInterval 60
+
+# We need this otherwise sshd will raise ownership issues about the file updated from the sidecar
+StrictModes no
+
+# Custom location for pid files
+PidFile /ssh_pids/sshd.pid
+
+# host_keys volume is expected to be mounted using a secret
+HostKey /host-keys/ssh_host_key_rsa
+HostKey /host-keys/ssh_host_key_ecdsa
+HostKey /host-keys/ssh_host_key_ed25519
