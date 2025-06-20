@@ -259,8 +259,8 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
-// getLastActivityTime retrieves the last time an instance was accessed.
-func getLastActivityTime(query string, promClient v1.API, interval time.Duration) (time.Time, error) {
+// GetLastActivityTime retrieves the last time an instance was accessed.
+func GetLastActivityTime(query string, promClient v1.API, interval time.Duration) (time.Time, error) {
 	end := time.Now()
 	start := end.Add(-interval)
 
@@ -327,13 +327,13 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	defer cancel()
 
 	// Check Prometheus health first
-	healthy, err := r.isPrometheusHealthy(ctx, v1api)
+	healthy, err := r.IsPrometheusHealthy(ctx, v1api)
 	if err != nil || !healthy {
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
 	}
 	// Get instance activity data
-	interval, err := r.getInactivityTimeout(ctx, instance)
+	interval, err := r.GetInactivityTimeout(ctx, instance)
 	if err != nil {
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
 		return err
@@ -353,10 +353,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 
 	// Get instance activity data
 	queryNginx := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, instance.Namespace, instance.Name)
-	lastActivityTimeNginx, errNginx := getLastActivityTime(queryNginx, v1api, intervalDuration)
+	lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, intervalDuration)
 
 	querySSH := fmt.Sprintf(`bation_ssh_conntections{namespace=%q, destination_Ip=%q}`, instance.Namespace, instance.Status.IP)
-	lastActivityTimeSSH, errSSH := getLastActivityTime(querySSH, v1api, intervalDuration)
+	lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, intervalDuration)
 
 	if errNginx != nil && errSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
@@ -379,7 +379,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	var remainingTime time.Duration
 
 	// get the inactivity timeout from the instance template
-	inactivityTimeout, err := r.getInactivityTimeout(ctx, instance)
+	inactivityTimeout, err := r.GetInactivityTimeout(ctx, instance)
 	if err != nil {
 		log.Error(err, "failed retrieving inactivity timeout from instance template")
 		return false, 0, err
@@ -410,8 +410,8 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 	return false, remainingTime, nil
 }
 
-// isPrometheusHealthy checks if Prometheus and required metrics are available.
-func (r *InstanceInactiveTerminationReconciler) isPrometheusHealthy(ctx context.Context, v1api v1.API) (bool, error) {
+// IsPrometheusHealthy checks if Prometheus and required metrics are available.
+func (r *InstanceInactiveTerminationReconciler) IsPrometheusHealthy(ctx context.Context, v1api v1.API) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("prometheus-health")
 
 	// Verify connection to Prometheus health endpoint
@@ -539,7 +539,7 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 
 // retrieve the inactivity timeout from the instance template
 // This function should return the inactivity timeout for the instance based on its template.
-func (r *InstanceInactiveTerminationReconciler) getInactivityTimeout(ctx context.Context, instance *clv1alpha2.Instance) (string, error) {
+func (r *InstanceInactiveTerminationReconciler) GetInactivityTimeout(ctx context.Context, instance *clv1alpha2.Instance) (string, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-inactivity-timeout")
 	// retrieve the template from the instance
 	var template clv1alpha2.Template
