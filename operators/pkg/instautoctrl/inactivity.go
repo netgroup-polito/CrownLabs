@@ -204,7 +204,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	log.Info("instance termination check", "terminate", terminate)
 	if terminate {
 		// retrieve the user owner of the instance
-		user, err := r.GetTenantFromInstance(ctx, &instance)
+		user, err := GetTenantFromInstance(ctx, r.Client, &instance)
 		if err != nil {
 			log.Error(err, "failed retrieving user from instance")
 			return ctrl.Result{}, err
@@ -496,27 +496,6 @@ func (r *InstanceInactiveTerminationReconciler) SendNotification(ctx context.Con
 	}
 
 	return nil
-}
-
-// GetTenantFromInstance retrieves the Tenant object associated with the Instance.
-// TODO move somewhere else, as it is used in other controllers too.
-func (r *InstanceInactiveTerminationReconciler) GetTenantFromInstance(ctx context.Context, instance *clv1alpha2.Instance) (clv1alpha2.Tenant, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	log.Info("getting user from instance", "instance", instance.Name)
-
-	tenant := &clv1alpha2.Tenant{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, tenant); err != nil {
-		if kerrors.IsNotFound(err) {
-			log.Error(err, "user not found")
-			return clv1alpha2.Tenant{}, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
-		}
-		log.Error(err, "failed retrieving user")
-		return clv1alpha2.Tenant{}, err
-	}
-	return *tenant, nil
 }
 
 // IncrementAnnotation increments the value of the annotation string by 1.
