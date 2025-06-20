@@ -61,6 +61,11 @@ func init() {
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
 
+	enableInstanceTermination := flag.Bool("enable-instance-termination", false, "Enable the Instance Termination controller")
+	enableInstanceSubmission := flag.Bool("enable-instance-submission", false, "Enable the Instance Submission controller")
+	enableInactiveTermination := flag.Bool("enable-instance-inactive-termination", false, "Enable the Instance Inactive Termination controller")
+	enableInstanceExpiration := flag.Bool("enable-instance-expiration", false, "Enable the Instance Expiration controller")
+
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -125,62 +130,84 @@ func main() {
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 
-	// Configure the Instance termination controller
-	instanceTermination := "InstanceTermination"
-	if err := (&instautoctrl.InstanceTerminationReconciler{
-		Client:                      mgr.GetClient(),
-		Scheme:                      mgr.GetScheme(),
-		EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
-		NamespaceWhitelist:          nsWhitelist,
-		StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
-		InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceTermination)
-		os.Exit(1)
+	if *enableInstanceTermination {
+		log.Info("Instance Termination controller enabled.")
+		// Configure the Instance termination controller
+		instanceTermination := "InstanceTermination"
+		if err := (&instautoctrl.InstanceTerminationReconciler{
+			Client:                      mgr.GetClient(),
+			Scheme:                      mgr.GetScheme(),
+			EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
+			NamespaceWhitelist:          nsWhitelist,
+			StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
+			InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
+		}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", instanceTermination)
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Instance Termination controller disabled.")
 	}
 
-	// Configure the Instance submission controller
-	instanceSubmission := "InstanceSubmission"
-	if err := (&instautoctrl.InstanceSubmissionReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceSubmission),
-		ContainerEnvOpts:   containerEnvOpts,
-		NamespaceWhitelist: nsWhitelist,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceSubmission)
-		os.Exit(1)
+	if *enableInstanceSubmission {
+		log.Info("Instance Submission controller enabled.")
+
+		// Configure the Instance submission controller
+		instanceSubmission := "InstanceSubmission"
+		if err := (&instautoctrl.InstanceSubmissionReconciler{
+			Client:             mgr.GetClient(),
+			Scheme:             mgr.GetScheme(),
+			EventsRecorder:     mgr.GetEventRecorderFor(instanceSubmission),
+			ContainerEnvOpts:   containerEnvOpts,
+			NamespaceWhitelist: nsWhitelist,
+		}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", instanceSubmission)
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Instance Submission controller disabled.")
 	}
 
-	// Configure the Instance Inactive termination controller
-	instanceInactiveTermination := "InstanceInactiveTermination"
-	if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-		Client:                    mgr.GetClient(),
-		Scheme:                    mgr.GetScheme(),
-		EventsRecorder:            mgr.GetEventRecorderFor(instanceInactiveTermination),
-		NamespaceWhitelist:        nsWhitelist,
-		StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
-		InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
-		MailClient:                mailClient,
-		PrometheusURL:             *prometheusURL,
-		InactivityInterval:        *instanceTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
-		os.Exit(1)
+	if *enableInactiveTermination {
+		log.Info("Instance Inactive Termination controller enabled.")
+
+		// Configure the Instance Inactive termination controller
+		instanceInactiveTermination := "InstanceInactiveTermination."
+		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
+			Client:                    mgr.GetClient(),
+			Scheme:                    mgr.GetScheme(),
+			EventsRecorder:            mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:        nsWhitelist,
+			StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
+			MailClient:                mailClient,
+			PrometheusURL:             *prometheusURL,
+			InactivityInterval:        *instanceTerminationStatusCheckInterval,
+		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Instance Inactive Termination controller disabled.")
 	}
 
-	// Configure the Instance Expiration controller
-	instanceExpiration := "InstanceExpiration"
-	if err := (&instautoctrl.InstanceExpirationReconciler{
-		Client:                    mgr.GetClient(),
-		Scheme:                    mgr.GetScheme(),
-		EventsRecorder:            mgr.GetEventRecorderFor(instanceExpiration),
-		NamespaceWhitelist:        nsWhitelist,
-		StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
-		MailClient:                mailClient,
-	}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceExpiration)
-		os.Exit(1)
+	if *enableInstanceExpiration {
+		log.Info("Instance Expiration controller enabled.")
+		// Configure the Instance Expiration controller
+		instanceExpiration := "InstanceExpiration"
+		if err := (&instautoctrl.InstanceExpirationReconciler{
+			Client:                    mgr.GetClient(),
+			Scheme:                    mgr.GetScheme(),
+			EventsRecorder:            mgr.GetEventRecorderFor(instanceExpiration),
+			NamespaceWhitelist:        nsWhitelist,
+			StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
+			MailClient:                mailClient,
+		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", instanceExpiration)
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Instance Expiration controller disabled.")
 	}
 
 	// Add readiness probe
