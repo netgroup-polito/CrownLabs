@@ -1,6 +1,7 @@
 import { Button, Col } from 'antd';
-import { FC, useEffect, useState } from 'react';
-import { Workspace } from '../../../utils';
+import type { FC } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceContainer } from '../WorkspaceContainer';
@@ -26,23 +27,34 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
     dashboard.set(String(selectedWsId));
   }, [selectedWsId]);
 
+  // prepare IWorkspaceGridProps.workspaceItems
+  const workspaceItems = useMemo(() => {
+    return workspaces
+      .map((ws, idx) => ({
+        id: idx,
+        title: ws.prettyName,
+        waitingTenants: ws.waitingTenants,
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [workspaces]);
+
   return (
     <>
-      <Col span={24} lg={8} xxl={8} className="lg:pr-4 py-5 lg:h-full flex">
-        <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar">
+      <Col
+        span={24}
+        lg={8}
+        xxl={8}
+        className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
+      >
+        <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
           <WorkspaceGrid
             selectedWs={selectedWsId}
-            workspaceItems={workspaces.map((ws, idx) => ({
-              id: idx,
-              title: ws.prettyName,
-              waitingTenants: ws.waitingTenants,
-            }))}
+            workspaceItems={workspaceItems}
             onClick={setSelectedWs}
           />
           {candidatesButton?.show && (
             <div className="lg:mt-4 mt-0 text-center">
               <Button
-                type="ghost"
                 shape="round"
                 size={'middle'}
                 onClick={candidatesButton.select}

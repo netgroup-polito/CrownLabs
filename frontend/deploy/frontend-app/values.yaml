@@ -18,7 +18,7 @@ configuration:
   oidc:
     clientId: <client-id>
     realm: <realm>
-    providerUrl: https://auth.example.com/auth/realms/crownlabs
+    providerUrl: https://auth.example.com/auth/
 
 imagePullSecrets: []
 nameOverride: ""

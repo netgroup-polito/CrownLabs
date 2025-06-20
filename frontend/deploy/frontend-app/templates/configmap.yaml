@@ -6,7 +6,6 @@ metadata:
     {{- include "frontend-app.labels" . | nindent 4 }}
 data:
   {{ .Values.configuration.fileName }}: |
-    window.REACT_APP_CROWNLABS_GRAPHQL_URL="{{ .Values.configuration.backend.graphql }}";
-    window.REACT_APP_CROWNLABS_OIDC_PROVIDER_URL="{{ .Values.configuration.oidc.providerUrl }}";
-    window.REACT_APP_CROWNLABS_OIDC_CLIENT_ID="{{ .Values.configuration.oidc.clientId }}";
-    window.REACT_APP_CROWNLABS_OIDC_REALM="{{ .Values.configuration.oidc.realm }}";
+    window.VITE_APP_CROWNLABS_GRAPHQL_URL="{{ .Values.configuration.backend.graphql }}";
+    window.VITE_APP_CROWNLABS_OIDC_CLIENT_ID="{{ .Values.configuration.oidc.clientId }}";
+    window.VITE_APP_CROWNLABS_OIDC_AUTHORITY="{{ .Values.configuration.oidc.providerUrl }}realms/{{ .Values.configuration.oidc.realm }}/";

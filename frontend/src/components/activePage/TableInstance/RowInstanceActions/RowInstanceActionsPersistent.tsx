@@ -1,16 +1,16 @@
-import { FC, useContext, useState } from 'react';
+import { type FC, useContext, useState } from 'react';
 import { Tooltip } from 'antd';
-import Button from 'antd-button-color';
+import { Button } from 'antd';
 import {
   ExclamationCircleOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { Instance } from '../../../../utils';
+import { type Instance } from '../../../../utils';
 import { Phase, useApplyInstanceMutation } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import { ApolloError } from '@apollo/client';
+import type { ApolloError } from '@apollo/client';
 
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
@@ -40,7 +40,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         const result = await setInstanceRunning(
           running,
           instance,
-          applyInstanceMutation
+          applyInstanceMutation,
         );
         if (result) setTimeout(setDisabled, 400, false);
       } catch (err) {
@@ -56,8 +56,8 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         className={`hidden ${
           extended ? 'sm:block' : 'xs:block'
         } flex items-center`}
-        type="warning"
-        with="link"
+        color="orange"
+        type="link"
         shape="circle"
         size="middle"
         disabled={disabled}
@@ -75,14 +75,13 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
       <Button
         loading={disabled}
         className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0`}
-        type="success"
-        with="link"
+        type="link"
         shape="circle"
         size="middle"
         disabled={disabled}
         icon={
           <PlayCircleOutlined
-            className="flex justify-center items-center"
+            className="flex justify-center items-center success-color-fg"
             style={font22px}
           />
         }
@@ -96,8 +95,8 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
           className={`hidden pointer-events-none ${
             extended ? 'sm:block' : 'xs:block'
           } py-0`}
-          type="primary"
-          with="link"
+          color="primary"
+          type="link"
           shape="circle"
           size="middle"
           disabled={true}

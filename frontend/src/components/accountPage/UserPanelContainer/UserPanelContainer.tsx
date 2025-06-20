@@ -1,6 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '../../common/Box';
-export interface IUserPanelContainerProps {}
+export interface IUserPanelContainerProps {
+  children: React.ReactNode;
+}
 
 const UserPanelContainer: FC<IUserPanelContainerProps> = props => {
   const { children } = props;

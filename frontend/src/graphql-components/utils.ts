@@ -1,26 +1,27 @@
-import { DeepPartial } from '@apollo/client/utilities';
-import {
+import type { DeepPartial } from '@apollo/client/utilities';
+import type {
   ItPolitoCrownlabsV1alpha2Tenant,
   ItPolitoCrownlabsV1alpha2Instance,
   ItPolitoCrownlabsV1alpha2Template,
   Role,
   ItPolitoCrownlabsV1alpha2SharedVolume,
 } from '../generated-types';
-import { someKeysOf } from '../utils';
+import type { someKeysOf } from '../utils';
 
+/*
 function beautifyGqlResponse(obj: any): any {
   if (typeof obj !== 'object' || obj === null) return obj;
 
   if (Array.isArray(obj)) {
-    let newArray: Array<any> = [];
+    const newArray: Array<any> = [];
     obj.forEach((e: any) => newArray.push(beautifyGqlResponse(e)));
     return newArray;
   }
 
-  let newObj: any = {};
+  const newObj: any = {};
   const keys: any = Object.keys(obj);
   keys.forEach((key: any) => {
-    let tmp: any = beautifyGqlResponse(obj[key]);
+    const tmp: any = beautifyGqlResponse(obj[key]);
     if (typeof tmp !== 'object' || tmp === null || Array.isArray(tmp)) {
       newObj[key] = tmp;
     } else {
@@ -32,12 +33,13 @@ function beautifyGqlResponse(obj: any): any {
   });
   return newObj;
 }
+*/
 
 function getInstancePatchJson(spec: {
   prettyName?: string;
   running?: boolean;
 }): string {
-  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
+  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
     kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec,
@@ -46,7 +48,7 @@ function getInstancePatchJson(spec: {
 }
 
 function getTemplatePatchJson(
-  patchJson: someKeysOf<ItPolitoCrownlabsV1alpha2Template>
+  patchJson: someKeysOf<ItPolitoCrownlabsV1alpha2Template>,
 ): string {
   return JSON.stringify({
     ...patchJson,
@@ -67,9 +69,9 @@ function getTenantPatchJson(
       name: string;
     }[];
   },
-  name?: string
+  name?: string,
 ): string {
-  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Tenant> = {
+  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Tenant> = {
     kind: 'Tenant',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec: {
@@ -87,7 +89,7 @@ function getShVolPatchJson(spec: {
   prettyName?: string;
   size?: string;
 }): string {
-  let patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2SharedVolume> = {
+  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2SharedVolume> = {
     kind: 'SharedVolume',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec,
@@ -96,7 +98,7 @@ function getShVolPatchJson(spec: {
 }
 
 export {
-  beautifyGqlResponse,
+  // beautifyGqlResponse,
   getInstancePatchJson,
   getTemplatePatchJson,
   getTenantPatchJson,

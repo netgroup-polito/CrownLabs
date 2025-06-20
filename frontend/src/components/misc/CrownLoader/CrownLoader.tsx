@@ -1,5 +1,5 @@
-import { Property } from 'csstype';
-import { FC } from 'react';
+import type { Property } from 'csstype';
+import type { FC } from 'react';
 import './CrownLoader.css';
 
 export interface ICrownLoaderProps {
@@ -9,7 +9,7 @@ export interface ICrownLoaderProps {
 }
 
 const Loader: FC<ICrownLoaderProps> = ({ ...props }) => {
-  const { duration = 4, color = '#FFF', size = 512 } = props;
+  const { duration = 4, color = 'currentColor', size = 512 } = props;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

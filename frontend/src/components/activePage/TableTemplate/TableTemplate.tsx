@@ -1,17 +1,12 @@
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Table } from 'antd';
-import {
-  Dispatch,
-  FC,
-  SetStateAction,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import type { Dispatch, FC, SetStateAction } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { Template, WorkspaceRole } from '../../../utils';
+import type { Template } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableInstance from '../TableInstance/TableInstance';
 import './TableTemplate.less';
@@ -29,7 +24,7 @@ export interface ITableTemplateProps {
   handleManagerSorting: (
     sortingType: string,
     sorting: number,
-    sortingTemplate: string
+    sortingTemplate: string,
   ) => void;
   selectiveDestroy?: string[];
   selectToDestroy?: (instanceId: string) => void;
@@ -50,7 +45,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   } = props;
   const { hasSSHKeys } = useContext(TenantContext);
   const [expandedId, setExpandedId] = useState(
-    expandedT.get(templates[0].workspaceName).split(',')
+    expandedT.get(templates[0].workspaceName).split(','),
   );
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
@@ -68,11 +63,10 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     setCollapseAll(false);
   };
 
-  const expandRow = (rowId: string) => {
+  const expandRow = (rowId: string) =>
     expandedId.includes(rowId)
       ? setExpandedId(old => old.filter(id => id !== rowId))
       : setExpandedId(old => [...old, rowId]);
-  };
 
   const destroyAll = (templateId: string) => {
     templates
@@ -91,12 +85,10 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
     {
       title: 'Template',
       key: 'template',
-      // eslint-disable-next-line react/no-multi-comp
       render: (template: Template) => (
         <TableTemplateRow
           key={template.id}
           template={template}
-          nActive={template.instances.length}
           destroyAll={() => destroyAll(template.id)}
           expandRow={expandRow}
         />
@@ -125,10 +117,9 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
         dataSource={templates}
         pagination={false}
         showHeader={false}
-        onExpand={(expanded, ws) => expandRow(ws.id)}
         expandable={{
+          onExpand: (_expanded, ws) => expandRow(ws.id),
           expandedRowKeys: expandedId,
-          // eslint-disable-next-line react/no-multi-comp
           expandIcon: ({ expanded, onExpand, record }) => (
             <CaretRightOutlined
               className="transition-icon"
@@ -136,7 +127,6 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               rotate={expanded ? 90 : 0}
             />
           ),
-          // eslint-disable-next-line react/no-multi-comp
           expandedRowRender: ({ instances }) => (
             <TableInstance
               showGuiIcon={false}

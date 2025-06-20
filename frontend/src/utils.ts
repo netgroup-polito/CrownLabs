@@ -1,5 +1,5 @@
-import { Dispatch, ReactNode, SetStateAction } from 'react';
-import { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { EnvironmentType, Phase, Phase3 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -56,6 +56,7 @@ export type Instance = {
   running: boolean;
   nodeSelector?: JSON;
   nodeName?: string;
+  myDriveUrl: string;
 };
 
 export type SharedVolume = {
@@ -112,7 +113,7 @@ export type RouteDescriptor = {
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
   needle = needle.toLowerCase().replace(/\s/g, '');
-  var concatenatedString = haystack.join('').toLowerCase().replace(/\s/g, '');
+  const concatenatedString = haystack.join('').toLowerCase().replace(/\s/g, '');
 
   return concatenatedString.includes(needle);
 }
@@ -124,7 +125,7 @@ export function multiStringIncludes(needle: string, ...haystack: string[]) {
  * @returns a callback which accepts a value and toggles the presence of that value in the list
  */
 export function makeListToggler<T>(
-  setList: Dispatch<SetStateAction<Array<T>>>
+  setList: Dispatch<SetStateAction<Array<T>>>,
 ): (value: T, create: boolean) => void {
   return (value: T, create: boolean) => {
     setList(list =>
@@ -132,13 +133,15 @@ export function makeListToggler<T>(
         ? create
           ? list
           : list.filter(v => v !== value)
-        : [...list, value]
+        : [...list, value],
     );
   };
 }
 
 export const JSONDeepCopy = <T>(obj: T) =>
   obj && (JSON.parse(JSON.stringify(obj)) as T);
+
+export type WorkspaceEntry = { role: Role; name: string };
 
 export type UserAccountPage = {
   key: string;
@@ -147,7 +150,7 @@ export type UserAccountPage = {
   surname: string;
   email: string;
   currentRole?: string;
-  workspaces?: { role: Role; name: string }[];
+  workspaces?: WorkspaceEntry[];
 };
 
 export function makeRandomDigits(value: number) {
@@ -160,7 +163,7 @@ export function filterUser(user: UserAccountPage, value: string) {
     user.name,
     user.surname,
     user.userid,
-    user.userid
+    user.userid,
   );
 }
 
@@ -170,9 +173,9 @@ export function filterUser(user: UserAccountPage, value: string) {
  * @param value the value of the enumeration
  * @returns the (first) key corresponding to the passed value or undefined
  */
-export const findKeyByValue = <T, K extends keyof any>(
+export const findKeyByValue = <T, K extends keyof unknown>(
   obj: Record<K, T>,
-  value: T
+  value: T,
 ): K | undefined => (Object.keys(obj) as K[]).find(key => obj[key] === value);
 
 /**
@@ -230,13 +233,22 @@ export const camelize = (str: string) =>
       +match === 0
         ? ''
         : index === 0
-        ? match.toLowerCase()
-        : match.toUpperCase()
+          ? match.toLowerCase()
+          : match.toUpperCase(),
     )
     .replace(/-/g, '');
 
 export const cleanupLabels = (s?: string) =>
   camelize(
     s?.replace('crownlabs.polito.it/', '').replace('crownlabsPolitoIt', '') ||
-      ''
+      '',
   );
+
+export function enumKeyFromVal<T extends Record<string, string | number>>(
+  enumObj: T,
+  value: string | number,
+): keyof T | undefined {
+  return (Object.keys(enumObj) as (keyof T)[]).find(
+    key => enumObj[key] === value,
+  );
+}

@@ -7,25 +7,42 @@ import {
   HttpLink,
   InMemoryCache,
   split,
+  type NormalizedCacheObject,
 } from '@apollo/client';
-import { FC, PropsWithChildren, useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
-import { REACT_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
+import {
+  type FC,
+  type PropsWithChildren,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { VITE_APP_CROWNLABS_GRAPHQL_URL } from '../../env';
 import { hasRenderingError } from '../../errorHandling/utils';
 import { ErrorContext } from '../../errorHandling/ErrorContext';
+import { AuthContext } from '../../contexts/AuthContext';
+import FullPageLoader from '../../components/common/FullPageLoader';
 
-const httpUri = REACT_APP_CROWNLABS_GRAPHQL_URL;
+import { loadErrorMessages, loadDevMessages } from '@apollo/client/dev';
+
+if (import.meta.env.DEV) {
+  loadDevMessages();
+  loadErrorMessages();
+}
+
+const httpUri = VITE_APP_CROWNLABS_GRAPHQL_URL;
 const wsUri = httpUri.replace(/^http?/, 'ws') + '/subscription';
 export interface Definition {
   kind: string;
   operation?: string;
 }
 
-const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
+const ApolloClientSetup: FC<PropsWithChildren> = props => {
   const { children } = props;
+
   const { token, isLoggedIn } = useContext(AuthContext);
   const { errorsQueue } = useContext(ErrorContext);
-  const [apolloClient, setApolloClient] = useState<any>('');
+  const [apolloClient, setApolloClient] =
+    useState<ApolloClient<NormalizedCacheObject> | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -42,31 +59,39 @@ const ApolloClientSetup: FC<PropsWithChildren<{}>> = props => {
           url: wsUri,
           connectionParams: authHeader,
           shouldRetry: () => true,
-        })
+        }),
       );
 
-      setApolloClient(
-        new ApolloClient({
-          link: split(
-            ({ query }) => {
-              const { kind, operation }: Definition = getMainDefinition(query);
-              // If this is a subscription query, use wsLink, otherwise use httpLink
-              return (
-                kind === 'OperationDefinition' && operation === 'subscription'
-              );
-            },
-            wsLink,
-            httpLink
-          ),
-          cache: new InMemoryCache(),
-        })
-      );
+      const newClient = new ApolloClient({
+        link: split(
+          ({ query }) => {
+            const { kind, operation }: Definition = getMainDefinition(query);
+            // If this is a subscription query, use wsLink, otherwise use httpLink
+            return (
+              kind === 'OperationDefinition' && operation === 'subscription'
+            );
+          },
+          wsLink,
+          httpLink,
+        ),
+        cache: new InMemoryCache(),
+      });
+
+      setApolloClient(newClient);
+
+      return () => {
+        wsLink.client.dispose();
+        newClient.clearStore();
+      };
     }
   }, [token]);
+
   return (
     <>
-      {(isLoggedIn || hasRenderingError(errorsQueue)) && apolloClient && (
+      {(isLoggedIn || hasRenderingError(errorsQueue)) && apolloClient ? (
         <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+      ) : (
+        <FullPageLoader layoutWrap={true} />
       )}
     </>
   );

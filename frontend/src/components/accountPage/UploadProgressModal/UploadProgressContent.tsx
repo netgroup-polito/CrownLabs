@@ -1,12 +1,26 @@
-import { FC, useState, useEffect } from 'react';
-import { UserAccountPage } from '../../../utils';
-import { Row, Button, Upload, Typography, Steps, Col, Progress } from 'antd';
+import type { FC } from 'react';
+import { useState, useEffect } from 'react';
+import type { UserAccountPage } from '../../../utils';
+import {
+  Row,
+  Button,
+  Upload,
+  Typography,
+  Steps,
+  Col,
+  Progress,
+  type UploadFile,
+} from 'antd';
 import { UploadOutlined, LoadingOutlined } from '@ant-design/icons';
 import EditableTable from './EditableTable';
 import { StepStatus } from './UploadProgressModal';
 import Papa from 'papaparse';
 import { Role } from '../../../generated-types';
-import { SupportedError } from '../../../errorHandling/utils';
+import type {
+  EnrichedError,
+  SupportedError,
+} from '../../../errorHandling/utils';
+import type { UploadChangeParam } from 'antd/lib/upload';
 const { Text } = Typography;
 const { Step } = Steps;
 export interface IUploadProgressContent {
@@ -19,7 +33,7 @@ export interface IUploadProgressContent {
   setUsersCSV: (users: UserAccountPage[]) => void;
   uploadedNumber: number;
   abortUploading: boolean;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
   uploadedUserNumber: number;
   genericErrorCatcher: (err: SupportedError) => void;
 }
@@ -42,7 +56,7 @@ enum CSVFields {
 const UploadProgressContent: FC<IUploadProgressContent> = props => {
   const [fileError, setFileError] = useState<string>('');
   const [statusProgressBar, setStatusProgessBar] = useState<StatusProgressBar>(
-    StatusProgressBar.active
+    StatusProgressBar.active,
   );
   const { usersCSV, setUsersCSV } = props;
 
@@ -54,7 +68,6 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
   };
 
   const handleUserId = (userId: string) => {
-    // eslint-disable-next-line no-empty-character-class
     const regex = new RegExp(/^[0-9]{6}$/);
     return regex.test(userId)
       ? 's' + userId.trim()
@@ -74,13 +87,13 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
     props.abortUploading,
   ]);
 
-  const handleUserCSV = (user: any) => {
+  const handleUserCSV = (user: Record<string, string>) => {
     return {
       key: user[CSVFields.userid].trim(),
       name: capitalizeName(user[CSVFields.name]) ?? '',
       surname:
         capitalizeName(
-          user[CSVFields.surname_inserted].replace(/\(\*+\)/, '')
+          user[CSVFields.surname_inserted]?.replace(/\(\*+\)/, '') ?? '',
         ) ??
         capitalizeName(user[CSVFields.surname]) ??
         '',
@@ -90,13 +103,18 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
       workspaces: [],
     };
   };
-  const onCsvUploaded = (fileInfo: any) => {
+  const onCsvUploaded = (fileInfo: UploadChangeParam<UploadFile>) => {
     if (fileInfo.file.status === 'removed') {
       setUsersCSV([]);
       return;
     }
 
-    Papa.parse<any>(fileInfo.file, {
+    console.log(fileInfo.file);
+    if (!fileInfo.file) {
+      setFileError('No file selected or file could not be read.');
+      return;
+    }
+    Papa.parse<Record<string, string>>(fileInfo.file as unknown as File, {
       header: true,
       skipEmptyLines: true,
       complete: (result, _) => {
@@ -108,14 +126,12 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
             !line[CSVFields.email]
           ) {
             setFileError(
-              'Invalid file format, must contain <MATRICOLA, NOME, COGNOME (o COGNOME - (*) Inserito dal docente), EMAIL>'
+              'Invalid file format, must contain <MATRICOLA, NOME, COGNOME (o COGNOME - (*) Inserito dal docente), EMAIL>',
             );
             return;
           }
         }
-        const users = result.data.map((user: any, index: Number) =>
-          handleUserCSV(user)
-        );
+        const users = result.data.map((user, _index) => handleUserCSV(user));
         setUsersCSV(users);
         props.setStepCurrent(1);
         setFileError('');
@@ -197,14 +213,16 @@ const UploadProgressContent: FC<IUploadProgressContent> = props => {
             />
           )}
           {props.stepCurrent > 1 && (
-            <Progress
-              className="flex justify-center my-8"
-              type="circle"
-              status={statusProgressBar}
-              percent={Math.floor(
-                (props.uploadedNumber * 100) / usersCSV.length
-              )}
-            />
+            <div className="flex justify-center my-8">
+              <Progress
+                type="circle"
+                size={200}
+                status={statusProgressBar}
+                percent={Math.floor(
+                  (props.uploadedNumber * 100) / usersCSV.length,
+                )}
+              />
+            </div>
           )}
         </Col>
       </Row>

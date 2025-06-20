@@ -1,13 +1,11 @@
-import { FC, useState } from 'react';
-import { Row, Col, Avatar, Tabs, Button } from 'antd';
+import { type FC, useState } from 'react';
+import { Row, Col, Avatar, Tabs, Button, Modal } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import UserInfo from '../UserInfo/UserInfo';
 import SSHKeysTable from '../SSHKeysTable';
-import Modal from 'antd/lib/modal/Modal';
 import SSHKeysForm from '../SSHKeysForm';
 import { generateAvatarUrl } from '../../../utils';
 
-const { TabPane } = Tabs;
 export interface IUserPanelProps {
   firstName: string;
   lastName: string;
@@ -45,25 +43,38 @@ const UserPanel: FC<IUserPanelProps> = props => {
         </p>
       </Col>
       <Col xs={24} sm={16} className="px-4 ">
-        <Tabs>
-          <TabPane tab="Info" key="1">
-            <UserInfo {...otherInfo} />
-          </TabPane>
-          <TabPane tab="SSH Keys" key="2">
-            <SSHKeysTable sshKeys={sshKeys} onDeleteKey={onDeleteKey} />
-            <Button className="mt-3" onClick={() => setShowSSHModal(true)}>
-              Add SSH key
-            </Button>
-            <Modal
-              title="New SSH key"
-              visible={showSSHModal}
-              footer={null}
-              onCancel={closeModal}
-            >
-              <SSHKeysForm onSaveKey={addKey} onCancel={closeModal} />
-            </Modal>
-          </TabPane>
-        </Tabs>
+        <Tabs
+          items={[
+            {
+              key: '1',
+              label: 'Info',
+              children: <UserInfo {...otherInfo} />,
+            },
+            {
+              key: '2',
+              label: 'SSH Keys',
+              children: (
+                <>
+                  <SSHKeysTable sshKeys={sshKeys} onDeleteKey={onDeleteKey} />
+                  <Button
+                    className="mt-3"
+                    onClick={() => setShowSSHModal(true)}
+                  >
+                    Add SSH key
+                  </Button>
+                  <Modal
+                    title="New SSH key"
+                    open={showSSHModal}
+                    footer={null}
+                    onCancel={closeModal}
+                  >
+                    <SSHKeysForm onSaveKey={addKey} onCancel={closeModal} />
+                  </Modal>
+                </>
+              ),
+            },
+          ]}
+        ></Tabs>
       </Col>
     </Row>
   );

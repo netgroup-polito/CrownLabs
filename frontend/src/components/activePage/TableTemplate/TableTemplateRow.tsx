@@ -4,46 +4,38 @@ import {
   DesktopOutlined,
   MoreOutlined,
 } from '@ant-design/icons';
-import { Dropdown, Menu, Space, Tooltip, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useState } from 'react';
-import { ReactComponent as SvgInfinite } from '../../../assets/infinite.svg';
-import { Template, WorkspaceRole } from '../../../utils';
-import { DropDownAction } from '../../../utilsLogic';
-import Badge from '../../common/Badge';
+import { Badge, Dropdown, Space, Tooltip, Typography } from 'antd';
+import { Button } from 'antd';
+import { type FC, useMemo, useState } from 'react';
+import SvgInfinite from '../../../assets/infinite.svg?react';
+import { type Template, WorkspaceRole } from '../../../utils';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 
 const { Text } = Typography;
 export interface ITableTemplateRowProps {
   template: Template;
-  nActive: number;
   destroyAll: () => void;
   expandRow: (rowId: string) => void;
 }
 
 const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
-  const { template, nActive, destroyAll, expandRow } = props;
+  const { template, destroyAll, expandRow } = props;
 
   const { id, name, persistent, gui } = template;
 
   const [showAlert, setShowAlert] = useState(false);
 
-  const dropdownHandler = (key: DropDownAction) => {
-    switch (key) {
-      case DropDownAction.destroy_all:
-        setShowAlert(true);
-        break;
-      default:
-        break;
-    }
-  };
+  const { nRunning, nTotal } = useMemo(() => {
+    const nTotal = template.instances.length;
+    const nRunning = template.instances.filter(i => i.running).length;
+    return { nTotal, nRunning };
+  }, [template.instances]);
+
   return (
     <>
       <div
         className="w-full flex justify-between pr-2 cursor-pointer"
-        onClick={e => {
-          expandRow(id);
-        }}
+        onClick={() => expandRow(id)}
       >
         <Space size="middle">
           {gui ? (
@@ -57,7 +49,12 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
               style={{ fontSize: '24px' }}
             />
           )}
-          <Badge size="small" value={nActive} className="mx-0" />
+          <Badge
+            size="small"
+            color="blue"
+            count={`${nRunning}/${nTotal}`}
+            className="mx-0"
+          />
           <Text className="font-bold w-28 xs:w-48 sm:w-max" ellipsis>
             {name}
           </Text>
@@ -83,11 +80,12 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
           )}
         </Space>
         <Button
-          type="danger"
+          color="danger"
+          variant="text"
           shape="round"
           size="middle"
-          icon={<DeleteOutlined />}
-          className="hidden lg:inline-block border-0"
+          icon={<DeleteOutlined className="mr-1" />}
+          className="hidden lg:inline-block"
           onClick={e => {
             e.stopPropagation();
             setShowAlert(true);
@@ -97,22 +95,21 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
         </Button>
         <Dropdown
           trigger={['click']}
-          overlay={
-            <Menu onClick={({ key }) => dropdownHandler(key as DropDownAction)}>
-              <Menu.Item
-                key="destroy_all"
-                icon={<DeleteOutlined className="text-lg" />}
-                danger
-              >
-                Destroy All
-              </Menu.Item>
-            </Menu>
-          }
+          menu={{
+            items: [
+              {
+                key: 'destroy_all',
+                icon: <DeleteOutlined className="text-lg" />,
+                danger: true,
+              },
+            ],
+            onClick: () => setShowAlert(true),
+          }}
         >
           <Button
             className="lg:hidden flex justify-center"
-            type="default"
-            with="link"
+            color="default"
+            type="link"
             shape="circle"
             size="middle"
             onClick={e => e.stopPropagation()}

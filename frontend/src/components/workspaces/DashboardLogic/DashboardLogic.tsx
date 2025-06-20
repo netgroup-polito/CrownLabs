@@ -1,12 +1,6 @@
 import { Spin } from 'antd';
-import {
-  FC,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import type { FC } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import Dashboard from '../Dashboard/Dashboard';
@@ -15,14 +9,15 @@ import {
   TenantsDocument,
   useWorkspacesQuery,
 } from '../../../generated-types';
-import { Workspace, WorkspaceRole } from '../../../utils';
+import type { Workspace } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import { useApolloClient } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { LocalValue, StorageKeys } from '../../../utilsStorage';
 
 const dashboard = new LocalValue(StorageKeys.Dashboard_LoadCandidates, 'false');
 
-const DashboardLogic: FC<{}> = () => {
+const DashboardLogic: FC = () => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
   const {
@@ -50,7 +45,7 @@ const DashboardLogic: FC<{}> = () => {
   });
 
   const [loadCandidates, setLoadCandidates] = useState(
-    dashboard.get() === 'true'
+    dashboard.get() === 'true',
   );
 
   const wsIsManagedWithApproval = useCallback(
@@ -58,11 +53,11 @@ const DashboardLogic: FC<{}> = () => {
       return (
         w?.role === WorkspaceRole.manager &&
         workspaceQueryData?.workspaces?.items?.find(
-          wq => wq?.metadata?.name === w.name
+          wq => wq?.metadata?.name === w.name,
         ) !== undefined
       );
     },
-    [workspaceQueryData?.workspaces?.items]
+    [workspaceQueryData?.workspaces?.items],
   );
 
   useEffect(() => {
@@ -81,7 +76,7 @@ const DashboardLogic: FC<{}> = () => {
             },
           })
           .then(queryResult => {
-            let numCandidate = queryResult.data.tenants.items.length;
+            const numCandidate = queryResult.data.tenants.items.length;
             if (numCandidate > 0) {
               ws.find(ws => ws.name === w?.name)!.waitingTenants = numCandidate;
               setViewWs([...ws]);
@@ -90,14 +85,16 @@ const DashboardLogic: FC<{}> = () => {
           });
       };
 
-      ws?.filter(
-        w => w?.role === WorkspaceRole.manager && wsIsManagedWithApproval(w)
-      ).forEach(w => {
-        workspaceQueue.push(w);
-        if (workspaceQueue.length === 1) {
-          executeNext();
-        }
-      });
+      ws
+        ?.filter(
+          w => w?.role === WorkspaceRole.manager && wsIsManagedWithApproval(w),
+        )
+        .forEach(w => {
+          workspaceQueue.push(w);
+          if (workspaceQueue.length === 1) {
+            executeNext();
+          }
+        });
     }
   }, [
     client,
@@ -116,10 +113,12 @@ const DashboardLogic: FC<{}> = () => {
     dashboard.set(String(!loadCandidates));
   };
 
-  return !tenantLoading && tenantData && !tenantError ? (
+  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  return !tenantLoading && tenantData && !tenantError && tenantNs ? (
     <>
       <Dashboard
-        tenantNamespace={tenantData.tenant?.status?.personalNamespace?.name!}
+        tenantNamespace={tenantNs}
         workspaces={viewWs}
         candidatesButton={{
           show: ws.some(w => wsIsManagedWithApproval(w)),

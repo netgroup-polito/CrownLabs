@@ -1,9 +1,10 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Button, Form, Input, InputNumber, Modal, Tooltip } from 'antd';
-import { FC, useEffect } from 'react';
-import { getShVolPatchJson } from '../../../../graphql-components/utils';
+import type { FC } from 'react';
+import { useEffect } from 'react';
 import { findKeyByValue } from '../../../../utils';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum Actions {
   Create = 'Create a new Shared Volume',
   Update = 'Update an existing Shared Volume',
@@ -11,15 +12,20 @@ export enum Actions {
 
 export interface ISharedVolumesFormProps {
   workspaceNamespace: string;
-  workspaceName?: string;
+  workspaceName: string;
   initialName?: string;
   initialSize?: number;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   action: Actions;
-  mutation: Function;
+  mutation: (p: {
+    wsName: string;
+    wsNs: string;
+    prettyName: string;
+    size: string;
+  }) => Promise<unknown>;
   loading: boolean;
-  reload: Function;
+  reload: () => void;
 }
 
 const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
@@ -73,29 +79,13 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
           onClick={async () => {
             const values = form.getFieldsValue();
             const { name, size } = values;
-
             loading = true;
-            if (action === Actions.Update) {
-              await mutation({
-                variables: {
-                  workspaceNamespace: workspaceNamespace,
-                  name: workspaceName,
-                  patchJson: getShVolPatchJson({
-                    prettyName: name,
-                    size: String(size + 'G'),
-                  }),
-                  manager: 'frontend-shvol-editor',
-                },
-              });
-            } else {
-              await mutation({
-                variables: {
-                  workspaceNamespace: workspaceNamespace,
-                  prettyName: name,
-                  size: String(size + 'G'),
-                },
-              });
-            }
+            await mutation({
+              wsName: workspaceName,
+              wsNs: workspaceNamespace,
+              prettyName: name,
+              size: String(size + 'G'),
+            });
             reload();
             setOpen(false);
           }}
@@ -115,7 +105,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
                 value && value.trim().length > 2
                   ? Promise.resolve()
                   : Promise.reject(
-                      new Error('Name must be at least 3 characters long')
+                      new Error('Name must be at least 3 characters long'),
                     ),
             },
           ]}

@@ -1,4 +1,4 @@
-import { FC, useContext } from 'react';
+import { type FC, useContext, useMemo } from 'react';
 import {
   Role,
   useApplyTenantMutation,
@@ -10,16 +10,17 @@ import { WorkspacesList } from '../WorkspacesList';
 import { availableWorkspaces, makeWorkspace } from '../../../../utilsLogic';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import {
-  WorkspacesAvailable,
+  type WorkspacesAvailable,
   WorkspacesAvailableAction,
 } from '../../../../utils';
-import { AuthContext } from '../../../../contexts/AuthContext';
 import { getTenantPatchJson } from '../../../../graphql-components/utils';
-import { ErrorTypes, SupportedError } from '../../../../errorHandling/utils';
+import {
+  ErrorTypes,
+  type SupportedError,
+} from '../../../../errorHandling/utils';
+import { AuthContext } from '../../../../contexts/AuthContext';
 
-export interface IWorkspaceListLogicProps {}
-
-const WorkspaceListLogic: FC<IWorkspaceListLogicProps> = ({ ...args }) => {
+const WorkspaceListLogic: FC = () => {
   const { apolloErrorCatcher, makeErrorCatcher } = useContext(ErrorContext);
   const genericErrorCatcher = makeErrorCatcher(ErrorTypes.GenericError);
 
@@ -35,10 +36,13 @@ const WorkspaceListLogic: FC<IWorkspaceListLogicProps> = ({ ...args }) => {
 
   const [applyTenantMutation] = useApplyTenantMutation();
 
-  const workspaces = tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace);
-  const availableWs = availableWorkspaces(
-    data?.workspaces?.items ?? [],
-    workspaces ?? []
+  const availableWs = useMemo(
+    () =>
+      availableWorkspaces(
+        data?.workspaces?.items ?? [],
+        tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) ?? [],
+      ),
+    [data?.workspaces?.items, tenantData?.tenant?.spec?.workspaces],
   );
 
   const applyWorkspaces = async (w: { name: string; role: Role }[]) => {
@@ -68,7 +72,7 @@ const WorkspaceListLogic: FC<IWorkspaceListLogicProps> = ({ ...args }) => {
   };
 
   const addWorkspace = (w: WorkspacesAvailable, desiredRole: Role) => {
-    let workspaces = getWorkspaces();
+    const workspaces = getWorkspaces();
     workspaces.push({ name: w.name, role: desiredRole });
     applyWorkspaces(workspaces);
   };

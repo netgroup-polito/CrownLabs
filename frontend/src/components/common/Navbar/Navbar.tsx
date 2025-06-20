@@ -1,10 +1,14 @@
 import { MenuOutlined } from '@ant-design/icons';
 import { Divider, Drawer, Layout, Typography } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useContext, useState } from 'react';
+import { Button } from 'antd';
+import { type FC, useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { LinkPosition, RouteData, RouteDescriptor } from '../../../utils';
+import {
+  LinkPosition,
+  type RouteData,
+  type RouteDescriptor,
+} from '../../../utils';
 import ThemeSwitcher from '../../misc/ThemeSwitcher';
 import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
@@ -17,11 +21,10 @@ const { Title } = Typography;
 export interface INavbarProps {
   routes: Array<RouteDescriptor>;
   transparent?: boolean;
-  logoutHandler: () => void;
 }
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
-  const { routes, transparent, logoutHandler } = props;
+  const { routes, transparent } = props;
   const routesData = routes.map(r => r.route);
   const {
     data,
@@ -158,12 +161,14 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         className={
           'cl-navbar block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
         }
-        bodyStyle={{
-          paddingBottom: '0px',
-          backgroundColor: 'var(--bg-cl-navbar)',
+        styles={{
+          body: {
+            paddingBottom: '0px',
+            backgroundColor: 'var(--bg-cl-navbar)',
+          },
         }}
         placement="top"
-        visible={show}
+        open={show}
         onClose={() => setShow(false)}
         height={76 + 52 * routes.length + 25}
         closeIcon={null}
@@ -178,7 +183,6 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               >{`${data?.tenant?.metadata?.name}`}</Title>
             )}
             <LogoutButton
-              logoutHandler={logoutHandler}
               iconStyle={{ fontSize: '24px' }}
               buttonStyle={{ width: '48px' }}
               className="justify-end"
