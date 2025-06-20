@@ -136,32 +136,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil // TODO revisit this value, it is a placeholder.
 }
 
-// TerminateInstance terminates the Instance.
-// TODO move somewhere else, as it is used in other controllers too.
-func (r *InstanceExpirationReconciler) TerminateInstance(ctx context.Context, instance *clv1alpha2.Instance) error {
-	log := ctrl.LoggerFrom(ctx).WithName("termination")
-	log.Info("Terminating instance", "instance", instance.Name, " in namespace", instance.Namespace)
-
-	var template clv1alpha2.Template
-	var err = r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Namespace,
-	}, &template)
-	if err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return err
-	}
-
-	var environment = template.Spec.EnvironmentList[0]
-	if environment.Persistent {
-		log.Info("Stopping persistent instance...")
-		instance.Spec.Running = false
-		return r.Update(ctx, instance)
-	}
-	log.Info("Deleting non-persistent instance...")
-	return r.Delete(ctx, instance)
-}
-
 // IsInstanceExpired checks if the instance has expired based on its creation timestamp and the specified lifespan.
 func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
 	created, err := time.Parse(time.RFC3339, creationTimestamp)
