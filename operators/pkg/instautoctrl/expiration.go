@@ -120,7 +120,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Error(err, "failed retrieving tenant from instance")
 			return ctrl.Result{}, err
 		}
-		err = SendNotification(ctx, &instance, r.MailClient, tenant.Spec.Email)
+		err = NotifyInstanceExpiring(ctx, &instance, tenant, r.MailClient)
 		if err != nil {
 			log.Error(err, "failed sending notification email")
 			return ctrl.Result{}, err

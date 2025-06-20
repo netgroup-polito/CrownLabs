@@ -33,18 +33,33 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// SendNotification sends an email to the user to notify that the instance will be terminated/stopped if they do not use it anymore.
-func SendNotification(ctx context.Context, instance *clv1alpha2.Instance, mc *utils.MailClient, userEmail string) error {
+// NotifyInstanceInactivity sends notification about instance inactivity detection
+func NotifyInstanceInactivity(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has been detected as inactive for an extended period.</p>
+<p>To prevent automatic termination, please access your instance soon.</p>
+<p>If no activity is detected, the instance will be automatically terminated to conserve resources.</p>`
+
+	messagePlain := "Your instance {prettyName} has been detected as inactive for an extended period. To prevent automatic termination, please access your instance soon. If no activity is detected, the instance will be automatically terminated to conserve resources."
+
+	subject := "CrownLabs: Inactivity Detected for {prettyName}"
+
+	return SendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+}
+
+// SendFormattedNotification sends an email with a templated message.
+func SendFormattedNotification(ctx context.Context, instance *clv1alpha2.Instance,
+	tenant *clv1alpha2.Tenant, mc *utils.MailClient,
+	messageHTML string, messagePlain string,
+	subject string, template utils.EmailTemplate) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
-	log.Info("sending email notification to user", "instance", instance.Name, "email", userEmail)
-	emailBody := fmt.Sprintf(
-		"Dear user,\n\n"+
-			"Your instance %s has reached the maximum lifetime and has now been terminated.\n\n"+
-			"Best regards,\n"+
-			"CrownLabs Team",
-		instance.Name,
-	)
-	err := mc.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
+	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
+
+	// Format both HTML and plain text messages
+	formattedHTML := utils.FormatEmailContent(template.HeaderHTML+messageHTML+template.FooterHTML, instance, tenant)
+	formattedPlain := utils.FormatEmailContent(template.PlainHeader+messagePlain+template.PlainFooter, instance, tenant)
+	formattedSubject := utils.FormatEmailContent(subject, instance, tenant)
+
+	err := mc.SendFormattedMail([]string{tenant.Spec.Email}, formattedSubject, formattedPlain, formattedHTML)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
@@ -52,6 +67,25 @@ func SendNotification(ctx context.Context, instance *clv1alpha2.Instance, mc *ut
 	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
 
 	return nil
+}
+
+// NotifyInstanceTerminated sends termination notification using the new templating system
+func NotifyInstanceTerminated(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has reached the maximum lifetime and has now been terminated.</p>`
+	messagePlain := "Your instance {prettyName} has reached the maximum lifetime and has now been terminated."
+	subject := "CrownLabs: Instance {prettyName} Terminated"
+
+	return SendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+}
+
+// NotifyInstanceExpiring sends expiration warning notification
+func NotifyInstanceExpiring(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired. 
+	Please save your work before the instance is terminated.</p>`
+	messagePlain := "Your instance {prettyName} has expired. Please save your work before the instance is terminated."
+	subject := "CrownLabs: Instance {prettyName} Expired"
+
+	return SendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
 }
 
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.

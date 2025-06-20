@@ -113,6 +113,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 
 // Reconcile reconciles the status of the InstanceSnapshot resource.
 func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
@@ -218,7 +219,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			err := SendNotification(ctx, &instance, r.MailClient, user.Spec.Email)
+			err := NotifyInstanceInactivity(ctx, &instance, user, r.MailClient)
 			if err != nil {
 				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
 				return ctrl.Result{}, err
