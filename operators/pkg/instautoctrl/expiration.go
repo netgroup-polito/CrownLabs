@@ -162,6 +162,7 @@ func (r *InstanceExpirationReconciler) TerminateInstance(ctx context.Context, in
 	return r.Delete(ctx, instance)
 }
 
+// IsInstanceExpired checks if the instance has expired based on its creation timestamp and the specified lifespan.
 func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
 	created, err := time.Parse(time.RFC3339, creationTimestamp)
 	if err != nil {
@@ -171,6 +172,7 @@ func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error)
 	return duration > lifespan, nil
 }
 
+// ConvertToSeconds converts a deleteAfter string to seconds.
 func ConvertToSeconds(deleteAfter string) (float64, error) {
 	if deleteAfter == "never" {
 		return math.Inf(1), nil
@@ -199,6 +201,7 @@ func ConvertToSeconds(deleteAfter string) (float64, error) {
 	}
 }
 
+// DeleteStaleInstance checks if the instance is expired based on its creation timestamp and the deleteAfter field in the template.
 func (r *InstanceExpirationReconciler) DeleteStaleInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
 
