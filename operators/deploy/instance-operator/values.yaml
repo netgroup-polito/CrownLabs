@@ -31,6 +31,10 @@ configurations:
   monitoring:
     prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
   automation:
+    enableInstanceSubmission: true
+    enableInstanceTermination: true
+    enableInstanceInactiveTermination: true
+    enableInstanceExpiration: true
     maxConcurrentTerminationReconciles: 1
     maxConcurrentInactiveTerminationReconciles: 1
     maxConcurrentSubmissionReconciles: 1
