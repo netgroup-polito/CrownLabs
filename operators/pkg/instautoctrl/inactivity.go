@@ -497,8 +497,7 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 	return annotationString, nil
 }
 
-// retrieve the inactivity timeout from the instance template
-// This function should return the inactivity timeout for the instance based on its template.
+// GetInactivityTimeout retrieves the inactivity timeout from the instance template.
 func (r *InstanceInactiveTerminationReconciler) GetInactivityTimeout(ctx context.Context, instance *clv1alpha2.Instance) (string, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-inactivity-timeout")
 	// retrieve the template from the instance
