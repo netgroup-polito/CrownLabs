@@ -111,6 +111,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	isDeleted, err := r.DeleteStaleInstance(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed delete-stale-instance")
+		return ctrl.Result{}, err
 	}
 	if isDeleted {
 		log.Info("Instance has been deleted", "instance", instance.Name)
