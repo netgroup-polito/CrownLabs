@@ -115,7 +115,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 
 	var instances clv1alpha2.InstanceList
 	if err := c.List(ctx, &instances,
-		client.InNamespace(template.Namespace),
+		client.InNamespace(""),
 		client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
 	); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
