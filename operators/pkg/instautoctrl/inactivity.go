@@ -61,9 +61,6 @@ type InstanceInactiveTerminationReconciler struct {
 	ReconcileDeferHook func()
 }
 
-var alertAnnotation = "crownlabs.polito.it/number-alerts-sent"
-var lastActivityAnnotation = "crownlabs.polito.it/last-activity"
-
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -162,9 +159,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		instance.ObjectMeta.Annotations = make(map[string]string)
 	}
 	patch := client.MergeFrom(instance.DeepCopy())
-	if _, ok := instance.ObjectMeta.Annotations[alertAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", alertAnnotation)
-		instance.ObjectMeta.Annotations[alertAnnotation] = "0"
+	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotation]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotation)
+		instance.ObjectMeta.Annotations[forge.AlertAnnotation] = "0"
 
 		// update the instance with the new annotation
 		_ = r.Patch(ctx, &instance, patch)
@@ -175,9 +172,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		instance.ObjectMeta.Annotations = make(map[string]string)
 	}
 	patch = client.MergeFrom(instance.DeepCopy())
-	if _, ok := instance.Annotations[lastActivityAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", lastActivityAnnotation)
-		instance.ObjectMeta.Annotations[lastActivityAnnotation] = time.Now().Format(time.RFC3339)
+	if _, ok := instance.Annotations[forge.LastActivityAnnotation]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
+		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 		// update the instance with the new annotation
 		_ = r.Patch(ctx, &instance, patch)
 	}
@@ -214,7 +211,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		// send notification to the user
-		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[alertAnnotation])
+		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotation])
 		if err != nil {
 			log.Error(err, "failed converting string of alerts sent in int number")
 			return ctrl.Result{}, err
@@ -227,12 +224,12 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				return ctrl.Result{}, err
 			}
 			// increment the number of termination alerts
-			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[alertAnnotation])
+			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotation])
 			if err != nil {
 				log.Error(err, "failed incrementing annotation")
 				return ctrl.Result{}, err
 			}
-			instance.ObjectMeta.Annotations[alertAnnotation] = newNumberOfAlerts
+			instance.ObjectMeta.Annotations[forge.AlertAnnotation] = newNumberOfAlerts
 			// update the status of the instance
 			if err := r.Update(ctx, &instance); err != nil {
 				log.Error(err, "failed updating instance annotations")
@@ -372,7 +369,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		maxLastActivityTime = lastActivityTimeSSH
 	}
 
-	instance.ObjectMeta.Annotations[lastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
+	instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
 	return nil
 }
 
@@ -392,7 +389,7 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 		return false, 0, nil
 	}
 
-	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[lastActivityAnnotation])
+	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[forge.LastActivityAnnotation])
 	if err != nil {
 		log.Error(err, "failed parsing LastLogin time")
 		return false, 0, err
