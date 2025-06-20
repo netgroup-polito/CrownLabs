@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,26 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
+
+// GetTenantFromInstance retrieves the Tenant object associated with the Instance.
+func GetTenantFromInstance(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Tenant, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
+	log.Info("getting user from instance", "instance", instance.Name)
+
+	tenant := &clv1alpha2.Tenant{}
+	if err := c.Get(ctx, client.ObjectKey{
+		Name:      instance.Spec.Tenant.Name,
+		Namespace: instance.Namespace,
+	}, tenant); err != nil {
+		if kerrors.IsNotFound(err) {
+			log.Error(err, "user not found")
+			return &clv1alpha2.Tenant{}, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
+		}
+		log.Error(err, "failed retrieving user")
+		return &clv1alpha2.Tenant{}, err
+	}
+	return tenant, nil
+}
 
 // RetrieveEnvironment retrieves the template associated to the given instance.
 func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Environment, error) {

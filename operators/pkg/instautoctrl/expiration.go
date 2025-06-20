@@ -114,7 +114,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	if isDeleted {
 		log.Info("Instance has been deleted", "instance", instance.Name)
-		tenant, err := r.GetTenantFromInstance(ctx, &instance)
+		tenant, err := GetTenantFromInstance(ctx, r.Client, &instance)
 		if err != nil {
 			log.Error(err, "failed retrieving tenant from instance")
 			return ctrl.Result{}, err
@@ -180,26 +180,6 @@ func (r *InstanceExpirationReconciler) SendNotification(ctx context.Context, ins
 	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
 
 	return nil
-}
-
-// GetTenantFromInstance retrieves the Tenant object associated with the Instance.
-func (r *InstanceExpirationReconciler) GetTenantFromInstance(ctx context.Context, instance *clv1alpha2.Instance) (clv1alpha2.Tenant, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	log.Info("getting user from instance", "instance", instance.Name)
-
-	tenant := &clv1alpha2.Tenant{}
-	if err := r.Client.Get(ctx, client.ObjectKey{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, tenant); err != nil {
-		if kerrors.IsNotFound(err) {
-			log.Error(err, "user not found")
-			return clv1alpha2.Tenant{}, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
-		}
-		log.Error(err, "failed retrieving user")
-		return clv1alpha2.Tenant{}, err
-	}
-	return *tenant, nil
 }
 
 func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
