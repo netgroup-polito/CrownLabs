@@ -80,6 +80,10 @@ run-instance-automation: generate
 	go run cmd/instance-automation/main.go\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--container-env-sidecars-tag=v0.14.5
+				--enable-instance-submission=true\
+				--enable-instance-termination=true\
+				--enable-instance-inactive-termination=true\
+				--enable-instance-expiration=true
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
