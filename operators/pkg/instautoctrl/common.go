@@ -33,6 +33,27 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
+// SendNotification sends an email to the user to notify that the instance will be terminated/stopped if they do not use it anymore.
+func SendNotification(ctx context.Context, instance *clv1alpha2.Instance, mc *utils.MailClient, userEmail string) error {
+	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
+	log.Info("sending email notification to user", "instance", instance.Name, "email", userEmail)
+	emailBody := fmt.Sprintf(
+		"Dear user,\n\n"+
+			"Your instance %s has reached the maximum lifetime and has now been terminated.\n\n"+
+			"Best regards,\n"+
+			"CrownLabs Team",
+		instance.Name,
+	)
+	err := mc.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
+	if err != nil {
+		log.Error(err, "failed sending email notification")
+		return err
+	}
+	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
+
+	return nil
+}
+
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func GetTenantFromInstance(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")

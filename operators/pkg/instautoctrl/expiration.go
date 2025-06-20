@@ -119,7 +119,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			log.Error(err, "failed retrieving tenant from instance")
 			return ctrl.Result{}, err
 		}
-		err = r.SendNotification(ctx, &instance, tenant.Spec.Email)
+		err = SendNotification(ctx, &instance, r.MailClient, tenant.Spec.Email)
 		if err != nil {
 			log.Error(err, "failed sending notification email")
 			return ctrl.Result{}, err
@@ -159,27 +159,6 @@ func (r *InstanceExpirationReconciler) TerminateInstance(ctx context.Context, in
 	}
 	log.Info("Deleting non-persistent instance...")
 	return r.Delete(ctx, instance)
-}
-
-// SendNotification sends an email to the user to notify that the instance will be terminated/stopped if they do not use it anymore.
-func (r *InstanceExpirationReconciler) SendNotification(ctx context.Context, instance *clv1alpha2.Instance, userEmail string) error {
-	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
-	log.Info("sending email notification to user", "instance", instance.Name, "email", userEmail)
-	emailBody := fmt.Sprintf(
-		"Dear user,\n\n"+
-			"Your instance %s has reached the maximum lifetime and has now been terminated.\n\n"+
-			"Best regards,\n"+
-			"CrownLabs Team",
-		instance.Name,
-	)
-	err := r.MailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
-	if err != nil {
-		log.Error(err, "failed sending email notification")
-		return err
-	}
-	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
-
-	return nil
 }
 
 func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {

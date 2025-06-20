@@ -218,7 +218,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			err := r.SendNotification(ctx, &instance, user.Spec.Email)
+			err := SendNotification(ctx, &instance, r.MailClient, user.Spec.Email)
 			if err != nil {
 				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
 				return ctrl.Result{}, err
@@ -477,25 +477,6 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 	}
 	log.Info("Deleting non-persistent instance...")
 	return r.Delete(ctx, instance)
-}
-
-// SendNotification sends an email to the user to notify that the instance will be terminated/stopped if they do not use it anymore.
-func (r *InstanceInactiveTerminationReconciler) SendNotification(ctx context.Context, instance *clv1alpha2.Instance, userEmail string) error {
-	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
-	log.Info("sending email notification to user", "instance", instance.Name, "email", userEmail)
-	emailBody := fmt.Sprintf("Dear user,\n\n"+
-		"Your instance %s has been inactive for a while.\n"+
-		"We will terminate it if you do not use it anymore.\n\n"+
-		"Please log in to your instance if you wish to keep it running.\n\n"+
-		"Best regards,\n"+
-		"CrownLabs Team", instance.Name)
-	err := r.MailClient.SendMail([]string{userEmail}, "CrownLabs Instance Termination Alert", emailBody)
-	if err != nil {
-		log.Error(err, "failed sending email notification")
-		return err
-	}
-
-	return nil
 }
 
 // IncrementAnnotation increments the value of the annotation string by 1.
