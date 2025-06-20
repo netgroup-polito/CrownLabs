@@ -56,7 +56,7 @@ type InstanceExpirationReconciler struct {
 
 var deleteAfterRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
-// SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
+// SetupWithManager registers a new controller for InstanceExpirationReconciler resources.
 func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
@@ -79,7 +79,7 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 		Complete(r)
 }
 
-// Reconcile reconciles the status of the InstanceSnapshot resource.
+// Reconcile reconciles the status of the InstanceExpirationReconciler resource.
 func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
