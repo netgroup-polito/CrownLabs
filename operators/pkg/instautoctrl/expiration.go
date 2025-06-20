@@ -108,7 +108,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	// check if the instance reached the maximum time of lifetime and if so delete it
-	isDeleted, err := r.deleteStaleInstance(ctx, &instance)
+	isDeleted, err := r.DeleteStaleInstance(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed delete-stale-instance")
 	}
@@ -202,7 +202,7 @@ func (r *InstanceExpirationReconciler) GetTenantFromInstance(ctx context.Context
 	return *tenant, nil
 }
 
-func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
+func IsInstanceExpired(creationTimestamp string, lifespan float64) (bool, error) {
 	created, err := time.Parse(time.RFC3339, creationTimestamp)
 	if err != nil {
 		return false, err
@@ -211,7 +211,7 @@ func isInstanceExpired(creationTimestamp string, lifespan float64) (bool, error)
 	return duration > lifespan, nil
 }
 
-func convertToSeconds(deleteAfter string) (float64, error) {
+func ConvertToSeconds(deleteAfter string) (float64, error) {
 	if deleteAfter == "never" {
 		return math.Inf(1), nil
 	}
@@ -239,7 +239,7 @@ func convertToSeconds(deleteAfter string) (float64, error) {
 	}
 }
 
-func (r *InstanceExpirationReconciler) deleteStaleInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+func (r *InstanceExpirationReconciler) DeleteStaleInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
 
 	// get the template from the instance
@@ -262,13 +262,13 @@ func (r *InstanceExpirationReconciler) deleteStaleInstance(ctx context.Context, 
 		return false, fmt.Errorf("template %s has deleteAfter set to 'never', skipping deletion", template.Name)
 	}
 
-	lifespan, err := convertToSeconds(deleteAfter)
+	lifespan, err := ConvertToSeconds(deleteAfter)
 	if err != nil {
 		return false, err
 	}
 
 	creationTimestamp := instance.GetCreationTimestamp().Time.Format(time.RFC3339)
-	expired, err := isInstanceExpired(creationTimestamp, lifespan)
+	expired, err := IsInstanceExpired(creationTimestamp, lifespan)
 	if err != nil {
 		return false, fmt.Errorf("failed to compute expiration: %w", err)
 	}
