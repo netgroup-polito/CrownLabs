@@ -125,11 +125,7 @@ spec:
           args:
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
-            - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
-            - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
-            - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
             - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
-            - "--container-env-instmetrics-server-endpoint={{ .Values.configurations.containerEnvironmentOptions.instmetricsServerEndpoint }}"
             - "--monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}"
             - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
             - "--max-concurrent-inactive-reconciles-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}"
