@@ -123,6 +123,10 @@ spec:
           image: "{{ .Values.image.repositoryAutomation }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
+            - "--enable-instance-termination={{ .Values.configurations.automation.enableInstanceTermination }}"
+            - "--enable-instance-inactive-termination={{ .Values.configurations.automation.enableInstanceInactiveTermination }}"
+            - "--enable-instance-submission={{ .Values.configurations.automation.enableInstanceSubmission }}"
+            - "--enable-instance-expiration={{ .Values.configurations.automation.enableInstanceExpiration }}"
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
             - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
