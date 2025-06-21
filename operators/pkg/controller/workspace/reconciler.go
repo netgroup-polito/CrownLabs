@@ -64,7 +64,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	avoidStatusUpdate := false
 	defer func() {
+		if avoidStatusUpdate {
+			return
+		}
 		// update the Tenant status
 		if err := r.Status().Update(ctx, &ws); err != nil {
 			klog.Errorf("Error updating status for workspace %s: %v", ws.Name, err)
@@ -79,6 +83,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 		log.Info("Workspace deleted", "name", ws.Name)
+		avoidStatusUpdate = true
 		return ctrl.Result{}, nil
 	}
 
@@ -117,7 +122,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Error managing Keycloak roles for workspace", "name", ws.Name)
 		return ctrl.Result{}, fmt.Errorf("error managing Keycloak roles for workspace %s: %w", ws.Name, err)
 	} else {
-		log.Info("Keycloak roles managed for workspace", "name", ws.Name)
+		log.Info("Keycloak roles updated/created for workspace", "name", ws.Name)
 	}
 
 	ws.Status.Ready = true
@@ -147,6 +152,13 @@ func (r *WorkspaceReconciler) deleteWorkspace(
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
 ) error {
+	// remove the Workspace from Tenants
+	if err := r.handleTenantWorkspaceDeletion(ctx, log, ws); err != nil {
+		klog.Errorf("Error handling tenant workspace deletion for workspace %s: %v", ws.Name, err)
+		return fmt.Errorf("error handling tenant workspace deletion for workspace %s: %w", ws.Name, err)
+	}
+	log.Info("Deleted workspace from all subscribed tenants", "name", ws.Name)
+
 	// delete roles in Keycloak
 	if err := r.deleteKeycloakRoles(ctx, ws); err != nil {
 		klog.Errorf("Error deleting Keycloak roles for workspace %s: %v", ws.Name, err)

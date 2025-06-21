@@ -15,7 +15,45 @@
 // Package tenant_controller groups the functionalities related to the Tenant controller.
 package workspace
 
-import "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+import (
+	"context"
+	"fmt"
+
+	"github.com/go-logr/logr"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+func (r *WorkspaceReconciler) handleTenantWorkspaceDeletion(
+	ctx context.Context,
+	log logr.Logger,
+	ws *v1alpha1.Workspace,
+) error {
+	var tenantsToUpdate v1alpha2.TenantList
+	targetLabel := fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.Name)
+
+	err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel})
+	switch {
+	case client.IgnoreNotFound(err) != nil:
+		klog.Errorf("Error when listing tenants subscribed to workspace %s upon deletion -> %s", ws.Name, err)
+		return err
+	case err != nil:
+		log.Info("No tenants subscribed to workspace")
+		return nil
+	default:
+		for _, tn := range tenantsToUpdate.Items {
+			removeWorkspaceFromTenant(&tn.Spec.Workspaces, ws.Name)
+			if err := r.Update(ctx, &tn); err != nil {
+				klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tn.Name, ws.Name, err)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
 
 func removeWorkspaceFromTenant(
 	workspaces *[]v1alpha2.TenantWorkspaceEntry,

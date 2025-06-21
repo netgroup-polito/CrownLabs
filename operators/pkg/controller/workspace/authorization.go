@@ -74,7 +74,7 @@ func (r *WorkspaceReconciler) createKeycloakRole(
 		klog.Errorf("Error when creating Keycloak role %s for workspace %s -> %s", roleName, ws.Name, err)
 	}
 
-	ws.Status.Subscriptions["keycloak"] = "Ready"
+	ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
 
 	klog.Infof("Successfully created Keycloak role %s for workspace %s", roleName, ws.Name)
 	return nil
