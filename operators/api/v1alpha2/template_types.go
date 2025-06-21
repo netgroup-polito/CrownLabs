@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"Cluster"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -40,7 +40,8 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-
+	//ClassCluster -> the environment is the constituted by a Cluster
+	ClassCluster EnvironmentType = "Cluster"
 	// ModeStandard -> Normal operation (authentication, ssh, files access).
 	ModeStandard EnvironmentMode = "Standard"
 	// ModeExam -> Restricted access (no authentication, no mydrive access).
@@ -75,6 +76,14 @@ type TemplateSpec struct {
 
 // TemplateStatus reflects the most recently observed status of the Template.
 type TemplateStatus struct {
+	KubeConfigs []KubeconfigTemplate `json:"kubeconfigs,omitempty"`
+}
+
+type KubeconfigTemplate struct {
+	//The name identifying the specific kuconfig file
+	Name string `json:"name,omitempty"`
+	// The address to locate the relative kubeconfig file in folder
+	FileAddress string `json:"fileaddress,omitempty"`
 }
 
 // Environment defines the characteristics of an environment composing the Template.
@@ -134,6 +143,109 @@ type Environment struct {
 	// They are given by means of a pointer to check the presence of the field.
 	// In case it is present, the labels that are chosen are the ones present on the instance
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
+
+	//Cluster
+	Cluster *ClusterTemplate `json:"cluster,omitempty"`
+
+	// The Visualizer is used to visualization of cluster
+	Visulizer *VisualizationType `json:"visulizer,omitempty"`
+}
+
+// cluster defines the characteristics of a cluster composing the Template.
+type ClusterTemplate struct {
+	// The name identifying the specific cluster.
+	Name string `json:"name"`
+
+	// The network of cluster including pods and services
+	ClusterNet ClusterNetwork `json:"clusterNet"`
+
+	// The controlplane is used to control the cluster
+	ControlPlane ControlPlaneRef `json:"controlPlane"`
+
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer;ExternalName
+	ServiceType string `json:"serviceType,omitempty"`
+
+	// +kubebuilder:default="v1.30.2"
+	// The version of kubernetes used in cluster
+	Version string `json:"version"`
+
+	// The worker deployment rule sepcifying how to bootstrap
+	MachineDeploy MachineDeployment `json:"machineDeployment"`
+}
+
+// +kubebuilder:validation:Optional
+// The VisualizationType defines the visual content
+type VisualizationType struct {
+	// +kubebuilder:validation:Pattern=`^[0-9]{1,5}$`
+	// VisulizerPort is the port that expose outside
+	VisulizerPort string `json:"visulizerPort,omitempty"`
+	// +kubebuilder:default=false
+	// Isvisualizer is flag whether turn on
+	Isvisualizer bool `json:"isvisualizer,omitempty"`
+}
+
+// The ClusterNetwork defines corrlative network components
+type ClusterNetwork struct {
+	// Pods is the CIDR for pod network
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
+	Pods string `json:"pods"`
+	// Services is the CIDR for service network
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
+	Services string `json:"services"`
+	// Cni specifies the CNI provider to deploy
+	// +kubebuilder:validation:Enum=calico;cilium;flannel
+	// +kubebuilder:default=cilium
+	Cni CniProvider `json:"cni"`
+	// NginxTargetPort is the container port exposed by Nginx
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	NginxTargetPort uint32 `json:"nginxtargetport"`
+	// NginxPort is the NodePort or external port for Nginx
+	// +kubebuilder:validation:Minimum=30000
+	// +kubebuilder:validation:Maximum=32767
+	NginxPort uint32 `json:"nginxport"`
+	// CertSAN is an optional Subject Alternative Name for certificate
+	// +kubebuilder:validation:MaxLength=256
+	CertSAN string `json:"certsan,omitempty"`
+}
+
+// constrain the provider in callico, cilium and flannel
+type CniProvider string
+
+const (
+	CniCalico  CniProvider = "calico"
+	CniCilium  CniProvider = "cilium"
+	CniFlannel CniProvider = "flannel"
+)
+
+// The ControlPlaneRef defines the characteristics of controlplane
+type ControlPlaneRef struct {
+	// The controlplane provider
+	// +kubebuilder:validation:Enum=kubeadm;kamaji
+	// +kubebuilder:default=kamaji
+	Provider ControlPlaneProvider `json:"provider"`
+
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=100
+	// The number of controlplane
+	Replicas uint32 `json:"replicas"`
+}
+
+// ControlPlaneProvider represents the provider choosen kamaji or kubeadm
+type ControlPlaneProvider string
+
+const (
+	ProviderKubeadm ControlPlaneProvider = "kubeadm"
+	ProviderKamaji  ControlPlaneProvider = "kamaji"
+)
+
+// The MachineDeployment specifies characheristics about worker
+type MachineDeployment struct {
+
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=100
+	// The number of worker nodes
+	Replicas uint32 `json:"replicas"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
