@@ -107,33 +107,38 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	shouldDelete, err := r.shouldBeDeleted(ctx, &instance)
+	// Get the template associated with the instance
+	template, err := r.GetTemplateForInstance(ctx, &instance)
 	if err != nil {
-		log.Error(err, "failed to determine if instance should be deleted")
-		return ctrl.Result{}, err
+		log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
 	}
 
-	if !shouldDelete {
-		tracer.Step("instance does not need deletion")
-		dbgLog.Info("Instance does not need deletion", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+	// If the template's deleteAfter field is set to "never", never delete
+	if template.Spec.DeleteAfter == "never" {
+		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, nil
+	}
 
-		template, err := r.GetTemplateForInstance(ctx, &instance)
-		if err != nil {
-			log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-			return ctrl.Result{}, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
-		}
+	// Calculate lifespan from template
+	lifespan, err := GetLifespanFromTemplate(template)
+	if err != nil {
+		log.Error(err, "failed to get lifespan from template", "template", template.GetName(), "namespace", template.GetNamespace())
+		return ctrl.Result{}, fmt.Errorf("failed to get lifespan from template %s/%s: %w", template.GetNamespace(), template.GetName(), err)
+	}
 
-		lifespan, err := GetLifespanFromTemplate(template)
-		if err != nil {
-			log.Error(err, "failed to get lifespan from template", "template", template.GetName(), "namespace", template.GetNamespace())
-			return ctrl.Result{}, fmt.Errorf("failed to get lifespan from template %s/%s: %w", template.GetNamespace(), template.GetName(), err)
-		}
+	remaining, err := GetRemainingTime(&instance, lifespan)
+	if err != nil {
+		log.Error(err, "failed to calculate remaining time for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, fmt.Errorf("failed to calculate remaining time for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
+	}
 
-		created := instance.GetCreationTimestamp().Time
-		elapsed := time.Since(created)
-		remaining := time.Duration(lifespan)*time.Second - elapsed
-
-		return ctrl.Result{RequeueAfter: time.Duration(remaining)}, nil
+	if remaining > 0 {
+		log.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		dbgLog.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		tracer.Step("instance still active, requeuing")
+		return ctrl.Result{RequeueAfter: remaining}, nil
 	}
 
 	// Delete the instance
@@ -151,44 +156,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer.Step("instance deleted and notification sent")
 	dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 	return ctrl.Result{}, nil
-}
-
-// shouldBeDeleted determines if an instance should be deleted based on its expiration rules.
-func (r *InstanceExpirationReconciler) shouldBeDeleted(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("should-be-deleted")
-
-	// Get the template associated with the instance
-	template, err := r.GetTemplateForInstance(ctx, instance)
-	if err != nil {
-		log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-		return false, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
-	}
-
-	// If the template's deleteAfter field is set to "never", never delete
-	if template.Spec.DeleteAfter == "never" {
-		log.V(1).Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
-		return false, nil
-	}
-
-	// Calculate lifespan from template
-	lifespan, err := GetLifespanFromTemplate(template)
-	if err != nil {
-		return false, fmt.Errorf("failed to get lifespan from template: %w", err)
-	}
-
-	// Check if instance has expired
-	expired, err := HasInstanceExpired(instance, lifespan)
-	if err != nil {
-		return false, fmt.Errorf("failed to compute expiration: %w", err)
-	}
-
-	if expired {
-		log.Info("Instance has expired and should be deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
-	} else {
-		log.Info("Instance has not expired", "name", instance.GetName(), "namespace", instance.GetNamespace())
-	}
-
-	return expired, nil
 }
 
 // GetTemplateForInstance fetches the template associated with an instance.
@@ -245,11 +212,13 @@ func ConvertToSeconds(deleteAfter string) (float64, error) {
 	}
 }
 
-// HasInstanceExpired determines if the instance creation time has exceeded the given lifespan (in seconds) relative to the current time.
-func HasInstanceExpired(instance *clv1alpha2.Instance, lifespanSeconds float64) (bool, error) {
+// GetRemainingTime returns the remaining time before expiration as a time.Duration.
+// If the instance has already expired, the returned duration will be ≤ 0.
+func GetRemainingTime(instance *clv1alpha2.Instance, lifespanSeconds float64) (time.Duration, error) {
 	created := instance.GetCreationTimestamp().Time
-	duration := time.Since(created).Seconds()
-	return duration > lifespanSeconds, nil
+	elapsed := time.Since(created)
+	remaining := time.Duration(lifespanSeconds)*time.Second - elapsed
+	return remaining, nil
 }
 
 // DeleteInstance attempts to delete the instance.
