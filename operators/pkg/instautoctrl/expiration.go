@@ -121,14 +121,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// Calculate lifespan from template
-	lifespan, err := GetLifespanFromTemplate(template)
-	if err != nil {
-		log.Error(err, "failed to get lifespan from template", "template", template.GetName(), "namespace", template.GetNamespace())
-		return ctrl.Result{}, fmt.Errorf("failed to get lifespan from template %s/%s: %w", template.GetNamespace(), template.GetName(), err)
-	}
-
-	remaining, err := GetRemainingTime(&instance, lifespan)
+	remaining, err := GetRemainingTime(&instance, template)
 	if err != nil {
 		log.Error(err, "failed to calculate remaining time for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, fmt.Errorf("failed to calculate remaining time for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
@@ -214,7 +207,19 @@ func ConvertToSeconds(deleteAfter string) (float64, error) {
 
 // GetRemainingTime returns the remaining time before expiration as a time.Duration.
 // If the instance has already expired, the returned duration will be ≤ 0.
-func GetRemainingTime(instance *clv1alpha2.Instance, lifespanSeconds float64) (time.Duration, error) {
+func GetRemainingTime(instance *clv1alpha2.Instance, template *clv1alpha2.Template) (time.Duration, error) {
+	// Get lifespan from template's deleteAfter field
+	if template.Spec.DeleteAfter == "never" {
+		// Return maximum duration for "never"
+		return time.Duration(math.MaxInt64), nil
+	}
+
+	lifespanSeconds, err := ConvertToSeconds(template.Spec.DeleteAfter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert deleteAfter to seconds: %w", err)
+	}
+
+	// Calculate remaining time
 	created := instance.GetCreationTimestamp().Time
 	elapsed := time.Since(created)
 	remaining := time.Duration(lifespanSeconds)*time.Second - elapsed
