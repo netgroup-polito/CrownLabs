@@ -79,7 +79,7 @@ run-instance: generate
 run-instance-automation: generate
 	go run cmd/instance-automation/main.go\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
-				--container-env-sidecars-tag=v0.14.5
+				--container-env-sidecars-tag=v0.14.5\
 				--enable-instance-submission=true\
 				--enable-instance-termination=true\
 				--enable-instance-inactive-termination=true\
