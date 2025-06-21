@@ -83,8 +83,7 @@ run-instance-automation: generate
 				--enable-instance-submission=true\
 				--enable-instance-termination=true\
 				--enable-instance-inactive-termination=true\
-				--enable-instance-expiration=true\
-				--instance-expiration-status-check-interval=24h
+				--enable-instance-expiration=true
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html

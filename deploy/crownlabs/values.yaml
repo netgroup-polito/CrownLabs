@@ -96,7 +96,6 @@ instance-operator:
       terminationStatusCheckInterval: "2m" 
       inactiveTerminationStatusCheckTimeout: "3s"
       inactiveTerminationMaxNumberOfAlerts: 3
-      instanceExpirationStatusCheckInterval: "24h"
     smtp:
       server: smtp.example.com
       port: 123
