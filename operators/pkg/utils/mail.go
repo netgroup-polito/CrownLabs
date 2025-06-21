@@ -30,6 +30,33 @@ type MailClient struct {
 	From       string
 }
 
+var (
+	// HTML CrownLabs email header and footer
+	defaultHeaderHTML = `<!DOCTYPE html>
+<html>
+<body>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+        <h2>CrownLabs Notification</h2>
+    </div>
+    <div style="padding: 20px;">
+        <p>Dear user,</p>`
+	defaultFooterHTML = `
+        <p>Best regards,<br>
+        CrownLabs Team</p>
+    </div>
+    <div style="background-color: #f8f9fa; padding: 15px; font-size: 12px; text-align: center;">
+        <p>This is an automated message from CrownLabs.</p>
+        <p>If you need assistance, please contact support.</p>
+    </div>
+</div>
+</body>
+</html>`
+	// Plaintext CrownLabs email Header and Footer
+	defaultPlainHeader = "=== CROWNLABS NOTIFICATION ===\n\nDear user,\n\n"
+	defaultPlainFooter = "\n\nBest regards,\nCrownLabs Team\n\n---\nThis is an automated message from CrownLabs.\nIf you need assistance, please contact support."
+)
+
 // EmailTemplate contains the common parts of an email notification.
 type EmailTemplate struct {
 	Subject     string
@@ -42,25 +69,10 @@ type EmailTemplate struct {
 // DefaultEmailTemplate returns the standard CrownLabs email template.
 func DefaultEmailTemplate() EmailTemplate {
 	return EmailTemplate{
-		HeaderHTML: `<!DOCTYPE html>
-<html>
-<body>
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-        <h2>CrownLabs Notification</h2>
-    </div>
-    <div style="padding: 20px;">`,
-		FooterHTML: `
-    </div>
-    <div style="background-color: #f8f9fa; padding: 15px; font-size: 12px; text-align: center;">
-        <p>This is an automated message from CrownLabs.</p>
-        <p>If you need assistance, please contact support.</p>
-    </div>
-</div>
-</body>
-</html>`,
-		PlainHeader: "Dear user,\n\n",
-		PlainFooter: "\n\nBest regards,\nCrownLabs Team",
+		HeaderHTML:  defaultHeaderHTML,
+		FooterHTML:  defaultFooterHTML,
+		PlainHeader: defaultPlainHeader,
+		PlainFooter: defaultPlainFooter,
 	}
 }
 
@@ -80,41 +92,57 @@ func FormatEmailContent(content string, instance *clv1alpha2.Instance, tenant *c
 }
 
 // SendMail sends an email using the SMTP server configured in the MailClient.
-// Only supports plain text emails.
-func (m *MailClient) sendMail(to []string, subject, body string) error {
-	msg := []byte(fmt.Sprintf("Subject: %s\n\n%s", subject, body))
+// If htmlBody is provided, sends a multipart email with both plain text and HTML versions.
+// If htmlBody is empty, sends just a plain text email.
+func (m *MailClient) SendMail(to []string, subject, plainBody string, htmlBody ...string) error {
 	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
-	return smtp.SendMail(address, m.Auth, m.From, to, msg)
-}
-
-// SendHTMLMail sends an email with both plain text and HTML content.
-func (m *MailClient) sendHTMLMail(to []string, subject, plainBody, htmlBody string) error {
-	boundary := "CrownLabsEmailBoundary"
-
-	msg := []byte(fmt.Sprintf("From: %s\r\n", m.From) +
-		fmt.Sprintf("To: %s\r\n", to[0]) +
-		fmt.Sprintf("Subject: %s\r\n", subject) +
-		"MIME-Version: 1.0\r\n" +
-		fmt.Sprintf("Content-Type: multipart/alternative; boundary=%s\r\n\r\n", boundary) +
-
-		fmt.Sprintf("--%s\r\n", boundary) +
-		"Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
-		plainBody + "\r\n\r\n" +
-
-		fmt.Sprintf("--%s\r\n", boundary) +
-		"Content-Type: text/html; charset=UTF-8\r\n\r\n" +
-		htmlBody + "\r\n\r\n" +
-
-		fmt.Sprintf("--%s--", boundary))
-
-	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
-	return smtp.SendMail(address, m.Auth, m.From, to, msg)
-}
-
-// SendFormattedMail sends either HTML or plain text email depending on if htmlBody is provided.
-func (m *MailClient) SendFormattedMail(to []string, subject, plainBody string, htmlBody ...string) error {
-	if len(htmlBody) > 0 && htmlBody[0] != "" {
-		return m.sendHTMLMail(to, subject, plainBody, htmlBody[0])
+	// Common headers
+	headers := []string{
+		fmt.Sprintf("From: %s", m.From),
+		fmt.Sprintf("To: %s", strings.Join(to, ", ")),
+		fmt.Sprintf("Subject: %s", subject),
 	}
-	return m.sendMail(to, subject, plainBody)
+	// Send as HTML if htmlBody is provided, otherwise send as plain text
+	if len(htmlBody) > 0 && htmlBody[0] != "" {
+		// Create MIME multipart email
+		boundary := "CrownLabsEmailBoundary"
+		mimeHeaders := append(headers,
+			"MIME-Version: 1.0",
+			fmt.Sprintf("Content-Type: multipart/alternative; boundary=%s", boundary),
+			"")
+		// Build plain text part
+		plainTextPart := []string{
+			fmt.Sprintf("--%s", boundary),
+			"Content-Type: text/plain; charset=UTF-8",
+			"",
+			plainBody,
+			""}
+		// Build HTML part
+		htmlPart := []string{
+			fmt.Sprintf("--%s", boundary),
+			"Content-Type: text/html; charset=UTF-8",
+			"",
+			htmlBody[0],
+			""}
+		// Add closing boundary
+		closing := []string{
+			fmt.Sprintf("--%s--", boundary)}
+		// Combine all parts
+		message := strings.Join(
+			append(
+				append(
+					append(mimeHeaders, plainTextPart...),
+					htmlPart...),
+				closing...),
+			"\r\n")
+		msg := []byte(message)
+		return smtp.SendMail(address, m.Auth, m.From, to, msg)
+	} else {
+		// Plain text email only
+		plainHeaders := append(headers,
+			"",
+			plainBody)
+		msg := []byte(strings.Join(plainHeaders, "\r\n"))
+		return smtp.SendMail(address, m.Auth, m.From, to, msg)
+	}
 }

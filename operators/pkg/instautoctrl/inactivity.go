@@ -219,7 +219,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			err := NotifyInstanceInactivity(ctx, &instance, user, r.MailClient)
+			err := SendInactivityNotification(ctx, &instance, user, r.MailClient)
 			if err != nil {
 				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
 				return ctrl.Result{}, err
