@@ -20,86 +20,21 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/workspace"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("Authorization", func() {
-	var (
-		ctx                 context.Context
-		builder             fake.ClientBuilder
-		cl                  client.Client
-		mockCtrl            *gomock.Controller
-		keycloakActor       *mock.MockKeycloakActorIface
-		workspaceReconciler workspace.WorkspaceReconciler
-
-		wsResource             *v1alpha1.Workspace
-		wsReconcileErrExpected gomegaTypes.GomegaMatcher
-	)
-
-	const (
-		timeout      = time.Second * 10
-		interval     = time.Millisecond * 250
-		wsName       = "test-workspace"
-		wsPrettyName = "Test Workspace"
-	)
-
 	BeforeEach(func() {
-		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
-		builder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
-
-		mockCtrl = gomock.NewController(GinkgoT())
 		keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
-
-		wsResource = &v1alpha1.Workspace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: wsName,
-				Labels: map[string]string{
-					"crownlabs.polito.it/target": "test",
-				},
-			},
-			Spec: v1alpha1.WorkspaceSpec{
-				PrettyName: wsPrettyName,
-			},
-		}
-		wsReconcileErrExpected = Not(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		mockCtrl.Finish()
-	})
-
-	JustBeforeEach(func() {
-		cl = builder.WithObjects(wsResource).WithStatusSubresource(wsResource).Build()
-
-		workspaceReconciler = workspace.WorkspaceReconciler{
-			Client:        cl,
-			Scheme:        scheme.Scheme,
-			KeycloakActor: keycloakActor,
-			TargetLabel:   common.NewLabel("crownlabs.polito.it/target", "test"),
-		}
-
-		_, err := workspaceReconciler.Reconcile(ctx, ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name: wsName,
-			},
-		})
-		Expect(err).To(wsReconcileErrExpected)
 	})
 
 	Context("When Keycloak is initialized", func() {
@@ -167,7 +102,7 @@ var _ = Describe("Authorization", func() {
 		Context("When an error occurs in the getRole call", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, fmt.Errorf("error getting role")).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-user")}, nil).AnyTimes()
 				wsReconcileErrExpected = HaveOccurred()
 			})
 
@@ -179,7 +114,7 @@ var _ = Describe("Authorization", func() {
 		Context("When an error occurs in the createRole call", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, nil).AnyTimes()
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-user")}, nil).AnyTimes()
 				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+"-manager", wsPrettyName+" Manager Role").Return("", fmt.Errorf("error creating role")).Times(1)
 				wsReconcileErrExpected = HaveOccurred()
 			})
