@@ -19,13 +19,83 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
+
+// SendInactivityNotification sends notification about instance inactivity detection.
+func SendInactivityNotification(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has been detected as inactive for an extended period.</p>
+<p>If no activity is detected, the instance will be automatically terminated to conserve resources.</p>`
+
+	messagePlain := `Your instance {prettyName} has been detected as inactive for an extended period.
+If no activity is detected, the instance will be automatically terminated to conserve resources.`
+
+	subject := "CrownLabs: Inactivity Detected for {prettyName}"
+
+	return sendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+}
+
+// SendExpiringNotification sends expiration warning notification.
+func SendExpiringNotification(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired and has now been terminated.</p>`
+	messagePlain := "Your instance {prettyName} has expired and has now been terminated."
+	subject := "CrownLabs: Instance {prettyName} Expired"
+
+	return sendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+}
+
+func sendFormattedNotification(ctx context.Context, instance *clv1alpha2.Instance,
+	tenant *clv1alpha2.Tenant, mc *utils.MailClient,
+	messageHTML string, messagePlain string,
+	subject string, template utils.EmailTemplate) error {
+	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
+	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
+
+	// Format both HTML and plain text messages
+	formattedHTML := utils.FormatEmailContent(template.HeaderHTML+messageHTML+template.FooterHTML, instance, tenant)
+	formattedPlain := utils.FormatEmailContent(template.PlainHeader+messagePlain+template.PlainFooter, instance, tenant)
+	formattedSubject := utils.FormatEmailContent(subject, instance, tenant)
+
+	err := mc.SendMail([]string{tenant.Spec.Email}, formattedSubject, formattedPlain, formattedHTML)
+	if err != nil {
+		log.Error(err, "failed sending email notification")
+		return err
+	}
+	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
+
+	return nil
+}
+
+// GetTenantFromInstance retrieves the Tenant object associated with the Instance.
+func GetTenantFromInstance(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Tenant, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
+	log.Info("getting user from instance", "instance", instance.Name)
+
+	tenant := &clv1alpha2.Tenant{}
+	if err := c.Get(ctx, client.ObjectKey{
+		Name:      instance.Spec.Tenant.Name,
+		Namespace: instance.Namespace,
+	}, tenant); err != nil {
+		if kerrors.IsNotFound(err) {
+			log.Error(err, "user not found")
+			return &clv1alpha2.Tenant{}, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
+		}
+		log.Error(err, "failed retrieving user")
+		return &clv1alpha2.Tenant{}, err
+	}
+	return tenant, nil
+}
 
 // RetrieveEnvironment retrieves the template associated to the given instance.
 func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Environment, error) {
@@ -61,4 +131,83 @@ func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1al
 	}
 
 	return nil
+}
+
+func getTemplateInstanceRequests(ctx context.Context, c client.Client, template *clv1alpha2.Template) []reconcile.Request {
+	var requests []reconcile.Request
+
+	var instances clv1alpha2.InstanceList
+	if err := c.List(ctx, &instances,
+		client.InNamespace(""),
+		client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
+		return requests
+	}
+
+	for i := range instances.Items {
+		instance := &instances.Items[i]
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
+			},
+		})
+	}
+
+	return requests
+}
+
+var deleteAfterChanged = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldTemplate, oldOk := e.ObjectOld.(*clv1alpha2.Template)
+		newTemplate, newOk := e.ObjectNew.(*clv1alpha2.Template)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldTemplate.Spec.DeleteAfter
+		newValue := newTemplate.Spec.DeleteAfter
+		fmt.Printf("template %s/%s: old deleteAfter=%s, new deleteAfter=%s\n",
+			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
+
+		// Requeue only if the deleteAfter field has changed and is not set to "never"
+		return newValue != "never"
+	},
+}
+
+var inactivityTimeoutChanged = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldTemplate, oldOk := e.ObjectOld.(*clv1alpha2.Template)
+		newTemplate, newOk := e.ObjectNew.(*clv1alpha2.Template)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldTemplate.Spec.InactivityTimeout
+		newValue := newTemplate.Spec.InactivityTimeout
+		fmt.Printf("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s\n",
+			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
+
+		// Requeue only if the deleteAfter field has changed and it is not set to "never"
+		return newValue != "never"
+	},
+}
+
+var inactivityIgnoreNamespace = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldNs, oldOk := e.ObjectOld.(*corev1.Namespace)
+		newNs, newOk := e.ObjectNew.(*corev1.Namespace)
+		if !oldOk || !newOk {
+			return false
+		}
+
+		oldValue := oldNs.Labels[forge.InstanceInactivityIgnoreNamespace]
+		newValue := newNs.Labels[forge.InstanceInactivityIgnoreNamespace]
+		fmt.Printf("namespace %s: old labelValue=%s, new labelValue=%s\n",
+			oldNs.Namespace, oldValue, newValue)
+
+		// Requeue only if the label on the namespace has changed
+		return oldValue == forge.InstanceInactivityIgnoreNamespace && newValue == ""
+	},
 }
