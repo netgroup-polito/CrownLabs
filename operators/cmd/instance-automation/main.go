@@ -79,6 +79,9 @@ func main() {
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
 
+	// TODO add flags to deployment.yaml, values.yaml
+	instanceExpirationStatusCheckInterval := flag.Duration("instance-expiration-status-check-interval", 24*time.Hour, "The interval to check whether Instances have expired")
+
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
 	maxConcurrentInactiveTerminationReconciles := flag.Int("max-concurrent-reconciles-inactive-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Inactive Termination controller")
@@ -202,6 +205,7 @@ func main() {
 			NamespaceWhitelist:        nsWhitelist,
 			StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
 			MailClient:                mailClient,
+			ExpirationCheckInterval:   *instanceExpirationStatusCheckInterval,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceExpiration)
 			os.Exit(1)
