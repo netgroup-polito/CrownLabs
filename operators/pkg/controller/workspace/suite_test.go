@@ -54,6 +54,8 @@ var (
 
 	wsResource             *v1alpha1.Workspace
 	wsReconcileErrExpected gomegaTypes.GomegaMatcher
+
+	objects []client.Object
 )
 
 func TestWorkspace(t *testing.T) {
@@ -79,7 +81,7 @@ var _ = BeforeEach(func() {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: wsName,
 			Labels: map[string]string{
-				"crownlabs.polito.it/target": "test",
+				"crownlabs.polito.it/operator-selector": "test",
 			},
 		},
 		Spec: v1alpha1.WorkspaceSpec{
@@ -91,16 +93,19 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	mockCtrl.Finish()
+
+	removeObjFromObjectsList(wsResource)
 })
 
 var _ = JustBeforeEach(func() {
-	cl = builder.WithObjects(wsResource).WithStatusSubresource(wsResource).Build()
+	addObjToObjectsList(wsResource)
+	cl = builder.WithObjects(objects...).WithStatusSubresource(objects...).Build()
 
 	workspaceReconciler = workspace.WorkspaceReconciler{
 		Client:        cl,
 		Scheme:        scheme.Scheme,
 		KeycloakActor: keycloakActor,
-		TargetLabel:   common.NewLabel("crownlabs.polito.it/target", "test"),
+		TargetLabel:   common.NewLabel("crownlabs.polito.it/operator-selector", "test"),
 	}
 
 	_, err := workspaceReconciler.Reconcile(ctx, ctrl.Request{
@@ -110,3 +115,28 @@ var _ = JustBeforeEach(func() {
 	})
 	Expect(err).To(wsReconcileErrExpected)
 })
+
+func DoesEventuallyExists(ctx context.Context, cl client.Client, objLookupKey client.ObjectKey, targetObj client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
+	Eventually(func() bool {
+		err := cl.Get(ctx, objLookupKey, targetObj)
+		return err == nil
+	}, timeout, interval).Should(expectedStatus)
+}
+
+func addObjToObjectsList(obj client.Object) {
+	for _, o := range objects {
+		if o.GetName() == obj.GetName() && o.GetNamespace() == obj.GetNamespace() {
+			return // Object already exists in the list
+		}
+	}
+	objects = append(objects, obj)
+}
+
+func removeObjFromObjectsList(obj client.Object) {
+	for i, o := range objects {
+		if o.GetName() == obj.GetName() && o.GetNamespace() == obj.GetNamespace() {
+			objects = append(objects[:i], objects[i+1:]...)
+			return
+		}
+	}
+}

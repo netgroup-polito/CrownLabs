@@ -15,7 +15,6 @@
 package workspace_test
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	gomegaTypes "github.com/onsi/gomega/types"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -185,10 +183,3 @@ var _ = Describe("Authorization", func() {
 		})
 	})
 })
-
-func DoesEventuallyExists(ctx context.Context, cl client.Client, objLookupKey client.ObjectKey, targetObj client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration) {
-	Eventually(func() bool {
-		err := cl.Get(ctx, objLookupKey, targetObj)
-		return err == nil
-	}, timeout, interval).Should(expectedStatus)
-}
