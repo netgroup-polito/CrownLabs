@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock_utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -49,7 +49,7 @@ var _ = Describe("Features -> Keycloak", func() {
 		builder          fake.ClientBuilder
 		cl               client.Client
 		mockCtrl         *gomock.Controller
-		keycloakActor    *mock_utils.MockKeycloakActorIface
+		keycloakActor    *mock.MockKeycloakActorIface
 		tenantReconciler tenant.TenantReconciler
 
 		tnResource             *crownlabsv1alpha2.Tenant
@@ -61,7 +61,7 @@ var _ = Describe("Features -> Keycloak", func() {
 		builder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 
 		mockCtrl = gomock.NewController(GinkgoT())
-		keycloakActor = mock_utils.NewMockKeycloakActorIface(mockCtrl)
+		keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
 
 		tnResource = &crownlabsv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{
@@ -78,6 +78,10 @@ var _ = Describe("Features -> Keycloak", func() {
 			},
 		}
 		tnReconcileErrExpected = Not(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 
 	JustBeforeEach(func() {

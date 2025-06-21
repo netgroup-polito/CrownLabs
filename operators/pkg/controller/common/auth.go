@@ -65,7 +65,7 @@ func SetupKeycloakActor(
 	// login to keycloak
 	_, err := actor.Client.LoginClient(context.Background(), clientID, clientSecret, realm)
 	if err != nil {
-		klog.Error("Unable to login as admin on keycloak: ", err)
+		klog.Error("Unable to login on keycloak: ", err)
 		return err
 	}
 

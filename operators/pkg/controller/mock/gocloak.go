@@ -6,8 +6,8 @@
 //	mockgen -source=gocloak_iface.go
 //
 
-// Package mock_utils is a generated GoMock package.
-package mock_utils
+// Package mock is a generated GoMock package.
+package mock
 
 import (
 	context "context"

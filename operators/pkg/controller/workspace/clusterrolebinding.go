@@ -18,6 +18,7 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -88,7 +89,7 @@ func (r *WorkspaceReconciler) deleteClusterRoleBindings(
 	ws *v1alpha1.Workspace,
 ) error {
 	for kind := range crbData {
-		if err := r.deleteSingleCrb(ctx, ws, kind); err != nil {
+		if err := r.deleteSingleCrb(ctx, ws, kind); err != nil && !strings.Contains(err.Error(), "not found") {
 			return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
 				kind, ws.Name, err)
 		}

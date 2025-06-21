@@ -25,7 +25,7 @@ import (
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock_utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +43,7 @@ var _ = Describe("Authenticator", func() {
 		ctx        context.Context
 		reconciler *tntctrl.TenantReconciler
 		tenant     *crownlabsv1alpha2.Tenant
-		mKcAct     *mock_utils.MockKeycloakActorIface
+		mKcAct     *mock.MockKeycloakActorIface
 	)
 
 	const (
@@ -54,7 +54,7 @@ var _ = Describe("Authenticator", func() {
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
-		mKcAct = mock_utils.NewMockKeycloakActorIface(mockCtrl)
+		mKcAct = mock.NewMockKeycloakActorIface(mockCtrl)
 
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 

@@ -37,16 +37,20 @@ func (r *WorkspaceReconciler) createKeycloakRoles(
 	ws *v1alpha1.Workspace,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
+		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 		klog.Warningf("Keycloak actor is not initialized, skipping role creation for workspace %s", ws.Name)
 		return nil
 	}
 
 	for roleName, roleDescription := range getWorkspaceRoles(ws) {
 		if err := r.createKeycloakRole(ctx, ws, roleName, roleDescription); err != nil {
+			ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 			klog.Errorf("Error when creating Keycloak role %s for workspace %s -> %s", roleName, ws.Name, err)
 			return err
 		}
 	}
+
+	ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
 
 	return nil
 }
@@ -72,9 +76,8 @@ func (r *WorkspaceReconciler) createKeycloakRole(
 
 	if _, err := r.KeycloakActor.CreateRole(ctx, roleName, roleDescription); err != nil {
 		klog.Errorf("Error when creating Keycloak role %s for workspace %s -> %s", roleName, ws.Name, err)
+		return err
 	}
-
-	ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
 
 	klog.Infof("Successfully created Keycloak role %s for workspace %s", roleName, ws.Name)
 	return nil

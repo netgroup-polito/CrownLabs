@@ -12,16 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tenant
+package workspace
 
 import (
 	"testing"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
-func TestTenant(t *testing.T) {
+func TestWorkspace(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Tenant Controller Suite")
+	RunSpecs(t, "Workspace Controller Suite")
 }
+
+var _ = BeforeSuite(func() {
+	Expect(v1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(v1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+})

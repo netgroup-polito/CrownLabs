@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock_utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -30,12 +30,12 @@ import (
 var _ = Describe("Auth", func() {
 	var (
 		mockCtrl  *gomock.Controller
-		mKcClient *mock_utils.MockGoCloakIface
+		mKcClient *mock.MockGoCloakIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
-		mKcClient = mock_utils.NewMockGoCloakIface(mockCtrl)
+		mKcClient = mock.NewMockGoCloakIface(mockCtrl)
 	})
 
 	AfterEach(func() {

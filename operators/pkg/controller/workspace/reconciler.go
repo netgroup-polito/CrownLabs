@@ -39,7 +39,7 @@ type WorkspaceReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	TargetLabel   common.KVLabel
-	KeycloakActor *common.KeycloakActor
+	KeycloakActor common.KeycloakActorIface
 }
 
 // Reconcile reconciles the state of a Workspace resource.

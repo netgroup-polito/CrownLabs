@@ -18,6 +18,7 @@ package workspace
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -64,7 +65,7 @@ func (r *WorkspaceReconciler) deleteNamespace(
 		},
 	}
 
-	if err := r.Client.Delete(ctx, ns); err != nil {
+	if err := r.Client.Delete(ctx, ns); err != nil && !strings.Contains(err.Error(), "not found") {
 		return fmt.Errorf("error while deleting namespace %s for workspace %s: %w",
 			ns.Name, ws.Name, err)
 	}

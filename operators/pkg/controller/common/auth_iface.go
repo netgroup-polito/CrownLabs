@@ -19,5 +19,7 @@ type KeycloakActorIface interface {
 	// CreateUser creates a user in Keycloak.
 	CreateUser(ctx context.Context, username string, email string, firstName string, lastName string) (string, error)
 	DeleteUser(ctx context.Context, userID string) error
+	GetRole(ctx context.Context, roleName string) (*gocloak.Role, error)
+	CreateRole(ctx context.Context, roleName string, roleDescription string) (string, error)
+	DeleteRole(ctx context.Context, roleName string) error
 }
-

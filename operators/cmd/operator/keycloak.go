@@ -42,7 +42,7 @@ func init() {
 func setup_keycloak(
 	log klog.Logger,
 ) error {
-	if keycloakURL != "" && (keycloakClientID == "" || keycloakClientSecret == "" || keycloakRealm == "") {
+	if keycloakURL == "" || keycloakClientID == "" || keycloakClientSecret == "" || keycloakRealm == "" {
 		log.Info("Keycloak actor will not be initialized (settings not provided)")
 		return nil
 	}
