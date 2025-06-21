@@ -78,11 +78,10 @@ func NotifyInstanceTerminated(ctx context.Context, instance *clv1alpha2.Instance
 	return SendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
 }
 
-// NotifyInstanceExpiring sends expiration warning notification
-func NotifyInstanceExpiring(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
-	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired. 
-	Please save your work before the instance is terminated.</p>`
-	messagePlain := "Your instance {prettyName} has expired. Please save your work before the instance is terminated."
+// NotifyInstanceExpiration sends expiration warning notification
+func NotifyInstanceExpiration(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired.</p>`
+	messagePlain := "Your instance {prettyName} has expired."
 	subject := "CrownLabs: Instance {prettyName} Expired"
 
 	return SendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
