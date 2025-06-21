@@ -80,7 +80,9 @@ type TemplateStatus struct {
 }
 
 type KubeconfigTemplate struct {
-	Name        string `json:"name,omitempty"`
+	//The name identifying the specific kuconfig file
+	Name string `json:"name,omitempty"`
+	// The address to locate the relative kubeconfig file in folder
 	FileAddress string `json:"fileaddress,omitempty"`
 }
 
@@ -144,6 +146,9 @@ type Environment struct {
 
 	//Cluster
 	Cluster *ClusterTemplate `json:"cluster,omitempty"`
+
+	// The Visualizer is used to visualization of cluster
+	Visulizer *VisualizationType `json:"visulizer,omitempty"`
 }
 
 // cluster defines the characteristics of a cluster composing the Template.
@@ -160,37 +165,47 @@ type ClusterTemplate struct {
 	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer;ExternalName
 	ServiceType string `json:"serviceType,omitempty"`
 
+	// +kubebuilder:default="v1.30.2"
 	// The version of kubernetes used in cluster
 	Version string `json:"version"`
 
 	// The worker deployment rule sepcifying how to bootstrap
 	MachineDeploy MachineDeployment `json:"machineDeployment"`
-
-	// The Visualizer is used to visualization of cluster
-	Visulizer *VisualizationType `json:"visulizer,omitempty"`
 }
 
+// +kubebuilder:validation:Optional
 // The VisualizationType defines the visual content
 type VisualizationType struct {
-	// VisulizerNamespace is the namespace of visual controler
-	VisulizerNamespace string `json:"visulizerNamespace,omitempty"`
+	// +kubebuilder:validation:Pattern=`^[0-9]{1,5}$`
 	// VisulizerPort is the port that expose outside
 	VisulizerPort string `json:"visulizerPort,omitempty"`
+	// +kubebuilder:default=false
 	// Isvisualizer is flag whether turn on
 	Isvisualizer bool `json:"isvisualizer,omitempty"`
 }
 
 // The ClusterNetwork defines corrlative network components
 type ClusterNetwork struct {
-	Pods     string `json:"pods"`
+	// Pods is the CIDR for pod network
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
+	Pods string `json:"pods"`
+	// Services is the CIDR for service network
+	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
 	Services string `json:"services"`
-	// deploy a CNI solution
+	// Cni specifies the CNI provider to deploy
+	// +kubebuilder:validation:Enum=calico;cilium;flannel
+	// +kubebuilder:default=cilium
 	Cni CniProvider `json:"cni"`
-	// Nginx targetPort
-	NginxTargetPort string `json:"nginxtargetport"`
-	// Nginx Port
-	NginxPort string `json:"nginxport"`
-	// certSAN
+	// NginxTargetPort is the container port exposed by Nginx
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	NginxTargetPort uint32 `json:"nginxtargetport"`
+	// NginxPort is the NodePort or external port for Nginx
+	// +kubebuilder:validation:Minimum=30000
+	// +kubebuilder:validation:Maximum=32767
+	NginxPort uint32 `json:"nginxport"`
+	// CertSAN is an optional Subject Alternative Name for certificate
+	// +kubebuilder:validation:MaxLength=256
 	CertSAN string `json:"certsan,omitempty"`
 }
 
@@ -206,6 +221,8 @@ const (
 // The ControlPlaneRef defines the characteristics of controlplane
 type ControlPlaneRef struct {
 	// The controlplane provider
+	// +kubebuilder:validation:Enum=kubeadm;kamaji
+	// +kubebuilder:default=kamaji
 	Provider ControlPlaneProvider `json:"provider"`
 
 	// +kubebuilder:validation:Minimum:=1

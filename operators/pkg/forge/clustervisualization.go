@@ -14,19 +14,18 @@ import (
 func ClusterVisulizer(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
-	namespace := environment.Cluster.Visulizer.VisulizerNamespace
-	if namespace == "" {
-		namespace = "default"
-	}
-	port := environment.Cluster.Visulizer.VisulizerPort
+	instance := clctx.InstanceFrom(ctx)
+	namespace := instance.Namespace
+
+	port := environment.Visulizer.VisulizerPort
 	if port == "" {
 		port = "8082"
 	}
-
+	name := fmt.Sprintf("%s-instance-visualizer", instance.Name)
 	// Helm upgrade --install
 	cmd := exec.Command(
 		"helm", "upgrade", "--install",
-		"cluster-api-visualizer", "cluster-api-visualizer",
+		name, "cluster-api-visualizer",
 		"--repo", "https://jont828.github.io/cluster-api-visualizer/charts",
 		"-n", namespace,
 	)

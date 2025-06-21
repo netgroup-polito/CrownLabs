@@ -18,6 +18,7 @@ package instctrl
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -35,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -100,6 +102,25 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	// Add the retrieved instance as part of the context.
 	ctx, _ = clctx.InstanceInto(ctx, &instance)
 	tracer.Step("retrieved the instance")
+	const instanceCleanupFinalizer = "crownlabs.polito.it/instance-cleanup"
+
+	// Handle Deletion + Finalizer removal
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info("Instance is marked for deletion, handling finalizer")
+		if controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
+			if err := r.cleanupResource(ctx); err != nil {
+				log.Error(err, "failed to clean up resources")
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(&instance, instanceCleanupFinalizer)
+			if err := r.Update(ctx, &instance); err != nil {
+				log.Error(err, "failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
+			log.Info("Finalizer removed, instance will be deleted")
+		}
+		return ctrl.Result{}, nil
+	}
 
 	// Defer the function to update the instance status depending on the modifications
 	// performed while enforcing the desired environments. This is deferred early to
@@ -179,6 +200,16 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
+	// Add Finalizer if missing
+	if !controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
+		controllerutil.AddFinalizer(&instance, instanceCleanupFinalizer)
+		if err := r.Update(ctx, &instance); err != nil {
+			log.Error(err, "failed to add finalizer")
+			return ctrl.Result{}, err
+		}
+		log.Info("Finalizer added")
+		return ctrl.Result{}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -270,5 +301,19 @@ func (r *InstanceReconciler) vmiToInstance(_ context.Context, o client.Object) [
 		return []reconcile.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: instance}}}
 	}
 
+	return nil
+}
+
+// cleanupResource clean file and release visualizer afer deleting instance
+func (r *InstanceReconciler) cleanupResource(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	path := fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name)
+
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		log.Error(err, "failed to delete file", "path", path)
+		return err
+	}
+	log.Info("Successful cleaned up file", "path", path)
 	return nil
 }

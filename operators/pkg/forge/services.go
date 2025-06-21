@@ -99,6 +99,6 @@ func serviceSpecTCPPort(name string, number int32) corev1.ServicePort {
 
 func ConfigMapData(instance *clv1alpha2.Instance, serviceName string, environment *clv1alpha2.Environment) map[string]string {
 	return map[string]string{
-		environment.Cluster.ClusterNet.NginxTargetPort: fmt.Sprintf("%s/%s:%s", instance.Namespace, serviceName, ClusterPortNumber),
+		fmt.Sprintf("%d", environment.Cluster.ClusterNet.NginxTargetPort): fmt.Sprintf("%s/%s:%s", instance.Namespace, serviceName, ClusterPortNumber),
 	}
 }

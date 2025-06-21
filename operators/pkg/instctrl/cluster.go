@@ -31,7 +31,7 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 	Provider := environment.Cluster.ControlPlane.Provider
 	instance := clctx.InstanceFrom(ctx)
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
-	if environment.Cluster.Visulizer.Isvisualizer {
+	if environment.Visulizer.Isvisualizer {
 		forge.ClusterVisulizer(ctx)
 	}
 	r.enforceCluster(ctx)

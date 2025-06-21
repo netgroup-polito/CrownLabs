@@ -95,20 +95,39 @@ spec:
                           description: The network of cluster including pods and services
                           properties:
                             certsan:
-                              description: certSAN
+                              description: CertSAN is an optional Subject Alternative
+                                Name for certificate
+                              maxLength: 256
                               type: string
                             cni:
-                              description: deploy a CNI solution
+                              default: cilium
+                              description: Cni specifies the CNI provider to deploy
+                              enum:
+                              - calico
+                              - cilium
+                              - flannel
                               type: string
                             nginxport:
-                              description: Nginx Port
-                              type: string
+                              description: NginxPort is the NodePort or external port
+                                for Nginx
+                              format: int32
+                              maximum: 32767
+                              minimum: 30000
+                              type: integer
                             nginxtargetport:
-                              description: Nginx targetPort
-                              type: string
+                              description: NginxTargetPort is the container port exposed
+                                by Nginx
+                              format: int32
+                              maximum: 65535
+                              minimum: 1
+                              type: integer
                             pods:
+                              description: Pods is the CIDR for pod network
+                              pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$
                               type: string
                             services:
+                              description: Services is the CIDR for service network
+                              pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$
                               type: string
                           required:
                           - cni
@@ -121,7 +140,11 @@ spec:
                           description: The controlplane is used to control the cluster
                           properties:
                             provider:
+                              default: kamaji
                               description: The controlplane provider
+                              enum:
+                              - kubeadm
+                              - kamaji
                               type: string
                             replicas:
                               description: The number of controlplane
@@ -157,23 +180,9 @@ spec:
                           - ExternalName
                           type: string
                         version:
+                          default: v1.30.2
                           description: The version of kubernetes used in cluster
                           type: string
-                        visulizer:
-                          description: The Visualizer is used to visualization of
-                            cluster
-                          properties:
-                            isvisualizer:
-                              description: Isvisualizer is flag whether turn on
-                              type: boolean
-                            visulizerNamespace:
-                              description: VisulizerNamespace is the namespace of
-                                visual controler
-                              type: string
-                            visulizerPort:
-                              description: VisulizerPort is the port that expose outside
-                              type: string
-                          type: object
                       required:
                       - clusterNet
                       - controlPlane
@@ -354,6 +363,18 @@ spec:
                       description: Name of the storage class to be used for the persistent
                         volume (when needed)
                       type: string
+                    visulizer:
+                      description: The Visualizer is used to visualization of cluster
+                      properties:
+                        isvisualizer:
+                          default: false
+                          description: Isvisualizer is flag whether turn on
+                          type: boolean
+                        visulizerPort:
+                          description: VisulizerPort is the port that expose outside
+                          pattern: ^[0-9]{1,5}$
+                          type: string
+                      type: object
                   required:
                   - environmentType
                   - image
@@ -393,8 +414,11 @@ spec:
                 items:
                   properties:
                     fileaddress:
+                      description: The address to locate the relative kubeconfig file
+                        in folder
                       type: string
                     name:
+                      description: The name identifying the specific kuconfig file
                       type: string
                   type: object
                 type: array
