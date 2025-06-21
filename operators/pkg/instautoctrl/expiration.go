@@ -70,7 +70,7 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
 			}),
-			builder.WithPredicates(deleteAfterChanged), // opzionale ma consigliato
+			builder.WithPredicates(deleteAfterChanged),
 		).
 		Named("instance-expiration-termination").
 		WithOptions(controller.Options{
@@ -115,7 +115,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 	if isDeleted {
-		log.Info("Instance has been deleted", "instance", instance.Name)
 		tenant, err := GetTenantFromInstance(ctx, r.Client, &instance)
 		if err != nil {
 			log.Error(err, "failed retrieving tenant from instance")
@@ -197,7 +196,7 @@ func (r *InstanceExpirationReconciler) DeleteStaleInstance(ctx context.Context, 
 	// get the deleteAfter field from the template
 	deleteAfter := template.Spec.DeleteAfter
 	if deleteAfter == "never" {
-		return false, fmt.Errorf("template %s has deleteAfter set to 'never', skipping deletion", template.Name)
+		return false, nil
 	}
 
 	lifespan, err := ConvertToSeconds(deleteAfter)
