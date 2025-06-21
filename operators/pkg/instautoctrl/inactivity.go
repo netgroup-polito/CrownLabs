@@ -150,7 +150,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
 	if stop := utils.CheckSingleLabel(&namespace, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
 		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
-		return ctrl.Result{RequeueAfter: r.InactivityInterval}, nil
+		return ctrl.Result{}, nil
 	}
 
 	tracer.Step("labels checked")
@@ -197,7 +197,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 	if !terminate && remainingTime == 0 {
-		return ctrl.Result{RequeueAfter: r.InactivityInterval}, nil
+		return ctrl.Result{}, nil
 	}
 
 	tracer.Step("Inactive termination check done")
