@@ -48,7 +48,6 @@ type InstanceExpirationReconciler struct {
 	NamespaceWhitelist        metav1.LabelSelector
 	StatusCheckRequestTimeout time.Duration
 	MailClient                *utils.MailClient
-	ExpirationCheckInterval   time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -119,7 +118,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	tracer.Step("stale instance check complete")
 	dbgLog.Info("requeueing instance")
-	return ctrl.Result{RequeueAfter: r.ExpirationCheckInterval}, nil
+	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil // TODO revisit this value, it is a placeholder.
 }
 
 // HandleInstanceExpiration checks if the instance is expired and handles its deletion and notification.
