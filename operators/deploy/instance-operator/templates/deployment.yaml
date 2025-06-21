@@ -132,7 +132,7 @@ spec:
             - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
             - "--monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}"
             - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
-            - "--max-concurrent-inactive-reconciles-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}"
+            - "--max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}"
             - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
             - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
             - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
