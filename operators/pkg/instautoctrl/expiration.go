@@ -107,48 +107,50 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	isDeleted, err := r.HandleInstanceExpiration(ctx, &instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if isDeleted {
-		tracer.Step("stale instance deleted and handled")
-		return ctrl.Result{}, nil
-	}
-
-	tracer.Step("stale instance check complete")
-	dbgLog.Info("requeueing instance")
-	return ctrl.Result{RequeueAfter: 24 * time.Hour}, nil // TODO revisit this value, it is a placeholder.
-}
-
-// HandleInstanceExpiration checks if the instance is expired and handles its deletion and notification.
-func (r *InstanceExpirationReconciler) HandleInstanceExpiration(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	// Check if instance should be deleted
-	shouldDelete, err := r.shouldBeDeleted(ctx, instance)
+	shouldDelete, err := r.shouldBeDeleted(ctx, &instance)
 	if err != nil {
 		log.Error(err, "failed to determine if instance should be deleted")
-		return false, err
+		return ctrl.Result{}, err
 	}
 
 	if !shouldDelete {
-		return false, nil
+		tracer.Step("instance does not need deletion")
+		dbgLog.Info("Instance does not need deletion", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+
+		template, err := r.GetTemplateForInstance(ctx, &instance)
+		if err != nil {
+			log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+			return ctrl.Result{}, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
+		}
+
+		lifespan, err := GetLifespanFromTemplate(template)
+		if err != nil {
+			log.Error(err, "failed to get lifespan from template", "template", template.GetName(), "namespace", template.GetNamespace())
+			return ctrl.Result{}, fmt.Errorf("failed to get lifespan from template %s/%s: %w", template.GetNamespace(), template.GetName(), err)
+		}
+
+		created := instance.GetCreationTimestamp().Time
+		elapsed := time.Since(created)
+		remaining := time.Duration(lifespan)*time.Second - elapsed
+
+		return ctrl.Result{RequeueAfter: time.Duration(remaining)}, nil
 	}
 
 	// Delete the instance
-	if err := r.DeleteInstance(ctx, instance); err != nil {
+	if err := r.DeleteInstance(ctx, &instance); err != nil {
 		log.Error(err, "failed to delete instance")
-		return false, err
+		return ctrl.Result{}, err
 	}
 
 	// Send notification
-	if err := r.NotifyInstanceDeletion(ctx, instance); err != nil {
+	if err := r.NotifyInstanceDeletion(ctx, &instance); err != nil {
 		log.Error(err, "failed to send deletion notification")
-		return true, err // instance deleted, but email not sent
+		return ctrl.Result{}, fmt.Errorf("failed to send deletion notification: %w", err)
 	}
 
-	return true, nil
+	tracer.Step("instance deleted and notification sent")
+	dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+	return ctrl.Result{}, nil
 }
 
 // shouldBeDeleted determines if an instance should be deleted based on its expiration rules.
