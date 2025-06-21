@@ -167,6 +167,7 @@ var _ = Describe("Authorization", func() {
 		Context("When an error occurs in the getRole call", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, fmt.Errorf("error getting role")).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil, nil).AnyTimes()
 				wsReconcileErrExpected = HaveOccurred()
 			})
 
@@ -177,7 +178,8 @@ var _ = Describe("Authorization", func() {
 
 		Context("When an error occurs in the createRole call", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil, nil).AnyTimes()
 				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+"-manager", wsPrettyName+" Manager Role").Return("", fmt.Errorf("error creating role")).Times(1)
 				wsReconcileErrExpected = HaveOccurred()
 			})

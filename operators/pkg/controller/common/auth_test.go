@@ -432,4 +432,372 @@ var _ = Describe("Auth", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Describe("getClientInternalIdentifierByClientID", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				clientIDCache:  make(map[string]string),
+				cacheMutex:     sync.RWMutex{},
+			}
+		})
+
+		It("should return the client internal identifier for a given client ID", func() {
+			clientID := "test-client-id"
+			expectedIdentifier := "internal-identifier"
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expectedIdentifier))
+		})
+
+		It("should return an error if the client is not found", func() {
+			clientID := "non-existent-client"
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak.Client{}, nil)
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeEmpty())
+		})
+
+		It("should return the cached identifier if it exists", func() {
+			clientID := "cached-client-id"
+			expectedIdentifier := "cached-identifier"
+
+			actor.cacheMutex.Lock()
+			actor.clientIDCache[clientID] = expectedIdentifier
+			actor.cacheMutex.Unlock()
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expectedIdentifier))
+		})
+
+		It("should not make requests to Keycloak if the identifier is cached", func() {
+			clientID := "cached-client-id"
+			expectedIdentifier := "cached-identifier"
+
+			actor.cacheMutex.Lock()
+			actor.clientIDCache[clientID] = expectedIdentifier
+			actor.cacheMutex.Unlock()
+
+			mKcClient.EXPECT().GetClients(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expectedIdentifier))
+		})
+
+		It("should store the client identifier in the cache after fetching it", func() {
+			clientID := "test-client-id"
+			expectedIdentifier := "internal-identifier"
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expectedIdentifier))
+
+			actor.cacheMutex.RLock()
+			cachedIdentifier, exists := actor.clientIDCache[clientID]
+			actor.cacheMutex.RUnlock()
+			Expect(exists).To(BeTrue())
+			Expect(cachedIdentifier).To(Equal(expectedIdentifier))
+		})
+
+		It("should propagate errors from Keycloak", func() {
+			clientID := "test-client-id"
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &clientID},
+			).Return(nil, fmt.Errorf("keycloak error"))
+
+			result, err := actor.getClientInternalIdentifierByClientID(context.Background(), clientID)
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeEmpty())
+		})
+	})
+
+	Describe("GetRole", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should return the role for a given role name", func() {
+			roleName := "test-role"
+			expectedRole := &gocloak.Role{Name: &roleName}
+
+			mKcClient.EXPECT().GetClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(expectedRole, nil)
+			role, err := actor.GetRole(context.Background(), roleName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(role).To(Equal(expectedRole))
+		})
+
+		It("should return `404` error if the role is not found", func() {
+			roleName := "non-existent-role"
+
+			mKcClient.EXPECT().GetClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(nil, fmt.Errorf("404 Not Found: Could not find role"))
+			role, err := actor.GetRole(context.Background(), roleName)
+			Expect(err).To(MatchError("404"))
+			Expect(role).To(BeNil())
+		})
+
+		It("should propagate errors from Keycloak", func() {
+			roleName := "test-role"
+
+			mKcClient.EXPECT().GetClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(nil, fmt.Errorf("keycloak error"))
+			role, err := actor.GetRole(context.Background(), roleName)
+			Expect(err).To(HaveOccurred())
+			Expect(role).To(BeNil())
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			roleName := "test-role"
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+
+			mKcClient.EXPECT().GetClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Times(0) // No call to Keycloak since client ID is missing
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			role, err := actor.GetRole(context.Background(), roleName)
+			Expect(err).To(HaveOccurred())
+			Expect(role).To(BeNil())
+		})
+	})
+
+	Describe("CreateRole", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should create a role and return its name", func() {
+			roleName := "test-role"
+			roleDescription := "Test Role Description"
+
+			mKcClient.EXPECT().CreateClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				gocloak.Role{
+					Name:        &roleName,
+					Description: &roleDescription,
+				},
+			).Return(roleName, nil)
+
+			roleID, err := actor.CreateRole(context.Background(), roleName, roleDescription)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(roleID).To(Equal(roleName))
+		})
+
+		It("should return an error if the role creation fails", func() {
+			roleName := "test-role"
+			roleDescription := "Test Role Description"
+
+			mKcClient.EXPECT().CreateClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				gocloak.Role{
+					Name:        &roleName,
+					Description: &roleDescription,
+				},
+			).Return("", fmt.Errorf("error creating role"))
+
+			roleID, err := actor.CreateRole(context.Background(), roleName, roleDescription)
+			Expect(err).To(HaveOccurred())
+			Expect(roleID).To(BeEmpty())
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			roleName := "test-role"
+			roleDescription := "Test Role Description"
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+
+			mKcClient.EXPECT().CreateClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				gocloak.Role{
+					Name:        &roleName,
+					Description: &roleDescription,
+				},
+			).Times(0) // No call to Keycloak since client ID is missing
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			roleID, err := actor.CreateRole(context.Background(), roleName, roleDescription)
+			Expect(err).To(HaveOccurred())
+			Expect(roleID).To(BeEmpty())
+		})
+	})
+
+	Describe("DeleteRole", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should delete the role by name", func() {
+			roleName := "test-role"
+
+			mKcClient.EXPECT().DeleteClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(nil)
+
+			err := actor.DeleteRole(context.Background(), roleName)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should return an error if the role deletion fails", func() {
+			roleName := "test-role"
+
+			mKcClient.EXPECT().DeleteClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(fmt.Errorf("error deleting role"))
+
+			err := actor.DeleteRole(context.Background(), roleName)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			roleName := "test-role"
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+
+			mKcClient.EXPECT().DeleteClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Times(0) // No call to Keycloak since client ID is missing
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			err := actor.DeleteRole(context.Background(), roleName)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return successfully if the role does not exist", func() {
+			roleName := "non-existent-role"
+
+			mKcClient.EXPECT().DeleteClientRole(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				roleName,
+			).Return(fmt.Errorf("404 Not Found: Could not find role"))
+
+			err := actor.DeleteRole(context.Background(), roleName)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
 })
