@@ -126,67 +126,68 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 func (r *InstanceExpirationReconciler) HandleInstanceExpiration(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	isDeleted, err := r.DeleteStaleInstance(ctx, instance)
+	// Check if instance should be deleted
+	shouldDelete, err := r.shouldBeDeleted(ctx, instance)
 	if err != nil {
-		log.Error(err, "failed to delete stale instance")
+		log.Error(err, "failed to determine if instance should be deleted")
 		return false, err
 	}
-	if !isDeleted {
+
+	if !shouldDelete {
 		return false, nil
 	}
 
-	tenant, err := GetTenantFromInstance(ctx, r.Client, instance)
-	if err != nil {
-		log.Error(err, "failed retrieving tenant from instance")
+	// Delete the instance
+	if err := r.DeleteInstance(ctx, instance); err != nil {
+		log.Error(err, "failed to delete instance")
+		return false, err
+	}
+
+	// Send notification
+	if err := r.NotifyInstanceDeletion(ctx, instance); err != nil {
+		log.Error(err, "failed to send deletion notification")
 		return true, err // instance deleted, but email not sent
 	}
 
-	if err := NotifyInstanceExpiring(ctx, instance, tenant, r.MailClient); err != nil {
-		log.Error(err, "failed sending notification email")
-		return true, err // instance deleted, but email not sent
-	}
-
-	log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
 	return true, nil
 }
 
-// DeleteStaleInstance checks if the instance is expired based on its creation timestamp and the deleteAfter field in the template.
-func (r *InstanceExpirationReconciler) DeleteStaleInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("delete-stale-instances")
+// shouldBeDeleted determines if an instance should be deleted based on its expiration rules.
+func (r *InstanceExpirationReconciler) shouldBeDeleted(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("should-be-deleted")
 
-	// Get the template associated with the instance.
+	// Get the template associated with the instance
 	template, err := r.GetTemplateForInstance(ctx, instance)
 	if err != nil {
 		log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return false, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
 	}
 
-	// If the template's deleteAfter field is set to "never", skip deletion.
+	// If the template's deleteAfter field is set to "never", never delete
 	if template.Spec.DeleteAfter == "never" {
+		log.V(1).Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return false, nil
 	}
 
+	// Calculate lifespan from template
 	lifespan, err := GetLifespanFromTemplate(template)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get lifespan from template: %w", err)
 	}
 
+	// Check if instance has expired
 	expired, err := HasInstanceExpired(instance, lifespan)
 	if err != nil {
 		return false, fmt.Errorf("failed to compute expiration: %w", err)
 	}
 
-	if !expired {
-		log.Info("Instance is not expired, skipping deletion", "name", instance.GetName(), "namespace", instance.GetNamespace())
-		return false, nil
+	if expired {
+		log.Info("Instance has expired and should be deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+	} else {
+		log.Info("Instance has not expired", "name", instance.GetName(), "namespace", instance.GetNamespace())
 	}
 
-	if err := r.DeleteInstance(ctx, instance); err != nil {
-		return false, err
-	}
-
-	log.Info("Instance is expired and has been deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
-	return true, nil
+	return expired, nil
 }
 
 // GetTemplateForInstance fetches the template associated with an instance.
@@ -250,7 +251,7 @@ func HasInstanceExpired(instance *clv1alpha2.Instance, lifespanSeconds float64) 
 	return duration > lifespanSeconds, nil
 }
 
-// DeleteInstance attempts to delete the instance and handles NotFound gracefully.
+// DeleteInstance attempts to delete the instance.
 func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -263,5 +264,24 @@ func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context, insta
 	}
 
 	log.Info("Instance has been deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+	return nil
+}
+
+// NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
+func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Context, instance *clv1alpha2.Instance) error {
+	log := ctrl.LoggerFrom(ctx).WithName("notify-instance-deletion")
+
+	// Get tenant information for notification
+	tenant, err := GetTenantFromInstance(ctx, r.Client, instance)
+	if err != nil {
+		return fmt.Errorf("failed retrieving tenant from instance: %w", err)
+	}
+
+	// Send the notification email
+	if err := NotifyInstanceExpiring(ctx, instance, tenant, r.MailClient); err != nil {
+		return fmt.Errorf("failed sending notification email: %w", err)
+	}
+
+	log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
 	return nil
 }
