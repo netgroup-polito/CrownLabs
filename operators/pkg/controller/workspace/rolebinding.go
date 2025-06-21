@@ -107,7 +107,7 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	// Delete all RoleBindings related to the Workspace
 	for _ = range rbData {
 		for kind := range rbData[v1alpha2.User] {
-			if err := r.deleteSingleRb(ctx, ws, namespace, kind); err != nil && !strings.Contains(err.Error(), "not found") {
+			if err := r.deleteSingleRb(ctx, namespace, kind); err != nil && !strings.Contains(err.Error(), "not found") {
 				return fmt.Errorf("error while deleting RoleBinding %s for workspace %s: %w",
 					kind, ws.Name, err)
 			}
@@ -119,7 +119,6 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 
 func (r *WorkspaceReconciler) deleteSingleRb(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
 	namespace string,
 	kind string,
 ) error {
