@@ -200,8 +200,8 @@ var inactivityTimeoutChanged = predicate.Funcs{
 		fmt.Printf("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s\n",
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
-		// Requeue only if the deleteAfter field has changed
-		return oldValue == "never" && newValue != "never"
+		// Requeue only if the deleteAfter field has changed and it is not set to "never"
+		return newValue != "never"
 	},
 }
 

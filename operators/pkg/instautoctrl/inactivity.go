@@ -244,6 +244,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			}
 		}
 	} else {
+		// TODO: remove
 		log.Info("instance is not yet to be terminated", "instance", instance.Name)
 	}
 
