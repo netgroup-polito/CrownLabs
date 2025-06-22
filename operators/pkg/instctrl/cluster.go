@@ -351,7 +351,7 @@ func (r *InstanceReconciler) updatetemplatestatus(ctx context.Context) error {
 
 	tmpl.Status.KubeConfigs = []clv1alpha2.KubeconfigTemplate{{
 		Name:        fmt.Sprintf("%s-cluster", cluster.Name),
-		FileAddress: fmt.Sprintf("./kubeconfigs/%s-cluster.kubeconfig", cluster.Name),
+		FileAddress: fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name),
 	}}
 
 	if err := r.Status().Update(ctx, &tmpl); err != nil {

@@ -72,9 +72,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
-
+	var flag_cluster bool
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
-
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = trace.ContextWithTrace(ctx, tracer)
 	defer tracer.LogIfLong(utils.LongThreshold())
@@ -102,25 +101,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	// Add the retrieved instance as part of the context.
 	ctx, _ = clctx.InstanceInto(ctx, &instance)
 	tracer.Step("retrieved the instance")
-	const instanceCleanupFinalizer = "crownlabs.polito.it/instance-cleanup"
-
-	// Handle Deletion + Finalizer removal
-	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		log.Info("Instance is marked for deletion, handling finalizer")
-		if controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
-			if err := r.cleanupResource(ctx); err != nil {
-				log.Error(err, "failed to clean up resources")
-				return ctrl.Result{}, err
-			}
-			controllerutil.RemoveFinalizer(&instance, instanceCleanupFinalizer)
-			if err := r.Update(ctx, &instance); err != nil {
-				log.Error(err, "failed to remove finalizer")
-				return ctrl.Result{}, err
-			}
-			log.Info("Finalizer removed, instance will be deleted")
-		}
-		return ctrl.Result{}, nil
-	}
 
 	// Defer the function to update the instance status depending on the modifications
 	// performed while enforcing the desired environments. This is deferred early to
@@ -158,7 +138,38 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	ctx, log = clctx.TemplateInto(ctx, &template)
 	tracer.Step("retrieved the instance template")
 	log.Info("successfully retrieved the instance template")
+	for i := range template.Spec.EnvironmentList {
+		// Currently, only instances composed of a single environment are supported.
+		// Nonetheless, we return nil in the end, since it is useless to retry later.
+		if i >= 1 {
+			err := fmt.Errorf("instances composed of multiple environments are currently not supported")
+			log.Error(err, "failed to process environment")
+			return ctrl.Result{}, nil
+		}
+		switch template.Spec.EnvironmentList[i].EnvironmentType {
+		case clv1alpha2.ClassCluster:
+			flag_cluster = true
+		}
+	}
+	const instanceCleanupFinalizer = "crownlabs.polito.it/instance-cleanup"
 
+	// Handle Deletion + Finalizer removal
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() && flag_cluster {
+		log.Info("Instance is marked for deletion, handling finalizer")
+		if controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
+			if err := r.cleanupResource(ctx); err != nil {
+				log.Error(err, "failed to clean up resources")
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(&instance, instanceCleanupFinalizer)
+			if err := r.Update(ctx, &instance); err != nil {
+				log.Error(err, "failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
+			log.Info("Finalizer removed, instance will be deleted")
+		}
+		return ctrl.Result{}, nil
+	}
 	// Retrieve the tenant associated with the current instance.
 	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
 	var tenant clv1alpha2.Tenant
@@ -201,7 +212,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("instance environments correctly enforced")
 
 	// Add Finalizer if missing
-	if !controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
+	if !controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) && flag_cluster {
 		controllerutil.AddFinalizer(&instance, instanceCleanupFinalizer)
 		if err := r.Update(ctx, &instance); err != nil {
 			log.Error(err, "failed to add finalizer")
