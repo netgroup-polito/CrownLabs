@@ -61,6 +61,9 @@ type TemplateSpec struct {
 	WorkspaceRef GenericRef `json:"workspace.crownlabs.polito.it/WorkspaceRef,omitempty"`
 
 	// The list of environments (i.e. VMs or containers) that compose the Template.
+	// Each environment must have a unique name within the Template.
+	// +listType=map
+	// +listMapKey=name
 	EnvironmentList []Environment `json:"environmentList"`
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
@@ -71,6 +74,11 @@ type TemplateSpec struct {
 	// or stopped to save resources. If set to "never", the instance will not be
 	// automatically terminated.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
+
+	// Labels that are used for the selection of the node.
+	// They are given by means of a pointer to check the presence of the field.
+	// In case it is present, the labels that are chosen are the ones present on the instance
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
@@ -80,6 +88,10 @@ type TemplateStatus struct {
 // Environment defines the characteristics of an environment composing the Template.
 type Environment struct {
 	// The name identifying the specific environment.
+	// The name must be unique within the Template and must follow the Kubernetes
+	// naming conventions, i.e. it must consist of lower case alphanumeric characters,
+	// '-' or '.', must start and end with an alphanumeric character.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
 	Name string `json:"name"`
 
 	// The VM or container to be started when instantiating the environment.
@@ -129,11 +141,6 @@ type Environment struct {
 
 	// The list of information about Shared Volumes that has to be mounted to the instance.
 	SharedVolumeMounts []SharedVolumeMountInfo `json:"sharedVolumeMounts,omitempty"`
-
-	// Labels that are used for the selection of the node.
-	// They are given by means of a pointer to check the presence of the field.
-	// In case it is present, the labels that are chosen are the ones present on the instance
-	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

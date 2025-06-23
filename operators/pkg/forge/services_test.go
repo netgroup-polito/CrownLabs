@@ -69,7 +69,7 @@ var _ = Describe("Services forging", func() {
 			})
 
 			It("Should configure the expected selector labels", func() {
-				Expect(spec.Selector).To(Equal(forge.InstanceSelectorLabels(&instance)))
+				Expect(spec.Selector).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 			})
 		})
 
