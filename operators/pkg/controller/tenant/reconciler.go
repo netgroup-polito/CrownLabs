@@ -130,7 +130,11 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("error updating tenant base labels: %w", err)
 	}
 
-	// TODO: manage workspaces subscription (and related labels)
+	// manage workspaces subscription (and related labels)
+	if err := r.manageWorkspaces(ctx, &tn); err != nil {
+		klog.Errorf("Error managing workspaces for tenant %s: %v", tn.Name, err)
+		return ctrl.Result{}, fmt.Errorf("error managing workspaces for tenant %s: %w", tn.Name, err)
+	}
 
 	// TODO: manage resource quota
 
@@ -143,6 +147,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	} else {
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
+
+	// TODO: manage keycloak tenant authorization
 
 	if !verified {
 		// if the Tenant has not been verified, we can skip the reconciliation

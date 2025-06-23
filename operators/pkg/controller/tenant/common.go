@@ -15,8 +15,12 @@
 package tenant
 
 import (
+	"context"
 	"regexp"
 	"strings"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"k8s.io/klog/v2"
 )
 
 // // randomDuration returns a duration between duration value between min and max.
@@ -52,6 +56,22 @@ import (
 
 // 	return lsPred
 // }
+
+func (r *TenantReconciler) updatePreservingStatus(
+	ctx context.Context,
+	tn *v1alpha2.Tenant,
+) error {
+	// the update function will overwrite the status, so we need to save it
+	// and restore it after the update
+	prevStatus := tn.Status
+	if err := r.Update(ctx, tn); err != nil {
+		klog.Errorf("Error when updating tenant %s -> %s", tn.Name, err)
+		return err
+	}
+	tn.Status = prevStatus
+
+	return nil
+}
 
 func cleanName(name string) string {
 	okRegex := regexp.MustCompile("^[a-zA-Z0-9_]+$")

@@ -35,7 +35,7 @@ func (r *TenantReconciler) updateTenantBaseLabels(
 	tn.Labels["crownlabs.polito.it/first-name"] = cleanName(tn.Spec.FirstName)
 	tn.Labels["crownlabs.polito.it/last-name"] = cleanName(tn.Spec.LastName)
 
-	if err := r.Update(ctx, tn); err != nil {
+	if err := r.updatePreservingStatus(ctx, tn); err != nil {
 		klog.Errorf("Error updating labels for tenant %s: %v", tn.Name, err)
 		return err
 	}
