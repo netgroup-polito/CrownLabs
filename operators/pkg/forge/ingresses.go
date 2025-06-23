@@ -30,7 +30,8 @@ const (
 
 	// IngressGUINameSuffix -> the suffix added to the name of the ingress targeting the environment GUI.
 	IngressGUINameSuffix = "gui"
-
+	//
+	IngressConfigMap = "map"
 	// IngressAppSuffix -> the suffix added to the path of the ingress targeting standalone and container environments.
 	IngressAppSuffix = "app"
 
@@ -40,8 +41,8 @@ const (
 	// IngressVNCGUIPathSuffix -> the suffix appended to the path of the ingress targeting the environment GUI websocketed vnc endpoint.
 	IngressVNCGUIPathSuffix = "vnc"
 
-	// IngressdashboardPathSuffix -> the suffix appended to the path of the ingress targeting the environment dashboard endpoint.
-	IngressdashboardPathSuffix = "dashboard"
+	// IngressGuiPathSuffix -> the suffix appended to the path of the ingress targeting the environment gui endpoint.
+	IngressdashguiPathSuffix = "gui"
 
 	// WebsockifyRewriteEndpoint -> endpoint of the websocketed vnc server.
 	WebsockifyRewriteEndpoint = "/websockify"
@@ -170,7 +171,7 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressVNCGUIPathSuffix), "/")
 	case clv1alpha2.ClassCluster:
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressdashboardPathSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressdashguiPathSuffix), "/")
 	}
 	return ""
 }
@@ -198,10 +199,8 @@ func IngressGUIName(environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
 		return IngressAppSuffix
-	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+	case clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassCluster:
 		return IngressGUINameSuffix
-	case clv1alpha2.ClassCluster:
-		return IngressdashboardPathSuffix
 	}
 	return ""
 }

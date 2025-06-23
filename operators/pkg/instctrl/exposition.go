@@ -52,6 +52,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	// Enforce the service presence
 	service := v1.Service{ObjectMeta: forge.ObjectMeta(instance)}
 	if environment.EnvironmentType == clv1alpha2.ClassCluster {
+		// This step maybe redudant,it is just for setting the label
 		if cluster.ControlPlane.Provider == clv1alpha2.ProviderKamaji {
 			service = v1.Service{ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%s-control-plane", cluster.Name),
@@ -75,6 +76,20 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			if cluster.ControlPlane.Provider == clv1alpha2.ProviderKubeadm {
 				service.Spec.Ports[0].Name = forge.ClusterPortName
 			}
+		}
+		// Obtain the gui service which is already exit
+		service = v1.Service{ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-visualizer",
+			Namespace: instance.Namespace,
+		}}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(&service), &service); client.IgnoreNotFound(err) != nil {
+			log.Error(err, "failed to retrieve capi-visualizer ", "capi-visualizer ", klog.KObj(&service))
+			return err
+		} else {
+			labels := forge.InstanceObjectLabels(service.GetLabels(), instance)
+			service.SetLabels(labels)
+			// set port name
+			service.Spec.Ports[0].Name = forge.GUIPortName
 		}
 	} else {
 		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
@@ -115,7 +130,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	fmt.Println("forge.IngressGUIPath:", forge.IngressGUIPath(instance, environment))
 	// cluster uses passthrough mode not ingress which will terminate in inress side.
 	if environment.EnvironmentType == clv1alpha2.ClassCluster {
-		configMap := v1.ConfigMap{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUIName(environment))}
+		configMap := v1.ConfigMap{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressConfigMap)}
 		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &configMap, func() error {
 			if configMap.CreationTimestamp.IsZero() {
 				var serviceName string
@@ -138,7 +153,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			return err
 		}
 		log.V(utils.FromResult(res)).Info("object enforced", "configmap", klog.KObj(&configMap), "result", res)
-	} else {
+	}
+	{
 		ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressGUIName(environment))}
 		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
 			// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
@@ -189,7 +205,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	}
 
 	// Enforce configmap absence
-	configMap := v1.ConfigMap{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressdashboardPathSuffix)}
+	configMap := v1.ConfigMap{ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.IngressConfigMap)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &configMap, "configmap"); err != nil {
 		return err
 	}

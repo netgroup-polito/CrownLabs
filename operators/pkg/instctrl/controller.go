@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"time"
@@ -320,11 +321,21 @@ func (r *InstanceReconciler) cleanupResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	path := fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name)
-
+	namespace := instance.Namespace
+	name := fmt.Sprintf("%s-instance-visualizer", instance.Name)
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		log.Error(err, "failed to delete file", "path", path)
 		return err
 	}
 	log.Info("Successful cleaned up file", "path", path)
+	cmd := exec.Command(
+		"helm", "delete", name,
+		"-n", namespace,
+	)
+	if err := cmd.Run(); err != nil {
+		log.Error(err, "Helm delete failed")
+		return err
+	}
+	log.Info("Helm delete succeeded")
 	return nil
 }

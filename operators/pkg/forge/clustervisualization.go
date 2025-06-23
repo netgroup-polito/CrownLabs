@@ -62,6 +62,5 @@ func ClusterVisulizer(ctx context.Context) error {
 		log.Error(err, "kubectl port-forward failed to start")
 		return err
 	}
-
 	return nil
 }

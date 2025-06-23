@@ -88,108 +88,6 @@ spec:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
                   properties:
-                    cluster:
-                      description: Cluster
-                      properties:
-                        clusterNet:
-                          description: The network of cluster including pods and services
-                          properties:
-                            certsan:
-                              description: CertSAN is an optional Subject Alternative
-                                Name for certificate
-                              maxLength: 256
-                              type: string
-                            cni:
-                              default: cilium
-                              description: Cni specifies the CNI provider to deploy
-                              enum:
-                              - calico
-                              - cilium
-                              - flannel
-                              type: string
-                            nginxport:
-                              description: NginxPort is the NodePort or external port
-                                for Nginx
-                              format: int32
-                              maximum: 32767
-                              minimum: 30000
-                              type: integer
-                            nginxtargetport:
-                              description: NginxTargetPort is the container port exposed
-                                by Nginx
-                              format: int32
-                              maximum: 65535
-                              minimum: 1
-                              type: integer
-                            pods:
-                              description: Pods is the CIDR for pod network
-                              pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$
-                              type: string
-                            services:
-                              description: Services is the CIDR for service network
-                              pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$
-                              type: string
-                          required:
-                          - cni
-                          - nginxport
-                          - nginxtargetport
-                          - pods
-                          - services
-                          type: object
-                        controlPlane:
-                          description: The controlplane is used to control the cluster
-                          properties:
-                            provider:
-                              default: kamaji
-                              description: The controlplane provider
-                              enum:
-                              - kubeadm
-                              - kamaji
-                              type: string
-                            replicas:
-                              description: The number of controlplane
-                              format: int32
-                              maximum: 100
-                              minimum: 1
-                              type: integer
-                          required:
-                          - provider
-                          - replicas
-                          type: object
-                        machineDeployment:
-                          description: The worker deployment rule sepcifying how to
-                            bootstrap
-                          properties:
-                            replicas:
-                              description: The number of worker nodes
-                              format: int32
-                              maximum: 100
-                              minimum: 1
-                              type: integer
-                          required:
-                          - replicas
-                          type: object
-                        name:
-                          description: The name identifying the specific cluster.
-                          type: string
-                        serviceType:
-                          enum:
-                          - ClusterIP
-                          - NodePort
-                          - LoadBalancer
-                          - ExternalName
-                          type: string
-                        version:
-                          default: v1.30.2
-                          description: The version of kubernetes used in cluster
-                          type: string
-                      required:
-                      - clusterNet
-                      - controlPlane
-                      - machineDeployment
-                      - name
-                      - version
-                      type: object
                     containerStartupOptions:
                       description: Options to customize container startup
                       properties:
@@ -229,7 +127,6 @@ spec:
                       - Container
                       - CloudVM
                       - Standalone
-                      - Cluster
                       type: string
                     guiEnabled:
                       default: true
@@ -363,18 +260,6 @@ spec:
                       description: Name of the storage class to be used for the persistent
                         volume (when needed)
                       type: string
-                    visulizer:
-                      description: The Visualizer is used to visualization of cluster
-                      properties:
-                        isvisualizer:
-                          default: false
-                          description: Isvisualizer is flag whether turn on
-                          type: boolean
-                        visulizerPort:
-                          description: VisulizerPort is the port that expose outside
-                          pattern: ^[0-9]{1,5}$
-                          type: string
-                      type: object
                   required:
                   - environmentType
                   - image
@@ -409,19 +294,6 @@ spec:
           status:
             description: TemplateStatus reflects the most recently observed status
               of the Template.
-            properties:
-              kubeconfigs:
-                items:
-                  properties:
-                    fileaddress:
-                      description: The address to locate the relative kubeconfig file
-                        in folder
-                      type: string
-                    name:
-                      description: The name identifying the specific kuconfig file
-                      type: string
-                  type: object
-                type: array
             type: object
         type: object
     served: true

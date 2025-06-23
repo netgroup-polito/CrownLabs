@@ -39,6 +39,8 @@ const (
 
 	//ClusterPortName -> the name of the port cluster service is exposed to.
 	ClusterPortName = "kube-apiserver"
+	//CapiVisualizerPortNumber -> the port capi-visualize is exposed to
+	CapiVisualizerPortName = "capi-visualizer"
 	// SSHPortName -> the name of the port the SSH daemon is exposed to.
 	SSHPortName = "ssh"
 	// GUIPortName -> the name of the port the NoVNC service is exposed to.

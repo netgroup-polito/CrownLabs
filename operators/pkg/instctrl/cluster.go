@@ -340,7 +340,6 @@ func (r *InstanceReconciler) updatetemplatestatus(ctx context.Context) error {
 	environment := clctx.EnvironmentFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	cluster := environment.Cluster
-
 	var tmpl clv1alpha2.Template
 	if err := r.Get(ctx, client.ObjectKey{
 		Name:      instance.Spec.Template.Name,
@@ -348,12 +347,10 @@ func (r *InstanceReconciler) updatetemplatestatus(ctx context.Context) error {
 	}, &tmpl); err != nil {
 		return err
 	}
-
 	tmpl.Status.KubeConfigs = []clv1alpha2.KubeconfigTemplate{{
 		Name:        fmt.Sprintf("%s-cluster", cluster.Name),
 		FileAddress: fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name),
 	}}
-
 	if err := r.Status().Update(ctx, &tmpl); err != nil {
 		log.Error(err, "failed to update template status")
 		return err
