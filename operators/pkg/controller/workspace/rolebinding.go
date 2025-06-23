@@ -100,13 +100,13 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	ws *v1alpha1.Workspace,
 ) error {
 	if !ws.Status.Namespace.Created {
-		return fmt.Errorf("cannot delete RoleBindings for Workspace %s: namespace not created", ws.Name)
+		return nil // No RoleBindings to delete if the namespace is not created
 	}
 	namespace := ws.Status.Namespace.Name
 
 	// Delete all RoleBindings related to the Workspace
-	for range rbData {
-		for kind := range rbData[v1alpha2.User] {
+	for _, rbDataSet := range rbData {
+		for kind := range rbDataSet {
 			if err := r.deleteSingleRb(ctx, namespace, kind); err != nil && !strings.Contains(err.Error(), "not found") {
 				return fmt.Errorf("error while deleting RoleBinding %s for workspace %s: %w",
 					kind, ws.Name, err)

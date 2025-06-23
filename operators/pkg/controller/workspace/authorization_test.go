@@ -79,12 +79,7 @@ var _ = Describe("Authorization", func() {
 
 		Context("When the Workspace is being deleted", func() {
 			BeforeEach(func() {
-				wsResource.Finalizers = append(wsResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
-				wsResource.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
-					Created: true,
-					Name:    "workspace-" + wsName,
-				}
+				workspaceBeingDeleted()
 				wsResource.Status.Subscriptions = map[string]v1alpha2.SubscriptionStatus{
 					"keycloak": v1alpha2.SubscrOk,
 				}

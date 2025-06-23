@@ -41,10 +41,16 @@ func (r *WorkspaceReconciler) manageAutoEnrollment(
 	if ws.Labels[v1alpha2.WorkspaceLabelAutoenroll] != wantedLabel {
 		ws.Labels[v1alpha2.WorkspaceLabelAutoenroll] = wantedLabel
 
+		// the update function will overwrite the status, so we need to save it
+		// and restore it after the update
+		prevStatus := ws.Status
+
 		if err := r.Update(ctx, ws); err != nil {
 			klog.Errorf("Error when updating workspace %s -> %s", ws.Name, err)
 			return err
 		}
+
+		ws.Status = prevStatus
 	}
 
 	// if actual AutoEnroll is WithApproval, nothing left to do

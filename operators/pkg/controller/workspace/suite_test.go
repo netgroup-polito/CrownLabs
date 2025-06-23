@@ -140,3 +140,8 @@ func removeObjFromObjectsList(obj client.Object) {
 		}
 	}
 }
+
+func workspaceBeingDeleted() {
+	wsResource.Finalizers = append(wsResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+	wsResource.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+}
