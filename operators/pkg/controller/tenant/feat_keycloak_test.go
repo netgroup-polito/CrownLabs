@@ -39,6 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// TODO --> questo file di test va riorganizzato con gli altri test del tenant, con un'organizzazione simile a quella adottata per il workspace
+
 var _ = BeforeSuite(func() {
 	Expect(crownlabsv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
 })

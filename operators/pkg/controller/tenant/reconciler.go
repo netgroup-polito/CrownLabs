@@ -18,7 +18,6 @@ package tenant
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -29,13 +28,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
-
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -69,9 +62,8 @@ const (
 
 type TenantReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	TargetLabel common.KVLabel
-	//KeepAliveTime    time.Duration
+	Scheme                      *runtime.Scheme
+	TargetLabel                 common.KVLabel
 	TenantNSKeepAlive           time.Duration
 	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
 	MyDrivePVCsSize             resource.Quantity
@@ -133,6 +125,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
 	}
 
+	// TODO: manage generic labels
+
+	// TODO: manage workspaces subscription
+
+	// TODO: manage resource quota
+
 	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
@@ -143,48 +141,58 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
-	if verified {
-		// if the Tenant has already been verified, we can proceed with the reconciliation
-		// and create related resources
-
-		// --v-- TODO --v--
-
-		// guardare l'utlimo accesso checkNamespaceKeepAlive
-		// if la funzione da true {
-		//   andiamo a cercare se il pers nams è creato o meno e nel caso lo creiamo
-		//   andiamo acontare le quota
-		//   occupiamoci del sandbox
-		//   e di tutte le altre cose che ci sono nelle funzioni
-		//}
-		// altrimenti cancelliamo le risorse -> deleteAllResources
-
-		// --^-- TODO --^--
-		// --v-- fake implementation --v--
-
-		nsName := fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
-
-		// Test if namespace has been open for too long; check if it is ok to delete
-		keepNsOpen, err := r.checkNamespaceKeepAlive(ctx, &tn, nsName)
-		if err != nil {
-			klog.Errorf("Error checking whether tenant namespace %s should be kept alive: %s", nsName, err)
-			tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
-			return ctrl.Result{}, err
-		}
-
-		_, err = r.enforceClusterResources(ctx, &tn, nsName, keepNsOpen)
-		// if err != nil {
-		// 	klog.Errorf("Error when enforcing cluster resources for tenant %s -> %s", tn.Name, err)
-		// 	tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
-		// 	return ctrl.Result{}, err
-		// }
-
-		// --^-- fake implementation --^--
-
-	} else {
+	if !verified {
 		// if the Tenant has not been verified, we can skip the reconciliation
 		// and wait for the next reconcile loop
-		log.Info("Tenant not verified, skipping reconciliation")
+		log.Info("Tenant not verified, skipping resource creation")
+		return ctrl.Result{}, nil
 	}
+
+	// managing resources not related to the personal namespace
+
+	// TODO: manage the resource quotas
+
+	// if the Tenant has already been verified, we can proceed with the reconciliation
+	// and create related resources
+
+	// --v-- TODO --v--
+
+	// guardare l'utlimo accesso checkNamespaceKeepAlive
+	// if la funzione da true {
+	//   andiamo a cercare se il pers nams è creato o meno e nel caso lo creiamo
+	//   andiamo acontare le quota
+	//   occupiamoci del sandbox
+	//   e di tutte le altre cose che ci sono nelle funzioni
+	//}
+	// altrimenti cancelliamo le risorse -> deleteAllResources
+
+	// --^-- TODO --^--
+
+	// managing resources related to the personal namespace
+
+	// Test if namespace has been open for too long; check if it is ok to delete
+	keepAlive, err := r.checkNamespaceKeepAlive(ctx, &tn)
+	if err != nil {
+		klog.Errorf("Error checking whether tenant namespace should be kept alive: %s", err)
+		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+		return ctrl.Result{}, err
+	}
+
+	if keepAlive {
+		// Namespace should be kept open, so we proceed with the reconciliation
+		// creating or updating the cluster resources
+
+		// TODO: create or update personal namespace
+		// TODO: tutte le cose che partono da enforceClusterResources
+	} else {
+		// Namespace should not be kept open, so we delete all the resources related to the tenant
+
+		// TODO: cancella le cose che arrivano da enforceClusterResources e il personal namespace
+	}
+
+	// TODO: manage sandbox
+
+	tn.Status.Ready = true
 
 	return ctrl.Result{}, nil
 }
@@ -258,171 +266,171 @@ func (r *TenantReconciler) deleteTenant(
 	return nil
 }
 
-func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
-	// Persistent volume claim NFS
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
+// func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
+// 	// Persistent volume claim NFS
+// 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
 
-	pvcOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
-		r.updateTnPersistentVolumeClaim(&pvc)
-		return ctrl.SetControllerReference(tn, &pvc, r.Scheme)
-	})
-	if err != nil {
-		klog.Errorf("Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
-		return err
-	}
-	klog.Infof("PVC for tenant %s %s", tn.Name, pvcOpRes)
+// 	pvcOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
+// 		r.updateTnPersistentVolumeClaim(&pvc)
+// 		return ctrl.SetControllerReference(tn, &pvc, r.Scheme)
+// 	})
+// 	if err != nil {
+// 		klog.Errorf("Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
+// 		return err
+// 	}
+// 	klog.Infof("PVC for tenant %s %s", tn.Name, pvcOpRes)
 
-	if pvc.Status.Phase == v1.ClaimBound {
-		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
-		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
-			klog.Errorf("Unable to get PV for tenant %s -> %s", tn.Name, err)
-			return err
-		}
-		pvcSecret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: NFSSecretName, Namespace: nsName}}
-		pvcSecOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvcSecret, func() error {
-			r.updateTnPVCSecret(&pvcSecret, fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"]), pv.Spec.CSI.VolumeAttributes["share"])
-			return ctrl.SetControllerReference(tn, &pvcSecret, r.Scheme)
-		})
-		if err != nil {
-			klog.Errorf("Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
-			return err
-		}
-		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
+// 	if pvc.Status.Phase == v1.ClaimBound {
+// 		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
+// 		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
+// 			klog.Errorf("Unable to get PV for tenant %s -> %s", tn.Name, err)
+// 			return err
+// 		}
+// 		pvcSecret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: NFSSecretName, Namespace: nsName}}
+// 		pvcSecOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvcSecret, func() error {
+// 			r.updateTnPVCSecret(&pvcSecret, fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"]), pv.Spec.CSI.VolumeAttributes["share"])
+// 			return ctrl.SetControllerReference(tn, &pvcSecret, r.Scheme)
+// 		})
+// 		if err != nil {
+// 			klog.Errorf("Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
+// 			return err
+// 		}
+// 		klog.Infof("PVC Secret for tenant %s %s", tn.Name, pvcSecOpRes)
 
-		val, found := pvc.Labels[forge.ProvisionJobLabel]
-		if !found || val != forge.ProvisionJobValueOk {
-			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
-			labelToSet := forge.ProvisionJobValuePending
+// 		val, found := pvc.Labels[forge.ProvisionJobLabel]
+// 		if !found || val != forge.ProvisionJobValueOk {
+// 			chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
+// 			labelToSet := forge.ProvisionJobValuePending
 
-			chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
-				if chownJob.CreationTimestamp.IsZero() {
-					klog.Infof("PVC Provisioning Job created for tenant %s", tn.Name)
-					r.updateTnProvisioningJob(&chownJob, &pvc)
-				} else if found && val == forge.ProvisionJobValuePending {
-					if chownJob.Status.Succeeded == 1 {
-						labelToSet = forge.ProvisionJobValueOk
-						klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
-					} else if chownJob.Status.Failed == 1 {
-						klog.Warningf("PVC Provisioning Job failed for tenant %s", tn.Name)
-					}
-				}
+// 			chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
+// 				if chownJob.CreationTimestamp.IsZero() {
+// 					klog.Infof("PVC Provisioning Job created for tenant %s", tn.Name)
+// 					r.updateTnProvisioningJob(&chownJob, &pvc)
+// 				} else if found && val == forge.ProvisionJobValuePending {
+// 					if chownJob.Status.Succeeded == 1 {
+// 						labelToSet = forge.ProvisionJobValueOk
+// 						klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
+// 					} else if chownJob.Status.Failed == 1 {
+// 						klog.Warningf("PVC Provisioning Job failed for tenant %s", tn.Name)
+// 					}
+// 				}
 
-				return ctrl.SetControllerReference(tn, &chownJob, r.Scheme)
-			})
-			if err != nil {
-				klog.Errorf("Unable to create or update PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
-				return err
-			}
-			klog.Infof("PVC Provisioning Job for tenant %s %s", tn.Name, chownJobOpRes)
+// 				return ctrl.SetControllerReference(tn, &chownJob, r.Scheme)
+// 			})
+// 			if err != nil {
+// 				klog.Errorf("Unable to create or update PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
+// 				return err
+// 			}
+// 			klog.Infof("PVC Provisioning Job for tenant %s %s", tn.Name, chownJobOpRes)
 
-			pvc.Labels[forge.ProvisionJobLabel] = labelToSet
-			if err := r.Update(ctx, &pvc); err != nil {
-				klog.Errorf("PVC Provisioning Job failed to update PVC labels for tenant %s", tn.Name)
-			}
-			klog.Infof("PVC Provisioning Job updateded PVC label to %s for tenant %s", labelToSet, tn.Name)
-		}
-	} else if pvc.Status.Phase == v1.ClaimPending {
-		klog.Infof("PVC pending for tenant %s", tn.Name)
-	}
-	return nil
-}
+// 			pvc.Labels[forge.ProvisionJobLabel] = labelToSet
+// 			if err := r.Update(ctx, &pvc); err != nil {
+// 				klog.Errorf("PVC Provisioning Job failed to update PVC labels for tenant %s", tn.Name)
+// 			}
+// 			klog.Infof("PVC Provisioning Job updateded PVC label to %s for tenant %s", labelToSet, tn.Name)
+// 		}
+// 	} else if pvc.Status.Phase == v1.ClaimPending {
+// 		klog.Infof("PVC pending for tenant %s", tn.Name)
+// 	}
+// 	return nil
+// }
 
-func (r *TenantReconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
-	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
-	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
-}
+// func (r *TenantReconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
+// 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
+// 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
+// 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
+// }
 
-func (r *TenantReconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
-	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
-	rb.Rules = []rbacv1.PolicyRule{{
-		APIGroups:     []string{"crownlabs.polito.it"},
-		Resources:     []string{"tenants"},
-		ResourceNames: []string{tnName},
-		Verbs:         []string{"get", "list", "watch", "patch", "update"},
-	}}
-}
+// func (r *TenantReconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
+// 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
+// 	rb.Rules = []rbacv1.PolicyRule{{
+// 		APIGroups:     []string{"crownlabs.polito.it"},
+// 		Resources:     []string{"tenants"},
+// 		ResourceNames: []string{tnName},
+// 		Verbs:         []string{"get", "list", "watch", "patch", "update"},
+// 	}}
+// }
 
-func (r *TenantReconciler) updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
-	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
-	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: crName, APIGroup: "rbac.authorization.k8s.io"}
-	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
-}
+// func (r *TenantReconciler) updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
+// 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
+// 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: crName, APIGroup: "rbac.authorization.k8s.io"}
+// 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
+// }
 
-func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
-	if chownJob.CreationTimestamp.IsZero() {
-		chownJob.Spec.BackoffLimit = ptr.To[int32](ProvisionJobMaxRetries)
-		chownJob.Spec.TTLSecondsAfterFinished = ptr.To[int32](ProvisionJobTTLSeconds)
-		chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
-		chownJob.Spec.Template.Spec.Containers = []v1.Container{{
-			Name:    "chown-container",
-			Image:   ProvisionJobBaseImage,
-			Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", forge.CrownLabsUserID, forge.CrownLabsUserID), forge.MyDriveVolumeMountPath},
-			VolumeMounts: []v1.VolumeMount{{
-				Name:      "mydrive",
-				MountPath: forge.MyDriveVolumeMountPath,
-			},
-			},
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("128Mi"),
-				},
-				Limits: v1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("128Mi"),
-				},
-			},
-		},
-		}
-		chownJob.Spec.Template.Spec.Volumes = []v1.Volume{{
-			Name: "mydrive",
-			VolumeSource: v1.VolumeSource{
-				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-					ClaimName: pvc.Name,
-				},
-			},
-		},
-		}
-	}
-}
+// func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
+// 	if chownJob.CreationTimestamp.IsZero() {
+// 		chownJob.Spec.BackoffLimit = ptr.To[int32](ProvisionJobMaxRetries)
+// 		chownJob.Spec.TTLSecondsAfterFinished = ptr.To[int32](ProvisionJobTTLSeconds)
+// 		chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
+// 		chownJob.Spec.Template.Spec.Containers = []v1.Container{{
+// 			Name:    "chown-container",
+// 			Image:   ProvisionJobBaseImage,
+// 			Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", forge.CrownLabsUserID, forge.CrownLabsUserID), forge.MyDriveVolumeMountPath},
+// 			VolumeMounts: []v1.VolumeMount{{
+// 				Name:      "mydrive",
+// 				MountPath: forge.MyDriveVolumeMountPath,
+// 			},
+// 			},
+// 			Resources: v1.ResourceRequirements{
+// 				Requests: v1.ResourceList{
+// 					"cpu":    resource.MustParse("100m"),
+// 					"memory": resource.MustParse("128Mi"),
+// 				},
+// 				Limits: v1.ResourceList{
+// 					"cpu":    resource.MustParse("100m"),
+// 					"memory": resource.MustParse("128Mi"),
+// 				},
+// 			},
+// 		},
+// 		}
+// 		chownJob.Spec.Template.Spec.Volumes = []v1.Volume{{
+// 			Name: "mydrive",
+// 			VolumeSource: v1.VolumeSource{
+// 				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+// 					ClaimName: pvc.Name,
+// 				},
+// 			},
+// 		},
+// 		}
+// 	}
+// }
 
-func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
-	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
+// func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
+// 	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
 
-	sec.Type = v1.SecretTypeOpaque
-	sec.Data = make(map[string][]byte, 2)
-	sec.Data[NFSSecretServerNameKey] = []byte(dnsName)
-	sec.Data[NFSSecretPathKey] = []byte(path)
-}
+// 	sec.Type = v1.SecretTypeOpaque
+// 	sec.Data = make(map[string][]byte, 2)
+// 	sec.Data[NFSSecretServerNameKey] = []byte(dnsName)
+// 	sec.Data[NFSSecretPathKey] = []byte(path)
+// }
 
-func (r *TenantReconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
-	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
-	np.Spec.PodSelector.MatchLabels = make(map[string]string)
-	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
-}
+// func (r *TenantReconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
+// 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
+// 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
+// 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
+// }
 
-func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
-	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
-	np.Spec.PodSelector.MatchLabels = make(map[string]string)
-	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
-		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
-	}}}}}
-}
+// func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
+// 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
+// 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
+// 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
+// 		MatchLabels: map[string]string{"crownlabs.polito.it/allow-instance-access": "true"},
+// 	}}}}}
+// }
 
-func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
-	scName := r.MyDrivePVCsStorageClassName
-	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
+// func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
+// 	scName := r.MyDrivePVCsStorageClassName
+// 	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
 
-	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
-	pvc.Spec.StorageClassName = &scName
+// 	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
+// 	pvc.Spec.StorageClassName = &scName
 
-	oldSize := *pvc.Spec.Resources.Requests.Storage()
-	if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
-		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
-	}
-}
+// 	oldSize := *pvc.Spec.Resources.Requests.Storage()
+// 	if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
+// 		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
+// 	}
+// }
 
-func myDrivePVCName(tnName string) string {
-	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tnName, ".", "-"))
-}
+// func myDrivePVCName(tnName string) string {
+// 	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tnName, ".", "-"))
+// }
