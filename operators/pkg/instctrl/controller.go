@@ -42,9 +42,17 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+
+	publicexposure "github.com/netgroup-polito/CrownLabs/operators/pkg/public-exposure"
 )
 
-// InstanceReconciler reconciles a Instance object.
+const (
+	metallbPoolName = "my-ip-pool"
+	sharedIPValue   = "true"
+	basePort        = 30000
+)
+
+// InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
@@ -57,6 +65,10 @@ type InstanceReconciler struct {
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
+
+	// Add manager for public exposure of instances.
+	// TODO: remove this into future versions, need to be implemented into main
+	ExposureManager *publicexposure.Manager
 }
 
 // ServiceUrls holds URL parameters for the instance reconciler.
@@ -172,6 +184,13 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, err
 	}
 
+	// CAll the function to enforce the public exposure of the instance.
+	// TODO: remove this into future versions, no need to call explicitly the ReconcileExposure function
+	if err := r.ExposureManager.ReconcileExposure(ctx, &instance); err != nil {
+		log.Error(err, "Failed to reconcile instance exposure")
+		return ctrl.Result{}, err
+	}
+
 	if err = r.podScheduleStatusIntoInstance(ctx, &instance); err != nil {
 		log.Error(err, "unable to retrieve pod schedule status")
 	}
@@ -247,6 +266,11 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
+
+	// Inizialize the public exposure manager with the scheme
+	// TODO: change this and put into main
+	r.ExposureManager = publicexposure.NewManager(mgr.GetClient(), mgr.GetScheme())
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).

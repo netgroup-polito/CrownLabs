@@ -1,0 +1,26 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: netshoot
+  namespace: workspace-standalone
+spec:
+  prettyName: Netshoot
+  description: A container with a collection of networking tools for troubleshooting and debugging
+  environmentList:
+    - name: netshoot-environment
+      mountMyDriveVolume: false
+      environmentType: Standalone
+      mode: Standard
+      # Usa un'immagine più semplice che funziona out-of-the-box
+      image: wettyoss/wetty
+      containerStartupOptions:
+        contentPath: /root
+      resources:
+        cpu: 1
+        memory: 512Mi
+        disk: 1Gi 
+        reservedCPUPercentage: 25
+      persistent: false
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: standalone
+  deleteAfter: 7d
