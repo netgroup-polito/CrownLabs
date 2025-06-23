@@ -18,12 +18,12 @@ package workspace
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -107,7 +107,7 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	// Delete all RoleBindings related to the Workspace
 	for _, rbDataSet := range rbData {
 		for kind := range rbDataSet {
-			if err := r.deleteSingleRb(ctx, namespace, kind); err != nil && !strings.Contains(err.Error(), "not found") {
+			if err := r.deleteSingleRb(ctx, namespace, kind); client.IgnoreNotFound(err) != nil {
 				return fmt.Errorf("error while deleting RoleBinding %s for workspace %s: %w",
 					kind, ws.Name, err)
 			}

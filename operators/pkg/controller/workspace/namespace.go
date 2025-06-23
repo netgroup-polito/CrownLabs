@@ -18,12 +18,12 @@ package workspace
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -65,7 +65,7 @@ func (r *WorkspaceReconciler) deleteNamespace(
 		},
 	}
 
-	if err := r.Client.Delete(ctx, ns); err != nil && !strings.Contains(err.Error(), "not found") {
+	if err := r.Client.Delete(ctx, ns); err != nil && client.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("error while deleting namespace %s for workspace %s: %w",
 			ns.Name, ws.Name, err)
 	}
