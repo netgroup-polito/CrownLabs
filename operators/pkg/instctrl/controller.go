@@ -18,6 +18,8 @@ package instctrl
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"time"
@@ -35,6 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -70,9 +73,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
-
+	var flag_cluster bool
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
-
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = trace.ContextWithTrace(ctx, tracer)
 	defer tracer.LogIfLong(utils.LongThreshold())
@@ -137,7 +139,38 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	ctx, log = clctx.TemplateInto(ctx, &template)
 	tracer.Step("retrieved the instance template")
 	log.Info("successfully retrieved the instance template")
+	for i := range template.Spec.EnvironmentList {
+		// Currently, only instances composed of a single environment are supported.
+		// Nonetheless, we return nil in the end, since it is useless to retry later.
+		if i >= 1 {
+			err := fmt.Errorf("instances composed of multiple environments are currently not supported")
+			log.Error(err, "failed to process environment")
+			return ctrl.Result{}, nil
+		}
+		switch template.Spec.EnvironmentList[i].EnvironmentType {
+		case clv1alpha2.ClassCluster:
+			flag_cluster = true
+		}
+	}
+	const instanceCleanupFinalizer = "crownlabs.polito.it/instance-cleanup"
 
+	// Handle Deletion + Finalizer removal
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() && flag_cluster {
+		log.Info("Instance is marked for deletion, handling finalizer")
+		if controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) {
+			if err := r.cleanupResource(ctx); err != nil {
+				log.Error(err, "failed to clean up resources")
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(&instance, instanceCleanupFinalizer)
+			if err := r.Update(ctx, &instance); err != nil {
+				log.Error(err, "failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
+			log.Info("Finalizer removed, instance will be deleted")
+		}
+		return ctrl.Result{}, nil
+	}
 	// Retrieve the tenant associated with the current instance.
 	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
 	var tenant clv1alpha2.Tenant
@@ -179,6 +212,16 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
+	// Add Finalizer if missing
+	if !controllerutil.ContainsFinalizer(&instance, instanceCleanupFinalizer) && flag_cluster {
+		controllerutil.AddFinalizer(&instance, instanceCleanupFinalizer)
+		if err := r.Update(ctx, &instance); err != nil {
+			log.Error(err, "failed to add finalizer")
+			return ctrl.Result{}, err
+		}
+		log.Info("Finalizer added")
+		return ctrl.Result{}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -197,7 +240,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			log.Error(err, "failed to process environment")
 			return nil
 		}
-
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(ctx); err != nil {
@@ -209,8 +251,12 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
+		case clv1alpha2.ClassCluster:
+			if err := r.EnforceClusterEnvironment(ctx); err != nil {
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				return err
+			}
 		}
-
 		r.setInitialReadyTimeIfNecessary(ctx)
 	}
 	return nil
@@ -267,5 +313,29 @@ func (r *InstanceReconciler) vmiToInstance(_ context.Context, o client.Object) [
 		return []reconcile.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: instance}}}
 	}
 
+	return nil
+}
+
+// cleanupResource clean file and release visualizer afer deleting instance
+func (r *InstanceReconciler) cleanupResource(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	path := fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name)
+	namespace := instance.Namespace
+	name := fmt.Sprintf("%s-instance-visualizer", instance.Name)
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		log.Error(err, "failed to delete file", "path", path)
+		return err
+	}
+	log.Info("Successful cleaned up file", "path", path)
+	cmd := exec.Command(
+		"helm", "delete", name,
+		"-n", namespace,
+	)
+	if err := cmd.Run(); err != nil {
+		log.Error(err, "Helm delete failed")
+		return err
+	}
+	log.Info("Helm delete succeeded")
 	return nil
 }
