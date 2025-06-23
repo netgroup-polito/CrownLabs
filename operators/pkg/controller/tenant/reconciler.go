@@ -125,9 +125,12 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
 	}
 
-	// TODO: manage generic labels
+	// manage generic labels
+	if err := r.updateTenantBaseLabels(ctx, &log, &tn); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error updating tenant base labels: %w", err)
+	}
 
-	// TODO: manage workspaces subscription
+	// TODO: manage workspaces subscription (and related labels)
 
 	// TODO: manage resource quota
 
