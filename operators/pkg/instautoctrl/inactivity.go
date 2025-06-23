@@ -113,7 +113,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 
 // Reconcile reconciles the status of the InstanceSnapshot resource.
 func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}

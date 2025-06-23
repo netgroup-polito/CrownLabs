@@ -31,7 +31,7 @@ type MailClient struct {
 }
 
 var (
-	// HTML CrownLabs email header and footer
+	// HTML CrownLabs email header and footer.
 	defaultHeaderHTML = `<!DOCTYPE html>
 <html>
 <body>
@@ -52,7 +52,7 @@ var (
 </div>
 </body>
 </html>`
-	// Plaintext CrownLabs email Header and Footer
+	// Plaintext CrownLabs email Header and Footer.
 	defaultPlainHeader = "=== CROWNLABS NOTIFICATION ===\n\nDear user,\n\n"
 	defaultPlainFooter = "\n\nBest regards,\nCrownLabs Team\n\n---\nThis is an automated message from CrownLabs.\nIf you need assistance, please contact support."
 )
