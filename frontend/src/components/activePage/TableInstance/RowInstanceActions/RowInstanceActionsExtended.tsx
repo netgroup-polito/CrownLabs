@@ -4,7 +4,8 @@ import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { EnvironmentType, Phase } from '../../../../generated-types';
-
+import { Link } from 'react-router-dom';
+import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
 
 const getSSHTooltipText = (
@@ -46,6 +47,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     status !== Phase.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
+
+  const ENV_PLACEHOLDER = 'env';
 
   const infoContent = (
     <>
@@ -106,6 +109,32 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
+              <Button
+                disabled={sshDisabled}
+                type="link"
+                className="ml-3"
+                color="primary"
+                variant="solid"
+                shape="circle"
+                size="small"
+                icon={
+                  <Link
+                    to={`/instance/${instance.tenantNamespace}/${instance.name}/${ENV_PLACEHOLDER}/ssh`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      color: 'inherit',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                      <ExportOutlined style={{ fontSize: 15 }} />
+                    </span>
+                  </Link>
+                }
+              ></Button>
             </Button>
           </span>
         </Tooltip>
