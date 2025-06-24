@@ -15,11 +15,12 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"net/smtp"
 	"strings"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 )
 
 // MailClient is a simple SMTP client for sending emails.
@@ -77,7 +78,15 @@ func DefaultEmailTemplate() EmailTemplate {
 }
 
 // FormatEmailContent replaces template variables in message content.
-func FormatEmailContent(content string, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant) string {
+func FormatEmailContent(content string, ctx context.Context) (string, error) {
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return "", fmt.Errorf("instance not found in context")
+	}
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return "", fmt.Errorf("tenant not found in context")
+	}
 	replacements := map[string]string{
 		"{name}":        instance.Name,
 		"{prettyName}":  instance.Spec.PrettyName,
@@ -88,7 +97,7 @@ func FormatEmailContent(content string, instance *clv1alpha2.Instance, tenant *c
 	for key, value := range replacements {
 		content = strings.ReplaceAll(content, key, value)
 	}
-	return content
+	return content, nil
 }
 
 // SendMail sends an email using the SMTP server configured in the MailClient.

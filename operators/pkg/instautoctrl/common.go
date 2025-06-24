@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -39,7 +40,16 @@ const (
 )
 
 // SendInactivityNotification sends notification about instance inactivity detection.
-func SendInactivityNotification(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+func SendInactivityNotification(ctx context.Context, mc *utils.MailClient) error {
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
+
 	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has been detected as inactive for an extended period.</p>
 <p>If no activity is detected, the instance will be automatically terminated to conserve resources.</p>`
 
@@ -48,31 +58,56 @@ If no activity is detected, the instance will be automatically terminated to con
 
 	subject := "CrownLabs: Inactivity Detected for {prettyName}"
 
-	return sendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+	return sendFormattedNotification(ctx, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
 }
 
 // SendExpiringNotification sends expiration warning notification.
-func SendExpiringNotification(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
+func SendExpiringNotification(ctx context.Context, mc *utils.MailClient) error {
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
 	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired and has now been terminated.</p>`
 	messagePlain := "Your instance {prettyName} has expired and has now been terminated."
 	subject := "CrownLabs: Instance {prettyName} Expired"
 
-	return sendFormattedNotification(ctx, instance, tenant, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+	return sendFormattedNotification(ctx, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
 }
 
-func sendFormattedNotification(ctx context.Context, instance *clv1alpha2.Instance,
-	tenant *clv1alpha2.Tenant, mc *utils.MailClient,
+func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
 	messageHTML string, messagePlain string,
 	subject string, template utils.EmailTemplate) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
 	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
 
 	// Format both HTML and plain text messages
-	formattedHTML := utils.FormatEmailContent(template.HeaderHTML+messageHTML+template.FooterHTML, instance, tenant)
-	formattedPlain := utils.FormatEmailContent(template.PlainHeader+messagePlain+template.PlainFooter, instance, tenant)
-	formattedSubject := utils.FormatEmailContent(subject, instance, tenant)
+	formattedHTML, err := utils.FormatEmailContent(template.HeaderHTML+messageHTML+template.FooterHTML, ctx)
+	if err != nil {
+		log.Error(err, "failed formatting HTML content for email notification")
+		return err
+	}
+	formattedPlain, err := utils.FormatEmailContent(template.PlainHeader+messagePlain+template.PlainFooter, ctx)
+	if err != nil {
+		return err
+	}
+	formattedSubject, err := utils.FormatEmailContent(subject, ctx)
+	if err != nil {
+		return err
+	}
 
-	err := mc.SendMail([]string{tenant.Spec.Email}, formattedSubject, formattedPlain, formattedHTML)
+	err = mc.SendMail([]string{tenant.Spec.Email}, formattedSubject, formattedPlain, formattedHTML)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
@@ -83,8 +118,12 @@ func sendFormattedNotification(ctx context.Context, instance *clv1alpha2.Instanc
 }
 
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
-func GetTenantFromInstance(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Tenant, error) {
+func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return &clv1alpha2.Tenant{}, fmt.Errorf("instance not found in context")
+	}
 	log.Info("getting user from instance", "instance", instance.Name)
 
 	tenant := &clv1alpha2.Tenant{}

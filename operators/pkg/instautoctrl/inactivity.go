@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -141,6 +142,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 	tracer.Step("template retrieved")
 
+	// Add the instance and template to the context
+	ctx, _ = pkgcontext.InstanceInto(ctx, &instance)
+	ctx, _ = pkgcontext.TemplateInto(ctx, &template)
+
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue , return without rescheduling
@@ -208,7 +213,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("failed creating Prometheus client: %w", err)
 	}
 	// update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, &instance, inactivityTimeout, &promClient); err != nil {
+	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeout, &promClient); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
@@ -216,7 +221,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("instance last login updated")
 
 	// check for inactivity and decide whether to terminate the instance or not
-	remainingTime, err := r.CheckInstanceTermination(ctx, &instance, inactivityTimeout)
+	remainingTime, err := r.CheckInstanceTermination(ctx, inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -228,11 +233,13 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// If the remaining time is less than or equal to 0, the instance is considered inactive
 	if remainingTime <= 0 {
 		// retrieve the user owner of the instance
-		user, err := GetTenantFromInstance(ctx, r.Client, &instance)
+		user, err := GetTenantFromInstance(ctx, r.Client)
 		if err != nil {
 			log.Error(err, "failed retrieving user from instance")
 			return ctrl.Result{}, err
 		}
+
+		ctx, _ = pkgcontext.TenantInto(ctx, user)
 
 		// send notification to the user
 		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotation])
@@ -242,7 +249,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			err := SendInactivityNotification(ctx, &instance, user, r.MailClient)
+			err := SendInactivityNotification(ctx, r.MailClient)
 			if err != nil {
 				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
 				return ctrl.Result{}, err
@@ -260,7 +267,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				return ctrl.Result{}, err
 			}
 		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
-			err := r.TerminateInstance(ctx, &instance, &template)
+			err := r.TerminateInstance(ctx)
 			if err != nil {
 				log.Error(err, "failed terminating instance", "instance", instance.Name)
 				return ctrl.Result{}, err
@@ -333,9 +340,12 @@ func GetLastActivityTime(query string, promClient v1.API, interval time.Duration
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string, promClient *api.Client) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeout string, promClient *api.Client) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
-
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
 	v1api := v1.NewAPI(*promClient)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -376,8 +386,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string) (time.Duration, error) {
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, inactivityTimeout string) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return 0, fmt.Errorf("instance not found in context")
+	}
 	var remainingTime time.Duration
 
 	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[forge.LastActivityAnnotation])
@@ -446,8 +460,18 @@ func (r *InstanceInactiveTerminationReconciler) IsPrometheusHealthy(ctx context.
 }
 
 // TerminateInstance terminates the Instance.
-func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context, instance *clv1alpha2.Instance, template *clv1alpha2.Template) error {
+func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
+
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+	template := pkgcontext.TemplateFrom(ctx)
+	if template == nil {
+		return fmt.Errorf("template not found in context")
+	}
+
 	log.Info("Terminating instance", "instance", instance.Name, " in namespace", instance.Namespace)
 
 	var environment = template.Spec.EnvironmentList[0]

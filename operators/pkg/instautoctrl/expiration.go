@@ -21,6 +21,9 @@ import (
 	"regexp"
 	"time"
 
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,9 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // InstanceExpirationReconciler watches for instances to be terminated.
@@ -118,6 +118,10 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Get lifespan from template's deleteAfter field
 	deleteAfter := template.Spec.DeleteAfter
+
+	ctx, _ = pkgcontext.TemplateInto(ctx, &template)
+	ctx, _ = pkgcontext.InstanceInto(ctx, &instance)
+
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
 	if deleteAfter == neverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
@@ -125,7 +129,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	remainingTime, err := r.CheckInstanceExpiration(ctx, &instance, deleteAfter)
+	remainingTime, err := r.CheckInstanceExpiration(ctx, deleteAfter)
 	if err != nil {
 		log.Error(err, "failed to check instance expiration")
 		return ctrl.Result{}, err
@@ -133,13 +137,13 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	if remainingTime <= 0 {
 		// If we reached this point, instance is expired and must be deleted
-		if err := r.DeleteInstance(ctx, &instance); err != nil {
+		if err := r.DeleteInstance(ctx); err != nil {
 			log.Error(err, "failed to delete instance")
 			return ctrl.Result{}, err
 		}
 
 		// Send notification
-		if err := r.NotifyInstanceDeletion(ctx, &instance); err != nil {
+		if err := r.NotifyInstanceDeletion(ctx); err != nil {
 			log.Error(err, "failed to send deletion notification")
 			return ctrl.Result{}, err
 		}
@@ -159,8 +163,12 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // CheckInstanceExpiration returns the remaining time before expiration as a time.Duration.
-func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Context, instance *clv1alpha2.Instance, deleteAfter string) (time.Duration, error) {
+func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Context, deleteAfter string) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-remaining-time")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return 0, fmt.Errorf("instance not found in context")
+	}
 	var remainingTime time.Duration
 
 	// Parse the deleteAfter value
@@ -181,8 +189,12 @@ func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Conte
 }
 
 // DeleteInstance attempts to delete the instance.
-func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context, instance *clv1alpha2.Instance) error {
+func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
 
 	if err := r.Client.Delete(ctx, instance); err != nil {
 		if kerrors.IsNotFound(err) {
@@ -197,17 +209,21 @@ func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context, insta
 }
 
 // NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
-func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Context, instance *clv1alpha2.Instance) error {
+func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notify-instance-deletion")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
 
 	// Get tenant information for notification
-	tenant, err := GetTenantFromInstance(ctx, r.Client, instance)
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
 	if err != nil {
 		return fmt.Errorf("failed retrieving tenant from instance: %w", err)
 	}
 
 	// Send the notification email
-	if err := SendExpiringNotification(ctx, instance, tenant, r.MailClient); err != nil {
+	if err := SendExpiringNotification(ctx, r.MailClient); err != nil {
 		return fmt.Errorf("failed sending notification email: %w", err)
 	}
 
