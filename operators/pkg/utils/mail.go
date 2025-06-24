@@ -103,8 +103,13 @@ func FormatEmailContent(content string, ctx context.Context) (string, error) {
 // SendMail sends an email using the SMTP server configured in the MailClient.
 // If htmlBody is provided, sends a multipart email with both plain text and HTML versions.
 // If htmlBody is empty, sends just a plain text email.
-func (m *MailClient) SendMail(to []string, subject, plainBody string, htmlBody ...string) error {
+func (m *MailClient) SendMail(subject, plainBody string, htmlBody string, to ...string) error {
+	if len(to) == 0 {
+		return fmt.Errorf("no recipients provided")
+	}
+
 	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
+
 	// Common headers
 	headers := []string{
 		fmt.Sprintf("From: %s", m.From),
@@ -112,7 +117,7 @@ func (m *MailClient) SendMail(to []string, subject, plainBody string, htmlBody .
 		fmt.Sprintf("Subject: %s", subject),
 	}
 	// Send as HTML if htmlBody is provided, otherwise send as plain text
-	if len(htmlBody) > 0 && htmlBody[0] != "" {
+	if htmlBody != "" {
 		// Create MIME multipart email
 		boundary := "CrownLabsEmailBoundary"
 		mimeHeaders := append(headers,
@@ -131,7 +136,7 @@ func (m *MailClient) SendMail(to []string, subject, plainBody string, htmlBody .
 			fmt.Sprintf("--%s", boundary),
 			"Content-Type: text/html; charset=UTF-8",
 			"",
-			htmlBody[0],
+			htmlBody,
 			""}
 		// Add closing boundary
 		closing := []string{

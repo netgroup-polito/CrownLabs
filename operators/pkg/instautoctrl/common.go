@@ -146,7 +146,7 @@ func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
 		return err
 	}
 
-	err = mc.SendMail([]string{tenant.Spec.Email}, formattedSubject, formattedPlain, formattedHTML)
+	err = mc.SendMail(formattedSubject, formattedPlain, formattedHTML, tenant.Spec.Email)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
