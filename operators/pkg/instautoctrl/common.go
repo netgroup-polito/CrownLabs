@@ -44,6 +44,8 @@ const (
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
+// ParseDurationWithDays parses a duration string that respects the format
+// specified in 'durationWithDaysRegex'.
 func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("parse-duration-with-days")
 
