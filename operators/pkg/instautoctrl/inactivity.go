@@ -239,14 +239,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// If the remaining time is less than or equal to 0, the instance is considered inactive
 	if remainingTime <= 0 {
-		// retrieve the user owner of the instance
-		user, err := GetTenantFromInstance(ctx, r.Client)
+		// retrieve the tenant owner of the instance
+		tenant, err := GetTenantFromInstance(ctx, r.Client)
 		if err != nil {
-			log.Error(err, "failed retrieving user from instance")
+			log.Error(err, "failed retrieving tenant from instance")
 			return ctrl.Result{}, err
 		}
 
-		ctx, _ = pkgcontext.TenantInto(ctx, user)
+		ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
 		// send notification to the user
 		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
@@ -259,11 +259,11 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			if r.EnableInactivityNotifications {
 				err := SendInactivityNotification(ctx, r.MailClient)
 				if err != nil {
-					log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
+					log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
 					return ctrl.Result{}, err
 				}
 			} else {
-				log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", user.Spec.Email)
+				log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
 			}
 			// increment the number of termination alerts
 			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
