@@ -90,7 +90,6 @@ run-instance-automation: generate
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: samples-local install-local run-instance
 
-run-instance-automation-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-automation-local: samples-local install-local run-instance-automation
 
 run-tenant: generate

@@ -33,6 +33,11 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
+const (
+	// defaultTimeoutValue is the default value for inactivity timeout and expiration in the template CRD.
+	neverTimeoutValue = "never"
+)
+
 // SendInactivityNotification sends notification about instance inactivity detection.
 func SendInactivityNotification(ctx context.Context, instance *clv1alpha2.Instance, tenant *clv1alpha2.Tenant, mc *utils.MailClient) error {
 	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has been detected as inactive for an extended period.</p>
@@ -139,7 +144,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 	var instances clv1alpha2.InstanceList
 	if err := c.List(ctx, &instances,
 		client.InNamespace(""),
-		client.MatchingLabels{"crownlabs.polito.it/template": template.Name},
+		client.MatchingLabels{forge.LabelTemplateKey: template.Name},
 	); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
 		return requests

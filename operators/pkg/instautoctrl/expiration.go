@@ -64,7 +64,7 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.DeleteAfter == "never" {
+				if !ok || template.Spec.DeleteAfter == neverTimeoutValue {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -114,8 +114,8 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
 	}
 
-	// If the template's deleteAfter field is set to "never", never delete
-	if template.Spec.DeleteAfter == "never" {
+	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
+	if template.Spec.DeleteAfter == neverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
@@ -167,7 +167,7 @@ func (r *InstanceExpirationReconciler) GetTemplateForInstance(ctx context.Contex
 
 // GetLifespanFromTemplate converts the deleteAfter field into a duration in seconds.
 func GetLifespanFromTemplate(template *clv1alpha2.Template) (float64, error) {
-	if template.Spec.DeleteAfter == "never" {
+	if template.Spec.DeleteAfter == neverTimeoutValue {
 		return math.Inf(1), nil
 	}
 	return ConvertToSeconds(template.Spec.DeleteAfter)
@@ -175,7 +175,7 @@ func GetLifespanFromTemplate(template *clv1alpha2.Template) (float64, error) {
 
 // ConvertToSeconds converts a deleteAfter string to seconds.
 func ConvertToSeconds(deleteAfter string) (float64, error) {
-	if deleteAfter == "never" {
+	if deleteAfter == neverTimeoutValue {
 		return math.Inf(1), nil
 	}
 
@@ -206,8 +206,8 @@ func ConvertToSeconds(deleteAfter string) (float64, error) {
 // If the instance has already expired, the returned duration will be ≤ 0.
 func GetRemainingTime(instance *clv1alpha2.Instance, template *clv1alpha2.Template) (time.Duration, error) {
 	// Get lifespan from template's deleteAfter field
-	if template.Spec.DeleteAfter == "never" {
-		// Return maximum duration for "never"
+	if template.Spec.DeleteAfter == neverTimeoutValue {
+		// Return maximum duration for neverTimeoutValue
 		return time.Duration(math.MaxInt64), nil
 	}
 
@@ -220,7 +220,9 @@ func GetRemainingTime(instance *clv1alpha2.Instance, template *clv1alpha2.Templa
 	created := instance.GetCreationTimestamp().Time
 	elapsed := time.Since(created)
 	remaining := time.Duration(lifespanSeconds)*time.Second - elapsed
-	return remaining, nil
+	requeueTime := remaining
+	requeueTime += 1 * time.Minute
+	return requeueTime, nil
 }
 
 // DeleteInstance attempts to delete the instance.

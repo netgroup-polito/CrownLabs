@@ -69,7 +69,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.InactivityTimeout == "never" {
+				if !ok || template.Spec.InactivityTimeout == neverTimeoutValue {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -144,8 +144,8 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
-	// If set to "never", return without rescheduling
-	if inactivityTimeout == "never" {
+	// If set to neverTimeoutValue , return without rescheduling
+	if inactivityTimeout == neverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
