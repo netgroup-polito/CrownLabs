@@ -182,7 +182,6 @@ func main() {
 			InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
 			MailClient:                mailClient,
 			PrometheusURL:             *prometheusURL,
-			InactivityInterval:        *instanceTerminationStatusCheckInterval,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)
