@@ -154,29 +154,29 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("labels checked")
 
-	// add the annotation if not present to check the number of termination alerts
+	// add annotations to the instance if not present
 	if instance.ObjectMeta.Annotations == nil {
 		instance.ObjectMeta.Annotations = make(map[string]string)
 	}
 	patch := client.MergeFrom(instance.DeepCopy())
+	// Check and set the alert annotation if not present
 	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotation)
 		instance.ObjectMeta.Annotations[forge.AlertAnnotation] = "0"
-
-		// update the instance with the new annotation
-		_ = r.Patch(ctx, &instance, patch)
 	}
-
-	// add the annotation if not present to check the last activity time
-	if instance.ObjectMeta.Annotations == nil {
-		instance.ObjectMeta.Annotations = make(map[string]string)
-	}
-	patch = client.MergeFrom(instance.DeepCopy())
-	if _, ok := instance.Annotations[forge.LastActivityAnnotation]; !ok {
+	// Check and set the last activity annotation if not present
+	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
 		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
-		// update the instance with the new annotation
-		_ = r.Patch(ctx, &instance, patch)
+	}
+	// Apply the patch
+	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotation]
+	_, ok2 := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]
+	if !ok1 || !ok2 {
+		if err := r.Patch(ctx, &instance, patch); err != nil {
+			log.Error(err, "failed updating instance annotations")
+			return ctrl.Result{}, err
+		}
 	}
 
 	tracer.Step("annotations checked")
