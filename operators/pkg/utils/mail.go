@@ -68,8 +68,8 @@ type EmailTemplate struct {
 }
 
 // DefaultEmailTemplate returns the standard CrownLabs email template.
-func DefaultEmailTemplate() EmailTemplate {
-	return EmailTemplate{
+func DefaultEmailTemplate() *EmailTemplate {
+	return &EmailTemplate{
 		HeaderHTML:  defaultHeaderHTML,
 		FooterHTML:  defaultFooterHTML,
 		PlainHeader: defaultPlainHeader,
@@ -78,7 +78,7 @@ func DefaultEmailTemplate() EmailTemplate {
 }
 
 // FormatEmailContent replaces template variables in message content.
-func FormatEmailContent(content string, ctx context.Context) (string, error) {
+func FormatEmailContent(ctx context.Context, content string) (string, error) {
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
 		return "", fmt.Errorf("instance not found in context")
@@ -103,7 +103,7 @@ func FormatEmailContent(content string, ctx context.Context) (string, error) {
 // SendMail sends an email using the SMTP server configured in the MailClient.
 // If htmlBody is provided, sends a multipart email with both plain text and HTML versions.
 // If htmlBody is empty, sends just a plain text email.
-func (m *MailClient) SendMail(subject, plainBody string, htmlBody string, to ...string) error {
+func (m *MailClient) SendMail(subject, plainBody, htmlBody string, to ...string) error {
 	if len(to) == 0 {
 		return fmt.Errorf("no recipients provided")
 	}
@@ -151,12 +151,11 @@ func (m *MailClient) SendMail(subject, plainBody string, htmlBody string, to ...
 			"\r\n")
 		msg := []byte(message)
 		return smtp.SendMail(address, m.Auth, m.From, to, msg)
-	} else {
-		// Plain text email only
-		plainHeaders := append(headers,
-			"",
-			plainBody)
-		msg := []byte(strings.Join(plainHeaders, "\r\n"))
-		return smtp.SendMail(address, m.Auth, m.From, to, msg)
 	}
+	// else, plain text email only
+	plainHeaders := append(headers,
+		"",
+		plainBody)
+	msg := []byte(strings.Join(plainHeaders, "\r\n"))
+	return smtp.SendMail(address, m.Auth, m.From, to, msg)
 }

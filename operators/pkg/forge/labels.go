@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	// Label keys used in CrownLabs resources.
 	LabelManagedByKey    = "crownlabs.polito.it/managed-by"
 	LabelInstanceKey     = "crownlabs.polito.it/instance"
 	LabelWorkspaceKey    = "crownlabs.polito.it/workspace"

@@ -20,9 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // InstanceExpirationReconciler watches for instances to be terminated.

@@ -119,7 +119,7 @@ func SendExpiringNotification(ctx context.Context, mc *utils.MailClient) error {
 
 func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
 	messageHTML string, messagePlain string,
-	subject string, template utils.EmailTemplate) error {
+	subject string, template *utils.EmailTemplate) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
@@ -132,16 +132,16 @@ func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
 	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
 
 	// Format both HTML and plain text messages
-	formattedHTML, err := utils.FormatEmailContent(template.HeaderHTML+messageHTML+template.FooterHTML, ctx)
+	formattedHTML, err := utils.FormatEmailContent(ctx, template.HeaderHTML+messageHTML+template.FooterHTML)
 	if err != nil {
 		log.Error(err, "failed formatting HTML content for email notification")
 		return err
 	}
-	formattedPlain, err := utils.FormatEmailContent(template.PlainHeader+messagePlain+template.PlainFooter, ctx)
+	formattedPlain, err := utils.FormatEmailContent(ctx, template.PlainHeader+messagePlain+template.PlainFooter)
 	if err != nil {
 		return err
 	}
-	formattedSubject, err := utils.FormatEmailContent(subject, ctx)
+	formattedSubject, err := utils.FormatEmailContent(ctx, subject)
 	if err != nil {
 		return err
 	}

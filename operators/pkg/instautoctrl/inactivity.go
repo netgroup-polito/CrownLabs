@@ -127,34 +127,19 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	// Get the instance object.
-	var instance clv1alpha2.Instance
-	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
-		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed retrieving instance")
-		}
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	instance, template, err := r.GetInstanceAndTemplate(ctx, req)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-	tracer.Step("instance retrieved")
-
-	// Get the template associated with the instance
-	var template clv1alpha2.Template
-	if err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)
-	}
-	tracer.Step("template retrieved")
+	tracer.Step("instance and template retrieved")
 
 	// Add the instance and template to the context
-	ctx, _ = pkgcontext.InstanceInto(ctx, &instance)
-	ctx, _ = pkgcontext.TemplateInto(ctx, &template)
+	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+	ctx, _ = pkgcontext.TemplateInto(ctx, template)
 
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
-	// If set to neverTimeoutValue , return without rescheduling
+	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == neverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
@@ -166,66 +151,24 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("failed to parse deleteAfter duration %s: %w", inactivityTimeout, err)
 	}
 
-	// Check the selector label, in order to know whether to perform or not reconciliation.
-	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
-		if err != nil {
-			err = fmt.Errorf("failed checking selector label: %w", err)
-		}
+	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
+	skip, err := r.CheckSkipReconciliation(ctx)
+	if skip {
 		return ctrl.Result{}, err
-	}
-
-	var namespace corev1.Namespace
-	if err := r.Get(ctx, types.NamespacedName{Name: instance.Namespace}, &namespace); err != nil {
-		log.Error(err, "failed retrieving instance namespace", "instance", instance.Name)
-		return ctrl.Result{}, err
-	}
-
-	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
-	if stop := utils.CheckSingleLabel(&namespace, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
-		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
-		return ctrl.Result{}, nil
 	}
 
 	tracer.Step("labels checked")
 
-	// add annotations to the instance if not present
-	if instance.ObjectMeta.Annotations == nil {
-		instance.ObjectMeta.Annotations = make(map[string]string)
-	}
-	patch := client.MergeFrom(instance.DeepCopy())
-	// Check and set the alert annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
-		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
-	}
-	// Check and set the last activity annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
-		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
-	}
-	// Apply the patch
-	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]
-	_, ok2 := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]
-	if !ok1 || !ok2 {
-		if err := r.Patch(ctx, &instance, patch); err != nil {
-			log.Error(err, "failed updating instance annotations")
-			return ctrl.Result{}, err
-		}
-	}
-
-	tracer.Step("annotations checked")
-
-	// Create the Prometheus client
-	promClient, err := api.NewClient(
-		api.Config{
-			Address: r.PrometheusURL,
-		},
-	)
+	err = r.SetupInstanceAnnotations(ctx)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed creating Prometheus client: %w", err)
+		log.Error(err, "failed setting up instance annotations")
+		return ctrl.Result{}, err
 	}
+
+	tracer.Step("annotations setup done")
+
 	// update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration, &promClient); err != nil {
+	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
@@ -244,50 +187,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// If the remaining time is less than or equal to 0, the instance is considered inactive
 	if remainingTime <= 0 {
-		// retrieve the tenant owner of the instance
-		tenant, err := GetTenantFromInstance(ctx, r.Client)
+		err = r.HandleInstanceTermination(ctx)
 		if err != nil {
-			log.Error(err, "failed retrieving tenant from instance")
+			log.Error(err, "failed handling instance termination")
 			return ctrl.Result{}, err
-		}
-
-		ctx, _ = pkgcontext.TenantInto(ctx, tenant)
-
-		// send notification to the user
-		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
-		if err != nil {
-			log.Error(err, "failed converting string of alerts sent in int number")
-			return ctrl.Result{}, err
-		}
-
-		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			if r.EnableInactivityNotifications {
-				err := SendInactivityNotification(ctx, r.MailClient)
-				if err != nil {
-					log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
-					return ctrl.Result{}, err
-				}
-			} else {
-				log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
-			}
-			// increment the number of termination alerts
-			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
-			if err != nil {
-				log.Error(err, "failed incrementing annotation")
-				return ctrl.Result{}, err
-			}
-			instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
-			// update the status of the instance
-			if err := r.Update(ctx, &instance); err != nil {
-				log.Error(err, "failed updating instance annotations")
-				return ctrl.Result{}, err
-			}
-		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
-			err := r.TerminateInstance(ctx)
-			if err != nil {
-				log.Error(err, "failed terminating instance", "instance", instance.Name)
-				return ctrl.Result{}, err
-			}
 		}
 	} else {
 		// TODO: remove
@@ -305,6 +208,31 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
+}
+
+// GetInstanceAndTemplate retrieves the instance and associated template.
+func (r *InstanceInactiveTerminationReconciler) GetInstanceAndTemplate(ctx context.Context, req ctrl.Request) (*clv1alpha2.Instance, *clv1alpha2.Template, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	var instance clv1alpha2.Instance
+	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
+		if !kerrors.IsNotFound(err) {
+			log.Error(err, "failed retrieving instance")
+		}
+		return nil, nil, err
+	}
+
+	var template clv1alpha2.Template
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Namespace,
+	}, &template); err != nil {
+		log.Error(err, "Unable to fetch the instance template.")
+		return nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
+			instance.Namespace, instance.Spec.Template.Name, err)
+	}
+
+	return &instance, &template, nil
 }
 
 // GetLastActivityTime retrieves the last time an instance was accessed.
@@ -356,13 +284,24 @@ func GetLastActivityTime(query string, promClient v1.API, interval time.Duration
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration, promClient *api.Client) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	v1api := v1.NewAPI(*promClient)
+
+	// Create the Prometheus client
+	promClient, err := api.NewClient(
+		api.Config{
+			Address: r.PrometheusURL,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create Prometheus client: %w", err)
+	}
+
+	v1api := v1.NewAPI(promClient)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -505,4 +444,128 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 	annotationString = strconv.Itoa(annotationInt)
 	log.Info("converting int to string updated annotation", "annotation", annotationString)
 	return annotationString, nil
+}
+
+func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("setup-instance-annotations")
+
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	// add annotations to the instance if not present
+	if instance.ObjectMeta.Annotations == nil {
+		instance.ObjectMeta.Annotations = make(map[string]string)
+	}
+	patch := client.MergeFrom(instance.DeepCopy())
+	// Check and set the alert annotation if not present
+	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
+		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
+	}
+	// Check and set the last activity annotation if not present
+	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
+		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+	}
+	// Apply the patch
+	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]
+	_, ok2 := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]
+	if !ok1 || !ok2 {
+		if err := r.Patch(ctx, instance, patch); err != nil {
+			log.Error(err, "failed updating instance annotations")
+			return err
+		}
+	}
+	log.Info("instance annotations setup completed", "instance", instance.Name, "annotations", instance.ObjectMeta.Annotations)
+	return nil
+}
+
+func (r *InstanceInactiveTerminationReconciler) HandleInstanceTermination(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("handle-instance-termination")
+
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed retrieving tenant from instance")
+		return fmt.Errorf("failed retrieving tenant from instance: %w", err)
+	}
+
+	// send notification to the user
+	numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	if err != nil {
+		log.Error(err, "failed converting string of alerts sent in int number")
+		return err
+	}
+
+	if numberAlertSent < r.InstanceMaxNumberOfAlerts {
+		if r.EnableInactivityNotifications {
+			err := SendInactivityNotification(ctx, r.MailClient)
+			if err != nil {
+				log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
+				return err
+			}
+		} else {
+			log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
+		}
+		// increment the number of termination alerts
+		newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		if err != nil {
+			log.Error(err, "failed incrementing annotation")
+			return err
+		}
+		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
+		// update the status of the instance
+		if err := r.Update(ctx, instance); err != nil {
+			log.Error(err, "failed updating instance annotations")
+			return err
+		}
+	} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
+		err := r.TerminateInstance(ctx)
+		if err != nil {
+			log.Error(err, "failed terminating instance", "instance", instance.Name)
+			return err
+		}
+	}
+
+	log.Info("Instance has been terminated", "instance", instance.Name, "tenantEmail", tenant.Spec.Email)
+	return nil
+}
+
+// CheckSkipReconciliation checks if the reconciliation should be skipped based on the selector label and namespace labels.
+func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx context.Context) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("check-skip-reconciliation")
+
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return true, fmt.Errorf("instance not found in context")
+	}
+
+	// Check the selector label, in order to know whether to perform or not reconciliation.
+	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
+		if err != nil {
+			err = fmt.Errorf("failed checking selector label: %w", err)
+		}
+		return true, err
+	}
+
+	var namespace corev1.Namespace
+	if err := r.Get(ctx, types.NamespacedName{Name: instance.Namespace}, &namespace); err != nil {
+		log.Error(err, "failed retrieving instance namespace", "instance", instance.Name)
+		return true, err
+	}
+
+	// check the namespace labels, in order to know whether to perform or not reconciliation on a specific namespace.
+	if stop := utils.CheckSingleLabel(&namespace, forge.InstanceInactivityIgnoreNamespace, strconv.FormatBool(true)); stop {
+		log.Info("label present, skipping inactivity reconciliation for namespace", "namespace", instance.Namespace, "label", forge.InstanceInactivityIgnoreNamespace)
+		return true, nil
+	}
+
+	log.Info("proceeding with inactivity reconciliation for instance", "instance", instance.Name, "namespace", instance.Namespace)
+	return false, nil
 }
