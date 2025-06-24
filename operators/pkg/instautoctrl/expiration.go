@@ -18,7 +18,6 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -51,8 +50,6 @@ type InstanceExpirationReconciler struct {
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
 }
-
-var deleteAfterRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
 
 // SetupWithManager registers a new controller for InstanceExpirationReconciler resources.
 func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
@@ -169,17 +166,15 @@ func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Conte
 	if instance == nil {
 		return 0, fmt.Errorf("instance not found in context")
 	}
-	var remainingTime time.Duration
 
-	// Parse the deleteAfter value
-	expirationDuration, err := time.ParseDuration(deleteAfter)
+	expirationDuration, err := ParseDurationWithDays(ctx, deleteAfter)
 	if err != nil {
-		log.Error(err, "failed parsing expiration duration")
+		log.Error(err, "failed to parse deleteAfter duration")
 		return 0, err
 	}
 
 	// Check if the instance is expired
-	remainingTime = expirationDuration - time.Since(instance.CreationTimestamp.Time)
+	remainingTime := expirationDuration - time.Since(instance.CreationTimestamp.Time)
 	if remainingTime <= 0 {
 		log.Info("Instance expiraton detected", "instance", instance.Name)
 		return 0, nil

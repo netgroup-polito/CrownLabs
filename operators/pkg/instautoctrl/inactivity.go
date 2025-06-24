@@ -154,6 +154,12 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
+	inactivityTimeoutDuration, err := ParseDurationWithDays(ctx, inactivityTimeout)
+	if err != nil {
+		log.Error(err, "failed to parse deleteAfter duration")
+		return ctrl.Result{}, fmt.Errorf("failed to parse deleteAfter duration %s: %w", inactivityTimeout, err)
+	}
+
 	// Check the selector label, in order to know whether to perform or not reconciliation.
 	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
 		if err != nil {
@@ -213,7 +219,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("failed creating Prometheus client: %w", err)
 	}
 	// update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeout, &promClient); err != nil {
+	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration, &promClient); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
@@ -221,7 +227,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("instance last login updated")
 
 	// check for inactivity and decide whether to terminate the instance or not
-	remainingTime, err := r.CheckInstanceTermination(ctx, inactivityTimeout)
+	remainingTime, err := r.CheckInstanceTermination(ctx, inactivityTimeoutDuration)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -340,7 +346,7 @@ func GetLastActivityTime(query string, promClient v1.API, interval time.Duration
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeout string, promClient *api.Client) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration, promClient *api.Client) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
@@ -357,18 +363,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		return err
 	}
 
-	intervalDuration, err := time.ParseDuration(inactivityTimeout)
-	if err != nil {
-		log.Error(err, "failed parsing inactivity timeout duration")
-		return err
-	}
-
 	// Get instance activity data
 	queryNginx := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, instance.Namespace, instance.Name)
-	lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, intervalDuration)
+	lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, inactivityTimeoutDuration)
 
 	querySSH := fmt.Sprintf(`bation_ssh_conntections{namespace=%q, destination_Ip=%q}`, instance.Namespace, instance.Status.IP)
-	lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, intervalDuration)
+	lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, inactivityTimeoutDuration)
 
 	if errNginx != nil && errSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
@@ -386,7 +386,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, inactivityTimeout string) (time.Duration, error) {
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
@@ -399,14 +399,9 @@ func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx con
 		log.Error(err, "failed parsing LastLogin time")
 		return 0, err
 	}
-	timeoutDuration, err := time.ParseDuration(inactivityTimeout)
-	if err != nil {
-		log.Error(err, "failed parsing inactivity timeout duration")
-		return 0, err
-	}
 
 	// Check if the instance has been inactive for longer than the timeout duration
-	remainingTime = timeoutDuration - time.Since(lastLogin)
+	remainingTime = inactivityTimeoutDuration - time.Since(lastLogin)
 	if remainingTime <= 0 {
 		log.Info("Instance inactivity detected", "instance", instance.Name)
 		return 0, nil

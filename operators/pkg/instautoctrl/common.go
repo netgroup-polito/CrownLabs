@@ -18,6 +18,9 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +41,40 @@ const (
 	// defaultTimeoutValue is the default value for inactivity timeout and expiration in the template CRD.
 	neverTimeoutValue = "never"
 )
+
+var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
+
+func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("parse-duration-with-days")
+
+	var parsedDuration time.Duration
+	var err error
+	matches := durationWithDaysRegex.FindStringSubmatch(input)
+	if len(matches) != 3 {
+		log.Error(nil, "invalid input format", "value", input)
+		return 0, fmt.Errorf("invalid input format: %s", input)
+	}
+	value := matches[1]
+	unit := matches[2]
+
+	// Handle day units separately since time.ParseDuration doesn't support days
+	if unit == "d" {
+		numDays, err := strconv.Atoi(value)
+		if err != nil {
+			log.Error(err, "failed parsing days value")
+			return 0, err
+		}
+		parsedDuration = time.Duration(numDays) * 24 * time.Hour
+	} else {
+		// For hours and minutes, use standard ParseDuration
+		parsedDuration, err = time.ParseDuration(input)
+		if err != nil {
+			log.Error(err, "failed parsing expiration duration")
+			return 0, err
+		}
+	}
+	return parsedDuration, nil
+}
 
 // SendInactivityNotification sends notification about instance inactivity detection.
 func SendInactivityNotification(ctx context.Context, mc *utils.MailClient) error {
