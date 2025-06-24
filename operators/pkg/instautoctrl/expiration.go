@@ -121,20 +121,17 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	remaining, err := GetRemainingTime(&instance, template)
-	if err != nil {
+	if remaining, err := GetRemainingTime(&instance, template); err != nil {
 		log.Error(err, "failed to calculate remaining time for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, fmt.Errorf("failed to calculate remaining time for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
-	}
-
-	if remaining > 0 {
+	} else if remaining > 0 {
 		log.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		dbgLog.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		tracer.Step("instance still active, requeuing")
 		return ctrl.Result{RequeueAfter: remaining}, nil
 	}
 
-	// Delete the instance
+	// If we reached this point, instance is expired and must be deleted
 	if err := r.DeleteInstance(ctx, &instance); err != nil {
 		log.Error(err, "failed to delete instance")
 		return ctrl.Result{}, err
