@@ -296,16 +296,16 @@ var inactivityIgnoreNamespace = predicate.Funcs{
 }
 
 var instanceTriggered = predicate.Funcs{
-	CreateFunc: func(e event.CreateEvent) bool {
+	CreateFunc: func(_ event.CreateEvent) bool {
 		return true
 	},
-	UpdateFunc: func(e event.UpdateEvent) bool {
+	UpdateFunc: func(_ event.UpdateEvent) bool {
 		return false
 	},
-	DeleteFunc: func(e event.DeleteEvent) bool {
+	DeleteFunc: func(_ event.DeleteEvent) bool {
 		return true
 	},
-	GenericFunc: func(e event.GenericEvent) bool {
+	GenericFunc: func(_ event.GenericEvent) bool {
 		return false
 	},
 }

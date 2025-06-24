@@ -446,6 +446,7 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 	return annotationString, nil
 }
 
+// SetupInstanceAnnotations sets up the annotations for the instance.
 func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("setup-instance-annotations")
 
@@ -482,6 +483,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 	return nil
 }
 
+// HandleInstanceTermination handles the termination of the instance, sending notifications and updating annotations.
 func (r *InstanceInactiveTerminationReconciler) HandleInstanceTermination(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("handle-instance-termination")
 

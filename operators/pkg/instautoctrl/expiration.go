@@ -145,7 +145,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer.Step("expiration checked")
 
 	if remainingTime <= 0 {
-
 		tenant, err := GetTenantFromInstance(ctx, r.Client)
 		if err != nil {
 			log.Error(err, "failed retrieving tenant from instance")
