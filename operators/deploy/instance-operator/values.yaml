@@ -81,8 +81,8 @@ securityContext:
       - ALL
     readOnlyRootFilesystem: true
     runAsNonRoot: true
-    runAsUser: 30000
-    runAsGroup: 30000
+    runAsUser: 20000
+    runAsGroup: 20000
     privileged: false
 
 resources:
