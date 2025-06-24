@@ -181,8 +181,17 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("annotations checked")
 
-	// update the last login time of the instance
-	if err := r.UpdateInstanceLastLogin(ctx, &instance); err != nil {
+	// Create the Prometheus client
+	promClient, err := api.NewClient(
+		api.Config{
+			Address: r.PrometheusURL,
+		},
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed creating Prometheus client: %w", err)
+	}
+	// update the last login time of the instance based on the Prometheus data
+	if err := r.UpdateInstanceLastLogin(ctx, &instance, &promClient); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
@@ -309,21 +318,10 @@ func GetLastActivityTime(query string, promClient v1.API, interval time.Duration
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance, promClient *api.Client) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 
-	promURL := r.PrometheusURL
-
-	config := api.Config{
-		Address: promURL,
-	}
-
-	promClient, err := api.NewClient(config)
-	if err != nil {
-		return fmt.Errorf("error creating prometheus client: %w", err)
-	}
-
-	v1api := v1.NewAPI(promClient)
+	v1api := v1.NewAPI(*promClient)
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
