@@ -18,9 +18,7 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
-	"math"
 	"regexp"
-	"strconv"
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -108,121 +106,78 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	// Get the template associated with the instance
-	template, err := r.GetTemplateForInstance(ctx, &instance)
+	var template clv1alpha2.Template
+	var err = r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Namespace,
+	}, &template)
 	if err != nil {
-		log.Error(err, "failed to get template for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-		return ctrl.Result{}, fmt.Errorf("failed to get template for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
+		log.Error(err, "Unable to fetch the instance template.")
+		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)
 	}
 
+	// Get lifespan from template's deleteAfter field
+	deleteAfter := template.Spec.DeleteAfter
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
-	if template.Spec.DeleteAfter == neverTimeoutValue {
+	if deleteAfter == neverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
 
-	if remaining, err := GetRemainingTime(&instance, template); err != nil {
-		log.Error(err, "failed to calculate remaining time for instance", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-		return ctrl.Result{}, fmt.Errorf("failed to calculate remaining time for instance %s/%s: %w", instance.GetNamespace(), instance.GetName(), err)
-	} else if remaining > 0 {
-		log.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
-		dbgLog.Info("Instance still active, requeuing", "remaining", remaining.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
-		tracer.Step("instance still active, requeuing")
-		return ctrl.Result{RequeueAfter: remaining}, nil
-	}
-
-	// If we reached this point, instance is expired and must be deleted
-	if err := r.DeleteInstance(ctx, &instance); err != nil {
-		log.Error(err, "failed to delete instance")
+	remainingTime, err := r.CheckInstanceExpiration(ctx, &instance, deleteAfter)
+	if err != nil {
+		log.Error(err, "failed to check instance expiration")
 		return ctrl.Result{}, err
 	}
 
-	// Send notification
-	if err := r.NotifyInstanceDeletion(ctx, &instance); err != nil {
-		log.Error(err, "failed to send deletion notification")
-		return ctrl.Result{}, fmt.Errorf("failed to send deletion notification: %w", err)
-	}
-
-	tracer.Step("instance deleted and notification sent")
-	dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
-	return ctrl.Result{}, nil
-}
-
-// GetTemplateForInstance fetches the template associated with an instance.
-func (r *InstanceExpirationReconciler) GetTemplateForInstance(ctx context.Context, instance *clv1alpha2.Instance) (*clv1alpha2.Template, error) {
-	template := &clv1alpha2.Template{}
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, template)
-
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return nil, fmt.Errorf("template not found: name=%s, namespace=%s", instance.Spec.Template.Name, instance.Spec.Template.Namespace)
+	if remainingTime <= 0 {
+		// If we reached this point, instance is expired and must be deleted
+		if err := r.DeleteInstance(ctx, &instance); err != nil {
+			log.Error(err, "failed to delete instance")
+			return ctrl.Result{}, err
 		}
-		return nil, fmt.Errorf("failed to retrieve template: %w", err)
+
+		// Send notification
+		if err := r.NotifyInstanceDeletion(ctx, &instance); err != nil {
+			log.Error(err, "failed to send deletion notification")
+			return ctrl.Result{}, err
+		}
+		tracer.Step("instance deleted and notification sent")
+		dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 	}
-	return template, nil
+
+	// Calculate requeue time at the instance inactive deadline time:
+	// if the instance is not yet to be terminated, we requeue it after the remaining time
+	requeueTime := remainingTime
+	// add 1 minute to the remaining time to avoid requeueing just before the deadline
+	// avoiding a double requeue
+	requeueTime += 1 * time.Minute
+
+	dbgLog.Info("requeueing instance")
+	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
-// GetLifespanFromTemplate converts the deleteAfter field into a duration in seconds.
-func GetLifespanFromTemplate(template *clv1alpha2.Template) (float64, error) {
-	if template.Spec.DeleteAfter == neverTimeoutValue {
-		return math.Inf(1), nil
-	}
-	return ConvertToSeconds(template.Spec.DeleteAfter)
-}
+// CheckInstanceExpiration returns the remaining time before expiration as a time.Duration.
+func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Context, instance *clv1alpha2.Instance, deleteAfter string) (time.Duration, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("get-remaining-time")
+	var remainingTime time.Duration
 
-// ConvertToSeconds converts a deleteAfter string to seconds.
-func ConvertToSeconds(deleteAfter string) (float64, error) {
-	if deleteAfter == neverTimeoutValue {
-		return math.Inf(1), nil
-	}
-
-	matches := deleteAfterRegex.FindStringSubmatch(deleteAfter)
-	if matches == nil {
-		return 0, fmt.Errorf("invalid deleteAfter format: %s", deleteAfter)
-	}
-
-	value, err := strconv.Atoi(matches[1])
+	// Parse the deleteAfter value
+	expirationDuration, err := time.ParseDuration(deleteAfter)
 	if err != nil {
+		log.Error(err, "failed parsing expiration duration")
 		return 0, err
 	}
 
-	unit := matches[2]
-	switch unit {
-	case "m":
-		return float64(value * 60), nil
-	case "h":
-		return float64(value * 3600), nil
-	case "d":
-		return float64(value * 86400), nil
-	default:
-		return 0, fmt.Errorf("unsupported time unit: %s", unit)
-	}
-}
-
-// GetRemainingTime returns the remaining time before expiration as a time.Duration.
-// If the instance has already expired, the returned duration will be ≤ 0.
-func GetRemainingTime(instance *clv1alpha2.Instance, template *clv1alpha2.Template) (time.Duration, error) {
-	// Get lifespan from template's deleteAfter field
-	if template.Spec.DeleteAfter == neverTimeoutValue {
-		// Return maximum duration for neverTimeoutValue
-		return time.Duration(math.MaxInt64), nil
+	// Check if the instance is expired
+	remainingTime = expirationDuration - time.Since(instance.CreationTimestamp.Time)
+	if remainingTime <= 0 {
+		log.Info("Instance expiraton detected", "instance", instance.Name)
+		return 0, nil
 	}
 
-	lifespanSeconds, err := ConvertToSeconds(template.Spec.DeleteAfter)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert deleteAfter to seconds: %w", err)
-	}
-
-	// Calculate remaining time
-	created := instance.GetCreationTimestamp().Time
-	elapsed := time.Since(created)
-	remaining := time.Duration(lifespanSeconds)*time.Second - elapsed
-	requeueTime := remaining
-	requeueTime += 1 * time.Minute
-	return requeueTime, nil
+	return remainingTime, nil
 }
 
 // DeleteInstance attempts to delete the instance.

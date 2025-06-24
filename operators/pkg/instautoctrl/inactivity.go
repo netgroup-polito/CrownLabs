@@ -217,19 +217,17 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("instance last login updated")
 
 	// check for inactivity and decide whether to terminate the instance or not
-	terminate, remainingTime, err := r.CheckInstanceTermination(ctx, &instance, inactivityTimeout)
+	remainingTime, err := r.CheckInstanceTermination(ctx, &instance, inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
 	}
-	if !terminate && remainingTime == 0 {
-		return ctrl.Result{}, nil
-	}
 
+	log.Info("instance termination check", "remainingTime", remainingTime.String(), "instance", instance.Name)
 	tracer.Step("Inactive termination check done")
 
-	log.Info("instance termination check", "terminate", terminate)
-	if terminate {
+	// If the remaining time is less than or equal to 0, the instance is considered inactive
+	if remainingTime <= 0 {
 		// retrieve the user owner of the instance
 		user, err := GetTenantFromInstance(ctx, r.Client, &instance)
 		if err != nil {
@@ -379,29 +377,29 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string) (bool, time.Duration, error) {
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	var remainingTime time.Duration
 
 	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[forge.LastActivityAnnotation])
 	if err != nil {
 		log.Error(err, "failed parsing LastLogin time")
-		return false, 0, err
+		return 0, err
 	}
 	timeoutDuration, err := time.ParseDuration(inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed parsing inactivity timeout duration")
-		return false, 0, err
+		return 0, err
 	}
 
 	// Check if the instance has been inactive for longer than the timeout duration
 	remainingTime = timeoutDuration - time.Since(lastLogin)
 	if remainingTime <= 0 {
 		log.Info("Instance inactivity detected", "instance", instance.Name)
-		return true, 0, nil
+		return 0, nil
 	}
 
-	return false, remainingTime, nil
+	return remainingTime, nil
 }
 
 // IsPrometheusHealthy checks if Prometheus and required metrics are available.
