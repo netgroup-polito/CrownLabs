@@ -103,6 +103,8 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	tracer.Step("labels checked")
+
 	// Get the template associated with the instance
 	var template clv1alpha2.Template
 	var err = r.Get(ctx, types.NamespacedName{
@@ -113,6 +115,8 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		log.Error(err, "Unable to fetch the instance template.")
 		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)
 	}
+
+	tracer.Step("template retrieved")
 
 	// Get lifespan from template's deleteAfter field
 	deleteAfter := template.Spec.DeleteAfter
@@ -133,6 +137,8 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	tracer.Step("expiration checked")
+
 	if remainingTime <= 0 {
 		// If we reached this point, instance is expired and must be deleted
 		if err := r.DeleteInstance(ctx); err != nil {
@@ -140,12 +146,14 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 
+		tracer.Step("instance deleted")
+
 		// Send notification
 		if err := r.NotifyInstanceDeletion(ctx); err != nil {
 			log.Error(err, "failed to send deletion notification")
 			return ctrl.Result{}, err
 		}
-		tracer.Step("instance deleted and notification sent")
+		tracer.Step("deletion notification sent")
 		dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 	}
 
