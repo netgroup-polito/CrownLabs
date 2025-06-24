@@ -161,21 +161,21 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
-		return &clv1alpha2.Tenant{}, fmt.Errorf("instance not found in context")
+		return nil, fmt.Errorf("instance not found in context")
 	}
 	log.Info("getting user from instance", "instance", instance.Name)
 
 	tenant := &clv1alpha2.Tenant{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
+		Namespace: instance.Spec.Template.Namespace,
 	}, tenant); err != nil {
 		if kerrors.IsNotFound(err) {
 			log.Error(err, "user not found")
-			return &clv1alpha2.Tenant{}, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
+			return nil, fmt.Errorf("user %s not found", instance.Spec.Tenant.Name)
 		}
 		log.Error(err, "failed retrieving user")
-		return &clv1alpha2.Tenant{}, err
+		return nil, err
 	}
 	return tenant, nil
 }
@@ -292,5 +292,20 @@ var inactivityIgnoreNamespace = predicate.Funcs{
 
 		// Requeue only if the label on the namespace has changed
 		return oldValue == forge.InstanceInactivityIgnoreNamespace && newValue == ""
+	},
+}
+
+var instanceTriggered = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		return false
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return true
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
 	},
 }

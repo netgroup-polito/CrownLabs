@@ -63,9 +63,14 @@ type InstanceInactiveTerminationReconciler struct {
 }
 
 // SetupWithManager registers a new controller for InstanceTerminationReconciler resources.
+// The controller is configured to watch for Instance resources and Template resources.
+// For the instance resources, it is configured to only reconcile instances at the creation time (to calculate the expiration time) and at the deletion time. Updates on the instance resources are ignored by this reconciler.
+// For the template resources, it is configured to reconcile instances when the template's inactivtyTimeout field is changed. In this case, it will enqueue all the instances that are associated with that template.
+// To avoid unnecessary reconciliations, the controller avoid reconciling instances whose template's inactivtyTimeout field is set to neverTimeoutValue, which means that the instance will never be deleted.
 func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clv1alpha2.Instance{}).
+		For(&clv1alpha2.Instance{},
+			builder.WithPredicates(instanceTriggered)).
 		Watches(
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
@@ -136,7 +141,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Namespace,
+		Namespace: instance.Spec.Template.Namespace,
 	}, &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
 		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)

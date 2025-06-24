@@ -53,9 +53,13 @@ type InstanceExpirationReconciler struct {
 }
 
 // SetupWithManager registers a new controller for InstanceExpirationReconciler resources.
+// The controller is configured to watch for Instance resources and Template resources.
+// For the instance resources, it is configured to only reconcile instances at the creation time (to calculate the expiration time) and at the deletion time. Updates on the instance resources are ignored by this reconciler.
+// For the template resources, it is configured to reconcile instances when the template's deleteAfter field is changed. In this case, it will enqueue all the instances that are associated with that template.
+// To avoid unnecessary reconciliations, the controller avoid reconciling instances whose template's deleteAfter field is set to neverTimeoutValue, which means that the instance will never be deleted.
 func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clv1alpha2.Instance{}).
+		For(&clv1alpha2.Instance{}, builder.WithPredicates(instanceTriggered)).
 		Watches(
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
@@ -94,7 +98,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	tracer.Step("instance retrieved")
-
+	log.Info("Instance retrieved", "name", instance.GetName(), "namespace", instance.GetNamespace())
 	// Check the selector label, in order to know whether to perform or not reconciliation.
 	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
 		if err != nil {
@@ -109,7 +113,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var template clv1alpha2.Template
 	var err = r.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Namespace,
+		Namespace: instance.Spec.Template.Namespace,
 	}, &template)
 	if err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
@@ -140,6 +144,13 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer.Step("expiration checked")
 
 	if remainingTime <= 0 {
+
+		tenant, err := GetTenantFromInstance(ctx, r.Client)
+		if err != nil {
+			log.Error(err, "failed retrieving tenant from instance")
+			return ctrl.Result{}, fmt.Errorf("failed retrieving tenant from instance: %w", err)
+		}
+		ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 		// If we reached this point, instance is expired and must be deleted
 		if err := r.DeleteInstance(ctx); err != nil {
 			log.Error(err, "failed to delete instance")
@@ -220,10 +231,9 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 		return fmt.Errorf("instance not found in context")
 	}
 
-	// Get tenant information for notification
-	tenant, err := GetTenantFromInstance(ctx, r.Client)
-	if err != nil {
-		return fmt.Errorf("failed retrieving tenant from instance: %w", err)
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
 	}
 
 	// Send the notification email
