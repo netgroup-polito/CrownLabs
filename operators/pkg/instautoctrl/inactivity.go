@@ -129,8 +129,26 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
 	tracer.Step("instance retrieved")
+
+	// Get the template associated with the instance
+	var template clv1alpha2.Template
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Namespace,
+	}, &template); err != nil {
+		log.Error(err, "Unable to fetch the instance template.")
+		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)
+	}
+	tracer.Step("template retrieved")
+
+	// Get inactivityTimeout from the template
+	inactivityTimeout := template.Spec.InactivityTimeout
+	// If set to "never", return without rescheduling
+	if inactivityTimeout == "never" {
+		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, nil
+	}
 
 	// Check the selector label, in order to know whether to perform or not reconciliation.
 	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
@@ -191,7 +209,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("failed creating Prometheus client: %w", err)
 	}
 	// update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, &instance, &promClient); err != nil {
+	if err := r.UpdateInstanceLastLogin(ctx, &instance, inactivityTimeout, &promClient); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{}, err
 	}
@@ -199,7 +217,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("instance last login updated")
 
 	// check for inactivity and decide whether to terminate the instance or not
-	terminate, remainingTime, err := r.CheckInstanceTermination(ctx, &instance)
+	terminate, remainingTime, err := r.CheckInstanceTermination(ctx, &instance, inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -245,7 +263,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				return ctrl.Result{}, err
 			}
 		} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
-			err := r.TerminateInstance(ctx, &instance)
+			err := r.TerminateInstance(ctx, &instance, &template)
 			if err != nil {
 				log.Error(err, "failed terminating instance", "instance", instance.Name)
 				return ctrl.Result{}, err
@@ -318,7 +336,7 @@ func GetLastActivityTime(query string, promClient v1.API, interval time.Duration
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance, promClient *api.Client) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string, promClient *api.Client) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 
 	v1api := v1.NewAPI(*promClient)
@@ -331,20 +349,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
 	}
-	// Get instance activity data
-	interval, err := r.GetInactivityTimeout(ctx, instance)
-	if err != nil {
-		log.Error(err, "failed retrieving inactivity timeout from instance template")
-		return err
-	}
-	// If the interval is set to "never", we do not update the last activity time
-	// and return early, as there is no inactivity timeout to check.
-	if interval == "never" {
-		log.Info("Inactivity timeout is set to 'never', skipping last activity update", "instance", instance.Name)
-		return nil
-	}
 
-	intervalDuration, err := time.ParseDuration(interval)
+	intervalDuration, err := time.ParseDuration(inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed parsing inactivity timeout duration")
 		return err
@@ -373,20 +379,9 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, time.Duration, error) {
+func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance, inactivityTimeout string) (bool, time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	var remainingTime time.Duration
-
-	// get the inactivity timeout from the instance template
-	inactivityTimeout, err := r.GetInactivityTimeout(ctx, instance)
-	if err != nil {
-		log.Error(err, "failed retrieving inactivity timeout from instance template")
-		return false, 0, err
-	}
-	if inactivityTimeout == "never" {
-		log.Info("Instance inactivity timeout is set to 'never', skipping termination check", "instance", instance.Name)
-		return false, 0, nil
-	}
 
 	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[forge.LastActivityAnnotation])
 	if err != nil {
@@ -454,19 +449,9 @@ func (r *InstanceInactiveTerminationReconciler) IsPrometheusHealthy(ctx context.
 }
 
 // TerminateInstance terminates the Instance.
-func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context, instance *clv1alpha2.Instance) error {
+func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context, instance *clv1alpha2.Instance, template *clv1alpha2.Template) error {
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
 	log.Info("Terminating instance", "instance", instance.Name, " in namespace", instance.Namespace)
-
-	var template clv1alpha2.Template
-	var err = r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Namespace,
-	}, &template)
-	if err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return err
-	}
 
 	var environment = template.Spec.EnvironmentList[0]
 	if environment.Persistent {
@@ -494,21 +479,4 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 	annotationString = strconv.Itoa(annotationInt)
 	log.Info("converting int to string updated annotation", "annotation", annotationString)
 	return annotationString, nil
-}
-
-// GetInactivityTimeout retrieves the inactivity timeout from the instance template.
-func (r *InstanceInactiveTerminationReconciler) GetInactivityTimeout(ctx context.Context, instance *clv1alpha2.Instance) (string, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("get-inactivity-timeout")
-	// retrieve the template from the instance
-	var template clv1alpha2.Template
-	if err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return "", err
-	}
-
-	templateInactivityTimeout := template.Spec.InactivityTimeout
-	return templateInactivityTimeout, nil
 }
