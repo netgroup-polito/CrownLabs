@@ -29,6 +29,7 @@ USER ${USER}
 ENV HOME=${VSCODE_SRV_DIR}
 RUN curl -sSf https://sh.rustup.rs | /bin/bash -s -- -y -v && \
     ${RSPATH}/rustup component remove rust-docs && \
+    ${RSPATH}/rustup component add rust-src && \
     ${RSPATH}/rustup completions bash >> $HOME/.bashrc && \
     ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc
 
