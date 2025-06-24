@@ -48,13 +48,14 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder            record.EventRecorder
-	Scheme                    *runtime.Scheme
-	NamespaceWhitelist        metav1.LabelSelector
-	StatusCheckRequestTimeout time.Duration
-	InstanceMaxNumberOfAlerts int
-	MailClient                *utils.MailClient
-	PrometheusURL             string
+	EventsRecorder                record.EventRecorder
+	Scheme                        *runtime.Scheme
+	NamespaceWhitelist            metav1.LabelSelector
+	StatusCheckRequestTimeout     time.Duration
+	InstanceMaxNumberOfAlerts     int
+	EnableInactivityNotifications bool
+	MailClient                    *utils.MailClient
+	PrometheusURL                 string
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -255,10 +256,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-			err := SendInactivityNotification(ctx, r.MailClient)
-			if err != nil {
-				log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
-				return ctrl.Result{}, err
+			if r.EnableInactivityNotifications {
+				err := SendInactivityNotification(ctx, r.MailClient)
+				if err != nil {
+					log.Error(err, "failed sending notification email to user", "email", user.Spec.Email)
+					return ctrl.Result{}, err
+				}
+			} else {
+				log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", user.Spec.Email)
 			}
 			// increment the number of termination alerts
 			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])

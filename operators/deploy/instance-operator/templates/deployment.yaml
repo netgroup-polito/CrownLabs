@@ -144,6 +144,8 @@ spec:
             - "--smtp-username={{ .Values.configurations.smtp.username }}"
             - "--smtp-password={{ .Values.configurations.smtp.password }}"
             - "--smtp-from={{ .Values.configurations.smtp.from }}"
+            - "--enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}"
+            - "--enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}"
           ports:
             - name: auto-metrics
               containerPort: 8080

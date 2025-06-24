@@ -42,6 +42,8 @@ configurations:
     terminationStatusCheckInterval: "2m" 
     inactiveTerminationStatusCheckTimeout: "3s"
     inactiveTerminationMaxNumberOfAlerts: 3
+    enableInactivityNotifications: true
+    enableExpirationNotifications: true
   smtp:
     server: smtp.example.com
     port: 123

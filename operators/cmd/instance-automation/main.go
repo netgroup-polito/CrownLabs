@@ -89,6 +89,9 @@ func main() {
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
 
+	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", true, "Enable the sending of inactivity notifications to users on instance inactivity")
+	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", true, "Enable the sending of expiration notifications to users on instance expiration")
+
 	smtpServer := flag.String("smtp-server", "smtp.polito.it", "SMTP server for sending emails")
 	smtpPort := flag.Int("smtp-port", 587, "SMTP server port")
 	smtpIdentity := flag.String("smtp-identity", "", "SMTP identity for authentication")
@@ -174,14 +177,15 @@ func main() {
 		// Configure the Instance Inactive termination controller
 		instanceInactiveTermination := "InstanceInactiveTermination."
 		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-			Client:                    mgr.GetClient(),
-			Scheme:                    mgr.GetScheme(),
-			EventsRecorder:            mgr.GetEventRecorderFor(instanceInactiveTermination),
-			NamespaceWhitelist:        nsWhitelist,
-			StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
-			InstanceMaxNumberOfAlerts: *instanceInactiveTerminationMaxNumberOfAlerts,
-			MailClient:                mailClient,
-			PrometheusURL:             *prometheusURL,
+			Client:                        mgr.GetClient(),
+			Scheme:                        mgr.GetScheme(),
+			EventsRecorder:                mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:            nsWhitelist,
+			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts:     *instanceInactiveTerminationMaxNumberOfAlerts,
+			EnableInactivityNotifications: *enableInactivityNotifications,
+			MailClient:                    mailClient,
+			PrometheusURL:                 *prometheusURL,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)
@@ -195,12 +199,13 @@ func main() {
 		// Configure the Instance Expiration controller
 		instanceExpiration := "InstanceExpiration"
 		if err := (&instautoctrl.InstanceExpirationReconciler{
-			Client:                    mgr.GetClient(),
-			Scheme:                    mgr.GetScheme(),
-			EventsRecorder:            mgr.GetEventRecorderFor(instanceExpiration),
-			NamespaceWhitelist:        nsWhitelist,
-			StatusCheckRequestTimeout: *instanceInactiveTerminationStatusCheckTimeout,
-			MailClient:                mailClient,
+			Client:                        mgr.GetClient(),
+			Scheme:                        mgr.GetScheme(),
+			EventsRecorder:                mgr.GetEventRecorderFor(instanceExpiration),
+			NamespaceWhitelist:            nsWhitelist,
+			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
+			EnableExpirationNotifications: *enableExpirationNotifications,
+			MailClient:                    mailClient,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceExpiration)
 			os.Exit(1)

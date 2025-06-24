@@ -40,11 +40,12 @@ import (
 // InstanceExpirationReconciler watches for instances to be terminated.
 type InstanceExpirationReconciler struct {
 	client.Client
-	EventsRecorder            record.EventRecorder
-	Scheme                    *runtime.Scheme
-	NamespaceWhitelist        metav1.LabelSelector
-	StatusCheckRequestTimeout time.Duration
-	MailClient                *utils.MailClient
+	EventsRecorder                record.EventRecorder
+	Scheme                        *runtime.Scheme
+	NamespaceWhitelist            metav1.LabelSelector
+	StatusCheckRequestTimeout     time.Duration
+	EnableExpirationNotifications bool
+	MailClient                    *utils.MailClient
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -218,8 +219,12 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 	}
 
 	// Send the notification email
-	if err := SendExpiringNotification(ctx, r.MailClient); err != nil {
-		return fmt.Errorf("failed sending notification email: %w", err)
+	if r.EnableExpirationNotifications {
+		if err := SendExpiringNotification(ctx, r.MailClient); err != nil {
+			return fmt.Errorf("failed sending notification email: %w", err)
+		}
+	} else {
+		log.Info("Expiration notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
 	}
 
 	log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
