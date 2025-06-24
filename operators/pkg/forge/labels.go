@@ -56,8 +56,8 @@ const (
 	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
 	VolumeTypeValueShVol = "sharedvolume"
 
-	// AlertAnnotation -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
-	AlertAnnotation = "crownlabs.polito.it/number-alerts-sent"
+	// AlertAnnotationNum -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
+	AlertAnnotationNum = "crownlabs.polito.it/number-alerts-sent"
 
 	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
 	LastActivityAnnotation = "crownlabs.polito.it/last-activity"

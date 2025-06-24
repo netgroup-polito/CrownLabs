@@ -188,9 +188,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 	patch := client.MergeFrom(instance.DeepCopy())
 	// Check and set the alert annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotation)
-		instance.ObjectMeta.Annotations[forge.AlertAnnotation] = "0"
+	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
+		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
 	}
 	// Check and set the last activity annotation if not present
 	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
@@ -198,7 +198,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 	}
 	// Apply the patch
-	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotation]
+	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]
 	_, ok2 := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]
 	if !ok1 || !ok2 {
 		if err := r.Patch(ctx, &instance, patch); err != nil {
@@ -248,7 +248,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		ctx, _ = pkgcontext.TenantInto(ctx, user)
 
 		// send notification to the user
-		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotation])
+		numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
 		if err != nil {
 			log.Error(err, "failed converting string of alerts sent in int number")
 			return ctrl.Result{}, err
@@ -261,12 +261,12 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				return ctrl.Result{}, err
 			}
 			// increment the number of termination alerts
-			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotation])
+			newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
 			if err != nil {
 				log.Error(err, "failed incrementing annotation")
 				return ctrl.Result{}, err
 			}
-			instance.ObjectMeta.Annotations[forge.AlertAnnotation] = newNumberOfAlerts
+			instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
 			// update the status of the instance
 			if err := r.Update(ctx, &instance); err != nil {
 				log.Error(err, "failed updating instance annotations")
