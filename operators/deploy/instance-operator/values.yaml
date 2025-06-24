@@ -30,6 +30,10 @@ configurations:
     storageClass: rook-nfs
   monitoring:
     prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+    queryNgninxAvailable: count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)
+    queryBastionSSHAvailable: count(up{bastion_ssh_connections", node=~"worker-.*"} == 1)
+    queryNginxData: nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}
+    queryBastionSSHData: bastion_ssh_connections{destination_Ip=%q}
   automation:
     enableInstanceSubmission: true
     enableInstanceTermination: true

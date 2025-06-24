@@ -74,7 +74,12 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
+	// load Prometheus variables
 	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
+	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`, "The Prometheus query to check the availability of the Nginx Ingress Metrics in Prometheus")
+	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{bastion_ssh_connections", node=~"worker-.*"} == 1)`, "The Prometheus query to check the availability of the Bastion SSH Metrics in Prometheus")
+	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "The Prometheus query to get the Nginx Ingress Data in Prometheus")
+	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_Ip=%q}`, "The Prometheus query to get the Bastion SSH Data in Prometheus")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
@@ -177,15 +182,19 @@ func main() {
 		// Configure the Instance Inactive termination controller
 		instanceInactiveTermination := "InstanceInactiveTermination."
 		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-			Client:                        mgr.GetClient(),
-			Scheme:                        mgr.GetScheme(),
-			EventsRecorder:                mgr.GetEventRecorderFor(instanceInactiveTermination),
-			NamespaceWhitelist:            nsWhitelist,
-			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
-			InstanceMaxNumberOfAlerts:     *instanceInactiveTerminationMaxNumberOfAlerts,
-			EnableInactivityNotifications: *enableInactivityNotifications,
-			MailClient:                    mailClient,
-			PrometheusURL:                 *prometheusURL,
+			Client:                           mgr.GetClient(),
+			Scheme:                           mgr.GetScheme(),
+			EventsRecorder:                   mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:               nsWhitelist,
+			StatusCheckRequestTimeout:        *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts:        *instanceInactiveTerminationMaxNumberOfAlerts,
+			EnableInactivityNotifications:    *enableInactivityNotifications,
+			MailClient:                       mailClient,
+			PrometheusURL:                    *prometheusURL,
+			PrometheusNginxAvailability:      *prometheusNginxAvailability,
+			PrometheusBastionSSHAvailability: *prometheusBastionSSHAvailability,
+			PrometheusNginxData:              *prometheusNginxData,
+			PrometheusBastionSSHData:         *prometheusBastionSSHData,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)

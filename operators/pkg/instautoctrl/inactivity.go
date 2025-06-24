@@ -48,14 +48,18 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder                record.EventRecorder
-	Scheme                        *runtime.Scheme
-	NamespaceWhitelist            metav1.LabelSelector
-	StatusCheckRequestTimeout     time.Duration
-	InstanceMaxNumberOfAlerts     int
-	EnableInactivityNotifications bool
-	MailClient                    *utils.MailClient
-	PrometheusURL                 string
+	EventsRecorder                   record.EventRecorder
+	Scheme                           *runtime.Scheme
+	NamespaceWhitelist               metav1.LabelSelector
+	StatusCheckRequestTimeout        time.Duration
+	InstanceMaxNumberOfAlerts        int
+	EnableInactivityNotifications    bool
+	MailClient                       *utils.MailClient
+	PrometheusURL                    string
+	PrometheusNginxAvailability      string
+	PrometheusBastionSSHAvailability string
+	PrometheusNginxData              string
+	PrometheusBastionSSHData         string
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -313,10 +317,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// Get instance activity data
-	queryNginx := fmt.Sprintf(`nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, instance.Namespace, instance.Name)
+	queryNginx := fmt.Sprintf(r.PrometheusNginxData, instance.Namespace, instance.Name)
 	lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, inactivityTimeoutDuration)
 
-	querySSH := fmt.Sprintf(`bastion_ssh_connections{destination_ip=%q}`, instance.Status.IP)
+	querySSH := fmt.Sprintf(r.PrometheusBastionSSHData, instance.Status.IP)
 	lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, inactivityTimeoutDuration)
 
 	if errNginx != nil && errSSH != nil {
@@ -378,24 +382,37 @@ func (r *InstanceInactiveTerminationReconciler) IsPrometheusHealthy(ctx context.
 		return false, nil
 	}
 
-	// Check if ingress metrics are available on worker nodes
-	query := `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`
-	result, _, err := v1api.Query(ctx, query, time.Now())
-	if err != nil {
-		log.Error(err, "Failed to query Prometheus for ingress metrics")
-		return false, err
+	// Check if ingress metrics and bastion metrics are available on worker nodes
+	query1 := r.PrometheusNginxAvailability
+	query2 := r.PrometheusBastionSSHAvailability
+
+	result1, _, err1 := v1api.Query(ctx, query1, time.Now())
+	result2, _, err2 := v1api.Query(ctx, query2, time.Now())
+
+	if err1 != nil && err2 != nil {
+		log.Error(err1, "Failed to query Prometheus for ingress metrics")
+		log.Error(err2, "Failed to query Prometheus for bastion SSH metrics")
+		return false, fmt.Errorf("both Prometheus queries failed: %v, %v", err1, err2)
 	}
 
-	vec, ok := result.(model.Vector)
-	if !ok || len(vec) == 0 {
-		log.Info("No ingress metrics available on worker nodes")
-		return false, nil
+	active1 := false
+	active2 := false
+
+	if err1 == nil {
+		vec1, ok1 := result1.(model.Vector)
+		if ok1 && len(vec1) > 0 && int(vec1[0].Value) > 0 {
+			active1 = true
+		}
+	}
+	if err2 == nil {
+		vec2, ok2 := result2.(model.Vector)
+		if ok2 && len(vec2) > 0 && int(vec2[0].Value) > 0 {
+			active2 = true
+		}
 	}
 
-	nodeCount := int(vec[0].Value)
-	if nodeCount == 0 {
-		// No nodes have ingress metrics available
-		log.Info("No nodes have ingress metrics available")
+	if !active1 && !active2 {
+		log.Info("Neither ingress metrics nor bastion SSH metrics are available on worker nodes")
 		return false, nil
 	}
 
