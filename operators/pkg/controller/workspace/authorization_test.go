@@ -42,10 +42,10 @@ var _ = Describe("Authorization", func() {
 
 		Context("When Keycloak roles are not yet present", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, nil).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil, nil).Times(1)
-				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+"-manager", wsPrettyName+" Manager Role").Times(1)
-				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+"-user", wsPrettyName+" User Role").Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(nil, nil).Times(1)
+				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+":manager", wsPrettyName+" Manager Role").Times(1)
+				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+":user", wsPrettyName+" User Role").Times(1)
 			})
 
 			It("Should create Keycloak roles", func() {
@@ -61,8 +61,8 @@ var _ = Describe("Authorization", func() {
 
 		Context("When Keycloak roles are already present", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-manager")}, nil).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-user")}, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":manager")}, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).Times(1)
 				keycloakActor.EXPECT().CreateRole(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			})
 
@@ -83,8 +83,8 @@ var _ = Describe("Authorization", func() {
 				wsResource.Status.Subscriptions = map[string]v1alpha2.SubscriptionStatus{
 					"keycloak": v1alpha2.SubscrOk,
 				}
-				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil).Times(1)
-				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+"-user").Return(nil).Times(1)
+				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil).Times(1)
+				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":user").Return(nil).Times(1)
 			})
 
 			It("Should delete Keycloak roles", func() {
@@ -94,8 +94,8 @@ var _ = Describe("Authorization", func() {
 
 		Context("When an error occurs in the getRole call", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, fmt.Errorf("error getting role")).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-user")}, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil, fmt.Errorf("error getting role")).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
 				wsReconcileErrExpected = HaveOccurred()
 			})
 
@@ -106,9 +106,9 @@ var _ = Describe("Authorization", func() {
 
 		Context("When an error occurs in the createRole call", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(nil, nil).AnyTimes()
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+"-user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + "-user")}, nil).AnyTimes()
-				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+"-manager", wsPrettyName+" Manager Role").Return("", fmt.Errorf("error creating role")).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
+				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+":manager", wsPrettyName+" Manager Role").Return("", fmt.Errorf("error creating role")).Times(1)
 				wsReconcileErrExpected = HaveOccurred()
 			})
 
@@ -128,8 +128,8 @@ var _ = Describe("Authorization", func() {
 				wsResource.Status.Subscriptions = map[string]v1alpha2.SubscriptionStatus{
 					"keycloak": v1alpha2.SubscrOk,
 				}
-				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+"-user").Return(fmt.Errorf("error deleting role")).AnyTimes()
-				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+"-manager").Return(fmt.Errorf("error deleting role")).AnyTimes()
+				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":user").Return(fmt.Errorf("error deleting role")).AnyTimes()
+				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":manager").Return(fmt.Errorf("error deleting role")).AnyTimes()
 				wsReconcileErrExpected = HaveOccurred()
 			})
 

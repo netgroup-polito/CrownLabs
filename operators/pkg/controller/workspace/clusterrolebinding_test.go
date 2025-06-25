@@ -39,7 +39,7 @@ var crbInstances = &rbacv1.ClusterRoleBinding{
 	Subjects: []rbacv1.Subject{
 		{
 			Kind:     "Group",
-			Name:     "kubernetes:workspace-" + wsName + "-manager",
+			Name:     "kubernetes:workspace-" + wsName + ":manager",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	},
@@ -61,7 +61,7 @@ var crbTenants = &rbacv1.ClusterRoleBinding{
 	Subjects: []rbacv1.Subject{
 		{
 			Kind:     "Group",
-			Name:     "kubernetes:workspace-" + wsName + "-manager",
+			Name:     "kubernetes:workspace-" + wsName + ":manager",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	},
@@ -79,7 +79,7 @@ var _ = Describe("ClusterRoleBinding", func() {
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-instances-" + wsName}, crb, BeTrue(), timeout, interval)
 			Expect(crb.Subjects).To(HaveLen(1))
 			Expect(crb.Subjects[0].Kind).To(Equal("Group"))
-			Expect(crb.Subjects[0].Name).To(Equal("kubernetes:workspace-" + wsName + "-manager"))
+			Expect(crb.Subjects[0].Name).To(Equal("kubernetes:workspace-" + wsName + ":manager"))
 			Expect(crb.Subjects[0].APIGroup).To(Equal("rbac.authorization.k8s.io"))
 			Expect(crb.RoleRef.Kind).To(Equal("ClusterRole"))
 			Expect(crb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
@@ -91,7 +91,7 @@ var _ = Describe("ClusterRoleBinding", func() {
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-tenants-" + wsName}, crb, BeTrue(), timeout, interval)
 			Expect(crb.Subjects).To(HaveLen(1))
 			Expect(crb.Subjects[0].Kind).To(Equal("Group"))
-			Expect(crb.Subjects[0].Name).To(Equal("kubernetes:workspace-" + wsName + "-manager"))
+			Expect(crb.Subjects[0].Name).To(Equal("kubernetes:workspace-" + wsName + ":manager"))
 			Expect(crb.Subjects[0].APIGroup).To(Equal("rbac.authorization.k8s.io"))
 			Expect(crb.RoleRef.Kind).To(Equal("ClusterRole"))
 			Expect(crb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))

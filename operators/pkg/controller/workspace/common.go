@@ -36,5 +36,5 @@ func workspaceRoleName(
 	ws *v1alpha1.Workspace,
 	role v1alpha2.WorkspaceUserRole,
 ) string {
-	return fmt.Sprintf("workspace-%s-%s", ws.Name, role)
+	return fmt.Sprintf("workspace-%s:%s", ws.Name, role)
 }

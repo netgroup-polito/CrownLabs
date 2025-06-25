@@ -41,7 +41,7 @@ var roleBindingResources = []*rbacv1.RoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-user",
+				Name:     "kubernetes:workspace-" + wsName + ":user",
 				APIGroup: "rbac.authorization.k8s.io",
 			},
 		},
@@ -63,7 +63,7 @@ var roleBindingResources = []*rbacv1.RoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-manager",
+				Name:     "kubernetes:workspace-" + wsName + ":manager",
 				APIGroup: "rbac.authorization.k8s.io",
 			},
 		},
@@ -85,7 +85,7 @@ var roleBindingResources = []*rbacv1.RoleBinding{
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-manager",
+				Name:     "kubernetes:workspace-" + wsName + ":manager",
 				APIGroup: "rbac.authorization.k8s.io",
 			},
 		},
@@ -112,7 +112,7 @@ var _ = Describe("RoleBinding", func() {
 			Expect(rb.Subjects).To(HaveLen(1))
 			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-user",
+				Name:     "kubernetes:workspace-" + wsName + ":user",
 				APIGroup: "rbac.authorization.k8s.io",
 			}))
 		})
@@ -130,7 +130,7 @@ var _ = Describe("RoleBinding", func() {
 			Expect(rb.Subjects).To(HaveLen(1))
 			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-manager",
+				Name:     "kubernetes:workspace-" + wsName + ":manager",
 				APIGroup: "rbac.authorization.k8s.io",
 			}))
 		})
@@ -148,7 +148,7 @@ var _ = Describe("RoleBinding", func() {
 			Expect(rb.Subjects).To(HaveLen(1))
 			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
 				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + "-manager",
+				Name:     "kubernetes:workspace-" + wsName + ":manager",
 				APIGroup: "rbac.authorization.k8s.io",
 			}))
 		})
