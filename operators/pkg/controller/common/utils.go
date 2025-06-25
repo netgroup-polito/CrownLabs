@@ -12,28 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
-package workspace
+// Package main contains the entrypoint for the Crownlabs unified operator.
+package common
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"fmt"
+
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
-func (r *WorkspaceReconciler) updateWsResourceCommonLabels(labels map[string]string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string, 1)
-	}
-	labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
-	labels["crownlabs.polito.it/managed-by"] = "workspace"
-
-	return labels
-}
-
-func workspaceRoleName(
-	ws *v1alpha1.Workspace,
+func WorkspaceRoleName(
+	wsName string,
 	role v1alpha2.WorkspaceUserRole,
 ) string {
-	return common.WorkspaceRoleName(ws.Name, role)
+	return fmt.Sprintf("workspace-%s:%s", wsName, role)
 }
