@@ -36,6 +36,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
 
 // InstanceExpirationReconciler watches for instances to be terminated.
@@ -46,7 +47,7 @@ type InstanceExpirationReconciler struct {
 	NamespaceWhitelist            metav1.LabelSelector
 	StatusCheckRequestTimeout     time.Duration
 	EnableExpirationNotifications bool
-	MailClient                    *utils.MailClient
+	MailClient                    *mail.MailClient
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.

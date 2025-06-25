@@ -43,6 +43,7 @@ import (
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
 
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
@@ -54,7 +55,7 @@ type InstanceInactiveTerminationReconciler struct {
 	StatusCheckRequestTimeout        time.Duration
 	InstanceMaxNumberOfAlerts        int
 	EnableInactivityNotifications    bool
-	MailClient                       *utils.MailClient
+	MailClient                       *mail.MailClient
 	PrometheusURL                    string
 	PrometheusNginxAvailability      string
 	PrometheusBastionSSHAvailability string

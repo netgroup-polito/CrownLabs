@@ -35,11 +35,15 @@ import (
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
 
 const (
 	// defaultTimeoutValue is the default value for inactivity timeout and expiration in the template CRD.
 	neverTimeoutValue = "never"
+
+	inactivity_mail_template_path = "templates/instance-automation/inactivity_notification.yaml"
+	expiration_mail_template_path = "templates/instance-automation/expiration_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -79,48 +83,18 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 }
 
 // SendInactivityNotification sends notification about instance inactivity detection.
-func SendInactivityNotification(ctx context.Context, mc *utils.MailClient) error {
-	instance := pkgcontext.InstanceFrom(ctx)
-	if instance == nil {
-		return fmt.Errorf("instance not found in context")
-	}
-	tenant := pkgcontext.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
-	}
-
-	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has been detected as inactive for an extended period.</p>
-<p>If no activity is detected, the instance will be automatically terminated to conserve resources.</p>`
-
-	messagePlain := `Your instance {prettyName} has been detected as inactive for an extended period.
-If no activity is detected, the instance will be automatically terminated to conserve resources.`
-
-	subject := "CrownLabs: Inactivity Detected for {prettyName}"
-
-	return sendFormattedNotification(ctx, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+func SendInactivityNotification(ctx context.Context, mc *mail.MailClient) error {
+	return sendNotification(ctx, mc, inactivity_mail_template_path)
 }
 
 // SendExpiringNotification sends expiration warning notification.
-func SendExpiringNotification(ctx context.Context, mc *utils.MailClient) error {
-	instance := pkgcontext.InstanceFrom(ctx)
-	if instance == nil {
-		return fmt.Errorf("instance not found in context")
-	}
-	tenant := pkgcontext.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
-	}
-	messageHTML := `<p>Your instance <strong>{prettyName}</strong> has expired and has now been terminated.</p>`
-	messagePlain := "Your instance {prettyName} has expired and has now been terminated."
-	subject := "CrownLabs: Instance {prettyName} Expired"
-
-	return sendFormattedNotification(ctx, mc, messageHTML, messagePlain, subject, utils.DefaultEmailTemplate())
+func SendExpiringNotification(ctx context.Context, mc *mail.MailClient) error {
+	return sendNotification(ctx, mc, expiration_mail_template_path)
 }
 
-func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
-	messageHTML string, messagePlain string,
-	subject string, template *utils.EmailTemplate) error {
+func sendNotification(ctx context.Context, mc *mail.MailClient, mail_template_path string) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
+
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
@@ -131,22 +105,13 @@ func sendFormattedNotification(ctx context.Context, mc *utils.MailClient,
 	}
 	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
 
-	// Format both HTML and plain text messages
-	formattedHTML, err := utils.FormatEmailContent(ctx, template.HeaderHTML+messageHTML+template.FooterHTML)
-	if err != nil {
-		log.Error(err, "failed formatting HTML content for email notification")
-		return err
+	ph := mail.Placeholders{
+		TenantName:   tenant.Name,
+		TenantEmail:  tenant.Spec.Email,
+		PrettyName:   instance.Spec.PrettyName,
+		InstanceName: instance.Name,
 	}
-	formattedPlain, err := utils.FormatEmailContent(ctx, template.PlainHeader+messagePlain+template.PlainFooter)
-	if err != nil {
-		return err
-	}
-	formattedSubject, err := utils.FormatEmailContent(ctx, subject)
-	if err != nil {
-		return err
-	}
-
-	err = mc.SendMail(formattedSubject, formattedPlain, formattedHTML, tenant.Spec.Email)
+	err := mc.SendCrownLabsMail(mail_template_path, ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
