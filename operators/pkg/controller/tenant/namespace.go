@@ -18,6 +18,7 @@ import (
 
 	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -32,7 +33,12 @@ func (r *TenantReconciler) createResourcesRelatedToPersonalNamespace(
 	}
 	log.Info("Personal namespace created", "namespace", getNamespaceName(tn))
 
-	// TODO: manage resource quota
+	// manage resource quota
+	if err := r.createResourceQuota(ctx, tn); err != nil {
+		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
+	}
+	log.Info("Resource quota created", "namespace", getNamespaceName(tn))
+
 	// TODO: tutte le cose che partono da enforceClusterResources
 
 	return nil
@@ -43,8 +49,13 @@ func (r *TenantReconciler) deleteResourcesRelatedToPersonalNamespace(
 	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
-	// TODO: manage resource quota
 	// TODO: tutte le cose che partono da enforceClusterResources
+
+	// Delete the resource quota for the personal namespace
+	if err := r.deleteResourceQuota(ctx, tn); err != nil {
+		return fmt.Errorf("error when deleting resource quota for tenant %s: %w", tn.Name, err)
+	}
+	log.Info("Resource quota deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the personal namespace for the tenant
 	if err := r.deletePersonalNamespace(ctx, tn); err != nil {
@@ -133,6 +144,51 @@ func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crow
 // returns the name of the namespace for the tenant.
 func getNamespaceName(tn *crownlabsv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
+}
+
+func (r *TenantReconciler) createResourceQuota(
+	ctx context.Context,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	nsName := getNamespaceName(tn)
+	rq := v1.ResourceQuota{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "crownlabs-resource-quota",
+			Namespace: nsName,
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
+		rq.Labels = r.updateTnResourceCommonLabels(rq.Labels)
+		rq.Spec.Hard = forge.TenantResourceQuotaSpec(&tn.Status.Quota)
+
+		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
+	}
+
+	return nil
+}
+
+func (r *TenantReconciler) deleteResourceQuota(
+	ctx context.Context,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	nsName := getNamespaceName(tn)
+	rq := v1.ResourceQuota{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "crownlabs-resource-quota",
+			Namespace: nsName,
+		},
+	}
+
+	err := utils.EnforceObjectAbsence(ctx, r.Client, &rq, "resource quota")
+
+	if err != nil {
+		klog.Errorf("Error when deleting resource quota for tenant %s -> %s", tn.Name, err)
+	}
+
+	return err
 }
 
 // // Deletes namespace or updates the cluster resources.
