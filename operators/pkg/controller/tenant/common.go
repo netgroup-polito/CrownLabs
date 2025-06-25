@@ -91,3 +91,13 @@ func cleanName(name string) string {
 
 	return strings.Trim(name, "_")
 }
+
+func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
+	}
+	labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
+	labels["crownlabs.polito.it/managed-by"] = "tenant"
+
+	return labels
+}

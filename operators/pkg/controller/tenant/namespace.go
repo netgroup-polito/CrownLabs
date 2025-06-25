@@ -14,13 +14,76 @@ import (
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/go-logr/logr"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
+func (r *TenantReconciler) createResourcesRelatedToPersonalNamespace(
+	ctx context.Context,
+	log logr.Logger,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	// Create the personal namespace for the tenant
+	if err := r.createPersonalNamespace(ctx, tn); err != nil {
+		return fmt.Errorf("error when creating personal namespace for tenant %s: %w", tn.Name, err)
+	}
+	log.Info("Personal namespace created", "namespace", getNamespaceName(tn))
+
+	// TODO: manage resource quota
+	// TODO: tutte le cose che partono da enforceClusterResources
+
+	return nil
+}
+
+func (r *TenantReconciler) deleteResourcesRelatedToPersonalNamespace(
+	ctx context.Context,
+	log logr.Logger,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	// TODO: manage resource quota
+	// TODO: tutte le cose che partono da enforceClusterResources
+
+	// Delete the personal namespace for the tenant
+	if err := r.deletePersonalNamespace(ctx, tn); err != nil {
+		return fmt.Errorf("error when deleting personal namespace for tenant %s: %w", tn.Name, err)
+	}
+	log.Info("Personal namespace deleted", "namespace", getNamespaceName(tn))
+
+	return nil
+}
+
+func (r *TenantReconciler) createPersonalNamespace(
+	ctx context.Context,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
+	ns := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: getNamespaceName(tn),
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+		ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
+		ns.Labels["crownlabs.polito.it/type"] = "tenant"
+		ns.Labels["crownlabs.polito.it/name"] = tn.Name
+		ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
+
+		return controllerutil.SetControllerReference(tn, &ns, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error when creating namespace for tenant %s: %w", tn.Name, err)
+	}
+
+	return nil
+}
+
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.
-func (r *TenantReconciler) deleteClusterNamespace(ctx context.Context, tn *crownlabsv1alpha2.Tenant) error {
+func (r *TenantReconciler) deletePersonalNamespace(
+	ctx context.Context,
+	tn *crownlabsv1alpha2.Tenant,
+) error {
 	ns := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: getNamespaceName(tn),

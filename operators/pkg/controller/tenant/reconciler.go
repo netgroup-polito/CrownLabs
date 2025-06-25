@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -103,7 +104,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// check if the Tenant is being deleted
 	if !tn.DeletionTimestamp.IsZero() {
-		err := r.deleteTenant(ctx, &tn)
+		err := r.deleteTenant(ctx, log, &tn)
 		if err != nil {
 			klog.Errorf("Error deleting tenant %s: %v", tn.Name, err)
 			return ctrl.Result{}, err
@@ -181,21 +182,25 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	keepAlive, err := r.checkNamespaceKeepAlive(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking whether tenant namespace should be kept alive: %s", err)
-		tnOpinternalErrors.WithLabelValues("tenant", "self-update").Inc()
+		tnOpinternalErrors.WithLabelValues("tenant", "check-keep-alive").Inc()
 		return ctrl.Result{}, err
 	}
 
 	if keepAlive {
 		// Namespace should be kept open, so we proceed with the reconciliation
 		// creating or updating the cluster resources
-
-		// TODO: create or update personal namespace
-		// TODO: manage resource quota
-		// TODO: tutte le cose che partono da enforceClusterResources
+		if err := r.createResourcesRelatedToPersonalNamespace(ctx, log, &tn); err != nil {
+			klog.Errorf("Error creating or updating resources related to personal namespace for tenant %s: %v", tn.Name, err)
+			tnOpinternalErrors.WithLabelValues("tenant", "create-personal-namespace").Inc()
+			return ctrl.Result{}, fmt.Errorf("error creating or updating resources related to personal namespace for tenant %s: %w", tn.Name, err)
+		}
 	} else {
 		// Namespace should not be kept open, so we delete all the resources related to the tenant
-
-		// TODO: cancella le cose che arrivano da enforceClusterResources e il personal namespace
+		if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, &tn); err != nil {
+			klog.Errorf("Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
+			tnOpinternalErrors.WithLabelValues("tenant", "delete-personal-namespace").Inc()
+			return ctrl.Result{}, fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
+		}
 	}
 
 	// TODO: manage sandbox
@@ -251,9 +256,18 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *TenantReconciler) deleteTenant(
 	ctx context.Context,
+	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
 	// TODO delete all resources related to the tenant
+
+	// delete the personal namespace
+	if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, tn); err != nil {
+		klog.Errorf("Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "delete-personal-namespace").Inc()
+		return fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
+	}
+	log.Info("Deleted resources related to personal namespace for tenant", "name", tn.Name)
 
 	// remove the tenant from Keycloak
 	err := r.deleteTenantInKeycloak(ctx, tn)
@@ -261,6 +275,7 @@ func (r *TenantReconciler) deleteTenant(
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
 		return err
 	}
+	log.Info("Deleted tenant in Keycloak", "name", tn.Name)
 
 	// delete the finalizer
 	if controllerutil.ContainsFinalizer(tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
@@ -269,7 +284,7 @@ func (r *TenantReconciler) deleteTenant(
 			klog.Errorf("Error removing finalizer from tenant %s: %v", tn.Name, err)
 			return err
 		}
-		klog.Infof("Finalizer %s removed from tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
+		log.Info("Removed finalizer from tenant", "name", tn.Name)
 	}
 	return nil
 }
