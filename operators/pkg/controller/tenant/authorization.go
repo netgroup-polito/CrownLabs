@@ -80,19 +80,9 @@ func (r *TenantReconciler) updateWorkspacesAuthorizationRoles(
 func (r *TenantReconciler) obtainWantedRoles(
 	tn *v1alpha2.Tenant,
 ) []string {
-	wantedRoles := make([]string, 0)
+	wantedRoles := make([]string, 0, len(tn.Spec.Workspaces))
 
-	for _, ws := range tn.Spec.Workspaces {
-		// skip workspaces in Candidate status
-		if ws.Role == v1alpha2.Candidate {
-			continue
-		}
-
-		// skip failing workspaces
-		if slices.Contains(tn.Status.FailingWorkspaces, ws.Name) {
-			continue
-		}
-
+	for _, ws := range r.getEnrolledWorkspaces(tn) {
 		wantedRoles = append(wantedRoles, workspaceRoleName(ws))
 	}
 

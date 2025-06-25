@@ -16,10 +16,12 @@ package tenant
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 )
@@ -105,4 +107,67 @@ func (r *TenantReconciler) addWorkspaceLabel(
 	tn.Labels[v1alpha2.WorkspaceLabelPrefix+workspaceName] = string(role)
 
 	return nil
+}
+
+func (r *TenantReconciler) forgeServiceQuota(
+	ctx context.Context,
+	tn *v1alpha2.Tenant,
+) error {
+	// get the enrolled workspaces
+	wss, err := r.getWorkspacesList(
+		ctx,
+		r.getEnrolledWorkspaces(tn),
+	)
+	if err != nil {
+		return err
+	}
+
+	// update resource quota in the status of the tenant after checking validity of workspaces.
+	tn.Status.Quota = forge.TenantResourceList(wss, tn.Spec.Quota)
+
+	return nil
+}
+
+func (r *TenantReconciler) getEnrolledWorkspaces(
+	tn *v1alpha2.Tenant,
+) []v1alpha2.TenantWorkspaceEntry {
+	validWorkspaces := make([]v1alpha2.TenantWorkspaceEntry, 0, len(tn.Spec.Workspaces))
+	for _, ws := range tn.Spec.Workspaces {
+		// skip workspaces in Candidate status
+		if ws.Role == v1alpha2.Candidate {
+			continue
+		}
+
+		// skip failing workspaces
+		if slices.Contains(tn.Status.FailingWorkspaces, ws.Name) {
+			continue
+		}
+
+		validWorkspaces = append(validWorkspaces, ws)
+	}
+
+	return validWorkspaces
+}
+
+func (r *TenantReconciler) getWorkspacesList(
+	ctx context.Context,
+	tnWss []v1alpha2.TenantWorkspaceEntry,
+) ([]v1alpha1.Workspace, error) {
+	workspaces := make([]v1alpha1.Workspace, 0, len(tnWss))
+
+	for _, ws := range tnWss {
+		workspace := v1alpha1.Workspace{}
+		err := r.Get(ctx, types.NamespacedName{
+			Name: ws.Name,
+		}, &workspace)
+		if err != nil {
+			klog.Errorf("Error when getting workspace %s: %v", ws.Name, err)
+			return nil, err
+		}
+
+		// add the workspace to the list
+		workspaces = append(workspaces, workspace)
+	}
+
+	return workspaces, nil
 }

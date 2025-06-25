@@ -136,6 +136,9 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("error managing workspaces for tenant %s: %w", tn.Name, err)
 	}
 
+	// check if the tenant is already been provisioned in Keycloak
+	// - if not, create the tenant in Keycloak
+	// - if yes, check if the tenant is verified
 	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
@@ -146,7 +149,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
-	// manage keycloak tenant authorization
+	// manage keycloak tenant authorization for workspaces
 	if err := r.updateWorkspacesAuthorizationRoles(ctx, &log, &tn); err != nil {
 		klog.Errorf("Error updating tenant authorization roles for tenant %s: %v", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
@@ -162,24 +165,15 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// managing resources not related to the personal namespace
+	//   if the Tenant has already been verified, we can proceed with the reconciliation
+	//   and create related resources
 
-	// TODO: manage the resource quotas
-
-	// if the Tenant has already been verified, we can proceed with the reconciliation
-	// and create related resources
-
-	// --v-- TODO --v--
-
-	// guardare l'utlimo accesso checkNamespaceKeepAlive
-	// if la funzione da true {
-	//   andiamo a cercare se il pers nams è creato o meno e nel caso lo creiamo
-	//   andiamo acontare le quota
-	//   occupiamoci del sandbox
-	//   e di tutte le altre cose che ci sono nelle funzioni
-	//}
-	// altrimenti cancelliamo le risorse -> deleteAllResources
-
-	// --^-- TODO --^--
+	// determine the Tenant resource quota based on the Spec and the existing workspaces
+	if err := r.forgeServiceQuota(ctx, &tn); err != nil {
+		klog.Errorf("Error forging service quota for tenant %s: %v", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "quota-forge").Inc()
+		return ctrl.Result{}, fmt.Errorf("error forging service quota for tenant %s: %w", tn.Name, err)
+	}
 
 	// managing resources related to the personal namespace
 
