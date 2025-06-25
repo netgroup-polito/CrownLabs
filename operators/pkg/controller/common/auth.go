@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -313,6 +314,107 @@ func (a *KeycloakActor) DeleteRole(
 		return nil
 	} else if err != nil {
 		klog.Error("Unable to delete role from keycloak", err)
+		return err
+	}
+
+	return nil
+}
+
+func (a *KeycloakActor) GetUserRoles(
+	ctx context.Context,
+	userID string,
+) ([]*gocloak.Role, error) {
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return nil, err
+	}
+
+	roles, err := a.Client.GetClientRolesByUserID(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		userID,
+	)
+
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+		klog.Warningf("User %s not found in Keycloak", userID)
+		return nil, fmt.Errorf("404")
+	} else if err != nil {
+		klog.Error("Unable to get user roles from keycloak", err)
+		return nil, err
+	}
+
+	return roles, nil
+}
+
+func (a *KeycloakActor) AddUserToRoles(
+	ctx context.Context,
+	userID string,
+	roles []*gocloak.Role,
+) error {
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return err
+	}
+
+	// Convert []*gocloak.Role to []gocloak.Role
+	rolesVal := make([]gocloak.Role, len(roles))
+	for i, r := range roles {
+		if r != nil {
+			rolesVal[i] = *r
+		}
+	}
+
+	err = a.Client.AddClientRolesToUser(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		userID,
+		rolesVal,
+	)
+
+	if err != nil {
+		klog.Error("Unable to add user to role in keycloak", err)
+		return err
+	}
+
+	return nil
+}
+
+func (a *KeycloakActor) RemoveUserFromRoles(
+	ctx context.Context,
+	userID string,
+	roles []*gocloak.Role,
+) error {
+	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
+	if err != nil {
+		klog.Error("Unable to get client internal identifier from keycloak", err)
+		return err
+	}
+
+	// Convert []*gocloak.Role to []gocloak.Role
+	rolesVal := make([]gocloak.Role, len(roles))
+	for i, r := range roles {
+		if r != nil {
+			rolesVal[i] = *r
+		}
+	}
+
+	err = a.Client.DeleteClientRolesFromUser(
+		ctx,
+		a.GetAccessToken(),
+		a.Realm,
+		clientID,
+		userID,
+		rolesVal,
+	)
+
+	if err != nil {
+		klog.Error("Unable to remove user from role in keycloak", err)
 		return err
 	}
 

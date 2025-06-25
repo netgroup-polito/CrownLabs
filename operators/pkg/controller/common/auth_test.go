@@ -800,4 +800,242 @@ var _ = Describe("Auth", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Describe("GetUserRoles", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should return the roles for a given user ID", func() {
+			userID := "test-user-id"
+			expectedRoles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+
+			mKcClient.EXPECT().GetClientRolesByUserID(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+			).Return(expectedRoles, nil)
+
+			roles, err := actor.GetUserRoles(context.Background(), userID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(roles).To(Equal(expectedRoles))
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			userID := "test-user-id"
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+
+			mKcClient.EXPECT().GetClientRolesByUserID(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+			).Times(0) // No call to Keycloak since client ID is missing
+
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			roles, err := actor.GetUserRoles(context.Background(), userID)
+			Expect(err).To(HaveOccurred())
+			Expect(roles).To(BeNil())
+		})
+
+		It("should return an error if the user ID is not found", func() {
+			userID := "non-existent-user"
+
+			mKcClient.EXPECT().GetClientRolesByUserID(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+			).Return(nil, fmt.Errorf("404 Not Found: Could not find user roles"))
+
+			roles, err := actor.GetUserRoles(context.Background(), userID)
+			Expect(err).To(MatchError("404"))
+			Expect(roles).To(BeNil())
+		})
+
+		It("should propagate errors from Keycloak", func() {
+			userID := "test-user-id"
+
+			mKcClient.EXPECT().GetClientRolesByUserID(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+			).Return(nil, fmt.Errorf("keycloak error"))
+
+			roles, err := actor.GetUserRoles(context.Background(), userID)
+			Expect(err).To(HaveOccurred())
+			Expect(roles).To(BeNil())
+		})
+	})
+
+	Describe("AddUserToRoles", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should add a user to multiple roles", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+
+			mKcClient.EXPECT().AddClientRolesToUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Return(nil)
+
+			err := actor.AddUserToRoles(context.Background(), userID, roles)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+			mKcClient.EXPECT().AddClientRolesToUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Times(0) // No call to Keycloak since client ID is missing
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			err := actor.AddUserToRoles(context.Background(), userID, roles)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should propagate errors from Keycloak", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+
+			mKcClient.EXPECT().AddClientRolesToUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Return(fmt.Errorf("keycloak error"))
+
+			err := actor.AddUserToRoles(context.Background(), userID, roles)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("RemoveUserFromRoles", func() {
+		BeforeEach(func() {
+			actor = KeycloakActor{
+				Client:         mKcClient,
+				Realm:          "test-realm",
+				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
+				tokenMutex:     sync.RWMutex{},
+				token:          &gocloak.JWT{AccessToken: "test-token"},
+				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
+				RolesClientID:  "roles-client-id",
+				clientIDCache: map[string]string{
+					"roles-client-id": "internal-roles-client-id",
+				},
+			}
+		})
+
+		It("should remove a user from multiple roles", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+
+			mKcClient.EXPECT().DeleteClientRolesFromUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Return(nil)
+
+			err := actor.RemoveUserFromRoles(context.Background(), userID, roles)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should return an error if the client ID is not found", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			actor.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
+			mKcClient.EXPECT().DeleteClientRolesFromUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Times(0) // No call to Keycloak since client ID is missing
+			mKcClient.EXPECT().GetClients(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				gocloak.GetClientsParams{ClientID: &actor.RolesClientID},
+			).Return(nil, fmt.Errorf("error"))
+
+			err := actor.RemoveUserFromRoles(context.Background(), userID, roles)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should propagate errors from Keycloak", func() {
+			userID := "test-user-id"
+			roles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+
+			mKcClient.EXPECT().DeleteClientRolesFromUser(
+				gomock.Any(),
+				"test-token",
+				"test-realm",
+				"internal-roles-client-id",
+				userID,
+				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+			).Return(fmt.Errorf("keycloak error"))
+
+			err := actor.RemoveUserFromRoles(context.Background(), userID, roles)
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })

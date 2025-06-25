@@ -22,4 +22,7 @@ type KeycloakActorIface interface {
 	GetRole(ctx context.Context, roleName string) (*gocloak.Role, error)
 	CreateRole(ctx context.Context, roleName string, roleDescription string) (string, error)
 	DeleteRole(ctx context.Context, roleName string) error
+	GetUserRoles(ctx context.Context, userID string) ([]*gocloak.Role, error)
+	AddUserToRoles(ctx context.Context, userID string, roles []*gocloak.Role) error
+	RemoveUserFromRoles(ctx context.Context, userID string, roles []*gocloak.Role) error
 }

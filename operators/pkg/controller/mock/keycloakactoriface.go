@@ -41,6 +41,20 @@ func (m *MockKeycloakActorIface) EXPECT() *MockKeycloakActorIfaceMockRecorder {
 	return m.recorder
 }
 
+// AddUserToRole mocks base method.
+func (m *MockKeycloakActorIface) AddUserToRoles(ctx context.Context, userID string, roles []*gocloak.Role) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUserToRole", ctx, userID, roles)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddUserToRole indicates an expected call of AddUserToRole.
+func (mr *MockKeycloakActorIfaceMockRecorder) AddUserToRoles(ctx, userID, roles any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToRole", reflect.TypeOf((*MockKeycloakActorIface)(nil).AddUserToRoles), ctx, userID, roles)
+}
+
 // CreateRole mocks base method.
 func (m *MockKeycloakActorIface) CreateRole(ctx context.Context, roleName, roleDescription string) (string, error) {
 	m.ctrl.T.Helper()
@@ -143,6 +157,21 @@ func (mr *MockKeycloakActorIfaceMockRecorder) GetUser(ctx, username any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockKeycloakActorIface)(nil).GetUser), ctx, username)
 }
 
+// GetUserRoles mocks base method.
+func (m *MockKeycloakActorIface) GetUserRoles(ctx context.Context, userID string) ([]*gocloak.Role, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserRoles", ctx, userID)
+	ret0, _ := ret[0].([]*gocloak.Role)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserRoles indicates an expected call of GetUserRoles.
+func (mr *MockKeycloakActorIfaceMockRecorder) GetUserRoles(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserRoles", reflect.TypeOf((*MockKeycloakActorIface)(nil).GetUserRoles), ctx, userID)
+}
+
 // IsInitialized mocks base method.
 func (m *MockKeycloakActorIface) IsInitialized() bool {
 	m.ctrl.T.Helper()
@@ -155,6 +184,20 @@ func (m *MockKeycloakActorIface) IsInitialized() bool {
 func (mr *MockKeycloakActorIfaceMockRecorder) IsInitialized() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsInitialized", reflect.TypeOf((*MockKeycloakActorIface)(nil).IsInitialized))
+}
+
+// RemoveUserFromRole mocks base method.
+func (m *MockKeycloakActorIface) RemoveUserFromRoles(ctx context.Context, userID string, roles []*gocloak.Role) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveUserFromRole", ctx, userID, roles)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveUserFromRole indicates an expected call of RemoveUserFromRole.
+func (mr *MockKeycloakActorIfaceMockRecorder) RemoveUserFromRoles(ctx, userID, roles any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromRole", reflect.TypeOf((*MockKeycloakActorIface)(nil).RemoveUserFromRoles), ctx, userID, roles)
 }
 
 // Reset mocks base method.
