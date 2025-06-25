@@ -136,8 +136,6 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("error managing workspaces for tenant %s: %w", tn.Name, err)
 	}
 
-	// TODO: manage resource quota
-
 	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
@@ -148,7 +146,13 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
 
-	// TODO: manage keycloak tenant authorization
+	// manage keycloak tenant authorization
+	if err := r.updateWorkspacesAuthorizationRoles(ctx, &log, &tn); err != nil {
+		klog.Errorf("Error updating tenant authorization roles for tenant %s: %v", tn.Name, err)
+		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+		tn.Status.Ready = false
+		return ctrl.Result{}, fmt.Errorf("error updating tenant authorization roles for tenant %s: %w", tn.Name, err)
+	}
 
 	if !verified {
 		// if the Tenant has not been verified, we can skip the reconciliation
@@ -192,6 +196,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// creating or updating the cluster resources
 
 		// TODO: create or update personal namespace
+		// TODO: manage resource quota
 		// TODO: tutte le cose che partono da enforceClusterResources
 	} else {
 		// Namespace should not be kept open, so we delete all the resources related to the tenant
