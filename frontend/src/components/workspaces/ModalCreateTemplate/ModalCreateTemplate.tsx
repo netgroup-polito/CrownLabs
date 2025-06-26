@@ -32,9 +32,9 @@ export type Image = {
 
 type VmOrContainer = EnvironmentType.VirtualMachine | EnvironmentType.Container;
 
-type Template = {
-  name?: string;
-  image?: string;
+type Environment = {
+  name: string;
+  image: string;
   registry?: string;
   vmorcontainer?: VmOrContainer;
   persistent: boolean;
@@ -44,7 +44,13 @@ type Template = {
   ram: number;
   disk: number;
   sharedVolumeMountInfos?: SharedVolumeMountsListItem[];
-};
+}
+
+type Template = {
+  name?: string;
+  description?: string;
+  environmentList: Environment[];
+}
 
 type Interval = {
   max: number;
@@ -100,17 +106,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const [buttonDisabled, setButtonDisabled] = useState(true);
 
   const [formTemplate, setFormTemplate] = useState<Template>({
-    name: template && template.name,
-    image: template && template.image,
-    registry: template && template.registry,
-    vmorcontainer: template && template.vmorcontainer,
-    persistent: template?.persistent ?? false,
-    mountMyDrive: template?.mountMyDrive ?? true,
-    gui: template?.gui ?? true,
-    cpu: template ? template.cpu : cpuInterval.min,
-    ram: template ? template.ram : ramInterval.min,
-    disk: template ? template.disk : diskInterval.min,
-    sharedVolumeMountInfos: template ? template.sharedVolumeMountInfos : [],
+    name: template && template?.name,
+    description: template && template?.description || undefined,
+    environmentList: template?.environmentList || [{
+      name: 'main',
+      image: '',
+      registry: '',
+      vmorcontainer: EnvironmentType.Container,
+      persistent: false,
+      mountMyDrive: true,
+      gui: true,
+      cpu: cpuInterval.min,
+      ram: ramInterval.min,
+      disk: diskInterval.min,
+      sharedVolumeMountInfos: [],
+    }],
   });
 
   const [valid, setValid] = useState<Valid>({
@@ -118,29 +128,110 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     image: { status: 'success', help: undefined },
   });
 
-  const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>();
+  const [imagesSearchOptions, setImagesSearchOptions] = useState<Record<number, string[]>>({});
+
+  const addEnvironment = () => {
+    setFormTemplate(old => ({
+      ...old,
+      environmentList: [
+        ...old.environmentList,
+        {
+          name: `env-${old.environmentList.length + 1}`,
+          image: '',
+          registry: '',
+          vmorcontainer: EnvironmentType.Container,
+          persistent: false,
+          mountMyDrive: true,
+          gui: true,
+          cpu: cpuInterval.min,
+          ram: ramInterval.min,
+          disk: diskInterval.min,
+          sharedVolumeMountInfos: [],
+        }
+      ]
+    }));
+  };
+
+  const removeEnvironment = (index: number) => {
+    if (formTemplate.environmentList.length > 1) {
+      setFormTemplate(old => ({
+        ...old,
+        environmentList: old.environmentList.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const updateEnvironment = (index: number, updates: Partial<Environment>) => {
+    setFormTemplate(old => ({
+      ...old,
+      environmentList: old.environmentList.map((env, i) =>
+        i === index ? { ...env, ...updates } : env
+      )
+    }));
+  };
+
+
+  const validateEnvironments = () => {
+    const errors: string[] = [];
+
+    formTemplate.environmentList.forEach((env, index) => {
+      if (!env.name || env.name.trim() === '') {
+        errors.push(`Environment ${index + 1}: Name is required`);
+      }
+      if (!env.image || env.image.trim() === '') {
+        errors.push(`Environment ${index + 1}: Image is required`);
+      }
+    });
+
+    // Check for duplicate environment names
+    const names = formTemplate.environmentList.map(env => env.name);
+    const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+    if (duplicates.length > 0) {
+      errors.push('Environment names must be unique');
+    }
+
+    return errors;
+  };
+
+  const hasChanges = () => {
+    if (!template) return true;
+
+    if (template.name !== formTemplate.name) return true;
+    if (template.description !== formTemplate.description) return true;
+
+    if (template.environmentList.length !== formTemplate.environmentList.length) return true;
+
+    return formTemplate.environmentList.some((env, index) => {
+      const originalEnv = template.environmentList[index];
+      if (!originalEnv) return true;
+
+      return (
+        originalEnv.name !== env.name ||
+        originalEnv.image !== env.image ||
+        originalEnv.vmorcontainer !== env.vmorcontainer ||
+        originalEnv.gui !== env.gui ||
+        originalEnv.persistent !== env.persistent ||
+        originalEnv.cpu !== env.cpu ||
+        originalEnv.ram !== env.ram ||
+        originalEnv.disk !== env.disk ||
+        JSON.stringify(originalEnv.sharedVolumeMountInfos) !==
+        JSON.stringify(env.sharedVolumeMountInfos)
+      );
+    });
+  };
 
   useEffect(() => {
-    if (
-      formTemplate.name &&
-      formTemplate.image &&
-      formTemplate.vmorcontainer &&
-      valid.name.status === 'success' &&
-      (template
-        ? template.name !== formTemplate.name ||
-          template.image !== formTemplate.image ||
-          template.vmorcontainer !== formTemplate.vmorcontainer ||
-          template.gui !== formTemplate.gui ||
-          template.persistent !== formTemplate.persistent ||
-          template.cpu !== formTemplate.cpu ||
-          template.ram !== formTemplate.ram ||
-          template.disk !== formTemplate.disk ||
-          JSON.stringify(template.sharedVolumeMountInfos) !==
-            JSON.stringify(formTemplate.sharedVolumeMountInfos)
-        : true)
-    )
+    const envErrors = validateEnvironments();
+    const hasValidTemplate = formTemplate.name &&
+      formTemplate.environmentList.length > 0 &&
+      envErrors.length === 0;
+
+    const changesDetected = hasChanges();
+    if (hasValidTemplate && valid.name.status === 'success' && changesDetected) {
       setButtonDisabled(false);
-    else setButtonDisabled(true);
+    } else {
+      setButtonDisabled(true);
+    }
   }, [formTemplate, template, valid.name.status]);
 
   const nameValidator = () => {
@@ -178,22 +269,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const imageValidator = () => {
-    if (isEmptyOrSpaces(formTemplate.image!)) {
-      setValid(old => {
-        return {
-          ...old,
-          image: { status: 'error', help: 'Insert an image' },
-        };
-      });
+    const hasEmptyImages = formTemplate.environmentList.some(env =>
+      isEmptyOrSpaces(env.image)
+    );
+    if (hasEmptyImages) {
+      setValid(old => ({
+        ...old,
+        image: { status: 'error', help: 'Insert an image for each environment' },
+      }));
     } else {
-      setValid(old => {
-        return {
-          ...old,
-          image: { status: 'success', help: undefined },
-        };
-      });
+      setValid(old => ({
+        ...old,
+        image: { status: 'success', help: undefined },
+      }));
     }
-  };
+  }
 
   const [form] = Form.useForm();
 
@@ -218,30 +308,52 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const onSubmit = () => {
     const shvolMounts: ShVolFormItemValue[] = form.getFieldValue('shvolss');
-    const sharedVolumeMountInfos: SharedVolumeMountsListItem[] =
-      shvolMounts.map(obj => ({
-        sharedVolume: {
-          namespace: obj.shvol.split('/')[0],
-          name: obj.shvol.split('/')[1],
-        },
-        mountPath: obj.mountpath,
-        readOnly: Boolean(obj.readonly),
-      }));
+    const processedEnvironmentList = formTemplate.environmentList.map(env => {
+      const sharedVolumeMountInfos: SharedVolumeMountsListItem[] =
+        shvolMounts.map(obj => ({
+          sharedVolume: {
+            namespace: obj.shvol.split('/')[0],
+            name: obj.shvol.split('/')[1],
+          },
+          mountPath: obj.mountpath,
+          readOnly: Boolean(obj.readonly),
+        }));
+
+      return {
+        ...env,
+        image: images.find(i => getImageNoVer(i.name) === env.image)?.name ?? env.image,
+        sharedVolumeMountInfos: env.sharedVolumeMountInfos || sharedVolumeMountInfos,
+      };
+    });
+
 
     submitHandler({
       ...formTemplate,
-      image:
-        images.find(i => getImageNoVer(i.name) === formTemplate.image)?.name ??
-        formTemplate.image,
-      sharedVolumeMountInfos: sharedVolumeMountInfos,
+      environmentList: processedEnvironmentList,
     })
       .then(() => {
         setShow(false);
-        setFormTemplate(old => {
-          return { ...old, name: undefined };
-        });
+        setFormTemplate(old => ({
+          ...old,
+          name: undefined,
+          description: undefined,
+          environmentList: [{
+            name: 'main',
+            image: '',
+            registry: '',
+            vmorcontainer: EnvironmentType.Container,
+            persistent: false,
+            mountMyDrive: true,
+            gui: true,
+            cpu: cpuInterval.min,
+            ram: ramInterval.min,
+            disk: diskInterval.min,
+            sharedVolumeMountInfos: [],
+          }]
+        }));
         form.setFieldsValue({
           templatename: undefined,
+          description: undefined,
         });
       })
       .catch(apolloErrorCatcher);
@@ -265,11 +377,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         onSubmitCapture={onSubmit}
         initialValues={{
           templatename: formTemplate.name,
-          image: formTemplate.image,
-          vmorcontainer: formTemplate.vmorcontainer,
-          cpu: formTemplate.cpu,
-          ram: formTemplate.ram,
-          disk: formTemplate.disk,
+          description: formTemplate.description,
         }}
       >
         <Form.Item
@@ -299,179 +407,219 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           />
         </Form.Item>
 
-        <div className="flex justify-between items-start inline mb-6">
-          <Form.Item
-            className="my-0"
-            {...fullLayout}
-            style={{ width: '63%' }}
-            name="image"
-            required
-            validateStatus={valid.image.status as 'success' | 'error'}
-            help={valid.image.help}
-            validateTrigger="onChange"
-            rules={[
-              {
-                required: true,
-                validator: imageValidator,
-              },
-            ]}
-          >
-            <AutoComplete
-              options={imagesSearchOptions?.map(x => {
-                return {
-                  value: x,
-                };
-              })}
-              onFocus={() => {
-                if (!imagesSearchOptions?.length)
-                  setImagesSearchOptions(imagesNoVersion!);
-              }}
-              onChange={value => {
-                setImagesSearchOptions(
-                  imagesNoVersion?.filter(s => s.includes(value)),
-                );
-                if (value !== formTemplate.image) {
-                  const imageFound = images.find(
-                    i => getImageNoVer(i.name) === value,
-                  );
-                  setFormTemplate(old => {
-                    return {
-                      ...old,
-                      image: String(value),
-                      registry: imageFound?.registry,
-                      vmorcontainer:
-                        imageFound?.vmorcontainer[0] ??
-                        EnvironmentType.Container,
-                      persistent: false,
-                      gui: true,
-                    };
-                  });
-                  form.setFieldsValue({
-                    image: value,
-                    vmorcontainer:
-                      imageFound?.vmorcontainer[0] ?? EnvironmentType.Container,
-                  });
-                }
-              }}
-              placeholder="Select an image"
-            />
-          </Form.Item>
-
-          <div className="mt-3">
-            <span>GUI:</span>
-            <Checkbox
-              className="ml-3"
-              checked={formTemplate.gui}
-              onChange={() =>
-                setFormTemplate(old => {
-                  return { ...old, gui: !old.gui };
-                })
-              }
-            />
-          </div>
-          <div className="mr-1 mt-3">
-            <span>Persistent: </span>
-            <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
-              <Checkbox
-                className="ml-3"
-                checked={formTemplate.persistent}
-                onChange={() =>
-                  setFormTemplate(old => {
-                    return {
-                      ...old,
-                      persistent: !old.persistent,
-                      disk: !old.persistent
-                        ? template?.disk || diskInterval.min
-                        : 0,
-                    };
-                  })
-                }
-              />
-            </Tooltip>
-          </div>
-        </div>
-
-        <Form.Item labelAlign="left" className="mt-10" label="CPU" name="cpu">
-          <div className="sm:pl-3 pr-1">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              defaultValue={formTemplate.cpu}
-              tooltip={{ open: false }}
-              value={formTemplate.cpu}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, cpu: value };
-                })
-              }
-              min={cpuInterval.min}
-              max={cpuInterval.max}
-              marks={{
-                [cpuInterval.min]: `${cpuInterval.min}`,
-                [formTemplate.cpu]: `${formTemplate.cpu}`,
-                [cpuInterval.max]: `${cpuInterval.max}`,
-              }}
-              included={false}
-              step={1}
-              tipFormatter={(value?: number) => `${value} Core`}
-            />
-          </div>
-        </Form.Item>
-        <Form.Item labelAlign="left" label="RAM" name="ram">
-          <div className="sm:pl-3 pr-1">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              defaultValue={formTemplate.ram}
-              tooltip={{ open: false }}
-              value={formTemplate.ram}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, ram: value };
-                })
-              }
-              min={ramInterval.min}
-              max={ramInterval.max}
-              marks={{
-                [ramInterval.min]: `${ramInterval.min}GB`,
-                [formTemplate.ram]: `${formTemplate.ram}GB`,
-                [ramInterval.max]: `${ramInterval.max}GB`,
-              }}
-              included={false}
-              step={0.25}
-              tipFormatter={(value?: number) => `${value} GB`}
-            />
-          </div>
-        </Form.Item>
+        {/* Description field */}
         <Form.Item
-          labelAlign="left"
-          label="DISK"
-          name="disk"
-          className={formTemplate.persistent ? '' : 'hidden'}
+          {...fullLayout}
+          name="description"
+          className="mt-1"
         >
-          <div className="sm:pl-3 pr-1 ">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              tooltip={{ open: false }}
-              value={formTemplate.disk}
-              defaultValue={formTemplate.disk}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, disk: value };
-                })
-              }
-              min={diskInterval.min}
-              max={diskInterval.max}
-              marks={{
-                [diskInterval.min]: `${diskInterval.min}GB`,
-                [formTemplate.disk]: `${formTemplate.disk}GB`,
-                [diskInterval.max]: `${diskInterval.max}GB`,
-              }}
-              included={false}
-              step={1}
-              tipFormatter={(value?: number) => `${value} GB`}
-            />
-          </div>
+          <Input.TextArea
+            onChange={e =>
+              setFormTemplate(old => {
+                return { ...old, description: e.target.value };
+              })
+            }
+            placeholder="Insert template description"
+            allowClear
+          />
         </Form.Item>
 
+        {/* Environment section */}
+        <div className="flex justify-between items-start inline mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-medium">Environments</h3>
+            <Button
+              type="dashed"
+              onClick={addEnvironment}
+              icon={<span>+</span>}
+            >
+              Add Environment
+            </Button>
+          </div>
+
+          {formTemplate.environmentList.map((environment, index) => (
+            <div key={index} className="my-0">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-medium">Environment {index + 1}</h4>
+                {formTemplate.environmentList.length > 1 && (
+                  <Button
+                    type="text"
+                    danger
+                    onClick={() => removeEnvironment(index)}
+                    size="small"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+
+              {/* Environment Name */}
+              <Form.Item
+                name={`name_${index}`}
+                required
+                className="mb-2"
+                initialValue={environment.name}
+              >
+                <Input
+                  value={environment.name}
+                  onChange={e => updateEnvironment(index, { name: e.target.value })}
+                  placeholder="Environment Name"
+                  allowClear
+                />
+              </Form.Item>
+
+              <div className="flex items-end gap-4 mb-3">
+                {/* Environment Image */}
+                <Form.Item
+                  className="my-0"
+                  {...fullLayout}
+                  style={{ width: '63%' }}
+                  name={`image_${index}`}
+                  required
+                  validateStatus={valid.image.status as 'success' | 'error'}
+                  help={valid.image.help}
+                  validateTrigger="onChange"
+                  rules={[
+                    {
+                      required: true,
+                      validator: imageValidator,
+                    },
+                  ]}
+                >
+                  <AutoComplete
+                    value={environment.image}
+                    options={imagesSearchOptions[index]?.map(x => ({ value: x })) || imagesNoVersion.map(x => ({ value: x }))}
+                    onFocus={() => {
+                      if (!imagesSearchOptions[index]?.length) {
+                        setImagesSearchOptions(old => ({
+                          ...old,
+                          [index]: imagesNoVersion!
+                        }));
+                      }
+                    }}
+                    onChange={value => {
+                      setImagesSearchOptions(old => ({
+                        ...old,
+                        [index]: imagesNoVersion.filter(s => s.includes(value))
+                      }));
+                      if (value !== environment.image) {
+                        const imageFound = images.find(
+                          i => getImageNoVer(i.name) === value,
+                        );
+                        updateEnvironment(index, {
+                          image: String(value),
+                          registry: imageFound?.registry,
+                          vmorcontainer: imageFound?.vmorcontainer[0] ?? EnvironmentType.Container,
+                        });
+                      }
+                    }}
+                    placeholder="Select an image"
+                  />
+                </Form.Item>
+
+                {/* Environment Options */}
+                <div className="mt-3">
+                  <span>GUI:</span>
+                  <Checkbox
+                    className="ml-3"
+                    checked={environment.gui}
+                    onChange={() =>
+                      updateEnvironment(index, { gui: !environment.gui })
+                    }
+                  />
+                </div>
+                <div className="mr-1 mt-3">
+                  <span>Persistent:</span>
+                  <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
+                    <Checkbox
+                      className="ml-2"
+                      checked={environment.persistent}
+                      onChange={() =>
+                        updateEnvironment(index, {
+                          persistent: !environment.persistent,
+                          disk: !environment.persistent ? template?.environmentList[index].disk || diskInterval.min : 0
+                        })
+                      }
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+              {/* Resource Sliders */}
+              <Form.Item labelAlign="left" className="mb-2" label="CPU" name={`cpu_${index}`}>
+                <div className="sm:pl-3 pr-1">
+                  <Slider
+                    styles={{ handle: alternativeHandle }}
+                    defaultValue={formTemplate.environmentList[index].cpu}
+                    tooltip={{ open: false }}
+                    value={environment.cpu}
+                    onChange={(value: number) =>
+                      updateEnvironment(index, { cpu: value })
+                    }
+                    min={cpuInterval.min}
+                    max={cpuInterval.max}
+                    marks={{
+                      [cpuInterval.min]: `${cpuInterval.min}`,
+                      [environment.cpu]: `${environment.cpu}`,
+                      [cpuInterval.max]: `${cpuInterval.max}`,
+                    }}
+                    included={false}
+                    step={1}
+                    tipFormatter={(value?: number) => `${value} Core`}
+                  />
+                </div>
+              </Form.Item>
+              <Form.Item labelAlign="left" className="mb-2" label="RAM" name={`ram_${index}`}>
+                <div className="sm:pl-3 pr-1">
+                  <Slider
+                    styles={{ handle: alternativeHandle }}
+                    defaultValue={environment.ram}
+                    tooltip={{ open: false }}
+                    value={environment.ram}
+                    onChange={(value: number) =>
+                      updateEnvironment(index, { ram: value })
+                    }
+                    min={ramInterval.min}
+                    max={ramInterval.max}
+                    marks={{
+                      [ramInterval.min]: `${ramInterval.min}GB`,
+                      [environment.ram]: `${environment.ram}GB`,
+                      [ramInterval.max]: `${ramInterval.max}GB`,
+                    }}
+                    included={false}
+                    step={0.25}
+                    tipFormatter={(value?: number) => `${value} GB`}
+                  />
+                </div>
+              </Form.Item>
+
+              {environment.persistent && (
+                <Form.Item labelAlign="left" className="mb-2" label="DISK" name={`disk_${index}`}  >
+                  <div className="sm:pl-3 pr-1">
+                    <Slider
+                      styles={{ handle: alternativeHandle }}
+                      tooltip={{ open: false }}
+                      value={environment.disk}
+                      defaultValue={environment.disk}
+                      onChange={(value: number) =>
+                        updateEnvironment(index, { disk: value })
+                      }
+                      min={diskInterval.min}
+                      max={diskInterval.max}
+                      marks={{
+                        [diskInterval.min]: `${diskInterval.min}GB`,
+                        [environment.disk]: `${environment.disk}GB`,
+                        [diskInterval.max]: `${diskInterval.max}GB`,
+                      }}
+                      included={false}
+                      step={1}
+                      tipFormatter={(value?: number) => `${value} GB`}
+                    />
+                  </div>
+                </Form.Item>
+              )}
+            </div>
+          ))}
+        </div>
         <ShVolFormItem workspaceNamespace={workspaceNamespace} />
 
         <Form.Item {...fullLayout}>
