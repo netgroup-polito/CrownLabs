@@ -103,6 +103,25 @@ service:
   port: 22
   externalTrafficPolicy: Cluster
 
+webSshService:
+  type: ClusterIP
+  port: 8085
+  targetPort: webssh
+
+ingress:
+  enabled: true
+  annotations:
+    #cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/custom-http-errors: "418"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/websocket-services: "{{ include \"bastion-operator.fullname\" . }}-webssh"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  hostname: crownlabs.example.com
+  path: /web-ssh
+  pathType: Prefix
+  secret: frontend-app-certificate # reuse the frontend secret
+
 
 sshKeysSecret:
   name: crownlabs-bastion-operator-ssh-keys
@@ -110,3 +129,11 @@ sshKeysSecret:
   kubectlImage: bitnami/kubectl:1.19
 
 rbacResourcesName: crownlabs-bastion-operator
+
+webSshConfig:
+  webSshUser: crownlabs
+  webSshPrivateKeyPath: /web-keys/ssh_web_bastion_master
+  webSshTimeoutDuration: 30 # minutes
+  WebSshMaxConCount: 1000
+  WebSshVmPort: 22
+  WebSshWebskPort: 8085

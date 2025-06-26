@@ -58,6 +58,9 @@ spec:
             - name: op-probes
               containerPort: 8081
               protocol: TCP
+            - name: webssh
+              containerPort: {{ .Values.webSshConfig.WebSshWebskPort }}
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
