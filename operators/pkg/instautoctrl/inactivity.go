@@ -80,7 +80,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.InactivityTimeout == neverTimeoutValue {
+				if !ok || template.Spec.InactivityTimeout == NEVER_TIMEOUT_VALUE {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -145,7 +145,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
-	if inactivityTimeout == neverTimeoutValue {
+	if inactivityTimeout == NEVER_TIMEOUT_VALUE {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
@@ -230,11 +230,11 @@ func (r *InstanceInactiveTerminationReconciler) GetInstanceAndTemplate(ctx conte
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Namespace,
+		Namespace: instance.Spec.Template.Namespace,
 	}, &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
 		return nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
-			instance.Namespace, instance.Spec.Template.Name, err)
+			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
 	}
 
 	return &instance, &template, nil
@@ -497,7 +497,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 			return err
 		}
 	}
-	log.Info("instance annotations setup completed", "instance", instance.Name, "annotations", instance.ObjectMeta.Annotations)
+	log.Info("instance annotations setup completed", "instance", instance.Name)
 	return nil
 }
 

@@ -62,6 +62,7 @@ instance-operator:
     repository: crownlabs/instance-operator
   rbacResourcesName: crownlabs-instance-operator
   configurations:
+    mailConfigMapName: crownlabs-mail-config
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       websiteBaseUrl: crownlabs.example.com
@@ -98,13 +99,6 @@ instance-operator:
       inactiveTerminationMaxNumberOfAlerts: 3
       enableInactivityNotifications: true
       enableExpirationNotifications: true
-    smtp:
-      server: smtp.example.com
-      port: 123
-      identity: example
-      username: example
-      password: example
-      from: example@example.com
 
 tenant-operator:
   replicaCount: 1

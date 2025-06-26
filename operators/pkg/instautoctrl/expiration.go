@@ -66,7 +66,7 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.DeleteAfter == neverTimeoutValue {
+				if !ok || template.Spec.DeleteAfter == NEVER_TIMEOUT_VALUE {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -131,7 +131,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	ctx, _ = pkgcontext.InstanceInto(ctx, &instance)
 
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
-	if deleteAfter == neverTimeoutValue {
+	if deleteAfter == NEVER_TIMEOUT_VALUE {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil

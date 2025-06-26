@@ -39,11 +39,10 @@ import (
 )
 
 const (
-	// defaultTimeoutValue is the default value for inactivity timeout and expiration in the template CRD.
-	neverTimeoutValue = "never"
+	NEVER_TIMEOUT_VALUE = "never"
 
-	inactivity_mail_template_path = "templates/instance-automation/inactivity_notification.yaml"
-	expiration_mail_template_path = "templates/instance-automation/expiration_notification.yaml"
+	INACTIVITY_MAIL_TEMPLATE_PATH = "templates/instance-automation/inactivity_notification.yaml"
+	EXPIRATION_MAIL_TEMPLATE_PATH = "templates/instance-automation/expiration_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -84,12 +83,12 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 
 // SendInactivityNotification sends notification about instance inactivity detection.
 func SendInactivityNotification(ctx context.Context, mc *mail.MailClient) error {
-	return sendNotification(ctx, mc, inactivity_mail_template_path)
+	return sendNotification(ctx, mc, INACTIVITY_MAIL_TEMPLATE_PATH)
 }
 
 // SendExpiringNotification sends expiration warning notification.
 func SendExpiringNotification(ctx context.Context, mc *mail.MailClient) error {
-	return sendNotification(ctx, mc, expiration_mail_template_path)
+	return sendNotification(ctx, mc, EXPIRATION_MAIL_TEMPLATE_PATH)
 }
 
 func sendNotification(ctx context.Context, mc *mail.MailClient, mail_template_path string) error {

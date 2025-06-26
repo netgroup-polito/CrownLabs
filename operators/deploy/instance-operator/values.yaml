@@ -6,6 +6,7 @@ replicaCountOperator: 1
 replicaCountAutomation: 1
 
 configurations:
+  mailConfigMapName: crownlabs-mail-config
   generic:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com
@@ -48,13 +49,6 @@ configurations:
     inactiveTerminationMaxNumberOfAlerts: 3
     enableInactivityNotifications: true
     enableExpirationNotifications: true
-  smtp:
-    server: smtp.example.com
-    port: 123
-    identity: example
-    username: example
-    password: example
-    from: example@example.com
 
 image:
   repositoryOperator: crownlabs/instance-operator

@@ -16,8 +16,8 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"net/smtp"
 	"os"
 	"strings"
 	"time"
@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
@@ -97,23 +98,11 @@ func main() {
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", true, "Enable the sending of inactivity notifications to users on instance inactivity")
 	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", true, "Enable the sending of expiration notifications to users on instance expiration")
 
-	smtpServer := flag.String("smtp-server", "smtp.polito.it", "SMTP server for sending emails")
-	smtpPort := flag.Int("smtp-port", 587, "SMTP server port")
-	smtpIdentity := flag.String("smtp-identity", "", "SMTP identity for authentication")
-	smtpUsername := flag.String("smtp-username", "", "SMTP username for authentication")
-	smtpPassword := flag.String("smtp-password", "", "SMTP password for authentication")
-	smtpFrom := flag.String("smtp-from", "crownlabs@polito.it", "Email sender address")
+	mailConfigMapName := flag.String("mail-configmap-name", "crownlabs-mail-config", "The name of the ConfigMap containing the email configuration")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
-
-	mailClient = &mail.MailClient{
-		SMTPServer: *smtpServer,
-		SMTPPort:   *smtpPort,
-		Auth:       smtp.PlainAuth(*smtpIdentity, *smtpUsername, *smtpPassword, *smtpServer),
-		From:       *smtpFrom,
-	}
 
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
@@ -135,6 +124,27 @@ func main() {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+
+	// Create a direct Kubernetes client for ConfigMap reading
+	config := restcfg.SetRateLimiter(ctrl.GetConfigOrDie())
+	k8sClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Error(err, "unable to create kubernetes client")
+		os.Exit(1)
+	}
+	// Get the configMap containing the email configuration
+	configMap, err := k8sClient.CoreV1().ConfigMaps("default").Get(context.TODO(), *mailConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		log.Error(err, "unable to get mail config map", "configmap", *mailConfigMapName)
+		os.Exit(1)
+	}
+	mail.SetConfigMapData(configMap.Data)
+	mailClient, err = mail.NewMailClientFromConfigMap()
+	if err != nil {
+		log.Error(err, "unable to create mail client from config map")
+		os.Exit(1)
+	}
+	log.Info("CrownLabs Email client created")
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 

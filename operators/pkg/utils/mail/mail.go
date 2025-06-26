@@ -15,11 +15,13 @@
 package mail
 
 import (
-	"embed"
 	"fmt"
 	"net/smtp"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -49,9 +51,54 @@ type Placeholders struct {
 }
 
 var (
-	//go:embed templates/*
-	templatesFS embed.FS
+	configMapData map[string]string
 )
+
+// SetConfigMapData sets the ConfigMap data to be used for loading templates and configs.
+func SetConfigMapData(data map[string]string) {
+	configMapData = data
+}
+
+// NewMailClientFromConfigMap creates a new MailClient instance from ConfigMap data
+func NewMailClientFromConfigMap() (*MailClient, error) {
+	if configMapData == nil {
+		return nil, fmt.Errorf("configMapData is not set")
+	}
+	// Get SMTP configuration from ConfigMap data
+	smtpConfig := configMapData["smtp-config.yaml"]
+	if smtpConfig == "" {
+		return nil, fmt.Errorf("smtp-config.yaml is not found in configMapData")
+	}
+	// Unmarshal the SMTP configuration from YAML file
+	smtpConfigData := make(map[string]string)
+	if err := yaml.Unmarshal([]byte(smtpConfig), &smtpConfigData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal smtp-config.yaml: %w", err)
+	}
+	smtpServer := smtpConfigData["smtpServer"]
+	smtpPortStr := smtpConfigData["smtpPort"]
+	smtpIdentity := smtpConfigData["smtpIdentity"]
+	smtpUsername := smtpConfigData["smtpUsername"]
+	smtpPassword := smtpConfigData["smtpPassword"]
+	smtpFrom := smtpConfigData["smtpFrom"]
+
+	if smtpServer == "" || smtpPortStr == "" || smtpIdentity == "" ||
+		smtpUsername == "" || smtpPassword == "" || smtpFrom == "" {
+		return nil, fmt.Errorf("one or more required SMTP configuration parameters are missing")
+	}
+
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid smtpPort value '%s': %w", smtpPortStr, err)
+	}
+
+	auth := smtp.PlainAuth(smtpIdentity, smtpUsername, smtpPassword, smtpServer)
+	return &MailClient{
+		SMTPServer: smtpServer,
+		SMTPPort:   smtpPort,
+		Auth:       auth,
+		From:       smtpFrom,
+	}, nil
+}
 
 // getPlaceholderKeys returns a map of placeholder where the key
 // is the placeholder name and the value is the placeholder value.
@@ -108,10 +155,33 @@ func (m *MailClient) SendCrownLabsMail(email_content_template_path string, ph Pl
 	return m.sendEmail(ph.TenantEmail, formattedEmail)
 }
 
+// readTemplateFile reads a template file from ConfigMap data
+func readTemplateFile(templatePath string) ([]byte, error) {
+	// Check if configMapData is set
+	if configMapData == nil {
+		return nil, fmt.Errorf("configMapData is not set")
+	}
+	// Try to find the template in ConfigMap data
+	// Remove "templates/" prefix if present for ConfigMap lookup
+	filename := templatePath
+	if after, ok := strings.CutPrefix(templatePath, "templates/"); ok {
+		filename = after
+	}
+	// Also try with just the basename
+	basename := filepath.Base(templatePath)
+	// Try different possible keys
+	for _, key := range []string{templatePath, filename, basename} {
+		if content, exists := configMapData[key]; exists {
+			return []byte(content), nil
+		}
+	}
+	return nil, fmt.Errorf("template file not found: %s", templatePath)
+}
+
 // processEmailContentTemplate loads and processes the content template file
 func (m *MailClient) processEmailContentTemplate(templatePath string, ph Placeholders) (map[string]string, error) {
 	// Get the email content template
-	emailContentTemplate, err := templatesFS.ReadFile(templatePath)
+	emailContentTemplate, err := readTemplateFile(templatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read email content template: %w", err)
 	}
@@ -143,13 +213,13 @@ func (m *MailClient) processEmailContentTemplate(templatePath string, ph Placeho
 // prepareFinalEmail prepares the final email by combining the base template with content
 func (m *MailClient) prepareFinalEmail(emailContent map[string]string) (string, error) {
 	// Get the entire email template
-	crownlabsEmailTemplate, err := templatesFS.ReadFile(CROWNLABS_MAIL_TEMPLATE_PATH)
+	crownlabsEmailTemplate, err := readTemplateFile(CROWNLABS_MAIL_TEMPLATE_PATH)
 	if err != nil {
 		return "", fmt.Errorf("failed to read email template: %w", err)
 	}
 
 	// Get headers template
-	headerFooterTemplate, err := templatesFS.ReadFile(HEADER_FOOTER_TEMPLATE_PATH)
+	headerFooterTemplate, err := readTemplateFile(HEADER_FOOTER_TEMPLATE_PATH)
 	if err != nil {
 		return "", fmt.Errorf("failed to read header/footer template: %w", err)
 	}

@@ -83,14 +83,15 @@ run-instance-automation: generate
 				--enable-instance-submission=true\
 				--enable-instance-termination=true\
 				--enable-instance-inactive-termination=true\
-				--enable-instance-expiration=true
+				--enable-instance-expiration=true\
+				--mail-configmap-name=crownlabs-mail-config
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
-run-instance-local: samples-local install-local run-instance
+run-instance-local: install-local samples-res-local run-instance
 
-run-instance-automation-local: samples-local install-local run-instance-automation
+run-instance-automation-local: install-local samples-res-local samples-email-configmap run-instance-automation
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
@@ -104,11 +105,38 @@ run-tenant: generate
 				--enable-webhooks=false
 
 install-local: manifests
-	kubectl apply -f deploy/crds
-	kubectl apply -f tests/crds
+	kubectl apply -f deploy/crds --wait
+	kubectl apply -f tests/crds --wait
 
-samples-local:
-	kubectl apply -f ./samples/
+uninstall-local: manifests
+	kubectl delete -f deploy/crds
+	kubectl delete -f tests/crds
 
-clean-local:
-	kubectl delete -f ./samples/
+samples-email-configmap:
+# Do not fail if the configmap already exists
+	kubectl create configmap crownlabs-mail-config --namespace=default \
+	--from-file=./samples/email/ \
+	--from-file=./samples/email/defaults/ \
+	--from-file=./samples/email/instance-automation/ \
+	--dry-run=client -o yaml | kubectl replace -f -
+
+clean-samples-email-configmap:
+	kubectl delete configmap crownlabs-mail-config --namespace=default
+
+samples-res-local:
+	kubectl apply -f ./samples/resources/
+
+clean-res-local:
+	kubectl delete -f ./samples/resources/
+
+clean-local: clean-res-local clean-samples-email-configmap uninstall-local
+
+force-clean-local:
+	-for resource in $$(kubectl get tenants.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get workspaces.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get instances.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get templates.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-kubectl delete tenants.crownlabs.polito.it,workspaces.crownlabs.polito.it,instances.crownlabs.polito.it,templates.crownlabs.polito.it --all --force --grace-period=0 2>/dev/null || true
+	-kubectl delete configmap crownlabs-mail-config --namespace=default --ignore-not-found
+	-kubectl delete -f deploy/crds --ignore-not-found
+	-kubectl delete -f tests/crds --ignore-not-found
