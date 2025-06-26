@@ -34,6 +34,8 @@ spec:
           env:
           - name: CROWNLABS_QLKUBE_PORT
             value: "8080"
+          - name: REGISTRY_SERVICE_NAME
+            value: "{{ .Values.registry.serviceName }}"
           ports:
             - name: http
               containerPort: 8080

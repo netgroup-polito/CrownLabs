@@ -35,7 +35,7 @@ async function main() {
       'utf8',
     )
     : '';
-  const registryUrl = inCluster ? 'http://cloudimg-registry' : 'http://localhost:8002';
+  const registryUrl = inCluster ? `http://${process.env.REGISTRY_SERVICE_NAME}` : 'http://localhost:8002';
 
   const oas = await getOpenApiSpec(kubeApiUrl, ['openapi/v2'], inClusterToken);
   const targetOas = decorateOpenapi(oas);
