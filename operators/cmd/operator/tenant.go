@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	tenantWebhookAddr string
-	tenantNSKeepAlive time.Duration
+	tenantWebhookAddr  string
+	tenantNSKeepAlive  time.Duration
+	sandboxClusterRole string
 )
 
 const (
@@ -40,6 +41,7 @@ func init() {
 	flag.StringVar(&tenantWebhookAddr, "tenant-webhook-port", ":8082", "Port for the tenant webhook server for Keycloak events")
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
 		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
+	flag.StringVar(&sandboxClusterRole, "sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
 
 	// mydrivePVCsSize := args.NewQuantity("1Gi")
 	// var mydrivePVCsStorageClassName string
@@ -62,6 +64,7 @@ func setup_tenant(
 		TenantNSKeepAlive:       tenantNSKeepAlive,
 		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
 		KeycloakActor:           common.GetKeycloakActor(),
+		SandboxClusterRole:      sandboxClusterRole,
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {

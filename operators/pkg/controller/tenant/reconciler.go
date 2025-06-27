@@ -71,6 +71,7 @@ type TenantReconciler struct {
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
 	KeycloakActor               common.KeycloakActorIface
+	SandboxClusterRole          string
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -203,7 +204,14 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 	}
 
-	// TODO: manage sandbox
+	if err = r.EnforceSandboxResources(ctx, &tn); err != nil {
+		klog.Errorf("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
+		tn.Status.SandboxNamespace.Created = false
+		tnOpinternalErrors.WithLabelValues("tenant", "sandbox-resources").Inc()
+		return ctrl.Result{}, err
+	}
+
+	// TODO verifica gestione role e clusterrole dove sono e dove vengono eliminate
 
 	tn.Status.Ready = true
 
