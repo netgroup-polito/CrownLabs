@@ -144,7 +144,7 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 	return tenant, nil
 }
 
-// RetrieveEnvironment retrieves the template associated to the given instance.
+// RetrieveEnvironment retrieves the environment associated to the given instance.
 func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
