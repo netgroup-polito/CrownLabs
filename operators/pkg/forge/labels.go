@@ -61,6 +61,9 @@ const (
 
 	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
 	LastActivityAnnotation = "crownlabs.polito.it/last-activity"
+
+	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
+	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,

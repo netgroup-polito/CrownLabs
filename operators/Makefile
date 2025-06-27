@@ -80,10 +80,10 @@ run-instance-automation: generate
 	go run cmd/instance-automation/main.go\
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--container-env-sidecars-tag=v0.14.5\
-				--enable-instance-submission=true\
-				--enable-instance-termination=true\
+				--enable-instance-submission=false\
+				--enable-instance-termination=false\
 				--enable-instance-inactive-termination=true\
-				--enable-instance-expiration=true\
+				--enable-instance-expiration=false\
 				--mail-configmap-name=crownlabs-mail-config
 
 #the double target below is used to set DOMAIN for local targets

@@ -91,6 +91,7 @@ func main() {
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
+	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "The interval to send notifications for inactive Instances")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
@@ -205,6 +206,7 @@ func main() {
 			PrometheusBastionSSHAvailability: *prometheusBastionSSHAvailability,
 			PrometheusNginxData:              *prometheusNginxData,
 			PrometheusBastionSSHData:         *prometheusBastionSSHData,
+			NotificationInterval:             *instanceInactiveTerminationNotificationInterval,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)

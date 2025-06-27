@@ -142,6 +142,7 @@ spec:
             - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
             - "--instance-inactive-termination-status-check-timeout={{ .Values.configurations.automation.inactiveTerminationStatusCheckTimeout }}"
             - "--instance-inactive-termination-max-number-of-alerts={{.Values.configurations.automation.inactiveTerminationMaxNumberOfAlerts}}"
+            - "--instance-inactive-termination-notification-interval={{ .Values.configurations.automation.notificationInterval }}"
             - "--mail-config-map-name={{ .Values.configurations.mailConfigMapName }}"
             - "--enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}"
             - "--enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}"
