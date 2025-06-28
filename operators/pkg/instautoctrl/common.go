@@ -113,7 +113,7 @@ func sendNotification(ctx context.Context, mc *mail.MailClient, mail_template_pa
 	err := mc.SendCrownLabsMail(mail_template_path, ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
-		return err
+		return err // LOCAL: nil
 	}
 	log.Info("The notification to the tenant has been sent", "instance", instance.Name)
 
@@ -219,7 +219,7 @@ var deleteAfterChanged = predicate.Funcs{
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
 		// Requeue only if the deleteAfter field has changed and is not set to "never"
-		return newValue != "never"
+		return newValue != NEVER_TIMEOUT_VALUE
 	},
 }
 
@@ -237,7 +237,7 @@ var inactivityTimeoutChanged = predicate.Funcs{
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
 		// Requeue only if the deleteAfter field has changed and it is not set to "never"
-		return newValue != "never"
+		return newValue != NEVER_TIMEOUT_VALUE
 	},
 }
 
@@ -267,7 +267,7 @@ var instanceTriggered = predicate.Funcs{
 		return false
 	},
 	DeleteFunc: func(_ event.DeleteEvent) bool {
-		return true
+		return false
 	},
 	GenericFunc: func(_ event.GenericEvent) bool {
 		return false

@@ -95,7 +95,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 				return requests
 			}
 
-			fmt.Println("Namespace changed:", namespace.Name)
 			var instances clv1alpha2.InstanceList
 			if err := r.List(ctx, &instances, client.InNamespace(namespace.Namespace)); err != nil {
 				return requests
@@ -110,7 +109,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 					},
 				})
 			}
-			fmt.Println("Enqueued requests for namespace:", namespace.Name, "with", len(requests), "instances", requests)
+			//rintln("Enqueued requests for namespace:", namespace.Name, "with", len(requests), "instances", requests)
 			return requests
 		}),
 			builder.WithPredicates(inactivityIgnoreNamespace),
@@ -147,14 +146,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NEVER_TIMEOUT_VALUE {
-		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		log.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
 
 	inactivityTimeoutDuration, err := ParseDurationWithDays(ctx, inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed to parse deleteAfter duration")
-		return ctrl.Result{}, fmt.Errorf("failed to parse deleteAfter duration %s: %w", inactivityTimeout, err)
+		return ctrl.Result{}, fmt.Errorf("failed to parse inactivityTimeout duration %s: %w", inactivityTimeout, err)
 	}
 
 	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
@@ -173,6 +172,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("annotations setup done")
 
+	// LOCAL: comment this check
 	// update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
@@ -195,6 +195,8 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		log.Error(err, "failed converting string of alerts sent in int number")
 		return ctrl.Result{}, err
 	}
+	remainingAlertToSend := r.InstanceMaxNumberOfAlerts - numberAlertSent
+	notificationThreshold := inactivityTimeoutDuration - (r.NotificationInterval * time.Duration(remainingAlertToSend))
 
 	// Check if the instance has expired
 	if remainingTime <= 0 {
@@ -223,8 +225,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			return ctrl.Result{}, nil
 		}
 	} else { // remainingTime > 0
-		notificationThreshold := inactivityTimeoutDuration - (r.NotificationInterval * time.Duration(numberAlertSent))
-		if remainingTime < notificationThreshold {
+
+		if remainingTime <= notificationThreshold {
+
 			shouldSend, err := r.shouldSendNotification(ctx, instance)
 			if err != nil {
 				log.Error(err, "failed checking if should send notification")
@@ -232,7 +235,15 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			}
 
 			if shouldSend {
+
 				if err := r.sendInactivityWarning(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+				// Update the last notification time annotation
+				patch := client.MergeFrom(instance.DeepCopy())
+				instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+				if err := r.Patch(ctx, instance, patch); err != nil {
+					log.Error(err, "failed updating instance annotations")
 					return ctrl.Result{}, err
 				}
 			}
@@ -244,10 +255,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// Calculate requeue time at the instance inactive deadline time:
 	// if the instance is not yet to be terminated, we requeue it after the remaining time
-	requeueTime := remainingTime
+	requeueTime := notificationThreshold
 	// add 1 minute to the remaining time to avoid requeueing just before the deadline
 	// avoiding a double requeue
-	requeueTime += 1 * time.Minute
+	requeueTime -= 1 * time.Minute
 
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
@@ -349,7 +360,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	defer cancel()
 
 	// Check Prometheus health first
-	healthy, err := r.IsPrometheusHealthy(ctx, v1api)
+	healthy, err := r.IsPrometheusHealthy(ctx, v1api) // LOCAL: true, nil
 	if err != nil || !healthy {
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
@@ -511,30 +522,43 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		return fmt.Errorf("instance not found in context")
 	}
 
+	original := instance.DeepCopy()
 	// add annotations to the instance if not present
 	if instance.ObjectMeta.Annotations == nil {
 		instance.ObjectMeta.Annotations = make(map[string]string)
 	}
-	patch := client.MergeFrom(instance.DeepCopy())
+
+	updated := false
+
 	// Check and set the alert annotation if not present
 	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
 		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
+		updated = true
 	}
+
 	// Check and set the last activity annotation if not present
 	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
 		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+		updated = true
 	}
-	// Apply the patch
-	_, ok1 := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]
-	_, ok2 := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]
-	if !ok1 || !ok2 {
+
+	// Check and set the last notification time annotation if not present
+	if _, ok := instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
+		log.Info("adding annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
+		updated = true
+	}
+
+	// Apply the patch only if something changed
+	if updated {
+		patch := client.MergeFrom(original)
 		if err := r.Patch(ctx, instance, patch); err != nil {
 			log.Error(err, "failed updating instance annotations")
 			return err
 		}
 	}
+
 	log.Info("instance annotations setup completed", "instance", instance.Name)
 	return nil
 }
@@ -587,7 +611,26 @@ func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx conte
 		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
 		return false, err
 	}
-	return numAlerts < r.InstanceMaxNumberOfAlerts, nil
+
+	lastNotificationTimeStr, ok := instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation]
+	if !ok {
+		log.Info("Last notification time annotation not found, sending notification", "instance", instance.Name)
+		return true, nil
+	}
+	lastNotificationTime, err := time.Parse(time.RFC3339, lastNotificationTimeStr)
+	if err != nil {
+		log.Error(err, "failed parsing last notification time", "lastNotificationTime", lastNotificationTimeStr)
+		return false, err
+	}
+	if numAlerts > 0 {
+		if time.Since(lastNotificationTime) < r.NotificationInterval-1*time.Minute {
+			log.Info("Last notification sent within the notification interval, skipping email notification", "instance", instance.Name)
+			return false, nil
+		}
+
+	}
+
+	return numAlerts <= r.InstanceMaxNumberOfAlerts-1, nil
 }
 
 func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
@@ -596,11 +639,12 @@ func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx contex
 	if err != nil {
 		log.Error(err, "failed retrieving tenant from instance")
 	}
+	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
 	err = SendInactivityNotification(ctx, r.MailClient)
 	if err != nil {
 		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
-		return err
+		return err //LOCAL: return nil
 	}
 
 	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
@@ -609,12 +653,14 @@ func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx contex
 		return err
 	}
 
+	// if err := r.Update(ctx, instance); err != nil {
+	// 	log.Error(err, "failed updating instance annotations")
+	// 	return err
+	// }
+	patch := client.MergeFrom(instance.DeepCopy())
 	instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
-
-	if err := r.Update(ctx, instance); err != nil {
+	if err := r.Patch(ctx, instance, patch); err != nil {
 		log.Error(err, "failed updating instance annotations")
-		return err
 	}
-
 	return nil
 }
