@@ -198,10 +198,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if remainingTime <= 0 {
-		if shouldSend, err := r.shouldSendNotification(ctx, instance); err != nil {
+
+		shouldSend, err := r.shouldSendNotification(ctx, instance)
+		if err != nil {
 			log.Error(err, "failed checking if should send notification")
 			return ctrl.Result{}, err
-		} else if shouldSend {
+		}
+
+		if shouldSend {
 			if err := r.sendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -209,28 +213,29 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if instance.Spec.Running {
-			err := r.TerminateInstance(ctx)
-			if err != nil {
+			if err := r.TerminateInstance(ctx); err != nil {
 				log.Error(err, "failed terminating instance", "instance", instance.Name)
 				return ctrl.Result{}, err
 			}
 			log.Info("Instance has been paused/deleted due to inactivity", "instance", instance.Name)
 			return ctrl.Result{}, nil
 		}
-
-	}
-
-	if remainingTime < inactivityTimeoutDuration-(r.NotificationInterval*time.Duration(numberAlertSent)) {
-		if shouldSend, err := r.shouldSendNotification(ctx, instance); err != nil {
-			log.Error(err, "failed checking if should send notification")
-			return ctrl.Result{}, err
-		} else if shouldSend {
-			if err := r.sendInactivityWarning(ctx, instance); err != nil {
+	} else { // remainingTime > 0
+		notificationThreshold := inactivityTimeoutDuration - (r.NotificationInterval * time.Duration(numberAlertSent))
+		if remainingTime < notificationThreshold {
+			shouldSend, err := r.shouldSendNotification(ctx, instance)
+			if err != nil {
+				log.Error(err, "failed checking if should send notification")
 				return ctrl.Result{}, err
+			}
+
+			if shouldSend {
+				if err := r.sendInactivityWarning(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
 		}
-		return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
 	}
 
 	tracer.Step("Inactive termination done")
