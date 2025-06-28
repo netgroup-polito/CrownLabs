@@ -181,8 +181,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("instance last login updated")
 
-	// check for inactivity and decide whether to terminate the instance or not
-	remainingTime, err := r.CheckInstanceTermination(ctx, inactivityTimeoutDuration)
+	remainingTime, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -197,8 +196,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
+	// Check if the instance has expired
 	if remainingTime <= 0 {
-
+		// Check if all notifications have already been sent
 		shouldSend, err := r.shouldSendNotification(ctx, instance)
 		if err != nil {
 			log.Error(err, "failed checking if should send notification")
@@ -206,12 +206,14 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if shouldSend {
+			// If a notification should be sent, send the email and requeue after the notification interval
 			if err := r.sendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
 		}
 
+		// If all notifications have been sent, terminate the instance
 		if instance.Spec.Running {
 			if err := r.TerminateInstance(ctx); err != nil {
 				log.Error(err, "failed terminating instance", "instance", instance.Name)
@@ -375,8 +377,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	return nil
 }
 
-// CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
+// GetRemainingInactivityTime checks if the Instance has to be terminated.
+func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
