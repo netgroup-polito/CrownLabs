@@ -136,10 +136,25 @@ go build ./cmd/instance-operator/main.go
 
 ## SSH bastion
 
-The SSH bastion is composed of two basic blocks:
+The SSH bastion is composed of three basic blocks:
 
 1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
 2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+3. `bastion-ssh-tracker`: a golang app based on Google `gopacket` that passively tracks outbound SSH connections going from the bastion host to target instances, exposing them as metrics for Prometheus.
+
+### Bastion SSH Tracker
+The `bastion-ssh-tracker` enables lightweight and non-intrusive monitoring of SSH activity from the bastion, complementing monitoring focused on RDP accesses coming from the ingress.
+
+The Bastion SSH Tracker works by capturing raw Ethernet frames using Linux's `AF_PACKET` interface in `TPACKET_V3` mode, a memory-mapped ring buffer mechanism that allows efficient, low-overhead packet capture in user space without interfering with in-kernel networking.
+
+The tracker:
+* Attaches to a specific network interface (via `--ssh-tracker-interface`)
+* Applies a BPF filter that matches outbound TCP SYN packets on a configurable port (via `--ssh-tracker-port`)
+* Parses only IPv4 TCP packets with the SYN flag set to detect new SSH connections
+* Exposes Prometheus metrics labeled by destination IP
+* Leaves the original packets untouched, allowing them to pass through the kernel normally without drops or redirection
+
+This tracker runs as a sidecar container within the `bastion` deployment. This is necessary to share the same network namespace and see the SSH traffic directly. The container requires certain elevated capabilities to open raw sockets and apply BPF filters, but it avoids full privilege escalation. It needs in fact to run as root inside the container to access the `AF_PACKET` interface, but it drops all other capabilities apart from the required `NET_RAW` and `NET_ADMIN`.
 
 #### SSH Key generation
 
