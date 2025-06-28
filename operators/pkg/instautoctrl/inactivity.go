@@ -55,6 +55,7 @@ type InstanceInactiveTerminationReconciler struct {
 	StatusCheckRequestTimeout        time.Duration
 	InstanceMaxNumberOfAlerts        int
 	EnableInactivityNotifications    bool
+	NotificationInterval             time.Duration
 	MailClient                       *mail.MailClient
 	PrometheusURL                    string
 	PrometheusNginxAvailability      string
@@ -180,8 +181,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("instance last login updated")
 
-	// check for inactivity and decide whether to terminate the instance or not
-	remainingTime, err := r.CheckInstanceTermination(ctx, inactivityTimeoutDuration)
+	remainingTime, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -190,16 +190,54 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	log.Info("instance termination check", "remainingTime", remainingTime.String(), "instance", instance.Name)
 	tracer.Step("Inactive termination check done")
 
-	// If the remaining time is less than or equal to 0, the instance is considered inactive
+	numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	if err != nil {
+		log.Error(err, "failed converting string of alerts sent in int number")
+		return ctrl.Result{}, err
+	}
+
+	// Check if the instance has expired
 	if remainingTime <= 0 {
-		err = r.HandleInstanceTermination(ctx)
+		// Check if all notifications have already been sent
+		shouldSend, err := r.shouldSendNotification(ctx, instance)
 		if err != nil {
-			log.Error(err, "failed handling instance termination")
+			log.Error(err, "failed checking if should send notification")
 			return ctrl.Result{}, err
 		}
-	} else {
-		// TODO: remove
-		log.Info("instance is not yet to be terminated", "instance", instance.Name)
+
+		if shouldSend {
+			// If a notification should be sent, send the email and requeue after the notification interval
+			if err := r.sendInactivityWarning(ctx, instance); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+		}
+
+		// If all notifications have been sent, terminate the instance
+		if instance.Spec.Running {
+			if err := r.TerminateInstance(ctx); err != nil {
+				log.Error(err, "failed terminating instance", "instance", instance.Name)
+				return ctrl.Result{}, err
+			}
+			log.Info("Instance has been paused/deleted due to inactivity", "instance", instance.Name)
+			return ctrl.Result{}, nil
+		}
+	} else { // remainingTime > 0
+		notificationThreshold := inactivityTimeoutDuration - (r.NotificationInterval * time.Duration(numberAlertSent))
+		if remainingTime < notificationThreshold {
+			shouldSend, err := r.shouldSendNotification(ctx, instance)
+			if err != nil {
+				log.Error(err, "failed checking if should send notification")
+				return ctrl.Result{}, err
+			}
+
+			if shouldSend {
+				if err := r.sendInactivityWarning(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+		}
 	}
 
 	tracer.Step("Inactive termination done")
@@ -339,8 +377,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	return nil
 }
 
-// CheckInstanceTermination checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) CheckInstanceTermination(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
+// GetRemainingInactivityTime checks if the Instance has to be terminated.
+func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
@@ -501,62 +539,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 	return nil
 }
 
-// HandleInstanceTermination handles the termination of the instance, sending notifications and updating annotations.
-func (r *InstanceInactiveTerminationReconciler) HandleInstanceTermination(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx).WithName("handle-instance-termination")
-
-	instance := pkgcontext.InstanceFrom(ctx)
-	if instance == nil {
-		return fmt.Errorf("instance not found in context")
-	}
-
-	tenant, err := GetTenantFromInstance(ctx, r.Client)
-	if err != nil {
-		log.Error(err, "failed retrieving tenant from instance")
-		return fmt.Errorf("failed retrieving tenant from instance: %w", err)
-	}
-
-	// send notification to the user
-	numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
-	if err != nil {
-		log.Error(err, "failed converting string of alerts sent in int number")
-		return err
-	}
-
-	if numberAlertSent < r.InstanceMaxNumberOfAlerts {
-		if r.EnableInactivityNotifications {
-			err := SendInactivityNotification(ctx, r.MailClient)
-			if err != nil {
-				log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
-				return err
-			}
-		} else {
-			log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
-		}
-		// increment the number of termination alerts
-		newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
-		if err != nil {
-			log.Error(err, "failed incrementing annotation")
-			return err
-		}
-		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
-		// update the status of the instance
-		if err := r.Update(ctx, instance); err != nil {
-			log.Error(err, "failed updating instance annotations")
-			return err
-		}
-	} else if numberAlertSent >= r.InstanceMaxNumberOfAlerts && instance.Spec.Running {
-		err := r.TerminateInstance(ctx)
-		if err != nil {
-			log.Error(err, "failed terminating instance", "instance", instance.Name)
-			return err
-		}
-	}
-
-	log.Info("Instance has been terminated", "instance", instance.Name, "tenantEmail", tenant.Spec.Email)
-	return nil
-}
-
 // CheckSkipReconciliation checks if the reconciliation should be skipped based on the selector label and namespace labels.
 func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx context.Context) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-skip-reconciliation")
@@ -588,4 +570,51 @@ func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx cont
 
 	log.Info("proceeding with inactivity reconciliation for instance", "instance", instance.Name, "namespace", instance.Namespace)
 	return false, nil
+}
+
+func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("shouldSendNotification")
+
+	if !r.EnableInactivityNotifications {
+		log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name)
+		return false, nil
+	}
+
+	//TODO check last email sent time
+
+	numAlerts, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	if err != nil {
+		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		return false, err
+	}
+	return numAlerts < r.InstanceMaxNumberOfAlerts, nil
+}
+
+func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
+	log := ctrl.LoggerFrom(ctx)
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed retrieving tenant from instance")
+	}
+
+	err = SendInactivityNotification(ctx, r.MailClient)
+	if err != nil {
+		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
+		return err
+	}
+
+	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	if err != nil {
+		log.Error(err, "failed incrementing annotation")
+		return err
+	}
+
+	instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
+
+	if err := r.Update(ctx, instance); err != nil {
+		log.Error(err, "failed updating instance annotations")
+		return err
+	}
+
+	return nil
 }
