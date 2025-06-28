@@ -132,7 +132,7 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 	tenant := &clv1alpha2.Tenant{}
 	if err := c.Get(ctx, client.ObjectKey{
 		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Spec.Template.Namespace,
+		Namespace: instance.Namespace,
 	}, tenant); err != nil {
 		if kerrors.IsNotFound(err) {
 			log.Error(err, "user not found")
