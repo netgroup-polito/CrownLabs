@@ -198,7 +198,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if remainingTime <= 0 {
-		if r.shouldSendNotification(ctx, instance) {
+		if shouldSend, err := r.shouldSendNotification(ctx, instance); err != nil {
+			log.Error(err, "failed checking if should send notification")
+			return ctrl.Result{}, err
+		} else if shouldSend {
 			if err := r.sendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -218,7 +221,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	if remainingTime < inactivityTimeoutDuration-(r.NotificationInterval*time.Duration(numberAlertSent)) {
-		if r.shouldSendNotification(ctx, instance) {
+		if shouldSend, err := r.shouldSendNotification(ctx, instance); err != nil {
+			log.Error(err, "failed checking if should send notification")
+			return ctrl.Result{}, err
+		} else if shouldSend {
 			if err := r.sendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -559,21 +565,22 @@ func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx cont
 	return false, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) bool {
+func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("shouldSendNotification")
 
 	if !r.EnableInactivityNotifications {
 		log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name)
-		return false
+		return false, nil
 	}
 
 	//TODO check last email sent time
 
 	numAlerts, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
 	if err != nil {
-		return false
+		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		return false, err
 	}
-	return numAlerts < r.InstanceMaxNumberOfAlerts
+	return numAlerts < r.InstanceMaxNumberOfAlerts, nil
 }
 
 func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
