@@ -251,8 +251,6 @@ var inactivityIgnoreNamespace = predicate.Funcs{
 
 		oldValue := oldNs.Labels[forge.InstanceInactivityIgnoreNamespace]
 		newValue := newNs.Labels[forge.InstanceInactivityIgnoreNamespace]
-		fmt.Printf("namespace %s: old labelValue=%s, new labelValue=%s\n",
-			oldNs.Namespace, oldValue, newValue)
 
 		// Requeue only if the label on the namespace has changed
 		return oldValue == forge.InstanceInactivityIgnoreNamespace && newValue == ""
@@ -263,7 +261,16 @@ var instanceTriggered = predicate.Funcs{
 	CreateFunc: func(_ event.CreateEvent) bool {
 		return true
 	},
-	UpdateFunc: func(_ event.UpdateEvent) bool {
+	UpdateFunc: func(event event.UpdateEvent) bool {
+		// if Running goes from false to true and last-notification-timestamp is updated, we want to trigger the reconciler
+		oldInstance, oldOk := event.ObjectOld.(*clv1alpha2.Instance)
+		newInstance, newOk := event.ObjectNew.(*clv1alpha2.Instance)
+		if !oldOk || !newOk {
+			return false
+		}
+		if oldInstance.Spec.Running == false && newInstance.Spec.Running == true {
+			return true
+		}
 		return false
 	},
 	DeleteFunc: func(_ event.DeleteEvent) bool {

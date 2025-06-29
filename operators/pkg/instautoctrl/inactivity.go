@@ -172,6 +172,13 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("annotations setup done")
 
+	// Check if the AlertAnnotationNum has to be reset.
+	err = r.ResetAlertAnnotation(ctx)
+	if err != nil {
+		log.Error(err, "failed resetting alert annotation")
+		return ctrl.Result{}, err
+	}
+
 	// LOCAL: comment this check
 	// update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
@@ -227,7 +234,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	} else { // remainingTime > 0
 
 		if remainingTime <= notificationThreshold {
-
 			shouldSend, err := r.shouldSendNotification(ctx, instance)
 			if err != nil {
 				log.Error(err, "failed checking if should send notification")
@@ -489,6 +495,12 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 	if environment.Persistent {
 		log.Info("Stopping persistent instance...")
 		instance.Spec.Running = false
+		// Update the last running annotation
+		currentRunningStr := strconv.FormatBool(instance.Spec.Running)
+		lastRunningStr, ok := instance.ObjectMeta.Annotations[forge.LastRunningAnnotation]
+		if !ok || lastRunningStr != currentRunningStr {
+			instance.ObjectMeta.Annotations[forge.LastRunningAnnotation] = currentRunningStr
+		}
 		return r.Update(ctx, instance)
 	}
 	log.Info("Deleting non-persistent instance...")
@@ -604,8 +616,6 @@ func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx conte
 		return false, nil
 	}
 
-	//TODO check last email sent time
-
 	numAlerts, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
 	if err != nil {
 		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
@@ -628,6 +638,10 @@ func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx conte
 			return false, nil
 		}
 
+	}
+
+	if !instance.Spec.Running {
+		return false, nil // If the instance is not running, do not send a notification
 	}
 
 	return numAlerts <= r.InstanceMaxNumberOfAlerts-1, nil
@@ -662,5 +676,50 @@ func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx contex
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		log.Error(err, "failed updating instance annotations")
 	}
+	return nil
+}
+
+// ResetAlertAnnotation resets the alert annotation if the instance is running and the last running state was false.
+func (r *InstanceInactiveTerminationReconciler) ResetAlertAnnotation(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("reset-alert-annotation")
+
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+	original := instance.DeepCopy()
+	updated := false
+
+	lastRunningStr := instance.ObjectMeta.Annotations[forge.LastRunningAnnotation]
+	lastRunning := false
+	if lastRunningStr != "" {
+		if val, err := strconv.ParseBool(lastRunningStr); err == nil {
+			lastRunning = val
+		}
+	}
+
+	// Reset if ruuning changed from false to true
+	if instance.Spec.Running && !lastRunning {
+		log.Info("Detected transition from false to true: resetting alert counter")
+		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
+		updated = true
+
+	}
+
+	// update the LastRunningAnnotation
+	currentRunningStr := strconv.FormatBool(instance.Spec.Running)
+	if lastRunningStr != currentRunningStr {
+		instance.ObjectMeta.Annotations[forge.LastRunningAnnotation] = currentRunningStr
+		updated = true
+	}
+
+	if updated {
+		patch := client.MergeFrom(original)
+		if err := r.Patch(ctx, instance, patch); err != nil {
+			log.Error(err, "failed updating instance annotations")
+			return err
+		}
+	}
+
 	return nil
 }
