@@ -19,6 +19,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -31,9 +32,10 @@ import (
 )
 
 var (
-	tenantWebhookAddr  string
-	tenantNSKeepAlive  time.Duration
-	sandboxClusterRole string
+	tenantKeycloakWebhookAddr string
+	tenantNSKeepAlive         time.Duration
+	sandboxClusterRole        string
+	tenantWebhookBypassGroups string
 )
 
 const (
@@ -47,10 +49,11 @@ const (
 )
 
 func init() {
-	flag.StringVar(&tenantWebhookAddr, "tenant-webhook-port", ":8082", "Port for the tenant webhook server for Keycloak events")
+	flag.StringVar(&tenantKeycloakWebhookAddr, "tenant-webhook-port", ":8082", "Port for the tenant webhook server for Keycloak events")
 	flag.DurationVar(&tenantNSKeepAlive, "tenant-ns-keep-alive", 24*time.Hour,
 		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
 	flag.StringVar(&sandboxClusterRole, "sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
+	flag.StringVar(&tenantWebhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 
 	// mydrivePVCsSize := args.NewQuantity("1Gi")
 	// var mydrivePVCsStorageClassName string
@@ -102,9 +105,9 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 		tn.KeycloakEventHandler(w, r)
 	})
 
-	log.Printf("HTTP server for Keycloak events listening on %s", tenantWebhookAddr)
+	log.Printf("HTTP server for Keycloak events listening on %s", tenantKeycloakWebhookAddr)
 
-	err := http.ListenAndServe(tenantWebhookAddr, mux)
+	err := http.ListenAndServe(tenantKeycloakWebhookAddr, mux)
 	if err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
@@ -113,9 +116,16 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 func setupTenantWebhook(
 	mgr manager.Manager,
 ) error {
+	tnWh := webhook.TenantWebhook{
+		Client:       mgr.GetClient(),
+		BypassGroups: strings.Split(tenantWebhookBypassGroups, ","),
+	}
+
 	if err := ctrl.NewWebhookManagedBy(mgr).
 		For(&v1alpha2.Tenant{}).
-		WithValidator(&webhook.TenantValidator{}).
+		WithValidator(&webhook.TenantValidator{
+			TenantWebhook: tnWh,
+		}).
 		WithValidatorCustomPath(ValidatorWebhookPath).
 		WithDefaulter(&webhook.TenantDefaulter{}).
 		WithDefaulterCustomPath(DefaulterWebhookPath).
