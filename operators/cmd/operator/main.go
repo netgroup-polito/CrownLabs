@@ -24,8 +24,6 @@ import (
 	"k8s.io/klog/v2/textlogger"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	// virtv1 "kubevirt.io/api/core/v1"
-	// cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -38,7 +36,8 @@ import (
 )
 
 var (
-	scheme = runtime.NewScheme()
+	scheme         = runtime.NewScheme()
+	enableWebhooks bool
 )
 
 func init() {
@@ -46,9 +45,6 @@ func init() {
 
 	utilruntime.Must(crownlabsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
-
-	// utilruntime.Must(virtv1.AddToScheme(scheme))
-	// utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
 }
 
 func main() {
@@ -69,6 +65,8 @@ func main() {
 	var enableWorkspace bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
+
+	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -116,7 +114,6 @@ func main() {
 		}
 	}
 
-	// TODO setup workspace reconciler
 	if enableWorkspace {
 		log.Info("Starting the workspace controller")
 		err := setup_workspace(mgr, targetLabel)

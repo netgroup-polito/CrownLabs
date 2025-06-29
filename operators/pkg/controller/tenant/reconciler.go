@@ -239,18 +239,22 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&netv1.NetworkPolicy{}).
 		Owns(&batchv1.Job{}).
 		WatchesRawSource(
-			&source.Channel{
-				Source: r.TriggerReconcileChannel,
-			},
-			handler.Funcs{
-				GenericFunc: func(_ context.Context, e event.GenericEvent, q workqueue.RateLimitingInterface) {
-					q.Add(ctrl.Request{
-						NamespacedName: client.ObjectKey{
-							Name: e.Object.GetName(),
-						},
-					})
+			source.Channel(
+				r.TriggerReconcileChannel,
+				handler.Funcs{
+					GenericFunc: func(
+						_ context.Context,
+						e event.TypedGenericEvent[client.Object],
+						q workqueue.TypedRateLimitingInterface[ctrl.Request],
+					) {
+						q.Add(ctrl.Request{
+							NamespacedName: client.ObjectKey{
+								Name: e.Object.GetName(),
+							},
+						})
+					},
 				},
-			},
+			),
 		).
 		// TODO
 		// Watches(&crownlabsv1alpha1.Workspace{},

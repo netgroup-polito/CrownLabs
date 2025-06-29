@@ -21,8 +21,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -34,7 +37,13 @@ var (
 )
 
 const (
-	tenantWebhookPath = "/tenant-webhook"
+	// TenantWebhookPath -> path on which the tenant webhook will be bound.
+	TenantWebhookPath = "/tenant-webhook"
+
+	// ValidatorWebhookPath -> path on which the validator webhook will be bound.
+	ValidatorWebhookPath = "/validator-v1alpha2-tenant"
+	// DefaulterWebhookPath -> path on which the defaulter webhook will be bound.
+	DefaulterWebhookPath = "/defaulter-v1alpha2-tenant"
 )
 
 func init() {
@@ -71,16 +80,25 @@ func setup_tenant(
 		return err
 	}
 
+	// Register the Keycloak event handler for tenant webhook events
 	go startHTTPServer(tn)
+
+	// Setup the webhook for tenant validation and defaulting
+	if enableWebhooks {
+		if err := setupTenantWebhook(mgr); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
+// starts the HTTP server for the Keycloak webhook events endpoint
 func startHTTPServer(tn *tenant.TenantReconciler) {
 	mux := http.NewServeMux()
 
 	// registering the handler for the tenant webhook path
-	mux.HandleFunc(tenantWebhookPath, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(TenantWebhookPath, func(w http.ResponseWriter, r *http.Request) {
 		tn.KeycloakEventHandler(w, r)
 	})
 
@@ -90,4 +108,20 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 	if err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
+}
+
+func setupTenantWebhook(
+	mgr manager.Manager,
+) error {
+	if err := ctrl.NewWebhookManagedBy(mgr).
+		For(&v1alpha2.Tenant{}).
+		WithValidator(&webhook.TenantValidator{}).
+		WithValidatorCustomPath(ValidatorWebhookPath).
+		WithDefaulter(&webhook.TenantDefaulter{}).
+		WithDefaulterCustomPath(DefaulterWebhookPath).
+		Complete(); err != nil {
+		return err
+	}
+
+	return nil
 }
