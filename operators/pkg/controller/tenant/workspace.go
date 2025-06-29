@@ -36,10 +36,20 @@ func (r *TenantReconciler) manageWorkspaces(
 	tn.Status.FailingWorkspaces = []string{}
 	deleteWorkspacesRelatadLabels(tn.Labels)
 
+	addedLabels := 0
+
 	for ws := range tn.Spec.Workspaces {
-		if err := r.manageSingleWorkspace(ctx, tn, &tn.Spec.Workspaces[ws]); err != nil {
+		newL, err := r.manageSingleWorkspace(ctx, tn, &tn.Spec.Workspaces[ws])
+		if err != nil {
 			return err
 		}
+		addedLabels += newL
+	}
+
+	if addedLabels == 0 {
+		r.addNoWorkspaceLabel(tn)
+	} else {
+		r.removeNoWorkspaceLabel(tn)
 	}
 
 	// update labels
@@ -58,7 +68,8 @@ func (r *TenantReconciler) manageSingleWorkspace(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 	tenantWorkspace *v1alpha2.TenantWorkspaceEntry,
-) error {
+) (int, error) {
+	addedLabels := 0
 	workspace := &v1alpha1.Workspace{}
 
 	err := r.Get(ctx, types.NamespacedName{
@@ -75,10 +86,11 @@ func (r *TenantReconciler) manageSingleWorkspace(
 		klog.Errorf("Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s", tenantWorkspace.Name, tn.Name)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 	default:
-		r.addWorkspaceLabel(ctx, tn, tenantWorkspace.Name, tenantWorkspace.Role)
+		r.addWorkspaceLabel(tn, tenantWorkspace.Name, tenantWorkspace.Role)
+		addedLabels++
 	}
 
-	return nil
+	return addedLabels, nil
 }
 
 func deleteWorkspacesRelatadLabels(
@@ -93,13 +105,10 @@ func deleteWorkspacesRelatadLabels(
 
 // this functions only adds the label to the structure, it does not update the tenant
 func (r *TenantReconciler) addWorkspaceLabel(
-	ctx context.Context,
 	tn *v1alpha2.Tenant,
 	workspaceName string,
 	role v1alpha2.WorkspaceUserRole,
 ) error {
-	// TODO: manage base workspaces (don't add label)
-
 	if tn.Labels == nil {
 		tn.Labels = make(map[string]string, 1)
 	}
@@ -107,6 +116,27 @@ func (r *TenantReconciler) addWorkspaceLabel(
 	tn.Labels[v1alpha2.WorkspaceLabelPrefix+workspaceName] = string(role)
 
 	return nil
+}
+
+// this functions only adds the label to the structure, it does not update the tenant
+func (r *TenantReconciler) addNoWorkspaceLabel(
+	tn *v1alpha2.Tenant,
+) {
+	if tn.Labels == nil {
+		tn.Labels = make(map[string]string, 1)
+	}
+
+	tn.Labels[NoWorkspacesLabel] = "true"
+}
+
+func (r *TenantReconciler) removeNoWorkspaceLabel(
+	tn *v1alpha2.Tenant,
+) {
+	if tn.Labels == nil {
+		return
+	}
+
+	delete(tn.Labels, NoWorkspacesLabel)
 }
 
 func (r *TenantReconciler) forgeServiceQuota(

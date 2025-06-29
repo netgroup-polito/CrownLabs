@@ -72,6 +72,7 @@ type TenantReconciler struct {
 	MyDrivePVCsNamespace        string
 	KeycloakActor               common.KeycloakActorIface
 	SandboxClusterRole          string
+	BaseWorkspaces              []string
 }
 
 // Reconcile reconciles the state of a tenant resource.

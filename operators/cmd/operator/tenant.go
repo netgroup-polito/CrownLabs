@@ -29,6 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var (
@@ -36,6 +37,7 @@ var (
 	tenantNSKeepAlive         time.Duration
 	sandboxClusterRole        string
 	tenantWebhookBypassGroups string
+	tenantBaseWorkspaces      string
 )
 
 const (
@@ -54,6 +56,7 @@ func init() {
 		"Time elapsed after last login of tenant during which the tenant namespace should be kept alive")
 	flag.StringVar(&sandboxClusterRole, "sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
 	flag.StringVar(&tenantWebhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
+	flag.StringVar(&tenantBaseWorkspaces, "base-workspaces", "", "List of comma separated workspaces to be enforced to every tenant")
 
 	// mydrivePVCsSize := args.NewQuantity("1Gi")
 	// var mydrivePVCsStorageClassName string
@@ -67,7 +70,11 @@ func setup_tenant(
 	mgr manager.Manager,
 	targetLabel common.KVLabel,
 ) error {
-	// TODO manage webhook
+	var baseWorkspacesList []string
+	if tenantBaseWorkspaces != "" {
+		baseWorkspacesList = strings.Split(tenantBaseWorkspaces, ",")
+		log.Printf("Base workspaces for tenants to be enforced: %v", baseWorkspacesList)
+	}
 
 	tn := &tenant.TenantReconciler{
 		Client:                  mgr.GetClient(),
@@ -77,6 +84,7 @@ func setup_tenant(
 		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
 		KeycloakActor:           common.GetKeycloakActor(),
 		SandboxClusterRole:      sandboxClusterRole,
+		BaseWorkspaces:          baseWorkspacesList,
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {
@@ -88,7 +96,7 @@ func setup_tenant(
 
 	// Setup the webhook for tenant validation and defaulting
 	if enableWebhooks {
-		if err := setupTenantWebhook(mgr); err != nil {
+		if err := setupTenantWebhook(mgr, targetLabel, baseWorkspacesList); err != nil {
 			return err
 		}
 	}
@@ -115,6 +123,8 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 
 func setupTenantWebhook(
 	mgr manager.Manager,
+	targetLabel common.KVLabel,
+	baseWorkspaces []string,
 ) error {
 	tnWh := webhook.TenantWebhook{
 		Client:       mgr.GetClient(),
@@ -127,7 +137,12 @@ func setupTenantWebhook(
 			TenantWebhook: tnWh,
 		}).
 		WithValidatorCustomPath(ValidatorWebhookPath).
-		WithDefaulter(&webhook.TenantDefaulter{}).
+		WithDefaulter(&webhook.TenantDefaulter{
+			TenantWebhook:   tnWh,
+			Decoder:         admission.NewDecoder(mgr.GetScheme()),
+			OpSelectorLabel: targetLabel,
+			BaseWorkspaces:  baseWorkspaces,
+		}).
 		WithDefaulterCustomPath(DefaulterWebhookPath).
 		Complete(); err != nil {
 		return err
