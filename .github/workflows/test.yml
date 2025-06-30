@@ -204,7 +204,9 @@ jobs:
 
       - name: Save the rendered manifests
         run: |
-          echo '${{ steps.helm-template.outputs.helm_output }}' > ./deploy/crownlabs/rendered.yaml
+          cat << 'EOF' > ./deploy/crownlabs/rendered.yaml
+          ${{ steps.helm-template.outputs.helm_output }}
+          EOF
 
       - name: KubeScore Check
         run: |

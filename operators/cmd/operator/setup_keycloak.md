@@ -8,12 +8,12 @@
 # Webhooks
 - Realm Settings -> Events -> add ext-event-webhook
 
-- send a POST request to: http://keycloak-endpoint/realms/crownlabs/webhooks
+- send a POST request to: http:// keycloak-endpoint/realms/crownlabs/webhooks
 
 ```json
 {
   "enabled": "true",
-  "url": "http://operator-endpoint:8082/tenant-webhook",
+  "url": "http:// operator-endpoint:8082/tenant-webhook",
   "eventTypes": [
     "admin.USER-UPDATE",
     "access.CUSTOM_REQUIRED_ACTION"
