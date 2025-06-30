@@ -37,7 +37,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	controllers "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/tenantwh"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
 )
 
@@ -98,7 +97,7 @@ func main() {
 	flag.StringVar(&webhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	flag.StringVar(&baseWorkspaces, "base-workspaces", "", "List of comma separated workspaces to be enforced to every tenant by the mutating webhook")
 	sandboxClusterRole := flag.String("sandbox-cluster-role", "crownlabs-sandbox", "The cluster role defining the permissions for the sandbox namespace.")
-	enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
+	// enableWH := flag.Bool("enable-webhooks", true, "Enable webhooks server")
 	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
 	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
 	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
@@ -147,20 +146,20 @@ func main() {
 		log.Info("will enforce base workspaces", "workspaces", baseWorkspaces)
 	}
 
-	if *enableWH {
-		hookServer := mgr.GetWebhookServer()
-		webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
-		hookServer.Register(
-			ValidatingWebhookPath,
-			tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList, mgr.GetScheme()),
-		)
-		hookServer.Register(
-			MutatingWebhookPath,
-			tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList, mgr.GetScheme()),
-		)
-	} else {
-		log.Info("Webhook set up: operation skipped")
-	}
+	// if *enableWH {
+	// 	hookServer := mgr.GetWebhookServer()
+	// 	webhookBypassGroupsList := strings.Split(webhookBypassGroups, ",")
+	// 	hookServer.Register(
+	// 		ValidatingWebhookPath,
+	// 		tenantwh.MakeTenantValidator(mgr.GetClient(), webhookBypassGroupsList, mgr.GetScheme()),
+	// 	)
+	// 	hookServer.Register(
+	// 		MutatingWebhookPath,
+	// 		tenantwh.MakeTenantMutator(mgr.GetClient(), webhookBypassGroupsList, targetLabelKey, targetLabelValue, baseWorkspacesList, mgr.GetScheme()),
+	// 	)
+	// } else {
+	// 	log.Info("Webhook set up: operation skipped")
+	// }
 
 	var kcA *controllers.KcActor
 	if kcURL == "" {
