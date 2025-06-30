@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: webhook-cleanup
-        image: alpine:latest
+        image: alpine:3.22.0
         command: 
         - /bin/sh
         - -c
