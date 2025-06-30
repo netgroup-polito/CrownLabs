@@ -197,14 +197,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	log.Info("instance termination check", "remainingTime", remainingTime.String(), "instance", instance.Name)
 	tracer.Step("Inactive termination check done")
 
-	numberAlertSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
-	if err != nil {
-		log.Error(err, "failed converting string of alerts sent in int number")
-		return ctrl.Result{}, err
-	}
-	remainingAlertToSend := r.InstanceMaxNumberOfAlerts - numberAlertSent
-	notificationThreshold := inactivityTimeoutDuration - (r.NotificationInterval * time.Duration(remainingAlertToSend))
-
 	// Check if the instance has expired
 	if remainingTime <= 0 {
 		// Check if all notifications have already been sent
@@ -215,7 +207,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if shouldSend {
-			// If a notification should be sent, send the email and requeue after the notification interval
 			if err := r.sendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -231,41 +222,13 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 			log.Info("Instance has been paused/deleted due to inactivity", "instance", instance.Name)
 			return ctrl.Result{}, nil
 		}
-	} else { // remainingTime > 0
-
-		if remainingTime <= notificationThreshold {
-			shouldSend, err := r.shouldSendNotification(ctx, instance)
-			if err != nil {
-				log.Error(err, "failed checking if should send notification")
-				return ctrl.Result{}, err
-			}
-
-			if shouldSend {
-
-				if err := r.sendInactivityWarning(ctx, instance); err != nil {
-					return ctrl.Result{}, err
-				}
-				// Update the last notification time annotation
-				patch := client.MergeFrom(instance.DeepCopy())
-				instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
-				if err := r.Patch(ctx, instance, patch); err != nil {
-					log.Error(err, "failed updating instance annotations")
-					return ctrl.Result{}, err
-				}
-			}
-			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
-		}
 	}
 
 	tracer.Step("Inactive termination done")
 
-	// Calculate requeue time at the instance inactive deadline time:
-	// if the instance is not yet to be terminated, we requeue it after the remaining time
-	requeueTime := notificationThreshold
-	// add 1 minute to the remaining time to avoid requeueing just before the deadline
-	// avoiding a double requeue
-	requeueTime -= 1 * time.Minute
-
+	// Calculate requeue time at the instance inactive deadline time: if the instance is not yet to be terminated, we requeue it after the remaining time
+	// Let's add 1 minute to the remaining time to avoid requeueing just before the deadline, avoiding a double requeue
+	requeueTime := remainingTime + 1*time.Minute
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
@@ -673,8 +636,10 @@ func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx contex
 	// }
 	patch := client.MergeFrom(instance.DeepCopy())
 	instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
+	instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		log.Error(err, "failed updating instance annotations")
+		return err
 	}
 	return nil
 }
