@@ -5,12 +5,10 @@ import (
 	"fmt"
 
 	controlplanekamajiv1 "github.com/clastix/cluster-api-control-plane-provider-kamaji/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/klog/v2"
@@ -18,7 +16,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,37 +23,17 @@ import (
 // InstanceReconciler enforces the Cluster API environment for a CrownLabs instance
 // Kubernetes resources required to start a CrownLabs environment.
 func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-	Provider := environment.Cluster.ControlPlane.Provider
-	instance := clctx.InstanceFrom(ctx)
-	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
-	if environment.Visulizer.Isvisualizer {
-		forge.ClusterVisulizer(ctx)
-	}
 	r.enforceCluster(ctx)
-	// choose the a proper controlplabe provider
-	if Provider == clv1alpha2.ProviderKubeadm {
-		r.enforceKubeadmInfra(ctx)
-		r.enforceKubeadmControlPlane(ctx)
-	} else {
-		r.enforceKamajiInfra(ctx)
-		r.enforceKamajiControlPlane(ctx)
-	}
+	r.enforceKamajiInfra(ctx)
+	r.enforceKamajiControlPlane(ctx)
+
 	// enforce a machinedeployment for VM management
 	r.enforceMachineDeployment(ctx)
 	// enforce a worker virtual machine template
 	r.enforceKubevirtMachine(ctx)
 	// enforce a boostrap for woker virtual machines
 	r.enforceBootstrap(ctx)
-	// Enforce the service and the ingress to expose the environment.
-	err := r.EnforceInstanceExposition(ctx)
-	if err != nil {
-		log.Error(err, "failed to enforce the instance exposition objects")
-		return err
-	}
 	// install cni and export kubeconfig
-	forge.Insinstallcni(instance, environment, host)
 	// echo to template status
 	r.updatetemplatestatus(ctx)
 	return nil
@@ -90,37 +67,6 @@ func (r *InstanceReconciler) enforceCluster(ctx context.Context) error {
 	return nil
 }
 
-// enforceInfra creates or updates the KubevirtCluster resource and labels it for CAPI
-func (r *InstanceReconciler) enforceKubeadmInfra(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
-	instance := clctx.InstanceFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-	cluster := environment.Cluster
-	infra := &infrav1.KubevirtCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-infra", cluster.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-	res, err := ctrl.CreateOrUpdate(ctx, r.Client, infra, func() error {
-		if infra.CreationTimestamp.IsZero() {
-			infra.Spec.ControlPlaneServiceTemplate.Spec.Type = corev1.ServiceType(cluster.ServiceType)
-		}
-		if infra.Labels == nil {
-			infra.Labels = map[string]string{}
-		}
-		infra.SetLabels(forge.InstanceObjectLabels(infra.GetLabels(), instance))
-		// unnecessary to set contoller ref, all will be managed by cluster
-		return nil
-	})
-	if err != nil {
-		log.Error(err, "failed to enforce infrastructure", "infra", klog.KObj(infra))
-		return err
-	}
-	log.V(utils.FromResult(res)).Info("Infrastructure enforced", "infra", klog.KObj(infra), "result", res)
-	return nil
-}
-
 // kamaji infra
 func (r *InstanceReconciler) enforceKamajiInfra(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -146,41 +92,6 @@ func (r *InstanceReconciler) enforceKamajiInfra(ctx context.Context) error {
 		return err
 	}
 	log.V(utils.FromResult(res)).Info("Infrastructure enforced", "infra", klog.KObj(infra), "result", res)
-	return nil
-}
-
-// enforceControlPlane creates or updates the KubeadmControlPlane resource and labels it
-func (r *InstanceReconciler) enforceKubeadmControlPlane(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
-	instance := clctx.InstanceFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-	cluster := environment.Cluster
-	controlplane := cluster.ControlPlane
-	cp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-control-plane", cluster.Name),
-			Namespace: instance.Namespace,
-		},
-	}
-	res, err := ctrl.CreateOrUpdate(ctx, r.Client, cp, func() error {
-
-		if cp.CreationTimestamp.IsZero() {
-			cp.Spec.Version = cluster.Version
-			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
-			cp.Spec = forge.ClusterControlPlaneSepc(instance, environment, host)
-		}
-		cp.Spec.Replicas = ptr.To(int32(controlplane.Replicas))
-		if cp.Labels == nil {
-			cp.Labels = map[string]string{}
-		}
-		cp.SetLabels(forge.InstanceObjectLabels(cp.GetLabels(), instance))
-		return nil
-	})
-	if err != nil {
-		log.Error(err, "failed to enforce controlplane", "cp", klog.KObj(cp))
-		return err
-	}
-	log.V(utils.FromResult(res)).Info("ControlPlane enforced", "cp", klog.KObj(cp), "result", res)
 	return nil
 }
 
@@ -253,8 +164,6 @@ func (r *InstanceReconciler) enforceKubevirtMachine(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	cluster := environment.Cluster
-	controlplane := cluster.ControlPlane
-
 	// worker template
 	wmworker := infrav1.KubevirtMachineTemplate{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-md-worker", cluster.Name), Namespace: instance.Namespace}}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &wmworker, func() error {
@@ -276,30 +185,6 @@ func (r *InstanceReconciler) enforceKubevirtMachine(ctx context.Context) error {
 	}
 	log.V(utils.FromResult(res)).Info("virtualmachine-worker enforced")
 
-	// control-plane template
-	if controlplane.Provider == v1alpha2.ProviderKubeadm {
-		wmcp := infrav1.KubevirtMachineTemplate{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-control-plane-machine", cluster.Name), Namespace: instance.Namespace}}
-		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &wmcp, func() error {
-
-			if wmcp.CreationTimestamp.IsZero() {
-				wmcp.Spec.Template.Spec.BootstrapCheckSpec.CheckStrategy = "ssh"
-
-				vmSpec := forge.ClusterVMSpec(environment)
-				wmcp.Spec.Template.Spec.VirtualMachineTemplate.Spec = vmSpec
-			}
-
-			if wmcp.Labels == nil {
-				wmcp.Labels = map[string]string{}
-			}
-			wmcp.Labels[capiv1.ClusterNameLabel] = fmt.Sprintf("%s-cluster", cluster.Name)
-			return nil
-		})
-		if err != nil {
-			log.Error(err, "failed to enforce virtualmachine-control-plane")
-			return err
-		}
-		log.V(utils.FromResult(res)).Info("virtualmachine-control-plane enforced")
-	}
 	return nil
 }
 

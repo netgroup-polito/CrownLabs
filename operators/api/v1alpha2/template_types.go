@@ -146,9 +146,6 @@ type Environment struct {
 
 	//Cluster
 	Cluster *ClusterTemplate `json:"cluster,omitempty"`
-
-	// The Visualizer is used to visualization of cluster
-	Visulizer *VisualizationType `json:"visulizer,omitempty"`
 }
 
 // cluster defines the characteristics of a cluster composing the Template.
@@ -173,29 +170,8 @@ type ClusterTemplate struct {
 	MachineDeploy MachineDeployment `json:"machineDeployment"`
 }
 
-// +kubebuilder:validation:Optional
-// The VisualizationType defines the visual content
-type VisualizationType struct {
-	// +kubebuilder:validation:Pattern=`^[0-9]{1,5}$`
-	// VisulizerPort is the port that expose outside
-	VisulizerPort string `json:"visulizerPort,omitempty"`
-	// +kubebuilder:default=false
-	// Isvisualizer is flag whether turn on
-	Isvisualizer bool `json:"isvisualizer,omitempty"`
-}
-
 // The ClusterNetwork defines corrlative network components
 type ClusterNetwork struct {
-	// Pods is the CIDR for pod network
-	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
-	Pods string `json:"pods"`
-	// Services is the CIDR for service network
-	// +kubebuilder:validation:Pattern=`^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$`
-	Services string `json:"services"`
-	// Cni specifies the CNI provider to deploy
-	// +kubebuilder:validation:Enum=calico;cilium;flannel
-	// +kubebuilder:default=cilium
-	Cni CniProvider `json:"cni"`
 	// NginxTargetPort is the container port exposed by Nginx
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
@@ -209,35 +185,14 @@ type ClusterNetwork struct {
 	CertSAN string `json:"certsan,omitempty"`
 }
 
-// constrain the provider in callico, cilium and flannel
-type CniProvider string
-
-const (
-	CniCalico  CniProvider = "calico"
-	CniCilium  CniProvider = "cilium"
-	CniFlannel CniProvider = "flannel"
-)
-
 // The ControlPlaneRef defines the characteristics of controlplane
 type ControlPlaneRef struct {
-	// The controlplane provider
-	// +kubebuilder:validation:Enum=kubeadm;kamaji
-	// +kubebuilder:default=kamaji
-	Provider ControlPlaneProvider `json:"provider"`
 
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=100
 	// The number of controlplane
 	Replicas uint32 `json:"replicas"`
 }
-
-// ControlPlaneProvider represents the provider choosen kamaji or kubeadm
-type ControlPlaneProvider string
-
-const (
-	ProviderKubeadm ControlPlaneProvider = "kubeadm"
-	ProviderKamaji  ControlPlaneProvider = "kamaji"
-)
 
 // The MachineDeployment specifies characheristics about worker
 type MachineDeployment struct {

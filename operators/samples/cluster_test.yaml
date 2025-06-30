@@ -62,20 +62,14 @@ spec:
         reservedCPUPercentage: 50
     mode: Standard
     mountMyDriveVolume: false
-    visulizer:
-      isvisualizer: true
     cluster:
       name: testdemo
       version: v1.30.2
       serviceType: ClusterIP
       clusterNet:
-        pods: "10.80.0.0/16"
-        services: "10.95.0.0/16"
-        cni: cilium
         nginxtargetport: 1234
         nginxport: 31343
       controlPlane:
-        provider: kamaji
         replicas: 1
       machineDeployment:
         replicas: 1

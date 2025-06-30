@@ -1,94 +1,32 @@
 package forge
 
 import (
-	"fmt"
+	"context"
 	"os"
-	"os/exec"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/client-go/tools/clientcmd"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func insertKubeConfig(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, host string) error {
-
-	cluster := environment.Cluster
-	path := fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name)
-
-	cmd := exec.Command(
-		"clusterctl", "get", "kubeconfig", fmt.Sprintf("%s-cluster", cluster.Name),
-		"--namespace", instance.Namespace,
-	)
-
-	raw, _ := cmd.Output()
-
-	cfg, _ := clientcmd.Load(raw)
-
-	newURL := fmt.Sprintf("https://%s:%d",
-		host, environment.Cluster.ClusterNet.NginxPort)
-
-	for _, c := range cfg.Clusters {
-		c.Server = newURL
+func createCalicoConfigMap(k8sClient client.Client, ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	data, err := os.ReadFile("./cniconfigs/calico.yaml")
+	if err != nil {
+		log.Error(err, "failed to enforce the instance exposition objects")
+		return err
 	}
-
-	updated, _ := clientcmd.Write(*cfg)
-
-	return os.WriteFile(path, updated, 0o600)
-
-}
-func Insinstallcni(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, host string) error {
-	cluster := environment.Cluster
-	clustername := fmt.Sprintf("%s-cluster", cluster.Name)
-	namespace := instance.Namespace
-	cni := cluster.ClusterNet.Cni
-	podCIDR := cluster.ClusterNet.Pods
-	kubeconfigPath := fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name)
-	// "Waiting for cluster to be ready"
-	exec.Command(
-		"kubectl", "wait",
-		"--for=condition=Ready=true",
-		"-n", namespace,
-		fmt.Sprintf("clusters.cluster.x-k8s.io/%s", clustername),
-		"--timeout=2m",
-	)
-	// insert relative KUBECONFIG files into local folder ./kubeconfigs
-	insertKubeConfig(instance, environment, host)
-	//Installing CNI on cluster
-	switch cni {
-	case clv1alpha2.CniCalico:
-
-	case clv1alpha2.CniCilium:
-		installCilium(kubeconfigPath, podCIDR)
-		waitCilium(kubeconfigPath)
-	case clv1alpha2.CniFlannel:
-
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "calico-manifest",
+			Namespace: instance.Namespace,
+		},
+		Data: map[string]string{
+			"calico.yaml": string(data),
+		},
 	}
-	return nil
-}
-
-func installCilium(kubeconfig string, podCIDR string) error {
-	args := []string{
-		"install",
-		"--set", fmt.Sprintf("ipam.operator.clusterPoolIPv4PodCIDRList=%s", podCIDR),
-		"--set", "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=liqo.io/type",
-		"--set", "affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=DoesNotExist",
-		"--set", "encryption.enabled=true",
-		"--set", "encryption.type=wireguard",
-		"--wait",
-	}
-
-	cmd := exec.Command("cilium", args...)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
-
-	_, _ = cmd.CombinedOutput()
-
-	return nil
-}
-
-func waitCilium(kubeconfig string) error {
-	cmd := exec.Command("cilium", "status", "--wait")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
-
-	_, _ = cmd.CombinedOutput()
-
-	return nil
+	return k8sClient.Create(ctx, cm)
 }

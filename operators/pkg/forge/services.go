@@ -15,8 +15,6 @@
 package forge
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -35,12 +33,6 @@ const (
 	// MetricsPortNumber -> the port in the container in which the metrics server is accessible.
 	MetricsPortNumber = 9090
 
-	ClusterPortNumber = "6443"
-
-	//ClusterPortName -> the name of the port cluster service is exposed to.
-	ClusterPortName = "kube-apiserver"
-	//CapiVisualizerPortNumber -> the port capi-visualize is exposed to
-	CapiVisualizerPortName = "capi-visualizer"
 	// SSHPortName -> the name of the port the SSH daemon is exposed to.
 	SSHPortName = "ssh"
 	// GUIPortName -> the name of the port the NoVNC service is exposed to.
@@ -96,11 +88,5 @@ func serviceSpecTCPPort(name string, number int32) corev1.ServicePort {
 		Protocol:   corev1.ProtocolTCP,
 		Port:       number,
 		TargetPort: intstr.FromInt(int(number)),
-	}
-}
-
-func ConfigMapData(instance *clv1alpha2.Instance, serviceName string, environment *clv1alpha2.Environment) map[string]string {
-	return map[string]string{
-		fmt.Sprintf("%d", environment.Cluster.ClusterNet.NginxTargetPort): fmt.Sprintf("%s/%s:%s", instance.Namespace, serviceName, ClusterPortNumber),
 	}
 }

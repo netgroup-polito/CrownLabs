@@ -14,18 +14,14 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
+const (
+	PodSubnet     = "10.243.0.0/16"
+	ServiceSubnet = "10.95.0.0/16"
+)
+
 // KamajiControlPlaneSpec forges the specification of a Kamaji controlplane object
 func KamajiControlPlaneSpec(environment *clv1alpha2.Environment, host string) controlplanekamajiv1.KamajiControlPlaneSpec {
 	return controlplanekamajiv1.KamajiControlPlaneSpec{
-		KamajiControlPlaneFields: KamajiControlPlaneFields(environment, host),
-		Replicas:                 ptr.To(int32(environment.Cluster.ControlPlane.Replicas)),
-		Version:                  environment.Cluster.Version,
-	}
-}
-
-// KamajiControlPlaneFields forges the specification of a Kamaji controlplane spec
-func KamajiControlPlaneFields(environment *clv1alpha2.Environment, host string) controlplanekamajiv1.KamajiControlPlaneFields {
-	return controlplanekamajiv1.KamajiControlPlaneFields{
 		DataStoreName: "default",
 		Addons: controlplanekamajiv1.AddonsSpec{
 			AddonsSpec: v1alpha1.AddonsSpec{
@@ -49,6 +45,8 @@ func KamajiControlPlaneFields(environment *clv1alpha2.Environment, host string) 
 			},
 		},
 		Deployment: controlplanekamajiv1.DeploymentComponent{},
+		Replicas:   ptr.To(int32(environment.Cluster.ControlPlane.Replicas)),
+		Version:    environment.Cluster.Version,
 	}
 }
 
@@ -168,58 +166,38 @@ func ControlPlaneClusterConfiguration(instance *clv1alpha2.Instance, environment
 func ControlPlaneNetworking(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) bootstrapv1.Networking {
 	return bootstrapv1.Networking{
 		DNSDomain:     fmt.Sprintf("%s.%s.local", environment.Cluster.Name, instance.Namespace),
-		PodSubnet:     environment.Cluster.ClusterNet.Pods,
-		ServiceSubnet: environment.Cluster.ClusterNet.Services,
+		PodSubnet:     PodSubnet,
+		ServiceSubnet: ServiceSubnet,
 	}
 }
 
 // ClusterSpec forges the specification of a cluster object
 func ClusterSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) capiv1.ClusterSpec {
-	Provider := environment.Cluster.ControlPlane.Provider
-	if Provider == clv1alpha2.ProviderKubeadm {
-		return capiv1.ClusterSpec{
-			ClusterNetwork: ptr.To(ClusterNetworking(environment)),
-			InfrastructureRef: ptr.To(corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
-				Kind:       "KubevirtCluster",
-				Name:       fmt.Sprintf("%s-infra", environment.Cluster.Name),
-				Namespace:  instance.Namespace,
-			}),
-			ControlPlaneRef: ptr.To(corev1.ObjectReference{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
-				Kind:       "KubeadmControlPlane",
-				Name:       fmt.Sprintf("%s-control-plane", environment.Cluster.Name),
-				Namespace:  instance.Namespace,
-			}),
-		}
-	} else {
-		return capiv1.ClusterSpec{
-			ClusterNetwork: ptr.To(ClusterNetworking(environment)),
-			InfrastructureRef: ptr.To(corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
-				Kind:       "KubevirtCluster",
-				Name:       fmt.Sprintf("%s-infra", environment.Cluster.Name),
-				Namespace:  instance.Namespace,
-			}),
-			ControlPlaneRef: ptr.To(corev1.ObjectReference{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1alpha1",
-				Kind:       "KamajiControlPlane",
-				Name:       fmt.Sprintf("%s-control-plane", environment.Cluster.Name),
-				Namespace:  instance.Namespace,
-			}),
-		}
+	return capiv1.ClusterSpec{
+		ClusterNetwork: ptr.To(ClusterNetworking(environment)),
+		InfrastructureRef: ptr.To(corev1.ObjectReference{
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
+			Kind:       "KubevirtCluster",
+			Name:       fmt.Sprintf("%s-infra", environment.Cluster.Name),
+			Namespace:  instance.Namespace,
+		}),
+		ControlPlaneRef: ptr.To(corev1.ObjectReference{
+			APIVersion: "controlplane.cluster.x-k8s.io/v1alpha1",
+			Kind:       "KamajiControlPlane",
+			Name:       fmt.Sprintf("%s-control-plane", environment.Cluster.Name),
+			Namespace:  instance.Namespace,
+		}),
 	}
-
 }
 
 // ClusterNetworking forges the spcification of cluster network
 func ClusterNetworking(environment *clv1alpha2.Environment) capiv1.ClusterNetwork {
 	return capiv1.ClusterNetwork{
 		Pods: ptr.To(capiv1.NetworkRanges{
-			CIDRBlocks: []string{environment.Cluster.ClusterNet.Pods},
+			CIDRBlocks: []string{PodSubnet},
 		}),
 		Services: ptr.To(capiv1.NetworkRanges{
-			CIDRBlocks: []string{environment.Cluster.ClusterNet.Services},
+			CIDRBlocks: []string{ServiceSubnet},
 		}),
 	}
 }
