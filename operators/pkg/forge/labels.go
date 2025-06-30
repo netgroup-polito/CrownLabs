@@ -64,6 +64,9 @@ const (
 
 	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
 	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
+
+	// LastRunningAnnotation ->  previous value of the `Running` field of the Instance.
+	LastRunningAnnotation = "crownlabs.polito.it/last-running"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
