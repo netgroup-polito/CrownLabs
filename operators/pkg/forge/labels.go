@@ -70,6 +70,9 @@ const (
 
 	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
 	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
+
+	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.
+	ExpiringWarningNotificationAnnotation = "crownlabs.polito.it/sent-expiring-warning-notification"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,

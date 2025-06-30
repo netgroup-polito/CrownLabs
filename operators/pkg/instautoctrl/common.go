@@ -41,8 +41,9 @@ import (
 const (
 	NEVER_TIMEOUT_VALUE = "never"
 
-	INACTIVITY_MAIL_TEMPLATE_PATH = "templates/instance-automation/inactivity_notification.yaml"
-	EXPIRATION_MAIL_TEMPLATE_PATH = "templates/instance-automation/expiration_notification.yaml"
+	INACTIVITY_MAIL_TEMPLATE_PATH         = "templates/instance-automation/inactivity_notification.yaml"
+	EXPIRATION_MAIL_TEMPLATE_PATH         = "templates/instance-automation/expiration_notification.yaml"
+	WARNING_EXPIRATION_MAIL_TEMPLATE_PATH = "templates/instance-automation/warning_expiration_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -84,6 +85,10 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 // SendInactivityNotification sends notification about instance inactivity detection.
 func SendInactivityNotification(ctx context.Context, mc *mail.MailClient) error {
 	return sendNotification(ctx, mc, INACTIVITY_MAIL_TEMPLATE_PATH)
+}
+
+func SendExpiringWarningNotification(ctx context.Context, mc *mail.MailClient) error {
+	return sendNotification(ctx, mc, WARNING_EXPIRATION_MAIL_TEMPLATE_PATH)
 }
 
 // SendExpiringNotification sends expiration warning notification.
@@ -279,4 +284,39 @@ var instanceTriggered = predicate.Funcs{
 	GenericFunc: func(_ event.GenericEvent) bool {
 		return false
 	},
+}
+
+// GetInstanceAndTemplate retrieves the instance and associated template.
+func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, client client.Client) (*clv1alpha2.Instance, *clv1alpha2.Template, *clv1alpha2.Tenant, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	var instance clv1alpha2.Instance
+	if err := client.Get(ctx, req.NamespacedName, &instance); err != nil {
+		if !kerrors.IsNotFound(err) {
+			log.Error(err, "failed retrieving instance")
+		}
+		return nil, nil, nil, err
+	}
+
+	var template clv1alpha2.Template
+	if err := client.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Template.Name,
+		Namespace: instance.Spec.Template.Namespace,
+	}, &template); err != nil {
+		log.Error(err, "Unable to fetch the instance template.")
+		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
+			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
+	}
+
+	var tenant clv1alpha2.Tenant
+	if err := client.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Tenant.Name,
+		Namespace: instance.Namespace,
+	}, &tenant); err != nil {
+		log.Error(err, "Unable to fetch the instance tenant.")
+		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
+			instance.Namespace, instance.Spec.Tenant.Name, err)
+	}
+
+	return &instance, &template, &tenant, nil
 }

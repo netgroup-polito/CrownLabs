@@ -26,7 +26,6 @@ import (
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -132,16 +131,22 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	instance, template, tenant, err := r.GetInstanceTemplateTenant(ctx, req)
+	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	tracer.Step("instance and template retrieved")
+	tracer.Step("instance, template and tenant retrieved")
 
 	// Add the instance, template and tenant to the context
 	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
 	ctx, _ = pkgcontext.TemplateInto(ctx, template)
 	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
+
+	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
+	skip, err := r.CheckSkipReconciliation(ctx)
+	if skip {
+		return ctrl.Result{}, err
+	}
 
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
@@ -155,12 +160,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	if err != nil {
 		log.Error(err, "failed to parse deleteAfter duration")
 		return ctrl.Result{}, fmt.Errorf("failed to parse inactivityTimeout duration %s: %w", inactivityTimeout, err)
-	}
-
-	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
-	skip, err := r.CheckSkipReconciliation(ctx)
-	if skip {
-		return ctrl.Result{}, err
 	}
 
 	tracer.Step("labels checked")
@@ -232,41 +231,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	requeueTime := remainingTime + 1*time.Minute
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
-}
-
-// GetInstanceAndTemplate retrieves the instance and associated template.
-func (r *InstanceInactiveTerminationReconciler) GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request) (*clv1alpha2.Instance, *clv1alpha2.Template, *clv1alpha2.Tenant, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	var instance clv1alpha2.Instance
-	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
-		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed retrieving instance")
-		}
-		return nil, nil, nil, err
-	}
-
-	var template clv1alpha2.Template
-	if err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
-			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
-	}
-
-	var tenant clv1alpha2.Tenant
-	if err := r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, &tenant); err != nil {
-		log.Error(err, "Unable to fetch the instance tenant.")
-		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
-			instance.Namespace, instance.Spec.Tenant.Name, err)
-	}
-
-	return &instance, &template, &tenant, nil
 }
 
 // GetLastActivityTime retrieves the last time an instance was accessed.

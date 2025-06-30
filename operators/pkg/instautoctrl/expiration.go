@@ -23,7 +23,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,6 +34,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
@@ -48,6 +48,7 @@ type InstanceExpirationReconciler struct {
 	StatusCheckRequestTimeout     time.Duration
 	EnableExpirationNotifications bool
 	MailClient                    *mail.MailClient
+	NotificationInterval          time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -91,44 +92,18 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	// Get the instance object.
-	var instance clv1alpha2.Instance
-	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
-		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed retrieving instance")
-		}
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	tracer.Step("instance retrieved")
-	log.Info("Instance retrieved", "name", instance.GetName(), "namespace", instance.GetNamespace())
-	// Check the selector label, in order to know whether to perform or not reconciliation.
-	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
-		if err != nil {
-			err = fmt.Errorf("failed checking selector label: %w", err)
-		}
+	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	tracer.Step("labels checked")
-
-	// Get the template associated with the instance
-	var template clv1alpha2.Template
-	var err = r.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template)
-	if err != nil {
-		log.Error(err, "Unable to fetch the instance template.")
-		return ctrl.Result{}, fmt.Errorf("failed to fetch instance template %s/%s: %w", instance.Namespace, instance.Spec.Template.Name, err)
-	}
-
-	tracer.Step("template retrieved")
+	tracer.Step("instance, template and tenant retrieved")
 
 	// Get lifespan from template's deleteAfter field
 	deleteAfter := template.Spec.DeleteAfter
 
-	ctx, _ = pkgcontext.TemplateInto(ctx, &template)
-	ctx, _ = pkgcontext.InstanceInto(ctx, &instance)
+	ctx, _ = pkgcontext.TemplateInto(ctx, template)
+	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
 	if deleteAfter == NEVER_TIMEOUT_VALUE {
@@ -146,16 +121,41 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	tracer.Step("expiration checked")
 
 	if remainingTime <= 0 {
-		tenant, err := GetTenantFromInstance(ctx, r.Client)
-		if err != nil {
-			log.Error(err, "failed retrieving tenant from instance")
-			return ctrl.Result{}, fmt.Errorf("failed retrieving tenant from instance: %w", err)
+		tenant := pkgcontext.TenantFrom(ctx)
+		if tenant == nil {
+			return ctrl.Result{}, fmt.Errorf("tenant not found in context")
 		}
-		ctx, _ = pkgcontext.TenantInto(ctx, tenant)
+
+		if r.EnableExpirationNotifications {
+
+			shouldSendWarning, err := r.ShouldSendWarningNotification(ctx)
+			if err != nil {
+				log.Error(err, "failed to check if warning notification should be sent")
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
+			}
+			if shouldSendWarning {
+				if err := SendExpiringWarningNotification(ctx, r.MailClient); err != nil {
+					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
+				}
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+			}
+		}
+
 		// If we reached this point, instance is expired and must be deleted
-		if err := r.DeleteInstance(ctx); err != nil {
-			log.Error(err, "failed to delete instance")
-			return ctrl.Result{}, err
+		if r.EnableExpirationNotifications {
+			if instance.Annotations[forge.ExpiringWarningNotificationAnnotation] == "true" {
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete instance")
+					return ctrl.Result{}, err
+				}
+			} else {
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+			}
+		} else {
+			if err := r.DeleteInstance(ctx); err != nil {
+				log.Error(err, "failed to delete instance")
+				return ctrl.Result{}, err
+			}
 		}
 
 		tracer.Step("instance deleted")
@@ -175,6 +175,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// add 1 minute to the remaining time to avoid requeueing just before the deadline
 	// avoiding a double requeue
 	requeueTime += 1 * time.Minute
+	log.Info("Remaining time before expiration", "remainingTime", remainingTime.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
 
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
@@ -248,4 +249,27 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 
 	log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
 	return nil
+}
+
+func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context.Context) (bool, error) {
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return false, fmt.Errorf("instance not found in context")
+	}
+
+	// Se l'annotation è già presente, ritorna false
+	if _, ok := instance.Annotations[forge.ExpiringWarningNotificationAnnotation]; ok {
+		return false, nil
+	}
+
+	// Se non è presente, aggiungila e ritorna true
+	patch := client.MergeFrom(instance.DeepCopy())
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
+	}
+	instance.Annotations[forge.ExpiringWarningNotificationAnnotation] = "true"
+	if err := r.Client.Patch(ctx, instance, patch); err != nil {
+		return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
+	}
+	return true, nil
 }
