@@ -23,12 +23,12 @@ import (
 
 func init() {}
 
-func setup_workspace(
+func setupWorkspace(
 	mgr manager.Manager,
 	targetLabel common.KVLabel,
 ) error {
-	// Create the WorkspaceReconciler
-	wr := &workspace.WorkspaceReconciler{
+	// Create the Workspace Reconciler
+	wr := &workspace.Reconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		TargetLabel:   targetLabel,

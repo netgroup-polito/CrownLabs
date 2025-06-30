@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (r *WorkspaceReconciler) manageNamespace(
+func (r *Reconciler) manageNamespace(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -55,7 +55,7 @@ func (r *WorkspaceReconciler) manageNamespace(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteNamespace(
+func (r *Reconciler) deleteNamespace(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {

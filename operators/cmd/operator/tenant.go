@@ -66,7 +66,7 @@ func init() {
 	// flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
 }
 
-func setup_tenant(
+func setupTenant(
 	mgr manager.Manager,
 	targetLabel common.KVLabel,
 ) error {
@@ -76,7 +76,7 @@ func setup_tenant(
 		log.Printf("Base workspaces for tenants to be enforced: %v", baseWorkspacesList)
 	}
 
-	tn := &tenant.TenantReconciler{
+	tn := &tenant.Reconciler{
 		Client:                  mgr.GetClient(),
 		Scheme:                  mgr.GetScheme(),
 		TargetLabel:             targetLabel,
@@ -104,8 +104,8 @@ func setup_tenant(
 	return nil
 }
 
-// starts the HTTP server for the Keycloak webhook events endpoint
-func startHTTPServer(tn *tenant.TenantReconciler) {
+// starts the HTTP server for the Keycloak webhook events endpoint.
+func startHTTPServer(tn *tenant.Reconciler) {
 	mux := http.NewServeMux()
 
 	// registering the handler for the tenant webhook path
@@ -115,7 +115,16 @@ func startHTTPServer(tn *tenant.TenantReconciler) {
 
 	log.Printf("HTTP server for Keycloak events listening on %s", tenantKeycloakWebhookAddr)
 
-	err := http.ListenAndServe(tenantKeycloakWebhookAddr, mux)
+	srv := &http.Server{
+		Addr:              tenantKeycloakWebhookAddr,
+		Handler:           mux,
+		ReadTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}

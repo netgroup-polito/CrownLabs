@@ -27,8 +27,8 @@ import (
 )
 
 // if there is some problem with a workspace, we add it to the related list in the tenant's status
-// for each valid workspace, a label is added to the tenant
-func (r *TenantReconciler) manageWorkspaces(
+// for each valid workspace, a label is added to the tenant.
+func (r *Reconciler) manageWorkspaces(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
@@ -64,7 +64,7 @@ func (r *TenantReconciler) manageWorkspaces(
 	return nil
 }
 
-func (r *TenantReconciler) manageSingleWorkspace(
+func (r *Reconciler) manageSingleWorkspace(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 	tenantWorkspace *v1alpha2.TenantWorkspaceEntry,
@@ -103,23 +103,21 @@ func deleteWorkspacesRelatadLabels(
 	}
 }
 
-// this functions only adds the label to the structure, it does not update the tenant
-func (r *TenantReconciler) addWorkspaceLabel(
+// this functions only adds the label to the structure, it does not update the tenant.
+func (r *Reconciler) addWorkspaceLabel(
 	tn *v1alpha2.Tenant,
 	workspaceName string,
 	role v1alpha2.WorkspaceUserRole,
-) error {
+) {
 	if tn.Labels == nil {
 		tn.Labels = make(map[string]string, 1)
 	}
 
 	tn.Labels[v1alpha2.WorkspaceLabelPrefix+workspaceName] = string(role)
-
-	return nil
 }
 
-// this functions only adds the label to the structure, it does not update the tenant
-func (r *TenantReconciler) addNoWorkspaceLabel(
+// this functions only adds the label to the structure, it does not update the tenant.
+func (r *Reconciler) addNoWorkspaceLabel(
 	tn *v1alpha2.Tenant,
 ) {
 	if tn.Labels == nil {
@@ -129,7 +127,7 @@ func (r *TenantReconciler) addNoWorkspaceLabel(
 	tn.Labels[NoWorkspacesLabel] = "true"
 }
 
-func (r *TenantReconciler) removeNoWorkspaceLabel(
+func (r *Reconciler) removeNoWorkspaceLabel(
 	tn *v1alpha2.Tenant,
 ) {
 	if tn.Labels == nil {
@@ -139,7 +137,7 @@ func (r *TenantReconciler) removeNoWorkspaceLabel(
 	delete(tn.Labels, NoWorkspacesLabel)
 }
 
-func (r *TenantReconciler) forgeServiceQuota(
+func (r *Reconciler) forgeServiceQuota(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
@@ -158,7 +156,7 @@ func (r *TenantReconciler) forgeServiceQuota(
 	return nil
 }
 
-func (r *TenantReconciler) getEnrolledWorkspaces(
+func (r *Reconciler) getEnrolledWorkspaces(
 	tn *v1alpha2.Tenant,
 ) []v1alpha2.TenantWorkspaceEntry {
 	validWorkspaces := make([]v1alpha2.TenantWorkspaceEntry, 0, len(tn.Spec.Workspaces))
@@ -179,7 +177,7 @@ func (r *TenantReconciler) getEnrolledWorkspaces(
 	return validWorkspaces
 }
 
-func (r *TenantReconciler) getWorkspacesList(
+func (r *Reconciler) getWorkspacesList(
 	ctx context.Context,
 	tnWss []v1alpha2.TenantWorkspaceEntry,
 ) ([]v1alpha1.Workspace, error) {

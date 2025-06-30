@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package tenant implements the tenant controller functionality.
 package tenant
 
 import (
@@ -29,7 +29,7 @@ import (
 )
 
 // EnforceSandboxResources ensures the presence/absence of a sandbox.
-func (r *TenantReconciler) EnforceSandboxResources(ctx context.Context, tenant *clv1alpha2.Tenant) error {
+func (r *Reconciler) EnforceSandboxResources(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	if tenant.Spec.CreateSandbox {
 		return r.enforceSandboxResourcesPresence(ctx, tenant)
 	}
@@ -37,7 +37,7 @@ func (r *TenantReconciler) EnforceSandboxResources(ctx context.Context, tenant *
 }
 
 // enforceSandboxResourcesPresence ensures the presence of a sandbox.
-func (r *TenantReconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
+func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	sandboxnsName := forge.CanonicalSandboxName(tenant.Name)
 	log := ctrl.LoggerFrom(ctx, "environment", "sandbox")
 
@@ -105,7 +105,7 @@ func (r *TenantReconciler) enforceSandboxResourcesPresence(ctx context.Context, 
 }
 
 // enforceInstanceExpositionAbsence ensures the sandbox's absence.
-func (r *TenantReconciler) enforceSandboxResourcesAbsence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
+func (r *Reconciler) enforceSandboxResourcesAbsence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	sandboxnsName := forge.CanonicalSandboxName(tenant.Name)
 
 	// Enforce namespace absence

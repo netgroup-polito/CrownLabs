@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains the entrypoint for the Crownlabs unified operator.
+// Package common contains shared utilities for CrownLabs operators.
 package common
 
 import (
@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+// KVLabel represents a key-value pair label.
 type KVLabel struct {
 	key   string
 	value string

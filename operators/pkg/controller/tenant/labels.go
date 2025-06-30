@@ -21,7 +21,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (r *TenantReconciler) updateTenantBaseLabels(
+func (r *Reconciler) updateTenantBaseLabels(
 	ctx context.Context,
 	log *klog.Logger,
 	tn *v1alpha2.Tenant,

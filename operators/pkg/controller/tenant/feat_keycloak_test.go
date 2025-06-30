@@ -52,7 +52,7 @@ var _ = Describe("Features -> Keycloak", func() {
 		cl               client.Client
 		mockCtrl         *gomock.Controller
 		keycloakActor    *mock.MockKeycloakActorIface
-		tenantReconciler tenant.TenantReconciler
+		tenantReconciler tenant.Reconciler
 
 		tnResource             *crownlabsv1alpha2.Tenant
 		tnReconcileErrExpected gomegaTypes.GomegaMatcher
@@ -89,7 +89,7 @@ var _ = Describe("Features -> Keycloak", func() {
 	JustBeforeEach(func() {
 		cl = builder.WithObjects(tnResource).WithStatusSubresource(tnResource).Build()
 
-		tenantReconciler = tenant.TenantReconciler{
+		tenantReconciler = tenant.Reconciler{
 			Client:            cl,
 			Scheme:            scheme.Scheme,
 			KeycloakActor:     keycloakActor,

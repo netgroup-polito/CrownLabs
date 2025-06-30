@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package webhook implements the webhook handlers for tenant resources.
 package webhook
 
 import (
@@ -36,11 +37,13 @@ import (
 // LastLoginToleration defines the maximum skew with respect to the current time that is accepted by the webhook for the LastLogin field.
 const LastLoginToleration = time.Hour * 24
 
+// TenantValidator implements a validating webhook for Tenant resources.
 type TenantValidator struct {
 	admission.CustomValidator
 	TenantWebhook
 }
 
+// ValidatePreflight performs preliminary validation checks.
 func (tv *TenantValidator) ValidatePreflight(
 	ctx context.Context,
 	newObj, oldObj runtime.Object,
@@ -64,8 +67,7 @@ func (tv *TenantValidator) ValidatePreflight(
 	newCtx = ctrl.LoggerInto(ctx, log)
 
 	if !ok {
-		err = fmt.Errorf("expected a Tenant object, got %T", newObj)
-		return
+		return nil, nil, nil, admission.Request{}, newCtx, false, fmt.Errorf("expected a Tenant object, got %T", newObj)
 	}
 
 	if op != admissionv1.Update {
@@ -73,14 +75,13 @@ func (tv *TenantValidator) ValidatePreflight(
 	} else {
 		oldTenant, ok = oldObj.(*v1alpha2.Tenant)
 		if !ok && op != admissionv1.Create {
-			err = fmt.Errorf("expected a Tenant object, got %T", oldObj)
-			return
+			return nil, nil, nil, admission.Request{}, newCtx, false, fmt.Errorf("expected a Tenant object, got %T", oldObj)
 		}
 	}
 
 	req, err = admission.RequestFromContext(ctx)
 	if err != nil {
-		return
+		return nil, nil, nil, admission.Request{}, newCtx, false, err
 	}
 
 	if tv.CheckWebhookOverride(&req) {
@@ -93,6 +94,7 @@ func (tv *TenantValidator) ValidatePreflight(
 	return
 }
 
+// ValidateCreate validates a new tenant creation request.
 func (tv *TenantValidator) ValidateCreate(
 	ctx context.Context,
 	obj runtime.Object,
@@ -117,6 +119,7 @@ func (tv *TenantValidator) ValidateCreate(
 	return tv.HandleWorkspaceEdit(ctx, tenant, _oldT, manager, req.Operation)
 }
 
+// ValidateUpdate validates a tenant update request.
 func (tv *TenantValidator) ValidateUpdate(
 	ctx context.Context,
 	newObj, oldObj runtime.Object,
@@ -146,6 +149,7 @@ func (tv *TenantValidator) ValidateUpdate(
 	return tv.HandleWorkspaceEdit(ctx, newTenant, oldTenant, manager, req.Operation)
 }
 
+// ValidateDelete validates a tenant deletion request.
 func (tv *TenantValidator) ValidateDelete(
 	ctx context.Context,
 	obj runtime.Object,

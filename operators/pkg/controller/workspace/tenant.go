@@ -12,23 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *WorkspaceReconciler) handleTenantWorkspaceDeletion(
+func (r *Reconciler) handleTenantWorkspaceDeletion(
 	ctx context.Context,
-	log logr.Logger,
 	ws *v1alpha1.Workspace,
 ) error {
 	var tenantsToUpdate v1alpha2.TenantList
@@ -39,9 +37,10 @@ func (r *WorkspaceReconciler) handleTenantWorkspaceDeletion(
 		return err
 	}
 
-	for _, tn := range tenantsToUpdate.Items {
+	for i := range tenantsToUpdate.Items {
+		tn := &tenantsToUpdate.Items[i]
 		removeWorkspaceFromTenant(&tn.Spec.Workspaces, ws.Name)
-		if err := r.Update(ctx, &tn); err != nil {
+		if err := r.Update(ctx, tn); err != nil {
 			klog.Errorf("Error when unsubscribing tenant %s from workspace %s -> %s", tn.Name, ws.Name, err)
 			return err
 		}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package tenant contains functionality related to CrownLabs tenant management.
 package tenant
 
 import (
@@ -32,7 +32,7 @@ import (
 // and its email address has already been verified.
 // If it has not been created, it creates it.
 // It returns true if the Tenant has confrmed his/her email, false otherwise.
-func (r *TenantReconciler) CheckKeycloakUserVerified(
+func (r *Reconciler) CheckKeycloakUserVerified(
 	ctx context.Context,
 	tenant *crownlabsv1alpha2.Tenant,
 ) (bool, error) {
@@ -56,7 +56,7 @@ func (r *TenantReconciler) CheckKeycloakUserVerified(
 
 			klog.Infof("Tenant %s created in Keycloak", tenant.Name)
 
-			// retrive newly created user
+			// retrieve newly created user
 			user, err = r.KeycloakActor.GetUser(ctx, tenant.Name)
 			if err != nil {
 				klog.Errorf("Error retrieving newly created tenant %s in Keycloak: %v", tenant.Name, err)
@@ -85,7 +85,7 @@ func (r *TenantReconciler) CheckKeycloakUserVerified(
 	return *user.EmailVerified, nil
 }
 
-func (r *TenantReconciler) createTenantInKeycloak(
+func (r *Reconciler) createTenantInKeycloak(
 	ctx context.Context,
 	tenant *crownlabsv1alpha2.Tenant,
 ) error {
@@ -95,7 +95,7 @@ func (r *TenantReconciler) createTenantInKeycloak(
 	}
 
 	// Create the tenant in Keycloak
-	userId, err := r.KeycloakActor.CreateUser(
+	userID, err := r.KeycloakActor.CreateUser(
 		ctx,
 		tenant.Name,
 		tenant.Spec.Email,
@@ -109,7 +109,7 @@ func (r *TenantReconciler) createTenantInKeycloak(
 
 	tenant.Status.Keycloak = crownlabsv1alpha2.KeycloakStatus{
 		UserCreated: crownlabsv1alpha2.NameCreated{
-			Name:    userId,
+			Name:    userID,
 			Created: true,
 		},
 		UserConfirmed: false,
@@ -118,7 +118,7 @@ func (r *TenantReconciler) createTenantInKeycloak(
 	return nil
 }
 
-func (r *TenantReconciler) deleteTenantInKeycloak(
+func (r *Reconciler) deleteTenantInKeycloak(
 	ctx context.Context,
 	tenant *crownlabsv1alpha2.Tenant,
 ) error {
@@ -136,9 +136,9 @@ func (r *TenantReconciler) deleteTenantInKeycloak(
 	if err := r.KeycloakActor.DeleteUser(ctx, tenant.Status.Keycloak.UserCreated.Name); err != nil {
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tenant.Name, err)
 		return fmt.Errorf("error deleting tenant %s in Keycloak: %w", tenant.Name, err)
-	} else {
-		klog.Infof("Tenant %s deleted in Keycloak", tenant.Name)
 	}
+	klog.Infof("Tenant %s deleted in Keycloak", tenant.Name)
+
 	// Reset the Keycloak status in the tenant
 	tenant.Status.Keycloak = crownlabsv1alpha2.KeycloakStatus{
 		UserCreated: crownlabsv1alpha2.NameCreated{
@@ -150,7 +150,8 @@ func (r *TenantReconciler) deleteTenantInKeycloak(
 	return nil
 }
 
-func (r *TenantReconciler) KeycloakEventHandler(
+// KeycloakEventHandler handles Keycloak webhook events for tenant resources.
+func (r *Reconciler) KeycloakEventHandler(
 	hw http.ResponseWriter,
 	hr *http.Request,
 ) {
@@ -200,13 +201,13 @@ func extractUsernameFromKeycloakEvent(
 	case "access.CUSTOM_REQUIRED_ACTION":
 		username, err := extractUsernameFromCustomRequiredActionEvent(body)
 		if err != nil {
-			return "", fmt.Errorf("error extracting username from custom required action event: %v", err)
+			return "", fmt.Errorf("error extracting username from custom required action event: %w", err)
 		}
 		return username, nil
 	case "admin.USER-UPDATE":
 		username, err := extractUsernameFromUserUpdateEvent(body)
 		if err != nil {
-			return "", fmt.Errorf("error extracting username from user update event: %v", err)
+			return "", fmt.Errorf("error extracting username from user update event: %w", err)
 		}
 		return username, nil
 	default:
@@ -224,7 +225,7 @@ func extractUsernameFromCustomRequiredActionEvent(
 	}
 
 	if err := json.Unmarshal(body, &authEvent); err != nil {
-		return "", fmt.Errorf("error parsing custom required action event: %v", err)
+		return "", fmt.Errorf("error parsing custom required action event: %w", err)
 	}
 
 	return authEvent.AuthDetails.Username, nil
@@ -238,7 +239,7 @@ func extractUsernameFromUserUpdateEvent(
 	}
 
 	if err := json.Unmarshal(body, &adminEvent); err != nil {
-		return "", fmt.Errorf("error parsing user update event: %v", err)
+		return "", fmt.Errorf("error parsing user update event: %w", err)
 	}
 
 	// internal json parsing
@@ -247,7 +248,7 @@ func extractUsernameFromUserUpdateEvent(
 	}
 
 	if err := json.Unmarshal([]byte(adminEvent.Representation), &userRepresentation); err != nil {
-		return "", fmt.Errorf("error parsing representation JSON: %v", err)
+		return "", fmt.Errorf("error parsing representation JSON: %w", err)
 	}
 
 	return userRepresentation.Username, nil

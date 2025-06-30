@@ -50,7 +50,7 @@ var (
 	cl                  client.Client
 	mockCtrl            *gomock.Controller
 	keycloakActor       *mock.MockKeycloakActorIface
-	workspaceReconciler workspace.WorkspaceReconciler
+	workspaceReconciler workspace.Reconciler
 
 	wsResource             *v1alpha1.Workspace
 	wsReconcileErrExpected gomegaTypes.GomegaMatcher
@@ -101,7 +101,7 @@ var _ = JustBeforeEach(func() {
 	addObjToObjectsList(wsResource)
 	cl = builder.WithObjects(objects...).WithStatusSubresource(objects...).Build()
 
-	workspaceReconciler = workspace.WorkspaceReconciler{
+	workspaceReconciler = workspace.Reconciler{
 		Client:        cl,
 		Scheme:        scheme.Scheme,
 		KeycloakActor: keycloakActor,

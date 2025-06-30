@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package tenant implements the tenant controller functionality.
 package tenant
 
 import (
@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func (r *TenantReconciler) updateWorkspacesAuthorizationRoles(
+func (r *Reconciler) updateWorkspacesAuthorizationRoles(
 	ctx context.Context,
 	log *klog.Logger,
 	tn *v1alpha2.Tenant,
@@ -77,7 +77,7 @@ func (r *TenantReconciler) updateWorkspacesAuthorizationRoles(
 	return nil
 }
 
-func (r *TenantReconciler) obtainWantedRoles(
+func (r *Reconciler) obtainWantedRoles(
 	tn *v1alpha2.Tenant,
 ) []string {
 	wantedRoles := make([]string, 0, len(tn.Spec.Workspaces))
@@ -89,7 +89,7 @@ func (r *TenantReconciler) obtainWantedRoles(
 	return wantedRoles
 }
 
-func (r *TenantReconciler) obtainCurrentRoles(
+func (r *Reconciler) obtainCurrentRoles(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) ([]*gocloak.Role, error) {
@@ -110,7 +110,7 @@ func (r *TenantReconciler) obtainCurrentRoles(
 	return filteredRoles, nil
 }
 
-func (r *TenantReconciler) getRolesToAdd(
+func (r *Reconciler) getRolesToAdd(
 	ctx context.Context,
 	wantedRoles []string,
 	currentRoles []*gocloak.Role,
@@ -128,7 +128,7 @@ func (r *TenantReconciler) getRolesToAdd(
 	return r.convertRoleNamesToRoles(ctx, rolesToAdd)
 }
 
-func (r *TenantReconciler) convertRoleNamesToRoles(
+func (r *Reconciler) convertRoleNamesToRoles(
 	ctx context.Context,
 	roles []string,
 ) ([]*gocloak.Role, error) {
@@ -143,7 +143,7 @@ func (r *TenantReconciler) convertRoleNamesToRoles(
 	return gocloakRoles, nil
 }
 
-func (r *TenantReconciler) getRolesToDelete(
+func (r *Reconciler) getRolesToDelete(
 	wantedRoles []string,
 	currentRoles []*gocloak.Role,
 ) []*gocloak.Role {

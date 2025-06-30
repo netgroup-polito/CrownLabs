@@ -39,7 +39,7 @@ func init() {
 	flag.StringVar(&keycloakRolesClientID, "keycloak-roles-client-id", "", "Keycloak Roles Client ID (the client in which the roles are defined)")
 }
 
-func setup_keycloak(
+func setupKeycloak(
 	log klog.Logger,
 ) error {
 	if keycloakURL == "" || keycloakClientID == "" || keycloakClientSecret == "" || keycloakRealm == "" {

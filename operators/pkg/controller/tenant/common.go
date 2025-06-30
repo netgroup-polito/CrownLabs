@@ -57,7 +57,7 @@ import (
 // 	return lsPred
 // }
 
-func (r *TenantReconciler) updatePreservingStatus(
+func (r *Reconciler) updatePreservingStatus(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
@@ -92,7 +92,7 @@ func cleanName(name string) string {
 	return strings.Trim(name, "_")
 }
 
-func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
+func (r *Reconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}

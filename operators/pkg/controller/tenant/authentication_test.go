@@ -41,7 +41,7 @@ var _ = Describe("Authenticator", func() {
 	var (
 		mockCtrl   *gomock.Controller
 		ctx        context.Context
-		reconciler *tntctrl.TenantReconciler
+		reconciler *tntctrl.Reconciler
 		tenant     *crownlabsv1alpha2.Tenant
 		mKcAct     *mock.MockKeycloakActorIface
 	)
@@ -70,7 +70,7 @@ var _ = Describe("Authenticator", func() {
 		}
 
 		cl := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-		reconciler = &tntctrl.TenantReconciler{
+		reconciler = &tntctrl.Reconciler{
 			Client:        cl,
 			Scheme:        scheme.Scheme,
 			KeycloakActor: mKcAct,
@@ -334,7 +334,7 @@ var _ = Describe("Authenticator", func() {
 	})
 })
 
-// mockResponseWriter implements http.ResponseWriter for testing
+// mockResponseWriter implements http.ResponseWriter for testing.
 type mockResponseWriter struct {
 	statusCode int
 }

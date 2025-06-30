@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -37,7 +37,7 @@ var rbData = map[v1alpha2.WorkspaceUserRole]map[string]string{
 	},
 }
 
-func (r *WorkspaceReconciler) manageRoleBindings(
+func (r *Reconciler) manageRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -58,7 +58,7 @@ func (r *WorkspaceReconciler) manageRoleBindings(
 	return nil
 }
 
-func (r *WorkspaceReconciler) createOrUpdateSingleRb(
+func (r *Reconciler) createOrUpdateSingleRb(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	namespace string,
@@ -95,7 +95,7 @@ func (r *WorkspaceReconciler) createOrUpdateSingleRb(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteRoleBindings(
+func (r *Reconciler) deleteRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -107,9 +107,11 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	// Delete all RoleBindings related to the Workspace
 	for _, rbDataSet := range rbData {
 		for kind := range rbDataSet {
-			if err := r.deleteSingleRb(ctx, namespace, kind); client.IgnoreNotFound(err) != nil {
-				return fmt.Errorf("error while deleting RoleBinding %s for workspace %s: %w",
-					kind, ws.Name, err)
+			err := r.deleteSingleRb(ctx, namespace, kind)
+			if err != nil {
+				if client.IgnoreNotFound(err) != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -117,7 +119,7 @@ func (r *WorkspaceReconciler) deleteRoleBindings(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteSingleRb(
+func (r *Reconciler) deleteSingleRb(
 	ctx context.Context,
 	namespace string,
 	kind string,

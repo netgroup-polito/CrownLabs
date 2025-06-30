@@ -98,7 +98,7 @@ func main() {
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak := enableTenant || enableWorkspace
 	if enableKeycloak {
-		err := setup_keycloak(log)
+		err := setupKeycloak(log)
 		if err != nil {
 			klog.Fatal(err, "Unable to setup Keycloak actor")
 		}
@@ -108,7 +108,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setup_tenant(mgr, targetLabel)
+		err := setupTenant(mgr, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}
@@ -116,7 +116,7 @@ func main() {
 
 	if enableWorkspace {
 		log.Info("Starting the workspace controller")
-		err := setup_workspace(mgr, targetLabel)
+		err := setupWorkspace(mgr, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create workspace controller")
 		}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package tenant implements the tenant controller functionality.
 package tenant
 
 import (
@@ -61,7 +61,8 @@ const (
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
 )
 
-type TenantReconciler struct {
+// Reconciler reconciles a Tenant object.
+type Reconciler struct {
 	client.Client
 	Scheme                      *runtime.Scheme
 	TargetLabel                 common.KVLabel
@@ -76,7 +77,7 @@ type TenantReconciler struct {
 }
 
 // Reconcile reconciles the state of a tenant resource.
-func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "tenant", req.NamespacedName.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -148,9 +149,8 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
 		tn.Status.Ready = false
 		return ctrl.Result{}, err
-	} else {
-		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 	}
+	tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
 
 	// manage keycloak tenant authorization for workspaces
 	if err := r.updateWorkspacesAuthorizationRoles(ctx, &log, &tn); err != nil {
@@ -220,8 +220,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 // SetupWithManager registers a new controller for Tenant resources.
-func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		klog.Errorf("Error creating predicate for tenant controller: %v", err)
@@ -257,7 +256,8 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			),
 		).
-		// TODO
+		// TODO: Add workspace watch functionality when the feature is implemented in future versions.
+		// This will allow automatic tenant enrollment based on workspace changes.
 		// Watches(&crownlabsv1alpha1.Workspace{},
 		// 	handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
 		// WithOptions(controller.Options{
@@ -267,7 +267,7 @@ func (r *TenantReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TenantReconciler) deleteTenant(
+func (r *Reconciler) deleteTenant(
 	ctx context.Context,
 	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
@@ -302,7 +302,7 @@ func (r *TenantReconciler) deleteTenant(
 	return nil
 }
 
-// func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
+// func (r *Reconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
 // 	// Persistent volume claim NFS
 // 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
 
@@ -371,13 +371,13 @@ func (r *TenantReconciler) deleteTenant(
 // 	return nil
 // }
 
-// func (r *TenantReconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
+// func (r *Reconciler) updateTnRb(rb *rbacv1.RoleBinding, tnName string) {
 // 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 // 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: "crownlabs-manage-instances", APIGroup: "rbac.authorization.k8s.io"}
 // 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 // }
 
-// func (r *TenantReconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
+// func (r *Reconciler) updateTnCr(rb *rbacv1.ClusterRole, tnName string) {
 // 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 // 	rb.Rules = []rbacv1.PolicyRule{{
 // 		APIGroups:     []string{"crownlabs.polito.it"},
@@ -387,13 +387,13 @@ func (r *TenantReconciler) deleteTenant(
 // 	}}
 // }
 
-// func (r *TenantReconciler) updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
+// func (r *Reconciler) updateTnCrb(rb *rbacv1.ClusterRoleBinding, tnName, crName string) {
 // 	rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
 // 	rb.RoleRef = rbacv1.RoleRef{Kind: "ClusterRole", Name: crName, APIGroup: "rbac.authorization.k8s.io"}
 // 	rb.Subjects = []rbacv1.Subject{{Kind: "User", Name: tnName, APIGroup: "rbac.authorization.k8s.io"}}
 // }
 
-// func (r *TenantReconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
+// func (r *Reconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
 // 	if chownJob.CreationTimestamp.IsZero() {
 // 		chownJob.Spec.BackoffLimit = ptr.To[int32](ProvisionJobMaxRetries)
 // 		chownJob.Spec.TTLSecondsAfterFinished = ptr.To[int32](ProvisionJobTTLSeconds)
@@ -431,7 +431,7 @@ func (r *TenantReconciler) deleteTenant(
 // 	}
 // }
 
-// func (r *TenantReconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
+// func (r *Reconciler) updateTnPVCSecret(sec *v1.Secret, dnsName, path string) {
 // 	sec.Labels = r.updateTnResourceCommonLabels(sec.Labels)
 
 // 	sec.Type = v1.SecretTypeOpaque
@@ -440,13 +440,13 @@ func (r *TenantReconciler) deleteTenant(
 // 	sec.Data[NFSSecretPathKey] = []byte(path)
 // }
 
-// func (r *TenantReconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
+// func (r *Reconciler) updateTnNetPolDeny(np *netv1.NetworkPolicy) {
 // 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
 // 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 // 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}}}
 // }
 
-// func (r *TenantReconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
+// func (r *Reconciler) updateTnNetPolAllow(np *netv1.NetworkPolicy) {
 // 	np.Labels = r.updateTnResourceCommonLabels(np.Labels)
 // 	np.Spec.PodSelector.MatchLabels = make(map[string]string)
 // 	np.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{From: []netv1.NetworkPolicyPeer{{NamespaceSelector: &metav1.LabelSelector{
@@ -454,7 +454,7 @@ func (r *TenantReconciler) deleteTenant(
 // 	}}}}}
 // }
 
-// func (r *TenantReconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
+// func (r *Reconciler) updateTnPersistentVolumeClaim(pvc *v1.PersistentVolumeClaim) {
 // 	scName := r.MyDrivePVCsStorageClassName
 // 	pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
 

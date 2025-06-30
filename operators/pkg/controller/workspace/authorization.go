@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace contains functionality related to CrownLabs workspace management.
 package workspace
 
 import (
@@ -32,7 +32,7 @@ func getWorkspaceRoles(
 	}
 }
 
-func (r *WorkspaceReconciler) createKeycloakRoles(
+func (r *Reconciler) createKeycloakRoles(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -55,7 +55,7 @@ func (r *WorkspaceReconciler) createKeycloakRoles(
 	return nil
 }
 
-func (r *WorkspaceReconciler) createKeycloakRole(
+func (r *Reconciler) createKeycloakRole(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	roleName string,
@@ -83,7 +83,7 @@ func (r *WorkspaceReconciler) createKeycloakRole(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteKeycloakRoles(
+func (r *Reconciler) deleteKeycloakRoles(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -102,7 +102,7 @@ func (r *WorkspaceReconciler) deleteKeycloakRoles(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteKeycloakRole(
+func (r *Reconciler) deleteKeycloakRole(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	roleName string,

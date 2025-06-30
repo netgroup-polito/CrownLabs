@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains the entrypoint for the Crownlabs unified operator.
+// Package common provides shared functionality for the CrownLabs operators.
 package common
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -27,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// KcActor contains the needed objects and infos to use keycloak functionalities.
+// KeycloakActor contains the functionality to interact with Keycloak.
 type KeycloakActor struct {
 	initialized    bool
 	Client         GoCloakIface
@@ -48,6 +47,7 @@ const tokenRefreshBuffer = 30 // the token is considered about to expire if it h
 
 var actor KeycloakActor
 
+// SetupKeycloakActor creates and initializes a new KeycloakActor.
 func SetupKeycloakActor(
 	url string,
 	clientID string,
@@ -84,10 +84,12 @@ func GetKeycloakActor() *KeycloakActor {
 	return &actor
 }
 
+// IsInitialized checks if the KeycloakActor has been initialized.
 func (a *KeycloakActor) IsInitialized() bool {
 	return a.initialized
 }
 
+// Reset clears the KeycloakActor's token and cached data.
 func (a *KeycloakActor) Reset() {
 	a.tokenMutex.Lock()
 	a.cacheMutex.Lock()
@@ -119,12 +121,14 @@ func (a *KeycloakActor) GetAccessToken() string {
 		token, err := a.Client.LoginClient(ctx, a.credentials.ClientID, a.credentials.ClientSecret, a.Realm)
 		if err != nil {
 			klog.Error("Unable to refresh keycloak token", err)
-			os.Exit(1)
+			a.tokenExpiresAt = 0
+			return ""
 		}
 
 		a.token = token
 		// set the token expiration time
 		a.tokenExpiresAt = now + int64(token.ExpiresIn)
+		return token.AccessToken
 	}
 
 	return a.token.AccessToken
@@ -135,7 +139,6 @@ func (a *KeycloakActor) GetUser(
 	ctx context.Context,
 	username string,
 ) (*gocloak.User, error) {
-
 	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(), a.Realm, gocloak.GetUsersParams{
 		Username: &username,
 	})
@@ -192,6 +195,7 @@ func (a *KeycloakActor) CreateUser(
 	return userID, nil
 }
 
+// DeleteUser removes a user from Keycloak.
 func (a *KeycloakActor) DeleteUser(
 	ctx context.Context,
 	userID string,
@@ -232,6 +236,7 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 	return *clients[0].ID, nil
 }
 
+// GetRole gets a role from Keycloak.
 func (a *KeycloakActor) GetRole(
 	ctx context.Context,
 	roleName string,
@@ -261,6 +266,7 @@ func (a *KeycloakActor) GetRole(
 	return role, nil
 }
 
+// CreateRole creates a new role in Keycloak.
 func (a *KeycloakActor) CreateRole(
 	ctx context.Context,
 	roleName string,
@@ -292,6 +298,7 @@ func (a *KeycloakActor) CreateRole(
 	return createdRole, nil
 }
 
+// DeleteRole removes a role from Keycloak.
 func (a *KeycloakActor) DeleteRole(
 	ctx context.Context,
 	roleName string,
@@ -320,6 +327,7 @@ func (a *KeycloakActor) DeleteRole(
 	return nil
 }
 
+// GetUserRoles gets the roles assigned to a user in Keycloak.
 func (a *KeycloakActor) GetUserRoles(
 	ctx context.Context,
 	userID string,
@@ -349,6 +357,7 @@ func (a *KeycloakActor) GetUserRoles(
 	return roles, nil
 }
 
+// AddUserToRoles adds a user to the specified roles in Keycloak.
 func (a *KeycloakActor) AddUserToRoles(
 	ctx context.Context,
 	userID string,
@@ -385,6 +394,7 @@ func (a *KeycloakActor) AddUserToRoles(
 	return nil
 }
 
+// RemoveUserFromRoles removes a user from the specified roles in Keycloak.
 func (a *KeycloakActor) RemoveUserFromRoles(
 	ctx context.Context,
 	userID string,

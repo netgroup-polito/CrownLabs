@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *WorkspaceReconciler) manageAutoEnrollment(
+func (r *Reconciler) manageAutoEnrollment(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -66,8 +66,8 @@ func (r *WorkspaceReconciler) manageAutoEnrollment(
 }
 
 // manage Tenants in candidate status
-// this function shall be called only when AutoEnrollment is enabled and not WithApproval
-func (r *WorkspaceReconciler) autoEnrollUpdateTenants(
+// this function shall be called only when AutoEnrollment is enabled and not WithApproval.
+func (r *Reconciler) autoEnrollUpdateTenants(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -80,8 +80,9 @@ func (r *WorkspaceReconciler) autoEnrollUpdateTenants(
 		return err
 	}
 
-	for _, tenant := range tenantsToUpdate.Items {
-		if err := r.autoEnrollUpdateSingleTenant(ctx, ws, &tenant); err != nil {
+	for i := range tenantsToUpdate.Items {
+		tenant := &tenantsToUpdate.Items[i]
+		if err := r.autoEnrollUpdateSingleTenant(ctx, ws, tenant); err != nil {
 			klog.Errorf("Error when updating tenant %s -> %s", tenant.Name, err)
 			return err
 		}
@@ -90,7 +91,7 @@ func (r *WorkspaceReconciler) autoEnrollUpdateTenants(
 	return nil
 }
 
-func (r *WorkspaceReconciler) autoEnrollUpdateSingleTenant(
+func (r *Reconciler) autoEnrollUpdateSingleTenant(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	tenant *v1alpha2.Tenant,

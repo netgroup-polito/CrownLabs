@@ -1,3 +1,17 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package tenant
 
 import (
@@ -22,7 +36,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-func (r *TenantReconciler) createResourcesRelatedToPersonalNamespace(
+func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
 	ctx context.Context,
 	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
@@ -44,7 +58,7 @@ func (r *TenantReconciler) createResourcesRelatedToPersonalNamespace(
 	return nil
 }
 
-func (r *TenantReconciler) deleteResourcesRelatedToPersonalNamespace(
+func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
 	ctx context.Context,
 	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
@@ -66,7 +80,7 @@ func (r *TenantReconciler) deleteResourcesRelatedToPersonalNamespace(
 	return nil
 }
 
-func (r *TenantReconciler) createPersonalNamespace(
+func (r *Reconciler) createPersonalNamespace(
 	ctx context.Context,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
@@ -91,7 +105,7 @@ func (r *TenantReconciler) createPersonalNamespace(
 }
 
 // deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.
-func (r *TenantReconciler) deletePersonalNamespace(
+func (r *Reconciler) deletePersonalNamespace(
 	ctx context.Context,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
@@ -111,7 +125,7 @@ func (r *TenantReconciler) deletePersonalNamespace(
 }
 
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
-func (r *TenantReconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant) (keepNsOpen bool, err error) {
+func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, tn *crownlabsv1alpha2.Tenant) (keepNsOpen bool, err error) {
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
 	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
 
@@ -146,7 +160,7 @@ func getNamespaceName(tn *crownlabsv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 }
 
-func (r *TenantReconciler) createResourceQuota(
+func (r *Reconciler) createResourceQuota(
 	ctx context.Context,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
@@ -170,7 +184,7 @@ func (r *TenantReconciler) createResourceQuota(
 	return nil
 }
 
-func (r *TenantReconciler) deleteResourceQuota(
+func (r *Reconciler) deleteResourceQuota(
 	ctx context.Context,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
@@ -192,7 +206,7 @@ func (r *TenantReconciler) deleteResourceQuota(
 }
 
 // // Deletes namespace or updates the cluster resources.
-// func (r *TenantReconciler) enforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (nsOk bool, err error) {
+// func (r *Reconciler) enforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (nsOk bool, err error) {
 // 	nsOk = false // nsOk must be initialized for later use
 
 // 	if keepNsOpen {
@@ -227,7 +241,7 @@ func (r *TenantReconciler) deleteResourceQuota(
 // }
 
 // // updateTnNamespace updates the tenant namespace.
-// func (r *TenantReconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
+// func (r *Reconciler) updateTnNamespace(ns *v1.Namespace, tnName string) {
 // 	ns.Labels = r.updateTnResourceCommonLabels(ns.Labels)
 // 	ns.Labels["crownlabs.polito.it/type"] = "tenant"
 // 	ns.Labels["crownlabs.polito.it/name"] = tnName
@@ -235,7 +249,7 @@ func (r *TenantReconciler) deleteResourceQuota(
 // }
 
 // // createOrUpdateClusterResources creates the namespace for the tenant, if it succeeds it then tries to create the rest of the resources with a fail-fast:false strategy.
-// func (r *TenantReconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
+// func (r *Reconciler) createOrUpdateClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) (nsOk bool, err error) {
 // 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nsName}}
 
 // 	if _, nsErr := ctrl.CreateOrUpdate(ctx, r.Client, &ns, func() error {
@@ -334,7 +348,7 @@ func (r *TenantReconciler) deleteResourceQuota(
 // }
 
 // // other stuff that need to be moved later on
-// func (r *TenantReconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
+// func (r *Reconciler) updateTnResourceCommonLabels(labels map[string]string) map[string]string {
 // 	if labels == nil {
 // 		labels = make(map[string]string, 1)
 // 	}

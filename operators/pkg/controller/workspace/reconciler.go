@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -35,7 +35,8 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-type WorkspaceReconciler struct {
+// Reconciler reconciles Workspace objects.
+type Reconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	TargetLabel   common.KVLabel
@@ -43,7 +44,7 @@ type WorkspaceReconciler struct {
 }
 
 // Reconcile reconciles the state of a Workspace resource.
-func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "workspace", req.NamespacedName.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -107,11 +108,10 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// manage AutoEnrollment for the Workspace
 	err = r.manageAutoEnrollment(ctx, &ws)
 	if err != nil {
-		log.Error(err, "Error managing AutoEnrollment for workspace", "name", ws.Name)
+		klog.Errorf("Error managing AutoEnrollment for workspace %s: %v", ws.Name, err.Error())
 		return ctrl.Result{}, fmt.Errorf("error managing AutoEnrollment for workspace %s: %w", ws.Name, err)
-	} else {
-		log.Info("AutoEnrollment managed for workspace", "name", ws.Name)
 	}
+	log.Info("AutoEnrollment managed for workspace", "name", ws.Name)
 
 	if ws.Status.Subscriptions == nil {
 		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
@@ -121,9 +121,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.createKeycloakRoles(ctx, &ws); err != nil {
 		log.Error(err, "Error managing Keycloak roles for workspace", "name", ws.Name)
 		return ctrl.Result{}, fmt.Errorf("error managing Keycloak roles for workspace %s: %w", ws.Name, err)
-	} else {
-		log.Info("Keycloak roles updated/created for workspace", "name", ws.Name)
 	}
+	log.Info("Keycloak roles updated/created for workspace", "name", ws.Name)
 
 	ws.Status.Ready = true
 
@@ -131,7 +130,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // SetupWithManager registers a new controller for Workspace resources.
-func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		klog.Errorf("Error creating predicate for tenant controller: %v", err)
@@ -147,13 +146,13 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *WorkspaceReconciler) deleteWorkspace(
+func (r *Reconciler) deleteWorkspace(
 	ctx context.Context,
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
 ) error {
 	// remove the Workspace from Tenants
-	if err := r.handleTenantWorkspaceDeletion(ctx, log, ws); err != nil {
+	if err := r.handleTenantWorkspaceDeletion(ctx, ws); err != nil {
 		klog.Errorf("Error handling tenant workspace deletion for workspace %s: %v", ws.Name, err)
 		return fmt.Errorf("error handling tenant workspace deletion for workspace %s: %w", ws.Name, err)
 	}
@@ -186,7 +185,7 @@ func (r *WorkspaceReconciler) deleteWorkspace(
 	return nil
 }
 
-func (r *WorkspaceReconciler) manageSubresources(
+func (r *Reconciler) manageSubresources(
 	ctx context.Context,
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,
@@ -215,7 +214,7 @@ func (r *WorkspaceReconciler) manageSubresources(
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteSubresources(
+func (r *Reconciler) deleteSubresources(
 	ctx context.Context,
 	log logr.Logger,
 	ws *crownlabsv1alpha1.Workspace,

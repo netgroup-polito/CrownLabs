@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package webhook implements the webhook handlers for tenant resources.
 package webhook
 
 import (
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// TenantDefaulter implements a defaulting webhook for Tenant resources.
 type TenantDefaulter struct {
 	admission.CustomDefaulter
 	TenantWebhook
@@ -38,7 +40,7 @@ type TenantDefaulter struct {
 	BaseWorkspaces  []string
 }
 
-// Handle on TenantMutator adds operator selector labels to new tenants and prevents possible changes - this method is used by controller runtime.
+// Default adds operator selector labels to new tenants and prevents possible changes - this method is used by controller runtime.
 func (tm *TenantDefaulter) Default(ctx context.Context, obj runtime.Object) error {
 	log := ctrl.LoggerFrom(ctx).WithName("labeler")
 	req, err := admission.RequestFromContext(ctx)
@@ -71,12 +73,12 @@ func (tm *TenantDefaulter) Default(ctx context.Context, obj runtime.Object) erro
 }
 
 // DecodeTenant decodes the tenant from the incoming request.
-func (twh *TenantDefaulter) DecodeTenant(obj runtime.RawExtension) (tenant *v1alpha2.Tenant, err error) {
-	if twh.Decoder == nil {
+func (tm *TenantDefaulter) DecodeTenant(obj runtime.RawExtension) (tenant *v1alpha2.Tenant, err error) {
+	if tm.Decoder == nil {
 		return nil, errors.NewInternalError(fmt.Errorf("decoder is not set"))
 	}
 	tenant = &v1alpha2.Tenant{}
-	err = twh.Decoder.DecodeRaw(obj, tenant)
+	err = tm.Decoder.DecodeRaw(obj, tenant)
 	return
 }
 

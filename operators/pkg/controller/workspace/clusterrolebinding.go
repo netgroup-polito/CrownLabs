@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -22,8 +22,8 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -34,7 +34,7 @@ var crbData = map[string]string{
 	"tenants":   "crownlabs-manage-tenants",
 }
 
-func (r *WorkspaceReconciler) manageClusterRoleBindings(
+func (r *Reconciler) manageClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
@@ -48,7 +48,7 @@ func (r *WorkspaceReconciler) manageClusterRoleBindings(
 	return nil
 }
 
-func (r *WorkspaceReconciler) createOrUpdateSingleCrb(
+func (r *Reconciler) createOrUpdateSingleCrb(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	kind string,
@@ -84,21 +84,24 @@ func (r *WorkspaceReconciler) createOrUpdateSingleCrb(
 }
 
 // deleteClusterRoleBinding deletes the ClusterRoleBinding associated with the Workspace.
-func (r *WorkspaceReconciler) deleteClusterRoleBindings(
+func (r *Reconciler) deleteClusterRoleBindings(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
 	for kind := range crbData {
-		if err := r.deleteSingleCrb(ctx, ws, kind); client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
-				kind, ws.Name, err)
+		if err := r.deleteSingleCrb(ctx, ws, kind); err != nil {
+			// Check if the error is something other than "not found"
+			if !errors.IsNotFound(err) {
+				return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
+					kind, ws.Name, err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func (r *WorkspaceReconciler) deleteSingleCrb(
+func (r *Reconciler) deleteSingleCrb(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 	kind string,

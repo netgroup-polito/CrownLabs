@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// DummyObject implementa runtime.Object per testare il caso di errore
+// DummyObject implements runtime.Object to test error case.
 type DummyObject struct{}
 
 func (d *DummyObject) GetObjectKind() schema.ObjectKind { return nil }

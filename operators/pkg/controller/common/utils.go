@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains the entrypoint for the Crownlabs unified operator.
+// Package common contains shared utilities for CrownLabs operators.
 package common
 
 import (
@@ -21,6 +21,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
+// WorkspaceRoleName generates the role name for a workspace.
 func WorkspaceRoleName(
 	wsName string,
 	role v1alpha2.WorkspaceUserRole,

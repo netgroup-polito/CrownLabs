@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package tenant_controller groups the functionalities related to the Tenant controller.
+// Package workspace implements the workspace controller functionality.
 package workspace
 
 import (
@@ -21,7 +21,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
-func (r *WorkspaceReconciler) updateWsResourceCommonLabels(labels map[string]string) map[string]string {
+func (r *Reconciler) updateWsResourceCommonLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}
