@@ -92,6 +92,8 @@ kind: Template
 metadata:
   name: vscode-c-cpp-persistent
   namespace: workspace-standalone
+  annotations:
+    crownlabs.polito.it/custom-number-alerts: "5" # Custom number of alerts for this template
 spec:
   prettyName: vscode c-cpp persistent
   description: A template about vscode

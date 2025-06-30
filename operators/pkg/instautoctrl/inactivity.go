@@ -132,15 +132,16 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	instance, template, err := r.GetInstanceAndTemplate(ctx, req)
+	instance, template, tenant, err := r.GetInstanceTemplateTenant(ctx, req)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	tracer.Step("instance and template retrieved")
 
-	// Add the instance and template to the context
+	// Add the instance, template and tenant to the context
 	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
 	ctx, _ = pkgcontext.TemplateInto(ctx, template)
+	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
@@ -234,7 +235,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 }
 
 // GetInstanceAndTemplate retrieves the instance and associated template.
-func (r *InstanceInactiveTerminationReconciler) GetInstanceAndTemplate(ctx context.Context, req ctrl.Request) (*clv1alpha2.Instance, *clv1alpha2.Template, error) {
+func (r *InstanceInactiveTerminationReconciler) GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request) (*clv1alpha2.Instance, *clv1alpha2.Template, *clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	var instance clv1alpha2.Instance
@@ -242,7 +243,7 @@ func (r *InstanceInactiveTerminationReconciler) GetInstanceAndTemplate(ctx conte
 		if !kerrors.IsNotFound(err) {
 			log.Error(err, "failed retrieving instance")
 		}
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var template clv1alpha2.Template
@@ -251,11 +252,21 @@ func (r *InstanceInactiveTerminationReconciler) GetInstanceAndTemplate(ctx conte
 		Namespace: instance.Spec.Template.Namespace,
 	}, &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
-		return nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
+		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
 			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
 	}
 
-	return &instance, &template, nil
+	var tenant clv1alpha2.Tenant
+	if err := r.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Tenant.Name,
+		Namespace: instance.Namespace,
+	}, &tenant); err != nil {
+		log.Error(err, "Unable to fetch the instance tenant.")
+		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
+			instance.Namespace, instance.Spec.Tenant.Name, err)
+	}
+
+	return &instance, &template, &tenant, nil
 }
 
 // GetLastActivityTime retrieves the last time an instance was accessed.
@@ -607,18 +618,31 @@ func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx conte
 		return false, nil // If the instance is not running, do not send a notification
 	}
 
-	return numAlerts <= r.InstanceMaxNumberOfAlerts-1, nil
+	maxAlerts := r.InstanceMaxNumberOfAlerts
+	template := pkgcontext.TemplateFrom(ctx)
+	if template != nil {
+		// if the CustomNumberOfAlertsAnnotation is set, override the default max alerts
+		if customMaxAlertsStr, ok := template.ObjectMeta.Annotations[forge.CustomNumberOfAlertsAnnotation]; ok {
+			customMaxAlerts, err := strconv.Atoi(customMaxAlertsStr)
+			fmt.Printf("Custom max alerts: %s\n", customMaxAlertsStr)
+			if err != nil {
+				log.Error(err, "failed converting custom max alerts annotation to int, using default value", "annotation", customMaxAlertsStr)
+			}
+			maxAlerts = customMaxAlerts
+		}
+	}
+	fmt.Printf(("NUUUUM MAX ALERTS: %d\n"), maxAlerts)
+	return numAlerts <= maxAlerts-1, nil
 }
 
 func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx)
-	tenant, err := GetTenantFromInstance(ctx, r.Client)
-	if err != nil {
-		log.Error(err, "failed retrieving tenant from instance")
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
 	}
-	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
-	err = SendInactivityNotification(ctx, r.MailClient)
+	err := SendInactivityNotification(ctx, r.MailClient)
 	if err != nil {
 		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
 		return err //LOCAL: return nil

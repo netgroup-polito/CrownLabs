@@ -67,6 +67,9 @@ const (
 
 	// LastRunningAnnotation ->  previous value of the `Running` field of the Instance.
 	LastRunningAnnotation = "crownlabs.polito.it/last-running"
+
+	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
+	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
