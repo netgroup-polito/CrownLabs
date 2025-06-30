@@ -95,4 +95,6 @@ spec:
               key: clientSecret
         - name: WEBHOOK_URL
           value: {{ include "operator.keycloakWebhookServiceURL" . | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
       restartPolicy: OnFailure
