@@ -2,7 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCountOperator: 1
+replicaCount: 1
 replicaCountAutomation: 1
 
 configurations:
@@ -52,7 +52,7 @@ configurations:
     notificationInterval: "24h"
 
 image:
-  repositoryOperator: crownlabs/instance-operator
+  repository: crownlabs/instance-operator
   repositoryAutomation: crownlabs/instance-automation
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
@@ -67,39 +67,21 @@ deploymentAnnotations:
 podAnnotations: {}
 
 securityContext:
-  operator:
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 20000
-    runAsGroup: 20000
-    privileged: false
-  automation:
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 20000
-    runAsGroup: 20000
-    privileged: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 20000
+  runAsGroup: 20000
+  privileged: false
 
 resources:
-  operator:
-    limits:
-      memory: 750Mi
-      cpu: 1000m
-    requests:
-      memory: 250Mi
-      cpu: 100m
-  automation:
-    limits:
-      memory: 750Mi
-      cpu: 1000m
-    requests:
-      memory: 250Mi
-      cpu: 100m
+  limits:
+    memory: 750Mi
+    cpu: 1000m
+  requests:
+    memory: 250Mi
+    cpu: 100m
 
 rbacResourcesName: crownlabs-instance-operator

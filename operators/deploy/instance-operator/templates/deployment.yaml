@@ -10,7 +10,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
 {{- end }}
 spec:
-  replicas: {{ .Values.replicaCountOperator }}
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "instance-operator.selectorLabels" . | nindent 6 }}
@@ -33,8 +33,8 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext.operator | nindent 12 }}
-          image: "{{ .Values.image.repositoryOperator }}:{{ include "instance-operator.version" . }}"
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
@@ -71,7 +71,7 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 3
           resources:
-            {{- toYaml .Values.resources.operator | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
 
       affinity:
         podAntiAffinity:
@@ -119,7 +119,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}-automation
           securityContext:
-            {{- toYaml .Values.securityContext.automation | nindent 12 }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repositoryAutomation }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
@@ -166,7 +166,7 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 3
           resources:
-            {{- toYaml .Values.resources.automation | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
 
       affinity:
         podAntiAffinity:
