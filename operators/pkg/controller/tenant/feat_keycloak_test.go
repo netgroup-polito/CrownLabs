@@ -45,7 +45,7 @@ var _ = BeforeSuite(func() {
 	Expect(crownlabsv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
 })
 
-var _ = Describe("Features -> Keycloak", func() {
+var _ = Describe("Authentication", func() {
 	var (
 		ctx              context.Context
 		builder          fake.ClientBuilder
@@ -80,6 +80,8 @@ var _ = Describe("Features -> Keycloak", func() {
 			},
 		}
 		tnReconcileErrExpected = Not(HaveOccurred())
+
+		keycloakActor.EXPECT().GetUserRoles(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 	})
 
 	AfterEach(func() {
