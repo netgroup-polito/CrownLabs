@@ -22,7 +22,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/klog/v2"
@@ -55,6 +55,12 @@ func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
 
 	// TODO: tutte le cose che partono da enforceClusterResources
 
+	 // manage role binding for instance management
+    if err := r.createInstanceRoleBinding(ctx, tn); err != nil {
+        return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Role binding created", "namespace", getNamespaceName(tn))
+
 	return nil
 }
 
@@ -64,6 +70,11 @@ func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
 	// TODO: tutte le cose che partono da enforceClusterResources
+	 // Delete the role binding for instance management
+    if err := r.deleteInstanceRoleBinding(ctx, tn); err != nil {
+        return fmt.Errorf("error when deleting role binding for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Role binding deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the resource quota for the personal namespace
 	if err := r.deleteResourceQuota(ctx, tn); err != nil {
@@ -205,6 +216,58 @@ func (r *Reconciler) deleteResourceQuota(
 	return err
 }
 
+func (r *Reconciler) createInstanceRoleBinding(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    rb := rbacv1.RoleBinding{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-manage-instances",
+            Namespace: nsName,
+        },
+    }
+
+    if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
+        rb.Labels = r.updateTnResourceCommonLabels(rb.Labels)
+        rb.RoleRef = rbacv1.RoleRef{
+            Kind:     "ClusterRole",
+            Name:     "crownlabs-manage-instances",
+            APIGroup: "rbac.authorization.k8s.io",
+        }
+        rb.Subjects = []rbacv1.Subject{{
+            Kind:     "User",
+            Name:     tn.Name,
+            APIGroup: "rbac.authorization.k8s.io",
+        }}
+
+        return controllerutil.SetControllerReference(tn, &rb, r.Scheme)
+    }); err != nil {
+        return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
+    }
+
+    return nil
+}
+
+func (r *Reconciler) deleteInstanceRoleBinding(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    rb := rbacv1.RoleBinding{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-manage-instances",
+            Namespace: nsName,
+        },
+    }
+
+    err := utils.EnforceObjectAbsence(ctx, r.Client, &rb, "role binding")
+    if err != nil {
+        klog.Errorf("Error when deleting role binding for tenant %s -> %s", tn.Name, err)
+    }
+
+    return err
+}
 // // Deletes namespace or updates the cluster resources.
 // func (r *Reconciler) enforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (nsOk bool, err error) {
 // 	nsOk = false // nsOk must be initialized for later use
