@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	netv1 "k8s.io/api/networking/v1"
 
 	"k8s.io/klog/v2"
 
@@ -61,6 +62,18 @@ func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
     }
     log.Info("Role binding created", "namespace", getNamespaceName(tn))
 
+	// Network Policies
+    if err := r.createDenyNetworkPolicy(ctx, tn); err != nil {
+        return fmt.Errorf("error when creating deny network policy for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Deny network policy created", "namespace", getNamespaceName(tn))
+
+    if err := r.createAllowNetworkPolicy(ctx, tn); err != nil {
+        return fmt.Errorf("error when creating allow network policy for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Allow network policy created", "namespace", getNamespaceName(tn))
+
+
 	return nil
 }
 
@@ -70,6 +83,18 @@ func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
 	// TODO: tutte le cose che partono da enforceClusterResources
+
+
+	// Delete Network Policies
+    if err := r.deleteDenyNetworkPolicy(ctx, tn); err != nil {
+        return fmt.Errorf("error when deleting deny network policy for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Deny network policy deleted", "namespace", getNamespaceName(tn))
+
+    if err := r.deleteAllowNetworkPolicy(ctx, tn); err != nil {
+        return fmt.Errorf("error when deleting allow network policy for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Allow network policy deleted", "namespace", getNamespaceName(tn))
 	 // Delete the role binding for instance management
     if err := r.deleteInstanceRoleBinding(ctx, tn); err != nil {
         return fmt.Errorf("error when deleting role binding for tenant %s: %w", tn.Name, err)
@@ -268,6 +293,91 @@ func (r *Reconciler) deleteInstanceRoleBinding(
 
     return err
 }
+
+func (r *Reconciler) createDenyNetworkPolicy(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    netPolDeny := &netv1.NetworkPolicy{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-deny-ingress-traffic",
+            Namespace: nsName,
+        },
+    }
+
+    _, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
+        netPolDeny.Labels = r.updateTnResourceCommonLabels(netPolDeny.Labels)
+        netPolDeny.Spec.PodSelector.MatchLabels = make(map[string]string)
+        netPolDeny.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{
+            From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}},
+        }}
+        return controllerutil.SetControllerReference(tn, netPolDeny, r.Scheme)
+    })
+
+    return err
+}
+
+func (r *Reconciler) createAllowNetworkPolicy(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    netPolAllow := &netv1.NetworkPolicy{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-allow-trusted-ingress-traffic",
+            Namespace: nsName,
+        },
+    }
+
+    _, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
+        netPolAllow.Labels = r.updateTnResourceCommonLabels(netPolAllow.Labels)
+        netPolAllow.Spec.PodSelector.MatchLabels = make(map[string]string)
+        netPolAllow.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{
+            From: []netv1.NetworkPolicyPeer{{
+                NamespaceSelector: &metav1.LabelSelector{
+                    MatchLabels: map[string]string{
+                        "crownlabs.polito.it/allow-instance-access": "true",
+                    },
+                },
+            }},
+        }}
+        return controllerutil.SetControllerReference(tn, netPolAllow, r.Scheme)
+    })
+
+    return err
+}
+
+func (r *Reconciler) deleteDenyNetworkPolicy(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    netPolDeny := &netv1.NetworkPolicy{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-deny-ingress-traffic",
+            Namespace: nsName,
+        },
+    }
+    
+    return utils.EnforceObjectAbsence(ctx, r.Client, netPolDeny, "deny network policy")
+}
+
+func (r *Reconciler) deleteAllowNetworkPolicy(
+    ctx context.Context,
+    tn *crownlabsv1alpha2.Tenant,
+) error {
+    nsName := getNamespaceName(tn)
+    netPolAllow := &netv1.NetworkPolicy{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "crownlabs-allow-trusted-ingress-traffic",
+            Namespace: nsName,
+        },
+    }
+    
+    return utils.EnforceObjectAbsence(ctx, r.Client, netPolAllow, "allow network policy")
+}
+
 // // Deletes namespace or updates the cluster resources.
 // func (r *Reconciler) enforceClusterResources(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string, keepNsOpen bool) (nsOk bool, err error) {
 // 	nsOk = false // nsOk must be initialized for later use
