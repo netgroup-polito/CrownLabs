@@ -76,14 +76,6 @@ type TemplateSpec struct {
 
 // TemplateStatus reflects the most recently observed status of the Template.
 type TemplateStatus struct {
-	KubeConfigs []KubeconfigTemplate `json:"kubeconfigs,omitempty"`
-}
-
-type KubeconfigTemplate struct {
-	//The name identifying the specific kuconfig file
-	Name string `json:"name,omitempty"`
-	// The address to locate the relative kubeconfig file in folder
-	FileAddress string `json:"fileaddress,omitempty"`
 }
 
 // Environment defines the characteristics of an environment composing the Template.

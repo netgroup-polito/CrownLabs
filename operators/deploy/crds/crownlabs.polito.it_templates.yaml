@@ -370,19 +370,6 @@ spec:
           status:
             description: TemplateStatus reflects the most recently observed status
               of the Template.
-            properties:
-              kubeconfigs:
-                items:
-                  properties:
-                    fileaddress:
-                      description: The address to locate the relative kubeconfig file
-                        in folder
-                      type: string
-                    name:
-                      description: The name identifying the specific kuconfig file
-                      type: string
-                  type: object
-                type: array
             type: object
         type: object
     served: true
