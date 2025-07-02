@@ -18,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
@@ -43,6 +44,7 @@ func TestInstautoctrl(t *testing.T) {
 	RunSpecs(t, "Instautoctrl Suite")
 }
 
+var testLogger = zap.New(zap.UseDevMode(true)).WithName("test")
 var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	tests.LogsToGinkgoWriter()
@@ -54,6 +56,7 @@ var _ = BeforeSuite(func() {
 	// ctrl.SetLogger(log)
 
 	By("bootstrapping test environment")
+
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
 			filepath.Join("..", "..", "tests", "crds")},
