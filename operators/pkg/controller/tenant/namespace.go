@@ -46,13 +46,13 @@ func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
 	if err := r.createPersonalNamespace(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Personal namespace created", "namespace", getNamespaceName(tn))
+	klog.Info("Personal namespace created ", "namespace", getNamespaceName(tn))
 
 	// manage resource quota
 	if err := r.createResourceQuota(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Resource quota created", "namespace", getNamespaceName(tn))
+	klog.Info("Resource quota created ", "namespace", getNamespaceName(tn))
 
 	// TODO: tutte le cose che partono da enforceClusterResources
 
@@ -60,18 +60,18 @@ func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
     if err := r.createInstanceRoleBinding(ctx, tn); err != nil {
         return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Role binding created", "namespace", getNamespaceName(tn))
+    klog.Info("Role binding created ", "namespace", getNamespaceName(tn))
 
 	// Network Policies
     if err := r.createDenyNetworkPolicy(ctx, tn); err != nil {
         return fmt.Errorf("error when creating deny network policy for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Deny network policy created", "namespace", getNamespaceName(tn))
+    klog.Info("Deny network policy created ", "namespace", getNamespaceName(tn))
 
     if err := r.createAllowNetworkPolicy(ctx, tn); err != nil {
         return fmt.Errorf("error when creating allow network policy for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Allow network policy created", "namespace", getNamespaceName(tn))
+    klog.Info("Allow network policy created ", "namespace", getNamespaceName(tn))
 
 
 	return nil
@@ -89,29 +89,29 @@ func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
     if err := r.deleteDenyNetworkPolicy(ctx, tn); err != nil {
         return fmt.Errorf("error when deleting deny network policy for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Deny network policy deleted", "namespace", getNamespaceName(tn))
+    klog.Info("🔥 Deny network policy deleted", "namespace", getNamespaceName(tn))
 
     if err := r.deleteAllowNetworkPolicy(ctx, tn); err != nil {
         return fmt.Errorf("error when deleting allow network policy for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Allow network policy deleted", "namespace", getNamespaceName(tn))
+    klog.Info("🔥 Allow network policy deleted", "namespace", getNamespaceName(tn))
 	 // Delete the role binding for instance management
     if err := r.deleteInstanceRoleBinding(ctx, tn); err != nil {
         return fmt.Errorf("error when deleting role binding for tenant %s: %w", tn.Name, err)
     }
-    log.Info("Role binding deleted", "namespace", getNamespaceName(tn))
+    klog.Info("🔥 Role binding deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the resource quota for the personal namespace
 	if err := r.deleteResourceQuota(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Resource quota deleted", "namespace", getNamespaceName(tn))
+	klog.Info("🔥 Resource quota deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the personal namespace for the tenant
 	if err := r.deletePersonalNamespace(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Personal namespace deleted", "namespace", getNamespaceName(tn))
+	klog.Info("🔥 Personal namespace deleted", "namespace", getNamespaceName(tn))
 
 	return nil
 }
