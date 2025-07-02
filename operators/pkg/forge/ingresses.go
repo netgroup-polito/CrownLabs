@@ -131,13 +131,13 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
 		if environment.RewriteURL {
-			return strings.TrimRight(fmt.Sprintf("%v/%v-%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix+"(/|$)(.*)"), "/")
+			return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix+"(/|$)(.*)"), "/")
 		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v-%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
 	case clv1alpha2.ClassContainer:
-		return strings.TrimRight(fmt.Sprintf("%v/%v-%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
-		return strings.TrimRight(fmt.Sprintf("%v/%v-%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressVNCGUIPathSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressVNCGUIPathSuffix), "/")
 	}
 	return ""
 }
@@ -147,13 +147,18 @@ func IngressGUICleanPath(instance *clv1alpha2.Instance) string {
 	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix), "/")
 }
 
-// IngressGuiStatusURL returns the path of the ingress targeting the environment.
-func IngressGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
+// IngressGuiStatusRootURL returns the root url of the ingresses targeting the environments within the same instance.
+func IngressGuiStatusRootURL(host string, instance *clv1alpha2.Instance) string {
+	return fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+}
+
+// IngressGuiStatusPathURL returns the path of the ingress targeting the environment.
+func IngressGuiStatusURL(environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		return fmt.Sprintf("https://%v%v/%v-%v/%v/", host, IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix)
+		return fmt.Sprintf("%v/%v/", environment.Name, IngressAppSuffix)
 	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-		return fmt.Sprintf("https://%v%v/%v-%v/", host, IngressInstancePrefix, instance.UID, environment.Name)
+		return fmt.Sprintf("%v/", environment.Name)
 	}
 	return ""
 }

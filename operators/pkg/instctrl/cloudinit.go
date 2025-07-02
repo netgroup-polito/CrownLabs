@@ -96,9 +96,9 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 
 	// Enforce the cloud-init secret presence.
 	instance := clctx.InstanceFrom(ctx)
-	secret := corev1.Secret{ObjectMeta: forge.ObjectMetaWithSuffix(instance, env.Name)}
+	secret := corev1.Secret{ObjectMeta: forge.ObjectMeta(instance)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &secret, func() error {
-		secret.SetLabels(forge.EnvironmentObjectLabels(secret.GetLabels(), instance, env))
+		secret.SetLabels(forge.InstanceObjectLabels(secret.GetLabels(), instance))
 		secret.Data = map[string][]byte{UserDataKey: userdata, "x-shellscript": userScriptData}
 		secret.Type = corev1.SecretTypeOpaque
 		return ctrl.SetControllerReference(instance, &secret, r.Scheme)

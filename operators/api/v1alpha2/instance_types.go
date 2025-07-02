@@ -108,26 +108,25 @@ type InstanceAutomationStatus struct {
 
 // InstanceStatusEnv reflects the status of an instance's environment.
 type InstanceStatusEnv struct {
-	// The current status Instance, with reference to the associated environment
-	// (e.g. VM). This conveys which resource is being created, as well as
+	// The current status of the Environment (e.g. VM).
+	// This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
 	// accept incoming connections.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
 
-	// The URL where it is possible to access the remote desktop of the instance
-	// (in case of graphical environments)
-	URL string `json:"url,omitempty"`
+	// The second part of the URL, which identifies uniquely the environment
+	PathURL string `json:"pathUrl,omitempty"`
 
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).
 	IP string `json:"ip,omitempty"`
 
-	// The amount of time the Instance required to become ready for the first time
+	// The amount of time the Environment required to become ready for the first time
 	// upon creation.
 	InitialReadyTime string `json:"initialReadyTime,omitempty"`
 
-	// Timestamps of the Instance automation phases (check, termination and submission).
+	// Timestamps of the Environment automation phases (check, termination and submission).
 	Automation InstanceAutomationStatus `json:"automation,omitempty"`
 }
 
@@ -138,6 +137,15 @@ type InstanceStatus struct {
 
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// The outer phase of the instance, which depends on the phase of each environment
+	// within the instance.
+	OuterPhase EnvironmentPhase `json:"outerPhase,omitempty"`
+
+	// The root of the url that uniquely identifies one instance. Each environment
+	// is then defined uniquely by the path string that will be appended to the root
+	// and is specified in InstanceStausEnv
+	RootURL string `json:"rootUrl,omitempty"`
 
 	// Environments contains the status of the instance's environments.
 	Environments []InstanceStatusEnv `json:"environments,omitempty"`
