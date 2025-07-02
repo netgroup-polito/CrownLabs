@@ -15,7 +15,7 @@ configurations:
 #   mydrivePVCsSize: 1Gi
 #   mydrivePVCsStorageClassName: rook-nfs
 #   mydrivePVCsNamespace: mydrive-pvcs
-#   maxConcurrentReconciles: 1
+  maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
   tenantNamespaceKeepAlive: 168h
   tenant:

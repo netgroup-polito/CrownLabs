@@ -44,7 +44,7 @@ spec:
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
             - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
             - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
-            # - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
+            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
             # - "--mydrive-pvcs-size={{ .Values.configurations.mydrivePVCsSize }}"
             # - "--mydrive-pvcs-storage-class-name={{ .Values.configurations.mydrivePVCsStorageClassName }}"
             # - "--mydrive-pvcs-namespace={{ .Values.configurations.mydrivePVCsNamespace }}"

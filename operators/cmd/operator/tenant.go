@@ -35,11 +35,12 @@ import (
 )
 
 var (
-	tenantKeycloakWebhookAddr string
-	tenantNSKeepAlive         time.Duration
-	sandboxClusterRole        string
-	tenantWebhookBypassGroups string
-	tenantBaseWorkspaces      string
+	tenantKeycloakWebhookAddr     string
+	tenantNSKeepAlive             time.Duration
+	sandboxClusterRole            string
+	tenantWebhookBypassGroups     string
+	tenantBaseWorkspaces          string
+	tenantMaxConcurrentReconciles int
 )
 
 const (
@@ -70,6 +71,8 @@ func init() {
 	flag.IntVar(&forge.CapInstance, "cap-instance", 10, "The cap number of instances that can be requested by a Tenant.")
 	flag.IntVar(&forge.CapCPU, "cap-cpu", 25, "The cap amount of CPU cores that can be requested by a Tenant.")
 	flag.IntVar(&forge.CapMemoryGiga, "cap-memory-giga", 50, "The cap amount of RAM memory in gigabytes that can be requested by a Tenant.")
+
+	flag.IntVar(&tenantMaxConcurrentReconciles, "max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run")
 }
 
 func setupTenant(
@@ -91,6 +94,7 @@ func setupTenant(
 		KeycloakActor:           common.GetKeycloakActor(),
 		SandboxClusterRole:      sandboxClusterRole,
 		BaseWorkspaces:          baseWorkspacesList,
+		Concurrency:             tenantMaxConcurrentReconciles,
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {
