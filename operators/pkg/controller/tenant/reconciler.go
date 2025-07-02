@@ -180,7 +180,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
     return ctrl.Result{}, err
 }
 	//mydrive-pvcs-namespace related stuff here
-
+	if err := r.createMyDrivePVC(ctx, &tn); err != nil {
+    klog.Errorf("Error creating MyDrive PVC for tenant %s: %v", tn.Name, err)
+    return ctrl.Result{}, err
+}
 	// determine the Tenant resource quota based on the Spec and the existing workspaces
 	if err := r.forgeServiceQuota(ctx, &tn); err != nil {
 		klog.Errorf("Error forging service quota for tenant %s: %v", tn.Name, err)
@@ -294,6 +297,13 @@ func (r *Reconciler) deleteTenant(
         return fmt.Errorf("error deleting tenant cluster resources for tenant %s: %w", tn.Name, err)
     }
     log.Info("Deleted tenant cluster resources", "name", tn.Name)
+
+
+	//delete MyDrivePVC
+	if err := r.deleteMyDrivePVC(ctx, tn); err != nil {
+    klog.Errorf("Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
+    return fmt.Errorf("error deleting MyDrive PVC for tenant %s: %w", tn.Name, err)
+}
 
 	// remove the tenant from Keycloak
 	err := r.deleteTenantInKeycloak(ctx, log, tn)
