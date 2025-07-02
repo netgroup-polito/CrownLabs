@@ -185,15 +185,15 @@ func GuiDeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 				Containers: []corev1.Container{
 					{
 						Name:            "capi-visualizer",
-						Image:           "docker.io/kuohandong/cluster_gui:latest",
+						Image:           "docker.io/kuohandong/cluster_gui:v0.1.3",
 						ImagePullPolicy: corev1.PullAlways,
 						Ports: []corev1.ContainerPort{
 							{
-								ContainerPort: 8082,
+								ContainerPort: 8081,
 							},
 						},
 						Args: []string{
-							fmt.Sprintf("-cluster-name=%s-cluster", environment.Cluster.Name),
+							fmt.Sprintf("-clustername=%s-cluster", environment.Cluster.Name),
 							fmt.Sprintf("-namespace=%s", instance.Namespace),
 						},
 					},
@@ -211,7 +211,7 @@ func GuiServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 			{
 				Name:       "https",
 				Port:       8081,
-				TargetPort: intstr.FromInt(8082),
+				TargetPort: intstr.FromInt(8081),
 				Protocol:   corev1.ProtocolTCP,
 			},
 		},
