@@ -51,11 +51,11 @@ var (
 
 // VirtualMachineSpec forges the specification of a Kubevirt VirtualMachine object
 // representing the definition of the VM corresponding to a persistent CrownLabs environment.
-func VirtualMachineSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
+func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{Labels: InstanceSelectorLabels(instance)},
-			Spec:       VirtualMachineInstanceSpec(instance, environment),
+			Spec:       VirtualMachineInstanceSpec(instance, template, environment),
 		},
 		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
 			DataVolumeTemplate(NamespacedName(instance).Name, environment),
@@ -65,14 +65,14 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.E
 
 // VirtualMachineInstanceSpec forges the specification of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VMI corresponding to a non-persistent CrownLabs Environment.
-func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) virtv1.VirtualMachineInstanceSpec {
+func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineInstanceSpec {
 	return virtv1.VirtualMachineInstanceSpec{
 		Domain:                        VirtualMachineDomain(environment),
 		Volumes:                       Volumes(instance, environment),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
-		NodeSelector:                  NodeSelectorLabels(instance, environment),
+		NodeSelector:                  NodeSelectorLabels(instance, template),
 	}
 }
 

@@ -93,38 +93,47 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	tracer.Step("labels checked")
 
-	environment, err := RetrieveEnvironment(ctx, r.Client, &instance)
+	envList, err := RetrieveEnvironmentList(ctx, r.Client, &instance)
 	if err != nil {
 		log.Error(err, "failed retrieving environment")
 		return ctrl.Result{}, err
 	}
 	tracer.Step("retrieved the instance environment")
 
-	if err := CheckEnvironmentValidity(&instance, environment); err != nil {
-		instance.SetLabels(forge.InstanceAutomationLabelsOnSubmission(instance.GetLabels(), false))
-		dbgLog.Info("instance submission aborted")
-	} else {
-		jobStatus, err := r.EnforceInstanceSubmissionJob(ctx, &instance, environment)
-		switch {
-		case err == nil && jobStatus.Succeeded == 0: // the job hasn't been completed yet
-			tracer.Step("job enforced")
-			dbgLog.Info("waiting for job completion")
-			return ctrl.Result{}, nil
-		case err == nil && jobStatus.Succeeded > 0: // the job has been completed successfully
-			if jobStatus.CompletionTime != nil {
-				instance.Status.Automation.SubmissionTime = *jobStatus.CompletionTime
-			} else {
-				instance.Status.Automation.SubmissionTime = metav1.Now()
-			}
-			if err := r.Status().Update(ctx, &instance); err != nil {
-				log.Error(err, "failed updating instance status")
+	for envIndex, environment := range envList {
+		instanceStatusEnv := &instance.Status.Environments[envIndex]
+
+		if err := CheckEnvironmentValidity(&instance, environment); err != nil {
+			instance.SetLabels(forge.InstanceAutomationLabelsOnSubmission(instance.GetLabels(), environment.Name, false))
+			dbgLog.Info("instance submission aborted")
+		} else {
+			jobStatus, err := r.EnforceInstanceSubmissionJob(ctx, &instance, environment)
+			switch {
+			case err == nil && jobStatus.Succeeded == 0: // the job hasn't been completed yet
+				tracer.Step("job enforced")
+				dbgLog.Info("waiting for job completion")
+				return ctrl.Result{}, nil
+
+			case err == nil && jobStatus.Succeeded > 0: // the job has been completed successfully
+				if jobStatus.CompletionTime != nil {
+					instanceStatusEnv.Automation.SubmissionTime = *jobStatus.CompletionTime
+				} else {
+					instanceStatusEnv.Automation.SubmissionTime = metav1.Now()
+				}
+
+				if err := r.Status().Update(ctx, &instance); err != nil {
+					log.Error(err, "failed updating instance status")
+					return ctrl.Result{}, err
+				}
+
+				tracer.Step("instance status updated")
+				log.Info("instance submission completed")
+
+				instance.SetLabels(forge.InstanceAutomationLabelsOnSubmission(instance.GetLabels(), environment.Name, true))
+
+			default: // any other error occurred
 				return ctrl.Result{}, err
 			}
-			tracer.Step("instance status updated")
-			log.Info("instance submission completed")
-			instance.SetLabels(forge.InstanceAutomationLabelsOnSubmission(instance.GetLabels(), true))
-		default: // any other error occurred
-			return ctrl.Result{}, err
 		}
 	}
 
@@ -142,7 +151,7 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 func (r *InstanceSubmissionReconciler) EnforceInstanceSubmissionJob(ctx context.Context, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (jobStatus *batch.JobStatus, err error) {
 	// Get the submission job.
 	submitterName := "submitter"
-	job := batch.Job{ObjectMeta: forge.ObjectMetaWithSuffix(instance, submitterName)}
+	job := batch.Job{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+submitterName)}
 
 	jobSpec := forge.SubmissionJobSpec(instance, environment, &r.ContainerEnvOpts)
 
@@ -150,7 +159,7 @@ func (r *InstanceSubmissionReconciler) EnforceInstanceSubmissionJob(ctx context.
 		if job.CreationTimestamp.IsZero() {
 			job.Spec = jobSpec
 		}
-		job.SetLabels(forge.InstanceComponentLabels(instance, submitterName))
+		job.SetLabels(forge.InstanceComponentLabels(instance, environment.Name+"-"+submitterName))
 		return ctrl.SetControllerReference(instance, &job, r.Scheme)
 	})
 

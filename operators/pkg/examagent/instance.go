@@ -41,13 +41,13 @@ import (
 
 // InstanceAdapter represents an Instance within the examagent.
 type InstanceAdapter struct {
-	ID                string                               `json:"id"`
-	Template          string                               `json:"template"`
-	Running           *bool                                `json:"running,omitempty"`
-	CustomizationUrls clv1alpha2.InstanceCustomizationUrls `json:"customizationUrls"`
-	Phase             string                               `json:"phase"`
-	URL               string                               `json:"url,omitempty"`
-	Labels            map[string]string                    `json:"labels"`
+	ID          string                         `json:"id"`
+	Template    string                         `json:"template"`
+	Running     *bool                          `json:"running,omitempty"`
+	ContentUrls clv1alpha2.InstanceContentUrls `json:"contentUrls"`
+	Phase       string                         `json:"phase"`
+	URL         string                         `json:"url,omitempty"`
+	Labels      map[string]string              `json:"labels"`
 }
 
 // InstanceHandler is the handler for the InstanceAdapter.
@@ -102,7 +102,11 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 		return
 	}
 
-	log = log.WithValues("phase", inst.Status.Phase)
+	var phase clv1alpha2.EnvironmentPhase = clv1alpha2.EnvironmentPhaseOff
+	if len(inst.Status.Environments) > 0 {
+		phase = inst.Status.Environments[0].Phase
+	}
+	log = log.WithValues("phase", phase)
 
 	if !AcceptsHTML(r) {
 		if err := WriteJSON(w, AdapterFromInstance(inst)); err != nil {
@@ -113,10 +117,10 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 		return
 	}
 
-	switch inst.Status.Phase {
+	switch phase {
 	case clv1alpha2.EnvironmentPhaseReady:
-		log.Info("redirecting", "url", inst.Status.URL)
-		http.Redirect(w, r, inst.Status.URL, http.StatusFound)
+		log.Info("redirecting", "url", inst.Status.RootURL)
+		http.Redirect(w, r, inst.Status.RootURL, http.StatusFound)
 	case clv1alpha2.EnvironmentPhaseOff:
 		log.Error(fmt.Errorf("instance off"), "invalid phase")
 		WriteError(w, r, log, http.StatusGone, "The requested Instance is not running.")
@@ -276,6 +280,10 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 // InstanceSpecFromAdapter creates an InstanceSpec from a given InstanceAdapter.
 func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 	running := ptr.Deref(instReq.Running, true)
+
+	contentUrls := make(map[string]clv1alpha2.InstanceContentUrls)
+	contentUrls["default"] = instReq.ContentUrls
+
 	return clv1alpha2.InstanceSpec{
 		Template: clv1alpha2.GenericRef{
 			Name:      instReq.Template,
@@ -285,8 +293,8 @@ func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 		Tenant: clv1alpha2.GenericRef{
 			Name: clv1alpha2.SVCTenantName,
 		},
-		PrettyName:        fmt.Sprintf("Exam %s", instReq.ID),
-		CustomizationUrls: &instReq.CustomizationUrls,
+		PrettyName:  fmt.Sprintf("Exam %s", instReq.ID),
+		ContentUrls: contentUrls,
 	}
 }
 
@@ -296,13 +304,17 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		ID:       inst.Name,
 		Template: inst.Spec.Template.Name,
 		Running:  ptr.To(inst.Spec.Running),
-		URL:      inst.Status.URL,
-		Phase:    string(inst.Status.Phase),
+		URL:      inst.Status.RootURL,
+		Phase:    string(inst.Status.OuterPhase),
 		Labels:   inst.GetLabels(),
 	}
 
-	if inst.Spec.CustomizationUrls != nil {
-		adapter.CustomizationUrls = *inst.Spec.CustomizationUrls
+	// get the first ContentUrl if available
+	if len(inst.Spec.ContentUrls) > 0 {
+		for _, contentUrl := range inst.Spec.ContentUrls {
+			adapter.ContentUrls = contentUrl
+			break
+		}
 	}
 
 	return adapter
