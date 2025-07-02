@@ -146,7 +146,7 @@ type ClusterTemplate struct {
 	Name string `json:"name"`
 
 	// The network of cluster including pods and services
-	ClusterNet ClusterNetwork `json:"clusterNet"`
+	ClusterNet *ClusterNetwork `json:"clusterNet,omitempty"`
 
 	// The controlplane is used to control the cluster
 	ControlPlane ControlPlaneRef `json:"controlPlane"`
@@ -164,17 +164,17 @@ type ClusterTemplate struct {
 
 // The ClusterNetwork defines corrlative network components
 type ClusterNetwork struct {
-	// NginxTargetPort is the container port exposed by Nginx
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=65535
-	NginxTargetPort uint32 `json:"nginxtargetport"`
-	// NginxPort is the NodePort or external port for Nginx
-	// +kubebuilder:validation:Minimum=30000
-	// +kubebuilder:validation:Maximum=32767
-	NginxPort uint32 `json:"nginxport"`
+	// // NginxTargetPort is the container port exposed by Nginx
+	// // +kubebuilder:validation:Minimum=1
+	// // +kubebuilder:validation:Maximum=65535
+	// NginxTargetPort uint32 `json:"nginxtargetport"`
+	// // NginxPort is the NodePort or external port for Nginx
+	// // +kubebuilder:validation:Minimum=30000
+	// // +kubebuilder:validation:Maximum=32767
+	// NginxPort uint32 `json:"nginxport"`
 	// CertSAN is an optional Subject Alternative Name for certificate
 	// +kubebuilder:validation:MaxLength=256
-	CertSAN string `json:"certsan,omitempty"`
+	CertSAN string `json:"certsan"`
 }
 
 // The ControlPlaneRef defines the characteristics of controlplane

@@ -6,12 +6,14 @@ import (
 	controlplanekamajiv1 "github.com/clastix/cluster-api-control-plane-provider-kamaji/api/v1alpha1"
 	"github.com/clastix/kamaji/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 const (
@@ -21,6 +23,10 @@ const (
 
 // KamajiControlPlaneSpec forges the specification of a Kamaji controlplane object
 func KamajiControlPlaneSpec(environment *clv1alpha2.Environment, host string) controlplanekamajiv1.KamajiControlPlaneSpec {
+	certSANs := []string{host, "ingress.local"}
+	if environment.Cluster.ClusterNet != nil {
+		certSANs = append(certSANs, environment.Cluster.ClusterNet.CertSAN)
+	}
 	return controlplanekamajiv1.KamajiControlPlaneSpec{
 		DataStoreName: "default",
 		Addons: controlplanekamajiv1.AddonsSpec{
@@ -38,11 +44,7 @@ func KamajiControlPlaneSpec(environment *clv1alpha2.Environment, host string) co
 		},
 		Network: controlplanekamajiv1.NetworkComponent{
 			ServiceType: v1alpha1.ServiceType(environment.Cluster.ServiceType),
-			CertSANs: []string{
-				host,
-				"ingress.local",
-				environment.Cluster.ClusterNet.CertSAN,
-			},
+			CertSANs:    certSANs,
 		},
 		Deployment: controlplanekamajiv1.DeploymentComponent{},
 		Replicas:   ptr.To(int32(environment.Cluster.ControlPlane.Replicas)),
@@ -124,44 +126,6 @@ func MachineInfrastructureRef(instance *clv1alpha2.Instance, environment *clv1al
 	}
 }
 
-// ClusterControlPlaneSepc forges the specification of a cluster controlplane spec
-func ClusterControlPlaneSepc(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, host string) controlplanev1.KubeadmControlPlaneSpec {
-	return controlplanev1.KubeadmControlPlaneSpec{
-		MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-			InfrastructureRef: MachineInfrastructureRef(instance, environment, fmt.Sprintf("%s-control-plane-machine", environment.Cluster.Name)),
-		},
-		KubeadmConfigSpec: ControlPlaneKubeadmConfigSpec(instance, environment, host),
-		Version:           environment.Cluster.Version,
-	}
-}
-
-// ControlPlaneKubeadmConfigSpec  forges the specification of a kubeadm controlplane spec
-func ControlPlaneKubeadmConfigSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, host string) bootstrapv1.KubeadmConfigSpec {
-	return bootstrapv1.KubeadmConfigSpec{
-		ClusterConfiguration: ptr.To(ControlPlaneClusterConfiguration(instance, environment, host)),
-		InitConfiguration: ptr.To(bootstrapv1.InitConfiguration{
-			NodeRegistration: bootstrapv1.NodeRegistrationOptions{CRISocket: "/var/run/containerd/containerd.sock"},
-		}),
-		JoinConfiguration: ptr.To(bootstrapv1.JoinConfiguration{
-			NodeRegistration: bootstrapv1.NodeRegistrationOptions{CRISocket: "/var/run/containerd/containerd.sock"},
-		}),
-	}
-}
-
-// ControlPlaneClusterConfiguration  forges the specification of a cluster controlplane configuration
-func ControlPlaneClusterConfiguration(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, host string) bootstrapv1.ClusterConfiguration {
-	return bootstrapv1.ClusterConfiguration{
-		Networking: ControlPlaneNetworking(instance, environment),
-		APIServer: bootstrapv1.APIServer{
-			CertSANs: []string{
-				host,
-				"ingress.local",
-				environment.Cluster.ClusterNet.CertSAN,
-			},
-		},
-	}
-}
-
 // ControlPlaneNetworking forges the spcification of controlplane network configuration
 func ControlPlaneNetworking(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) bootstrapv1.Networking {
 	return bootstrapv1.Networking{
@@ -199,5 +163,57 @@ func ClusterNetworking(environment *clv1alpha2.Environment) capiv1.ClusterNetwor
 		Services: ptr.To(capiv1.NetworkRanges{
 			CIDRBlocks: []string{ServiceSubnet},
 		}),
+	}
+}
+
+func GuiDeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) appsv1.DeploymentSpec {
+	return appsv1.DeploymentSpec{
+		Replicas:             ptr.To(int32(1)),
+		RevisionHistoryLimit: ptr.To(int32(10)),
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "capi-visualizer",
+			},
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app": "capi-visualizer",
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:            "capi-visualizer",
+						Image:           "docker.io/kuohandong/cluster_gui:latest",
+						ImagePullPolicy: corev1.PullAlways,
+						Ports: []corev1.ContainerPort{
+							{
+								ContainerPort: 8082,
+							},
+						},
+						Args: []string{
+							fmt.Sprintf("-cluster-name=%s-cluster", environment.Cluster.Name),
+							fmt.Sprintf("-namespace=%s", instance.Namespace),
+						},
+					},
+				},
+				ServiceAccountName: "capi-visualizer",
+			},
+		},
+	}
+}
+func GuiServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) corev1.ServiceSpec {
+	return corev1.ServiceSpec{
+		Type:     corev1.ServiceTypeClusterIP,
+		Selector: map[string]string{"app": "capi-visualizer"},
+		Ports: []corev1.ServicePort{
+			{
+				Name:       "https",
+				Port:       8081,
+				TargetPort: intstr.FromInt(8082),
+				Protocol:   corev1.ProtocolTCP,
+			},
+		},
 	}
 }

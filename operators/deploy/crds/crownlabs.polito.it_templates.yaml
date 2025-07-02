@@ -95,27 +95,20 @@ spec:
                           description: The network of cluster including pods and services
                           properties:
                             certsan:
-                              description: CertSAN is an optional Subject Alternative
-                                Name for certificate
+                              description: |-
+                                // NginxTargetPort is the container port exposed by Nginx
+                                // +kubebuilder:validation:Minimum=1
+                                // +kubebuilder:validation:Maximum=65535
+                                NginxTargetPort uint32 `json:"nginxtargetport"`
+                                // NginxPort is the NodePort or external port for Nginx
+                                // +kubebuilder:validation:Minimum=30000
+                                // +kubebuilder:validation:Maximum=32767
+                                NginxPort uint32 `json:"nginxport"`
+                                CertSAN is an optional Subject Alternative Name for certificate
                               maxLength: 256
                               type: string
-                            nginxport:
-                              description: NginxPort is the NodePort or external port
-                                for Nginx
-                              format: int32
-                              maximum: 32767
-                              minimum: 30000
-                              type: integer
-                            nginxtargetport:
-                              description: NginxTargetPort is the container port exposed
-                                by Nginx
-                              format: int32
-                              maximum: 65535
-                              minimum: 1
-                              type: integer
                           required:
-                          - nginxport
-                          - nginxtargetport
+                          - certsan
                           type: object
                         controlPlane:
                           description: The controlplane is used to control the cluster
@@ -157,7 +150,6 @@ spec:
                           description: The version of kubernetes used in cluster
                           type: string
                       required:
-                      - clusterNet
                       - controlPlane
                       - machineDeployment
                       - name

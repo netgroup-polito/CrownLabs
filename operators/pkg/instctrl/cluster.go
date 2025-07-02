@@ -10,25 +10,29 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	addonsv1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	addonsv1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // InstanceReconciler enforces the Cluster API environment for a CrownLabs instance
 // Kubernetes resources required to start a CrownLabs environment.
 func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) error {
+	r.enforceClusterRole(ctx)
+	r.enforceGuiDeployment(ctx)
+	r.enforceGuiSVC(ctx)
 	r.enforceCluster(ctx)
 	r.enforceKamajiInfra(ctx)
 	r.enforceKamajiControlPlane(ctx)
-
+	r.enforceroleBinding(ctx)
 	// enforce a machinedeployment for VM management
 	r.enforceMachineDeployment(ctx)
 	// enforce a worker virtual machine template
@@ -220,39 +224,11 @@ func (r *InstanceReconciler) enforceBootstrap(ctx context.Context) error {
 	return nil
 }
 
-// insertKubeConfig export the KUBECONFIG into kubeconfig folders
-
-// update the template status with the address of  relative kubeconfig file
-// func (r *InstanceReconciler) updatetemplatestatus(ctx context.Context) error {
-// 	log := ctrl.LoggerFrom(ctx)
-// 	environment := clctx.EnvironmentFrom(ctx)
-// 	instance := clctx.InstanceFrom(ctx)
-// 	cluster := environment.Cluster
-// 	var tmpl clv1alpha2.Template
-// 	if err := r.Get(ctx, client.ObjectKey{
-// 		Name:      instance.Spec.Template.Name,
-// 		Namespace: instance.Spec.Template.Namespace,
-// 	}, &tmpl); err != nil {
-// 		return err
-// 	}
-// 	tmpl.Status.KubeConfigs = []clv1alpha2.KubeconfigTemplate{{
-// 		Name:        fmt.Sprintf("%s-cluster", cluster.Name),
-// 		FileAddress: fmt.Sprintf("./kubeconfigs/%s-instance.kubeconfig", instance.Name),
-// 	}}
-// 	if err := r.Status().Update(ctx, &tmpl); err != nil {
-// 		log.Error(err, "failed to update template status")
-// 		return err
-// 	}
-// 	return nil
-// }
-
 // deploy cni
 func (r *InstanceReconciler) enforceCalicoCni(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	log := ctrl.LoggerFrom(ctx)
 	ns := instance.Namespace
-	environment := clctx.EnvironmentFrom(ctx)
-	cluster := environment.Cluster
 	tenant := instance.Spec.Tenant.Name
 	resp, err := http.Get("https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml")
 	if err != nil {
@@ -276,10 +252,6 @@ func (r *InstanceReconciler) enforceCalicoCni(ctx context.Context) error {
 				"calico.yaml": string(yamlBytes),
 			}
 		}
-		if cm.Labels == nil {
-			cm.Labels = map[string]string{}
-		}
-		cm.Labels[capiv1.ClusterNameLabel] = fmt.Sprintf("%s-cluster", cluster.Name)
 		return ctrl.SetControllerReference(instance, cm, r.Scheme)
 	})
 	if err != nil {
@@ -310,10 +282,6 @@ func (r *InstanceReconciler) enforceCalicoCni(ctx context.Context) error {
 				},
 			}
 		}
-		if crs.Labels == nil {
-			crs.Labels = map[string]string{}
-		}
-		crs.Labels[capiv1.ClusterNameLabel] = fmt.Sprintf("%s-cluster", cluster.Name)
 		return ctrl.SetControllerReference(instance, crs, r.Scheme)
 	})
 	if err != nil {
@@ -321,5 +289,168 @@ func (r *InstanceReconciler) enforceCalicoCni(ctx context.Context) error {
 		return err
 	}
 	log.V(utils.FromResult(res)).Info("crs enforced")
+	return nil
+}
+
+func (r *InstanceReconciler) enforceGuiDeployment(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
+	ns := instance.Namespace
+	environment := clctx.EnvironmentFrom(ctx)
+
+	dep := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-visualizer",
+			Namespace: ns,
+		},
+	}
+	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &dep, func() error {
+		if dep.CreationTimestamp.IsZero() {
+			dep.Labels = map[string]string{
+				"app": "capi-visualizer",
+			}
+			dep.Spec = forge.GuiDeploymentSpec(instance, environment)
+		}
+		return ctrl.SetControllerReference(instance, &dep, r.Scheme)
+	})
+	if err != nil {
+		log.Error(err, "failed to create configmap GuiDeployment")
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("GuiDeployment enforced")
+	return nil
+}
+
+func (r *InstanceReconciler) enforceGuiSVC(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
+	ns := instance.Namespace
+	environment := clctx.EnvironmentFrom(ctx)
+
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-visualizer",
+			Namespace: ns,
+		},
+	}
+	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &svc, func() error {
+		if svc.CreationTimestamp.IsZero() {
+			svc.Labels = map[string]string{
+				"app": "capi-visualizer",
+			}
+			svc.Spec = forge.GuiServiceSpec(instance, environment)
+		}
+		return ctrl.SetControllerReference(instance, &svc, r.Scheme)
+	})
+	if err != nil {
+		log.Error(err, "failed to create configmap GuiService")
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("GuiService enforced")
+	svccnt := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-visualizer",
+			Namespace: ns,
+		},
+	}
+	res, err = ctrl.CreateOrUpdate(ctx, r.Client, svccnt, func() error {
+		return ctrl.SetControllerReference(instance, svccnt, r.Scheme)
+	})
+	if err != nil {
+		log.Error(err, "failed to create configmap GuiServiceacnt")
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("GuiServicecnt enforced")
+	return nil
+}
+
+func (r *InstanceReconciler) enforceroleBinding(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
+	ns := instance.Namespace
+
+	roleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "capi-visualizer" + ns,
+		},
+	}
+	res, err := ctrl.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
+		if roleBinding.CreationTimestamp.IsZero() {
+			roleBinding.RoleRef = rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "capi-visualizer",
+			}
+			roleBinding.Subjects = []rbacv1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "capi-visualizer",
+					Namespace: ns,
+				},
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "failed to create configmap roleBinding")
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("roleBinding enforced")
+	return nil
+}
+
+func (r *InstanceReconciler) enforceClusterRole(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	ns := instance.Namespace
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "capi-visualizer" + ns,
+		},
+	}
+	res, err := ctrl.CreateOrUpdate(ctx, r.Client, role, func() error {
+		if role.CreationTimestamp.IsZero() {
+			role.Rules = []rbacv1.PolicyRule{
+				{
+					APIGroups: []string{""},
+					Resources: []string{"*"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				{
+					APIGroups: []string{"apiextensions.k8s.io"},
+					Resources: []string{"customresourcedefinitions"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				{
+					APIGroups: []string{
+						"cluster.x-k8s.io",
+						"bootstrap.cluster.x-k8s.io",
+						"addons.cluster.x-k8s.io",
+						"infrastructure.cluster.x-k8s.io",
+						"controlplane.cluster.x-k8s.io",
+						"ipam.cluster.x-k8s.io",
+						"runtime.cluster.x-k8s.io",
+					},
+					Resources: []string{"*"},
+					Verbs:     []string{"*"},
+				},
+				{
+					APIGroups: []string{"*"},
+					Resources: []string{"*"},
+					Verbs:     []string{"get", "list", "watch"},
+				},
+				{
+					NonResourceURLs: []string{"*"},
+					Verbs:           []string{"*"},
+				},
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "failed to create configmap Role")
+		return err
+	}
+	log.V(utils.FromResult(res)).Info("Role enforced")
 	return nil
 }

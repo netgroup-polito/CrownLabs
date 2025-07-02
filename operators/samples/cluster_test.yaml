@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: tenant-b
+  name: tenant-a
   labels:
     crownlabs.polito.it/operator-selector: local
 ---
@@ -15,7 +15,7 @@ apiVersion: crownlabs.polito.it/v1alpha2
 kind: Instance
 metadata:
   name: green-tea-6831
-  namespace: tenant-b
+  namespace: tenant-a
 spec:
   template.crownlabs.polito.it/TemplateRef:
     name: green-tea
@@ -66,9 +66,6 @@ spec:
       name: testdemo
       version: v1.30.2
       serviceType: ClusterIP
-      clusterNet:
-        nginxtargetport: 1234
-        nginxport: 31343
       controlPlane:
         replicas: 1
       machineDeployment:

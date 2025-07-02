@@ -208,9 +208,6 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("setup cluster gui")
-	ctx := ctrl.SetupSignalHandler()
-	forge.Clustervisulization(ctx)
-
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
 	if err != nil {
@@ -219,7 +216,7 @@ func main() {
 	}
 
 	log.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
