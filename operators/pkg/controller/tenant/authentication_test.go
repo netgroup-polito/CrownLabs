@@ -15,7 +15,6 @@
 package tenant_test
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,72 +22,32 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/go-logr/logr"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
-var _ = Describe("Authenticator", func() {
-	var (
-		mockCtrl   *gomock.Controller
-		ctx        context.Context
-		log        logr.Logger
-		reconciler *tntctrl.Reconciler
-		tenant     *crownlabsv1alpha2.Tenant
-		mKcAct     *mock.MockKeycloakActorIface
-	)
-
-	const (
-		timeout    = time.Second * 10
-		interval   = time.Millisecond * 250
-		tenantName = "testuser"
-	)
-
+var _ = Describe("Authentication Unit", func() {
 	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
-		mKcAct = mock.NewMockKeycloakActorIface(mockCtrl)
-
-		ctx = ctrl.LoggerInto(context.Background(), logr.New(GinkgoLogWriter{}))
-		log = ctrl.LoggerFrom(ctx, "tenant-authenticator", tenantName)
-
-		tenant = &crownlabsv1alpha2.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tenantName,
-			},
-			Spec: crownlabsv1alpha2.TenantSpec{
-				FirstName: "Test",
-				LastName:  "User",
-				Email:     "test.user@example.com",
-			},
-		}
-
-		cl := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-		reconciler = &tntctrl.Reconciler{
-			Client:        cl,
-			Scheme:        scheme.Scheme,
-			KeycloakActor: mKcAct,
-		}
-
+		keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
+		runReconcile = false
 	})
 
 	AfterEach(func() {
-		mockCtrl.Finish()
+		runReconcile = true
 	})
 
 	Describe("CheckKeycloakUserVerified", func() {
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
-				mKcAct.EXPECT().IsInitialized().Return(false)
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+				keycloakActor.EXPECT().IsInitialized().Return(false)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 			})
@@ -96,50 +55,50 @@ var _ = Describe("Authenticator", func() {
 
 		Context("When Keycloak actor is initialized", func() {
 			BeforeEach(func() {
-				mKcAct.EXPECT().IsInitialized().Return(true).AnyTimes()
-				mKcAct.EXPECT().GetAccessToken().Return("mock-access-token").AnyTimes()
+				keycloakActor.EXPECT().IsInitialized().Return(true).AnyTimes()
+				keycloakActor.EXPECT().GetAccessToken().Return("mock-access-token").AnyTimes()
 			})
 
 			It("should return true and no error if user is created and email is confirmed", func() {
-				mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
 					ID:            gocloak.StringP("user-id"),
 					EmailVerified: gocloak.BoolP(true),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
-				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
 					Name:    "user-id",
 					Created: true,
 				}))
-				Expect(tenant.Status.Keycloak.UserConfirmed).To(BeTrue())
+				Expect(tnResource.Status.Keycloak.UserConfirmed).To(BeTrue())
 			})
 
 			It("should return false and no error if user is created but email is not confirmed", func() {
-				mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
 					ID:            gocloak.StringP("user-id"),
 					EmailVerified: gocloak.BoolP(false),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
-				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
 					Name:    "user-id",
 					Created: true,
 				}))
-				Expect(tenant.Status.Keycloak.UserConfirmed).To(BeFalse())
+				Expect(tnResource.Status.Keycloak.UserConfirmed).To(BeFalse())
 			})
 
 			Context("When there is an error retrieving the user", func() {
 				It("should return an error ", func() {
-					mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, gocloak.APIError{
+					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, gocloak.APIError{
 						Message: "error retrieving user",
 						Code:    500,
 					})
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -149,31 +108,31 @@ var _ = Describe("Authenticator", func() {
 			Context("When the user does not exists in Keycloak", func() {
 				It("should create the user", func() {
 					gomock.InOrder(
-						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
-						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("user-id", nil),
-						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(&gocloak.User{
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("404")),
+						keycloakActor.EXPECT().CreateUser(gomock.Any(), tnName, tnResource.Spec.Email, tnResource.Spec.FirstName, tnResource.Spec.LastName).Return("user-id", nil),
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
 							ID:            gocloak.StringP("user-id"),
 							EmailVerified: gocloak.BoolP(false),
 						}, nil),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(verified).To(BeFalse())
-					Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
+					Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
 						Name:    "user-id",
 						Created: true,
 					}))
-					Expect(tenant.Status.Keycloak.UserConfirmed).To(BeFalse())
+					Expect(tnResource.Status.Keycloak.UserConfirmed).To(BeFalse())
 				})
 
 				It("should return an error if user creation fails", func() {
 					gomock.InOrder(
-						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
-						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("", fmt.Errorf("error creating user")),
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("404")),
+						keycloakActor.EXPECT().CreateUser(gomock.Any(), tnName, tnResource.Spec.Email, tnResource.Spec.FirstName, tnResource.Spec.LastName).Return("", fmt.Errorf("error creating user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error creating user"))
@@ -181,12 +140,12 @@ var _ = Describe("Authenticator", func() {
 
 				It("should return an error if it is unable to retrieve the newly created user", func() {
 					gomock.InOrder(
-						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("404")),
-						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("user-id", nil),
-						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("error retrieving user")),
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("404")),
+						keycloakActor.EXPECT().CreateUser(gomock.Any(), tnName, tnResource.Spec.Email, tnResource.Spec.FirstName, tnResource.Spec.LastName).Return("user-id", nil),
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("error retrieving user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -201,7 +160,7 @@ var _ = Describe("Authenticator", func() {
 				ch := make(chan event.GenericEvent, 1)
 				defer close(ch)
 
-				reconciler.TriggerReconcileChannel = ch
+				tenantReconciler.TriggerReconcileChannel = ch
 
 				w := &mockResponseWriter{}
 				body := strings.NewReader(`{
@@ -212,11 +171,11 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
-					return e.Object.(*crownlabsv1alpha2.Tenant).Name
-				}, Equal(tenantName))))
+					return e.Object.(*v1alpha2.Tenant).Name
+				}, Equal(tnName))))
 			})
 		})
 
@@ -230,7 +189,7 @@ var _ = Describe("Authenticator", func() {
 					}
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -243,7 +202,7 @@ var _ = Describe("Authenticator", func() {
 					"authDetails": "notajson"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -253,7 +212,7 @@ var _ = Describe("Authenticator", func() {
 				ch := make(chan event.GenericEvent, 1)
 				defer close(ch)
 
-				reconciler.TriggerReconcileChannel = ch
+				tenantReconciler.TriggerReconcileChannel = ch
 
 				w := &mockResponseWriter{}
 				body := strings.NewReader(`{
@@ -262,11 +221,11 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
-					return e.Object.(*crownlabsv1alpha2.Tenant).Name
-				}, Equal(tenantName))))
+					return e.Object.(*v1alpha2.Tenant).Name
+				}, Equal(tnName))))
 			})
 		})
 
@@ -278,7 +237,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "{}"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -291,7 +250,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "notajson"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -304,7 +263,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "{\"wrongField\":\"testuser\"}"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -318,7 +277,7 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -329,26 +288,184 @@ var _ = Describe("Authenticator", func() {
 				body := strings.NewReader(`invalid json`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(log, w, r)
+				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
 	})
 })
 
-// GinkgoLogWriter implements logr.LogSink
-type GinkgoLogWriter struct{}
+var _ = Describe("Authentication Reconciler", func() {
+	var ()
 
-func (w GinkgoLogWriter) Init(info logr.RuntimeInfo) {}
-func (w GinkgoLogWriter) Enabled(level int) bool     { return true }
-func (w GinkgoLogWriter) Info(level int, msg string, keysAndValues ...interface{}) {
-	GinkgoWriter.Printf("%s -- %v\n", msg, keysAndValues)
-}
-func (w GinkgoLogWriter) Error(err error, msg string, keysAndValues ...interface{}) {
-	GinkgoWriter.Printf("ERROR: %s -- %v -- %v\n", msg, err, keysAndValues)
-}
-func (w GinkgoLogWriter) WithValues(keysAndValues ...interface{}) logr.LogSink { return w }
-func (w GinkgoLogWriter) WithName(name string) logr.LogSink                    { return w }
+	BeforeEach(func() {
+		keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
+		keycloakActor.EXPECT().GetUserRoles(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+	})
+
+	Context("When Keycloak is initialized", func() {
+		BeforeEach(func() {
+			keycloakActor.EXPECT().IsInitialized().Return(true).AnyTimes()
+		})
+
+		Context("When the Tenant is not created in Keycloak", func() {
+			BeforeEach(func() {
+				gomock.InOrder(
+					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("404")),
+					keycloakActor.EXPECT().CreateUser(
+						gomock.Any(),
+						tnResource.Name,
+						tnResource.Spec.Email,
+						tnResource.Spec.FirstName,
+						tnResource.Spec.LastName,
+					).Return("test-user-id", nil),
+					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
+						ID:            gocloak.StringP("test-user-id"),
+						EmailVerified: gocloak.BoolP(false),
+					}, nil),
+				)
+			})
+
+			It("Should set Tenant keycloak status as created but not confirmed", func() {
+				tn := &v1alpha2.Tenant{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+					Name:    "test-user-id",
+					Created: true,
+				}))
+				Expect(tn.Status.Keycloak.UserConfirmed).To(BeFalse())
+			})
+
+			It("Should not create the related resources", func() {
+				namespace := &corev1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, namespace, BeFalse(), 10*time.Second, 250*time.Millisecond)
+			})
+		})
+
+		Context("When the Tenant is created but not confirmed in Keycloak", func() {
+			BeforeEach(func() {
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
+					ID:            gocloak.StringP("test-user-id"),
+					EmailVerified: gocloak.BoolP(false),
+				}, nil)
+			})
+
+			It("Should set Tenant keycloak status as created but not confirmed", func() {
+				tn := &v1alpha2.Tenant{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+					Name:    "test-user-id",
+					Created: true,
+				}))
+				Expect(tn.Status.Keycloak.UserConfirmed).To(BeFalse())
+			})
+
+			It("Should not create the related resources", func() {
+				namespace := &corev1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, namespace, BeFalse(), 10*time.Second, 250*time.Millisecond)
+			})
+		})
+
+		Context("When the Tenant is created and confirmed in Keycloak", func() {
+			BeforeEach(func() {
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
+					ID:            gocloak.StringP("test-user-id"),
+					EmailVerified: gocloak.BoolP(true),
+				}, nil)
+			})
+
+			It("Should set Tenant keycloak status as confirmed", func() {
+				tn := &v1alpha2.Tenant{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+					Name:    "test-user-id",
+					Created: true,
+				}))
+				Expect(tn.Status.Keycloak.UserConfirmed).To(BeTrue())
+			})
+
+			It("Should create the related resources", func() {
+				namespace := &corev1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
+			})
+		})
+
+		Context("When the Tenant is deleted", func() {
+			BeforeEach(func() {
+				tnResource.Finalizers = append(tnResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+				tnResource.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(10 * time.Second)}
+				tnResource.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
+					Name:    "test-user-id",
+					Created: true,
+				}
+				tnResource.Status.Keycloak.UserConfirmed = true
+
+				keycloakActor.EXPECT().DeleteUser(gomock.Any(), "test-user-id").Return(nil)
+			})
+
+			It("Should delete the Tenant keycloak user", func() {
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, &v1alpha2.Tenant{}, BeFalse(), 10*time.Second, 250*time.Millisecond)
+			})
+		})
+
+		Context("When there is an error on Keycloak operations", func() {
+			BeforeEach(func() {
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("some error"))
+				tnReconcileErrExpected = HaveOccurred()
+			})
+
+			It("Should make the Tenant keycloak subscription failed", func() {
+				tn := &v1alpha2.Tenant{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+				Expect(tn.Status.Ready).To(BeFalse())
+				Expect(tn.Status.Subscriptions).To(HaveKeyWithValue("keycloak", v1alpha2.SubscrFailed))
+			})
+		})
+
+		Context("When the user-id in Keycloak does not match the one in Tenant status", func() {
+			BeforeEach(func() {
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
+					ID:            gocloak.StringP("different-user-id"),
+					EmailVerified: gocloak.BoolP(true),
+				}, nil)
+				tnResource.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
+					Name:    "test-user-id",
+					Created: true,
+				}
+			})
+
+			It("Should update the Tenant keycloak status with the new user-id", func() {
+				tn := &v1alpha2.Tenant{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+					Name:    "different-user-id",
+					Created: true,
+				}))
+			})
+		})
+	})
+
+	Context("When Keycloak is not initialized", func() {
+		BeforeEach(func() {
+			keycloakActor.EXPECT().IsInitialized().Return(false).AnyTimes()
+		})
+
+		It("Should set Tenant keycloak status as not confirmed", func() {
+			tn := &v1alpha2.Tenant{}
+			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
+			Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Name:    "",
+				Created: false,
+			}))
+			Expect(tn.Status.Keycloak.UserConfirmed).To(BeFalse())
+		})
+
+		It("Should create the related resources", func() {
+			namespace := &corev1.Namespace{}
+			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
+		})
+	})
+})
 
 // mockResponseWriter implements http.ResponseWriter for testing.
 type mockResponseWriter struct {
