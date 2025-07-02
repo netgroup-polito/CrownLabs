@@ -88,6 +88,73 @@ spec:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
                   properties:
+                    cluster:
+                      description: Cluster
+                      properties:
+                        clusterNet:
+                          description: The network of cluster including pods and services
+                          properties:
+                            certsan:
+                              description: |-
+                                // NginxTargetPort is the container port exposed by Nginx
+                                // +kubebuilder:validation:Minimum=1
+                                // +kubebuilder:validation:Maximum=65535
+                                NginxTargetPort uint32 `json:"nginxtargetport"`
+                                // NginxPort is the NodePort or external port for Nginx
+                                // +kubebuilder:validation:Minimum=30000
+                                // +kubebuilder:validation:Maximum=32767
+                                NginxPort uint32 `json:"nginxport"`
+                                CertSAN is an optional Subject Alternative Name for certificate
+                              maxLength: 256
+                              type: string
+                          required:
+                          - certsan
+                          type: object
+                        controlPlane:
+                          description: The controlplane is used to control the cluster
+                          properties:
+                            replicas:
+                              description: The number of controlplane
+                              format: int32
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                          required:
+                          - replicas
+                          type: object
+                        machineDeployment:
+                          description: The worker deployment rule sepcifying how to
+                            bootstrap
+                          properties:
+                            replicas:
+                              description: The number of worker nodes
+                              format: int32
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                          required:
+                          - replicas
+                          type: object
+                        name:
+                          description: The name identifying the specific cluster.
+                          type: string
+                        serviceType:
+                          enum:
+                          - ClusterIP
+                          - NodePort
+                          - LoadBalancer
+                          - ExternalName
+                          type: string
+                        version:
+                          default: v1.30.2
+                          description: The version of kubernetes used in cluster
+                          type: string
+                      required:
+                      - controlPlane
+                      - machineDeployment
+                      - name
+                      - version
+                      type: object
                     containerStartupOptions:
                       description: Options to customize container startup
                       properties:
@@ -127,6 +194,7 @@ spec:
                       - Container
                       - CloudVM
                       - Standalone
+                      - Cluster
                       type: string
                     guiEnabled:
                       default: true

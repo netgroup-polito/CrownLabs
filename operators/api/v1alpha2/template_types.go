@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"Cluster"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -40,7 +40,8 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-
+	//ClassCluster -> the environment is the constituted by a Cluster
+	ClassCluster EnvironmentType = "Cluster"
 	// ModeStandard -> Normal operation (authentication, ssh, files access).
 	ModeStandard EnvironmentMode = "Standard"
 	// ModeExam -> Restricted access (no authentication, no mydrive access).
@@ -134,6 +135,64 @@ type Environment struct {
 	// They are given by means of a pointer to check the presence of the field.
 	// In case it is present, the labels that are chosen are the ones present on the instance
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
+
+	//Cluster
+	Cluster *ClusterTemplate `json:"cluster,omitempty"`
+}
+
+// cluster defines the characteristics of a cluster composing the Template.
+type ClusterTemplate struct {
+	// The name identifying the specific cluster.
+	Name string `json:"name"`
+
+	// The network of cluster including pods and services
+	ClusterNet *ClusterNetwork `json:"clusterNet,omitempty"`
+
+	// The controlplane is used to control the cluster
+	ControlPlane ControlPlaneRef `json:"controlPlane"`
+
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer;ExternalName
+	ServiceType string `json:"serviceType,omitempty"`
+
+	// +kubebuilder:default="v1.30.2"
+	// The version of kubernetes used in cluster
+	Version string `json:"version"`
+
+	// The worker deployment rule sepcifying how to bootstrap
+	MachineDeploy MachineDeployment `json:"machineDeployment"`
+}
+
+// The ClusterNetwork defines corrlative network components
+type ClusterNetwork struct {
+	// // NginxTargetPort is the container port exposed by Nginx
+	// // +kubebuilder:validation:Minimum=1
+	// // +kubebuilder:validation:Maximum=65535
+	// NginxTargetPort uint32 `json:"nginxtargetport"`
+	// // NginxPort is the NodePort or external port for Nginx
+	// // +kubebuilder:validation:Minimum=30000
+	// // +kubebuilder:validation:Maximum=32767
+	// NginxPort uint32 `json:"nginxport"`
+	// CertSAN is an optional Subject Alternative Name for certificate
+	// +kubebuilder:validation:MaxLength=256
+	CertSAN string `json:"certsan"`
+}
+
+// The ControlPlaneRef defines the characteristics of controlplane
+type ControlPlaneRef struct {
+
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=100
+	// The number of controlplane
+	Replicas uint32 `json:"replicas"`
+}
+
+// The MachineDeployment specifies characheristics about worker
+type MachineDeployment struct {
+
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=100
+	// The number of worker nodes
+	Replicas uint32 `json:"replicas"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

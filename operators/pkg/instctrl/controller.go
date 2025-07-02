@@ -70,9 +70,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
-
 	log := ctrl.LoggerFrom(ctx, "instance", req.NamespacedName)
-
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = trace.ContextWithTrace(ctx, tracer)
 	defer tracer.LogIfLong(utils.LongThreshold())
@@ -197,7 +195,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			log.Error(err, "failed to process environment")
 			return nil
 		}
-
 		switch template.Spec.EnvironmentList[i].EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(ctx); err != nil {
@@ -209,8 +206,12 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
 				return err
 			}
+		case clv1alpha2.ClassCluster:
+			if err := r.EnforceClusterEnvironment(ctx); err != nil {
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				return err
+			}
 		}
-
 		r.setInitialReadyTimeIfNecessary(ctx)
 	}
 	return nil

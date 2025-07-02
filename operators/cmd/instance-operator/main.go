@@ -21,6 +21,14 @@ import (
 	"strings"
 	"time"
 
+	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -30,18 +38,16 @@ import (
 	"k8s.io/klog/v2/textlogger"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	addonsv1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
+	kamajiv1alpha1 "github.com/clastix/cluster-api-control-plane-provider-kamaji/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 var (
@@ -56,6 +62,13 @@ func init() {
 
 	utilruntime.Must(virtv1.AddToScheme(scheme))
 	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+
+	utilruntime.Must(capiv1.AddToScheme(scheme))         // core Cluster API kinds
+	utilruntime.Must(infrav1.AddToScheme(scheme))        // KubeVirt infrastructure provider
+	utilruntime.Must(bootstrapv1.AddToScheme(scheme))    // KubeadmConfig / … templates
+	utilruntime.Must(controlplanev1.AddToScheme(scheme)) // KubeadmControlPlane
+	utilruntime.Must(kamajiv1alpha1.AddToScheme(scheme)) // KubeadmControlPlane
+	utilruntime.Must(addonsv1beta1.AddToScheme(scheme))
 }
 
 func main() {
@@ -194,7 +207,7 @@ func main() {
 		log.Error(err, "unable to add a readiness check")
 		os.Exit(1)
 	}
-
+	log.Info("setup cluster gui")
 	// Add liveness probe
 	err = mgr.AddHealthzCheck("health-ping", healthz.Ping)
 	if err != nil {
