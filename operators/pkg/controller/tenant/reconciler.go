@@ -272,8 +272,6 @@ func (r *Reconciler) deleteTenant(
 	log logr.Logger,
 	tn *crownlabsv1alpha2.Tenant,
 ) error {
-	// TODO delete all resources related to the tenant
-
 	// delete the personal namespace
 	if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, tn); err != nil {
 		klog.Errorf("Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)

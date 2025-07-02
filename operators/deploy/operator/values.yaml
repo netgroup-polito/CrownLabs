@@ -11,6 +11,7 @@ configurations:
     realm: crownlabs
     clientId: client-operator
     clientSecret: my-awesome-secret
+    rolesClientId: client-api-server
 #   mydrivePVCsSize: 1Gi
 #   mydrivePVCsStorageClassName: rook-nfs
 #   mydrivePVCsNamespace: mydrive-pvcs
@@ -19,12 +20,12 @@ configurations:
   tenantNamespaceKeepAlive: 168h
   tenant:
     resourcecaps: {}
-#       # Maximum number of virtual cpus that can be requested by a tenant. 0 means unlimited.
-#       cpu: 25
-#       # Maximum amount of memory that can be requested by a tenant (expressed in GB). 0 means unlimited.
-#       memory: 50
-#       # Maximum number of instances that can be created by a tenant. 0 means unlimited.
-#       instances: 10
+      # Maximum number of virtual cpus that can be requested by a tenant. 0 means unlimited.
+      cpu: 25
+      # Maximum amount of memory that can be requested by a tenant (expressed in GB). 0 means unlimited.
+      memory: 50
+      # Maximum number of instances that can be created by a tenant. 0 means unlimited.
+      instances: 10
 
 image:
   repository: crownlabs/tenant-operator
@@ -61,9 +62,9 @@ resources:
 webhook:
   deployment:
     certsMount: /tmp/k8s-webhook-server/serving-certs/
-#     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
-#     baseWorkspaces: utilities
-#   enableMutating: true
-#   clusterIssuer: self-signed
+    webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    baseWorkspaces: utilities
+  enableMutating: true
+  clusterIssuer: self-signed
 
 rbacResourcesName: crownlabs-tenant-operator
