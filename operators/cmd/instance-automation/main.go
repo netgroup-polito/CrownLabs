@@ -147,6 +147,14 @@ func main() {
 	}
 	log.Info("CrownLabs Email client created")
 
+	// create the Promtheus client
+	prometheus, err := instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability,
+		*prometheusNginxData, *prometheusBastionSSHData)
+	if err != nil {
+		log.Error(err, "unable to create Prometheus client")
+		os.Exit(1)
+	}
+
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 
 	if *enableInstanceTermination {
@@ -193,20 +201,16 @@ func main() {
 		// Configure the Instance Inactive termination controller
 		instanceInactiveTermination := "InstanceInactiveTermination."
 		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-			Client:                           mgr.GetClient(),
-			Scheme:                           mgr.GetScheme(),
-			EventsRecorder:                   mgr.GetEventRecorderFor(instanceInactiveTermination),
-			NamespaceWhitelist:               nsWhitelist,
-			StatusCheckRequestTimeout:        *instanceInactiveTerminationStatusCheckTimeout,
-			InstanceMaxNumberOfAlerts:        *instanceInactiveTerminationMaxNumberOfAlerts,
-			EnableInactivityNotifications:    *enableInactivityNotifications,
-			MailClient:                       mailClient,
-			PrometheusURL:                    *prometheusURL,
-			PrometheusNginxAvailability:      *prometheusNginxAvailability,
-			PrometheusBastionSSHAvailability: *prometheusBastionSSHAvailability,
-			PrometheusNginxData:              *prometheusNginxData,
-			PrometheusBastionSSHData:         *prometheusBastionSSHData,
-			NotificationInterval:             *instanceInactiveTerminationNotificationInterval,
+			Client:                        mgr.GetClient(),
+			Scheme:                        mgr.GetScheme(),
+			EventsRecorder:                mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:            nsWhitelist,
+			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts:     *instanceInactiveTerminationMaxNumberOfAlerts,
+			EnableInactivityNotifications: *enableInactivityNotifications,
+			MailClient:                    mailClient,
+			Prometheus:                    prometheus,
+			NotificationInterval:          *instanceInactiveTerminationNotificationInterval,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)

@@ -18,13 +18,9 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,19 +44,15 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder                   record.EventRecorder
-	Scheme                           *runtime.Scheme
-	NamespaceWhitelist               metav1.LabelSelector
-	StatusCheckRequestTimeout        time.Duration
-	InstanceMaxNumberOfAlerts        int
-	EnableInactivityNotifications    bool
-	NotificationInterval             time.Duration
-	MailClient                       *mail.MailClient
-	PrometheusURL                    string
-	PrometheusNginxAvailability      string
-	PrometheusBastionSSHAvailability string
-	PrometheusNginxData              string
-	PrometheusBastionSSHData         string
+	EventsRecorder                record.EventRecorder
+	Scheme                        *runtime.Scheme
+	NamespaceWhitelist            metav1.LabelSelector
+	StatusCheckRequestTimeout     time.Duration
+	InstanceMaxNumberOfAlerts     int
+	EnableInactivityNotifications bool
+	NotificationInterval          time.Duration
+	MailClient                    *mail.MailClient
+	Prometheus                    PrometheusClientInterface
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -233,54 +225,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
-// GetLastActivityTime retrieves the last time an instance was accessed.
-func GetLastActivityTime(query string, promClient v1.API, interval time.Duration) (time.Time, error) {
-	end := time.Now()
-	start := end.Add(-interval)
-
-	r := v1.Range{
-		Start: start,
-		End:   end,
-		Step:  time.Minute,
-	}
-
-	result, warnings, err := promClient.QueryRange(context.Background(), query, r)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("query failed: %w", err)
-	}
-	if len(warnings) > 0 {
-		fmt.Println("Warnings:", warnings)
-	}
-
-	matrix, ok := result.(model.Matrix)
-	if !ok {
-		return time.Time{}, fmt.Errorf("unexpected result format")
-	}
-
-	var lastChange time.Time
-
-	for _, stream := range matrix {
-		var prevValue model.SampleValue
-		first := true
-		for _, sample := range stream.Values {
-			if first {
-				prevValue = sample.Value
-				first = false
-				continue
-			}
-			if sample.Value != prevValue {
-				lastChange = sample.Timestamp.Time()
-				prevValue = sample.Value
-			}
-		}
-	}
-
-	if lastChange.IsZero() {
-		return time.Time{}, fmt.Errorf("no changes detected")
-	}
-	return lastChange, nil
-}
-
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
 func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
@@ -289,33 +233,21 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		return fmt.Errorf("instance not found in context")
 	}
 
-	// Create the Prometheus client
-	promClient, err := api.NewClient(
-		api.Config{
-			Address: r.PrometheusURL,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create Prometheus client: %w", err)
-	}
-
-	v1api := v1.NewAPI(promClient)
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	// Check Prometheus health first
-	healthy, err := r.IsPrometheusHealthy(ctx, v1api) // LOCAL: true, nil
+	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx) // LOCAL: true, nil
 	if err != nil || !healthy {
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
 	}
 
 	// Get instance activity data
-	queryNginx := fmt.Sprintf(r.PrometheusNginxData, instance.Namespace, instance.Name)
-	lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, inactivityTimeoutDuration)
+	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
+	//lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, inactivityTimeoutDuration)
+	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, inactivityTimeoutDuration) // LOCAL: just to test the Prometheus client
 
-	querySSH := fmt.Sprintf(r.PrometheusBastionSSHData, instance.Status.IP)
-	lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, inactivityTimeoutDuration)
+	querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), instance.Status.IP)
+	//lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, inactivityTimeoutDuration)
+	lastActivityTimeSSH, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration) // LOCAL: just to test the Prometheus client
 
 	if errNginx != nil && errSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
@@ -355,63 +287,6 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 	}
 
 	return remainingTime, nil
-}
-
-// IsPrometheusHealthy checks if Prometheus and required metrics are available.
-func (r *InstanceInactiveTerminationReconciler) IsPrometheusHealthy(ctx context.Context, v1api v1.API) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("prometheus-health")
-
-	// Verify connection to Prometheus health endpoint
-	promURL := r.PrometheusURL
-	healthEndpoint := fmt.Sprintf("%s/-/healthy", promURL)
-
-	statusCode, _, err := utils.HTTPGet(ctx, healthEndpoint, 5*time.Second)
-	if err != nil {
-		log.Error(err, "Failed to connect to Prometheus health endpoint")
-		return false, fmt.Errorf("prometheus health check failed: %w", err)
-	}
-
-	if statusCode != http.StatusOK {
-		log.Info("Prometheus health check returned non-OK status", "statusCode", statusCode)
-		return false, nil
-	}
-
-	// Check if ingress metrics and bastion metrics are available on worker nodes
-	query1 := r.PrometheusNginxAvailability
-	query2 := r.PrometheusBastionSSHAvailability
-
-	result1, _, err1 := v1api.Query(ctx, query1, time.Now())
-	result2, _, err2 := v1api.Query(ctx, query2, time.Now())
-
-	if err1 != nil && err2 != nil {
-		log.Error(err1, "Failed to query Prometheus for ingress metrics")
-		log.Error(err2, "Failed to query Prometheus for bastion SSH metrics")
-		return false, fmt.Errorf("both Prometheus queries failed: %v, %v", err1, err2)
-	}
-
-	active1 := false
-	active2 := false
-
-	if err1 == nil {
-		vec1, ok1 := result1.(model.Vector)
-		if ok1 && len(vec1) > 0 && int(vec1[0].Value) > 0 {
-			active1 = true
-		}
-	}
-	if err2 == nil {
-		vec2, ok2 := result2.(model.Vector)
-		if ok2 && len(vec2) > 0 && int(vec2[0].Value) > 0 {
-			active2 = true
-		}
-	}
-
-	if !active1 && !active2 {
-		log.Info("Neither ingress metrics nor bastion SSH metrics are available on worker nodes")
-		return false, nil
-	}
-
-	// At least one node has ingress metrics available
-	return true, nil
 }
 
 // TerminateInstance terminates the Instance.
