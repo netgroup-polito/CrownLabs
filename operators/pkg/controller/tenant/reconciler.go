@@ -174,7 +174,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// managing resources not related to the personal namespace
 	//   if the Tenant has already been verified, we can proceed with the reconciliation
 	//   and create related resources
-
+	if err := r.createTenantClusterResources(ctx, log, &tn); err != nil {
+    klog.Errorf("Error creating tenant cluster resources for tenant %s: %v", tn.Name, err)
+    tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
+    return ctrl.Result{}, err
+}
 	//mydrive-pvcs-namespace related stuff here
 
 	// determine the Tenant resource quota based on the Spec and the existing workspaces
@@ -283,6 +287,13 @@ func (r *Reconciler) deleteTenant(
 		return fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
 	}
 	log.Info("Deleted resources related to personal namespace for tenant", "name", tn.Name)
+
+	// delete Tenant cluster-wide RBAC resources
+	if err := r.deleteTenantClusterResources(ctx, log, tn); err != nil {
+        klog.Errorf("Error deleting tenant cluster resources for tenant %s: %v", tn.Name, err)
+        return fmt.Errorf("error deleting tenant cluster resources for tenant %s: %w", tn.Name, err)
+    }
+    log.Info("Deleted tenant cluster resources", "name", tn.Name)
 
 	// remove the tenant from Keycloak
 	err := r.deleteTenantInKeycloak(ctx, log, tn)
