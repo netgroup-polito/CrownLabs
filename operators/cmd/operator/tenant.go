@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
@@ -113,9 +114,12 @@ func setupTenant(
 func startHTTPServer(tn *tenant.Reconciler) {
 	mux := http.NewServeMux()
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// registering the handler for the tenant webhook path
 	mux.HandleFunc(TenantWebhookPath, func(w http.ResponseWriter, r *http.Request) {
-		tn.KeycloakEventHandler(w, r)
+		log := ctrl.LoggerFrom(ctx, "tenant-keycloak-handler", r.RemoteAddr)
+		tn.KeycloakEventHandler(log, w, r)
 	})
 
 	log.Printf("HTTP server for Keycloak events listening on %s", tenantKeycloakWebhookAddr)
@@ -133,6 +137,8 @@ func startHTTPServer(tn *tenant.Reconciler) {
 	if err != nil {
 		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
+
+	cancel()
 }
 
 func setupTenantWebhook(

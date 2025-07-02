@@ -25,6 +25,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 
@@ -34,12 +35,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 
 	"time"
 )
@@ -74,6 +77,7 @@ type Reconciler struct {
 	KeycloakActor               common.KeycloakActorIface
 	SandboxClusterRole          string
 	BaseWorkspaces              []string
+	Concurrency                 int
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -83,7 +87,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log.Info("Reconciling tenant", "name", req.NamespacedName.Name)
 
-	var tn crownlabsv1alpha2.Tenant
+	var tn v1alpha2.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
@@ -116,17 +120,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// add the finalizer if it is not already present
-	if !controllerutil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		controllerutil.AddFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+	if !controllerutil.ContainsFinalizer(&tn, v1alpha2.TnOperatorFinalizerName) {
+		controllerutil.AddFinalizer(&tn, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, &tn); err != nil {
 			klog.Errorf("Error adding finalizer to tenant %s: %v", tn.Name, err)
 			return ctrl.Result{}, err
 		}
-		klog.Infof("Finalizer %s added to tenant %s", crownlabsv1alpha2.TnOperatorFinalizerName, tn.Name)
+		klog.Infof("Finalizer %s added to tenant %s", v1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
 	if tn.Status.Subscriptions == nil {
-		tn.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
+		tn.Status.Subscriptions = make(map[string]v1alpha2.SubscriptionStatus)
 	}
 
 	// manage generic labels
@@ -143,19 +147,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// check if the tenant is already been provisioned in Keycloak
 	// - if not, create the tenant in Keycloak
 	// - if yes, check if the tenant is verified
-	verified, err := r.CheckKeycloakUserVerified(ctx, &tn)
+	verified, err := r.CheckKeycloakUserVerified(ctx, log, &tn)
 	if err != nil {
 		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
-		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+		tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 		tn.Status.Ready = false
 		return ctrl.Result{}, err
 	}
-	tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrOk
+	tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
 
 	// manage keycloak tenant authorization for workspaces
 	if err := r.updateWorkspacesAuthorizationRoles(ctx, &log, &tn); err != nil {
 		klog.Errorf("Error updating tenant authorization roles for tenant %s: %v", tn.Name, err)
-		tn.Status.Subscriptions["keycloak"] = crownlabsv1alpha2.SubscrFailed
+		tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 		tn.Status.Ready = false
 		return ctrl.Result{}, fmt.Errorf("error updating tenant authorization roles for tenant %s: %w", tn.Name, err)
 	}
@@ -170,6 +174,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// managing resources not related to the personal namespace
 	//   if the Tenant has already been verified, we can proceed with the reconciliation
 	//   and create related resources
+
+	//mydrive-pvcs-namespace related stuff here
 
 	// determine the Tenant resource quota based on the Spec and the existing workspaces
 	if err := r.forgeServiceQuota(ctx, &tn); err != nil {
@@ -228,7 +234,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha2.Tenant{}, builder.WithPredicates(pred)).
+		For(&v1alpha2.Tenant{}, builder.WithPredicates(pred)).
 		Owns(&v1.Secret{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&v1.Namespace{}).
@@ -256,13 +262,11 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			),
 		).
-		// TODO: Add workspace watch functionality when the feature is implemented in future versions.
-		// This will allow automatic tenant enrollment based on workspace changes.
-		// Watches(&crownlabsv1alpha1.Workspace{},
-		// 	handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
-		// WithOptions(controller.Options{
-		// 	MaxConcurrentReconciles: r.Concurrency,
-		// }).
+		Watches(&v1alpha1.Workspace{},
+			handler.EnqueueRequestsFromMapFunc(r.workspaceToEnrolledTenants)).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: r.Concurrency,
+		}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Tenant")).
 		Complete(r)
 }
@@ -270,7 +274,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) deleteTenant(
 	ctx context.Context,
 	log logr.Logger,
-	tn *crownlabsv1alpha2.Tenant,
+	tn *v1alpha2.Tenant,
 ) error {
 	// delete the personal namespace
 	if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, tn); err != nil {
@@ -281,7 +285,7 @@ func (r *Reconciler) deleteTenant(
 	log.Info("Deleted resources related to personal namespace for tenant", "name", tn.Name)
 
 	// remove the tenant from Keycloak
-	err := r.deleteTenantInKeycloak(ctx, tn)
+	err := r.deleteTenantInKeycloak(ctx, log, tn)
 	if err != nil {
 		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
 		return err
@@ -289,8 +293,8 @@ func (r *Reconciler) deleteTenant(
 	log.Info("Deleted tenant in Keycloak", "name", tn.Name)
 
 	// delete the finalizer
-	if controllerutil.ContainsFinalizer(tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		controllerutil.RemoveFinalizer(tn, crownlabsv1alpha2.TnOperatorFinalizerName)
+	if controllerutil.ContainsFinalizer(tn, v1alpha2.TnOperatorFinalizerName) {
+		controllerutil.RemoveFinalizer(tn, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, tn); err != nil {
 			klog.Errorf("Error removing finalizer from tenant %s: %v", tn.Name, err)
 			return err
@@ -300,7 +304,29 @@ func (r *Reconciler) deleteTenant(
 	return nil
 }
 
-// func (r *Reconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *crownlabsv1alpha2.Tenant, nsName string) error {
+func (r *Reconciler) workspaceToEnrolledTenants(
+	ctx context.Context,
+	ws client.Object,
+) []ctrl.Request {
+	var enqueues []ctrl.Request
+	var tenants v1alpha2.TenantList
+	if err := r.List(ctx, &tenants, client.HasLabels{
+		fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.GetName()),
+	}); err != nil {
+		klog.Errorf("Error when retrieving tenants enrolled in %s -> %s", ws.GetName(), err)
+		return nil
+	}
+	for idx := range tenants.Items {
+		enqueues = append(enqueues, ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name: tenants.Items[idx].GetName(),
+			},
+		})
+	}
+	return enqueues
+}
+
+// func (r *Reconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context, tn *v1alpha2.Tenant, nsName string) error {
 // 	// Persistent volume claim NFS
 // 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
 

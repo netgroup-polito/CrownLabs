@@ -41,6 +41,7 @@ var _ = Describe("Authenticator", func() {
 	var (
 		mockCtrl   *gomock.Controller
 		ctx        context.Context
+		log        logr.Logger
 		reconciler *tntctrl.Reconciler
 		tenant     *crownlabsv1alpha2.Tenant
 		mKcAct     *mock.MockKeycloakActorIface
@@ -56,7 +57,8 @@ var _ = Describe("Authenticator", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mKcAct = mock.NewMockKeycloakActorIface(mockCtrl)
 
-		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
+		ctx = ctrl.LoggerInto(context.Background(), logr.New(GinkgoLogWriter{}))
+		log = ctrl.LoggerFrom(ctx, "tenant-authenticator", tenantName)
 
 		tenant = &crownlabsv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{
@@ -86,7 +88,7 @@ var _ = Describe("Authenticator", func() {
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
 				mKcAct.EXPECT().IsInitialized().Return(false)
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 			})
@@ -104,7 +106,7 @@ var _ = Describe("Authenticator", func() {
 					EmailVerified: gocloak.BoolP(true),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -120,7 +122,7 @@ var _ = Describe("Authenticator", func() {
 					EmailVerified: gocloak.BoolP(false),
 				}, nil)
 
-				verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+				verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
 				Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -137,7 +139,7 @@ var _ = Describe("Authenticator", func() {
 						Code:    500,
 					})
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -155,7 +157,7 @@ var _ = Describe("Authenticator", func() {
 						}, nil),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(tenant.Status.Keycloak.UserCreated).To(Equal(crownlabsv1alpha2.NameCreated{
@@ -171,7 +173,7 @@ var _ = Describe("Authenticator", func() {
 						mKcAct.EXPECT().CreateUser(gomock.Any(), tenantName, tenant.Spec.Email, tenant.Spec.FirstName, tenant.Spec.LastName).Return("", fmt.Errorf("error creating user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error creating user"))
@@ -184,7 +186,7 @@ var _ = Describe("Authenticator", func() {
 						mKcAct.EXPECT().GetUser(gomock.Any(), tenantName).Return(nil, fmt.Errorf("error retrieving user")),
 					)
 
-					verified, err := reconciler.CheckKeycloakUserVerified(ctx, tenant)
+					verified, err := reconciler.CheckKeycloakUserVerified(ctx, log, tenant)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -210,7 +212,7 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
 					return e.Object.(*crownlabsv1alpha2.Tenant).Name
@@ -228,7 +230,7 @@ var _ = Describe("Authenticator", func() {
 					}
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -241,7 +243,7 @@ var _ = Describe("Authenticator", func() {
 					"authDetails": "notajson"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -260,7 +262,7 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
 					return e.Object.(*crownlabsv1alpha2.Tenant).Name
@@ -276,7 +278,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "{}"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -289,7 +291,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "notajson"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -302,7 +304,7 @@ var _ = Describe("Authenticator", func() {
 					"representation": "{\"wrongField\":\"testuser\"}"
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -316,7 +318,7 @@ var _ = Describe("Authenticator", func() {
 				}`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -327,12 +329,26 @@ var _ = Describe("Authenticator", func() {
 				body := strings.NewReader(`invalid json`)
 				r := &http.Request{Body: io.NopCloser(body)}
 
-				reconciler.KeycloakEventHandler(w, r)
+				reconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusBadRequest))
 			})
 		})
 	})
 })
+
+// GinkgoLogWriter implements logr.LogSink
+type GinkgoLogWriter struct{}
+
+func (w GinkgoLogWriter) Init(info logr.RuntimeInfo) {}
+func (w GinkgoLogWriter) Enabled(level int) bool     { return true }
+func (w GinkgoLogWriter) Info(level int, msg string, keysAndValues ...interface{}) {
+	GinkgoWriter.Printf("%s -- %v\n", msg, keysAndValues)
+}
+func (w GinkgoLogWriter) Error(err error, msg string, keysAndValues ...interface{}) {
+	GinkgoWriter.Printf("ERROR: %s -- %v -- %v\n", msg, err, keysAndValues)
+}
+func (w GinkgoLogWriter) WithValues(keysAndValues ...interface{}) logr.LogSink { return w }
+func (w GinkgoLogWriter) WithName(name string) logr.LogSink                    { return w }
 
 // mockResponseWriter implements http.ResponseWriter for testing.
 type mockResponseWriter struct {
