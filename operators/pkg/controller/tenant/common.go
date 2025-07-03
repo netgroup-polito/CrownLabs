@@ -18,9 +18,9 @@ import (
 	"context"
 	"regexp"
 	"strings"
-
+	
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/klog/v2"
 )
 
 // // randomDuration returns a duration between duration value between min and max.
@@ -59,13 +59,14 @@ import (
 
 func (r *Reconciler) updatePreservingStatus(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	// the update function will overwrite the status, so we need to save it
 	// and restore it after the update
 	prevStatus := tn.Status
 	if err := r.Update(ctx, tn); err != nil {
-		klog.Errorf("Error when updating tenant %s -> %s", tn.Name, err)
+		log.Error(err, "Error when updating tenant %s -> %s",tn.Name, err)
 		return err
 	}
 	tn.Status = prevStatus

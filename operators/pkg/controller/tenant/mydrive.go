@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
+	"github.com/go-logr/logr"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -52,46 +52,46 @@ const (
 )
 
 // createMyDrivePVC creates the PVC for tenant's personal storage in cross-namespace
-func (r *Reconciler) createMyDrivePVC(ctx context.Context, tn *v1alpha2.Tenant) error {
+func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	// Persistent volume claim NFS
-	pvc, err := r.createOrUpdatePVC(ctx, tn)
+	pvc, err := r.createOrUpdatePVC(ctx, log, tn)
 	if err != nil {
-		klog.Errorf("Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
+		log.Error(err, "Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
 		return err
 	}
-	klog.Infof("PVC created/updated")
+	log.Info("PVC created/updated", )
 
 	switch pvc.Status.Phase {
 	case v1.ClaimBound:
 		// authorize the user to access the PVC
-		if created, err := r.createOrUpdatePVCSecret(ctx, tn, pvc); err != nil {
-			klog.Errorf("Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
+		if created, err := r.createOrUpdatePVCSecret(ctx, log, tn, pvc); err != nil {
+			log.Error(err, "Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
 			return err
 		} else if created {
-			klog.Infof("PVC Secret created/updated")
+			log.Info("PVC Secret created/updated", )
 		} else {
-			klog.Warningf("Tenant namespace does not exist, skipping PVC secret creation")
+			log.Info("Tenant namespace does not exist, skipping PVC secret creation", )
 		}
 
 		val, found := pvc.Labels[forge.ProvisionJobLabel]
 		if !found || val != forge.ProvisionJobValueOk {
-			err = r.launchPVCProvisionJob(ctx, tn, *pvc, forge.ProvisionJobValuePending)
+			err = r.launchPVCProvisionJob(ctx, log , tn, *pvc, forge.ProvisionJobValuePending)
 			if err != nil {
-				klog.Errorf("Unable to manage PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
+				log.Error(err, "Unable to manage PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
 				return err
 			}
 		}
 	case v1.ClaimPending:
-		klog.Infof("PVC pending for tenant %s", tn.Name)
+		log.Info("PVC pending for tenant %s", tn.Name)
 	default:
-		klog.Warningf("PVC for tenant %s is in unexpected phase: %s", tn.Name, pvc.Status.Phase)
+		log.Info("PVC for tenant %s is in unexpected phase: %s", tn.Name, pvc.Status.Phase)
 	}
 
 	return nil
 }
 
 // deleteMyDrivePVC deletes the PVC for tenant's personal storage
-func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, tn *v1alpha2.Tenant) error {
+func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      myDrivePVCName(tn.Name),
@@ -100,16 +100,17 @@ func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, tn *v1alpha2.Tenant) 
 	}
 
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &pvc, "MyDrive PVC"); err != nil {
-		klog.Errorf("Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
 		return err
 	}
 
-	klog.Infof("🔥 MyDrive PVC deleted for tenant %s", tn.Name)
+	log.Info("🔥 MyDrive PVC deleted for tenant %s", tn.Name)
 	return nil
 }
 
 func (r *Reconciler) createOrUpdatePVC(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) (*v1.PersistentVolumeClaim, error) {
 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
@@ -137,6 +138,7 @@ func (r *Reconciler) createOrUpdatePVC(
 
 func (r *Reconciler) createOrUpdatePVCSecret(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 	pvc *v1.PersistentVolumeClaim,
 ) (bool, error) {
@@ -151,7 +153,7 @@ func (r *Reconciler) createOrUpdatePVCSecret(
 		},
 	}
 	if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
-		klog.Errorf("Unable to get PV for tenant %s -> %s", tn.Name, err)
+		log.Error(err, "Unable to get PV for tenant %s -> %s", tn.Name, err)
 		return false, err
 	}
 
@@ -184,6 +186,7 @@ func (r *Reconciler) createOrUpdatePVCSecret(
 
 func (r *Reconciler) launchPVCProvisionJob(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 	pvc v1.PersistentVolumeClaim,
 	provisionJobLabel string,
@@ -198,14 +201,14 @@ func (r *Reconciler) launchPVCProvisionJob(
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
 		if chownJob.CreationTimestamp.IsZero() {
-			klog.Infof("PVC Provisioning Job created for tenant %s", tn.Name)
+			log.Info("PVC Provisioning Job created for tenant %s", tn.Name)
 			r.updateTnProvisioningJob(&chownJob, &pvc)
 		} else if provisionJobLabel == forge.ProvisionJobValuePending {
 			if chownJob.Status.Succeeded == 1 {
 				labelToSet = forge.ProvisionJobValueOk
-				klog.Infof("PVC Provisioning Job completed for tenant %s", tn.Name)
+				log.Info("PVC Provisioning Job completed for tenant %s", tn.Name)
 			} else if chownJob.Status.Failed == 1 {
-				klog.Warningf("PVC Provisioning Job failed for tenant %s", tn.Name)
+				log.Info("PVC Provisioning Job failed for tenant %s", tn.Name)
 			}
 		}
 
@@ -214,7 +217,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	if err != nil {
 		return fmt.Errorf("unable to create or update PVC Provisioning Job: %w", err)
 	}
-	klog.Infof("PVC Provisioning Job launched")
+	log.Info("PVC Provisioning Job launched", )
 
 	pvc.Labels[forge.ProvisionJobLabel] = labelToSet
 	if err := r.Update(ctx, &pvc); err != nil {

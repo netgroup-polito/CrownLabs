@@ -21,14 +21,14 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"k8s.io/klog/v2"
 )
 
 func (r *Reconciler) updateWorkspacesAuthorizationRoles(
 	ctx context.Context,
-	log *klog.Logger,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
@@ -43,7 +43,7 @@ func (r *Reconciler) updateWorkspacesAuthorizationRoles(
 
 	wantedRoles := r.obtainWantedRoles(tn)
 
-	currentRoles, err := r.obtainCurrentRoles(ctx, tn)
+	currentRoles, err := r.obtainCurrentRoles(ctx, log, tn)
 	if err != nil {
 		return err
 	}
@@ -51,14 +51,14 @@ func (r *Reconciler) updateWorkspacesAuthorizationRoles(
 	// generate the roles wanted by the tenant and not present in Keycloak
 	addRoles, err := r.getRolesToAdd(ctx, wantedRoles, currentRoles)
 	if err != nil {
-		klog.Errorf("Error obtaining roles to add for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error obtaining roles to add for tenant %s", "tenant", tn.Name)
 		return err
 	}
 
 	if len(addRoles) > 0 {
 		// add the missing roles to Keycloak
 		if err := r.KeycloakActor.AddUserToRoles(ctx, tn.Status.Keycloak.UserCreated.Name, addRoles); err != nil {
-			klog.Errorf("Error adding roles to Keycloak for tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error adding roles to Keycloak for tenant %s", "tenant", tn.Name)
 			return err
 		}
 	}
@@ -69,7 +69,7 @@ func (r *Reconciler) updateWorkspacesAuthorizationRoles(
 	if len(deleteRoles) > 0 {
 		// remove the unwanted roles from Keycloak
 		if err := r.KeycloakActor.RemoveUserFromRoles(ctx, tn.Status.Keycloak.UserCreated.Name, deleteRoles); err != nil {
-			klog.Errorf("Error removing roles from Keycloak for tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error removing roles from Keycloak for tenant %s", "tenant", tn.Name)
 			return err
 		}
 	}
@@ -91,11 +91,12 @@ func (r *Reconciler) obtainWantedRoles(
 
 func (r *Reconciler) obtainCurrentRoles(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) ([]*gocloak.Role, error) {
 	currentRoles, err := r.KeycloakActor.GetUserRoles(ctx, tn.Status.Keycloak.UserCreated.Name)
 	if err != nil {
-		klog.Errorf("Error getting roles from Keycloak: %v", err)
+		log.Error(err, "Error getting roles from Keycloak")
 		return nil, err
 	}
 

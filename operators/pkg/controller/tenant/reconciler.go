@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog/v2"
 
 	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
@@ -72,7 +71,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	var tn v1alpha2.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {
-		klog.Errorf("Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
+		log.Error(err, "Error when getting tenant %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
 	} else if err != nil {
 		log.Info("Tenant deleted", "name", req.Name)
@@ -88,7 +87,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	defer func() {
 		// update the Tenant status
 		if err := r.Status().Update(ctx, &tn); err != nil {
-			klog.Errorf("Error updating status for tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error updating status for tenant %s: %v", tn.Name, err)
 		}
 	}()
 
@@ -96,7 +95,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !tn.DeletionTimestamp.IsZero() {
 		err := r.deleteTenant(ctx, log, &tn)
 		if err != nil {
-			klog.Errorf("Error deleting tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error deleting tenant %s: %v", tn.Name, err)
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -106,10 +105,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !controllerutil.ContainsFinalizer(&tn, v1alpha2.TnOperatorFinalizerName) {
 		controllerutil.AddFinalizer(&tn, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, &tn); err != nil {
-			klog.Errorf("Error adding finalizer to tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error adding finalizer to tenant %s: %v", tn.Name, err)
 			return ctrl.Result{}, err
 		}
-		klog.Infof("Finalizer %s added to tenant %s", v1alpha2.TnOperatorFinalizerName, tn.Name)
+		log.Info("Finalizer %s added to tenant %s", v1alpha2.TnOperatorFinalizerName, tn.Name)
 	}
 
 	if tn.Status.Subscriptions == nil {
@@ -117,13 +116,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// manage generic labels
-	if err := r.updateTenantBaseLabels(ctx, &log, &tn); err != nil {
+	if err := r.updateTenantBaseLabels(ctx, log, &tn); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error updating tenant base labels: %w", err)
 	}
 
 	// manage workspaces subscription (and related labels)
-	if err := r.manageWorkspaces(ctx, &tn); err != nil {
-		klog.Errorf("Error managing workspaces for tenant %s: %v", tn.Name, err)
+	if err := r.manageWorkspaces(ctx, log, &tn); err != nil {
+		log.Error(err, "Error managing workspaces for tenant %s: %v", tn.Name, err)
 		return ctrl.Result{}, fmt.Errorf("error managing workspaces for tenant %s: %w", tn.Name, err)
 	}
 
@@ -132,7 +131,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// - if yes, check if the tenant is verified
 	verified, err := r.CheckKeycloakUserVerified(ctx, log, &tn)
 	if err != nil {
-		klog.Errorf("Error checking Keycloak status for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error checking Keycloak status for tenant %s: %v", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 		tn.Status.Ready = false
 		return ctrl.Result{}, err
@@ -140,8 +139,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
 
 	// manage keycloak tenant authorization for workspaces
-	if err := r.updateWorkspacesAuthorizationRoles(ctx, &log, &tn); err != nil {
-		klog.Errorf("Error updating tenant authorization roles for tenant %s: %v", tn.Name, err)
+	if err := r.updateWorkspacesAuthorizationRoles(ctx, log, &tn); err != nil {
+		log.Error(err, "Error updating tenant authorization roles for tenant %s: %v", tn.Name, err)
 		tn.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
 		tn.Status.Ready = false
 		return ctrl.Result{}, fmt.Errorf("error updating tenant authorization roles for tenant %s: %w", tn.Name, err)
@@ -158,14 +157,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	//   if the Tenant has already been verified, we can proceed with the reconciliation
 	//   and create related resources
 	if err := r.createTenantClusterResources(ctx, log, &tn); err != nil {
-		klog.Errorf("Error creating tenant cluster resources for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error creating tenant cluster resources for tenant %s: %v", tn.Name, err)
 		tnOpinternalErrors.WithLabelValues("tenant", "cluster-resources").Inc()
 		return ctrl.Result{}, err
 	}
 
 	// determine the Tenant resource quota based on the Spec and the existing workspaces
-	if err := r.forgeServiceQuota(ctx, &tn); err != nil {
-		klog.Errorf("Error forging service quota for tenant %s: %v", tn.Name, err)
+	if err := r.forgeServiceQuota(ctx, log, &tn); err != nil {
+		log.Error(err, "Error forging service quota for tenant %s: %v", tn.Name, err)
 		tnOpinternalErrors.WithLabelValues("tenant", "quota-forge").Inc()
 		return ctrl.Result{}, fmt.Errorf("error forging service quota for tenant %s: %w", tn.Name, err)
 	}
@@ -173,9 +172,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// managing resources related to the personal namespace
 
 	// Test if namespace has been open for too long; check if it is ok to delete
-	keepAlive, err := r.checkNamespaceKeepAlive(ctx, &tn)
+	keepAlive, err := r.checkNamespaceKeepAlive(ctx,log, &tn)
 	if err != nil {
-		klog.Errorf("Error checking whether tenant namespace should be kept alive: %s", err)
+		log.Error(err, "Error checking whether tenant namespace should be kept alive: %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "check-keep-alive").Inc()
 		return ctrl.Result{}, err
 	}
@@ -184,29 +183,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// Namespace should be kept open, so we proceed with the reconciliation
 		// creating or updating the cluster resources
 		if err := r.createResourcesRelatedToPersonalNamespace(ctx, log, &tn); err != nil {
-			klog.Errorf("Error creating or updating resources related to personal namespace for tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error creating or updating resources related to personal namespace for tenant %s: %v", tn.Name, err)
 			tnOpinternalErrors.WithLabelValues("tenant", "create-personal-namespace").Inc()
 			return ctrl.Result{}, fmt.Errorf("error creating or updating resources related to personal namespace for tenant %s: %w", tn.Name, err)
 		}
 	} else {
 		// Namespace should not be kept open, so we delete all the resources related to the tenant
 		if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, &tn); err != nil {
-			klog.Errorf("Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
 			tnOpinternalErrors.WithLabelValues("tenant", "delete-personal-namespace").Inc()
 			return ctrl.Result{}, fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
 		}
 	}
 
 	if err = r.EnforceSandboxResources(ctx, &tn); err != nil {
-		klog.Errorf("Failed checking sandbox for tenant %s -> %s", tn.Name, err)
+		log.Error(err, "Failed checking sandbox for tenant %s -> %s", tn.Name, err)
 		tn.Status.SandboxNamespace.Created = false
 		tnOpinternalErrors.WithLabelValues("tenant", "sandbox-resources").Inc()
 		return ctrl.Result{}, err
 	}
 
 	// mydrive-pvcs-namespace related stuff here
-	if err := r.createMyDrivePVC(ctx, &tn); err != nil {
-		klog.Errorf("Error creating MyDrive PVC for tenant %s: %v", tn.Name, err)
+	if err := r.createMyDrivePVC(ctx, log, &tn); err != nil {
+		log.Error(err, "Error creating MyDrive PVC for tenant %s: %v", tn.Name, err)
 		return ctrl.Result{}, err
 	}
 
@@ -216,10 +215,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // SetupWithManager registers a new controller for Tenant resources.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger ) error {
 	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
-		klog.Errorf("Error creating predicate for tenant controller: %v", err)
+		log.Error(err, "Error creating predicate for tenant controller: %v", err)
 		return fmt.Errorf("error creating predicate for tenant controller: %w", err)
 	}
 
@@ -268,7 +267,7 @@ func (r *Reconciler) deleteTenant(
 ) error {
 	// delete the personal namespace
 	if err := r.deleteResourcesRelatedToPersonalNamespace(ctx, log, tn); err != nil {
-		klog.Errorf("Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error deleting resources related to personal namespace for tenant %s: %v", tn.Name, err)
 		tnOpinternalErrors.WithLabelValues("tenant", "delete-personal-namespace").Inc()
 		return fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
 	}
@@ -276,21 +275,21 @@ func (r *Reconciler) deleteTenant(
 
 	// delete Tenant cluster-wide RBAC resources
 	if err := r.deleteTenantClusterResources(ctx, log, tn); err != nil {
-		klog.Errorf("Error deleting tenant cluster resources for tenant %s: %v", tn.Name, err)
+		log.Error(err, "Error deleting tenant cluster resources for tenant %s: %v", tn.Name, err)
 		return fmt.Errorf("error deleting tenant cluster resources for tenant %s: %w", tn.Name, err)
 	}
 	log.Info("Deleted tenant cluster resources", "name", tn.Name)
 
 	//delete MyDrivePVC
-	if err := r.deleteMyDrivePVC(ctx, tn); err != nil {
-		klog.Errorf("Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
+	if err := r.deleteMyDrivePVC(ctx, log, tn); err != nil {
+		log.Error(err, "Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
 		return fmt.Errorf("error deleting MyDrive PVC for tenant %s: %w", tn.Name, err)
 	}
 
 	// remove the tenant from Keycloak
 	err := r.deleteTenantInKeycloak(ctx, log, tn)
 	if err != nil {
-		klog.Errorf("Error deleting tenant %s in Keycloak: %v", tn.Name, err)
+		log.Error(err, "Error deleting tenant %s in Keycloak: %v", tn.Name, err)
 		return err
 	}
 	log.Info("Deleted tenant in Keycloak", "name", tn.Name)
@@ -299,7 +298,7 @@ func (r *Reconciler) deleteTenant(
 	if controllerutil.ContainsFinalizer(tn, v1alpha2.TnOperatorFinalizerName) {
 		controllerutil.RemoveFinalizer(tn, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, tn); err != nil {
-			klog.Errorf("Error removing finalizer from tenant %s: %v", tn.Name, err)
+			log.Error(err, "Error removing finalizer from tenant %s: %v", tn.Name, err)
 			return err
 		}
 		log.Info("Removed finalizer from tenant", "name", tn.Name)
@@ -316,7 +315,8 @@ func (r *Reconciler) workspaceToEnrolledTenants(
 	if err := r.List(ctx, &tenants, client.HasLabels{
 		fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.GetName()),
 	}); err != nil {
-		klog.Errorf("Error when retrieving tenants enrolled in %s -> %s", ws.GetName(), err)
+		log := ctrl.LoggerFrom(ctx)
+    log.Error(err, "Error when retrieving tenants enrolled in %s -> %s", ws.GetName(), err)
 		return nil
 	}
 	for idx := range tenants.Items {

@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -49,10 +48,10 @@ func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant
 	})
 
 	if err != nil {
-		log.Error(err, "failed to enforce resource", "namespace", klog.KObj(&namespace))
+		log.Error(err, "failed to enforce resource", "namespace", &namespace.Name)
 		return err
 	}
-	log.V(utils.FromResult(res)).Info("sandbox namespace correctly enforced", "sandbox namespace", klog.KObj(&namespace), "result", res)
+	log.Info("sandbox namespace correctly enforced", "sandbox namespace", namespace.Name, "result", res)
 	tenant.Status.SandboxNamespace.Name = sandboxnsName
 
 	// Enforce role binding precence
@@ -64,10 +63,10 @@ func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant
 		return ctrl.SetControllerReference(tenant, &roleBind, r.Scheme)
 	})
 	if err != nil {
-		log.Error(err, "failed to enforce resource", "role binding", klog.KObj(&roleBind))
+		log.Error(err, "failed to enforce resource", "role binding", &roleBind.Name)
 		return err
 	}
-	log.V(utils.FromResult(res)).Info("sandbox role binding correctly enforced", "role binding", klog.KObj(&roleBind), "result", res)
+	log.Info("sandbox role binding correctly enforced", "role binding", roleBind.Name, "result", res)
 
 	// Enforce resource quota presence
 	resourceQuota := corev1.ResourceQuota{
@@ -79,10 +78,10 @@ func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant
 		return ctrl.SetControllerReference(tenant, &resourceQuota, r.Scheme)
 	})
 	if err != nil {
-		log.Error(err, "failed to enforce resource", "resource quota", klog.KObj(&resourceQuota))
+		log.Error(err, "failed to enforce resource", "resource quota", resourceQuota.Name)
 		return err
 	}
-	log.V(utils.FromResult(res)).Info("sandbox resource quota correctly enforced", "resource quota", klog.KObj(&resourceQuota), "result", res)
+	log.Info("sandbox resource quota correctly enforced", "resource quota", resourceQuota.Name, "result", res)
 	tenant.Status.SandboxNamespace.Created = true
 
 	// Enforce limit range presence
@@ -95,10 +94,10 @@ func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant
 		return ctrl.SetControllerReference(tenant, &limitRange, r.Scheme)
 	})
 	if err != nil {
-		log.Error(err, "failed to enforce resource", "limit range", klog.KObj(&limitRange))
+		log.Error(err, "failed to enforce resource", "limit range", limitRange.Name)
 		return err
 	}
-	log.V(utils.FromResult(res)).Info("sandbox limit range correctly enforced", "limit range", klog.KObj(&limitRange), "result", res)
+	log.Info("sandbox limit range correctly enforced", "limit range", limitRange.Name, "result", res)
 	tenant.Status.SandboxNamespace.Created = true
 
 	return err

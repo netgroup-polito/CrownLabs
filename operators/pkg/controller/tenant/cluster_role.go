@@ -21,7 +21,6 @@ import (
     "github.com/go-logr/logr"
     rbacv1 "k8s.io/api/rbac/v1"
     metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/klog/v2"
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
     crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -35,13 +34,13 @@ func (r *Reconciler) createTenantClusterResources(
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     // Create ClusterRole for tenant access
-    if err := r.createTenantClusterRole(ctx, tn); err != nil {
+    if err := r.createTenantClusterRole(ctx, log, tn); err != nil {
         return fmt.Errorf("error when creating cluster role for tenant %s: %w", tn.Name, err)
     }
     log.Info("Tenant ClusterRole created", "tenant", tn.Name)
 
     // Create ClusterRoleBinding for tenant access
-    if err := r.createTenantClusterRoleBinding(ctx, tn); err != nil {
+    if err := r.createTenantClusterRoleBinding(ctx, log, tn); err != nil {
         return fmt.Errorf("error when creating cluster role binding for tenant %s: %w", tn.Name, err)
     }
     log.Info("Tenant ClusterRoleBinding created", "tenant", tn.Name)
@@ -56,13 +55,13 @@ func (r *Reconciler) deleteTenantClusterResources(
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     // Delete ClusterRoleBinding 
-    if err := r.deleteTenantClusterRoleBinding(ctx, tn); err != nil {
+    if err := r.deleteTenantClusterRoleBinding(ctx, log, tn); err != nil {
         return fmt.Errorf("error when deleting cluster role binding for tenant %s: %w", tn.Name, err)
     }
     log.Info("🔥 Tenant ClusterRoleBinding deleted", "tenant", tn.Name)
 
     // Delete ClusterRole
-    if err := r.deleteTenantClusterRole(ctx, tn); err != nil {
+    if err := r.deleteTenantClusterRole(ctx, log, tn); err != nil {
         return fmt.Errorf("error when deleting cluster role for tenant %s: %w", tn.Name, err)
     }
     log.Info("🔥 Tenant ClusterRole deleted", "tenant", tn.Name)
@@ -73,6 +72,7 @@ func (r *Reconciler) deleteTenantClusterResources(
 // createTenantClusterRole creates the ClusterRole for accessing the specific tenant resource
 func (r *Reconciler) createTenantClusterRole(
     ctx context.Context,
+    log logr.Logger,
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     nsName := getNamespaceName(tn)
@@ -97,9 +97,9 @@ func (r *Reconciler) createTenantClusterRole(
     })
 
     if err != nil {
-        klog.Errorf("Unable to create or update cluster role for tenant %s -> %s", tn.Name, err)
+        log.Error(err, "Unable to create or update cluster role for tenant %s -> %s", tn.Name, err)
     } else {
-        klog.Infof("Cluster role for tenant %s created/updated", tn.Name)
+        log.Info("Cluster role for tenant %s created/updated", tn.Name)
     }
 
     return err
@@ -108,6 +108,7 @@ func (r *Reconciler) createTenantClusterRole(
 // createTenantClusterRoleBinding creates the ClusterRoleBinding for the tenant user
 func (r *Reconciler) createTenantClusterRoleBinding(
     ctx context.Context,
+    log logr.Logger,
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     nsName := getNamespaceName(tn)
@@ -136,9 +137,9 @@ func (r *Reconciler) createTenantClusterRoleBinding(
     })
 
     if err != nil {
-        klog.Errorf("Unable to create or update cluster role binding for tenant %s -> %s", tn.Name, err)
+        log.Error(err, "Unable to create or update cluster role binding for tenant %s -> %s", tn.Name, err)
     } else {
-        klog.Infof("Cluster role binding for tenant %s created/updated", tn.Name)
+        log.Info("Cluster role binding for tenant %s created/updated", tn.Name)
     }
 
     return err
@@ -147,6 +148,7 @@ func (r *Reconciler) createTenantClusterRoleBinding(
 // deleteTenantClusterRole deletes the ClusterRole for tenant access
 func (r *Reconciler) deleteTenantClusterRole(
     ctx context.Context,
+    log logr.Logger,
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     nsName := getNamespaceName(tn)
@@ -160,7 +162,7 @@ func (r *Reconciler) deleteTenantClusterRole(
 
     err := utils.EnforceObjectAbsence(ctx, r.Client, &cr, "cluster role")
     if err != nil {
-        klog.Errorf("Error when deleting cluster role for tenant %s -> %s", tn.Name, err)
+        log.Error(err, "Error when deleting cluster role for tenant %s -> %s", tn.Name, err)
     }
 
     return err
@@ -169,6 +171,7 @@ func (r *Reconciler) deleteTenantClusterRole(
 // deleteTenantClusterRoleBinding deletes the ClusterRoleBinding for tenant access
 func (r *Reconciler) deleteTenantClusterRoleBinding(
     ctx context.Context,
+    log logr.Logger,
     tn *crownlabsv1alpha2.Tenant,
 ) error {
     nsName := getNamespaceName(tn)
@@ -182,7 +185,7 @@ func (r *Reconciler) deleteTenantClusterRoleBinding(
 
     err := utils.EnforceObjectAbsence(ctx, r.Client, &crb, "cluster role binding")
     if err != nil {
-        klog.Errorf("Error when deleting cluster role binding for tenant %s -> %s", tn.Name, err)
+        log.Error(err, "Error when deleting cluster role binding for tenant %s -> %s", tn.Name, err)
     }
 
     return err

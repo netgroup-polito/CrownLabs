@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
@@ -79,12 +80,13 @@ func init() {
 
 func setupTenant(
 	mgr manager.Manager,
+	log logr.Logger,
 	targetLabel common.KVLabel,
 ) error {
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
 		baseWorkspacesList = strings.Split(tenantBaseWorkspaces, ",")
-		log.Printf("Base workspaces for tenants to be enforced: %v", baseWorkspacesList)
+		log.Info("Base workspaces for tenants to be enforced: %v", baseWorkspacesList)
 	}
 
 	tn := &tenant.Reconciler{
@@ -102,7 +104,7 @@ func setupTenant(
 		Concurrency:                 tenantMaxConcurrentReconciles,
 	}
 
-	if err := tn.SetupWithManager(mgr); err != nil {
+	if err := tn.SetupWithManager(mgr, log); err != nil {
 		return err
 	}
 

@@ -17,13 +17,13 @@ package tenant
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/klog/v2"
 )
 
 func (r *Reconciler) updateTenantBaseLabels(
 	ctx context.Context,
-	log *klog.Logger,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	if tn.Labels == nil {
@@ -35,8 +35,8 @@ func (r *Reconciler) updateTenantBaseLabels(
 	tn.Labels["crownlabs.polito.it/first-name"] = cleanName(tn.Spec.FirstName)
 	tn.Labels["crownlabs.polito.it/last-name"] = cleanName(tn.Spec.LastName)
 
-	if err := r.updatePreservingStatus(ctx, tn); err != nil {
-		klog.Errorf("Error updating labels for tenant %s: %v", tn.Name, err)
+	if err := r.updatePreservingStatus(ctx, log, tn); err != nil {
+		log.Error(err, "Error updating labels for tenant %s: %v", tn.Name, err)
 		return err
 	}
 	log.Info("Updated basic tenant labels")
