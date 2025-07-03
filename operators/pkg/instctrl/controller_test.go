@@ -29,8 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 

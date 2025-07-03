@@ -31,9 +31,9 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
