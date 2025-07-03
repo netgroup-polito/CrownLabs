@@ -26,6 +26,11 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const (
+	// NoWorkspacesLabel -> label to be set (to true) when no workspaces are associated to the tenant.
+	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
+)
+
 // if there is some problem with a workspace, we add it to the related list in the tenant's status
 // for each valid workspace, a label is added to the tenant.
 func (r *Reconciler) manageWorkspaces(
