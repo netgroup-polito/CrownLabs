@@ -19,11 +19,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -35,6 +35,7 @@ const (
 // for each valid workspace, a label is added to the tenant.
 func (r *Reconciler) manageWorkspaces(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	// create fresh lists
@@ -44,7 +45,7 @@ func (r *Reconciler) manageWorkspaces(
 	addedLabels := 0
 
 	for ws := range tn.Spec.Workspaces {
-		newL, err := r.manageSingleWorkspace(ctx, tn, &tn.Spec.Workspaces[ws])
+		newL, err := r.manageSingleWorkspace(ctx, log, tn, &tn.Spec.Workspaces[ws])
 		if err != nil {
 			return err
 		}
@@ -58,19 +59,20 @@ func (r *Reconciler) manageWorkspaces(
 	}
 
 	// update labels
-	if err := r.updatePreservingStatus(ctx, tn); err != nil {
-		klog.Errorf("Error updating tenant %s with workspaces labels: %v", tn.Name, err)
+	if err := r.updatePreservingStatus(ctx, log, tn); err != nil {
+		log.Error(err, "Error updating tenant %s with workspaces labels: %v",tn.Name, err)
 		// if there was a problem updating the tenant, we add all the workspaces to the failing list
 		return err
 	}
 
-	klog.Infof("Updated tenant %s with workspaces labels", tn.Name)
+	log.Info("Updated tenant %s with workspaces labels",tn.Name)
 
 	return nil
 }
 
 func (r *Reconciler) manageSingleWorkspace(
 	ctx context.Context,
+	log logr.Logger, 
 	tn *v1alpha2.Tenant,
 	tenantWorkspace *v1alpha2.TenantWorkspaceEntry,
 ) (int, error) {
@@ -83,12 +85,12 @@ func (r *Reconciler) manageSingleWorkspace(
 	switch {
 	case err != nil:
 		// if there was a problem, add the workspace to the status of the tenant
-		klog.Errorf("Error when checking if workspace %s exists in tenant %s -> %s", tenantWorkspace.Name, tn.Name, err)
+		log.Error(err, "Error when checking if workspace %s exists in tenant %s -> %s",tenantWorkspace.Name, tn.Name, err)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 		tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
 	case tenantWorkspace.Role == v1alpha2.Candidate && workspace.Spec.AutoEnroll != v1alpha1.AutoenrollWithApproval:
 		// Candidate role is allowed only if the workspace has autoEnroll = WithApproval
-		klog.Errorf("Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s", tenantWorkspace.Name, tn.Name)
+		log.Error(err, "Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s",tenantWorkspace.Name, tn.Name)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 	default:
 		r.addWorkspaceLabel(tn, tenantWorkspace.Name, tenantWorkspace.Role)
@@ -144,11 +146,13 @@ func (r *Reconciler) removeNoWorkspaceLabel(
 
 func (r *Reconciler) forgeServiceQuota(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	// get the enrolled workspaces
 	wss, err := r.getWorkspacesList(
 		ctx,
+		log,
 		r.getEnrolledWorkspaces(tn),
 	)
 	if err != nil {
@@ -184,6 +188,7 @@ func (r *Reconciler) getEnrolledWorkspaces(
 
 func (r *Reconciler) getWorkspacesList(
 	ctx context.Context,
+	log logr.Logger,
 	tnWss []v1alpha2.TenantWorkspaceEntry,
 ) ([]v1alpha1.Workspace, error) {
 	workspaces := make([]v1alpha1.Workspace, 0, len(tnWss))
@@ -194,7 +199,7 @@ func (r *Reconciler) getWorkspacesList(
 			Name: ws.Name,
 		}, &workspace)
 		if err != nil {
-			klog.Errorf("Error when getting workspace %s: %v", ws.Name, err)
+			log.Error(err, "Error when getting workspace %s: %v",ws.Name, err)
 			return nil, err
 		}
 
