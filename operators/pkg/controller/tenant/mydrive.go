@@ -110,14 +110,19 @@ func (r *Reconciler) createOrUpdatePVC(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) (*v1.PersistentVolumeClaim, error) {
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
+	pvc := v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      myDrivePVCName(tn.Name),
+			Namespace: r.MyDrivePVCsNamespace,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			StorageClassName: &r.MyDrivePVCsStorageClassName,
+		},
+	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
-		scName := r.MyDrivePVCsStorageClassName
 		pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
-
-		pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
-		pvc.Spec.StorageClassName = &scName
 
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
 		if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {

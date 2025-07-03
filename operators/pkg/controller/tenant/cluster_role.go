@@ -27,7 +27,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// createTenantClusterResources creates both ClusterRole and ClusterRoleBinding for tenant access
+// createTenantClusterResources creates both ClusterRole and ClusterRoleBinding for tenant access.
 func (r *Reconciler) createTenantClusterResources(
 	ctx context.Context,
 	log logr.Logger,
@@ -48,7 +48,7 @@ func (r *Reconciler) createTenantClusterResources(
 	return nil
 }
 
-// deleteTenantClusterResources deletes both ClusterRole and ClusterRoleBinding for tenant access
+// deleteTenantClusterResources deletes both ClusterRole and ClusterRoleBinding for tenant access.
 func (r *Reconciler) deleteTenantClusterResources(
 	ctx context.Context,
 	log logr.Logger,
@@ -69,7 +69,7 @@ func (r *Reconciler) deleteTenantClusterResources(
 	return nil
 }
 
-// createTenantClusterRole creates the ClusterRole for accessing the specific tenant resource
+// createTenantClusterRole creates the ClusterRole for accessing the specific tenant resource.
 func (r *Reconciler) createTenantClusterRole(
 	ctx context.Context,
 	log logr.Logger,
