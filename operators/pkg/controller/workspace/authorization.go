@@ -18,9 +18,10 @@ package workspace
 import (
 	"context"
 
+	"k8s.io/klog/v2"
+
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"k8s.io/klog/v2"
 )
 
 func getWorkspaceRoles(

@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,9 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/go-logr/logr"
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -50,7 +50,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log.Info("Reconciling workspace", "name", req.NamespacedName.Name)
 
-	var ws crownlabsv1alpha1.Workspace
+	var ws v1alpha1.Workspace
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting workspace %s before starting reconcile -> %s", req.Name, err)
 		return ctrl.Result{}, err
@@ -89,8 +89,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// add the finalizer if not already present
-	if !controllerutil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		controllerutil.AddFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName)
+	if !controllerutil.ContainsFinalizer(&ws, v1alpha2.TnOperatorFinalizerName) {
+		controllerutil.AddFinalizer(&ws, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, &ws); err != nil {
 			klog.Errorf("Error adding finalizer to workspace %s: %v", ws.Name, err)
 			return ctrl.Result{}, err
@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("AutoEnrollment managed for workspace", "name", ws.Name)
 
 	if ws.Status.Subscriptions == nil {
-		ws.Status.Subscriptions = make(map[string]crownlabsv1alpha2.SubscriptionStatus)
+		ws.Status.Subscriptions = make(map[string]v1alpha2.SubscriptionStatus)
 	}
 
 	// setup roles in Keycloak
@@ -138,7 +138,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsv1alpha1.Workspace{}, builder.WithPredicates(pred)).
+		For(&v1alpha1.Workspace{}, builder.WithPredicates(pred)).
 		Owns(&v1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.RoleBinding{}).
@@ -149,7 +149,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) deleteWorkspace(
 	ctx context.Context,
 	log logr.Logger,
-	ws *crownlabsv1alpha1.Workspace,
+	ws *v1alpha1.Workspace,
 ) error {
 	// remove the Workspace from Tenants
 	if err := r.handleTenantWorkspaceDeletion(ctx, ws); err != nil {
@@ -173,8 +173,8 @@ func (r *Reconciler) deleteWorkspace(
 	log.Info("Subresources deleted for workspace", "name", ws.Name)
 
 	// delete finalizer
-	if controllerutil.ContainsFinalizer(ws, crownlabsv1alpha2.TnOperatorFinalizerName) {
-		controllerutil.RemoveFinalizer(ws, crownlabsv1alpha2.TnOperatorFinalizerName)
+	if controllerutil.ContainsFinalizer(ws, v1alpha2.TnOperatorFinalizerName) {
+		controllerutil.RemoveFinalizer(ws, v1alpha2.TnOperatorFinalizerName)
 		if err := r.Update(ctx, ws); err != nil {
 			klog.Errorf("Error removing finalizer from workspace %s: %v", ws.Name, err)
 			return fmt.Errorf("error removing finalizer from workspace %s: %w", ws.Name, err)
@@ -188,7 +188,7 @@ func (r *Reconciler) deleteWorkspace(
 func (r *Reconciler) manageSubresources(
 	ctx context.Context,
 	log logr.Logger,
-	ws *crownlabsv1alpha1.Workspace,
+	ws *v1alpha1.Workspace,
 ) error {
 	// Manage the Namespace for the Workspace
 	if err := r.manageNamespace(ctx, ws); err != nil {
@@ -217,7 +217,7 @@ func (r *Reconciler) manageSubresources(
 func (r *Reconciler) deleteSubresources(
 	ctx context.Context,
 	log logr.Logger,
-	ws *crownlabsv1alpha1.Workspace,
+	ws *v1alpha1.Workspace,
 ) error {
 	// Delete the RoleBindings for the Workspace
 	if err := r.deleteRoleBindings(ctx, ws); err != nil {

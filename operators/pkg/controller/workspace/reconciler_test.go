@@ -18,12 +18,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 var _ = Describe("WorkspaceReconciler", func() {

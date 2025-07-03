@@ -21,10 +21,11 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
 
 var _ = Describe("Auth", func() {

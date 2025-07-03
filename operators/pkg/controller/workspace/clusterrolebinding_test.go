@@ -19,13 +19,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 var crbInstances = &rbacv1.ClusterRoleBinding{
