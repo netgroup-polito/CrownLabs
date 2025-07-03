@@ -127,6 +127,9 @@ func (r *Reconciler) createPersonalNamespace(
 		return fmt.Errorf("error when creating namespace for tenant %s: %w", tn.Name, err)
 	}
 
+	tn.Status.PersonalNamespace.Created = true
+	tn.Status.PersonalNamespace.Name = ns.Name
+
 	return nil
 }
 
@@ -147,6 +150,9 @@ func (r *Reconciler) deletePersonalNamespace(
 	if err != nil {
 		log.Error(err, "Error when deleting namespace of tenant %s -> %s", tn.Name, err)
 	}
+
+	tn.Status.PersonalNamespace.Created = false
+	tn.Status.PersonalNamespace.Name = ""
 
 	return err
 }
