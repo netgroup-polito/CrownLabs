@@ -16,9 +16,10 @@
 package main
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/workspace"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func init() {}

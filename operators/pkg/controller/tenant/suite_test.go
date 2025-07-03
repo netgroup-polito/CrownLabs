@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tenant_test implements tenant controller tests.
 package tenant_test
 
 import (
@@ -20,11 +21,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
@@ -36,6 +32,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 )
 
 const (
@@ -153,16 +155,27 @@ func removeObjFromObjectsList(obj client.Object) {
 	}
 }
 
-// GinkgoLogWriter implements logr.LogSink
+// GinkgoLogWriter implements logr.LogSink.
 type GinkgoLogWriter struct{}
 
-func (w GinkgoLogWriter) Init(info logr.RuntimeInfo) {}
-func (w GinkgoLogWriter) Enabled(level int) bool     { return true }
-func (w GinkgoLogWriter) Info(level int, msg string, keysAndValues ...interface{}) {
+// Init initializes the logger with runtime information.
+func (w GinkgoLogWriter) Init(_ logr.RuntimeInfo) {}
+
+// Enabled returns whether logging is enabled at the specified level.
+func (w GinkgoLogWriter) Enabled(_ int) bool { return true }
+
+// Info logs an info message with the given key-value pairs.
+func (w GinkgoLogWriter) Info(_ int, msg string, keysAndValues ...interface{}) {
 	GinkgoWriter.Printf("%s -- %v\n", msg, keysAndValues)
 }
+
+// Error logs an error message with the given key-value pairs.
 func (w GinkgoLogWriter) Error(err error, msg string, keysAndValues ...interface{}) {
 	GinkgoWriter.Printf("ERROR: %s -- %v -- %v\n", msg, err, keysAndValues)
 }
-func (w GinkgoLogWriter) WithValues(keysAndValues ...interface{}) logr.LogSink { return w }
-func (w GinkgoLogWriter) WithName(name string) logr.LogSink                    { return w }
+
+// WithValues returns a new LogSink with the specified key-value pairs.
+func (w GinkgoLogWriter) WithValues(_ ...interface{}) logr.LogSink { return w }
+
+// WithName returns a new LogSink with the specified name.
+func (w GinkgoLogWriter) WithName(_ string) logr.LogSink { return w }

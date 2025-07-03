@@ -18,8 +18,9 @@ package main
 import (
 	"flag"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"k8s.io/klog/v2"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 var (

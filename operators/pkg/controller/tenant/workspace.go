@@ -20,10 +20,11 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -31,7 +32,7 @@ const (
 	NoWorkspacesLabel = "crownlabs.polito.it/no-workspaces"
 )
 
-// if there is some problem with a workspace, we add it to the related list in the tenant's status
+// If there is some problem with a workspace, we add it to the related list in the tenant's status
 // for each valid workspace, a label is added to the tenant.
 func (r *Reconciler) manageWorkspaces(
 	ctx context.Context,
@@ -60,19 +61,18 @@ func (r *Reconciler) manageWorkspaces(
 
 	// update labels
 	if err := r.updatePreservingStatus(ctx, log, tn); err != nil {
-		log.Error(err, "Error updating tenant %s with workspaces labels: %v",tn.Name, err)
-		// if there was a problem updating the tenant, we add all the workspaces to the failing list
+		log.Error(err, "Error updating tenant %s with workspaces labels: %v", tn.Name, err)
 		return err
 	}
 
-	log.Info("Updated tenant %s with workspaces labels",tn.Name)
+	log.Info("Updated tenant %s with workspaces labels", tn.Name)
 
 	return nil
 }
 
 func (r *Reconciler) manageSingleWorkspace(
 	ctx context.Context,
-	log logr.Logger, 
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 	tenantWorkspace *v1alpha2.TenantWorkspaceEntry,
 ) (int, error) {
@@ -85,12 +85,12 @@ func (r *Reconciler) manageSingleWorkspace(
 	switch {
 	case err != nil:
 		// if there was a problem, add the workspace to the status of the tenant
-		log.Error(err, "Error when checking if workspace %s exists in tenant %s -> %s",tenantWorkspace.Name, tn.Name, err)
+		log.Error(err, "Error when checking if workspace %s exists in tenant %s -> %s", tenantWorkspace.Name, tn.Name, err)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 		tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
 	case tenantWorkspace.Role == v1alpha2.Candidate && workspace.Spec.AutoEnroll != v1alpha1.AutoenrollWithApproval:
 		// Candidate role is allowed only if the workspace has autoEnroll = WithApproval
-		log.Error(err, "Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s",tenantWorkspace.Name, tn.Name)
+		log.Error(err, "Workspace %s has not autoEnroll with approval, Candidate role is not allowed in tenant %s", tenantWorkspace.Name, tn.Name)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 	default:
 		r.addWorkspaceLabel(tn, tenantWorkspace.Name, tenantWorkspace.Role)
@@ -199,7 +199,7 @@ func (r *Reconciler) getWorkspacesList(
 			Name: ws.Name,
 		}, &workspace)
 		if err != nil {
-			log.Error(err, "Error when getting workspace %s: %v",ws.Name, err)
+			log.Error(err, "Error when getting workspace %s: %v", ws.Name, err)
 			return nil, err
 		}
 

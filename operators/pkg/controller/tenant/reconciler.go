@@ -278,7 +278,7 @@ func (r *Reconciler) deleteTenant(
 	}
 	log.Info("Deleted tenant cluster resources", "name", tn.Name)
 
-	//delete MyDrivePVC
+	// delete MyDrivePVC
 	if err := r.deleteMyDrivePVC(ctx, log, tn); err != nil {
 		log.Error(err, "Error deleting MyDrive PVC for tenant %s: %v", tn.Name, err)
 		return fmt.Errorf("error deleting MyDrive PVC for tenant %s: %w", tn.Name, err)

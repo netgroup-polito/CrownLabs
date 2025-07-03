@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -31,6 +29,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
 
 var _ = Describe("Authentication Unit", func() {
@@ -296,8 +297,6 @@ var _ = Describe("Authentication Unit", func() {
 })
 
 var _ = Describe("Authentication Reconciler", func() {
-	var ()
-
 	BeforeEach(func() {
 		keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
 		keycloakActor.EXPECT().GetUserRoles(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
