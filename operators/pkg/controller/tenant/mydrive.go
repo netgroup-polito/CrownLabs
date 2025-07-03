@@ -1,4 +1,5 @@
 package tenant
+
 // Copyright 2020-2025 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,24 +14,21 @@ package tenant
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"github.com/go-logr/logr"
 	"k8s.io/utils/ptr"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -54,12 +52,12 @@ const (
 // createMyDrivePVC creates the PVC for tenant's personal storage in cross-namespace
 func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	// Persistent volume claim NFS
-	pvc, err := r.createOrUpdatePVC(ctx, log, tn)
+	pvc, err := r.createOrUpdatePVC(ctx, tn)
 	if err != nil {
 		log.Error(err, "Unable to create or update PVC for tenant %s -> %s", tn.Name, err)
 		return err
 	}
-	log.Info("PVC created/updated", )
+	log.Info("PVC created/updated")
 
 	switch pvc.Status.Phase {
 	case v1.ClaimBound:
@@ -68,14 +66,14 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 			log.Error(err, "Unable to create or update PVC Secret for tenant %s -> %s", tn.Name, err)
 			return err
 		} else if created {
-			log.Info("PVC Secret created/updated", )
+			log.Info("PVC Secret created/updated")
 		} else {
-			log.Info("Tenant namespace does not exist, skipping PVC secret creation", )
+			log.Info("Tenant namespace does not exist, skipping PVC secret creation")
 		}
 
 		val, found := pvc.Labels[forge.ProvisionJobLabel]
 		if !found || val != forge.ProvisionJobValueOk {
-			err = r.launchPVCProvisionJob(ctx, log , tn, *pvc, forge.ProvisionJobValuePending)
+			err = r.launchPVCProvisionJob(ctx, log, tn, *pvc, forge.ProvisionJobValuePending)
 			if err != nil {
 				log.Error(err, "Unable to manage PVC Provisioning Job for tenant %s -> %s", tn.Name, err)
 				return err
@@ -110,7 +108,6 @@ func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 
 func (r *Reconciler) createOrUpdatePVC(
 	ctx context.Context,
-	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) (*v1.PersistentVolumeClaim, error) {
 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: myDrivePVCName(tn.Name), Namespace: r.MyDrivePVCsNamespace}}
@@ -119,7 +116,7 @@ func (r *Reconciler) createOrUpdatePVC(
 		scName := r.MyDrivePVCsStorageClassName
 		pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
 
-		pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
+		pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
 		pvc.Spec.StorageClassName = &scName
 
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
@@ -217,7 +214,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	if err != nil {
 		return fmt.Errorf("unable to create or update PVC Provisioning Job: %w", err)
 	}
-	log.Info("PVC Provisioning Job launched", )
+	log.Info("PVC Provisioning Job launched")
 
 	pvc.Labels[forge.ProvisionJobLabel] = labelToSet
 	if err := r.Update(ctx, &pvc); err != nil {

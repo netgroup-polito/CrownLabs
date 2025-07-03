@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 

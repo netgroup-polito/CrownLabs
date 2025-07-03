@@ -18,7 +18,9 @@ package tenant
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -27,10 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
-
-	"github.com/go-logr/logr"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,8 +40,8 @@ import (
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-
-	"time"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // Reconciler reconciles a Tenant object.
@@ -172,7 +170,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// managing resources related to the personal namespace
 
 	// Test if namespace has been open for too long; check if it is ok to delete
-	keepAlive, err := r.checkNamespaceKeepAlive(ctx,log, &tn)
+	keepAlive, err := r.checkNamespaceKeepAlive(ctx, log, &tn)
 	if err != nil {
 		log.Error(err, "Error checking whether tenant namespace should be kept alive: %s", err)
 		tnOpinternalErrors.WithLabelValues("tenant", "check-keep-alive").Inc()
@@ -215,7 +213,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // SetupWithManager registers a new controller for Tenant resources.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger ) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		log.Error(err, "Error creating predicate for tenant controller: %v", err)
@@ -316,7 +314,7 @@ func (r *Reconciler) workspaceToEnrolledTenants(
 		fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.GetName()),
 	}); err != nil {
 		log := ctrl.LoggerFrom(ctx)
-    log.Error(err, "Error when retrieving tenants enrolled in %s -> %s", ws.GetName(), err)
+		log.Error(err, "Error when retrieving tenants enrolled in %s -> %s", ws.GetName(), err)
 		return nil
 	}
 	for idx := range tenants.Items {

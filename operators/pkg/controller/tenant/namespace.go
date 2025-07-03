@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -42,30 +42,30 @@ func (r *Reconciler) createResourcesRelatedToPersonalNamespace(
 	if err := r.createPersonalNamespace(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Personal namespace created ","namespace", getNamespaceName(tn))
+	log.Info("Personal namespace created", "namespace", getNamespaceName(tn))
 
 	// manage resource quota
-	if err := r.createResourceQuota(ctx, log, tn); err != nil {
+	if err := r.createResourceQuota(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Resource quota created ","namespace", getNamespaceName(tn))
+	log.Info("Resource quota created", "namespace", getNamespaceName(tn))
 
 	// manage role binding for instance management
-	if err := r.createInstanceRoleBinding(ctx, log, tn); err != nil {
+	if err := r.createInstanceRoleBinding(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Role binding created ","namespace", getNamespaceName(tn))
+	log.Info("Role binding created", "namespace", getNamespaceName(tn))
 
 	// Network Policies
 	if err := r.createDenyNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating deny network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Deny network policy created ","namespace", getNamespaceName(tn))
+	log.Info("Deny network policy created", "namespace", getNamespaceName(tn))
 
 	if err := r.createAllowNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating allow network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Allow network policy created ","namespace", getNamespaceName(tn))
+	log.Info("Allow network policy created", "namespace", getNamespaceName(tn))
 
 	return nil
 }
@@ -79,29 +79,29 @@ func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
 	if err := r.deleteDenyNetworkPolicy(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting deny network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Deny network policy deleted","namespace", getNamespaceName(tn))
+	log.Info("🔥 Deny network policy deleted", "namespace", getNamespaceName(tn))
 
 	if err := r.deleteAllowNetworkPolicy(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting allow network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Allow network policy deleted","namespace", getNamespaceName(tn))
+	log.Info("🔥 Allow network policy deleted", "namespace", getNamespaceName(tn))
 	// Delete the role binding for instance management
 	if err := r.deleteInstanceRoleBinding(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting role binding for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Role binding deleted","namespace", getNamespaceName(tn))
+	log.Info("🔥 Role binding deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the resource quota for the personal namespace
 	if err := r.deleteResourceQuota(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Resource quota deleted","namespace", getNamespaceName(tn))
+	log.Info("🔥 Resource quota deleted", "namespace", getNamespaceName(tn))
 
 	// Delete the personal namespace for the tenant
 	if err := r.deletePersonalNamespace(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Personal namespace deleted","namespace", getNamespaceName(tn))
+	log.Info("🔥 Personal namespace deleted", "namespace", getNamespaceName(tn))
 
 	return nil
 }
@@ -159,7 +159,7 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
 	sPassed := time.Since(tn.Spec.LastLogin.Time)
 
-	log.Info("Last login of tenant %s was %s ago",tn.Name, sPassed)
+	log.Info("Last login of tenant %s was %s ago", tn.Name, sPassed)
 
 	// Attempt to get instances in current namespace
 	list := &v1alpha2.InstanceList{}
@@ -169,14 +169,14 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	}
 
 	if sPassed > r.TenantNSKeepAlive { // seconds
-		log.Info("Over %s elapsed since last login of tenant %s: tenant namespace shall be absent",r.TenantNSKeepAlive, tn.Name)
+		log.Info("Over %s elapsed since last login of tenant %s: tenant namespace shall be absent", r.TenantNSKeepAlive, tn.Name)
 		if len(list.Items) == 0 {
-			log.Info("No instances found for tenant %s: namespace can be deleted",tn.Name)
+			log.Info("No instances found for tenant %s: namespace can be deleted", tn.Name)
 			return false, nil
 		}
-		log.Info("Instances found for tenant %s. Namespace will not be deleted",tn.Name)
+		log.Info("Instances found for tenant %s. Namespace will not be deleted", tn.Name)
 	} else {
-		log.Info("Under %s (limit) elapsed since last login of tenant %s: tenant namespace shall be present",r.TenantNSKeepAlive, tn.Name)
+		log.Info("Under %s (limit) elapsed since last login of tenant %s: tenant namespace shall be present", r.TenantNSKeepAlive, tn.Name)
 	}
 
 	return true, nil
@@ -189,7 +189,6 @@ func getNamespaceName(tn *v1alpha2.Tenant) string {
 
 func (r *Reconciler) createResourceQuota(
 	ctx context.Context,
-	log logr.Logger, 
 	tn *v1alpha2.Tenant,
 ) error {
 	nsName := getNamespaceName(tn)
@@ -236,7 +235,6 @@ func (r *Reconciler) deleteResourceQuota(
 
 func (r *Reconciler) createInstanceRoleBinding(
 	ctx context.Context,
-	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
 	nsName := getNamespaceName(tn)

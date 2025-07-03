@@ -108,7 +108,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, targetLabel)
+		err := setupTenant(mgr, log, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}

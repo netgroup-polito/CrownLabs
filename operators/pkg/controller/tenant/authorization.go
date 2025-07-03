@@ -22,6 +22,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
+
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )

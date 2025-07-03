@@ -23,9 +23,10 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // CheckKeycloakUserVerified checks if the Tenant has already been created in Keycloak

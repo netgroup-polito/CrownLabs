@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Namespace management", func() {
@@ -37,7 +37,7 @@ var _ = Describe("Namespace management", func() {
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Verifica labels
+			// Check labels
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", tnName))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
@@ -51,7 +51,7 @@ var _ = Describe("Namespace management", func() {
 				Namespace: "tenant-" + tnName,
 			}, rq, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Verifica configurazione
+			// Check configuration
 			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 			Expect(rq.Spec.Hard).ToNot(BeEmpty())
@@ -64,7 +64,7 @@ var _ = Describe("Namespace management", func() {
 				Namespace: "tenant-" + tnName,
 			}, rb, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Verifica configurazione
+			// Check configuration
 			Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 			Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 			Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
@@ -82,7 +82,7 @@ var _ = Describe("Namespace management", func() {
 				Namespace: "tenant-" + tnName,
 			}, netPol, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Verifica configurazione
+			// Check configuration
 			Expect(netPol.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 			Expect(netPol.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 			Expect(netPol.Spec.PodSelector.MatchLabels).To(HaveLen(0))
@@ -98,7 +98,7 @@ var _ = Describe("Namespace management", func() {
 				Namespace: "tenant-" + tnName,
 			}, netPol, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Verifica configurazione
+			// Check configuration
 			Expect(netPol.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 			Expect(netPol.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 			Expect(netPol.Spec.PodSelector.MatchLabels).To(HaveLen(0))
@@ -110,25 +110,25 @@ var _ = Describe("Namespace management", func() {
 
 	Context("When tenant namespace should be deleted", func() {
 		JustBeforeEach(func() {
-			// Verifica che le risorse siano state create
+			// Check that resources have been created
 			namespace := &v1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Ottieni la versione aggiornata del tenant dal cluster
+			// Get updated tenant version from cluster
 			updatedTenant := &v1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Configura per eliminazione: last login molto vecchio
+			// Configure for deletion: very old last login
 			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Aggiorna la reference locale
+			// Update local reference
 			tnResource = updatedTenant
 
-			// Trigger reconciliation per eliminazione
+			// Trigger reconciliation for deletion
 			_, err = tenantReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: tnResource.Name,
@@ -178,12 +178,12 @@ var _ = Describe("Namespace management", func() {
 
 	Context("When tenant has instances running", func() {
 		JustBeforeEach(func() {
-			// Verifica che il namespace sia stato creato
+			// Check that namespace was created
 			namespace := &v1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			// Crea un'istanza nel namespace del tenant
+			// Create an instance in the tenant namespace
 			instance := &v1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-instance",
@@ -197,21 +197,21 @@ var _ = Describe("Namespace management", func() {
 				},
 			}
 
-			// Aggiungi l'istanza al fake client esistente
+			// Add instance to existing fake client
 			err := cl.Create(ctx, instance)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Ottieni la versione aggiornata del tenant
+			// Get updated tenant version
 			updatedTenant := &v1alpha2.Tenant{}
 			err = cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Configura last login molto vecchio (dovrebbe eliminare il namespace ma non lo farà a causa dell'istanza)
+			// Configure very old last login (should delete namespace but won't due to instance)
 			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Aggiorna la reference locale
+			// Update local reference
 			tnResource = updatedTenant
 
 			// Trigger reconciliation
