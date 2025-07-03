@@ -6,8 +6,6 @@ toolchain go1.24.2
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
-	github.com/Nerzal/gocloak/v7 v7.11.0
-	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
 	github.com/go-logr/logr v1.4.2
 	github.com/go-resty/resty/v2 v2.12.0
