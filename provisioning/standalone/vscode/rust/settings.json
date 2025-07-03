@@ -8,5 +8,9 @@
     "code-runner.executorMap": {
         "rust": "cd $dir.. && cargo run"
     },
-    "rust-analyzer.cache.warmup": false
+    "rust-analyzer.cache.warmup": false,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    },
+    "editor.formatOnSave": true,
 }
