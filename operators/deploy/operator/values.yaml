@@ -12,9 +12,9 @@ configurations:
     clientId: client-operator
     clientSecret: my-awesome-secret
     rolesClientId: client-api-server
-#   mydrivePVCsSize: 1Gi
-#   mydrivePVCsStorageClassName: rook-nfs
-#   mydrivePVCsNamespace: mydrive-pvcs
+  mydrivePVCsSize: 1Gi
+  mydrivePVCsStorageClassName: rook-nfs
+  mydrivePVCsNamespace: mydrive-pvcs
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
   tenantNamespaceKeepAlive: 168h

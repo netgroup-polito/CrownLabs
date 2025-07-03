@@ -28,6 +28,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -41,6 +42,9 @@ var (
 	tenantWebhookBypassGroups     string
 	tenantBaseWorkspaces          string
 	tenantMaxConcurrentReconciles int
+	mydrivePVCsSize               args.Quantity
+	mydrivePVCsStorageClassName   string
+	myDrivePVCsNamespace          string
 )
 
 const (
@@ -61,12 +65,10 @@ func init() {
 	flag.StringVar(&tenantWebhookBypassGroups, "webhook-bypass-groups", "system:masters", "The list of groups which can skip webhooks checks, comma separated values")
 	flag.StringVar(&tenantBaseWorkspaces, "base-workspaces", "", "List of comma separated workspaces to be enforced to every tenant")
 
-	// mydrivePVCsSize := args.NewQuantity("1Gi")
-	// var mydrivePVCsStorageClassName string
-	// var myDrivePVCsNamespace string
-	// flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
-	// flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
-	// flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
+	mydrivePVCsSize = args.NewQuantity("1Gi")
+	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
+	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
+	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
 
 	flag.IntVar(&forge.CapInstance, "cap-instance", 10, "The cap number of instances that can be requested by a Tenant.")
 	flag.IntVar(&forge.CapCPU, "cap-cpu", 25, "The cap amount of CPU cores that can be requested by a Tenant.")
@@ -86,15 +88,18 @@ func setupTenant(
 	}
 
 	tn := &tenant.Reconciler{
-		Client:                  mgr.GetClient(),
-		Scheme:                  mgr.GetScheme(),
-		TargetLabel:             targetLabel,
-		TenantNSKeepAlive:       tenantNSKeepAlive,
-		TriggerReconcileChannel: make(chan event.GenericEvent, 10),
-		KeycloakActor:           common.GetKeycloakActor(),
-		SandboxClusterRole:      sandboxClusterRole,
-		BaseWorkspaces:          baseWorkspacesList,
-		Concurrency:             tenantMaxConcurrentReconciles,
+		Client:                      mgr.GetClient(),
+		Scheme:                      mgr.GetScheme(),
+		TargetLabel:                 targetLabel,
+		TenantNSKeepAlive:           tenantNSKeepAlive,
+		TriggerReconcileChannel:     make(chan event.GenericEvent, 10),
+		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,
+		MyDrivePVCsStorageClassName: mydrivePVCsStorageClassName,
+		MyDrivePVCsNamespace:        myDrivePVCsNamespace,
+		KeycloakActor:               common.GetKeycloakActor(),
+		SandboxClusterRole:          sandboxClusterRole,
+		BaseWorkspaces:              baseWorkspacesList,
+		Concurrency:                 tenantMaxConcurrentReconciles,
 	}
 
 	if err := tn.SetupWithManager(mgr); err != nil {
