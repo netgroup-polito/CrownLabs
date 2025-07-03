@@ -15,9 +15,10 @@
 package common
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Utils", func() {
