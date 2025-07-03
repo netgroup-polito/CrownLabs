@@ -116,7 +116,7 @@ func (r *Reconciler) createOrUpdatePVC(
 		scName := r.MyDrivePVCsStorageClassName
 		pvc.Labels = r.updateTnResourceCommonLabels(pvc.Labels)
 
-		pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
+		pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
 		pvc.Spec.StorageClassName = &scName
 
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
