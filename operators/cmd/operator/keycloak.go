@@ -69,7 +69,9 @@ func setupKeycloak(
 			keycloakRealm,
 			keycloakRolesClientID,
 		)
-		return err
+		if err != nil {
+			return err
+		}
 	} else {
 		err := common.SetupKeycloakActor(
 			keycloakURL,
@@ -78,6 +80,10 @@ func setupKeycloak(
 			keycloakRealm,
 			keycloakRolesClientID,
 		)
-		return err
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
