@@ -7,6 +7,7 @@ import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
+import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -24,6 +25,8 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
+  const [showExposureModal, setShowExposureModal] = useState(false);
+  const onEnablePublicExposure = () => setShowExposureModal(true);
 
   const getTime = () => {
     if (!instance.timeStamp) return 'unknown';
@@ -50,7 +53,13 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     return 'now';
   };
 
-  const fieldsDropdown = { instance, setSshModal, fileManager, extended };
+  const fieldsDropdown = {
+    instance,
+    setSshModal,
+    fileManager,
+    extended,
+    onEnablePublicExposure,
+  };
 
   return (
     <>
@@ -112,6 +121,10 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
       >
         <SSHModalContent instanceIp={instance.ip} hasSSHKeys={hasSSHKeys!} />
       </Modal>
+      <PublicExposureModal
+        open={showExposureModal}
+        onCancel={() => setShowExposureModal(false)}
+      />
     </>
   );
 };

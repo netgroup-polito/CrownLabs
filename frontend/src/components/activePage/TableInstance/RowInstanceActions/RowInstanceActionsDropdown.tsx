@@ -26,12 +26,19 @@ export interface IRowInstanceActionsDropdownProps {
   fileManager?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onEnablePublicExposure?: () => void;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, extended, setSshModal } = props;
+  const {
+    instance,
+    fileManager,
+    extended,
+    setSshModal,
+    onEnablePublicExposure,
+  } = props;
 
   const {
     status,
@@ -139,6 +146,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
           },
+          ...(onEnablePublicExposure
+            ? [
+                {
+                  key: 'expose',
+                  label: 'Port Exposure',
+                  icon: <ExportOutlined style={font20px} />,
+                  onClick: () => onEnablePublicExposure?.(),
+                },
+                {
+                  type: 'divider' as const,
+                },
+              ]
+            : []),
           {
             key: 'ssh',
             label: 'SSH',
