@@ -6,6 +6,7 @@ toolchain go1.24.2
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
+	github.com/Nerzal/gocloak/v7 v7.11.0
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
 	github.com/go-logr/logr v1.4.2
 	github.com/go-resty/resty/v2 v2.12.0
@@ -30,6 +31,7 @@ require (
 
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

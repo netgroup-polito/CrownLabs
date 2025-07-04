@@ -22,14 +22,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
+	gk13 "github.com/Nerzal/gocloak/v13"
+	"github.com/Nerzal/gocloak/v7"
 	"k8s.io/klog/v2"
 )
 
 // KeycloakActor contains the functionality to interact with Keycloak.
-type KeycloakActor struct {
+type KeycloakActorCompatibility struct {
 	initialized    bool
-	Client         GoCloakIface
+	Client         gocloak.GoCloak
 	Realm          string
 	token          *gocloak.JWT
 	tokenMutex     sync.RWMutex
@@ -43,55 +44,49 @@ type KeycloakActor struct {
 	cacheMutex    sync.RWMutex
 }
 
-const tokenRefreshBuffer = 30 // the token is considered about to expire if it has less than this many seconds left
-
-var actor KeycloakActor
-var actorIface KeycloakActorIface = &actor
+var actorCompatibility KeycloakActorCompatibility
 
 // SetupKeycloakActor creates and initializes a new KeycloakActor.
-func SetupKeycloakActor(
+func SetupKeycloakActorCompatibility(
 	url string,
 	clientID string,
 	clientSecret string,
 	realm string,
 	rolesClientID string,
 ) error {
-	if actor.IsInitialized() {
+	if actorCompatibility.IsInitialized() {
 		return nil
 	}
 
-	if actor.Client == nil {
-		actor.Client = gocloak.NewClient(url)
+	actorIface = &actorCompatibility
+
+	if actorCompatibility.Client == nil {
+		actorCompatibility.Client = gocloak.NewClient(url)
 	}
 
 	// login to keycloak
-	_, err := actor.Client.LoginClient(context.Background(), clientID, clientSecret, realm)
+	_, err := actorCompatibility.Client.LoginClient(context.Background(), clientID, clientSecret, realm)
 	if err != nil {
 		klog.Error("Unable to login on keycloak: ", err)
 		return err
 	}
 
-	actor.Realm = realm
-	actor.credentials.ClientID = clientID
-	actor.credentials.ClientSecret = clientSecret
-	actor.RolesClientID = rolesClientID
-	actor.clientIDCache = make(map[string]string)
-	actor.initialized = true
+	actorCompatibility.Realm = realm
+	actorCompatibility.credentials.ClientID = clientID
+	actorCompatibility.credentials.ClientSecret = clientSecret
+	actorCompatibility.RolesClientID = rolesClientID
+	actorCompatibility.clientIDCache = make(map[string]string)
+	actorCompatibility.initialized = true
 	return nil
 }
 
-// GetKeycloakActor returns the KcActor currently used.
-func GetKeycloakActor() KeycloakActorIface {
-	return actorIface
-}
-
 // IsInitialized checks if the KeycloakActor has been initialized.
-func (a *KeycloakActor) IsInitialized() bool {
+func (a *KeycloakActorCompatibility) IsInitialized() bool {
 	return a.initialized
 }
 
 // Reset clears the KeycloakActor's token and cached data.
-func (a *KeycloakActor) Reset() {
+func (a *KeycloakActorCompatibility) Reset() {
 	a.tokenMutex.Lock()
 	a.cacheMutex.Lock()
 	defer a.tokenMutex.Unlock()
@@ -110,7 +105,7 @@ func (a *KeycloakActor) Reset() {
 
 // GetAccessToken returns the access token of the actor.
 // It tries to refresh the token if it is nil or expired.
-func (a *KeycloakActor) GetAccessToken() string {
+func (a *KeycloakActorCompatibility) GetAccessToken() string {
 	a.tokenMutex.RLock()
 	defer a.tokenMutex.RUnlock()
 
@@ -136,10 +131,10 @@ func (a *KeycloakActor) GetAccessToken() string {
 }
 
 // GetUser returns the user associated with the given username.
-func (a *KeycloakActor) GetUser(
+func (a *KeycloakActorCompatibility) GetUser(
 	ctx context.Context,
 	username string,
-) (*gocloak.User, error) {
+) (*gk13.User, error) {
 	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(), a.Realm, gocloak.GetUsersParams{
 		Username: &username,
 	})
@@ -155,11 +150,11 @@ func (a *KeycloakActor) GetUser(
 
 	user := users[0]
 
-	return user, nil
+	return a.convertUserV7to13(user), nil
 }
 
 // CreateUser creates a user in Keycloak.
-func (a *KeycloakActor) CreateUser(
+func (a *KeycloakActorCompatibility) CreateUser(
 	ctx context.Context,
 	username string,
 	email string,
@@ -197,14 +192,14 @@ func (a *KeycloakActor) CreateUser(
 }
 
 // DeleteUser removes a user from Keycloak.
-func (a *KeycloakActor) DeleteUser(
+func (a *KeycloakActorCompatibility) DeleteUser(
 	ctx context.Context,
 	userID string,
 ) error {
 	return a.Client.DeleteUser(ctx, a.GetAccessToken(), a.Realm, userID)
 }
 
-func (a *KeycloakActor) getClientInternalIdentifierByClientID(
+func (a *KeycloakActorCompatibility) getClientInternalIdentifierByClientID(
 	ctx context.Context,
 	clientID string,
 ) (string, error) {
@@ -238,10 +233,10 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 }
 
 // GetRole gets a role from Keycloak.
-func (a *KeycloakActor) GetRole(
+func (a *KeycloakActorCompatibility) GetRole(
 	ctx context.Context,
 	roleName string,
-) (*gocloak.Role, error) {
+) (*gk13.Role, error) {
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
 	if err != nil {
 		klog.Error("Unable to get client internal identifier from keycloak", err)
@@ -264,11 +259,11 @@ func (a *KeycloakActor) GetRole(
 		return nil, err
 	}
 
-	return role, nil
+	return a.convertRoleV7to13(role), nil
 }
 
 // CreateRole creates a new role in Keycloak.
-func (a *KeycloakActor) CreateRole(
+func (a *KeycloakActorCompatibility) CreateRole(
 	ctx context.Context,
 	roleName string,
 	roleDescription string,
@@ -300,7 +295,7 @@ func (a *KeycloakActor) CreateRole(
 }
 
 // DeleteRole removes a role from Keycloak.
-func (a *KeycloakActor) DeleteRole(
+func (a *KeycloakActorCompatibility) DeleteRole(
 	ctx context.Context,
 	roleName string,
 ) error {
@@ -329,10 +324,10 @@ func (a *KeycloakActor) DeleteRole(
 }
 
 // GetUserRoles gets the roles assigned to a user in Keycloak.
-func (a *KeycloakActor) GetUserRoles(
+func (a *KeycloakActorCompatibility) GetUserRoles(
 	ctx context.Context,
 	userID string,
-) ([]*gocloak.Role, error) {
+) ([]*gk13.Role, error) {
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
 	if err != nil {
 		klog.Error("Unable to get client internal identifier from keycloak", err)
@@ -355,14 +350,14 @@ func (a *KeycloakActor) GetUserRoles(
 		return nil, err
 	}
 
-	return roles, nil
+	return a.convertRolesV7to13(roles), nil
 }
 
 // AddUserToRoles adds a user to the specified roles in Keycloak.
-func (a *KeycloakActor) AddUserToRoles(
+func (a *KeycloakActorCompatibility) AddUserToRoles(
 	ctx context.Context,
 	userID string,
-	roles []*gocloak.Role,
+	roles []*gk13.Role,
 ) error {
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
 	if err != nil {
@@ -374,11 +369,11 @@ func (a *KeycloakActor) AddUserToRoles(
 	rolesVal := make([]gocloak.Role, len(roles))
 	for i, r := range roles {
 		if r != nil {
-			rolesVal[i] = *r
+			rolesVal[i] = *a.convertRoleV13to7(r)
 		}
 	}
 
-	err = a.Client.AddClientRolesToUser(
+	err = a.Client.AddClientRoleToUser(
 		ctx,
 		a.GetAccessToken(),
 		a.Realm,
@@ -396,10 +391,10 @@ func (a *KeycloakActor) AddUserToRoles(
 }
 
 // RemoveUserFromRoles removes a user from the specified roles in Keycloak.
-func (a *KeycloakActor) RemoveUserFromRoles(
+func (a *KeycloakActorCompatibility) RemoveUserFromRoles(
 	ctx context.Context,
 	userID string,
-	roles []*gocloak.Role,
+	roles []*gk13.Role,
 ) error {
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
 	if err != nil {
@@ -411,11 +406,11 @@ func (a *KeycloakActor) RemoveUserFromRoles(
 	rolesVal := make([]gocloak.Role, len(roles))
 	for i, r := range roles {
 		if r != nil {
-			rolesVal[i] = *r
+			rolesVal[i] = *a.convertRoleV13to7(r)
 		}
 	}
 
-	err = a.Client.DeleteClientRolesFromUser(
+	err = a.Client.DeleteClientRoleFromUser(
 		ctx,
 		a.GetAccessToken(),
 		a.Realm,
@@ -430,4 +425,40 @@ func (a *KeycloakActor) RemoveUserFromRoles(
 	}
 
 	return nil
+}
+
+func (a *KeycloakActorCompatibility) convertUserV7to13(v7 *gocloak.User) *gk13.User {
+	return &gk13.User{
+		ID:            v7.ID,
+		Username:      v7.Username,
+		Email:         v7.Email,
+		FirstName:     v7.FirstName,
+		LastName:      v7.LastName,
+		Enabled:       v7.Enabled,
+		EmailVerified: v7.EmailVerified,
+	}
+}
+
+func (a *KeycloakActorCompatibility) convertRoleV7to13(v7 *gocloak.Role) *gk13.Role {
+	return &gk13.Role{
+		ID:          v7.ID,
+		Name:        v7.Name,
+		Description: v7.Description,
+	}
+}
+
+func (a *KeycloakActorCompatibility) convertRolesV7to13(v7 []*gocloak.Role) []*gk13.Role {
+	roles := make([]*gk13.Role, len(v7))
+	for i, role := range v7 {
+		roles[i] = a.convertRoleV7to13(role)
+	}
+	return roles
+}
+
+func (a *KeycloakActorCompatibility) convertRoleV13to7(v13 *gk13.Role) *gocloak.Role {
+	return &gocloak.Role{
+		ID:          v13.ID,
+		Name:        v13.Name,
+		Description: v13.Description,
+	}
 }

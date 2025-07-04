@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"k8s.io/klog/v2"
 
@@ -30,6 +31,8 @@ var (
 	keycloakRealm        string
 
 	keycloakRolesClientID string // The client ID of the client in which the roles are defined.
+
+	keycloakCompatibilityMode bool // If true, the Keycloak actor will use the compatibility mode for Keycloak old clients.
 )
 
 func init() {
@@ -38,27 +41,43 @@ func init() {
 	flag.StringVar(&keycloakClientID, "keycloak-client-id", "", "Keycloak Client ID")
 	flag.StringVar(&keycloakClientSecret, "keycloak-client-secret", "", "Keycloak Client Secret")
 	flag.StringVar(&keycloakRolesClientID, "keycloak-roles-client-id", "", "Keycloak Roles Client ID (the client in which the roles are defined)")
+	flag.BoolVar(&keycloakCompatibilityMode, "keycloak-compatibility-mode", false, "Enable Keycloak compatibility mode for old clients")
 }
 
 func setupKeycloak(
 	log klog.Logger,
 ) error {
 	if keycloakURL == "" || keycloakClientID == "" || keycloakClientSecret == "" || keycloakRealm == "" {
-		log.Info("Keycloak actor will not be initialized (settings not provided)")
-		return nil
+		err := fmt.Errorf("missing parameters for Keycloak configuration")
+		log.Error(err, "Keycloak actor will not be initialized (settings not provided)")
+		return err
 	}
 
 	if keycloakRolesClientID == "" {
 		keycloakRolesClientID = keycloakClientID
 	}
 
-	log.Info("Keycloak settings provided, initializing Keycloak actor")
-	err := common.SetupKeycloakActor(
-		keycloakURL,
-		keycloakClientID,
-		keycloakClientSecret,
-		keycloakRealm,
-		keycloakRolesClientID,
-	)
-	return err
+	log.Info("Initializing Keycloak actor")
+
+	if keycloakCompatibilityMode {
+		log.Info("WARNING: Keycloak compatibility mode is enabled")
+
+		err := common.SetupKeycloakActorCompatibility(
+			keycloakURL,
+			keycloakClientID,
+			keycloakClientSecret,
+			keycloakRealm,
+			keycloakRolesClientID,
+		)
+		return err
+	} else {
+		err := common.SetupKeycloakActor(
+			keycloakURL,
+			keycloakClientID,
+			keycloakClientSecret,
+			keycloakRealm,
+			keycloakRolesClientID,
+		)
+		return err
+	}
 }

@@ -62,8 +62,10 @@ func main() {
 	// Enabling modules
 	var enableTenant bool
 	var enableWorkspace bool
+	var enableKeycloak bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
+	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -95,7 +97,7 @@ func main() {
 	log.Info("Selecting resources with label", "label", targetLabelStr)
 
 	// enabling Keycloak if modules that needs it are enabled
-	enableKeycloak := enableTenant || enableWorkspace
+	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
 	if enableKeycloak {
 		err := setupKeycloak(log)
 		if err != nil {

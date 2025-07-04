@@ -112,7 +112,9 @@ var _ = Describe("Auth", func() {
 					ClientSecret: "test-secret",
 				},
 			}
-			result := GetKeycloakActor()
+			r := GetKeycloakActor()
+			result, ok := r.(*KeycloakActor)
+			Expect(ok).To(BeTrue())
 			Expect(result).To(Equal(&actor))
 			Expect(result.Client).To(Equal(mKcClient))
 			Expect(result.Realm).To(Equal("test-realm"))
