@@ -24,7 +24,16 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   ]);
   const [errorKeys, setErrorKeys] = useState<number[]>([]);
 
-  const isValidPort = (val: string) => val !== '' && val !== '0';
+  const isValidPort = (val: string) => {
+    if (!val || val.trim() === '') return false;
+    const num = parseInt(val, 10);
+    return !isNaN(num) && num > 0 && num <= 65535;
+  };
+
+  const isValidPortInput = (val: string) => {
+    if (val === '') return true; // Permetti campo vuoto durante la digitazione
+    return /^\d+$/.test(val); // Solo numeri positivi
+  };
 
   const lastField = fields[fields.length - 1];
   const isAddDisabled = !isValidPort(lastField.targetPort);
@@ -52,6 +61,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     name: 'targetPort' | 'desiredPort' | 'name',
     value: string,
   ) => {
+    // Validazione input per i campi porta
+    if ((name === 'targetPort' || name === 'desiredPort') && !isValidPortInput(value)) {
+      return; // Non aggiornare se l'input non è valido
+    }
+
     if (
       name === 'targetPort' &&
       errorKeys.includes(key) &&
