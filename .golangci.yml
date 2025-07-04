@@ -89,6 +89,7 @@ linters:
         text: 'ST1003: should not use underscores in package names'
       - linters:
           - gosec
+          - dupl
         path: _test\.go
       - linters:
           - lll

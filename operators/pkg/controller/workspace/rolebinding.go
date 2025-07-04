@@ -132,7 +132,7 @@ func (r *Reconciler) deleteSingleRb(
 		},
 	}
 
-	if err := r.Client.Delete(ctx, rb); err != nil {
+	if err := r.Delete(ctx, rb); err != nil {
 		return fmt.Errorf("error while deleting RoleBinding %s: %w", rb.Name, err)
 	}
 

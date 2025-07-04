@@ -45,10 +45,10 @@ type Reconciler struct {
 
 // Reconcile reconciles the state of a Workspace resource.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "workspace", req.NamespacedName.Name)
+	log := ctrl.LoggerFrom(ctx, "workspace", req.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	log.Info("Reconciling workspace", "name", req.NamespacedName.Name)
+	log.Info("Reconciling workspace", "name", req.Name)
 
 	var ws v1alpha1.Workspace
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {

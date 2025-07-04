@@ -105,7 +105,7 @@ func (r *Reconciler) createTenantClusterRole(
 	return err
 }
 
-// createTenantClusterRoleBinding creates the ClusterRoleBinding for the tenant user
+// createTenantClusterRoleBinding creates the ClusterRoleBinding for the tenant user.
 func (r *Reconciler) createTenantClusterRoleBinding(
 	ctx context.Context,
 	log logr.Logger,
@@ -145,7 +145,7 @@ func (r *Reconciler) createTenantClusterRoleBinding(
 	return err
 }
 
-// deleteTenantClusterRole deletes the ClusterRole for tenant access
+// deleteTenantClusterRole deletes the ClusterRole for tenant access.
 func (r *Reconciler) deleteTenantClusterRole(
 	ctx context.Context,
 	log logr.Logger,
@@ -168,7 +168,7 @@ func (r *Reconciler) deleteTenantClusterRole(
 	return err
 }
 
-// deleteTenantClusterRoleBinding deletes the ClusterRoleBinding for tenant access
+// deleteTenantClusterRoleBinding deletes the ClusterRoleBinding for tenant access.
 func (r *Reconciler) deleteTenantClusterRoleBinding(
 	ctx context.Context,
 	log logr.Logger,

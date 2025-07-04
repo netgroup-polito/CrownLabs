@@ -63,10 +63,10 @@ type Reconciler struct {
 
 // Reconcile reconciles the state of a tenant resource.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "tenant", req.NamespacedName.Name)
+	log := ctrl.LoggerFrom(ctx, "tenant", req.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	log.Info("Reconciling tenant", "name", req.NamespacedName.Name)
+	log.Info("Reconciling tenant", "name", req.Name)
 
 	var tn v1alpha2.Tenant
 	if err := r.Get(ctx, req.NamespacedName, &tn); client.IgnoreNotFound(err) != nil {

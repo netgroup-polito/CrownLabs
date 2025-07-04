@@ -66,7 +66,7 @@ func (r *Reconciler) deleteNamespace(
 		},
 	}
 
-	if err := r.Client.Delete(ctx, ns); err != nil && client.IgnoreNotFound(err) != nil {
+	if err := r.Delete(ctx, ns); err != nil && client.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("error while deleting namespace %s for workspace %s: %w",
 			ns.Name, ws.Name, err)
 	}

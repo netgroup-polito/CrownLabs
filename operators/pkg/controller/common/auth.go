@@ -204,6 +204,7 @@ func (a *KeycloakActor) DeleteUser(
 	return a.Client.DeleteUser(ctx, a.GetAccessToken(), a.Realm, userID)
 }
 
+//nolint:dupl // portability between kc versions: this directive should be removed when the compatibility layer is no longer needed
 func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 	ctx context.Context,
 	clientID string,

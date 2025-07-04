@@ -392,7 +392,7 @@ var _ = Describe("Authentication Reconciler", func() {
 		Context("When the Tenant is deleted", func() {
 			BeforeEach(func() {
 				tnResource.Finalizers = append(tnResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
-				tnResource.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(10 * time.Second)}
+				tnResource.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(10 * time.Second)}
 				tnResource.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,

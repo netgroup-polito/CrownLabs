@@ -33,7 +33,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// Constants for MyDrive
+// Constants for MyDrive.
 const (
 	// NFSSecretName -> NFS secret name.
 	NFSSecretName = "mydrive-info"
@@ -49,7 +49,7 @@ const (
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
 )
 
-// createMyDrivePVC creates the PVC for tenant's personal storage in cross-namespace
+// createMyDrivePVC creates the PVC for tenant's personal storage in cross-namespace.
 func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	// Persistent volume claim NFS
 	pvc, err := r.createOrUpdatePVC(ctx, tn)
@@ -88,7 +88,7 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 	return nil
 }
 
-// deleteMyDrivePVC deletes the PVC for tenant's personal storage
+// deleteMyDrivePVC deletes the PVC for tenant's personal storage.
 func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -229,7 +229,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	return nil
 }
 
-// Helper functions
+// Helper functions.
 func myDrivePVCName(tnName string) string {
 	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tnName, ".", "-"))
 }

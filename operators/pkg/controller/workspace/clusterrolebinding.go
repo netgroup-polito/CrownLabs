@@ -113,7 +113,7 @@ func (r *Reconciler) deleteSingleCrb(
 		},
 	}
 
-	if err := r.Client.Delete(ctx, crb); err != nil {
+	if err := r.Delete(ctx, crb); err != nil {
 		return fmt.Errorf("error while deleting %s ClusterRoleBinding for workspace %s: %w",
 			kind, ws.Name, err)
 	}

@@ -27,7 +27,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// KeycloakActor contains the functionality to interact with Keycloak.
+// KeycloakActorCompatibility contains the functionality to interact with Keycloak.
 type KeycloakActorCompatibility struct {
 	initialized    bool
 	Client         gocloak.GoCloak
@@ -46,7 +46,7 @@ type KeycloakActorCompatibility struct {
 
 var actorCompatibility KeycloakActorCompatibility
 
-// SetupKeycloakActor creates and initializes a new KeycloakActor.
+// SetupKeycloakActorCompatibility creates and initializes a new KeycloakActor.
 func SetupKeycloakActorCompatibility(
 	url string,
 	clientID string,
@@ -199,6 +199,7 @@ func (a *KeycloakActorCompatibility) DeleteUser(
 	return a.Client.DeleteUser(ctx, a.GetAccessToken(), a.Realm, userID)
 }
 
+//nolint:dupl // portability between kc versions
 func (a *KeycloakActorCompatibility) getClientInternalIdentifierByClientID(
 	ctx context.Context,
 	clientID string,
