@@ -18,11 +18,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl/mocks"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -32,19 +32,20 @@ var ctx context.Context
 var cancel context.CancelFunc
 var cfg *rest.Config
 var k8sClient client.Client
+var k8sClientExpiration client.Client
 var testEnv *envtest.Environment
 var instanceInactiveTerminationReconciler instautoctrl.InstanceInactiveTerminationReconciler
 var mockCtrl *gomock.Controller
 var mockProm *mocks.MockPrometheusClientInterface
 
-//var log logr.Logger
+// var log logr.Logger
 
 func TestInstautoctrl(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Instautoctrl Suite")
 }
 
-var testLogger = zap.New(zap.UseDevMode(true)).WithName("test")
+// var testLogger = zap.New(zap.UseDevMode(true)).WithName("test")
 var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	tests.LogsToGinkgoWriter()
@@ -85,18 +86,39 @@ var _ = BeforeSuite(func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
 
+	err = (&instctrl.InstanceReconciler{
+		Client:             k8sManager.GetClient(),
+		Scheme:             k8sManager.GetScheme(),
+		EventsRecorder:     k8sManager.GetEventRecorderFor("instance-reconciler"),
+		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+	}).SetupWithManager(k8sManager, 1)
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&instautoctrl.InstanceInactiveTerminationReconciler{
 		Client:                    k8sManager.GetClient(),
 		Scheme:                    k8sManager.GetScheme(),
-		EventsRecorder:            k8sManager.GetEventRecorderFor("instance-snapshot"),
+		EventsRecorder:            k8sManager.GetEventRecorderFor("instance-termination"),
 		NamespaceWhitelist:        metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		MailClient:                nil,
 		Prometheus:                mockProm,
 		InstanceMaxNumberOfAlerts: 3,
+		NotificationInterval:      1 * time.Second,
 
 		StatusCheckRequestTimeout: 30 * time.Second,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
+
+	// err = (&instautoctrl.InstanceExpirationReconciler{
+	// 	Client:                        k8sManager.GetClient(),
+	// 	Scheme:                        k8sManager.GetScheme(),
+	// 	EventsRecorder:                k8sManager.GetEventRecorderFor("instance-expiration"),
+	// 	NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+	// 	MailClient:                    nil,
+	// 	NotificationInterval:          1 * time.Second,
+	// 	StatusCheckRequestTimeout:     30 * time.Second,
+	// 	EnableExpirationNotifications: false,
+	// }).SetupWithManager(k8sManager, 1)
+	// Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		err = k8sManager.Start(ctx)
@@ -105,6 +127,9 @@ var _ = BeforeSuite(func() {
 
 	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
+
+	k8sClientExpiration = k8sManager.GetClient()
+	Expect(k8sClientExpiration).ToNot(BeNil())
 })
 
 var _ = AfterSuite(func() {
