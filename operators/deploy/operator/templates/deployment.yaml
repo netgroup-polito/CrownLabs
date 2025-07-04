@@ -40,6 +40,7 @@ spec:
             - "--keycloak-client-id=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_ID)"
             - "--keycloak-client-secret=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_SECRET)"
             - "--keycloak-roles-client-id={{ .Values.configurations.keycloak.rolesClientId }}"
+            - "--wait-user-verification={{ .Values.configurations.waitUserVerification }}"
             - "--tenant-ns-keep-alive={{ .Values.configurations.tenantNamespaceKeepAlive }}"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
             - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
@@ -51,6 +52,8 @@ spec:
             - "--cap-instance={{ .Values.configurations.tenant.resourcecaps.instances }}"
             - "--cap-cpu={{ .Values.configurations.tenant.resourcecaps.cpu }}"
             - "--cap-memory-giga={{ .Values.configurations.tenant.resourcecaps.memory }}"
+            # compatibility with older Keycloak versions
+            - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
           ports:
             - name: metrics
               containerPort: 8080

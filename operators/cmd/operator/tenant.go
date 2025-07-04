@@ -47,6 +47,7 @@ var (
 	mydrivePVCsSize               args.Quantity
 	mydrivePVCsStorageClassName   string
 	myDrivePVCsNamespace          string
+	waitUserVerification          bool // If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
 )
 
 const (
@@ -71,6 +72,7 @@ func init() {
 	flag.Var(&mydrivePVCsSize, "mydrive-pvcs-size", "The dimension of the user's personal space")
 	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
 	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
+	flag.BoolVar(&waitUserVerification, "wait-user-verification", true, "Wait for the user to be verified in Keycloak before creating resources. If false, resources will be created immediately after the Tenant is created.")
 
 	flag.IntVar(&forge.CapInstance, "cap-instance", 10, "The cap number of instances that can be requested by a Tenant.")
 	flag.IntVar(&forge.CapCPU, "cap-cpu", 25, "The cap amount of CPU cores that can be requested by a Tenant.")
@@ -100,6 +102,7 @@ func setupTenant(
 		MyDrivePVCsStorageClassName: mydrivePVCsStorageClassName,
 		MyDrivePVCsNamespace:        myDrivePVCsNamespace,
 		KeycloakActor:               common.GetKeycloakActor(),
+		WaitUserVerification:        waitUserVerification,
 		SandboxClusterRole:          sandboxClusterRole,
 		BaseWorkspaces:              baseWorkspacesList,
 		Concurrency:                 tenantMaxConcurrentReconciles,

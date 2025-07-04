@@ -55,6 +55,7 @@ type Reconciler struct {
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
 	KeycloakActor               common.KeycloakActorIface
+	WaitUserVerification        bool // If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
 	SandboxClusterRole          string
 	BaseWorkspaces              []string
 	Concurrency                 int
@@ -144,7 +145,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("error updating tenant authorization roles for tenant %s: %w", tn.Name, err)
 	}
 
-	if !verified {
+	if r.WaitUserVerification && !verified {
 		// if the Tenant has not been verified, we can skip the reconciliation
 		// and wait for the next reconcile loop
 		log.Info("Tenant not verified, skipping resource creation")

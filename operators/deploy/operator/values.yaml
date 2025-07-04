@@ -12,9 +12,16 @@ configurations:
     clientId: client-operator
     clientSecret: my-awesome-secret
     rolesClientId: client-api-server
+    # compatibilityMode: set to true for compatibility with older Keycloak versions
+    compatibilityMode: false
   mydrivePVCsSize: 1Gi
   mydrivePVCsStorageClassName: rook-nfs
   mydrivePVCsNamespace: mydrive-pvcs
+
+  # If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
+  # If false, resources will be created immediately after the Tenant is created.
+  waitUserVerification: true
+
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
   tenantNamespaceKeepAlive: 168h
