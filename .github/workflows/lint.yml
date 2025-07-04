@@ -27,7 +27,7 @@ jobs:
       - name: Check linting
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2
+          version: v2.1.0
           working-directory: operators
 
   gomodtidy:
