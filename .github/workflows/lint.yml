@@ -25,9 +25,9 @@ jobs:
           go-version-file: ./operators/go.mod
 
       - name: Check linting
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.56
+          version: v2
           working-directory: operators
 
   gomodtidy:

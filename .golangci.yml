@@ -1,156 +1,129 @@
+version: "2"
 run:
-  deadline: 5m
   allow-parallel-runners: true
-
-linters-settings:
-  exhaustive:
-    check-generated: false
-    default-signifies-exhaustive: true
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/netgroup-polito/CrownLabs)
-
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      # Conflicts with govet check-shadowing
-      - sloppyReassign
-  goheader:
-    values:
-      const:
-        AUTHORS: Politecnico di Torino
-    template: |-
-      Copyright 2020-{{ YEAR }} {{ AUTHORS }}
-
-      Licensed under the Apache License, Version 2.0 (the "License");
-      you may not use this file except in compliance with the License.
-      You may obtain a copy of the License at
-
-          http://www.apache.org/licenses/LICENSE-2.0
-
-      Unless required by applicable law or agreed to in writing, software
-      distributed under the License is distributed on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-      See the License for the specific language governing permissions and
-      limitations under the License.
-  goimports:
-    local-prefixes: github.com/netgroup-polito/CrownLabs
-  govet:
-    shadow: true
-  misspell:
-    locale: US
-  nolintlint:
-    allow-leading-space: true # don't require machine-readable nolint directives (i.e. with no leading space)
-    allow-unused: false # report any unused nolint directives
-    require-explanation: true # require an explanation for nolint directives
-    require-specific: true # require nolint directives to be specific about which linter is being skipped
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - asciicheck
     - bodyclose
-    # - depguard
     - dogsled
     - dupl
     - durationcheck
     - errcheck
     - errorlint
     - exhaustive
-    - exportloopref
-  # - funlen
-  # - gochecknoglobals
-  # - gochecknoinits
-    - gci
-  # - gocognit
-  # - goconst
     - gocritic
     - gocyclo
     - godot
-  # - godox
-  # - goerr113
-    - gofmt
     - goheader
-    - goimports
     - gomodguard
-  # - gomnd
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - importas
     - ineffassign
-  # - lll
     - makezero
-  # - maligned
     - misspell
     - nakedret
-  # - nestif
     - noctx
     - nolintlint
-  # - prealloc
     - revive
     - rowserrcheck
     - staticcheck
-    - stylecheck
-  # - testpackage
-    - typecheck
     - unconvert
-  # - unparam
     - unused
     - whitespace
-  # - wsl
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      disabled-checks:
+        - sloppyReassign
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+    goheader:
+      values:
+        const:
+          AUTHORS: Politecnico di Torino
+      template: |-
+        Copyright 2020-{{ YEAR }} {{ AUTHORS }}
 
-issues:
-  # Disable the default exclude patterns (as they disable the mandatory comments)
-  exclude-use-default: false
-  exclude:
-    # errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
-    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
 
-  exclude-files:
-    - "zz_generated.*.go"
-    - ".*mock.go"
+            http://www.apache.org/licenses/LICENSE-2.0
 
-  exclude-rules:
-    - linters:
-        - govet
-      text: 'declaration of "(err|ctx)" shadows declaration at'
-
-    - linters:
-        - revive
-      # Excluding, as many packages are currently affected by this
-      text: "don't use an underscore in package name"
-
-    - linters:
-        - revive
-      text: "should not use dot imports"
-
-    - linters:
-        - stylecheck
-      # Excluding, as many packages are currently affected by this
-      text: "ST1003: should not use underscores in package names"
-
-    # Exclude the following linters from running on tests files.
-    - path: _test\.go
-      linters:
-        - gosec
-
-    - path: "api/*"
-      linters:
-        - lll
-
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
+        Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and
+        limitations under the License.
+    misspell:
+      locale: US
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - govet
+        text: declaration of "(err|ctx)" shadows declaration at
+      - linters:
+          - revive
+        text: don't use an underscore in package name
+      - linters:
+          - revive
+        text: should not use dot imports
+      - linters:
+          - staticcheck
+        text: 'ST1003: should not use underscores in package names'
+      - linters:
+          - gosec
+        path: _test\.go
+      - linters:
+          - lll
+        path: api/*
+      - linters:
+          - dupl
+          - lll
+        path: internal/*
+      - path: (.+)\.go$
+        text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+    paths:
+      - zz_generated.*.go
+      - .*mock.go
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/netgroup-polito/CrownLabs)
+    goimports:
+      local-prefixes:
+        - github.com/netgroup-polito/CrownLabs
+  exclusions:
+    generated: lax
+    paths:
+      - zz_generated.*.go
+      - .*mock.go
+      - third_party$
+      - builtin$
+      - examples$
