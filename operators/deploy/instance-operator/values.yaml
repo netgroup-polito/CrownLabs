@@ -3,8 +3,10 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
+replicaCountAutomation: 1
 
 configurations:
+  mailConfigMapName: crownlabs-mail-config
   generic:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com
@@ -24,16 +26,34 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
-  automation:
-    maxConcurrentTerminationReconciles: 1
-    terminationStatusCheckTimeout: "3s"
-    terminationStatusCheckInterval: "2m"
-    maxConcurrentSubmissionReconciles: 1
+  maxConcurrentShVolReconciles: 1 
   sharedVolumeOptions:
     storageClass: rook-nfs
+  monitoring:
+    prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+    queryNgninxAvailable: count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)
+    queryBastionSSHAvailable: count(up{bastion_ssh_connections", node=~"worker-.*"} == 1)
+    queryNginxData: nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}
+    queryBastionSSHData: bastion_ssh_connections{destination_ip=%q}
+  automation:
+    enableInstanceSubmission: true
+    enableInstanceTermination: true
+    enableInstanceInactiveTermination: true
+    enableInstanceExpiration: true
+    maxConcurrentTerminationReconciles: 1
+    maxConcurrentInactiveTerminationReconciles: 1
+    maxConcurrentSubmissionReconciles: 1
+    terminationStatusCheckTimeout: "3s"
+    terminationStatusCheckInterval: "2m" 
+    inactiveTerminationStatusCheckTimeout: "3s"
+    inactiveTerminationMaxNumberOfAlerts: 3
+    enableInactivityNotifications: true
+    enableExpirationNotifications: true
+    notificationInterval: "24h"
 
 image:
   repository: crownlabs/instance-operator
+  repositoryAutomation: crownlabs/instance-automation
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
