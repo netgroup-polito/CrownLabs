@@ -71,6 +71,10 @@ type TemplateSpec struct {
 	// or stopped to save resources. If set to "never", the instance will not be
 	// automatically terminated.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
+
+	// +kubebuilder:default=false
+	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
+	PublicExposureEnabled bool `json:"publicExposureEnabled,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.

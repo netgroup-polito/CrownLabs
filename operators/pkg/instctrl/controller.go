@@ -41,10 +41,17 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	publicexposure "github.com/netgroup-polito/CrownLabs/operators/pkg/public-exposure"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// InstanceReconciler reconciles a Instance object.
+const (
+	metallbPoolName = "my-ip-pool"
+	sharedIPValue   = "true"
+	basePort        = 30000
+)
+
+// InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
 	Scheme             *runtime.Scheme
@@ -52,6 +59,8 @@ type InstanceReconciler struct {
 	NamespaceWhitelist metav1.LabelSelector
 	ServiceUrls        ServiceUrls
 	ContainerEnvOpts   forge.ContainerEnvOpts
+
+	ExposureManager *publicexposure.Manager
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -176,6 +185,20 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Error(err, "unable to retrieve pod schedule status")
 	}
 
+	// Handle public exposure if configured
+	if r.ExposureManager != nil && instance.Spec.Running { // NEW: Handle public exposure
+		if err := r.ExposureManager.ReconcileExposure(ctx, &instance); err != nil {
+			log.Error(err, "failed to reconcile public exposure")
+			// Decide if this should be a blocking error. For now, we log it but don't fail the reconcile.
+			r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, "PublicExposureFailed", "Failed to configure public exposure: %v", err)
+		}
+	} else if r.ExposureManager != nil && !instance.Spec.Running {
+		// Cleanup if instance is not running
+		if err := r.ExposureManager.ReconcileExposure(ctx, &instance); err != nil {
+			log.Error(err, "failed to cleanup public exposure")
+		}
+	}
+
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
@@ -247,6 +270,7 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
