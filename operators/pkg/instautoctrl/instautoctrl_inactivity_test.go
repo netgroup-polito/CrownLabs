@@ -312,52 +312,158 @@ var _ = Describe("Instautoctrl", func() {
 	})
 
 	Context("Testing maximum inactivity time", func() {
-		// It("Should succeed: the non-persistent instance is inactive because it has reached the maximum inactivity time", func() {
-		// 	mockProm.EXPECT().
-		// 		IsPrometheusHealthy(gomock.Any()).
-		// 		Return(true, nil).
-		// 		AnyTimes()
+		It("The non-persistent VM has been inactive for an extended period and is subsequently deleted.", func() {
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
 
-		// 	mockProm.EXPECT().
-		// 		GetLastActivityTime(gomock.Any(), gomock.Any()).
-		// 		Return(time.Now().Add(-48*time.Hour), nil).
-		// 		AnyTimes()
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now().Add(-48*time.Hour), nil).
+				AnyTimes()
 
-		// 	mockProm.EXPECT().
-		// 		GetQueryNginxData().
-		// 		Return("").
-		// 		AnyTimes()
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
 
-		// 	mockProm.EXPECT().
-		// 		GetQuerySSHData().
-		// 		Return("").
-		// 		AnyTimes()
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
 
-		// 	By("Getting current instance")
-		// 	currentInstance := &crownlabsv1alpha2.Instance{}
-		// 	instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-		// 	Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
-		// 	r := &instautoctrl.InstanceInactiveTerminationReconciler{
-		// 		Client: k8sClient,
-		// 	}
-		// 	ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		// 	r.TerminateInstance(ctx)
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			r.TerminateInstance(ctx) // FIXME
 
-		// 	By("Checking the instance is inactive")
-		// 	Expect(currentInstance.Spec.Running).To(BeFalse())
-		// })
+			By("Checking the instance has been deleted")
+			err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
+			Expect(errors.IsNotFound(err)).To(BeTrue(), "The instance should be deleted")
+		})
 
-		// It("Should fail: the persistent VM is inactive for a long time and it is stopped", func() {
+		It("The persistent VM is inactive for a long time and it is stopped", func() {
 
-		// })
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
 
-		// It("Should fail: the non-persistent VM is inactive for a long time it is deleted", func() {
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now().Add(-48*time.Hour), nil).
+				AnyTimes()
 
-		// })
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
+
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: WorkingNamespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			r.TerminateInstance(ctx) // FIXME
+
+			By("Checking the instance is stopped")
+			Expect(currentInstance.Spec.Running).To(BeFalse())
+		})
 
 	})
-	It("Testing single functions", func() {
+
+	Context("Testing inactivity time < inactivity threshold", func() {
+
+		It("The non-persistent VM is active and is not deleted", func() {
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now().Add(-5*time.Minute), nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
+
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			
+			// FIXME do something?
+
+			By("Checking the instance is still running")
+			Expect(currentInstance.Spec.Running).To(BeTrue())
+		})
+
+		It("The persistent VM is active and is not stopped", func() {
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now().Add(-5*time.Minute), nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
+
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: WorkingNamespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			// FIXME do something?
+
+			By("Checking the instance is still running")
+			Expect(currentInstance.Spec.Running).To(BeTrue(), "The instance should be running")
+	})
+
+	Context("Testing single functions", func() {
 		r := &instautoctrl.InstanceInactiveTerminationReconciler{
 			Client: k8sClient,
 		}
