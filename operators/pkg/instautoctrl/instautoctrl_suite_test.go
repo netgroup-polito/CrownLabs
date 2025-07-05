@@ -24,6 +24,8 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl/mocks"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
@@ -37,6 +39,7 @@ var testEnv *envtest.Environment
 var instanceInactiveTerminationReconciler instautoctrl.InstanceInactiveTerminationReconciler
 var mockCtrl *gomock.Controller
 var mockProm *mocks.MockPrometheusClientInterface
+var instanceReconciler instctrl.InstanceReconciler
 
 // var log logr.Logger
 
@@ -68,8 +71,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = crownlabsv1alpha2.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(crownlabsv1alpha2.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -86,14 +90,6 @@ var _ = BeforeSuite(func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
 
-	err = (&instctrl.InstanceReconciler{
-		Client:             k8sManager.GetClient(),
-		Scheme:             k8sManager.GetScheme(),
-		EventsRecorder:     k8sManager.GetEventRecorderFor("instance-reconciler"),
-		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-	}).SetupWithManager(k8sManager, 1)
-	Expect(err).ToNot(HaveOccurred())
-
 	err = (&instautoctrl.InstanceInactiveTerminationReconciler{
 		Client:                    k8sManager.GetClient(),
 		Scheme:                    k8sManager.GetScheme(),
@@ -108,17 +104,17 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
 
-	// err = (&instautoctrl.InstanceExpirationReconciler{
-	// 	Client:                        k8sManager.GetClient(),
-	// 	Scheme:                        k8sManager.GetScheme(),
-	// 	EventsRecorder:                k8sManager.GetEventRecorderFor("instance-expiration"),
-	// 	NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-	// 	MailClient:                    nil,
-	// 	NotificationInterval:          1 * time.Second,
-	// 	StatusCheckRequestTimeout:     30 * time.Second,
-	// 	EnableExpirationNotifications: false,
-	// }).SetupWithManager(k8sManager, 1)
-	// Expect(err).ToNot(HaveOccurred())
+	err = (&instautoctrl.InstanceExpirationReconciler{
+		Client:                        k8sManager.GetClient(),
+		Scheme:                        k8sManager.GetScheme(),
+		EventsRecorder:                k8sManager.GetEventRecorderFor("instance-expiration"),
+		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		MailClient:                    nil,
+		NotificationInterval:          1 * time.Second,
+		StatusCheckRequestTimeout:     30 * time.Second,
+		EnableExpirationNotifications: false,
+	}).SetupWithManager(k8sManager, 1)
+	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		err = k8sManager.Start(ctx)

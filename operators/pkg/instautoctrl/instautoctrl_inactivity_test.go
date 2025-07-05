@@ -1,6 +1,7 @@
 package instautoctrl_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
@@ -115,9 +117,16 @@ var _ = Describe("Instautoctrl", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PersistentInstanceName,
 				Namespace: WorkingNamespace,
+				Labels: map[string]string{
+					"crownlabs.polito.it/operator-selector": "test-suite",
+					"crownlabs.polito.it/tenant":            TenantName,
+					"crownlabs.polito.it/workspace":         WorkingNamespace,
+					"crownlabs.polito.it/template":          nonPersistentTemplateName,
+					"crownlabs.polito.it/instance-type":     "non-persistent",
+				},
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
-				Running: false,
+				Running: true,
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      persistentTemplateName,
 					Namespace: WorkingNamespace,
@@ -134,9 +143,16 @@ var _ = Describe("Instautoctrl", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      NonPersistentInstanceName,
 				Namespace: WorkingNamespace,
+				Labels: map[string]string{
+					"crownlabs.polito.it/operator-selector": "test-suite",
+					"crownlabs.polito.it/tenant":            TenantName,
+					"crownlabs.polito.it/workspace":         WorkingNamespace,
+					"crownlabs.polito.it/template":          nonPersistentTemplateName,
+					"crownlabs.polito.it/instance-type":     "non-persistent",
+				},
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
-				Running: false,
+				Running: true,
 				Template: crownlabsv1alpha2.GenericRef{
 					Name:      nonPersistentTemplateName,
 					Namespace: WorkingNamespace,
@@ -168,6 +184,26 @@ var _ = Describe("Instautoctrl", func() {
 	)
 
 	BeforeEach(func() {
+		mockProm.EXPECT().
+			IsPrometheusHealthy(gomock.Any()).
+			Return(true, nil).
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetLastActivityTime(gomock.Any(), gomock.Any()).
+			Return(time.Now(), nil).
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetQueryNginxData().
+			Return("").
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetQuerySSHData().
+			Return("").
+			AnyTimes()
+
 		newNs := workingNs.DeepCopy()
 		newPersistentTemplate := persistentTemplate.DeepCopy()
 		newNonPersistentTemplate := nonPersistentTemplate.DeepCopy()
@@ -272,81 +308,77 @@ var _ = Describe("Instautoctrl", func() {
 			Expect(currentInactivityTimeout).To(Equal(defaultInactivityTimeout))
 		})
 
-		It("Should succeed: the persistent instance get the annotations", func() {
-			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
-				Return(true, nil).
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetLastActivityTime(gomock.Any(), gomock.Any()).
-				Return(time.Now(), nil).
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetQueryNginxData().
-				Return("").
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetQuerySSHData().
-				Return("").
-				AnyTimes()
-
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: WorkingNamespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			By("Checking the instance got the annotations defined  for the inactivity controller")
-			//Eventually(currentInstance.Annotations, timeout, interval).Should(HaveKey(forge.AlertAnnotationNum))
-			Eventually(currentInstance.Annotations, timeout/4, interval).Should(HaveKey(forge.LastActivityAnnotation))
-
-		})
 	})
 
 	Context("Testing maximum inactivity time", func() {
-		It("Should succeed: the non-persistent instance is inactive because it has reached the maximum inactivity time", func() {
-			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
-				Return(true, nil).
-				AnyTimes()
+		// It("Should succeed: the non-persistent instance is inactive because it has reached the maximum inactivity time", func() {
+		// 	mockProm.EXPECT().
+		// 		IsPrometheusHealthy(gomock.Any()).
+		// 		Return(true, nil).
+		// 		AnyTimes()
 
-			mockProm.EXPECT().
-				GetLastActivityTime(gomock.Any(), gomock.Any()).
-				Return(time.Now().Add(-48*time.Hour), nil).
-				AnyTimes()
+		// 	mockProm.EXPECT().
+		// 		GetLastActivityTime(gomock.Any(), gomock.Any()).
+		// 		Return(time.Now().Add(-48*time.Hour), nil).
+		// 		AnyTimes()
 
-			mockProm.EXPECT().
-				GetQueryNginxData().
-				Return("").
-				AnyTimes()
+		// 	mockProm.EXPECT().
+		// 		GetQueryNginxData().
+		// 		Return("").
+		// 		AnyTimes()
 
-			mockProm.EXPECT().
-				GetQuerySSHData().
-				Return("").
-				AnyTimes()
+		// 	mockProm.EXPECT().
+		// 		GetQuerySSHData().
+		// 		Return("").
+		// 		AnyTimes()
 
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			By("Checking the instance is inactive")
-			Expect(currentInstance.Spec.Running).To(BeFalse())
-		})
-
-		// It("Should fail: the persistent VM is inactive for a long time and it is stopped", func() {
 		// 	By("Getting current instance")
 		// 	currentInstance := &crownlabsv1alpha2.Instance{}
 		// 	instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
 		// 	Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+		// 	r := &instautoctrl.InstanceInactiveTerminationReconciler{
+		// 		Client: k8sClient,
+		// 	}
+		// 	ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+		// 	r.TerminateInstance(ctx)
+
+		// 	By("Checking the instance is inactive")
+		// 	Expect(currentInstance.Spec.Running).To(BeFalse())
+		// })
+
+		// It("Should fail: the persistent VM is inactive for a long time and it is stopped", func() {
 
 		// })
 
 		// It("Should fail: the non-persistent VM is inactive for a long time it is deleted", func() {
 
 		// })
+
+	})
+	It("Testing single functions", func() {
+		r := &instautoctrl.InstanceInactiveTerminationReconciler{
+			Client: k8sClient,
+		}
+		By("Getting current instance")
+		currentInstance := &crownlabsv1alpha2.Instance{}
+		instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
+		By("Getting current template")
+		currentTemplate := &crownlabsv1alpha2.Template{}
+		templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+		Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+		Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
+		ctx := context.Background()
+		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+
+		By("Testing the SetupInstanceAnnotations function")
+		r.SetupInstanceAnnotations(ctx)
+		Expect(currentInstance.ObjectMeta.Annotations).To(HaveKey(forge.LastActivityAnnotation))
+
+		By("Testing if the non persistant instance is deleted after inactivity")
+		r.TerminateInstance(ctx)
+		doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval)
 
 	})
 

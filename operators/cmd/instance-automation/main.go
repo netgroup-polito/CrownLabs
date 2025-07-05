@@ -91,7 +91,7 @@ func main() {
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
-	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "The time interval between two consecutive inactivity notifications for an Instance")
+	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "How long before the instance is deleted the notification email should be sent to the user.")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
