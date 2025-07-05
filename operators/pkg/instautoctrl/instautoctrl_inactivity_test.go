@@ -306,6 +306,7 @@ var _ = Describe("Instautoctrl", func() {
 			currentInactivityTimeout := currentTemplate.Spec.InactivityTimeout
 			defaultInactivityTimeout := instautoctrl.NEVER_TIMEOUT_VALUE
 			Expect(currentInactivityTimeout).To(Equal(defaultInactivityTimeout))
+			Expect(currentInstance.Spec.Running).To(BeTrue(), "The instance should be running")
 		})
 
 	})
