@@ -357,7 +357,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	})
 
-	It("testing TerminateInstance function", func() {
+	Describe("testing TerminateInstance function", func() {
 		r := &instautoctrl.InstanceInactiveTerminationReconciler{
 			Client: k8sClient,
 		}
@@ -387,7 +387,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
 	})
 
-	It("Testing UpdateInstanceLastLogin function", func() {
+	Describe("Testing UpdateInstanceLastLogin function", func() {
 		r := &instautoctrl.InstanceInactiveTerminationReconciler{
 			Client: k8sClient,
 		}
