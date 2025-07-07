@@ -386,11 +386,35 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
 	})
 
-	// It("Testing SetupInstanceAnnotations function", func() {
+	// It("Testing UpdateInstanceLastLogin function", func() {
+
+	// })
+
+	// It("Testing GetRemainingInactivityTime function", func() {
 
 	// })
 
 	// It("Testing IncrementAnnotation function", func() {
+
+	// })
+
+	// It("Testing SetupInstanceAnnotations function", func() {
+
+	// })
+
+	// It("Testing CheckSkipReconciliation function", func() {
+
+	// })
+
+	// It("Testing shouldSendNotification function", func() {
+
+	// })
+
+	// It("Testing sendInactivityWarning function", func() {
+
+	// })
+
+	// It("Testing ResetAlertAnnotation function", func() {
 
 	// })
 
