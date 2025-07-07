@@ -84,23 +84,23 @@ var _ = BeforeSuite(func() {
 
 	// Generate whitelist map for InstanceSnapshot controller reconciliation
 	whiteListMap := map[string]string{
-		"test-suite": "true",
+		"crownlabs.polito.it/operator-selector": "test-suite",
 	}
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
 
 	err = (&instautoctrl.InstanceInactiveTerminationReconciler{
-		Client:                    k8sManager.GetClient(),
-		Scheme:                    k8sManager.GetScheme(),
-		EventsRecorder:            k8sManager.GetEventRecorderFor("instance-termination"),
-		NamespaceWhitelist:        metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		MailClient:                nil,
-		Prometheus:                mockProm,
-		InstanceMaxNumberOfAlerts: 3,
-		NotificationInterval:      1 * time.Second,
-
-		StatusCheckRequestTimeout: 30 * time.Second,
+		Client:                        k8sManager.GetClient(),
+		Scheme:                        k8sManager.GetScheme(),
+		EventsRecorder:                k8sManager.GetEventRecorderFor("instance-termination"),
+		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+		MailClient:                    nil,
+		Prometheus:                    mockProm,
+		InstanceMaxNumberOfAlerts:     3,
+		NotificationInterval:          1 * time.Second,
+		EnableInactivityNotifications: false,
+		StatusCheckRequestTimeout:     30 * time.Second,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
 
