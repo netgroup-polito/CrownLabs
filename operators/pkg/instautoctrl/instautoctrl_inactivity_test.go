@@ -305,9 +305,9 @@ var _ = Describe("Instautoctrl", func() {
 		tenantNs := &v1.Namespace{}
 
 		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
-		doesEventuallyExists(ctx, nsLookupKey, workNs, BeTrue(), timeout, interval)
+		doesEventuallyExists(ctx, nsLookupKey, workNs, BeTrue(), timeout, interval, k8sClient)
 		tenantNsLookupKey := types.NamespacedName{Name: TenantName}
-		doesEventuallyExists(ctx, tenantNsLookupKey, tenantNs, BeTrue(), timeout, interval)
+		doesEventuallyExists(ctx, tenantNsLookupKey, tenantNs, BeTrue(), timeout, interval, k8sClient)
 
 		By("Creating the templates")
 
@@ -323,9 +323,9 @@ var _ = Describe("Instautoctrl", func() {
 		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
 		createdPersistentTemplate2 := &crownlabsv1alpha2.Template{}
 
-		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval)
-		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval)
-		doesEventuallyExists(ctx, persistentTemplate2LookupKey, createdPersistentTemplate2, BeTrue(), timeout, interval)
+		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
+		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
+		doesEventuallyExists(ctx, persistentTemplate2LookupKey, createdPersistentTemplate2, BeTrue(), timeout, interval, k8sClient)
 
 		By("Creating the tenant")
 		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
@@ -333,7 +333,7 @@ var _ = Describe("Instautoctrl", func() {
 		By("Checking that the tenant has been created")
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: WorkingNamespace}
 		createdTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval)
+		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval, k8sClient)
 
 		By("Creating the instances")
 		Expect(k8sClient.Create(ctx, newPersistentInstance)).Should(Succeed())
@@ -348,9 +348,9 @@ var _ = Describe("Instautoctrl", func() {
 		createdNonPersistentInstance := &crownlabsv1alpha2.Instance{}
 		createdPersistentInstance2 := &crownlabsv1alpha2.Instance{}
 
-		doesEventuallyExists(ctx, persistanteInstanceLookupKey, createdPersistentInstance, BeTrue(), timeout, interval)
-		doesEventuallyExists(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance, BeTrue(), timeout, interval)
-		doesEventuallyExists(ctx, persistentInstance2LookupKey, createdPersistentInstance2, BeTrue(), timeout, interval)
+		doesEventuallyExists(ctx, persistanteInstanceLookupKey, createdPersistentInstance, BeTrue(), timeout, interval, k8sClient)
+		doesEventuallyExists(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance, BeTrue(), timeout, interval, k8sClient)
+		doesEventuallyExists(ctx, persistentInstance2LookupKey, createdPersistentInstance2, BeTrue(), timeout, interval, k8sClient)
 
 	})
 
@@ -464,7 +464,7 @@ var _ = Describe("Instautoctrl", func() {
 			//Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
 			By("Checking the instance is deleted")
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout*2, interval)
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout*2, interval, k8sClient)
 		})
 		It("The persistent VM is inactive for a long time and it is stopped", func() {
 			mockProm.EXPECT().
@@ -614,33 +614,5 @@ var _ = Describe("Instautoctrl", func() {
 		})
 
 	})
-
-	// 	Context("Testing single functions", func() {
-	// 		r := &instautoctrl.InstanceInactiveTerminationReconciler{
-	// 			Client: k8sClient,
-	// 		}
-	// 		By("Getting current instance")
-	// 		currentInstance := &crownlabsv1alpha2.Instance{}
-	// 		instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-	// 		By("Getting current template")
-	// 		currentTemplate := &crownlabsv1alpha2.Template{}
-	// 		templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-	// 		Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-	// 		Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-	// 		ctx := context.Background()
-	// 		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-	// 		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-
-	// 		By("Testing the SetupInstanceAnnotations function")
-	// 		r.SetupInstanceAnnotations(ctx)
-	// 		Expect(currentInstance.ObjectMeta.Annotations).To(HaveKey(forge.LastActivityAnnotation))
-
-	// 		By("Testing if the non persistant instance is deleted after inactivity")
-	// 		r.TerminateInstance(ctx)
-	// 		doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval)
-
-	// 	})
-
-	// })
 
 })

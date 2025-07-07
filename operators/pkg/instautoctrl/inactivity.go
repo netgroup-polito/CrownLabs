@@ -470,7 +470,6 @@ func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx conte
 			maxAlerts = customMaxAlerts
 		}
 	}
-	fmt.Printf(("NUUUUM MAX ALERTS: %d\n"), maxAlerts)
 	return numAlerts <= maxAlerts-1, nil
 }
 
