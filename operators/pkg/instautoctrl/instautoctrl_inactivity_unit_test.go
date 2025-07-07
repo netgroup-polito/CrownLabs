@@ -509,9 +509,33 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
-	// It("Testing IncrementAnnotation function", func() {
+	Describe("Testing IncrementAnnotation function", func() {
+		var (
+			reconciler *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx        context.Context
+		)
 
-	// })
+		BeforeEach(func() {
+			reconciler = &instautoctrl.InstanceInactiveTerminationReconciler{}
+			ctx = context.Background()
+		})
+
+		It("should increment a valid numeric annotation string", func() {
+			input := "3"
+			output, err := reconciler.IncrementAnnotation(ctx, input)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(Equal("4"))
+		})
+
+		It("should return error for invalid numeric input", func() {
+			input := "abc"
+			output, err := reconciler.IncrementAnnotation(ctx, input)
+
+			Expect(err).To(HaveOccurred())
+			Expect(output).To(Equal("0"))
+		})
+	})
 
 	// It("Testing SetupInstanceAnnotations function", func() {
 
