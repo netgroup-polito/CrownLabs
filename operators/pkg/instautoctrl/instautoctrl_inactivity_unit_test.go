@@ -17,6 +17,7 @@ import (
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
 
@@ -386,9 +387,47 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
 	})
 
-	// It("Testing UpdateInstanceLastLogin function", func() {
+	It("Testing UpdateInstanceLastLogin function", func() {
+		r := &instautoctrl.InstanceInactiveTerminationReconciler{
+			Client: k8sClient,
+		}
 
-	// })
+		By("Checking that the instance is running")
+		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+		currentInstance := &crownlabsv1alpha2.Instance{}
+		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+		currentTemplate := &crownlabsv1alpha2.Template{}
+		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+		currentTenant := &crownlabsv1alpha2.Tenant{}
+		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+		ctx := context.Background()
+		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+
+		oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
+
+		inactivityTimeoutDuration := time.Hour * 24 * 14
+		r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration)
+
+		By("Checking that the instance has been updated")
+		Eventually(func() bool {
+			updatedInstance := &crownlabsv1alpha2.Instance{}
+			err := k8sClient.Get(ctx, InstanceLookupKey, updatedInstance)
+			if err != nil {
+				return false
+			}
+			annotations := updatedInstance.GetAnnotations()
+			newLoginTime, ok := annotations[forge.LastActivityAnnotation]
+			if !ok {
+				return false
+			}
+			return newLoginTime != oldLastLogin
+		}, timeout, interval).Should(BeTrue(), "Instance should be updated with a new last login time")
+
+	})
 
 	// It("Testing GetRemainingInactivityTime function", func() {
 
