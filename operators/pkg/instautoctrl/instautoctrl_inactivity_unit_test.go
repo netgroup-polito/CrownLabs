@@ -579,9 +579,33 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	})
 
-	// It("Testing CheckSkipReconciliation function", func() {
+	Describe("Testing CheckSkipReconciliation function", func() {
+		var (
+			r        *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx      context.Context
+			instance *crownlabsv1alpha2.Instance
+		)
 
-	// })
+		BeforeEach(func() {
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{}
+			instance = &crownlabsv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-instance",
+					Namespace: "test-ns",
+				},
+			}
+			ctx = context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+		})
+
+		It("returns error if instance missing", func() {
+			ctxEmpty := context.Background()
+			_, err := r.CheckSkipReconciliation(ctxEmpty)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		// TODO add more tests
+	})
 
 	// It("Testing shouldSendNotification function", func() {
 
