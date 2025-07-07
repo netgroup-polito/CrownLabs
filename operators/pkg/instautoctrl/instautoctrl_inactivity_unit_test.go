@@ -429,9 +429,85 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	})
 
-	// It("Testing GetRemainingInactivityTime function", func() {
+	Describe("Testing GetRemainingInactivityTime function", func() {
+		var (
+			r                         *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx                       context.Context
+			currentInstance           *crownlabsv1alpha2.Instance
+			currentTemplate           *crownlabsv1alpha2.Template
+			currentTenant             *crownlabsv1alpha2.Tenant
+			inactivityTimeoutDuration time.Duration
+		)
 
-	// })
+		BeforeEach(func() {
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance = &crownlabsv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate = &crownlabsv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant = &crownlabsv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+
+			ctx = context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+
+			inactivityTimeoutDuration = time.Hour * 24 * 14
+		})
+
+		It("should return error if instance is missing from context", func() {
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+			ctx = context.Background() // no instance injected
+
+			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("instance not found"))
+		})
+
+		It("should return remaining time if instance is still active", func() {
+			lastLogin := time.Now().Add(-10 * time.Minute).Format(time.RFC3339)
+			currentInstance.Annotations[forge.LastActivityAnnotation] = lastLogin
+
+			remaining, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(remaining.Seconds()).To(BeNumerically(">", 0))
+		})
+
+		It("should return <=0 if inactivity timeout has been exceeded", func() {
+			lastLogin := time.Now().Add(-1 * time.Hour).Format(time.RFC3339)
+			currentInstance.Annotations[forge.LastActivityAnnotation] = lastLogin
+
+			remaining, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(remaining).To(BeNumerically("<=", 0))
+		})
+
+		It("should return error if annotation is missing", func() {
+			delete(currentInstance.Annotations, forge.LastActivityAnnotation)
+
+			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return error if annotation is not parseable", func() {
+			currentInstance.Annotations[forge.LastActivityAnnotation] = "not-a-valid-time"
+
+			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			Expect(err).To(HaveOccurred())
+		})
+	})
 
 	// It("Testing IncrementAnnotation function", func() {
 
