@@ -57,6 +57,9 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  publicExposure?: PublicExposure;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type SharedVolume = {
@@ -69,6 +72,17 @@ export type SharedVolume = {
   namespace: string;
 };
 
+export type PublicExposure = {
+  externalIP: string;
+  phase: Phase;
+  ports: Array<PortListItem>;
+};
+
+export type PortListItem = {
+  name?: string;
+  port: string;
+  targetPort: number;
+};
 export enum LinkPosition {
   MenuButton,
   NavbarButton,

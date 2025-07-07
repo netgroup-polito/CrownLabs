@@ -6,15 +6,26 @@ import {
   Row,
   Col,
   Divider,
+  Alert,
   type FormRule,
 } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
 import { type FC, useCallback } from 'react';
+import type { PublicExposure } from '../../../../utils';
+import { useApplyInstanceMutation } from '../../../../generated-types';
 
 interface IPublicExposureModalProps {
   open: boolean;
   onCancel: () => void;
+  /** se true abilita scelta desiredPort, altrimenti solo random */
+  allowPublicExposure: boolean;
+  /** valori preesistenti per edit */
+  existingExposure?: PublicExposure;
+  // k8s patch context
+  instanceId: string;
+  tenantNamespace: string;
+  manager: string;
 }
 interface PortField {
   name?: string;
@@ -28,8 +39,22 @@ interface FormValues {
 export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   open,
   onCancel,
+  allowPublicExposure,
+  existingExposure,
+  instanceId,
+  tenantNamespace,
+  manager,
 }) => {
   const [form] = Form.useForm<FormValues>();
+  // GraphQL mutation hook for applyInstance
+  const [applyInstanceMutation, { loading, error }] =
+    useApplyInstanceMutation();
+  // prepapra valori iniziali da existingExposure (edit) o default
+  const initialPorts: PortField[] = existingExposure?.ports.map(p => ({
+    name: p.name,
+    targetPort: String(p.targetPort),
+    desiredPort: allowPublicExposure ? p.port : '',
+  })) || [{ name: '', targetPort: '', desiredPort: '' }];
 
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports?.[ports.length - 1]?.targetPort;
@@ -38,13 +63,30 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     !/^\d+$/.test(lastTargetPort) ||
     parseInt(lastTargetPort, 10) === 0;
 
-  const onFinish = (values: FormValues) => {
-    const normalized = values.ports.map(p => ({
-      ...p,
-      desiredPort: p.desiredPort || '0',
-    }));
-    console.log('Ports submitted:', normalized);
-    onCancel();
+  const onFinish = async (values: FormValues) => {
+    // costruisci payload per mutation
+    const normalized = values.ports.map(p => {
+      const targetPort = parseInt(p.targetPort, 10);
+      if (allowPublicExposure) {
+        return { name: p.name, targetPort, port: p.desiredPort || '0' };
+      }
+      return { name: p.name, targetPort };
+    });
+    try {
+      // build patch for publicExposure
+      const patchPayload = {
+        kind: 'Instance',
+        apiVersion: 'crownlabs.polito.it/v1alpha2',
+        spec: { publicExposure: { ports: normalized } },
+      };
+      const patchJson = JSON.stringify(patchPayload);
+      await applyInstanceMutation({
+        variables: { instanceId, tenantNamespace, patchJson, manager },
+      });
+      onCancel();
+    } catch {
+      // error displayed via Alert
+    }
   };
 
   const portValidator = useCallback((_rule: FormRule, value: string) => {
@@ -65,23 +107,34 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       onCancel={onCancel}
       width={550}
       footer={[
-        <Button key="cancel" onClick={onCancel}>
+        <Button key="cancel" onClick={onCancel} disabled={loading}>
           Close
         </Button>,
-        <Button key="send" type="primary" onClick={() => form.submit()}>
+        <Button
+          key="send"
+          type="primary"
+          onClick={() => form.submit()}
+          loading={loading}
+        >
           Send
         </Button>,
       ]}
     >
+      {error && (
+        <Alert
+          type="error"
+          message={error.message}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <Form
         form={form}
         name="dynamic_port_form"
         onFinish={onFinish}
         autoComplete="off"
         layout="vertical"
-        initialValues={{
-          ports: [{ name: '', targetPort: '', desiredPort: '' }],
-        }}
+        initialValues={{ ports: initialPorts }}
       >
         <Form.List name="ports">
           {(fields, { add, remove }) => (
@@ -113,17 +166,19 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Input placeholder="e.g. 8080" />
                       </Form.Item>
                     </Col>
-                    <Col span={7}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'desiredPort']}
-                        label="Desired Port"
-                        style={{ marginBottom: 8 }}
-                        rules={[{ validator: portValidator }]}
-                      >
-                        <Input placeholder="Defaults to a random port" />
-                      </Form.Item>
-                    </Col>
+                    {allowPublicExposure && (
+                      <Col span={7}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'desiredPort']}
+                          label="Desired Port"
+                          style={{ marginBottom: 8 }}
+                          rules={[{ validator: portValidator }]}
+                        >
+                          <Input placeholder="e.g. 12345" />
+                        </Form.Item>
+                      </Col>
+                    )}
                     <Col
                       span={3}
                       style={{ textAlign: 'center', paddingBottom: '8px' }}

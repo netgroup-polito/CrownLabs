@@ -1822,6 +1822,12 @@ export enum Phase3 {
   Empty = '_EMPTY_'
 }
 
+export enum Phase4 {
+  Provisioning = 'Provisioning',
+  Ready = 'Ready',
+  Error = 'Error'
+}
+
 export type Query = {
   __typename?: 'Query';
   getLabels?: Maybe<Array<Label>>;
@@ -2591,6 +2597,7 @@ export type Spec6 = {
    * or stopped to save resources. If set to "never", the instance will not be
    * automatically terminated.
    */
+  allowPublicExposure?: Maybe<Scalars['Boolean']['output']>;
   deleteAfter?: Maybe<Scalars['String']['output']>;
   /** A textual description of the Template. */
   description: Scalars['String']['output'];
@@ -2610,6 +2617,7 @@ export type Spec6Input = {
    * or stopped to save resources. If set to "never", the instance will not be
    * automatically terminated.
    */
+  allowPublicExposure?: InputMaybe<Scalars['Boolean']['input']>; 
   deleteAfter?: InputMaybe<Scalars['String']['input']>;
   /** A textual description of the Template. */
   description: Scalars['String']['input'];

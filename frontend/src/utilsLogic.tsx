@@ -112,6 +112,11 @@ export const makeGuiInstance = (
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
+  // determine if public exposure is allowed from template spec
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
+
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
   return {
@@ -142,6 +147,7 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    allowPublicExposure,
   } as Instance;
 };
 
@@ -333,6 +339,10 @@ export const getManagerInstances = (
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+  // determine if public exposure allowed by template
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
 
   // Tenant Info
   const { namespace: tenantNamespace } = metadata ?? {};
@@ -361,6 +371,7 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    allowPublicExposure,
   } as Instance;
 };
 
