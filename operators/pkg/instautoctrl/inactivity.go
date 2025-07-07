@@ -192,7 +192,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Check if the instance has expired
 	if remainingTime <= 0 {
 		// Check if all notifications have already been sent
-		shouldSend, err := r.shouldSendNotification(ctx, instance)
+		shouldSend, err := r.ShouldSendNotification(ctx, instance)
 		if err != nil {
 			log.Error(err, "failed checking if should send notification")
 			return ctrl.Result{}, err
@@ -421,8 +421,9 @@ func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx cont
 	return false, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) shouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("shouldSendNotification")
+// ShouldSendNotification checks if the notification should be sent based on the number of alerts sent and the last notification time.
+func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("ShouldSendNotification")
 
 	if !r.EnableInactivityNotifications {
 		log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name)

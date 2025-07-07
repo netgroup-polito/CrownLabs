@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -607,9 +608,92 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		// TODO add more tests
 	})
 
-	// It("Testing shouldSendNotification function", func() {
+	Describe("Testing shouldSendNotification function", func() {
+		var (
+			reconciler *instautoctrl.InstanceInactiveTerminationReconciler
+			instance   *clv1alpha2.Instance
+			ctx        context.Context
+			template   *clv1alpha2.Template
+		)
 
-	// })
+		BeforeEach(func() {
+			reconciler = &instautoctrl.InstanceInactiveTerminationReconciler{
+				EnableInactivityNotifications: true,
+				NotificationInterval:          time.Hour,
+				InstanceMaxNumberOfAlerts:     3,
+			}
+			instance = &clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-instance",
+					Annotations: make(map[string]string),
+				},
+				Spec: clv1alpha2.InstanceSpec{
+					Running: true,
+				},
+			}
+			ctx = context.Background()
+		})
+
+		It("returns false if inactivity notifications are disabled", func() {
+			reconciler.EnableInactivityNotifications = false
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeFalse())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns error if AlertAnnotationNum is invalid", func() {
+			instance.Annotations[forge.AlertAnnotationNum] = "invalid"
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeFalse())
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns true if last notification timestamp is missing", func() {
+			instance.Annotations[forge.AlertAnnotationNum] = "0"
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns false if last notification is within interval", func() {
+			instance.Annotations[forge.AlertAnnotationNum] = "1"
+			instance.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Add(-30 * time.Minute).Format(time.RFC3339)
+
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeFalse())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns false if instance is not running", func() {
+			instance.Spec.Running = false
+			instance.Annotations[forge.AlertAnnotationNum] = "0"
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeFalse())
+			Expect(err).To(BeNil())
+		})
+
+		It("respects custom max alerts annotation", func() {
+			instance.Annotations[forge.AlertAnnotationNum] = "2"
+			template = &clv1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						forge.CustomNumberOfAlertsAnnotation: "4",
+					},
+				},
+			}
+			ctx, _ = pkgcontext.TemplateInto(ctx, template)
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns false if numAlerts exceeds default max", func() {
+			instance.Annotations[forge.AlertAnnotationNum] = "5"
+			send, err := reconciler.ShouldSendNotification(ctx, instance)
+			Expect(send).To(BeFalse())
+			Expect(err).To(BeNil())
+		})
+	})
 
 	// It("Testing sendInactivityWarning function", func() {
 
