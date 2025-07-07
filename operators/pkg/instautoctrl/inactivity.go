@@ -199,7 +199,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		}
 
 		if shouldSend {
-			if err := r.sendInactivityWarning(ctx, instance); err != nil {
+			if err := r.SendInactivityWarning(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
@@ -474,7 +474,8 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 	return numAlerts <= maxAlerts-1, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) sendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
+// SendInactivityWarning sends an inactivity warning email to the user and updates the instance annotations.
+func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx)
 	tenant := pkgcontext.TenantFrom(ctx)
 	if tenant == nil {

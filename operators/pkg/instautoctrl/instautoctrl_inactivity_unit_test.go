@@ -695,9 +695,48 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
-	// It("Testing sendInactivityWarning function", func() {
+	Describe("Testing SendInactivityWarning function", func() {
+		var (
+			r               *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx             context.Context
+			currentInstance *crownlabsv1alpha2.Instance
+			currentTemplate *crownlabsv1alpha2.Template
+			currentTenant   *crownlabsv1alpha2.Tenant
+		)
 
-	// })
+		BeforeEach(func() {
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
+
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance = &crownlabsv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate = &crownlabsv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant = &crownlabsv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+
+			ctx = context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+		})
+
+		It("returns error if tenant is not in context", func() {
+			ctx := context.Background() // no tenant injected
+			err := r.SendInactivityWarning(ctx, currentInstance)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("tenant not found"))
+		})
+
+		// TODO: Add more tests for SendInactivityWarning function
+	})
 
 	// It("Testing ResetAlertAnnotation function", func() {
 
