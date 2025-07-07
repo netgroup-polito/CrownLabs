@@ -537,9 +537,47 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
-	// It("Testing SetupInstanceAnnotations function", func() {
+	It("Testing SetupInstanceAnnotations function", func() {
+		var _ = Describe("SetupInstanceAnnotations", func() {
+			var (
+				r        *instautoctrl.InstanceInactiveTerminationReconciler
+				ctx      context.Context
+				instance *crownlabsv1alpha2.Instance
+			)
 
-	// })
+			BeforeEach(func() {
+				r = &instautoctrl.InstanceInactiveTerminationReconciler{Client: mockClient}
+
+				instance = &crownlabsv1alpha2.Instance{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "test-instance",
+						Namespace:   "default",
+						Annotations: map[string]string{},
+					},
+				}
+
+				ctx = context.Background()
+				ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+			})
+
+			It("should return error if instance is missing from context", func() {
+				ctx = context.Background() // no instance injected
+				err := r.SetupInstanceAnnotations(ctx)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("instance not found"))
+			})
+
+			It("should add all missing annotations and patch", func() {
+				err := r.SetupInstanceAnnotations(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(instance.Annotations).To(HaveKeyWithValue(forge.AlertAnnotationNum, "0"))
+				Expect(instance.Annotations).To(HaveKey(forge.LastActivityAnnotation))
+				Expect(instance.Annotations).To(HaveKey(forge.LastNotificationTimestampAnnotation))
+			})
+		})
+
+	})
 
 	// It("Testing CheckSkipReconciliation function", func() {
 
