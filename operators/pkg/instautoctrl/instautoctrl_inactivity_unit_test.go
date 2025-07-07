@@ -738,8 +738,38 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		// TODO: Add more tests for SendInactivityWarning function
 	})
 
-	// It("Testing ResetAlertAnnotation function", func() {
+	Describe("Testing ResetAlertAnnotation function", func() {
+		var (
+			r        *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx      context.Context
+			instance *crownlabsv1alpha2.Instance
+		)
 
-	// })
+		BeforeEach(func() {
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{}
+			instance = &crownlabsv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-instance",
+					Namespace:   "test-ns",
+					Annotations: map[string]string{forge.AlertAnnotationNum: "3"},
+				},
+			}
+			ctx = context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+		})
+
+		It("should reset the AlertAnnotationNum to 0", func() {
+			err := r.ResetAlertAnnotation(ctx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(instance.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
+		})
+
+		It("should return error if instance is missing from context", func() {
+			ctx = context.Background() // no instance injected
+			err := r.ResetAlertAnnotation(ctx)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("instance not found"))
+		})
+	})
 
 })
