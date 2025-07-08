@@ -18,3 +18,24 @@ spec:
   externalTrafficPolicy: {{ .Values.service.externalTrafficPolicy }}
   selector:
     {{- include "bastion-operator.selectorLabels" . | nindent 4 }}
+
+---
+
+{{- if .Values.webSshService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webssh
+  labels:
+    {{- include "bastion-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webssh
+spec:
+  type: {{ .Values.webSshService.type }}
+  ports:
+    - port: {{ .Values.webSshService.port }}
+      targetPort: {{ .Values.webSshService.targetPort }}
+      protocol: TCP
+      name: webssh
+  selector:
+    {{- include "bastion-operator.selectorLabels" . | nindent 4 }}
+{{- end }}

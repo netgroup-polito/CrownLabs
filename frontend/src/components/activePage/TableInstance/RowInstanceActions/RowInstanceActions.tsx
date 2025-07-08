@@ -110,7 +110,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
         footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
         centered
       >
-        <SSHModalContent instanceIp={instance.ip} hasSSHKeys={hasSSHKeys!} />
+        <SSHModalContent instanceIp={instance.ip}  hasSSHKeys={hasSSHKeys!} namespace={instance.tenantNamespace} name={instance.name} prettyName={instance.prettyName} onClose={() => setSshModal(false)}/>
       </Modal>
     </>
   );

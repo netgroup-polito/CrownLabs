@@ -1,0 +1,31 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webssh
+  labels:
+    {{- include "bastion-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: webssh
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.hostname }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "bastion-operator.fullname" . }}-webssh
+                port:
+                  name: webssh
+  {{- if .Values.ingress.secret }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hostname }}
+      secretName: {{ .Values.ingress.secret }}
+  {{- end }}
+{{- end }}

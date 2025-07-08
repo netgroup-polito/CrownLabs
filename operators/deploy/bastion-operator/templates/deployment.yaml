@@ -58,6 +58,9 @@ spec:
             - name: probes
               containerPort: 8081
               protocol: TCP
+            - name: webssh
+              containerPort: {{ .Values.webSshConfig.WebSshWebskPort }}
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
@@ -73,14 +76,33 @@ spec:
           volumeMounts:
             - name: authorized-keys
               mountPath: /auth-keys-vol
+            - mountPath: /web-keys
+              name: web-keys
           resources:
             {{- toYaml .Values.resources.sidecar | nindent 12 }}
+          env:
+          - name: WEBSSH_USER
+            value: {{ .Values.webSshConfig.webSshUser | quote }}
+          - name: WEBSSH_PRIVATE_KEY_PATH
+            value: {{ .Values.webSshConfig.webSshPrivateKeyPath | quote }}
+          - name: WEBSSH_TIMEOUT_DURATION
+            value: {{ .Values.webSshConfig.webSshTimeoutDuration | quote }}
+          - name: WEBSSH_MAX_CONN_COUNT
+            value: {{ .Values.webSshConfig.WebSshMaxConCount | quote }}
+          - name: WEBSSH_VM_PORT
+            value: {{ .Values.webSshConfig.WebSshVmPort | quote }}
+          - name: WEBSSH_WEBSOCKET_PORT
+            value: {{ .Values.webSshConfig.WebSshWebskPort | quote }}
       volumes:
         - name: authorized-keys
           emptyDir: {}
         - name: host-keys
           secret:
             secretName: {{ .Values.sshKeysSecret.name }}
+            defaultMode: 0444
+        - name: web-keys
+          secret:
+            secretName: {{ .Values.sshKeysSecret.webBastionMasterKey.secretName }}
             defaultMode: 0444
       affinity:
         podAntiAffinity:
