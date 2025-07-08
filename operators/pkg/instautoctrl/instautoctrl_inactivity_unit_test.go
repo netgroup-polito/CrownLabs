@@ -547,7 +547,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			)
 
 			BeforeEach(func() {
-				r = &instautoctrl.InstanceInactiveTerminationReconciler{Client: mockClient}
+				r = &instautoctrl.InstanceInactiveTerminationReconciler{}
 
 				instance = &crownlabsv1alpha2.Instance{
 					ObjectMeta: metav1.ObjectMeta{
