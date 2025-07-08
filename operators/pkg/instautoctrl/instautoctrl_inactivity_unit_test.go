@@ -359,75 +359,78 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 	})
 
 	Describe("testing TerminateInstance function", func() {
-		r := &instautoctrl.InstanceInactiveTerminationReconciler{
-			Client: k8sClient,
-		}
+		It("should delete the instance successfully when terminated", func() {
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
+			}
 
-		By("Checking that the instance is running")
-		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
-		currentInstance := &crownlabsv1alpha2.Instance{}
-		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
-		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		currentTemplate := &crownlabsv1alpha2.Template{}
-		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		currentTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
-		ctx := context.Background()
-		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
-		By("Calling TerminateInstance function")
-		err := r.TerminateInstance(ctx)
-		Expect(err).ToNot(HaveOccurred())
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant := &crownlabsv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+			ctx := context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+			By("Calling TerminateInstance function")
+			err := r.TerminateInstance(ctx)
+			Expect(err).ToNot(HaveOccurred())
 
-		By("Checking that the instance has been deleted")
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, InstanceLookupKey, currentInstance)
-			return errors.IsNotFound(err)
-		}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
+			By("Checking that the instance has been deleted")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, InstanceLookupKey, currentInstance)
+				return errors.IsNotFound(err)
+			}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
+		})
 	})
 
 	Describe("Testing UpdateInstanceLastLogin function", func() {
-		r := &instautoctrl.InstanceInactiveTerminationReconciler{
-			Client: k8sClient,
-		}
-
-		By("Checking that the instance is running")
-		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
-		currentInstance := &crownlabsv1alpha2.Instance{}
-		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
-		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		currentTemplate := &crownlabsv1alpha2.Template{}
-		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		currentTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
-		ctx := context.Background()
-		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
-
-		oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
-
-		inactivityTimeoutDuration := time.Hour * 24 * 14
-		r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration)
-
-		By("Checking that the instance has been updated")
-		Eventually(func() bool {
-			updatedInstance := &crownlabsv1alpha2.Instance{}
-			err := k8sClient.Get(ctx, InstanceLookupKey, updatedInstance)
-			if err != nil {
-				return false
+		It("should update the last login time of the instance", func() {
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client: k8sClient,
 			}
-			annotations := updatedInstance.GetAnnotations()
-			newLoginTime, ok := annotations[forge.LastActivityAnnotation]
-			if !ok {
-				return false
-			}
-			return newLoginTime != oldLastLogin
-		}, timeout, interval).Should(BeTrue(), "Instance should be updated with a new last login time")
 
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant := &crownlabsv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+			ctx := context.Background()
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+
+			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
+
+			inactivityTimeoutDuration := time.Hour * 24 * 14
+			r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration)
+
+			By("Checking that the instance has been updated")
+			Eventually(func() bool {
+				updatedInstance := &crownlabsv1alpha2.Instance{}
+				err := k8sClient.Get(ctx, InstanceLookupKey, updatedInstance)
+				if err != nil {
+					return false
+				}
+				annotations := updatedInstance.GetAnnotations()
+				newLoginTime, ok := annotations[forge.LastActivityAnnotation]
+				if !ok {
+					return false
+				}
+				return newLoginTime != oldLastLogin
+			}, timeout, interval).Should(BeTrue(), "Instance should be updated with a new last login time")
+		})
 	})
 
 	Describe("Testing GetRemainingInactivityTime function", func() {
