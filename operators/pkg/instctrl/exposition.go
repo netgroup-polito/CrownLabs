@@ -86,7 +86,17 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 	log.V(utils.FromResult(res)).Info("object enforced", "service", klog.KObj(&service), "result", res)
 
+	//
+	//
+	//
+
 	instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
+
+	//
+	//
+	//
+
+	// instance.Status.IP = service.Spec.ClusterIP
 
 	// No need to create ingress resources in case of gui-less VMs.
 	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
@@ -123,7 +133,17 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
 
+	//
+	//
+	//
+
 	instance.Status.Environments[envIndex].URL = forge.IngressGuiStatusURL(host, environment, instance)
+
+	//
+	//
+	//
+
+	// instance.Status.URL = forge.IngressGuiStatusURL(host, environment, instance)
 
 	return nil
 }
@@ -133,7 +153,15 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
+	//
+	//
+	//
+
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	// instanceStatusEnv := instance.Status.Environments[envIndex]
+
+	// instanceStatusEnv.IP = ""
+	// instanceStatusEnv.URL = ""
 
 	// check if Status.Environments has enough capacity
 	if len(instance.Status.Environments) <= envIndex {
@@ -145,6 +173,13 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 
 	instance.Status.Environments[envIndex].IP = ""
 	instance.Status.Environments[envIndex].URL = ""
+
+	//
+	//
+	//
+
+	// instance.Status.IP = ""
+	// instance.Status.URL = ""
 
 	// Enforce service absence
 	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}

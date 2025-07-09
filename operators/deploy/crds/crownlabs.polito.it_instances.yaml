@@ -151,8 +151,8 @@ spec:
                     environment.
                   properties:
                     automation:
-                      description: Timestamps of the Environment automation phases
-                        (check, termination and submission).
+                      description: Timestamps of the Instance automation phases (check,
+                        termination and submission).
                       properties:
                         lastCheckTime:
                           description: The last time the Instance desired status was
@@ -172,7 +172,7 @@ spec:
                       type: object
                     initialReadyTime:
                       description: |-
-                        The amount of time the Environment required to become ready for the first time
+                        The amount of time the Instance required to become ready for the first time
                         upon creation.
                       type: string
                     ip:
@@ -181,14 +181,10 @@ spec:
                         be used to access it through the SSH protocol (leveraging the SSH bastion
                         in case it is not contacted from another CrownLabs Instance).
                       type: string
-                    pathUrl:
-                      description: The second part of the URL, which identifies uniquely
-                        the environment
-                      type: string
                     phase:
                       description: |-
-                        The current status of the Environment (e.g. VM).
-                        This conveys which resource is being created, as well as
+                        The current status Instance, with reference to the associated environment
+                        (e.g. VM). This conveys which resource is being created, as well as
                         whether the associated VM is being scheduled, is running or ready to
                         accept incoming connections.
                       enum:
@@ -203,6 +199,11 @@ spec:
                       - Failed
                       - CreationLoopBackoff
                       type: string
+                    url:
+                      description: |-
+                        The URL where it is possible to access the remote desktop of the instance
+                        (in case of graphical environments)
+                      type: string
                   type: object
                 type: array
               nodeName:
@@ -213,28 +214,6 @@ spec:
                   type: string
                 description: The actual nodeSelector assigned to the Instance.
                 type: object
-              outerPhase:
-                description: |-
-                  The outer phase of the instance, which depends on the phase of each environment
-                  within the instance.
-                enum:
-                - ""
-                - Importing
-                - Starting
-                - ResourceQuotaExceeded
-                - Running
-                - Ready
-                - Stopping
-                - "Off"
-                - Failed
-                - CreationLoopBackoff
-                type: string
-              rootUrl:
-                description: |-
-                  The root of the url that uniquely identifies one instance. Each environment
-                  is then defined uniquely by the path string that will be appended to the root
-                  and is specified in InstanceStausEnv
-                type: string
             type: object
         type: object
     served: true

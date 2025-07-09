@@ -149,6 +149,10 @@ func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Con
 		return false, err
 	}
 
+	//
+	//
+	//
+
 	for _, instanceStatusEnv := range instance.Status.Environments {
 		instanceStatusEnv.Automation.LastCheckTime = metav1.Now()
 		if statusCode == http.StatusOK {
@@ -193,6 +197,10 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 
 	submissionRequired := false
 
+	//
+	//
+	//
+
 	environmentList, err := RetrieveEnvironmentList(ctx, r.Client, instance)
 	if err != nil {
 		log.Info("failed retrieving environment list", "error", err)
@@ -209,6 +217,23 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 		instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), environment.Name, submissionRequired))
 
 	}
+
+	//
+	//
+	//
+
+	// environment, err := RetrieveEnvironment(ctx, r.Client, instance)
+	// if err != nil {
+	// 	log.Info("failed retrieving environment", "error", err)
+	// 	return err
+	// }
+
+	// if err := CheckEnvironmentValidity(instance, environment); err != nil {
+	// 	log.Info("instance not eligible for submission", "error", err)
+	// } else {
+	// 	submissionRequired = true
+	// 	log.Info("submission required")
+	// }
 
 	instance.Spec.Running = false
 

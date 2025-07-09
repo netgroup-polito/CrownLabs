@@ -27,6 +27,34 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
+// // RetrieveEnvironment retrieves the template associated to the given instance.
+// func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Environment, error) {
+// 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
+
+// 	templateName := types.NamespacedName{
+// 		Namespace: instance.Spec.Template.Namespace,
+// 		Name:      instance.Spec.Template.Name,
+// 	}
+
+// 	var template clv1alpha2.Template
+// 	if err := c.Get(ctx, templateName, &template); err != nil {
+// 		return nil, fmt.Errorf("failed retrieving the instance template")
+// 	}
+
+// 	log.Info("retrieved the instance environment", "template", templateName)
+
+// 	if len(template.Spec.EnvironmentList) != 1 {
+// 		return nil, fmt.Errorf("only one environment per template is supported")
+// 	}
+
+// 	return &template.Spec.EnvironmentList[0], nil
+// }
+
+//
+//
+//
+
+// TODO? senza puntatori è un problema?
 func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) ([]*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
@@ -43,6 +71,9 @@ func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv
 	log.Info("retrieved the instance environment list", "template", templateName)
 
 	envListPtr := make([]*clv1alpha2.Environment, len(template.Spec.EnvironmentList))
+	//for envIndex, env := range template.Spec.EnvironmentList {
+	//	envListPtr[envIndex] = &env
+	//}
 
 	for i := range template.Spec.EnvironmentList {
 		envListPtr[i] = &template.Spec.EnvironmentList[i]
@@ -50,6 +81,10 @@ func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv
 
 	return envListPtr, nil
 }
+
+//
+//
+//
 
 // CheckEnvironmentValidity checks whether the given environment is valid and returns it (there must be one environment that must be persistent and contestDestination within instance spec customization urls must be present).
 func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) error {
