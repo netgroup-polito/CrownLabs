@@ -289,6 +289,21 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 	return remainingTime, nil
 }
 
+// IsTemplatePersistent checks if the instance template has at least one persistent environment.
+func IsTemplatePersistent(template *clv1alpha2.Template) bool {
+	if template == nil || template.Spec.EnvironmentList == nil {
+		return false
+	}
+
+	// Check if any environment in the template is persistent
+	for _, env := range template.Spec.EnvironmentList {
+		if env.Persistent {
+			return true
+		}
+	}
+	return false
+}
+
 // TerminateInstance terminates the Instance.
 func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
@@ -304,8 +319,7 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 
 	log.Info("Terminating instance", "instance", instance.Name, " in namespace", instance.Namespace)
 
-	var environment = template.Spec.EnvironmentList[0]
-	if environment.Persistent {
+	if IsTemplatePersistent(template) {
 		log.Info("Stopping persistent instance...")
 		instance.Spec.Running = false
 		// Update the last running annotation
