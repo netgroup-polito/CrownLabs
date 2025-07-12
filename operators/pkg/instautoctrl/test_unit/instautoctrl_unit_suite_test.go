@@ -11,14 +11,11 @@ import (
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl/mocks"
@@ -62,10 +59,12 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds"),
+			filepath.Join("..", "..", "..", "tests", "crds")},
 		ErrorIfCRDPathMissing: true,
 	}
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
@@ -76,56 +75,10 @@ var _ = BeforeSuite(func() {
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:  scheme.Scheme,
-		Metrics: server.Options{BindAddress: "0"},
-	})
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
-
-	// Generate whitelist map for InstanceSnapshot controller reconciliation
-	whiteListMap := map[string]string{
-		"crownlabs.polito.it/operator-selector": "test-suite",
-	}
-
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
-
-	err = (&instautoctrl.InstanceInactiveTerminationReconciler{
-		Client:                        k8sManager.GetClient(),
-		Scheme:                        k8sManager.GetScheme(),
-		EventsRecorder:                k8sManager.GetEventRecorderFor("instance-termination"),
-		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		MailClient:                    nil,
-		Prometheus:                    mockProm,
-		InstanceMaxNumberOfAlerts:     3,
-		NotificationInterval:          1 * time.Second,
-		EnableInactivityNotifications: false,
-		StatusCheckRequestTimeout:     30 * time.Second,
-	}).SetupWithManager(k8sManager, 1)
-	Expect(err).ToNot(HaveOccurred())
-
-	err = (&instautoctrl.InstanceExpirationReconciler{
-		Client:                        k8sManager.GetClient(),
-		Scheme:                        k8sManager.GetScheme(),
-		EventsRecorder:                k8sManager.GetEventRecorderFor("instance-expiration"),
-		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
-		MailClient:                    nil,
-		NotificationInterval:          1 * time.Second,
-		StatusCheckRequestTimeout:     30 * time.Second,
-		EnableExpirationNotifications: false,
-	}).SetupWithManager(k8sManager, 1)
-	Expect(err).ToNot(HaveOccurred())
-
-	go func() {
-		err = k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred())
-	}()
-
-	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
 
-	k8sClientExpiration = k8sManager.GetClient()
-	Expect(k8sClientExpiration).ToNot(BeNil())
 })
 
 var _ = AfterSuite(func() {

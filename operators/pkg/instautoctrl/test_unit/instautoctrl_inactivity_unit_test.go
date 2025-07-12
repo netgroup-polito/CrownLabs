@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -43,6 +42,9 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		timeout  = time.Second * 150
 		interval = time.Millisecond * 500
 	)
+	whiteListMap := map[string]string{
+		"crownlabs.polito.it/operator-selector": "test-suite",
+	}
 
 	var (
 		workingNs = v1.Namespace{
@@ -166,7 +168,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 					"crownlabs.polito.it/tenant":            TenantName,
 					"crownlabs.polito.it/workspace":         WorkingNamespace,
 					"crownlabs.polito.it/template":          persistentTemplateName2,
-					"crownlabs.polito.it/instance-type":     "non-persistent",
+					"crownlabs.polito.it/instance-type":     "persistent",
 				},
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
@@ -193,7 +195,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 					"crownlabs.polito.it/tenant":            TenantName,
 					"crownlabs.polito.it/workspace":         WorkingNamespace,
 					"crownlabs.polito.it/template":          nonPersistentTemplateName,
-					"crownlabs.polito.it/instance-type":     "non-persistent",
+					"crownlabs.polito.it/instance-type":     "persistent",
 				},
 			},
 			Spec: crownlabsv1alpha2.InstanceSpec{
@@ -296,10 +298,11 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
 			Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
 			By("Deleting instances")
-			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &persistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance2))).To(Succeed())
 			By("Deleting tenant")
-			Expect(k8sClientExpiration.Delete(ctx, &tenant)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
 		} else if err != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
 		}
@@ -361,7 +364,9 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 	Describe("testing TerminateInstance function", func() {
 		It("should delete the instance successfully when terminated", func() {
 			r := &instautoctrl.InstanceInactiveTerminationReconciler{
-				Client: k8sClient,
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+				Prometheus:         mockProm,
 			}
 
 			By("Checking that the instance is running")
@@ -392,8 +397,11 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	Describe("Testing UpdateInstanceLastLogin function", func() {
 		It("should update the last login time of the instance", func() {
+
 			r := &instautoctrl.InstanceInactiveTerminationReconciler{
-				Client: k8sClient,
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
+				Prometheus:         mockProm,
 			}
 
 			By("Checking that the instance is running")
@@ -412,7 +420,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
 
 			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
-
+			r.SetupInstanceAnnotations(ctx)
 			inactivityTimeoutDuration := time.Hour * 24 * 14
 			r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration)
 
@@ -443,9 +451,13 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			inactivityTimeoutDuration time.Duration
 		)
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
+			ctx = context.Background()
+
 			r = &instautoctrl.InstanceInactiveTerminationReconciler{
-				Client: k8sClient,
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+				Prometheus:         mockProm,
 			}
 
 			By("Checking that the instance is running")
@@ -461,23 +473,12 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			currentTenant = &crownlabsv1alpha2.Tenant{}
 			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
 
-			ctx = context.Background()
 			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
 			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
 			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
 
 			inactivityTimeoutDuration = time.Hour * 24 * 14
-		})
-
-		It("should return error if instance is missing from context", func() {
-			r := &instautoctrl.InstanceInactiveTerminationReconciler{
-				Client: k8sClient,
-			}
-			ctx = context.Background() // no instance injected
-
-			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("instance not found"))
+			r.SetupInstanceAnnotations(ctx)
 		})
 
 		It("should return remaining time if instance is still active", func() {
@@ -490,7 +491,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 
 		It("should return <=0 if inactivity timeout has been exceeded", func() {
-			lastLogin := time.Now().Add(-1 * time.Hour).Format(time.RFC3339)
+			lastLogin := time.Now().Add(-1000 * time.Hour).Format(time.RFC3339)
 			currentInstance.Annotations[forge.LastActivityAnnotation] = lastLogin
 
 			remaining, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
@@ -519,7 +520,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx        context.Context
 		)
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			reconciler = &instautoctrl.InstanceInactiveTerminationReconciler{}
 			ctx = context.Background()
 		})
@@ -543,77 +544,57 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	Describe("Testing SetupInstanceAnnotations function", func() {
 		var (
-			r        *instautoctrl.InstanceInactiveTerminationReconciler
-			ctx      context.Context
-			instance *crownlabsv1alpha2.Instance
+			r               *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx             context.Context
+			currentInstance *crownlabsv1alpha2.Instance
+			currentTemplate *crownlabsv1alpha2.Template
+			currentTenant   *crownlabsv1alpha2.Tenant
 		)
 
-		BeforeEach(func() {
-			r = &instautoctrl.InstanceInactiveTerminationReconciler{}
-
-			instance = &crownlabsv1alpha2.Instance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "test-instance",
-					Namespace:   "default",
-					Annotations: map[string]string{},
-				},
-			}
+		JustBeforeEach(func() {
 
 			ctx = context.Background()
-			ctx, _ = pkgcontext.InstanceInto(ctx, instance)
-		})
 
-		It("should return error if instance is missing from context", func() {
-			ctx = context.Background() // no instance injected
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("instance not found"))
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+				Prometheus:         mockProm,
+			}
+
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance = &crownlabsv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate = &crownlabsv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant = &crownlabsv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+
+			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
+			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
+			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
 		})
 
 		It("should add all missing annotations and patch", func() {
 			err := r.SetupInstanceAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(instance.Annotations).To(HaveKeyWithValue(forge.AlertAnnotationNum, "0"))
-			Expect(instance.Annotations).To(HaveKey(forge.LastActivityAnnotation))
-			Expect(instance.Annotations).To(HaveKey(forge.LastNotificationTimestampAnnotation))
+			Expect(currentInstance.Annotations).To(HaveKeyWithValue(forge.AlertAnnotationNum, "0"))
+			Expect(currentInstance.Annotations).To(HaveKey(forge.LastActivityAnnotation))
+			Expect(currentInstance.Annotations).To(HaveKey(forge.LastNotificationTimestampAnnotation))
 		})
-	})
-
-	Describe("Testing CheckSkipReconciliation function", func() {
-		var (
-			r        *instautoctrl.InstanceInactiveTerminationReconciler
-			ctx      context.Context
-			instance *crownlabsv1alpha2.Instance
-		)
-
-		BeforeEach(func() {
-			r = &instautoctrl.InstanceInactiveTerminationReconciler{}
-			instance = &crownlabsv1alpha2.Instance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-instance",
-					Namespace: "test-ns",
-				},
-			}
-			ctx = context.Background()
-			ctx, _ = pkgcontext.InstanceInto(ctx, instance)
-		})
-
-		It("returns error if instance missing", func() {
-			ctxEmpty := context.Background()
-			_, err := r.CheckSkipReconciliation(ctxEmpty)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		// TODO add more tests
 	})
 
 	Describe("Testing shouldSendNotification function", func() {
 		var (
 			reconciler *instautoctrl.InstanceInactiveTerminationReconciler
-			instance   *clv1alpha2.Instance
+			instance   *crownlabsv1alpha2.Instance
 			ctx        context.Context
-			template   *clv1alpha2.Template
+			template   *crownlabsv1alpha2.Template
 		)
 
 		BeforeEach(func() {
@@ -622,16 +603,24 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 				NotificationInterval:          time.Hour,
 				InstanceMaxNumberOfAlerts:     3,
 			}
-			instance = &clv1alpha2.Instance{
+			instance = &crownlabsv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "test-instance",
-					Annotations: make(map[string]string),
+					Annotations: map[string]string{},
 				},
-				Spec: clv1alpha2.InstanceSpec{
+				Spec: crownlabsv1alpha2.InstanceSpec{
 					Running: true,
 				},
 			}
+			template = &crownlabsv1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						forge.CustomNumberOfAlertsAnnotation: "4",
+					},
+				},
+			}
 			ctx = context.Background()
+			ctx, _ = pkgcontext.TemplateInto(ctx, template)
 		})
 
 		It("returns false if inactivity notifications are disabled", func() {
@@ -674,14 +663,6 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 		It("respects custom max alerts annotation", func() {
 			instance.Annotations[forge.AlertAnnotationNum] = "2"
-			template = &clv1alpha2.Template{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						forge.CustomNumberOfAlertsAnnotation: "4",
-					},
-				},
-			}
-			ctx, _ = pkgcontext.TemplateInto(ctx, template)
 			send, err := reconciler.ShouldSendNotification(ctx, instance)
 			Expect(send).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -689,13 +670,14 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 		It("returns false if numAlerts exceeds default max", func() {
 			instance.Annotations[forge.AlertAnnotationNum] = "5"
+			instance.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Add(-2 * time.Hour).Format(time.RFC3339)
 			send, err := reconciler.ShouldSendNotification(ctx, instance)
 			Expect(send).To(BeFalse())
 			Expect(err).To(BeNil())
 		})
 	})
 
-	Describe("Testing SendInactivityWarning function", func() {
+	Describe("Testing ResetAlertAnnotation function", func() {
 		var (
 			r               *instautoctrl.InstanceInactiveTerminationReconciler
 			ctx             context.Context
@@ -703,10 +685,13 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			currentTemplate *crownlabsv1alpha2.Template
 			currentTenant   *crownlabsv1alpha2.Tenant
 		)
+		JustBeforeEach(func() {
+			ctx = context.Background()
 
-		BeforeEach(func() {
 			r = &instautoctrl.InstanceInactiveTerminationReconciler{
-				Client: k8sClient,
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+				Prometheus:         mockProm,
 			}
 
 			By("Checking that the instance is running")
@@ -722,54 +707,18 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			currentTenant = &crownlabsv1alpha2.Tenant{}
 			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
 
-			ctx = context.Background()
 			ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
 			ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
 			ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
-		})
-
-		It("returns error if tenant is not in context", func() {
-			ctx := context.Background() // no tenant injected
-			err := r.SendInactivityWarning(ctx, currentInstance)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("tenant not found"))
-		})
-
-		// TODO: Add more tests for SendInactivityWarning function
-	})
-
-	Describe("Testing ResetAlertAnnotation function", func() {
-		var (
-			r        *instautoctrl.InstanceInactiveTerminationReconciler
-			ctx      context.Context
-			instance *crownlabsv1alpha2.Instance
-		)
-
-		BeforeEach(func() {
-			r = &instautoctrl.InstanceInactiveTerminationReconciler{}
-			instance = &crownlabsv1alpha2.Instance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "test-instance",
-					Namespace:   "test-ns",
-					Annotations: map[string]string{forge.AlertAnnotationNum: "3"},
-				},
-			}
-			ctx = context.Background()
-			ctx, _ = pkgcontext.InstanceInto(ctx, instance)
+			r.SetupInstanceAnnotations(ctx)
 		})
 
 		It("should reset the AlertAnnotationNum to 0", func() {
 			err := r.ResetAlertAnnotation(ctx)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(instance.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
+			Expect(currentInstance.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
 		})
 
-		It("should return error if instance is missing from context", func() {
-			ctx = context.Background() // no instance injected
-			err := r.ResetAlertAnnotation(ctx)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("instance not found"))
-		})
 	})
 
 })

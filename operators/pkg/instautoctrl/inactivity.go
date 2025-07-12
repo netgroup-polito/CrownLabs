@@ -386,6 +386,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 	// Check and set the last notification time annotation if not present
 	if _, ok := instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
+		instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = ""
 		updated = true
 	}
 
@@ -439,6 +440,10 @@ func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx cont
 func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("ShouldSendNotification")
 
+	if !instance.Spec.Running {
+		return false, nil // If the instance is not running, do not send a notification
+	}
+
 	if !r.EnableInactivityNotifications {
 		log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name)
 		return false, nil
@@ -468,17 +473,13 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 
 	}
 
-	if !instance.Spec.Running {
-		return false, nil // If the instance is not running, do not send a notification
-	}
-
 	maxAlerts := r.InstanceMaxNumberOfAlerts
 	template := pkgcontext.TemplateFrom(ctx)
 	if template != nil {
 		// if the CustomNumberOfAlertsAnnotation is set, override the default max alerts
 		if customMaxAlertsStr, ok := template.ObjectMeta.Annotations[forge.CustomNumberOfAlertsAnnotation]; ok {
 			customMaxAlerts, err := strconv.Atoi(customMaxAlertsStr)
-			fmt.Printf("Custom max alerts: %s\n", customMaxAlertsStr)
+
 			if err != nil {
 				log.Error(err, "failed converting custom max alerts annotation to int, using default value", "annotation", customMaxAlertsStr)
 			}

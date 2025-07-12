@@ -18,17 +18,17 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
 
-var _ = Describe("Instautoctrl", func() {
+var _ = Describe("Instautoctrl-inactivity", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName               = "test-instance-persistent"
-		PersistentInstanceName2              = "test-instance-persistent2"
-		NonPersistentInstanceName            = "test-instance-non-persistent"
-		WorkingNamespace                     = "working-namespace"
-		persistentTemplateName               = "test-template-persistent"
-		persistentTemplateName2              = "test-template-persistent-2"
-		nonPersistentTemplateName            = "test-template-non-persistent"
-		TenantName                           = "test-tenant"
+		PersistentInstanceName               = "test-inactivity-instance-persistent"
+		PersistentInstanceName2              = "test-inactivity-instance-persistent2"
+		NonPersistentInstanceName            = "test-inactivity-instance-non-persistent"
+		WorkingNamespace                     = "test-inactivity-working-namespace"
+		persistentTemplateName               = "test-inactivity-test-template-persistent"
+		persistentTemplateName2              = "test-inactivity-test-template-persistent-2"
+		nonPersistentTemplateName            = "test-inactivity-template-non-persistent"
+		TenantName                           = "test-inactivity-tenant"
 		CustomDeleteAfter                    = instautoctrl.NEVER_TIMEOUT_VALUE
 		CustomInactivityTimeout              = instautoctrl.NEVER_TIMEOUT_VALUE
 		CustomDeleteAfterNonPersistent       = "1m"
