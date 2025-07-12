@@ -1,3 +1,17 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package instautoctrl_test
 
 import (
@@ -29,8 +43,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		persistentTemplateName    = "test-template-persistent-unit-test-expiration"
 		nonPersistentTemplateName = "test-template-non-persistent-unit-test-expiration"
 		TenantName                = "test-tenant-unit-test-expiration"
-		CustomDeleteAfter         = instautoctrl.NEVER_TIMEOUT_VALUE
-		CustomInactivityTimeout   = instautoctrl.NEVER_TIMEOUT_VALUE
+		CustomDeleteAfter         = instautoctrl.NeverTimeoutValue
+		CustomInactivityTimeout   = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfter2        = "1m"
 		CustomInactivityTimeout2  = "2m"
 		tolerance                 = time.Minute
@@ -206,6 +220,19 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		newTenant := tenant.DeepCopy()
 		By("Creating the namespace where to create instance and template")
 		err := k8sClient.Create(ctx, newNs)
+		if err != nil && errors.IsAlreadyExists(err) {
+			By("Cleaning up the environment")
+			By("Deleting templates")
+			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
+			By("Deleting instances")
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+			By("Deleting tenant")
+			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+		} else if err != nil {
+			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
+		}
 		err = k8sClient.Create(ctx, newTenantNs)
 		if err != nil && errors.IsAlreadyExists(err) {
 			By("Cleaning up the environment")

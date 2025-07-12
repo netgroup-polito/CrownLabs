@@ -1,3 +1,17 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package instautoctrl_test
 
 import (
@@ -26,8 +40,8 @@ var _ = Describe("Instautoctrl-expiration", func() {
 		persistentTemplateName    = "test-expiration-template-persistent"
 		nonPersistentTemplateName = "test-expiration-template-non-persistent"
 		TenantName                = "test-expiration-tenant"
-		CustomDeleteAfter         = instautoctrl.NEVER_TIMEOUT_VALUE
-		CustomInactivityTimeout   = instautoctrl.NEVER_TIMEOUT_VALUE
+		CustomDeleteAfter         = instautoctrl.NeverTimeoutValue
+		CustomInactivityTimeout   = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfter2        = "1m"
 		CustomInactivityTimeout2  = "2m"
 
@@ -257,7 +271,7 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			currentTemplate := &crownlabsv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
 			Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-			Expect(currentTemplate.Spec.DeleteAfter).To(Equal(instautoctrl.NEVER_TIMEOUT_VALUE))
+			Expect(currentTemplate.Spec.DeleteAfter).To(Equal(instautoctrl.NeverTimeoutValue))
 
 			By("waiting for the persistent VM to not reach the maximum deletion time")
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClientExpiration)

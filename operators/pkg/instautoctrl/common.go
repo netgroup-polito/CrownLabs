@@ -39,11 +39,15 @@ import (
 )
 
 const (
-	NEVER_TIMEOUT_VALUE = "never"
+	// NeverTimeoutValue is the value used to indicate that no timeout should be applied.
+	NeverTimeoutValue = "never"
 
-	INACTIVITY_MAIL_TEMPLATE_PATH         = "templates/instance-automation/inactivity_notification.yaml"
-	EXPIRATION_MAIL_TEMPLATE_PATH         = "templates/instance-automation/expiration_notification.yaml"
-	WARNING_EXPIRATION_MAIL_TEMPLATE_PATH = "templates/instance-automation/warning_expiration_notification.yaml"
+	// InactivityMailTemplatePath is the path to the email template for inactivity notifications.
+	InactivityMailTemplatePath = "templates/instance-automation/inactivity_notification.yaml"
+	// ExpirationMailTemplatePath is the path to the email template for expiration notifications.
+	ExpirationMailTemplatePath = "templates/instance-automation/expiration_notification.yaml"
+	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
+	WarningExpirationMailTemplatePath = "templates/instance-automation/warning_expiration_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -83,20 +87,21 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 }
 
 // SendInactivityNotification sends notification about instance inactivity detection.
-func SendInactivityNotification(ctx context.Context, mc *mail.MailClient) error {
-	return sendNotification(ctx, mc, INACTIVITY_MAIL_TEMPLATE_PATH)
+func SendInactivityNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, InactivityMailTemplatePath)
 }
 
-func SendExpiringWarningNotification(ctx context.Context, mc *mail.MailClient) error {
-	return sendNotification(ctx, mc, WARNING_EXPIRATION_MAIL_TEMPLATE_PATH)
+// SendExpiringWarningNotification sends expiration warning notification.
+func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath)
 }
 
 // SendExpiringNotification sends expiration warning notification.
-func SendExpiringNotification(ctx context.Context, mc *mail.MailClient) error {
-	return sendNotification(ctx, mc, EXPIRATION_MAIL_TEMPLATE_PATH)
+func SendExpiringNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, ExpirationMailTemplatePath)
 }
 
-func sendNotification(ctx context.Context, mc *mail.MailClient, mail_template_path string) error {
+func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath string) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
 
 	instance := pkgcontext.InstanceFrom(ctx)
@@ -115,7 +120,7 @@ func sendNotification(ctx context.Context, mc *mail.MailClient, mail_template_pa
 		PrettyName:   instance.Spec.PrettyName,
 		InstanceName: instance.Name,
 	}
-	err := mc.SendCrownLabsMail(mail_template_path, ph)
+	err := mc.SendCrownLabsMail(mailTemplatePath, ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err // LOCAL: nil
@@ -224,7 +229,7 @@ var deleteAfterChanged = predicate.Funcs{
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
 		// Requeue only if the deleteAfter field has changed and is not set to "never"
-		return newValue != NEVER_TIMEOUT_VALUE
+		return newValue != NeverTimeoutValue
 	},
 }
 
@@ -242,7 +247,7 @@ var inactivityTimeoutChanged = predicate.Funcs{
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
 		// Requeue only if the deleteAfter field has changed and it is not set to "never"
-		return newValue != NEVER_TIMEOUT_VALUE
+		return newValue != NeverTimeoutValue
 	},
 }
 
@@ -273,7 +278,7 @@ var instanceTriggered = predicate.Funcs{
 		if !oldOk || !newOk {
 			return false
 		}
-		if oldInstance.Spec.Running == false && newInstance.Spec.Running == true {
+		if !oldInstance.Spec.Running && newInstance.Spec.Running {
 			return true
 		}
 		return false
@@ -286,12 +291,12 @@ var instanceTriggered = predicate.Funcs{
 	},
 }
 
-// GetInstanceAndTemplate retrieves the instance and associated template.
-func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, client client.Client) (*clv1alpha2.Instance, *clv1alpha2.Template, *clv1alpha2.Tenant, error) {
+// GetInstanceTemplateTenant retrieves the instance and associated template.
+func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, c client.Client) (*clv1alpha2.Instance, *clv1alpha2.Template, *clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	var instance clv1alpha2.Instance
-	if err := client.Get(ctx, req.NamespacedName, &instance); err != nil {
+	if err := c.Get(ctx, req.NamespacedName, &instance); err != nil {
 		if !kerrors.IsNotFound(err) {
 			log.Error(err, "failed retrieving instance")
 		}
@@ -299,7 +304,7 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, client cli
 	}
 
 	var template clv1alpha2.Template
-	if err := client.Get(ctx, types.NamespacedName{
+	if err := c.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Template.Name,
 		Namespace: instance.Spec.Template.Namespace,
 	}, &template); err != nil {
@@ -309,7 +314,7 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, client cli
 	}
 
 	var tenant clv1alpha2.Tenant
-	if err := client.Get(ctx, types.NamespacedName{
+	if err := c.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Tenant.Name,
 		Namespace: instance.Namespace,
 	}, &tenant); err != nil {

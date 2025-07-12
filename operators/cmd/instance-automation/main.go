@@ -46,7 +46,7 @@ import (
 
 var (
 	scheme     = runtime.NewScheme()
-	mailClient *mail.MailClient
+	mailClient *mail.Client
 )
 
 func init() {

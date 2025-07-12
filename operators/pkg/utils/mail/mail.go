@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package mail provides utilities for sending templated emails via SMTP.
+// It supports loading configuration and templates from Kubernetes ConfigMaps,
+// formatting email content with dynamic placeholders, and sending messages
+// using standard SMTP authentication.
 package mail
 
 import (
@@ -26,8 +30,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// MailClient is a simple SMTP client for sending emails.
-type MailClient struct {
+// Client is a simple SMTP client for sending emails.
+type Client struct {
 	SMTPServer string
 	SMTPPort   int
 	Auth       smtp.Auth
@@ -35,8 +39,10 @@ type MailClient struct {
 }
 
 const (
-	CROWNLABS_MAIL_TEMPLATE_PATH string = "templates/defaults/crownlabs_mail.eml"
-	HEADER_FOOTER_TEMPLATE_PATH  string = "templates/defaults/crownlabs_headers.yaml"
+	// CrownlabsMailTemplatePath is the default path for the CrownLabs email template.
+	CrownlabsMailTemplatePath string = "templates/defaults/crownlabs_mail.eml"
+	// HeaderFooterTemplatePath is the default path for the header/footer template.
+	HeaderFooterTemplatePath string = "templates/defaults/crownlabs_headers.yaml"
 )
 
 // Placeholders is a struct that holds the placeholders values for the email content.
@@ -59,8 +65,8 @@ func SetConfigMapData(data map[string]string) {
 	configMapData = data
 }
 
-// NewMailClientFromConfigMap creates a new MailClient instance from ConfigMap data
-func NewMailClientFromConfigMap() (*MailClient, error) {
+// NewMailClientFromConfigMap creates a new Client instance from ConfigMap data.
+func NewMailClientFromConfigMap() (*Client, error) {
 	if configMapData == nil {
 		return nil, fmt.Errorf("configMapData is not set")
 	}
@@ -92,7 +98,7 @@ func NewMailClientFromConfigMap() (*MailClient, error) {
 	}
 
 	auth := smtp.PlainAuth(smtpIdentity, smtpUsername, smtpPassword, smtpServer)
-	return &MailClient{
+	return &Client{
 		SMTPServer: smtpServer,
 		SMTPPort:   smtpPort,
 		Auth:       auth,
@@ -136,13 +142,13 @@ func replacePlaceholders(content string, emailValues map[string]string) (string,
 	return content, nil
 }
 
-// SendMail sends an email using the SMTP server configured in the MailClient.
-func (m *MailClient) SendCrownLabsMail(email_content_template_path string, ph Placeholders) error {
-	if email_content_template_path == "" {
+// SendCrownLabsMail sends an email using the SMTP server configured in the Client.
+func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph Placeholders) error {
+	if emailContentTemplatePath == "" {
 		return fmt.Errorf("email content template path is required")
 	}
 
-	emailContent, err := m.processEmailContentTemplate(email_content_template_path, ph)
+	emailContent, err := m.processEmailContentTemplate(emailContentTemplatePath, ph)
 	if err != nil {
 		return err
 	}
@@ -155,7 +161,7 @@ func (m *MailClient) SendCrownLabsMail(email_content_template_path string, ph Pl
 	return m.sendEmail(ph.TenantEmail, formattedEmail)
 }
 
-// readTemplateFile reads a template file from ConfigMap data
+// readTemplateFile reads a template file from ConfigMap data.
 func readTemplateFile(templatePath string) ([]byte, error) {
 	// Check if configMapData is set
 	if configMapData == nil {
@@ -178,8 +184,8 @@ func readTemplateFile(templatePath string) ([]byte, error) {
 	return nil, fmt.Errorf("template file not found: %s", templatePath)
 }
 
-// processEmailContentTemplate loads and processes the content template file
-func (m *MailClient) processEmailContentTemplate(templatePath string, ph Placeholders) (map[string]string, error) {
+// processEmailContentTemplate loads and processes the content template file.
+func (m *Client) processEmailContentTemplate(templatePath string, ph Placeholders) (map[string]string, error) {
 	// Get the email content template
 	emailContentTemplate, err := readTemplateFile(templatePath)
 	if err != nil {
@@ -210,16 +216,16 @@ func (m *MailClient) processEmailContentTemplate(templatePath string, ph Placeho
 	return emailValues, nil
 }
 
-// prepareFinalEmail prepares the final email by combining the base template with content
-func (m *MailClient) prepareFinalEmail(emailContent map[string]string) (string, error) {
+// prepareFinalEmail prepares the final email by combining the base template with content.
+func (m *Client) prepareFinalEmail(emailContent map[string]string) (string, error) {
 	// Get the entire email template
-	crownlabsEmailTemplate, err := readTemplateFile(CROWNLABS_MAIL_TEMPLATE_PATH)
+	crownlabsEmailTemplate, err := readTemplateFile(CrownlabsMailTemplatePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read email template: %w", err)
 	}
 
 	// Get headers template
-	headerFooterTemplate, err := readTemplateFile(HEADER_FOOTER_TEMPLATE_PATH)
+	headerFooterTemplate, err := readTemplateFile(HeaderFooterTemplatePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read header/footer template: %w", err)
 	}
@@ -247,8 +253,8 @@ func (m *MailClient) prepareFinalEmail(emailContent map[string]string) (string, 
 	return formattedEmail, nil
 }
 
-// sendEmail sends the email to the recipient
-func (m *MailClient) sendEmail(recipient string, emailContent string) error {
+// sendEmail sends the email to the recipient.
+func (m *Client) sendEmail(recipient, emailContent string) error {
 	msg := []byte(emailContent)
 	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
 	to := []string{recipient}

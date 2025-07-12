@@ -1,3 +1,17 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package instautoctrl
 
 import (
@@ -6,13 +20,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
+// Prometheus is a client for interacting with a Prometheus server.
 type Prometheus struct {
 	address                  string
 	queryNginxAvailable      string
@@ -22,6 +38,7 @@ type Prometheus struct {
 	client                   v1.API
 }
 
+// NewPrometheusObj creates a new Prometheus client with the given configuration.
 func NewPrometheusObj(
 	address string,
 	queryNginxAvailable, queryBastionSSHAvailable, queryNginxData, queryBastionSSHData string,
@@ -73,7 +90,7 @@ func (p *Prometheus) IsPrometheusHealthy(ctx context.Context) (bool, error) {
 	if err1 != nil && err2 != nil {
 		log.Error(err1, "Failed to query Prometheus for ingress metrics")
 		log.Error(err2, "Failed to query Prometheus for bastion SSH metrics")
-		return false, fmt.Errorf("both Prometheus queries failed: %v, %v", err1, err2)
+		return false, fmt.Errorf("both Prometheus queries failed: %w, %w", err1, err2)
 	}
 
 	active1 := false
@@ -149,6 +166,7 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 	return lastChange, nil
 }
 
+// PrometheusClientInterface defines the methods for interacting with a Prometheus client.
 type PrometheusClientInterface interface {
 	IsPrometheusHealthy(ctx context.Context) (bool, error)
 	GetLastActivityTime(query string, interval time.Duration) (time.Time, error)
@@ -171,10 +189,12 @@ type PrometheusClientInterface interface {
 
 // 	return v1api, nil
 
+// GetQueryNginxData returns the query string for Nginx data.
 func (p *Prometheus) GetQueryNginxData() string {
 	return p.queryNginxData
 }
 
+// GetQuerySSHData returns the query string for SSH data.
 func (p *Prometheus) GetQuerySSHData() string {
 	return p.queryBastionSSHData
 }

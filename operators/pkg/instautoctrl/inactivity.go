@@ -51,7 +51,7 @@ type InstanceInactiveTerminationReconciler struct {
 	InstanceMaxNumberOfAlerts     int
 	EnableInactivityNotifications bool
 	NotificationInterval          time.Duration
-	MailClient                    *mail.MailClient
+	MailClient                    *mail.Client
 	Prometheus                    PrometheusClientInterface
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -72,7 +72,7 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.InactivityTimeout == NEVER_TIMEOUT_VALUE {
+				if !ok || template.Spec.InactivityTimeout == NeverTimeoutValue {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -100,7 +100,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 					},
 				})
 			}
-			//rintln("Enqueued requests for namespace:", namespace.Name, "with", len(requests), "instances", requests)
 			return requests
 		}),
 			builder.WithPredicates(inactivityIgnoreNamespace),
@@ -143,7 +142,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
-	if inactivityTimeout == NEVER_TIMEOUT_VALUE {
+	if inactivityTimeout == NeverTimeoutValue {
 		log.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
@@ -242,12 +241,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 
 	// Get instance activity data
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	//lastActivityTimeNginx, errNginx := GetLastActivityTime(queryNginx, v1api, inactivityTimeoutDuration)
-	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, inactivityTimeoutDuration) // LOCAL: just to test the Prometheus client
+	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, inactivityTimeoutDuration)
 
 	querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), instance.Status.IP)
-	//lastActivityTimeSSH, errSSH := GetLastActivityTime(querySSH, v1api, inactivityTimeoutDuration)
-	lastActivityTimeSSH, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration) // LOCAL: just to test the Prometheus client
+	lastActivityTimeSSH, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration)
 
 	if errNginx != nil && errSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
@@ -296,7 +293,8 @@ func IsTemplatePersistent(template *clv1alpha2.Template) bool {
 	}
 
 	// Check if any environment in the template is persistent
-	for _, env := range template.Spec.EnvironmentList {
+	for i := range template.Spec.EnvironmentList {
+		env := &template.Spec.EnvironmentList[i]
 		if env.Persistent {
 			return true
 		}
@@ -470,9 +468,7 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 			log.Info("Last notification sent within the notification interval, skipping email notification", "instance", instance.Name)
 			return false, nil
 		}
-
 	}
-
 	maxAlerts := r.InstanceMaxNumberOfAlerts
 	template := pkgcontext.TemplateFrom(ctx)
 	if template != nil {
@@ -486,7 +482,7 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 			maxAlerts = customMaxAlerts
 		}
 	}
-	return numAlerts <= maxAlerts-1, nil
+	return numAlerts < maxAlerts, nil
 }
 
 // SendInactivityWarning sends an inactivity warning email to the user and updates the instance annotations.
@@ -500,7 +496,7 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 	err := SendInactivityNotification(ctx, r.MailClient)
 	if err != nil {
 		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
-		return err //LOCAL: return nil
+		return err
 	}
 
 	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
@@ -509,10 +505,6 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 		return err
 	}
 
-	// if err := r.Update(ctx, instance); err != nil {
-	// 	log.Error(err, "failed updating instance annotations")
-	// 	return err
-	// }
 	patch := client.MergeFrom(instance.DeepCopy())
 	instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
 	instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
@@ -547,9 +539,7 @@ func (r *InstanceInactiveTerminationReconciler) ResetAlertAnnotation(ctx context
 		log.Info("Detected transition from false to true: resetting alert counter")
 		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
 		updated = true
-
 	}
-
 	// update the LastRunningAnnotation
 	currentRunningStr := strconv.FormatBool(instance.Spec.Running)
 	if lastRunningStr != currentRunningStr {

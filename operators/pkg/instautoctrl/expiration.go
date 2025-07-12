@@ -47,7 +47,7 @@ type InstanceExpirationReconciler struct {
 	NamespaceWhitelist            metav1.LabelSelector
 	StatusCheckRequestTimeout     time.Duration
 	EnableExpirationNotifications bool
-	MailClient                    *mail.MailClient
+	MailClient                    *mail.Client
 	NotificationInterval          time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -67,7 +67,7 @@ func (r *InstanceExpirationReconciler) SetupWithManager(mgr ctrl.Manager, concur
 			&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 				template, ok := obj.(*clv1alpha2.Template)
-				if !ok || template.Spec.DeleteAfter == NEVER_TIMEOUT_VALUE {
+				if !ok || template.Spec.DeleteAfter == NeverTimeoutValue {
 					return nil
 				}
 				return getTemplateInstanceRequests(ctx, r.Client, template)
@@ -106,7 +106,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
-	if deleteAfter == NEVER_TIMEOUT_VALUE {
+	if deleteAfter == NeverTimeoutValue {
 		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
@@ -127,7 +127,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 
 		if r.EnableExpirationNotifications {
-
 			shouldSendWarning, err := r.ShouldSendWarningNotification(ctx)
 			if err != nil {
 				log.Error(err, "failed to check if warning notification should be sent")
@@ -251,6 +250,7 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 	return nil
 }
 
+// ShouldSendWarningNotification checks if a warning notification should be sent for an expiring instance.
 func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context.Context) (bool, error) {
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {

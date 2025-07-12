@@ -20,6 +20,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
+// Labels used by the CrownLabs operators.
 const (
 	LabelManagedByKey    = "crownlabs.polito.it/managed-by"
 	LabelInstanceKey     = "crownlabs.polito.it/instance"

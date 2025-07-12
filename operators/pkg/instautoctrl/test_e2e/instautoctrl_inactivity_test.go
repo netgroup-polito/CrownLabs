@@ -1,3 +1,17 @@
+// Copyright 2020-2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package instautoctrl_test
 
 import (
@@ -29,8 +43,8 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		persistentTemplateName2              = "test-inactivity-test-template-persistent-2"
 		nonPersistentTemplateName            = "test-inactivity-template-non-persistent"
 		TenantName                           = "test-inactivity-tenant"
-		CustomDeleteAfter                    = instautoctrl.NEVER_TIMEOUT_VALUE
-		CustomInactivityTimeout              = instautoctrl.NEVER_TIMEOUT_VALUE
+		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
+		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfterNonPersistent       = "1m"
 		CustomInactivityTimeoutNonPersistent = "1m"
 		CustomDeleteAfterPersistent2         = "0m"
@@ -284,6 +298,20 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		newTenant := tenant.DeepCopy()
 		By("Creating the namespace where to create instance and template")
 		err := k8sClient.Create(ctx, tenNs)
+		if err != nil && errors.IsAlreadyExists(err) {
+			By("Cleaning up the environment")
+			By("Deleting templates")
+			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
+			By("Deleting instances")
+			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &persistentInstance))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+			By("Deleting tenant")
+			Expect(k8sClientExpiration.Delete(ctx, &tenant)).Should(Succeed())
+		} else if err != nil {
+			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
+		}
 		err = k8sClient.Create(ctx, newNs)
 		if err != nil && errors.IsAlreadyExists(err) {
 			By("Cleaning up the environment")
@@ -390,7 +418,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 			By("Checking the InactivityTimeout field is the default one")
 			currentInactivityTimeout := currentTemplate.Spec.InactivityTimeout
-			defaultInactivityTimeout := instautoctrl.NEVER_TIMEOUT_VALUE
+			defaultInactivityTimeout := instautoctrl.NeverTimeoutValue
 			Expect(currentInactivityTimeout).To(Equal(defaultInactivityTimeout))
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
@@ -461,7 +489,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Getting current instance")
 			currentInstance := &crownlabsv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			//Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			// Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
 			By("Checking the instance is deleted")
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout*2, interval, k8sClient)
