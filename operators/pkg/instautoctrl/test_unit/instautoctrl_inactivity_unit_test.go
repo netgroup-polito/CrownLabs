@@ -272,6 +272,22 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			}}
 	)
 
+	var cleanupEnvironment = func() {
+		By("Cleaning up the environment")
+		By("Deleting templates")
+		Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
+
+		By("Deleting instances")
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance2))).To(Succeed())
+
+		By("Deleting tenant")
+		Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+	}
+
 	BeforeEach(func() {
 		mockProm.EXPECT().
 			IsPrometheusHealthy(gomock.Any()).
@@ -302,36 +318,17 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		newNonPersistentInstance := nonPersistentInstance.DeepCopy()
 		newPersistentInstance2 := persistentInstance2.DeepCopy()
 		newTenant := tenant.DeepCopy()
+
 		By("Creating the namespace where to create instance and template")
 		err := k8sClient.Create(ctx, tenNs)
 		if err != nil && errors.IsAlreadyExists(err) {
-			By("Cleaning up the environment")
-			By("Deleting templates")
-			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
-			By("Deleting instances")
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance2))).To(Succeed())
-			By("Deleting tenant")
-			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+			cleanupEnvironment()
 		} else if err != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
 		}
 		err = k8sClient.Create(ctx, newNs)
 		if err != nil && errors.IsAlreadyExists(err) {
-			By("Cleaning up the environment")
-			By("Deleting templates")
-			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
-			By("Deleting instances")
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance2))).To(Succeed())
-			By("Deleting tenant")
-			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+			cleanupEnvironment()
 		} else if err != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
 		}
