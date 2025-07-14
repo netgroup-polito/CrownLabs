@@ -20,6 +20,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) enforceTenantBaseLabels(
@@ -31,10 +32,12 @@ func (r *Reconciler) enforceTenantBaseLabels(
 		tn.Labels = make(map[string]string, 1)
 	}
 
-	tn.Labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
+	// Use forge function for target label
+	tn.Labels = forge.UpdateTenantResourceCommonLabels(tn.Labels, r.TargetLabel)
 
-	tn.Labels["crownlabs.polito.it/first-name"] = CleanName(tn.Spec.FirstName)
-	tn.Labels["crownlabs.polito.it/last-name"] = CleanName(tn.Spec.LastName)
+	// Add specific tenant identity labels
+	tn.Labels["crownlabs.polito.it/first-name"] = forge.CleanTenantName(tn.Spec.FirstName)
+	tn.Labels["crownlabs.polito.it/last-name"] = forge.CleanTenantName(tn.Spec.LastName)
 
 	if err := r.enforcePreservingStatus(ctx, log, tn); err != nil {
 		log.Error(err, "Error updating labels for tenant", "tenant", tn.Name)

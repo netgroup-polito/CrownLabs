@@ -17,7 +17,6 @@ package tenant
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -35,73 +34,77 @@ import (
 
 func (r *Reconciler) enforceResourcesRelatedToPersonalNamespace(
 	ctx context.Context,
-	log logr.Logger,
+	extlog logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
+	log := extlog.WithValues("namespace", forge.GetTenantNamespaceName(tn))
+
 	// Create the personal namespace for the tenant
 	if err := r.createPersonalNamespace(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Personal namespace created", "namespace", getNamespaceName(tn))
+	log.Info("Personal namespace created")
 
 	// manage resource quota
 	if err := r.createResourceQuota(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Resource quota created", "namespace", getNamespaceName(tn))
+	log.Info("Resource quota created")
 
 	// manage role binding for instance management
 	if err := r.createInstanceRoleBinding(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Role binding created", "namespace", getNamespaceName(tn))
+	log.Info("Role binding created")
 
 	// Network Policies
 	if err := r.createDenyNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating deny network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Deny network policy created", "namespace", getNamespaceName(tn))
+	log.Info("Deny network policy created")
 
 	if err := r.createAllowNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when creating allow network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("Allow network policy created", "namespace", getNamespaceName(tn))
+	log.Info("Allow network policy created")
 
 	return nil
 }
 
 func (r *Reconciler) deleteResourcesRelatedToPersonalNamespace(
 	ctx context.Context,
-	log logr.Logger,
+	extlog logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
+	log := extlog.WithValues("namespace", forge.GetTenantNamespaceName(tn))
+
 	// Delete Network Policies
 	if err := r.deleteDenyNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting deny network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Deny network policy deleted", "namespace", getNamespaceName(tn))
+	log.Info("🔥 Deny network policy deleted")
 
 	if err := r.deleteAllowNetworkPolicy(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting allow network policy for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Allow network policy deleted", "namespace", getNamespaceName(tn))
+	log.Info("🔥 Allow network policy deleted")
 	// Delete the role binding for instance management
 	if err := r.deleteInstanceRoleBinding(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting role binding for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Role binding deleted", "namespace", getNamespaceName(tn))
+	log.Info("🔥 Role binding deleted")
 
 	// Delete the resource quota for the personal namespace
 	if err := r.deleteResourceQuota(ctx, tn); err != nil {
 		return fmt.Errorf("error when deleting resource quota for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Resource quota deleted", "namespace", getNamespaceName(tn))
+	log.Info("🔥 Resource quota deleted")
 
 	// Delete the personal namespace for the tenant
 	if err := r.deletePersonalNamespace(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when deleting personal namespace for tenant %s: %w", tn.Name, err)
 	}
-	log.Info("🔥 Personal namespace deleted", "namespace", getNamespaceName(tn))
+	log.Info("🔥 Personal namespace deleted")
 
 	return nil
 }
@@ -112,15 +115,13 @@ func (r *Reconciler) createPersonalNamespace(
 ) error {
 	ns := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getNamespaceName(tn),
+			Name: forge.GetTenantNamespaceName(tn),
 		},
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		ns.Labels = r.enforceTnResourceCommonLabels(ns.Labels)
-		ns.Labels["crownlabs.polito.it/type"] = "tenant"
-		ns.Labels["crownlabs.polito.it/name"] = tn.Name
-		ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
+		// Configure the namespace using the forge package
+		forge.ConfigureTenantNamespace(&ns, tn, forge.UpdateTenantResourceCommonLabels(ns.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &ns, r.Scheme)
 	}); err != nil {
@@ -133,7 +134,7 @@ func (r *Reconciler) createPersonalNamespace(
 	return nil
 }
 
-// deleteClusterNamespace deletes the namespace for the tenant, if it fails then it returns an error.
+// deletePersonalNamespace deletes the namespace for the tenant, if it fails then it returns an error.
 func (r *Reconciler) deletePersonalNamespace(
 	ctx context.Context,
 	log logr.Logger,
@@ -141,7 +142,7 @@ func (r *Reconciler) deletePersonalNamespace(
 ) error {
 	ns := v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getNamespaceName(tn),
+			Name: forge.GetTenantNamespaceName(tn),
 		},
 	}
 
@@ -170,7 +171,7 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	// Attempt to get instances in current namespace
 	list := &v1alpha2.InstanceList{}
 
-	if err := r.List(ctx, list, client.InNamespace(getNamespaceName(tn))); err != nil {
+	if err := r.List(ctx, list, client.InNamespace(forge.GetTenantNamespaceName(tn))); err != nil {
 		return true, err
 	}
 
@@ -188,16 +189,11 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	return true, nil
 }
 
-// returns the name of the namespace for the tenant.
-func getNamespaceName(tn *v1alpha2.Tenant) string {
-	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
-}
-
 func (r *Reconciler) createResourceQuota(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
@@ -206,8 +202,8 @@ func (r *Reconciler) createResourceQuota(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
-		rq.Labels = r.enforceTnResourceCommonLabels(rq.Labels)
-		rq.Spec.Hard = forge.TenantResourceQuotaSpec(&tn.Status.Quota)
+		// Configure the resource quota using the forge package
+		forge.ConfigureTenantResourceQuota(&rq, &tn.Status.Quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
 	}); err != nil {
@@ -221,7 +217,7 @@ func (r *Reconciler) deleteResourceQuota(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
@@ -236,7 +232,7 @@ func (r *Reconciler) createInstanceRoleBinding(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	rb := rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-manage-instances",
@@ -245,17 +241,8 @@ func (r *Reconciler) createInstanceRoleBinding(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
-		rb.Labels = r.enforceTnResourceCommonLabels(rb.Labels)
-		rb.RoleRef = rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "crownlabs-manage-instances",
-			APIGroup: "rbac.authorization.k8s.io",
-		}
-		rb.Subjects = []rbacv1.Subject{{
-			Kind:     "User",
-			Name:     tn.Name,
-			APIGroup: "rbac.authorization.k8s.io",
-		}}
+		// Configure the role binding using the forge package
+		forge.ConfigureTenantInstancesRoleBinding(&rb, tn, forge.UpdateTenantResourceCommonLabels(rb.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rb, r.Scheme)
 	}); err != nil {
@@ -269,7 +256,7 @@ func (r *Reconciler) deleteInstanceRoleBinding(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	rb := rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-manage-instances",
@@ -284,7 +271,7 @@ func (r *Reconciler) createDenyNetworkPolicy(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	netPolDeny := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-deny-ingress-traffic",
@@ -293,11 +280,9 @@ func (r *Reconciler) createDenyNetworkPolicy(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
-		netPolDeny.Labels = r.enforceTnResourceCommonLabels(netPolDeny.Labels)
-		netPolDeny.Spec.PodSelector.MatchLabels = make(map[string]string)
-		netPolDeny.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{
-			From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}},
-		}}
+		// Configure the network policy using the forge package
+		forge.ConfigureTenantDenyNetworkPolicy(netPolDeny, forge.UpdateTenantResourceCommonLabels(netPolDeny.Labels, r.TargetLabel))
+
 		return controllerutil.SetControllerReference(tn, netPolDeny, r.Scheme)
 	})
 
@@ -308,7 +293,7 @@ func (r *Reconciler) createAllowNetworkPolicy(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	netPolAllow := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-allow-trusted-ingress-traffic",
@@ -317,17 +302,9 @@ func (r *Reconciler) createAllowNetworkPolicy(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
-		netPolAllow.Labels = r.enforceTnResourceCommonLabels(netPolAllow.Labels)
-		netPolAllow.Spec.PodSelector.MatchLabels = make(map[string]string)
-		netPolAllow.Spec.Ingress = []netv1.NetworkPolicyIngressRule{{
-			From: []netv1.NetworkPolicyPeer{{
-				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"crownlabs.polito.it/allow-instance-access": "true",
-					},
-				},
-			}},
-		}}
+		// Configure the network policy using the forge package
+		forge.ConfigureTenantAllowNetworkPolicy(netPolAllow, forge.UpdateTenantResourceCommonLabels(netPolAllow.Labels, r.TargetLabel))
+
 		return controllerutil.SetControllerReference(tn, netPolAllow, r.Scheme)
 	})
 
@@ -338,7 +315,7 @@ func (r *Reconciler) deleteDenyNetworkPolicy(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	netPolDeny := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-deny-ingress-traffic",
@@ -353,7 +330,7 @@ func (r *Reconciler) deleteAllowNetworkPolicy(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
+	nsName := forge.GetTenantNamespaceName(tn)
 	netPolAllow := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-allow-trusted-ingress-traffic",

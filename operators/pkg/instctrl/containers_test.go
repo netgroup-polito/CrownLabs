@@ -34,7 +34,6 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
@@ -117,12 +116,12 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 		myDriveSecret = corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      tntctrl.NFSSecretName,
+				Name:      forge.NFSSecretName,
 				Namespace: instanceNamespace,
 			},
 			Data: map[string][]byte{
-				tntctrl.NFSSecretServerNameKey: []byte(nfsServerName),
-				tntctrl.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
+				forge.NFSSecretServerNameKey: []byte(nfsServerName),
+				forge.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
 			},
 		}
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(

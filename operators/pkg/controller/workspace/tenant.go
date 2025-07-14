@@ -17,13 +17,13 @@ package workspace
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) handleTenantWorkspaceDeletion(
@@ -32,7 +32,7 @@ func (r *Reconciler) handleTenantWorkspaceDeletion(
 	log logr.Logger,
 ) error {
 	var tenantsToUpdate v1alpha2.TenantList
-	targetLabel := fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.Name)
+	targetLabel := forge.GetWorkspaceTargetLabel(ws.Name)
 
 	if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); err != nil {
 		log.Error(err, "Error when listing tenants subscribed to workspace upon deletion", "workspace", ws.Name)

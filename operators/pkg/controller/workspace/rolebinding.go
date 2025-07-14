@@ -25,18 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
-
-var rbData = map[v1alpha2.WorkspaceUserRole]map[string]string{
-	v1alpha2.User: {
-		"view-templates": "crownlabs-view-templates",
-	},
-	v1alpha2.Manager: {
-		"manage-templates":     "crownlabs-manage-templates",
-		"manage-sharedvolumes": "crownlabs-manage-sharedvolumes",
-	},
-}
 
 func (r *Reconciler) enforceRoleBindings(
 	ctx context.Context,
@@ -47,50 +37,19 @@ func (r *Reconciler) enforceRoleBindings(
 	}
 	namespace := ws.Status.Namespace.Name
 
-	for authorized, roles := range rbData {
-		for kind, roleName := range roles {
-			if err := r.createOrUpdateSingleRb(ctx, ws, namespace, kind, roleName, authorized); err != nil {
-				return fmt.Errorf("error while creating/updating RoleBinding %s for workspace %s: %w",
-					kind, ws.Name, err)
-			}
-		}
+	// Enforce User View Templates RoleBinding
+	if err := r.enforceUserViewTemplatesRoleBinding(ctx, ws, namespace); err != nil {
+		return fmt.Errorf("error while managing User View Templates RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
-	return nil
-}
-
-func (r *Reconciler) createOrUpdateSingleRb(
-	ctx context.Context,
-	ws *v1alpha1.Workspace,
-	namespace string,
-	kind string,
-	roleName string,
-	authorized v1alpha2.WorkspaceUserRole,
-) error {
-	rb := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("crownlabs-%s", kind),
-			Namespace: namespace,
-		},
+	// Enforce Manager Manage Templates RoleBinding
+	if err := r.enforceManagerManageTemplatesRoleBinding(ctx, ws, namespace); err != nil {
+		return fmt.Errorf("error while managing Manager Manage Templates RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
-		rb.Labels = r.updateWsResourceCommonLabels(rb.Labels)
-		rb.RoleRef.Kind = "ClusterRole"
-		rb.RoleRef.Name = roleName
-		rb.RoleRef.APIGroup = "rbac.authorization.k8s.io"
-
-		rb.Subjects = []rbacv1.Subject{
-			{
-				Kind:     "Group",
-				Name:     fmt.Sprintf("kubernetes:%s", workspaceRoleName(ws, authorized)),
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		}
-
-		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
-	}); err != nil {
-		return fmt.Errorf("error while creating/updating RoleBinding %s: %w", rb.Name, err)
+	// Enforce Manager Manage SharedVolumes RoleBinding
+	if err := r.enforceManagerManageSharedVolumesRoleBinding(ctx, ws, namespace); err != nil {
+		return fmt.Errorf("error while managing Manager Manage SharedVolumes RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
 	return nil
@@ -105,15 +64,24 @@ func (r *Reconciler) deleteRoleBindings(
 	}
 	namespace := ws.Status.Namespace.Name
 
-	// Delete all RoleBindings related to the Workspace
-	for _, rbDataSet := range rbData {
-		for kind := range rbDataSet {
-			err := r.deleteSingleRb(ctx, namespace, kind)
-			if err != nil {
-				if client.IgnoreNotFound(err) != nil {
-					return err
-				}
-			}
+	// Delete User View Templates RoleBinding
+	if err := r.deleteSingleRb(ctx, namespace, forge.ViewTemplatesRoleName); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("error deleting User View Templates RoleBinding: %w", err)
+		}
+	}
+
+	// Delete Manager Manage Templates RoleBinding
+	if err := r.deleteSingleRb(ctx, namespace, forge.ManageTemplatesRoleName); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("error deleting Manager Manage Templates RoleBinding: %w", err)
+		}
+	}
+
+	// Delete Manager Manage SharedVolumes RoleBinding
+	if err := r.deleteSingleRb(ctx, namespace, forge.ManageSharedVolumesRoleName); err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("error deleting Manager Manage SharedVolumes RoleBinding: %w", err)
 		}
 	}
 
@@ -123,17 +91,101 @@ func (r *Reconciler) deleteRoleBindings(
 func (r *Reconciler) deleteSingleRb(
 	ctx context.Context,
 	namespace string,
-	kind string,
+	name string,
 ) error {
 	rb := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("crownlabs-%s", kind),
+			Name:      name,
 			Namespace: namespace,
 		},
 	}
 
 	if err := r.Delete(ctx, rb); err != nil {
 		return fmt.Errorf("error while deleting RoleBinding %s: %w", rb.Name, err)
+	}
+
+	return nil
+}
+
+// enforceUserViewTemplatesRoleBinding creates or updates the RoleBinding for User View Templates.
+func (r *Reconciler) enforceUserViewTemplatesRoleBinding(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+	namespace string,
+) error {
+	rb := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      forge.ViewTemplatesRoleName,
+			Namespace: namespace,
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+		// Update labels
+		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
+
+		// Configure the RoleBinding
+		forge.ConfigureWorkspaceUserViewTemplatesBinding(ws, rb, rb.Labels)
+
+		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error while creating/updating User View Templates RoleBinding: %w", err)
+	}
+
+	return nil
+}
+
+// enforceManagerManageTemplatesRoleBinding creates or updates the RoleBinding for Manager Manage Templates.
+func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+	namespace string,
+) error {
+	rb := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      forge.ManageTemplatesRoleName,
+			Namespace: namespace,
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+		// Update labels
+		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
+
+		// Configure the RoleBinding
+		forge.ConfigureWorkspaceManagerManageTemplatesBinding(ws, rb, rb.Labels)
+
+		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error while creating/updating Manager Manage Templates RoleBinding: %w", err)
+	}
+
+	return nil
+}
+
+// enforceManagerManageSharedVolumesRoleBinding creates or updates the RoleBinding for Manager Manage SharedVolumes.
+func (r *Reconciler) enforceManagerManageSharedVolumesRoleBinding(
+	ctx context.Context,
+	ws *v1alpha1.Workspace,
+	namespace string,
+) error {
+	rb := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      forge.ManageSharedVolumesRoleName,
+			Namespace: namespace,
+		},
+	}
+
+	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+		// Update labels
+		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
+
+		// Configure the RoleBinding
+		forge.ConfigureWorkspaceManagerManageSharedVolumesBinding(ws, rb, rb.Labels)
+
+		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error while creating/updating Manager Manage SharedVolumes RoleBinding: %w", err)
 	}
 
 	return nil

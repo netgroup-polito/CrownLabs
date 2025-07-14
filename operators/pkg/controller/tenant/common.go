@@ -16,8 +16,6 @@ package tenant
 
 import (
 	"context"
-	"regexp"
-	"strings"
 
 	"github.com/go-logr/logr"
 
@@ -39,36 +37,4 @@ func (r *Reconciler) enforcePreservingStatus(
 	tn.Status = prevStatus
 
 	return nil
-}
-
-// CleanName sanitizes a name by replacing spaces with underscores and removing
-// any characters that are not alphanumeric or underscores. It also trims leading
-// and trailing underscores.
-func CleanName(name string) string {
-	okRegex := regexp.MustCompile("^[a-zA-Z0-9_]+$")
-	name = strings.ReplaceAll(name, " ", "_")
-
-	if !okRegex.MatchString(name) {
-		problemChars := make([]string, 0)
-		for _, c := range name {
-			if !okRegex.MatchString(string(c)) {
-				problemChars = append(problemChars, string(c))
-			}
-		}
-		for _, v := range problemChars {
-			name = strings.Replace(name, v, "", 1)
-		}
-	}
-
-	return strings.Trim(name, "_")
-}
-
-func (r *Reconciler) enforceTnResourceCommonLabels(labels map[string]string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string, 1)
-	}
-	labels[r.TargetLabel.GetKey()] = r.TargetLabel.GetValue()
-	labels["crownlabs.polito.it/managed-by"] = "tenant"
-
-	return labels
 }

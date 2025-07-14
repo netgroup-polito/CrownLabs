@@ -26,6 +26,7 @@ import (
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) enforceNamespace(
@@ -34,13 +35,14 @@ func (r *Reconciler) enforceNamespace(
 ) error {
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getNamespaceName(ws),
+			Name: forge.GetWorkspaceNamespaceName(ws),
 		},
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
-		ns.Labels = r.updateWsResourceCommonLabels(ns.Labels)
-		ns.Labels["crownlabs.polito.it/type"] = "workspace"
+		// Configure the namespace
+		labels := forge.UpdateWorkspaceResourceCommonLabels(nil, r.TargetLabel)
+		forge.ConfigureWorkspaceNamespace(ns, labels)
 
 		return controllerutil.SetControllerReference(ws, ns, r.Scheme)
 	}); err != nil {
@@ -62,7 +64,7 @@ func (r *Reconciler) deleteNamespace(
 ) error {
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: getNamespaceName(ws),
+			Name: forge.GetWorkspaceNamespaceName(ws),
 		},
 	}
 
@@ -77,8 +79,4 @@ func (r *Reconciler) deleteNamespace(
 	}
 
 	return nil
-}
-
-func getNamespaceName(ws *v1alpha1.Workspace) string {
-	return fmt.Sprintf("workspace-%s", ws.Name)
 }

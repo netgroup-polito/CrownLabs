@@ -22,16 +22,8 @@ import (
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
-
-func getWorkspaceRoles(
-	ws *v1alpha1.Workspace,
-) map[string]string {
-	return map[string]string{
-		workspaceRoleName(ws, v1alpha2.Manager): ws.Spec.PrettyName + " Manager Role",
-		workspaceRoleName(ws, v1alpha2.User):    ws.Spec.PrettyName + " User Role",
-	}
-}
 
 func (r *Reconciler) createKeycloakRoles(
 	ctx context.Context,
@@ -44,12 +36,22 @@ func (r *Reconciler) createKeycloakRoles(
 		return nil
 	}
 
-	for roleName, roleDescription := range getWorkspaceRoles(ws) {
-		if err := r.createKeycloakRole(ctx, ws, roleName, roleDescription, log); err != nil {
-			ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
-			log.Error(err, "Error when creating Keycloak role", "role", roleName, "workspace", ws.Name)
-			return err
-		}
+	// Create manager role
+	managerRoleName := forge.GetWorkspaceManagerRoleName(ws)
+	managerRoleDesc := forge.GetWorkspaceManagerRoleDescription(ws)
+	if err := r.createKeycloakRole(ctx, ws, managerRoleName, managerRoleDesc, log); err != nil {
+		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
+		log.Error(err, "Error when creating Keycloak manager role", "role", managerRoleName, "workspace", ws.Name)
+		return err
+	}
+
+	// Create user role
+	userRoleName := forge.GetWorkspaceUserRoleName(ws)
+	userRoleDesc := forge.GetWorkspaceUserRoleDescription(ws)
+	if err := r.createKeycloakRole(ctx, ws, userRoleName, userRoleDesc, log); err != nil {
+		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
+		log.Error(err, "Error when creating Keycloak user role", "role", userRoleName, "workspace", ws.Name)
+		return err
 	}
 
 	ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
@@ -96,11 +98,18 @@ func (r *Reconciler) deleteKeycloakRoles(
 		return nil
 	}
 
-	for roleName := range getWorkspaceRoles(ws) {
-		if err := r.deleteKeycloakRole(ctx, ws, roleName, log); err != nil {
-			log.Error(err, "Error when deleting Keycloak role", "role", roleName, "workspace", ws.Name)
-			return err
-		}
+	// Delete manager role
+	managerRoleName := forge.GetWorkspaceManagerRoleName(ws)
+	if err := r.deleteKeycloakRole(ctx, ws, managerRoleName, log); err != nil {
+		log.Error(err, "Error when deleting Keycloak manager role", "role", managerRoleName, "workspace", ws.Name)
+		return err
+	}
+
+	// Delete user role
+	userRoleName := forge.GetWorkspaceUserRoleName(ws)
+	if err := r.deleteKeycloakRole(ctx, ws, userRoleName, log); err != nil {
+		log.Error(err, "Error when deleting Keycloak user role", "role", userRoleName, "workspace", ws.Name)
+		return err
 	}
 
 	return nil

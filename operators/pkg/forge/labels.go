@@ -18,6 +18,7 @@ import (
 	"strconv"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -42,9 +43,14 @@ const (
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
 
-	labelManagedByInstanceValue = "instance"
-	labelManagedByTenantValue   = "tenant"
-	labelTypeSandboxValue       = "sandbox"
+	labelManagedByInstanceValue  = "instance"
+	labelManagedByTenantValue    = "tenant"
+	labelManagedByWorkspaceValue = "workspace"
+	labelTypeWorkspaceValue      = "workspace"
+	labelTypeSandboxValue        = "sandbox"
+
+	labelAllowInstanceAccessKey   = "crownlabs.polito.it/allow-instance-access"
+	labelAllowInstanceAccessValue = "true"
 
 	// ProvisionJobValueOk -> Value of the label added by the Provision Job to flag the PVC when everything worked fine.
 	ProvisionJobValueOk = "completed"
@@ -206,4 +212,15 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 	// if labelInstanceKey is present instance will receive the associated value and found will be set to true.
 	instance, found := labels[labelInstanceKey]
 	return instance, found
+}
+
+// UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
+func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
+	}
+	labels[targetLabel.GetKey()] = targetLabel.GetValue()
+	labels[labelManagedByKey] = labelManagedByWorkspaceValue
+
+	return labels
 }

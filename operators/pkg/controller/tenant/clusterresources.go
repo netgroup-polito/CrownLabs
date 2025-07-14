@@ -23,7 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -75,8 +76,7 @@ func (r *Reconciler) createTenantClusterRole(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
-	crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crName := forge.GetTenantClusterRoleResourceName(tn)
 
 	cr := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,13 +85,8 @@ func (r *Reconciler) createTenantClusterRole(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &cr, func() error {
-		cr.Labels = r.enforceTnResourceCommonLabels(cr.Labels)
-		cr.Rules = []rbacv1.PolicyRule{{
-			APIGroups:     []string{"crownlabs.polito.it"},
-			Resources:     []string{"tenants"},
-			ResourceNames: []string{tn.Name},
-			Verbs:         []string{"get", "list", "watch", "patch", "update"},
-		}}
+		// Configure the cluster role using the forge package
+		forge.ConfigureTenantClusterRole(&cr, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &cr, r.Scheme)
 	})
@@ -111,8 +106,7 @@ func (r *Reconciler) createTenantClusterRoleBinding(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
-	crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crbName := forge.GetTenantClusterRoleResourceName(tn)
 
 	crb := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -121,17 +115,8 @@ func (r *Reconciler) createTenantClusterRoleBinding(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &crb, func() error {
-		crb.Labels = r.enforceTnResourceCommonLabels(crb.Labels)
-		crb.RoleRef = rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     crbName,
-			APIGroup: "rbac.authorization.k8s.io",
-		}
-		crb.Subjects = []rbacv1.Subject{{
-			Kind:     "User",
-			Name:     tn.Name,
-			APIGroup: "rbac.authorization.k8s.io",
-		}}
+		// Configure the cluster role binding using the forge package
+		forge.ConfigureTenantClusterRoleBinding(&crb, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &crb, r.Scheme)
 	})
@@ -151,8 +136,7 @@ func (r *Reconciler) deleteTenantClusterRole(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
-	crName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crName := forge.GetTenantClusterRoleResourceName(tn)
 
 	cr := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -174,8 +158,7 @@ func (r *Reconciler) deleteTenantClusterRoleBinding(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
-	nsName := getNamespaceName(tn)
-	crbName := fmt.Sprintf("crownlabs-manage-%s", nsName)
+	crbName := forge.GetTenantClusterRoleResourceName(tn)
 
 	crb := rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

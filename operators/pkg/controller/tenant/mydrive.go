@@ -17,36 +17,17 @@ package tenant
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
-)
-
-// Constants for MyDrive.
-const (
-	// NFSSecretName -> NFS secret name.
-	NFSSecretName = "mydrive-info"
-	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
-	NFSSecretServerNameKey = "server-name"
-	// NFSSecretPathKey -> NFS path key in NFS secret.
-	NFSSecretPathKey = "path"
-	// ProvisionJobBaseImage -> Base container image for Personal Drive provision job.
-	ProvisionJobBaseImage = "busybox"
-	// ProvisionJobMaxRetries -> Maximum number of retries for Provision jobs.
-	ProvisionJobMaxRetries = 3
-	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
-	ProvisionJobTTLSeconds = 3600 * 24 * 7
 )
 
 // createMyDrivePVC creates the PVC for tenant's personal storage in cross-namespace.
@@ -98,7 +79,7 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      myDrivePVCName(tn.Name),
+			Name:      forge.GetMyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
 		},
 	}
@@ -118,22 +99,16 @@ func (r *Reconciler) createOrUpdatePVC(
 ) (*v1.PersistentVolumeClaim, error) {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      myDrivePVCName(tn.Name),
+			Name:      forge.GetMyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
-		},
-		Spec: v1.PersistentVolumeClaimSpec{
-			AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
-			StorageClassName: &r.MyDrivePVCsStorageClassName,
 		},
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
-		pvc.Labels = r.enforceTnResourceCommonLabels(pvc.Labels)
+		// Configure the PVC using the forge package
+		forge.ConfigureMyDrivePVC(&pvc, r.MyDrivePVCsStorageClassName, r.MyDrivePVCsSize,
+			forge.UpdateTenantResourceCommonLabels(pvc.Labels, r.TargetLabel))
 
-		oldSize := *pvc.Spec.Resources.Requests.Storage()
-		if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
-			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
-		}
 		return controllerutil.SetControllerReference(tn, &pvc, r.Scheme)
 	})
 
@@ -165,23 +140,20 @@ func (r *Reconciler) createOrUpdatePVCSecret(
 		return false, err
 	}
 
+	// Get NFS server and path information from the PV
+	serverName, exportPath := forge.NFSShVolSpec(&pv)
+
 	pvcSecret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      NFSSecretName,
+			Name:      forge.NFSSecretName,
 			Namespace: tn.Status.PersonalNamespace.Name,
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvcSecret, func() error {
-		pvcSecret.Labels = r.enforceTnResourceCommonLabels(pvcSecret.Labels)
+		// Configure the secret using the forge package
+		forge.ConfigureMyDriveSecret(&pvcSecret, serverName, exportPath,
+			forge.UpdateTenantResourceCommonLabels(pvcSecret.Labels, r.TargetLabel))
 
-		pvcSecret.Type = v1.SecretTypeOpaque
-		pvcSecret.Data = make(map[string][]byte, 2)
-		pvcSecret.Data[NFSSecretServerNameKey] = []byte(fmt.Sprintf(
-			"%s.%s",
-			pv.Spec.CSI.VolumeAttributes["server"],
-			pv.Spec.CSI.VolumeAttributes["clusterID"],
-		))
-		pvcSecret.Data[NFSSecretPathKey] = []byte(pv.Spec.CSI.VolumeAttributes["share"])
 		return controllerutil.SetControllerReference(tn, &pvcSecret, r.Scheme)
 	})
 
@@ -210,7 +182,8 @@ func (r *Reconciler) launchPVCProvisionJob(
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
 		if chownJob.CreationTimestamp.IsZero() {
 			log.Info("PVC Provisioning Job created for tenant", "tenant", tn.Name)
-			r.updateTnProvisioningJob(&chownJob, pvc)
+			// Configure the provisioning job using the forge package
+			forge.ConfigureMyDriveProvisioningJob(&chownJob, pvc)
 		} else if provisionJobLabel == forge.ProvisionJobValuePending {
 			if chownJob.Status.Succeeded == 1 {
 				labelToSet = forge.ProvisionJobValueOk
@@ -227,50 +200,11 @@ func (r *Reconciler) launchPVCProvisionJob(
 	}
 	log.Info("PVC Provisioning Job launched")
 
-	pvc.Labels[forge.ProvisionJobLabel] = labelToSet
+	// Update the PVC label using the forge package
+	forge.UpdatePVCProvisioningJobLabel(pvc, labelToSet)
 	if err := r.Update(ctx, pvc); err != nil {
 		return fmt.Errorf("unable to update PVC Provisioning Job label: %w", err)
 	}
 
 	return nil
-}
-
-// Helper functions.
-func myDrivePVCName(tnName string) string {
-	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tnName, ".", "-"))
-}
-
-func (r *Reconciler) updateTnProvisioningJob(chownJob *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
-	if chownJob.CreationTimestamp.IsZero() {
-		chownJob.Spec.BackoffLimit = ptr.To[int32](ProvisionJobMaxRetries)
-		chownJob.Spec.TTLSecondsAfterFinished = ptr.To[int32](ProvisionJobTTLSeconds)
-		chownJob.Spec.Template.Spec.RestartPolicy = v1.RestartPolicyOnFailure
-		chownJob.Spec.Template.Spec.Containers = []v1.Container{{
-			Name:    "chown-container",
-			Image:   ProvisionJobBaseImage,
-			Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", forge.CrownLabsUserID, forge.CrownLabsUserID), forge.MyDriveVolumeMountPath},
-			VolumeMounts: []v1.VolumeMount{{
-				Name:      "mydrive",
-				MountPath: forge.MyDriveVolumeMountPath,
-			}},
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("128Mi"),
-				},
-				Limits: v1.ResourceList{
-					"cpu":    resource.MustParse("100m"),
-					"memory": resource.MustParse("128Mi"),
-				},
-			},
-		}}
-		chownJob.Spec.Template.Spec.Volumes = []v1.Volume{{
-			Name: "mydrive",
-			VolumeSource: v1.VolumeSource{
-				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-					ClaimName: pvc.Name,
-				},
-			},
-		}}
-	}
 }
