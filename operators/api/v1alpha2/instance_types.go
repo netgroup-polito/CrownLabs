@@ -49,16 +49,13 @@ const (
 	EnvironmentPhaseCreationLoopBackoff EnvironmentPhase = "CreationLoopBackoff"
 )
 
-// InstanceCustomizationUrls specifies optional urls for advanced integration features.
-type InstanceCustomizationUrls struct {
+// InstanceContentUrls specifies optional urls for advanced integration features.
+type InstanceContentUrls struct {
 	// URL from which GET the archive to be extracted into Template.ContainerStartupOptions.ContentPath. This field, if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
-	ContentOrigin string `json:"contentOrigin,omitempty"`
+	Origin string `json:"origin,omitempty"`
 
 	// URL to which POST an archive with the contents found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
-	ContentDestination string `json:"contentDestination,omitempty"`
-
-	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output a JSON with a `deadline` field containing a ISO_8601 compliant date/time string of the expected instance termination time. See instautoctrl.StatusCheckResponse for exact definition.
-	StatusCheck string `json:"statusCheck,omitempty"`
+	Destination string `json:"destination,omitempty"`
 }
 
 // InstanceSpec is the specification of the desired state of the Instance.
@@ -92,7 +89,9 @@ type InstanceSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Optional urls for advanced integration features.
-	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
+	StatusCheckUrl string `json:"statusCheckUrl,omitempty"`
+
+	ContentUrls map[string]InstanceContentUrls `json:"contentUrls,omitempty"`
 }
 
 // InstanceAutomationStatus reflects the status of the instance's automation (termination and submission).
@@ -107,8 +106,8 @@ type InstanceAutomationStatus struct {
 	SubmissionTime metav1.Time `json:"submissionTime,omitempty"`
 }
 
-// InstanceStatus reflects the most recently observed status of the Instance.
-type InstanceStatus struct {
+// InstanceStatusEnv reflects the status of an instance's environment.
+type InstanceStatusEnv struct {
 	// The current status Instance, with reference to the associated environment
 	// (e.g. VM). This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
@@ -130,12 +129,18 @@ type InstanceStatus struct {
 
 	// Timestamps of the Instance automation phases (check, termination and submission).
 	Automation InstanceAutomationStatus `json:"automation,omitempty"`
+}
 
+// InstanceStatus reflects the most recently observed status of the Instance.
+type InstanceStatus struct {
 	// The node on which the Instance is running.
 	NodeName string `json:"nodeName,omitempty"`
 
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// Environments contains the status of the instance's environments.
+	Environments []InstanceStatusEnv `json:"environments,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -143,10 +148,10 @@ type InstanceStatus struct {
 // +kubebuilder:resource:shortName="inst"
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`,priority=10
-// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`,priority=10
-// +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.initialReadyTime`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.environments[0].phase`
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
+// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
+// +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Instance describes the instance of a CrownLabs environment Template.
