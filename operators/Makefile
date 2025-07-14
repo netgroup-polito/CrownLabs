@@ -84,7 +84,7 @@ run-instance-automation: generate
 				--enable-instance-termination=false\
 				--enable-instance-inactive-termination=true\
 				--enable-instance-expiration=false\
-				--mail-configmap-name=crownlabs-mail-config
+				--mail-config-map-name=crownlabs-mail-config
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html

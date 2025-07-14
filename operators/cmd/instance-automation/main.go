@@ -78,7 +78,7 @@ func main() {
 	// load Prometheus variables
 	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`, "The Prometheus query to check the availability of the Nginx Ingress Metrics in Prometheus")
-	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{bastion_ssh_connections", node=~"worker-.*"} == 1)`, "The Prometheus query to check the availability of the Bastion SSH Metrics in Prometheus")
+	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container='bastion-operator-tracker-sidecar'} >1)`, "The Prometheus query to check the availability of the Bastion SSH Metrics in Prometheus")
 	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "The Prometheus query to get the Nginx Ingress Data in Prometheus")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "The Prometheus query to get the Bastion SSH Data in Prometheus")
 
@@ -99,8 +99,7 @@ func main() {
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", true, "Enable the sending of inactivity notifications to users on instance inactivity")
 	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", true, "Enable the sending of expiration notifications to users on instance expiration")
 
-	mailConfigMapName := flag.String("mail-configmap-name", "crownlabs-mail-config", "The name of the ConfigMap containing the email configuration")
-
+	mailConfigMapName := flag.String("mail-config-map-name", "crownlabs-mail-config", "The name of the ConfigMap containing the email configuration")
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
