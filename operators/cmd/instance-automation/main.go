@@ -77,10 +77,10 @@ func main() {
 
 	// load Prometheus variables
 	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
-	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`, "The Prometheus query to check the availability of the Nginx Ingress Metrics in Prometheus")
-	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container='bastion-operator-tracker-sidecar'} >1)`, "The Prometheus query to check the availability of the Bastion SSH Metrics in Prometheus")
-	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "The Prometheus query to get the Nginx Ingress Data in Prometheus")
-	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "The Prometheus query to get the Bastion SSH Data in Prometheus")
+	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
+	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container='bastion-operator-tracker-sidecar'} >1)`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
+	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
+	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
@@ -90,8 +90,8 @@ func main() {
 	maxConcurrentInactiveTerminationReconciles := flag.Int("max-concurrent-reconciles-inactive-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Inactive Termination controller")
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
-	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "The max number of alerts to send before terminating an inactive Instance")
-	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "How long before the instance is deleted the notification email should be sent to the user.")
+	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "the maximum number of notification that Crownlabs can send before stopping/deleting the Instance. It can be overrided by the AlertAnnotationNum annotation that can be in the Template resource.")
+	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
