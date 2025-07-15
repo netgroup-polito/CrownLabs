@@ -320,17 +320,12 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		newTenant := tenant.DeepCopy()
 
 		By("Creating the namespace where to create instance and template")
-		err := k8sClient.Create(ctx, tenNs)
-		if err != nil && errors.IsAlreadyExists(err) {
+		err1 := k8sClient.Create(ctx, tenNs)
+		err2 := k8sClient.Create(ctx, newNs)
+		if (err1 != nil || err2 != nil) && (errors.IsAlreadyExists(err1) || errors.IsAlreadyExists(err2)) {
 			cleanupEnvironment()
-		} else if err != nil {
-			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
-		}
-		err = k8sClient.Create(ctx, newNs)
-		if err != nil && errors.IsAlreadyExists(err) {
-			cleanupEnvironment()
-		} else if err != nil {
-			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
+		} else if err1 != nil || err2 != nil {
+			Fail(fmt.Sprintf("Unable to create namespace -> %s %s", err1, err2))
 		}
 
 		By("By checking that the namespace has been created")

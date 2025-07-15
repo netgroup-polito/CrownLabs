@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -180,6 +181,25 @@ var _ = Describe("Instautoctrl-expiration", func() {
 	)
 
 	BeforeEach(func() {
+		mockProm.EXPECT().
+			IsPrometheusHealthy(gomock.Any()).
+			Return(true, nil).
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetLastActivityTime(gomock.Any(), gomock.Any()).
+			Return(time.Now(), nil).
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetQueryNginxData().
+			Return("").
+			AnyTimes()
+
+		mockProm.EXPECT().
+			GetQuerySSHData().
+			Return("").
+			AnyTimes()
 		newNs := workingNs.DeepCopy()
 		newPersistentTemplate := persistentTemplate.DeepCopy()
 		newNonPersistentTemplate := nonPersistentTemplate.DeepCopy()

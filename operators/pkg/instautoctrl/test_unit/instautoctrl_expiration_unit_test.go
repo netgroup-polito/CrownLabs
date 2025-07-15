@@ -146,7 +146,7 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 					"crownlabs.polito.it/tenant":            TenantName,
 					"crownlabs.polito.it/workspace":         WorkingNamespace,
-					"crownlabs.polito.it/template":          nonPersistentTemplateName,
+					"crownlabs.polito.it/template":          persistentTemplateName,
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
@@ -209,43 +209,35 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 				},
 			}}
 	)
+	var cleanupEnvironment = func() {
+		By("Cleaning up the environment")
+		By("Deleting templates")
+		Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
+
+		By("Deleting instances")
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
+
+		By("Deleting tenant")
+		Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+	}
 
 	BeforeEach(func() {
-		newNs := workingNs.DeepCopy()
 		newPersistentTemplate := persistentTemplate.DeepCopy()
 		newNonPersistentTemplate := nonPersistentTemplate.DeepCopy()
 		newPersistentInstance := persistentInstance.DeepCopy()
 		newNonPersistentInstance := nonPersistentInstance.DeepCopy()
 		newTenantNs := tenantNs.DeepCopy()
+		newWorkingNs := workingNs.DeepCopy()
 		newTenant := tenant.DeepCopy()
 		By("Creating the namespace where to create instance and template")
-		err := k8sClient.Create(ctx, newNs)
-		if err != nil && errors.IsAlreadyExists(err) {
-			By("Cleaning up the environment")
-			By("Deleting templates")
-			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
-			By("Deleting instances")
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
-			By("Deleting tenant")
-			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
-		} else if err != nil {
-			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
-		}
-		err = k8sClient.Create(ctx, newTenantNs)
-		if err != nil && errors.IsAlreadyExists(err) {
-			By("Cleaning up the environment")
-			By("Deleting templates")
-			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
-			By("Deleting instances")
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
-			By("Deleting tenant")
-			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
-		} else if err != nil {
-			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
+		err1 := k8sClient.Create(ctx, newTenantNs)
+		err2 := k8sClient.Create(ctx, newWorkingNs)
+		if (err1 != nil || err2 != nil) && (errors.IsAlreadyExists(err1) || errors.IsAlreadyExists(err2)) {
+			cleanupEnvironment()
+		} else if err1 != nil || err2 != nil {
+			Fail(fmt.Sprintf("Unable to create namespace -> %s %s", err1, err2))
 		}
 
 		By("By checking that the namespace has been created")
@@ -256,6 +248,9 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval, k8sClient)
 		tenantNsLookupKey := types.NamespacedName{Name: TenantName}
 		doesEventuallyExists(ctx, tenantNsLookupKey, tenantNs, BeTrue(), timeout, interval, k8sClient)
+
+		By("Creating the tenant")
+		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
 
 		By("Creating the templates")
 		Expect(k8sClient.Create(ctx, newPersistentTemplate)).Should(Succeed())
@@ -269,14 +264,6 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 
 		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
 		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
-
-		By("Creating the tenant")
-		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
-
-		By("Checking that the tenant has been created")
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		createdTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval, k8sClient)
 
 		By("Creating the instances")
 		Expect(k8sClient.Create(ctx, newPersistentInstance)).Should(Succeed())
