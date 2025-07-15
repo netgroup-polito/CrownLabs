@@ -62,14 +62,17 @@ instance-operator:
     repository: crownlabs/instance-operator
   rbacResourcesName: crownlabs-instance-operator
   configurations:
+    mailConfigMapName: crownlabs-mail-config
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       websiteBaseUrl: crownlabs.example.com
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
+      vncImage: crownlabs/tigervnc
+      contentDownloaderImage: crownlabs/content-downloader
+      contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
@@ -79,6 +82,23 @@ instance-operator:
       url: registry.crownlabs.example.com
       secretName: registry-credentials
     maxConcurrentReconciles: 1
+    maxAutomationConcurrentReconciles: 1
+    monitoring:
+      prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+    automation:
+      enableInstanceSubmission: true
+      enableInstanceTermination: true
+      enableInstanceInactiveTermination: true
+      enableInstanceExpiration: true
+      maxConcurrentTerminationReconciles: 1
+      maxConcurrentInactiveTerminationReconciles: 1
+      maxConcurrentSubmissionReconciles: 1
+      terminationStatusCheckTimeout: "3s"
+      terminationStatusCheckInterval: "2m" 
+      inactiveTerminationStatusCheckTimeout: "3s"
+      inactiveTerminationMaxNumberOfAlerts: 3
+      enableInactivityNotifications: true
+      enableExpirationNotifications: true
 
 tenant-operator:
   replicaCount: 1
@@ -130,14 +150,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
 
 exam-agent:
   replicaCount: 1
