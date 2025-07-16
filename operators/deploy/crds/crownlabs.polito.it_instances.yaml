@@ -181,6 +181,12 @@ spec:
                         be used to access it through the SSH protocol (leveraging the SSH bastion
                         in case it is not contacted from another CrownLabs Instance).
                       type: string
+                    name:
+                      description: |-
+                        The name identifying the specific environment.
+                        It is equivalent to the name of a template's environment.
+                      pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                      type: string
                     phase:
                       description: |-
                         The current status Instance, with reference to the associated environment
@@ -204,8 +210,13 @@ spec:
                         The URL where it is possible to access the remote desktop of the instance
                         (in case of graphical environments)
                       type: string
+                  required:
+                  - name
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               nodeName:
                 description: The node on which the Instance is running.
                 type: string

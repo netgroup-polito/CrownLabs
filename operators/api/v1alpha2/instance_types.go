@@ -108,6 +108,11 @@ type InstanceAutomationStatus struct {
 
 // InstanceStatusEnv reflects the status of an instance's environment.
 type InstanceStatusEnv struct {
+	// The name identifying the specific environment.
+	// It is equivalent to the name of a template's environment.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	Name string `json:"name"`
+
 	// The current status Instance, with reference to the associated environment
 	// (e.g. VM). This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
@@ -140,6 +145,8 @@ type InstanceStatus struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Environments contains the status of the instance's environments.
+	// +listType=map
+	// +listMapKey=name
 	Environments []InstanceStatusEnv `json:"environments,omitempty"`
 }
 

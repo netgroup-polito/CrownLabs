@@ -45,21 +45,12 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
-
-	//
-	//
-	//
-
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
 	//index out of range
 	if envIndex >= len(instance.Status.Environments) {
 		return nil
 	}
-
-	//
-	//
-	//
 
 	// Enforce the service presence
 	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
@@ -86,15 +77,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 	log.V(utils.FromResult(res)).Info("object enforced", "service", klog.KObj(&service), "result", res)
 
-	//
-	//
-	//
-
 	instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
-
-	//
-	//
-	//
 
 	// instance.Status.IP = service.Spec.ClusterIP
 
@@ -104,7 +87,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the ingress to access the environment GUI
-
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, environment.Mode)
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+forge.IngressGUIName(environment))}
@@ -152,12 +134,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
-
-	//
-	//
-	//
-
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
+
 	// instanceStatusEnv := instance.Status.Environments[envIndex]
 
 	// instanceStatusEnv.IP = ""
@@ -173,10 +151,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 
 	instance.Status.Environments[envIndex].IP = ""
 	instance.Status.Environments[envIndex].URL = ""
-
-	//
-	//
-	//
 
 	// instance.Status.IP = ""
 	// instance.Status.URL = ""
