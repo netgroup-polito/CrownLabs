@@ -1,0 +1,102 @@
+{{ if .Values.configurations.waitUserVerification }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "operator.fullname" . }}-kc-wh-cleanup
+  labels:
+    {{- include "operator.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: webhook-cleanup
+        image: alpine:3.22.0
+        command: 
+        - /bin/sh
+        - -c
+        - |
+          # Install curl and jq
+          apk update && apk add --no-cache curl jq
+
+          # Login to Keycloak and obtain an access token
+          TOKEN_RESPONSE=$(curl -s -v -X POST \
+            -d "client_id=$CLIENT_ID" \
+            -d "client_secret=$CLIENT_SECRET" \
+            -d "grant_type=client_credentials" \
+            "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token")
+
+          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
+              echo "Error obtaining access token from Keycloak"
+              echo "Response: $TOKEN_RESPONSE"
+              exit 1
+          fi
+
+          echo "Access token obtained successfully"
+
+          # Get list of webhooks and find all with our URL
+          WEBHOOKS_RESPONSE=$(curl -s -v -X GET \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/webhooks")
+
+          WEBHOOK_IDS=$(echo "$WEBHOOKS_RESPONSE" | jq -r --arg URL "$WEBHOOK_URL" '.[] | select(.url == $URL) | .id')
+
+          if [ -z "$WEBHOOK_IDS" ]; then
+              echo "No webhooks found with URL: $WEBHOOK_URL"
+              exit 0
+          fi
+
+          echo "Found webhooks to delete: $WEBHOOK_IDS"
+
+          # Delete all matching webhooks
+          SUCCESS=true
+          for WEBHOOK_ID in $WEBHOOK_IDS; do
+              echo "Deleting webhook with ID: $WEBHOOK_ID"
+              DELETE_RESPONSE=$(curl -s -v -w "%{http_code}" -X DELETE \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/webhooks/$WEBHOOK_ID")
+
+              HTTP_STATUS=$(echo "$DELETE_RESPONSE" | tail -n1)
+              RESPONSE_BODY=$(echo "$DELETE_RESPONSE" | sed '$ d')
+
+              echo "Delete response status code for ID $WEBHOOK_ID: $HTTP_STATUS"
+              echo "Delete response body for ID $WEBHOOK_ID: $RESPONSE_BODY"
+
+              if [ "$HTTP_STATUS" != "204" ]; then
+                  echo "Error: Expected status code 204, got $HTTP_STATUS for webhook ID $WEBHOOK_ID"
+                  SUCCESS=false
+              fi
+          done
+
+          if [ "$SUCCESS" = false ]; then
+              echo "Failed to delete one or more webhooks"
+              exit 1
+          fi
+
+          echo "Webhook(s) deleted successfully"
+        env:
+        - name: KEYCLOAK_URL
+          value: {{ .Values.configurations.keycloak.url | quote }}
+        - name: KEYCLOAK_REALM
+          value: {{ .Values.configurations.keycloak.realm | quote }}
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "operator.fullname" . }}
+              key: clientId
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "operator.fullname" . }}
+              key: clientSecret
+        - name: WEBHOOK_URL
+          value: {{ include "operator.keycloakWebhookServiceURL" . | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+      restartPolicy: OnFailure
+{{ end }}
