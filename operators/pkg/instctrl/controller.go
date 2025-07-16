@@ -187,28 +187,39 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
+	// Make sure the list of instance environments status is initialized
+	tmplEnvCount := len(template.Spec.EnvironmentList)
+	if len(instance.Status.Environments) != tmplEnvCount {
+		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
+	}
+
 	for i := range template.Spec.EnvironmentList {
-		environment := &template.Spec.EnvironmentList[i]
+		tmplEnv := &template.Spec.EnvironmentList[i]
+
+		// Set the name of the environment for the instance status
+		// to the current template environment name.
+		instance.Status.Environments[i].Name = tmplEnv.Name
 
 		// Set an inner context for each environment
-		innCtx, _ := clctx.EnvironmentInto(ctx, environment)
+		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
-		switch template.Spec.EnvironmentList[i].EnvironmentType {
+		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 		}
 
 		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
+
 	return nil
 }
 
