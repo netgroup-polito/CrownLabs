@@ -85,23 +85,23 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateId: `${workspace.name}-`,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image: t.registry
-          ? `${t.registry}/${t.image}`.trim()!
-          : `${t.image}`.trim()!,
-        guiEnabled: t.gui,
-        persistent: t.persistent,
-        mountMyDriveVolume: t.mountMyDrive,
+        image: t.environmentList[0].registry
+          ? `${t.environmentList[0].registry}/${t.environmentList[0].image}`.trim()!
+          : `${t.environmentList[0].image}`.trim()!,
+        guiEnabled: t.environmentList[0].gui,
+        persistent: t.environmentList[0].persistent,
+        mountMyDriveVolume: t.environmentList[0].mountMyDrive,
         environmentType:
-          t.vmorcontainer === EnvironmentType.Container
+          t.environmentList[0].vmorcontainer === EnvironmentType.Container
             ? EnvironmentType.Container
             : EnvironmentType.VirtualMachine,
         resources: {
-          cpu: t.cpu,
-          memory: `${t.ram * 1000}M`,
-          disk: t.disk ? `${t.disk * 1000}M` : undefined,
+          cpu: t.environmentList[0].cpu,
+          memory: `${t.environmentList[0].ram * 1000}M`,
+          disk: t.environmentList[0].disk ? `${t.environmentList[0].disk * 1000}M` : undefined,
           reservedCPUPercentage: 50,
         },
-        sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
+        sharedVolumeMounts: t.environmentList[0].sharedVolumeMountInfos ?? [],
       },
     });
 

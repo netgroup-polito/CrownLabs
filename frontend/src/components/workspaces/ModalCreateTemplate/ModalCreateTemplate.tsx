@@ -432,6 +432,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               type="dashed"
               onClick={addEnvironment}
               icon={<span>+</span>}
+              className="text-green-600"
             >
               Add Environment
             </Button>
