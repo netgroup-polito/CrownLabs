@@ -44,14 +44,15 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// InstanceReconciler reconciles a Instance object.
+// InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	EventsRecorder     record.EventRecorder
-	NamespaceWhitelist metav1.LabelSelector
-	ServiceUrls        ServiceUrls
-	ContainerEnvOpts   forge.ContainerEnvOpts
+	Scheme               *runtime.Scheme
+	EventsRecorder       record.EventRecorder
+	NamespaceWhitelist   metav1.LabelSelector
+	ServiceUrls          ServiceUrls
+	ContainerEnvOpts     forge.ContainerEnvOpts
+	PublicExposureIPPool []string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -176,6 +177,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Error(err, "unable to retrieve pod schedule status")
 	}
 
+	// Check the public exposure configuration.
+	if err := r.EnforcePublicExposure(ctx); err != nil {
+		log.Error(err, "failed to enforce public exposure")
+		return ctrl.Result{}, err
+	}
+
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
@@ -247,6 +254,7 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // SetupWithManager registers a new controller for Instance resources.
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).

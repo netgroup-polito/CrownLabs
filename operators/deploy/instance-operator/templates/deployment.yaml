@@ -53,6 +53,7 @@ spec:
             - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
             - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
             - "--shared-volume-storage-class={{ .Values.configurations.sharedVolumeOptions.storageClass }}"
+            - "--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join \",\" }}"
           ports:
             - name: metrics
               containerPort: 8080
