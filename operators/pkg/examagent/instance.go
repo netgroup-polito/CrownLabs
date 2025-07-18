@@ -101,17 +101,8 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 		WriteError(w, r, log, http.StatusInternalServerError, "Cannot retrieve the requested instance.")
 		return
 	}
-
-	// estrai il phase del primo environment o usa off
-	var phase clv1alpha2.EnvironmentPhase = clv1alpha2.EnvironmentPhaseOff
-	if len(inst.Status.Environments) > 0 {
-		phase = inst.Status.Environments[0].Phase
-	}
+	var phase = inst.Status.Phase
 	log = log.WithValues("phase", phase)
-
-	//
-	//
-	//
 
 	if !AcceptsHTML(r) {
 		if err := WriteJSON(w, AdapterFromInstance(inst)); err != nil {
@@ -310,16 +301,13 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		Template: inst.Spec.Template.Name,
 		Running:  ptr.To(inst.Spec.Running),
 		//URL:      inst.Status.Status.URL,
-		//Phase:    string(inst.Status.Phase),
+		Phase:  string(inst.Status.Phase),
 		Labels: inst.GetLabels(),
 	}
 	// Usa il phase e la URL del primo environment se presente
 	if len(inst.Status.Environments) > 0 {
-		adapter.Phase = string(inst.Status.Environments[0].Phase)
 		adapter.URL = inst.Status.Environments[0].URL
 	} else {
-		//adapter.Phase = "" // vuoto o off?
-		adapter.Phase = string(clv1alpha2.EnvironmentPhaseOff)
 		adapter.URL = ""
 	}
 

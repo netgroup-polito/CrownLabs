@@ -144,6 +144,9 @@ type InstanceStatus struct {
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// The current phase of the Instance based on all environments.
+	Phase EnvironmentPhase `json:"phase,omitempty"`
+
 	// Environments contains the status of the instance's environments.
 	// +listType=map
 	// +listMapKey=name
@@ -155,7 +158,7 @@ type InstanceStatus struct {
 // +kubebuilder:resource:shortName="inst"
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.environments[0].phase`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
 // +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`

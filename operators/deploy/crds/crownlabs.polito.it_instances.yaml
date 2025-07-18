@@ -23,7 +23,7 @@ spec:
     - jsonPath: .spec.running
       name: Running
       type: string
-    - jsonPath: .status.environments[0].phase
+    - jsonPath: .status.phase
       name: Phase
       type: string
     - jsonPath: .status.environments[0].url
@@ -225,6 +225,20 @@ spec:
                   type: string
                 description: The actual nodeSelector assigned to the Instance.
                 type: object
+              phase:
+                description: The current phase of the Instance based on all environments.
+                enum:
+                - ""
+                - Importing
+                - Starting
+                - ResourceQuotaExceeded
+                - Running
+                - Ready
+                - Stopping
+                - "Off"
+                - Failed
+                - CreationLoopBackoff
+                type: string
             type: object
         type: object
     served: true

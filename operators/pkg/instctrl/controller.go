@@ -64,6 +64,69 @@ type ServiceUrls struct {
 	InstancesAuthURL string
 }
 
+// calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
+func (r *InstanceReconciler) calculateInstancePhase(environments []clv1alpha2.InstanceStatusEnv) clv1alpha2.EnvironmentPhase {
+	total := len(environments)
+	if total == 0 {
+		return clv1alpha2.EnvironmentPhaseUnset
+	}
+
+	var (
+		failed, creationLoopBackoff int
+		resourceQuotaExceeded       int
+		ready, running              int
+		starting, importing         int
+		stopping, off               int
+	)
+
+	for _, env := range environments {
+		switch env.Phase {
+		case clv1alpha2.EnvironmentPhaseFailed:
+			failed++
+		case clv1alpha2.EnvironmentPhaseCreationLoopBackoff:
+			creationLoopBackoff++
+		case clv1alpha2.EnvironmentPhaseResourceQuotaExceeded:
+			resourceQuotaExceeded++
+		case clv1alpha2.EnvironmentPhaseReady:
+			ready++
+		case clv1alpha2.EnvironmentPhaseRunning:
+			running++
+		case clv1alpha2.EnvironmentPhaseStarting:
+			starting++
+		case clv1alpha2.EnvironmentPhaseImporting:
+			importing++
+		case clv1alpha2.EnvironmentPhaseStopping:
+			stopping++
+		case clv1alpha2.EnvironmentPhaseOff:
+			off++
+		}
+	}
+
+	if failed > 0 || creationLoopBackoff > 0 {
+		return clv1alpha2.EnvironmentPhaseFailed
+	}
+	if resourceQuotaExceeded > 0 {
+		return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+	}
+	if ready == total {
+		return clv1alpha2.EnvironmentPhaseReady
+	}
+	if ready > 0 || running > 0 {
+		return clv1alpha2.EnvironmentPhaseRunning
+	}
+	if starting > 0 || importing > 0 {
+		return clv1alpha2.EnvironmentPhaseStarting
+	}
+	if stopping > 0 {
+		return clv1alpha2.EnvironmentPhaseStopping
+	}
+	if off == total {
+		return clv1alpha2.EnvironmentPhaseOff
+	}
+
+	return clv1alpha2.EnvironmentPhaseUnset
+}
+
 // Reconcile reconciles the state of an Instance resource.
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	if r.ReconcileDeferHook != nil {
@@ -111,6 +174,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
 			}
 		}
+
+		instance.Status.Phase = r.calculateInstancePhase(instance.Status.Environments)
 
 		// Avoid triggering the status update if not necessary.
 		if !reflect.DeepEqual(original.Status, updated.Status) {
