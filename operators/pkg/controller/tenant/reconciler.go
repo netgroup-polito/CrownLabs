@@ -330,13 +330,20 @@ func (r *Reconciler) workspaceToEnrolledTenants(
 	ctx context.Context,
 	ws client.Object,
 ) []ctrl.Request {
+	return r.WorkspaceNameToEnrolledTenants(ctx, ws.GetName())
+}
+
+func (r *Reconciler) WorkspaceNameToEnrolledTenants(
+	ctx context.Context,
+	wsName string,
+) []ctrl.Request {
 	var enqueues []ctrl.Request
 	var tenants v1alpha2.TenantList
 	if err := r.List(ctx, &tenants, client.HasLabels{
-		fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.GetName()),
+		fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, wsName),
 	}); err != nil {
 		log := ctrl.LoggerFrom(ctx)
-		log.Error(err, "Error when retrieving tenants enrolled", "workspace", ws.GetName())
+		log.Error(err, "Error when retrieving tenants enrolled", "workspace", wsName)
 		return nil
 	}
 	for idx := range tenants.Items {
