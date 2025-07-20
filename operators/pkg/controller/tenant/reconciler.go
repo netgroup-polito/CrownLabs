@@ -333,6 +333,8 @@ func (r *Reconciler) workspaceToEnrolledTenants(
 	return r.WorkspaceNameToEnrolledTenants(ctx, ws.GetName())
 }
 
+// WorkspaceNameToEnrolledTenants returns a list of requests to reconcile tenants
+// that are enrolled in the specified workspace.
 func (r *Reconciler) WorkspaceNameToEnrolledTenants(
 	ctx context.Context,
 	wsName string,
