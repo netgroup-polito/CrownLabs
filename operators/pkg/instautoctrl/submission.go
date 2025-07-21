@@ -99,6 +99,7 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 	tracer.Step("retrieved the instance environment")
+	var statusUpdated bool
 
 	for _, environment := range envList {
 		// Get the corresponding environment status.
@@ -126,13 +127,7 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 				} else {
 					instStatusEnv.Automation.SubmissionTime = metav1.Now()
 				}
-
-				if err := r.Status().Update(ctx, &instance); err != nil {
-					log.Error(err, "failed updating instance status")
-					return ctrl.Result{}, err
-				}
-
-				tracer.Step("instance status updated")
+				statusUpdated = true
 				log.Info("instance submission completed")
 
 				instance.SetLabels(forge.InstanceAutomationLabelsOnSubmission(instance.GetLabels(), environment.Name, true))
@@ -141,6 +136,14 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{}, err
 			}
 		}
+	}
+
+	if statusUpdated {
+		if err := r.Status().Update(ctx, &instance); err != nil {
+			log.Error(err, "failed updating instance status")
+			return ctrl.Result{}, err
+		}
+		tracer.Step("instance status updated")
 	}
 
 	if err := r.Update(ctx, &instance); err != nil {
