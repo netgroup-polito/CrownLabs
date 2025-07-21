@@ -174,6 +174,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			for _, env := range instance.Status.Environments {
 				Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 			}
+			Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 
 			By("Asserting the deployment has been created with no replicas", func() {
 				var deploy appsv1.Deployment
@@ -217,6 +218,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				for _, env := range instance.Status.Environments {
 					Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
 				}
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
 			})
 
 			By("Asserting the deployment has been created", func() {
@@ -275,7 +277,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-container-not-persistent"
-				for i := range environmentList { // use index
+				for i := range environmentList {
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = false
 				}
@@ -305,6 +307,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					for _, env := range instance.Status.Environments {
 						Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
 					}
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
 
 					By("Asserting the VM has been created", func() {
 						for _, env := range template.Spec.EnvironmentList {
@@ -359,6 +362,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 						for _, env := range instance.Status.Environments {
 							Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 						}
+						Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 					})
 
 					By("Asserting the VM spec has been changed", func() {
@@ -401,6 +405,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				for i := range instance.Status.Environments {
 					Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 				}
+				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 				By("Asserting the VM has NOT been created", func() {
 					var vmi virtv1.VirtualMachineInstance
 					for i := range template.Spec.EnvironmentList {
@@ -455,6 +460,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					for i := range instance.Status.Environments {
 						Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 					}
+					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 				})
 			})
 		})
