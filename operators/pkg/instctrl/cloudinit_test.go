@@ -33,7 +33,6 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
@@ -101,7 +100,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: true}
 		tenant = NewTenant("user", workspaceName, clv1alpha2.User, []string{"tenant-key-1", "tenant-key-2"})
 
-		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: tntctrl.NFSSecretName}
+		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: forge.NFSSecretName}
 		objectName = forge.NamespacedName(&instance)
 		secret = corev1.Secret{}
 
@@ -145,7 +144,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		}
 
 		BeforeEach(func() {
-			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, tntctrl.NFSSecretPathKey))
+			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
 
 			expected, err = forge.CloudInitUserData(tenant.Spec.PublicKeys, []forge.NFSVolumeMountInfo{
 				forge.MyDriveNFSVolumeMountInfo(NFSServiceName, NFSServicePath),
@@ -210,7 +209,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		Context("The user-pvc secret exists", func() {
 			When("the secret contains the expected data", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, tntctrl.NFSSecretPathKey))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -220,7 +219,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 			When("the secret does not contain the dns name", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret("invalid-name-key", tntctrl.NFSSecretPathKey))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret("invalid-name-key", forge.NFSSecretPathKey))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
@@ -228,7 +227,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 			When("the secret does not contain the path", func() {
 				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(tntctrl.NFSSecretServerNameKey, "invalid-path-key"))
+					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, "invalid-path-key"))
 				})
 
 				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
