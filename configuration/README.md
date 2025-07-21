@@ -79,4 +79,4 @@ In case a template must be started on nodes that have a given characteristic (e.
 
 The algorithm for node selection is depicted in the following image.
 
-![Node selection algorithm](/configuration/node-selection.svg)
+![Node selection algorithm](./node-selector.svg)
