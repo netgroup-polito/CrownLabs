@@ -165,7 +165,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		})
 		It("Should enforce the cloud-init secret", func() {
 			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName_env, &secret)).To(Succeed())
+			Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
 		})
 	})
 

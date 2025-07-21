@@ -322,9 +322,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 					By("Asserting the cloudinit secret has been created", func() {
 						var secret corev1.Secret
-						for _, env := range template.Spec.EnvironmentList {
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &secret)).To(Succeed())
-						}
+						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
 					})
 
 					By("Asserting the exposition resources aren't present", func() {
@@ -417,9 +415,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 				By("Asserting the cloudinit secret has been created", func() {
 					var secret corev1.Secret
-					for _, env := range template.Spec.EnvironmentList {
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &secret)).To(Succeed())
-					}
+					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
 				})
 
 				By("Asserting the exposition resources aren't present", func() {
