@@ -52,7 +52,6 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}
 		environment = clv1alpha2.Environment{
 			Image: image,
-			Mode:  clv1alpha2.ModeStandard,
 			Resources: clv1alpha2.EnvironmentResources{
 				CPU:                   cpu,
 				ReservedCPUPercentage: cpuReserved,
@@ -64,6 +63,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
+				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 	})
@@ -95,7 +95,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		It("Should set the correct domain", func() {
-			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment)))
+			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, &template)))
 		})
 		It("Should set the cloud-init volumes", func() {
 			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.NamespacedName(&instance).Name)))
@@ -129,7 +129,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var domain virtv1.DomainSpec
 
 		JustBeforeEach(func() {
-			domain = forge.VirtualMachineDomain(&environment)
+			domain = forge.VirtualMachineDomain(&environment, &template)
 		})
 
 		It("Should set the correct CPU value", func() {
@@ -150,7 +150,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 
 	Describe("The forge.Volumes function", func() {
 		type VolumesCase struct {
-			Mode     clv1alpha2.EnvironmentMode
+			Scope    clv1alpha2.EnvironmentScope
 			Expected func(*clv1alpha2.Instance, *clv1alpha2.Environment) []virtv1.Volume
 		}
 
@@ -159,11 +159,11 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				var actual, expected []virtv1.Volume
 
 				BeforeEach(func() {
-					environment.Mode = c.Mode
+					template.Spec.Scope = c.Scope
 				})
 
 				JustBeforeEach(func() {
-					actual = forge.Volumes(&instance, &environment)
+					actual = forge.Volumes(&instance, &environment, &template)
 					expected = c.Expected(&instance, &environment)
 				})
 
@@ -173,8 +173,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}
 		}
 
-		When("mode is Standard", WhenBody(VolumesCase{
-			Mode: clv1alpha2.ModeStandard,
+		When("scope is Standard", WhenBody(VolumesCase{
+			Scope: clv1alpha2.ScopeStandard,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{
 					forge.VolumeCloudInit(forge.NamespacedName(i).Name),
@@ -183,15 +183,15 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			},
 		}))
 
-		When("mode is Exercise", WhenBody(VolumesCase{
-			Mode: clv1alpha2.ModeExercise,
+		When("scope is Exercise", WhenBody(VolumesCase{
+			Scope: clv1alpha2.ScopeExercise,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
 			},
 		}))
 
-		When("mode is Exam", WhenBody(VolumesCase{
-			Mode: clv1alpha2.ModeExam,
+		When("scope is Exam", WhenBody(VolumesCase{
+			Scope: clv1alpha2.ScopeExam,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
 			},
@@ -264,7 +264,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 
 	Describe("The forge.VolumeDiskTargets function", func() {
 		type VolumesDiskTargetsCase struct {
-			Mode     clv1alpha2.EnvironmentMode
+			Scope    clv1alpha2.EnvironmentScope
 			Expected []virtv1.Disk
 		}
 
@@ -273,11 +273,11 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				var actual, expected []virtv1.Disk
 
 				BeforeEach(func() {
-					environment.Mode = c.Mode
+					template.Spec.Scope = c.Scope
 				})
 
 				JustBeforeEach(func() {
-					actual = forge.VolumeDiskTargets(&environment)
+					actual = forge.VolumeDiskTargets(&environment, &template)
 					expected = c.Expected
 				})
 
@@ -287,21 +287,21 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}
 		}
 
-		When("mode is Standard", WhenBody(VolumesDiskTargetsCase{
-			Mode: clv1alpha2.ModeStandard,
+		When("scope is Standard", WhenBody(VolumesDiskTargetsCase{
+			Scope: clv1alpha2.ScopeStandard,
 			Expected: []virtv1.Disk{
 				forge.VolumeDiskTarget("root"),
 				forge.VolumeDiskTarget("cloud-init"),
 			},
 		}))
 
-		When("mode is Exercise", WhenBody(VolumesDiskTargetsCase{
-			Mode:     clv1alpha2.ModeExercise,
+		When("scope is Exercise", WhenBody(VolumesDiskTargetsCase{
+			Scope:    clv1alpha2.ScopeExercise,
 			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
 		}))
 
-		When("mode is Exam", WhenBody(VolumesDiskTargetsCase{
-			Mode:     clv1alpha2.ModeExam,
+		When("scope is Exam", WhenBody(VolumesDiskTargetsCase{
+			Scope:    clv1alpha2.ScopeExam,
 			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
 		}))
 	})

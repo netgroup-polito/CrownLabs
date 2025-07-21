@@ -170,7 +170,7 @@ func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, envir
 		TerminationGracePeriodSeconds: ptr.To[int64](containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
 		EnableServiceLinks:            ptr.To(false),
-		Hostname:                      InstanceHostname(environment),
+		Hostname:                      InstanceHostname(environment, template),
 		NodeSelector:                  NodeSelectorLabels(instance, template),
 	}
 }
@@ -516,9 +516,9 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
-func InstanceHostname(environment *clv1alpha2.Environment) string {
-	if environment.Mode != clv1alpha2.ModeStandard {
-		return strings.ToLower(string(environment.Mode))
+func InstanceHostname(environment *clv1alpha2.Environment, template *clv1alpha2.Template) string {
+	if template.Spec.Scope != clv1alpha2.ScopeStandard {
+		return strings.ToLower(string(template.Spec.Scope))
 	}
 	return ""
 }

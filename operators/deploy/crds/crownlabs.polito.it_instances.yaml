@@ -205,11 +205,6 @@ spec:
                       - Failed
                       - CreationLoopBackoff
                       type: string
-                    url:
-                      description: |-
-                        The URL where it is possible to access the remote desktop of the instance
-                        (in case of graphical environments)
-                      type: string
                   required:
                   - name
                   type: object
@@ -238,6 +233,12 @@ spec:
                 - "Off"
                 - Failed
                 - CreationLoopBackoff
+                type: string
+              url:
+                description: |-
+                  The URL that consitutes the root for the urls of each environment within the instance.
+                  It is possible to access the remote desktop of the instance
+                  (in case of graphical environments).
                 type: string
             type: object
         type: object

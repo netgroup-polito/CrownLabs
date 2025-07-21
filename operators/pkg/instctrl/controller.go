@@ -232,6 +232,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Info("instance labels correctly configured")
 	}
 
+	// Enforce the ingress to access the GUI
+	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+
+	//Define url of the instance. This will be the root for the urls of the single environments
+	instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, &instance)
+
 	// Iterate over and enforce the instance environments.
 	if err := r.enforceEnvironments(ctx); err != nil {
 		log.Error(err, "failed to enforce instance environments")
@@ -252,6 +258,9 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
+	//It will set the root url in the instance only if there is at least one environment that is a
+	//vm with gui enabled.
+	url_needed := false
 	// Make sure the list of instance environments status is initialized
 	tmplEnvCount := len(template.Spec.EnvironmentList)
 	if len(instance.Status.Environments) != tmplEnvCount {
@@ -275,11 +284,23 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
+			if tmplEnv.GuiEnabled {
+				url_needed = true
+			}
+
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
+		}
+
+		//set the root url in instance Status
+		if url_needed {
+			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+			instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		} else {
+			instance.Status.URL = ""
 		}
 
 		r.setInitialReadyTimeIfNecessary(innCtx)

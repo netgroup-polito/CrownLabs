@@ -34,9 +34,10 @@ import (
 func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	// Enforce the cloud-init secret when environment is not restricted
-	if environment.Mode == clv1alpha2.ModeStandard {
+	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		if err := r.EnforceCloudInitSecret(ctx); err != nil {
 			log.Error(err, "failed to enforce the cloud-init secret existence")
 			return err

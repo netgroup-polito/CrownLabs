@@ -16,6 +16,7 @@ package instctrl_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,6 +55,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		createTemplate  bool
 	)
 
+	const (
+		host                  = "fakesite.com"
+		IngressInstancePrefix = "/instance"
+	)
+
 	RunReconciler := func() error {
 		_, err := instanceReconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: forge.NamespacedName(&instance),
@@ -80,7 +86,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
 					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 				},
-				Mode: clv1alpha2.ModeStandard,
 			},
 			{
 				Name:            "dev-1",
@@ -94,7 +99,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
 					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 				},
-				Mode: clv1alpha2.ModeStandard,
 			},
 		}
 	})
@@ -119,6 +123,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
+				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -161,7 +166,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		It("Should correctly reconcile the instance", func() {
 			Expect(RunReconciler()).To(Succeed())
 
+			expectedURL := ""
+			Expect(instance.Status.URL).To(Equal(expectedURL))
+
 			Expect(instance.Status.Environments).ToNot(BeEmpty())
+
 			for _, env := range instance.Status.Environments {
 				Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 			}
@@ -216,6 +225,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &deploy)).To(Succeed())
 					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
 				}
+			})
+
+			By("Asserting the root url is empty", func() {
+				expectedURL := ""
+				Expect(instance.Status.URL).To(Equal(expectedURL))
 			})
 		})
 	}
@@ -357,6 +371,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 						}
 
 					})
+
+					By("Asserting the root url was correctly assigned if the vm has gui enabled", func() {
+						expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+						Expect(instance.Status.URL).To(Equal(expectedURL))
+					})
+
 				})
 			}
 

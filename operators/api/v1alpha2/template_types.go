@@ -27,9 +27,9 @@ type EnvironmentType string
 
 // +kubebuilder:validation:Enum="Standard";"Exam";"Exercise"
 
-// EnvironmentMode is an enumeration of the mode in which associated instances should be started:
-// each mode consists in presets for exposition and deployment.
-type EnvironmentMode string
+// EnvironmentScope is an enumeration of the scope in which the environment of the associated instance should be started:
+// each scope consists in presets for exposition and deployment.
+type EnvironmentScope string
 
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
@@ -42,11 +42,11 @@ const (
 	ClassStandalone EnvironmentType = "Standalone"
 
 	// ModeStandard -> Normal operation (authentication, ssh, files access).
-	ModeStandard EnvironmentMode = "Standard"
+	ScopeStandard EnvironmentScope = "Standard"
 	// ModeExam -> Restricted access (no authentication, no mydrive access).
-	ModeExam EnvironmentMode = "Exam"
+	ScopeExam EnvironmentScope = "Exam"
 	// ModeExercise -> Restricted access (no authentication, no mydrive access).
-	ModeExercise EnvironmentMode = "Exercise"
+	ScopeExercise EnvironmentScope = "Exercise"
 )
 
 // TemplateSpec is the specification of the desired state of the Template.
@@ -79,6 +79,11 @@ type TemplateSpec struct {
 	// They are given by means of a pointer to check the presence of the field.
 	// In case it is present, the labels that are chosen are the ones present on the instance
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:default="Standard"
+
+	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
+	Scope EnvironmentScope `json:"scope,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
@@ -119,11 +124,6 @@ type Environment struct {
 
 	// The amount of computational resources associated with the environment.
 	Resources EnvironmentResources `json:"resources"`
-
-	// +kubebuilder:default="Standard"
-
-	// The mode associated with the environment (Standard, Exam, Exercise)
-	Mode EnvironmentMode `json:"mode,omitempty"`
 
 	// +kubebuilder:default=false
 	// Whether the environment needs the URL Rewrite or not.

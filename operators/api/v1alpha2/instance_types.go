@@ -119,10 +119,6 @@ type InstanceStatusEnv struct {
 	// accept incoming connections.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
 
-	// The URL where it is possible to access the remote desktop of the instance
-	// (in case of graphical environments)
-	URL string `json:"url,omitempty"`
-
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).
@@ -146,6 +142,11 @@ type InstanceStatus struct {
 
 	// The current phase of the Instance based on all environments.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
+
+	// The URL that consitutes the root for the urls of each environment within the instance.
+	// It is possible to access the remote desktop of the instance
+	// (in case of graphical environments).
+	URL string `json:"url,omitempty"`
 
 	// Environments contains the status of the instance's environments.
 	// +listType=map

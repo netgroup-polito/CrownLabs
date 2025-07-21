@@ -115,8 +115,8 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 
 	switch phase {
 	case clv1alpha2.EnvironmentPhaseReady:
-		log.Info("redirecting", "url", inst.Status.Environments[0].URL)
-		http.Redirect(w, r, inst.Status.Environments[0].URL, http.StatusFound)
+		log.Info("redirecting", "url", inst.Status.URL)
+		http.Redirect(w, r, inst.Status.URL, http.StatusFound)
 	case clv1alpha2.EnvironmentPhaseOff:
 		log.Error(fmt.Errorf("instance off"), "invalid phase")
 		WriteError(w, r, log, http.StatusGone, "The requested Instance is not running.")
@@ -306,7 +306,7 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 	}
 	// Usa il phase e la URL del primo environment se presente
 	if len(inst.Status.Environments) > 0 {
-		adapter.URL = inst.Status.Environments[0].URL
+		adapter.URL = inst.Status.URL
 	} else {
 		adapter.URL = ""
 	}
