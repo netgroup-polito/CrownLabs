@@ -32,6 +32,12 @@ This is a possible example:
 
 In the above example, the node has three labels, one boolean (if a GPU is available ot not), the other which tells the size of the node (their values, in this case 'big', are arbitrary), and the third one that keeps the name of the worker.
 
+To add a new label to the node, you can simply use the following command:
+
+    kubectl label nodes worker-3 "crownlabs.polito.it/node-name=worker-3"
+
+This adds label `crownlabs.polito.it/node-name: worker-3` to the `worker-3` node.
+
 
 ### Add the proper specification in the VM/container template
 
