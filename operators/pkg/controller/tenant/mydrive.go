@@ -41,7 +41,7 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 	// Persistent volume claim NFS
 	pvc, err := r.createOrUpdatePVC(ctx, tn)
 	if err != nil {
-		log.Error(err, "Unable to create or update PVC for tenant", "tenant", tn.Name)
+		log.Error(err, "Unable to create or update PVC for tenant")
 		return err
 	}
 	log.Info("PVC created/updated")
@@ -50,7 +50,7 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 	case v1.ClaimBound:
 		// authorize the user to access the PVC
 		if created, err := r.createOrUpdatePVCSecret(ctx, log, tn, pvc); err != nil {
-			log.Error(err, "Unable to create or update PVC Secret for tenant", "tenant", tn.Name)
+			log.Error(err, "Unable to create or update PVC Secret for tenant")
 			return err
 		} else if created {
 			log.Info("PVC Secret created/updated")
@@ -60,16 +60,16 @@ func (r *Reconciler) createMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 
 		val, found := pvc.Labels[forge.ProvisionJobLabel]
 		if !found || val != forge.ProvisionJobValueOk {
-			err = r.launchPVCProvisionJob(ctx, log, tn, pvc, forge.ProvisionJobValuePending)
+			err = r.launchPVCProvisionJob(ctx, log, tn, pvc)
 			if err != nil {
-				log.Error(err, "Unable to manage PVC Provisioning Job for tenant", "tenant", tn.Name)
+				log.Error(err, "Unable to manage PVC Provisioning Job for tenant")
 				return err
 			}
 		}
 	case v1.ClaimPending:
-		log.Info("PVC pending for tenant", "tenant", tn.Name)
+		log.Info("PVC pending for tenant")
 	default:
-		log.Info("PVC for tenant is in unexpected phase", "tenant", tn.Name, "phase", pvc.Status.Phase)
+		log.Info("PVC for tenant is in unexpected phase", "phase", pvc.Status.Phase)
 	}
 
 	return nil
@@ -85,11 +85,11 @@ func (r *Reconciler) deleteMyDrivePVC(ctx context.Context, log logr.Logger, tn *
 	}
 
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &pvc, "MyDrive PVC"); err != nil {
-		log.Error(err, "Error deleting MyDrive PVC for tenant", "tenant", tn.Name)
+		log.Error(err, "Error deleting MyDrive PVC for tenant")
 		return err
 	}
 
-	log.Info("🔥 MyDrive PVC deleted for tenant", "tenant", tn.Name)
+	log.Info("🔥 MyDrive PVC deleted for tenant")
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (r *Reconciler) createOrUpdatePVC(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
-		// Configure the PVC using the forge package
+		// Configure the PVC
 		forge.ConfigureMyDrivePVC(&pvc, r.MyDrivePVCsStorageClassName, r.MyDrivePVCsSize,
 			forge.UpdateTenantResourceCommonLabels(pvc.Labels, r.TargetLabel))
 
@@ -136,7 +136,7 @@ func (r *Reconciler) createOrUpdatePVCSecret(
 		},
 	}
 	if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
-		log.Error(err, "Unable to get PV for tenant", "tenant", tn.Name)
+		log.Error(err, "Unable to get PV for tenant")
 		return false, err
 	}
 
@@ -150,7 +150,7 @@ func (r *Reconciler) createOrUpdatePVCSecret(
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvcSecret, func() error {
-		// Configure the secret using the forge package
+		// Configure the secret
 		forge.ConfigureMyDriveSecret(&pvcSecret, serverName, exportPath,
 			forge.UpdateTenantResourceCommonLabels(pvcSecret.Labels, r.TargetLabel))
 
@@ -169,7 +169,6 @@ func (r *Reconciler) launchPVCProvisionJob(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 	pvc *v1.PersistentVolumeClaim,
-	provisionJobLabel string,
 ) error {
 	chownJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -181,15 +180,15 @@ func (r *Reconciler) launchPVCProvisionJob(
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
 		if chownJob.CreationTimestamp.IsZero() {
-			log.Info("PVC Provisioning Job created for tenant", "tenant", tn.Name)
-			// Configure the provisioning job using the forge package
+			log.Info("PVC Provisioning Job created for tenant")
+			// Configure the provisioning job
 			forge.ConfigureMyDriveProvisioningJob(&chownJob, pvc)
-		} else if provisionJobLabel == forge.ProvisionJobValuePending {
+		} else if chownJob.Labels[forge.ProvisionJobLabel] == forge.ProvisionJobValuePending {
 			if chownJob.Status.Succeeded == 1 {
 				labelToSet = forge.ProvisionJobValueOk
-				log.Info("PVC Provisioning Job completed for tenant", "tenant", tn.Name)
+				log.Info("PVC Provisioning Job completed for tenant")
 			} else if chownJob.Status.Failed == 1 {
-				log.Info("PVC Provisioning Job failed for tenant", "tenant", tn.Name)
+				log.Info("PVC Provisioning Job failed for tenant")
 			}
 		}
 
@@ -200,7 +199,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	}
 	log.Info("PVC Provisioning Job launched")
 
-	// Update the PVC label using the forge package
+	// Update the PVC label
 	forge.UpdatePVCProvisioningJobLabel(pvc, labelToSet)
 	if err := r.Update(ctx, pvc); err != nil {
 		return fmt.Errorf("unable to update PVC Provisioning Job label: %w", err)

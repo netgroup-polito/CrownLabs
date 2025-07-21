@@ -120,7 +120,7 @@ func (r *Reconciler) createPersonalNamespace(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &ns, func() error {
-		// Configure the namespace using the forge package
+		// Configure the namespace
 		forge.ConfigureTenantNamespace(&ns, tn, forge.UpdateTenantResourceCommonLabels(ns.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &ns, r.Scheme)
@@ -202,7 +202,7 @@ func (r *Reconciler) createResourceQuota(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
-		// Configure the resource quota using the forge package
+		// Configure the resource quota
 		forge.ConfigureTenantResourceQuota(&rq, &tn.Status.Quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
@@ -241,7 +241,7 @@ func (r *Reconciler) createInstanceRoleBinding(
 	}
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
-		// Configure the role binding using the forge package
+		// Configure the role binding
 		forge.ConfigureTenantInstancesRoleBinding(&rb, tn, forge.UpdateTenantResourceCommonLabels(rb.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rb, r.Scheme)
@@ -280,7 +280,7 @@ func (r *Reconciler) createDenyNetworkPolicy(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
-		// Configure the network policy using the forge package
+		// Configure the network policy
 		forge.ConfigureTenantDenyNetworkPolicy(netPolDeny, forge.UpdateTenantResourceCommonLabels(netPolDeny.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, netPolDeny, r.Scheme)
@@ -302,7 +302,7 @@ func (r *Reconciler) createAllowNetworkPolicy(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
-		// Configure the network policy using the forge package
+		// Configure the network policy
 		forge.ConfigureTenantAllowNetworkPolicy(netPolAllow, forge.UpdateTenantResourceCommonLabels(netPolAllow.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, netPolAllow, r.Scheme)

@@ -17,6 +17,7 @@ package tenant_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
 	"go.uber.org/mock/gomock"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -111,14 +113,17 @@ var _ = JustBeforeEach(func() {
 	cl = builder.WithObjects(objects...).WithStatusSubresource(objects...).Build()
 
 	tenantReconciler = tenant.Reconciler{
-		Client:               cl,
-		Scheme:               scheme.Scheme,
-		KeycloakActor:        keycloakActor,
-		TargetLabel:          common.NewLabel("crownlabs.polito.it/operator-selector", "test"),
-		TenantNSKeepAlive:    24 * time.Hour,
-		WaitUserVerification: true,
-		SandboxClusterRole:   "test-sandbox-editor",
-		BaseWorkspaces:       []string{"base-ws1"},
+		Client:                      cl,
+		Scheme:                      scheme.Scheme,
+		KeycloakActor:               keycloakActor,
+		TargetLabel:                 common.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+		TenantNSKeepAlive:           24 * time.Hour,
+		WaitUserVerification:        true,
+		SandboxClusterRole:          "test-sandbox-editor",
+		BaseWorkspaces:              []string{"base-ws1"},
+		MyDrivePVCsNamespace:        "mydrive-pvcs",
+		MyDrivePVCsSize:             resource.MustParse("5Gi"),
+		MyDrivePVCsStorageClassName: "nfs",
 	}
 
 	if !runReconcile {
@@ -164,7 +169,9 @@ func tenantBeingDeleted() {
 }
 
 // GinkgoLogWriter implements logr.LogSink.
-type GinkgoLogWriter struct{}
+type GinkgoLogWriter struct {
+	kandv string
+}
 
 // Init initializes the logger with runtime information.
 func (w GinkgoLogWriter) Init(_ logr.RuntimeInfo) {}
@@ -174,7 +181,7 @@ func (w GinkgoLogWriter) Enabled(_ int) bool { return true }
 
 // Info logs an info message with the given key-value pairs.
 func (w GinkgoLogWriter) Info(_ int, msg string, keysAndValues ...interface{}) {
-	GinkgoWriter.Printf("%s -- %v\n", msg, keysAndValues)
+	GinkgoWriter.Printf("%s -- %v %v\n", msg, w.kandv, keysAndValues)
 }
 
 // Error logs an error message with the given key-value pairs.
@@ -183,7 +190,10 @@ func (w GinkgoLogWriter) Error(err error, msg string, keysAndValues ...interface
 }
 
 // WithValues returns a new LogSink with the specified key-value pairs.
-func (w GinkgoLogWriter) WithValues(_ ...interface{}) logr.LogSink { return w }
+func (w GinkgoLogWriter) WithValues(kv ...interface{}) logr.LogSink {
+	w.kandv += fmt.Sprintf("%v", kv)
+	return w
+}
 
 // WithName returns a new LogSink with the specified name.
 func (w GinkgoLogWriter) WithName(_ string) logr.LogSink { return w }

@@ -85,7 +85,7 @@ func (r *Reconciler) createTenantClusterRole(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &cr, func() error {
-		// Configure the cluster role using the forge package
+		// Configure the cluster role
 		forge.ConfigureTenantClusterRole(&cr, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &cr, r.Scheme)
@@ -115,7 +115,7 @@ func (r *Reconciler) createTenantClusterRoleBinding(
 	}
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &crb, func() error {
-		// Configure the cluster role binding using the forge package
+		// Configure the cluster role binding
 		forge.ConfigureTenantClusterRoleBinding(&crb, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &crb, r.Scheme)
