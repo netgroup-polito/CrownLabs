@@ -38,6 +38,10 @@ To add a new label to the node, you can simply use the following command:
 
 This adds label `crownlabs.polito.it/node-name: worker-3` to the `worker-3` node.
 
+To remove the above label, you can use the following example:
+
+    kubectl label nodes worker-3 "crownlabs.polito.it/node-name"-
+
 
 ### Add the proper specification in the VM/container template
 
