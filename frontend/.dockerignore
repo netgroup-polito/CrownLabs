@@ -1,5 +1,4 @@
 ./node_modules
-./package-lock.json
 ./Dockerfile
 ./README.md
 ./build
@@ -7,3 +6,4 @@
 ./.git
 ./.gitignore
 ./deploy
+./.env\*

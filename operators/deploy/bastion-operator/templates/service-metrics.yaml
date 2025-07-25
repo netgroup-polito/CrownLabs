@@ -9,8 +9,12 @@ spec:
   type: ClusterIP
   ports:
     - port: 8080
-      targetPort: metrics
+      targetPort: op-metrics
       protocol: TCP
-      name: metrics
+      name: op-metrics
+    - port: 8082
+      targetPort: trk-metrics
+      protocol: TCP
+      name: trk-metrics
   selector:
     {{- include "bastion-operator.selectorLabels" . | nindent 4 }}

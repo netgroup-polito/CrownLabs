@@ -1,21 +1,25 @@
 import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
-import { Modal, Tooltip } from 'antd';
-import Button from 'antd-button-color';
-import { FC, useContext, useState } from 'react';
+import { Badge, Modal, Tooltip } from 'antd';
+import { Button } from 'antd';
+import type { FC } from 'react';
+import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import type { ImagesQuery } from '../../../generated-types';
 import {
   EnvironmentType,
-  ImagesQuery,
   useCreateTemplateMutation,
   useImagesQuery,
 } from '../../../generated-types';
-import { JSONDeepCopy, Workspace, WorkspaceRole } from '../../../utils';
+import type { Workspace } from '../../../utils';
+import { JSONDeepCopy, WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
-import { Image, Template } from '../ModalCreateTemplate/ModalCreateTemplate';
+import type {
+  Image,
+  Template,
+} from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
-import Badge from '../../common/Badge';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -25,12 +29,12 @@ export interface IWorkspaceContainerProps {
 const getImages = (dataImages: ImagesQuery) => {
   let images: Image[] = [];
   JSONDeepCopy(dataImages?.imageList?.images)?.forEach(i => {
-    const registry = i?.spec?.registryName!;
+    const registry = i?.spec?.registryName;
     const imagesRaw = i?.spec?.images;
     imagesRaw?.forEach(ir => {
       let versionsInImageName: Image[];
       if (registry === 'registry.internal.crownlabs.polito.it') {
-        const latestVersion = `${ir?.name!}:${
+        const latestVersion = `${ir?.name}:${
           ir?.versions?.sort().reverse()[0]
         }`;
         versionsInImageName = [
@@ -41,13 +45,14 @@ const getImages = (dataImages: ImagesQuery) => {
           },
         ];
       } else {
-        versionsInImageName = ir?.versions?.map(v => {
-          return {
-            name: `${ir?.name!}:${v}`,
-            vmorcontainer: [EnvironmentType.Container],
-            registry: registry!,
-          };
-        })!;
+        versionsInImageName =
+          ir?.versions.map(v => {
+            return {
+              name: `${ir?.name}:${v}`,
+              vmorcontainer: [EnvironmentType.Container],
+              registry: registry || '',
+            };
+          }) || [];
       }
       images = [...images, ...versionsInImageName!];
     });
@@ -78,8 +83,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         workspaceId: workspace.name,
         workspaceNamespace: workspace.namespace,
         templateId: `${workspace.name}-`,
-        templateName: t.name?.trim()!,
-        descriptionTemplate: t.name?.trim()!,
+        templateName: t.name?.trim() || '',
+        descriptionTemplate: t.name?.trim() || '',
         image: t.registry
           ? `${t.registry}/${t.image}`.trim()!
           : `${t.image}`.trim()!,
@@ -104,8 +109,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     <>
       <ModalCreateTemplate
         workspaceNamespace={workspace.namespace}
-        cpuInterval={{ max: 4, min: 1 }}
-        ramInterval={{ max: 8, min: 1 }}
+        cpuInterval={{ max: 8, min: 1 }}
+        ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
         setShow={setShow}
         show={show}
@@ -135,8 +140,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                 >
                   {workspace.waitingTenants && (
                     <Badge
-                      value={workspace.waitingTenants}
-                      size="small"
+                      count={workspace.waitingTenants}
                       color="yellow"
                       className="absolute -top-2.5 -right-2.5"
                     />
@@ -153,7 +157,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                     refetchImages();
                     setShow(true);
                   }}
-                  type="lightdark"
+                  type="primary"
                   shape="circle"
                   size="large"
                   icon={<PlusOutlined />}
@@ -170,10 +174,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           workspaceName={workspace.name}
         />
         <Modal
-          destroyOnClose={true}
+          destroyOnHidden={true}
           title={`Users in ${workspace.prettyName} `}
           width="800px"
-          visible={showUserListModal}
+          open={showUserListModal}
           footer={null}
           onCancel={() => setShowUserListModal(false)}
         >

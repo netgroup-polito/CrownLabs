@@ -1,6 +1,8 @@
 import { Col, Space } from 'antd';
-import { FC, useEffect, useState } from 'react';
-import { User, Workspace, WorkspaceRole } from '../../../utils';
+import type { FC } from 'react';
+import { useEffect, useState } from 'react';
+import type { User, Workspace } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import Box from '../../common/Box';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
@@ -26,20 +28,19 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [searchField, setSearchField] = useState('');
   const [currentView, setCurrentView] = useState<WorkspaceRole>(
-    managerView ? (view.get() as WorkspaceRole) : WorkspaceRole.user
+    managerView ? (view.get() as WorkspaceRole) : WorkspaceRole.user,
   );
   const [showAdvanced, setShowAdvanced] = useState(
-    !managerView || advanced.get() !== 'false'
+    !managerView || advanced.get() !== 'false',
   );
   const [showCheckbox, setShowCheckbox] = useState(false);
   const [selectiveDestroy, setSelectiveDestroy] = useState<string[]>([]);
   const [selectedPersistent, setSelectedPersistent] = useState<boolean>(false);
 
-  const selectToDestroy = (instanceId: string) => {
+  const selectToDestroy = (instanceId: string) =>
     selectiveDestroy.includes(instanceId)
       ? setSelectiveDestroy(old => old.filter(id => id !== instanceId))
       : setSelectiveDestroy(old => [...old, instanceId]);
-  };
 
   const deselectAll = () => setSelectiveDestroy([]);
 

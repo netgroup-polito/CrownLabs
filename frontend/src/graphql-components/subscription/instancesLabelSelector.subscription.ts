@@ -16,6 +16,8 @@ export default gql`
           ip
           phase
           url
+          nodeName
+          nodeSelector
         }
         spec {
           running

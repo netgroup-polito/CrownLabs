@@ -4,30 +4,34 @@ import {
   CaretRightOutlined,
   CaretLeftOutlined,
 } from '@ant-design/icons';
-import { FC, useEffect, useState } from 'react';
-import { UserAccountPage } from '../../../utils';
+import { type FC, useEffect, useState } from 'react';
+import { type UserAccountPage, type WorkspaceEntry } from '../../../utils';
 
 import UploadProgressContent from './UploadProgressContent';
 import { Role } from '../../../generated-types';
 import UploadProgressErrorsModal from './UploadProgressErrorsModal';
-import { SupportedError } from '../../../errorHandling/utils';
+import {
+  type EnrichedError,
+  type SupportedError,
+} from '../../../errorHandling/utils';
 export interface IUploadProgressModalInterface {
   onClose: () => void;
   confirmUpload: (
     users: UserAccountPage[],
-    workspaces: any[]
+    workspaces: WorkspaceEntry[],
   ) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
-  setUploadingErrors: (errors: any) => void;
+  setUploadingErrors: (errors: EnrichedError[]) => void;
   genericErrorCatcher: (err: SupportedError) => void;
   show: boolean;
   workspaceName: string;
   uploadedNumber: number;
   abortUploading: boolean;
-  uploadingErrors: any[];
+  uploadingErrors: EnrichedError[];
   uploadedUserNumber: number;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum StepStatus {
   finish = 'finish',
   error = 'error',
@@ -69,7 +73,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
           !props.uploadingErrors.length &&
           uploadingStatusResult
           ? StepStatus.finish
-          : StepStatus.error
+          : StepStatus.error,
       );
   }, [
     props.abortUploading,
@@ -78,11 +82,10 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
     uploadingStatusResult,
   ]);
   useEffect(() => {
-    const doAlert = (ev: any) => {
+    const doAlert = (ev: Event) => {
       ev.preventDefault();
       setAbortUploading(true);
-      return (ev.returnValue =
-        "WARNING. If you close this window the import process will be interrupted, resulting in an incomplete import. If you proceed, you'll need to run the procedure from the beginning!");
+      return "WARNING. If you close this window the import process will be interrupted, resulting in an incomplete import. If you proceed, you'll need to run the procedure from the beginning!";
     };
     window.addEventListener('beforeunload', doAlert);
     return () => window.removeEventListener('beforeunload', doAlert);
@@ -105,12 +108,13 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
 
   return (
     <Modal
-      visible={props.show}
+      open={props.show}
       width="800px"
       closable={false}
       footer={[
         stepCurrent < 1 && (
           <Button
+            key={'cancel'}
             danger
             onClick={handleClose}
             icon={<StopOutlined />}
@@ -119,6 +123,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
         ),
         stepCurrent === 2 && (
           <Button
+            key={'abort'}
             danger
             onClick={() => setAbortUploading(true)}
             icon={<StopOutlined />}
@@ -127,6 +132,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
         ),
         (stepCurrent === 1 || stepCurrent === 3) && (
           <Button
+            key={'previous'}
             icon={<CaretLeftOutlined />}
             onClick={() => setStepCurrent(stepCurrent - 1)}
             disabled={stepCurrent === 3 || editing}
@@ -135,6 +141,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
         ),
         stepCurrent < 3 && (
           <Button
+            key={'next'}
             icon={<CaretRightOutlined />}
             onClick={handleOk}
             disabled={usersCSV.length === 0 || stepCurrent === 2 || editing}
@@ -143,7 +150,7 @@ const UploadProgressModal: FC<IUploadProgressModalInterface> = props => {
         ),
         stepCurrent === 3 && <Button onClick={props.onClose}>Close</Button>,
       ]}
-      destroyOnClose={true}
+      destroyOnHidden={true}
     >
       <UploadProgressContent
         setStepCurrent={setStepCurrent}

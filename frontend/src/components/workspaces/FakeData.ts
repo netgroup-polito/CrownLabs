@@ -1,5 +1,5 @@
 import { Phase } from '../../generated-types';
-import { WorkspaceRole } from './../../utils';
+import type { WorkspaceRole } from './../../utils';
 const data = [
   {
     id: 0,

@@ -1,33 +1,35 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FetchPolicy } from '@apollo/client';
+import { type FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 
-import { useContext, useEffect, useState } from 'react';
-import { FC } from 'react';
-import { AuthContext } from '../../../../contexts/AuthContext';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { type FC } from 'react';
 import {
+  type UpdatedWorkspaceTemplatesSubscription,
+  UpdateType,
   useCreateInstanceMutation,
   useDeleteTemplateMutation,
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
+  type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   updatedOwnedInstances,
   updatedWorkspaceTemplates,
 } from '../../../../graphql-components/subscription';
-import { Instance, Template, WorkspaceRole } from '../../../../utils';
+import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiInstance,
   makeGuiTemplate,
   joinInstancesAndTemplates,
   updateQueryOwnedInstancesQuery,
-  updateQueryWorkspaceTemplatesQuery,
 } from '../../../../utilsLogic';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
+import { AuthContext } from '../../../../contexts/AuthContext';
+import { TenantContext } from '../../../../contexts/TenantContext';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -46,6 +48,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
+  const notifier = useContext(TenantContext).notify;
+
   const {
     loading: loadingInstances,
     error: errorInstances,
@@ -58,8 +62,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         data.instanceList?.instances
           ?.map(i => makeGuiInstance(i, userId))
           .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? '')
-          ) ?? []
+            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+          ) ?? [],
       ),
     fetchPolicy: fetchPolicy_networkOnly,
   });
@@ -74,7 +78,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         },
         updateQuery: updateQueryOwnedInstancesQuery(
           setDataInstances,
-          userId ?? ''
+          userId ?? '',
+          notifier,
         ),
       });
       return unsubscribe;
@@ -82,40 +87,74 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
 
-  const [dataTemplate, setDataTemplate] = useState<Template[]>([]);
-
   const {
     loading: loadingTemplate,
     error: errorTemplate,
     subscribeToMore: subscribeToMoreTemplates,
+    data: templateListData,
   } = useWorkspaceTemplatesQuery({
     variables: { workspaceNamespace },
     onError: apolloErrorCatcher,
-    onCompleted: data =>
-      setDataTemplate(
-        data.templateList?.templates
-          ?.map(t =>
-            makeGuiTemplate({
-              original: t ?? {},
-              alias: {
-                id: t?.metadata?.name ?? '',
-                name: t?.spec?.prettyName ?? '',
-              },
-            })
-          )
-          .sort((a, b) => a.name.localeCompare(b.name)) ?? []
-      ),
     fetchPolicy: fetchPolicy_networkOnly,
+    nextFetchPolicy: 'cache-only',
   });
+
+  const dataTemplate = useMemo(
+    () =>
+      templateListData?.templateList?.templates
+        ?.map(t =>
+          makeGuiTemplate({
+            original: t ?? {},
+            alias: {
+              id: t?.metadata?.name ?? '',
+              name: t?.spec?.prettyName ?? '',
+            },
+          }),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)) ?? [],
+    [templateListData?.templateList?.templates],
+  );
 
   useEffect(() => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
-      const unsubscribe = subscribeToMoreTemplates({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
-        document: updatedWorkspaceTemplates,
-        variables: { workspaceNamespace },
-        updateQuery: updateQueryWorkspaceTemplatesQuery(setDataTemplate),
-      });
+      const unsubscribe =
+        subscribeToMoreTemplates<UpdatedWorkspaceTemplatesSubscription>({
+          onError: makeErrorCatcher(ErrorTypes.GenericError),
+          document: updatedWorkspaceTemplates,
+          variables: { workspaceNamespace },
+          updateQuery: (prev, { subscriptionData }) => {
+            const { data } = subscriptionData;
+            if (!data?.updatedTemplate?.template) return prev;
+            const { template, updateType } = data.updatedTemplate;
+            const templates = prev.templateList?.templates ?? [];
+            let out = [] as NonNullable<
+              NonNullable<
+                UpdatedWorkspaceTemplatesSubscriptionResult['data']
+              >['updatedTemplate']
+            >['template'][];
+            switch (updateType) {
+              case UpdateType.Added:
+                out = [...templates, template];
+                break;
+              case UpdateType.Modified:
+                out = templates.map(t =>
+                  t?.metadata?.name === template.metadata?.name ? template : t,
+                );
+                break;
+              case UpdateType.Deleted:
+                out = templates.filter(
+                  t => t?.metadata?.name !== template.metadata?.name,
+                );
+                break;
+            }
+            return Object.assign({}, prev, {
+              templateList: {
+                templates: out,
+                __typename: prev.templateList?.__typename,
+              },
+            });
+          },
+        });
       return unsubscribe;
     }
   }, [
@@ -156,12 +195,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 workspaceName: workspaceName,
               }),
             ]
-          : old
+          : old,
       );
       return i;
     });
 
-  const templates = joinInstancesAndTemplates(dataTemplate, dataInstances);
+  const templates = useMemo(
+    () => joinInstancesAndTemplates(dataTemplate, dataInstances),
+    [dataTemplate, dataInstances],
+  );
 
   return (
     <Spin size="large" spinning={loadingTemplate || loadingInstances}>

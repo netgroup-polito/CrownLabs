@@ -1,10 +1,10 @@
 import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
 import { Checkbox, Space, Typography } from 'antd';
-import { ApolloError } from '@apollo/client';
-import { FC, useContext, useEffect, useState } from 'react';
+import type { ApolloError } from '@apollo/client';
+import { type FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { useApplyInstanceMutation } from '../../../../generated-types';
-import { Instance, WorkspaceRole } from '../../../../utils';
+import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
@@ -56,7 +56,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
       const result = await setInstancePrettyname(
         title,
         instance,
-        applyInstanceMutation
+        applyInstanceMutation,
       );
       if (result) setTimeout(setEdit, 400, false);
     } catch (err) {

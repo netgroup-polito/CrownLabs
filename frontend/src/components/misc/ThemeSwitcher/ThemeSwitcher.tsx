@@ -1,4 +1,5 @@
-import { FC, useContext } from 'react';
+import type { FC } from 'react';
+import { useContext } from 'react';
 import { Switch, Tooltip } from 'antd';
 import { ThemeContext } from '../../../contexts/ThemeContext';
 
@@ -17,7 +18,7 @@ const ThemeSwitcher: FC<IThemeSwitcherProps> = ({ ...props }) => {
   const moonIcon = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
+      viewBox="0 -3 20 23"
       width="16px"
       fill="white"
       className="flex items-center"
@@ -29,7 +30,7 @@ const ThemeSwitcher: FC<IThemeSwitcherProps> = ({ ...props }) => {
   const sunIcon = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
+      viewBox="0 -3 20 23"
       fill="white"
       width="17px"
       className="flex items-center"

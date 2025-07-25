@@ -1,3 +1,0 @@
-/* This file serve the only purpose to not include the tailwind import in the less file, to allow its use in storybook */
-
-@tailwind utilities;
