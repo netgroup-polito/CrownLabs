@@ -147,21 +147,21 @@ func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Enviro
 
 // DeploymentSpec forges the complete DeploymentSpec (without replicas)
 // containing the needed sidecars for X-VNC based container instances.
-func DeploymentSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
+func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
 	return appsv1.DeploymentSpec{
-		Selector: &metav1.LabelSelector{MatchLabels: InstanceSelectorLabels(instance)},
+		Selector: &metav1.LabelSelector{MatchLabels: EnvironmentSelectorLabels(instance, environment)},
 		Strategy: appsv1.DeploymentStrategy{
 			Type: appsv1.RecreateDeploymentStrategyType,
 		},
 		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{Labels: InstanceSelectorLabels(instance)},
-			Spec:       PodSpec(instance, environment, mountInfos, opts),
+			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
+			Spec:       PodSpec(instance, template, environment, mountInfos, opts),
 		},
 	}
 }
 
 // PodSpec forges the pod specification for X-VNC based container instance.
-func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) corev1.PodSpec {
+func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers:                    ContainersSpec(instance, environment, mountInfos, opts),
 		Volumes:                       ContainerVolumes(instance, environment, mountInfos),
@@ -170,8 +170,8 @@ func PodSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 		TerminationGracePeriodSeconds: ptr.To[int64](containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
 		EnableServiceLinks:            ptr.To(false),
-		Hostname:                      InstanceHostname(environment),
-		NodeSelector:                  NodeSelectorLabels(instance, environment),
+		Hostname:                      InstanceHostname(environment, template),
+		NodeSelector:                  NodeSelectorLabels(instance, template),
 	}
 }
 
@@ -183,7 +183,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
-					ContentUploaderJobContainer(instance.Spec.CustomizationUrls.ContentDestination, instance.Name, opts),
+					ContentUploaderJobContainer(instance.Spec.ContentUrls[environment.Name].Destination, instance.Name+"-"+environment.Name, opts),
 				},
 				Volumes:                      ContainerVolumes(instance, environment, nil),
 				SecurityContext:              PodSecurityContext(),
@@ -491,8 +491,12 @@ func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 
 // NeedsInitContainer returns true if the environment requires an initcontainer in order to be prepopulated.
 func NeedsInitContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (value bool, contentOrigin string) {
-	if icu := instance.Spec.CustomizationUrls; icu != nil && icu.ContentOrigin != "" {
-		return true, icu.ContentOrigin
+	if icu := instance.Spec.ContentUrls; icu != nil {
+		if envUrls, ok := icu[environment.Name]; ok {
+			if envUrls.Origin != "" {
+				return true, envUrls.Origin
+			}
+		}
 	}
 	if cso := environment.ContainerStartupOptions; cso != nil && cso.SourceArchiveURL != "" {
 		return true, cso.SourceArchiveURL
@@ -512,17 +516,17 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
-func InstanceHostname(environment *clv1alpha2.Environment) string {
-	if environment.Mode != clv1alpha2.ModeStandard {
-		return strings.ToLower(string(environment.Mode))
+func InstanceHostname(environment *clv1alpha2.Environment, template *clv1alpha2.Template) string {
+	if template.Spec.Scope != clv1alpha2.ScopeStandard {
+		return strings.ToLower(string(template.Spec.Scope))
 	}
 	return ""
 }
 
 // NodeSelectorLabels returns the node selector labels chosen
-// based on the instance and the environment.
-func NodeSelectorLabels(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
-	templateLabelSelector := environment.NodeSelector
+// based on the instance and the template.
+func NodeSelectorLabels(instance *clv1alpha2.Instance, template *clv1alpha2.Template) map[string]string {
+	templateLabelSelector := template.Spec.NodeSelector
 	instanceLabelSelector := instance.Spec.NodeSelector
 
 	if templateLabelSelector == nil {
