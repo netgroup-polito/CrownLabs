@@ -23,7 +23,7 @@ spec:
     - jsonPath: .spec.running
       name: Running
       type: string
-    - jsonPath: .status.environments[0].phase
+    - jsonPath: .status.phase
       name: Phase
       type: string
     - jsonPath: .status.environments[0].url
@@ -181,6 +181,12 @@ spec:
                         be used to access it through the SSH protocol (leveraging the SSH bastion
                         in case it is not contacted from another CrownLabs Instance).
                       type: string
+                    name:
+                      description: |-
+                        The name identifying the specific environment.
+                        It is equivalent to the name of a template's environment.
+                      pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                      type: string
                     phase:
                       description: |-
                         The current status Instance, with reference to the associated environment
@@ -199,13 +205,13 @@ spec:
                       - Failed
                       - CreationLoopBackoff
                       type: string
-                    url:
-                      description: |-
-                        The URL where it is possible to access the remote desktop of the instance
-                        (in case of graphical environments)
-                      type: string
+                  required:
+                  - name
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               nodeName:
                 description: The node on which the Instance is running.
                 type: string
@@ -214,6 +220,26 @@ spec:
                   type: string
                 description: The actual nodeSelector assigned to the Instance.
                 type: object
+              phase:
+                description: The current phase of the Instance based on all environments.
+                enum:
+                - ""
+                - Importing
+                - Starting
+                - ResourceQuotaExceeded
+                - Running
+                - Ready
+                - Stopping
+                - "Off"
+                - Failed
+                - CreationLoopBackoff
+                type: string
+              url:
+                description: |-
+                  The URL that consitutes the root for the urls of each environment within the instance.
+                  It is possible to access the remote desktop of the instance
+                  (in case of graphical environments).
+                type: string
             type: object
         type: object
     served: true

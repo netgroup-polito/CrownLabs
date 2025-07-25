@@ -120,7 +120,6 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
 				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
-			Mode:               clv1alpha2.ModeStandard,
 			MountMyDriveVolume: false,
 		}
 		environmentSV = clv1alpha2.Environment{
@@ -135,7 +134,6 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
 				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
-			Mode:               clv1alpha2.ModeStandard,
 			MountMyDriveVolume: false,
 			SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{
 				{

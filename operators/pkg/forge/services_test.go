@@ -31,6 +31,7 @@ var _ = Describe("Services forging", func() {
 		var (
 			instance    clv1alpha2.Instance
 			environment clv1alpha2.Environment
+			template    clv1alpha2.Template
 			spec        corev1.ServiceSpec
 		)
 
@@ -44,23 +45,34 @@ var _ = Describe("Services forging", func() {
 		)
 
 		type ServiceSpecCase struct {
-			Mutator  func(*clv1alpha2.Environment) *clv1alpha2.Environment
-			Expected []corev1.ServicePort
+			Mutator         func(*clv1alpha2.Environment) *clv1alpha2.Environment
+			TemplateMutator func(tpl *clv1alpha2.Template) *clv1alpha2.Template
+			Expected        []corev1.ServicePort
 		}
 
 		BeforeEach(func() {
+			template = clv1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      templateName,
+					Namespace: templateNamespace,
+				},
+			}
+
 			instance = clv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
 				Spec: clv1alpha2.InstanceSpec{
-					Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
-					Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+					Template: clv1alpha2.GenericRef{
+						Name:      templateName,
+						Namespace: templateNamespace,
+					},
+					Tenant: clv1alpha2.GenericRef{Name: tenantName},
 				},
 			}
 			environment = clv1alpha2.Environment{Name: environmentName}
 		})
 
 		JustBeforeEach(func() {
-			spec = forge.ServiceSpec(&instance, &environment)
+			spec = forge.ServiceSpec(&instance, &environment, &template)
 		})
 
 		Describe("Correctly populates the common fields", func() {
@@ -75,13 +87,16 @@ var _ = Describe("Services forging", func() {
 
 		DescribeTable("Correctly configure the service ports",
 			func(c ServiceSpecCase) {
-				Expect(forge.ServiceSpec(&instance, c.Mutator(&environment)).Ports).To(Equal(c.Expected))
+				Expect(forge.ServiceSpec(&instance, c.Mutator(&environment), c.TemplateMutator(&template)).Ports).To(Equal(c.Expected))
 			},
 			Entry("When the Environment is of type VM, without GUI", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassVM
 					env.GuiEnabled = false
 					return env
+				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					return tmpl
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
@@ -92,6 +107,9 @@ var _ = Describe("Services forging", func() {
 					env.EnvironmentType = clv1alpha2.ClassVM
 					env.GuiEnabled = true
 					return env
+				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					return tmpl
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
@@ -104,6 +122,9 @@ var _ = Describe("Services forging", func() {
 					env.GuiEnabled = false
 					return env
 				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					return tmpl
+				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
 				},
@@ -114,6 +135,9 @@ var _ = Describe("Services forging", func() {
 					env.GuiEnabled = true
 					return env
 				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					return tmpl
+				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
@@ -123,8 +147,11 @@ var _ = Describe("Services forging", func() {
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
 					env.GuiEnabled = true
-					env.Mode = clv1alpha2.ModeStandard
 					return env
+				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					tmpl.Spec.Scope = clv1alpha2.ScopeStandard
+					return tmpl
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
@@ -138,6 +165,9 @@ var _ = Describe("Services forging", func() {
 					env.GuiEnabled = true
 					return env
 				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					return tmpl
+				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
@@ -147,8 +177,11 @@ var _ = Describe("Services forging", func() {
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
 					env.GuiEnabled = true
-					env.Mode = clv1alpha2.ModeExam
 					return env
+				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					tmpl.Spec.Scope = clv1alpha2.ScopeExam
+					return tmpl
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
@@ -159,8 +192,11 @@ var _ = Describe("Services forging", func() {
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
 					env.GuiEnabled = true
-					env.Mode = clv1alpha2.ModeExercise
 					return env
+				},
+				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
+					tmpl.Spec.Scope = clv1alpha2.ScopeExercise
+					return tmpl
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},

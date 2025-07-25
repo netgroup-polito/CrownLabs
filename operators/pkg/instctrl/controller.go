@@ -64,6 +64,69 @@ type ServiceUrls struct {
 	InstancesAuthURL string
 }
 
+// calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
+func (r *InstanceReconciler) calculateInstancePhase(environments []clv1alpha2.InstanceStatusEnv) clv1alpha2.EnvironmentPhase {
+	total := len(environments)
+	if total == 0 {
+		return clv1alpha2.EnvironmentPhaseUnset
+	}
+
+	var (
+		failed, creationLoopBackoff int
+		resourceQuotaExceeded       int
+		ready, running              int
+		starting, importing         int
+		stopping, off               int
+	)
+
+	for _, env := range environments {
+		switch env.Phase {
+		case clv1alpha2.EnvironmentPhaseFailed:
+			failed++
+		case clv1alpha2.EnvironmentPhaseCreationLoopBackoff:
+			creationLoopBackoff++
+		case clv1alpha2.EnvironmentPhaseResourceQuotaExceeded:
+			resourceQuotaExceeded++
+		case clv1alpha2.EnvironmentPhaseReady:
+			ready++
+		case clv1alpha2.EnvironmentPhaseRunning:
+			running++
+		case clv1alpha2.EnvironmentPhaseStarting:
+			starting++
+		case clv1alpha2.EnvironmentPhaseImporting:
+			importing++
+		case clv1alpha2.EnvironmentPhaseStopping:
+			stopping++
+		case clv1alpha2.EnvironmentPhaseOff:
+			off++
+		}
+	}
+
+	if failed > 0 || creationLoopBackoff > 0 {
+		return clv1alpha2.EnvironmentPhaseFailed
+	}
+	if resourceQuotaExceeded > 0 {
+		return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+	}
+	if ready == total {
+		return clv1alpha2.EnvironmentPhaseReady
+	}
+	if ready > 0 || running > 0 {
+		return clv1alpha2.EnvironmentPhaseRunning
+	}
+	if starting > 0 || importing > 0 {
+		return clv1alpha2.EnvironmentPhaseStarting
+	}
+	if stopping > 0 {
+		return clv1alpha2.EnvironmentPhaseStopping
+	}
+	if off == total {
+		return clv1alpha2.EnvironmentPhaseOff
+	}
+
+	return clv1alpha2.EnvironmentPhaseUnset
+}
+
 // Reconcile reconciles the state of an Instance resource.
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	if r.ReconcileDeferHook != nil {
@@ -111,6 +174,8 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
 			}
 		}
+
+		instance.Status.Phase = r.calculateInstancePhase(instance.Status.Environments)
 
 		// Avoid triggering the status update if not necessary.
 		if !reflect.DeepEqual(original.Status, updated.Status) {
@@ -167,6 +232,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		log.Info("instance labels correctly configured")
 	}
 
+	// Enforce the ingress to access the GUI
+	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+
+	//Define url of the instance. This will be the root for the urls of the single environments
+	instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, &instance)
+
 	// Iterate over and enforce the instance environments.
 	if err := r.enforceEnvironments(ctx); err != nil {
 		log.Error(err, "failed to enforce instance environments")
@@ -187,28 +258,54 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
+	//It will set the root url in the instance only if there is at least one environment that is a
+	//vm with gui enabled.
+	url_needed := false
+	// Make sure the list of instance environments status is initialized
+	tmplEnvCount := len(template.Spec.EnvironmentList)
+	if len(instance.Status.Environments) != tmplEnvCount {
+		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
+	}
+
 	for i := range template.Spec.EnvironmentList {
-		environment := &template.Spec.EnvironmentList[i]
+		tmplEnv := &template.Spec.EnvironmentList[i]
+
+		// Set the name of the environment for the instance status
+		// to the current template environment name.
+		instance.Status.Environments[i].Name = tmplEnv.Name
 
 		// Set an inner context for each environment
-		innCtx, _ := clctx.EnvironmentInto(ctx, environment)
+		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
-		switch template.Spec.EnvironmentList[i].EnvironmentType {
+		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
+			if tmplEnv.GuiEnabled {
+				url_needed = true
+			}
+
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 		}
 
+		//set the root url in instance Status
+		if url_needed {
+			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+			instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		} else {
+			instance.Status.URL = ""
+		}
+
 		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
+
 	return nil
 }
 

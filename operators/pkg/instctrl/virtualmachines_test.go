@@ -161,17 +161,17 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Standard", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeStandard
+			template.Spec.Scope = clv1alpha2.ScopeStandard
 		})
 		It("Should enforce the cloud-init secret", func() {
 			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName_env, &secret)).To(Succeed())
+			Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
 		})
 	})
 
 	Context("The environment mode is Exam", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeExam
+			template.Spec.Scope = clv1alpha2.ScopeExam
 		})
 		It("Should not enforce the cloud-init secret", func() {
 			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
@@ -183,7 +183,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Exercise", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeExercise
+			template.Spec.Scope = clv1alpha2.ScopeExercise
 		})
 		It("Should not enforce the cloud-init secret", func() {
 			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.

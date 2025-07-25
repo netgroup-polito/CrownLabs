@@ -16,7 +16,6 @@ package instctrl_test
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -62,6 +61,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
+		template    clv1alpha2.Template
 		index       int
 
 		serviceName types.NamespacedName
@@ -91,8 +91,14 @@ var _ = Describe("Generation of the exposition environment", func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 
-		environment = clv1alpha2.Environment{Name: environmentName, Mode: clv1alpha2.ModeStandard, EnvironmentType: clv1alpha2.ClassContainer}
-
+		environment = clv1alpha2.Environment{Name: environmentName, EnvironmentType: clv1alpha2.ClassContainer}
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateName},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+				Scope:           clv1alpha2.ScopeStandard,
+			},
+		}
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
 			Spec: clv1alpha2.InstanceSpec{
@@ -131,6 +137,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx = clctx.EnvironmentIndexInto(ctx, index)
 		err = reconciler.EnforceInstanceExposition(ctx)
 	})
@@ -139,7 +146,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		NamespacedName *types.NamespacedName
 		Object         client.Object
 
-		ExpectedSpecForger func(*clv1alpha2.Instance, *clv1alpha2.Environment) interface{}
+		ExpectedSpecForger func(*clv1alpha2.Instance, *clv1alpha2.Environment, *clv1alpha2.Template) interface{}
 		EmptySpec          interface{}
 
 		InstanceStatusGetter   func(*clv1alpha2.Instance) string
@@ -150,17 +157,14 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	DescribeBodyParametersService := DescribeBodyParameters{
 		NamespacedName: &serviceName, Object: &service, GroupResource: corev1.Resource("services"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment) interface{} {
-			svc := forge.ServiceSpec(inst, env)
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
+			svc := forge.ServiceSpec(inst, env, tmp)
 			svc.ClusterIP = clusterIP
 			return svc
 		},
 		EmptySpec: corev1.ServiceSpec{ClusterIP: clusterIP},
 		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-			//
-			//
-			//
-			//return inst.Status.IP
+
 			if index >= len(inst.Status.Environments) {
 				return ""
 			}
@@ -173,42 +177,32 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	DescribeBodyParametersIngressGUI := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec: netv1.IngressSpec{},
 		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-			//return inst.Status.URL
-			//
-			//
-			//
-			if index >= len(inst.Status.Environments) {
-				return ""
-			}
-			return inst.Status.Environments[index].URL
+
+			return ""
+
 		},
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v-%v/", host, instanceUID, environmentName),
+		InstanceStatusExpected: "",
 	}
 
 	DescribeBodyParametersIngressGUIContainer := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec: netv1.IngressSpec{},
 		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-			//return inst.Status.URL
-			//
-			//
-			//
-			if index >= len(inst.Status.Environments) {
-				return ""
-			}
-			return inst.Status.Environments[index].URL
+
+			return ""
+
 		},
-		InstanceStatusExpected: fmt.Sprintf("https://%v/instance/%v-%v/app/", host, instanceUID, environmentName),
+		InstanceStatusExpected: "",
 	}
 
 	Context("The instance is running", func() {
@@ -238,7 +232,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				It("Should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment))))
+					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment, &template))))
 				})
 
 				It("Should fill the correct instance status value", func() {

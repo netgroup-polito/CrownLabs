@@ -108,15 +108,16 @@ type InstanceAutomationStatus struct {
 
 // InstanceStatusEnv reflects the status of an instance's environment.
 type InstanceStatusEnv struct {
+	// The name identifying the specific environment.
+	// It is equivalent to the name of a template's environment.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	Name string `json:"name"`
+
 	// The current status Instance, with reference to the associated environment
 	// (e.g. VM). This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
 	// accept incoming connections.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
-
-	// The URL where it is possible to access the remote desktop of the instance
-	// (in case of graphical environments)
-	URL string `json:"url,omitempty"`
 
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
@@ -139,7 +140,17 @@ type InstanceStatus struct {
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
+	// The current phase of the Instance based on all environments.
+	Phase EnvironmentPhase `json:"phase,omitempty"`
+
+	// The URL that consitutes the root for the urls of each environment within the instance.
+	// It is possible to access the remote desktop of the instance
+	// (in case of graphical environments).
+	URL string `json:"url,omitempty"`
+
 	// Environments contains the status of the instance's environments.
+	// +listType=map
+	// +listMapKey=name
 	Environments []InstanceStatusEnv `json:"environments,omitempty"`
 }
 
@@ -148,7 +159,7 @@ type InstanceStatus struct {
 // +kubebuilder:resource:shortName="inst"
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.environments[0].phase`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
 // +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`

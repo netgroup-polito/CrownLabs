@@ -138,15 +138,6 @@ spec:
                       description: The VM or container to be started when instantiating
                         the environment.
                       type: string
-                    mode:
-                      default: Standard
-                      description: The mode associated with the environment (Standard,
-                        Exam, Exercise)
-                      enum:
-                      - Standard
-                      - Exam
-                      - Exercise
-                      type: string
                     mountMyDriveVolume:
                       default: true
                       description: Whether the instance has to have the user's MyDrive
@@ -279,6 +270,15 @@ spec:
                 type: object
               prettyName:
                 description: The human-readable name of the Template.
+                type: string
+              scope:
+                default: Standard
+                description: The scope associated with the environments belonging
+                  to the template (Standard, Exam, Exercise)
+                enum:
+                - Standard
+                - Exam
+                - Exercise
                 type: string
               workspace.crownlabs.polito.it/WorkspaceRef:
                 description: The reference to the Workspace this Template belongs

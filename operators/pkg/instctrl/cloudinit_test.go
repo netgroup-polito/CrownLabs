@@ -102,7 +102,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		tenant = NewTenant("user", workspaceName, clv1alpha2.User, []string{"tenant-key-1", "tenant-key-2"})
 
 		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: tntctrl.NFSSecretName}
-		objectName = forge.NamespacedNameWithSuffix(&instance, environmentName)
+		objectName = forge.NamespacedName(&instance)
 		secret = corev1.Secret{}
 
 		ownerRef = metav1.OwnerReference{
@@ -162,7 +162,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 			It("Should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
-				Expect(secret.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
+				Expect(secret.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
 				Expect(secret.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -183,7 +183,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 			It("Should still be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
-				Expect(secret.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
+				Expect(secret.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
 				Expect(secret.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 

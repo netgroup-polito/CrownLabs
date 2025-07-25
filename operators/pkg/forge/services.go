@@ -47,7 +47,7 @@ const (
 
 // ServiceSpec forges the specification of a Kubernetes Service resource providing
 // access to a CrownLabs environment.
-func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) corev1.ServiceSpec {
+func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, template *clv1alpha2.Template) corev1.ServiceSpec {
 	ports := make([]corev1.ServicePort, 0)
 
 	// Do not add the ssh port on container-based instances, since no deamon is present.
@@ -61,7 +61,7 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	}
 
 	// Add the "MyDrive" port only if the environment is a container or standalone.
-	if (environment.EnvironmentType == clv1alpha2.ClassStandalone || environment.EnvironmentType == clv1alpha2.ClassContainer) && environment.Mode == clv1alpha2.ModeStandard {
+	if (environment.EnvironmentType == clv1alpha2.ClassStandalone || environment.EnvironmentType == clv1alpha2.ClassContainer) && template.Spec.Scope == clv1alpha2.ScopeStandard {
 		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
 	}
 
