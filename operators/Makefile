@@ -77,12 +77,13 @@ run-instance: generate
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
-				--container-env-sidecars-tag=v0.14.5
+				--container-env-sidecars-tag=v0.14.5\
+				--public-exposure-ip-pool="172.18.0.240-172.18.0.248,172.18.0.249,172.18.0.250/30"
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
-run-instance-local: samples-local install-local run-instance
+run-instance-local: install-local samples-local run-instance
 
 
 run-tenant: generate

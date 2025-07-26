@@ -98,6 +98,47 @@ spec:
                   Custom name the user can assign and change at any time
                   in order to more easily identify the instance.
                 type: string
+              publicExposure:
+                description: |-
+                  Optional specification of the Instance service exposure.
+                  If set, it will be used to expose the Instance services to the outside world.
+                  LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+                properties:
+                  ports:
+                    description: |-
+                      The list of ports to expose.
+                      If 'Port' is set to 0, a random port from the ephemeral range will be assigned.
+                      If no ports are specified, the service will not be exposed with a LoadBalancer
+                    items:
+                      description: PublicServicePort defines the mapping of ports
+                        for a service.
+                      properties:
+                        name:
+                          description: A friendly name for the port.
+                          type: string
+                        port:
+                          default: 0
+                          description: The public port to request. If 0 in spec, a
+                            random port from the ephemeral range will be assigned.
+                          format: int32
+                          maximum: 65535
+                          minimum: 0
+                          type: integer
+                        targetPort:
+                          description: The port on the container to target.
+                          format: int32
+                          maximum: 65535
+                          minimum: 1
+                          type: integer
+                      required:
+                      - name
+                      - port
+                      - targetPort
+                      type: object
+                    type: array
+                required:
+                - ports
+                type: object
               running:
                 default: true
                 description: |-
@@ -202,6 +243,52 @@ spec:
                 - Failed
                 - CreationLoopBackoff
                 type: string
+              publicExposure:
+                description: The status of the Instance service exposure, if any.
+                properties:
+                  externalIP:
+                    description: The external IP address assigned to the LoadBalancer
+                      service.
+                    type: string
+                  phase:
+                    description: The current phase of the public exposure.
+                    enum:
+                    - ""
+                    - Provisioning
+                    - Ready
+                    - Error
+                    type: string
+                  ports:
+                    description: The list of port mappings with the actually assigned
+                      public ports in 'Port' field.
+                    items:
+                      description: PublicServicePort defines the mapping of ports
+                        for a service.
+                      properties:
+                        name:
+                          description: A friendly name for the port.
+                          type: string
+                        port:
+                          default: 0
+                          description: The public port to request. If 0 in spec, a
+                            random port from the ephemeral range will be assigned.
+                          format: int32
+                          maximum: 65535
+                          minimum: 0
+                          type: integer
+                        targetPort:
+                          description: The port on the container to target.
+                          format: int32
+                          maximum: 65535
+                          minimum: 1
+                          type: integer
+                      required:
+                      - name
+                      - port
+                      - targetPort
+                      type: object
+                    type: array
+                type: object
               url:
                 description: |-
                   The URL where it is possible to access the remote desktop of the instance

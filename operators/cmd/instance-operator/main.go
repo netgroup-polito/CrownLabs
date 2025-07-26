@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -41,6 +42,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -62,6 +64,7 @@ func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
 	svcUrls := instctrl.ServiceUrls{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
+	publicExposureIPPoolRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -95,6 +98,8 @@ func main() {
 	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 
+	flag.StringVar(&publicExposureIPPoolRaw, "public-exposure-ip-pool", "", "Comma-separated list of IPs, ranges or CIDRs for public exposure")
+
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -122,15 +127,23 @@ func main() {
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 
+	ipPool, err := utils.ParseIPPool(publicExposureIPPoolRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure IP pool")
+		os.Exit(1)
+	}
+	fmt.Printf("PublicExposureIPPool: %#v\n", ipPool)
+
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
 	if err = (&instctrl.InstanceReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist: nsWhitelist,
-		ServiceUrls:        svcUrls,
-		ContainerEnvOpts:   containerEnvOpts,
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		EventsRecorder:       mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:   nsWhitelist,
+		ServiceUrls:          svcUrls,
+		ContainerEnvOpts:     containerEnvOpts,
+		PublicExposureIPPool: ipPool,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
