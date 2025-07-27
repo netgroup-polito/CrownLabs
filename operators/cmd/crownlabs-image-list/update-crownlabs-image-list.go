@@ -269,50 +269,50 @@ func (u *ImageListUpdater) Update() {
 		return
 	}
 
-	spec := map[string]interface{}{
-		"registryName": u.RegistryAdvName,
+	// spec := map[string]interface{}{
+	// 	"registryName": u.RegistryAdvName,
+	// 	"images":       processImageList(images),
+	// }
+
+	// if err := u.ImageListSaver.UpdateImageList(spec); err != nil {
+	// 	log.Printf("Failed to save data as ImageList: %v", err)
+	// 	return
+	// }
+
+	speccrownlabs_containerdisks := map[string]interface{}{
+		"registryName": "crownlabs-containerdisks",
 		"images":       processImageList(images),
 	}
-
-	if err := u.ImageListSaver.UpdateImageList(spec); err != nil {
-		log.Printf("Failed to save data as ImageList: %v", err)
-		return
-	}
-
-	specVirtualMachine := map[string]interface{}{
-		"registryName": u.RegistryAdvName + "-virtual-machine",
-		"images":       processImageList(images),
-	}
-	u.ImageListSaver, err = NewImageListSaver(u.ImageListPrefix + "-virtual-machine")
+	u.ImageListSaver, err = NewImageListSaver("crownlabs-containerdisks")
 	if err != nil {
 		fmt.Printf("Error creating ImageListSaver: %v\n", err)
 		os.Exit(1)
 	}
-	if err := u.ImageListSaver.UpdateImageList(specVirtualMachine); err != nil {
+	if err := u.ImageListSaver.UpdateImageList(speccrownlabs_containerdisks); err != nil {
 		log.Printf("Failed to save data as ImageList: %v", err)
 		return
 	}
 
-	specContainer := map[string]interface{}{
-		"registryName": u.RegistryAdvName + "-spec-container",
+	spec_crownlabs_container_envs := map[string]interface{}{
+		"registryName": "crownlabs-container-envs",
 		"images":       processImageList(images),
 	}
 
-	u.ImageListSaver, err = NewImageListSaver(u.ImageListPrefix + "-spec-container")
+	u.ImageListSaver, err = NewImageListSaver("crownlabs-container-envs")
 	if err != nil {
 		fmt.Printf("Error creating ImageListSaver: %v\n", err)
 		os.Exit(1)
 	}
-	if err := u.ImageListSaver.UpdateImageList(specContainer); err != nil {
+	if err := u.ImageListSaver.UpdateImageList(spec_crownlabs_container_envs); err != nil {
 		log.Printf("Failed to save data as ImageList: %v", err)
 		return
 	}
 
 	specCloadVm := map[string]interface{}{
-		"registryName": u.RegistryAdvName + "-spec-cload-vm",
+		"registryName": "crownlabs-standalone",
 		"images":       processImageList(images),
 	}
-	u.ImageListSaver, err = NewImageListSaver(u.ImageListPrefix + "-spec-cload-vm")
+	u.ImageListSaver, err = NewImageListSaver("crownlabs-standalone")
 	if err != nil {
 		fmt.Printf("Error creating ImageListSaver: %v\n", err)
 		os.Exit(1)
@@ -322,22 +322,6 @@ func (u *ImageListUpdater) Update() {
 		log.Printf("Failed to save data as ImageList: %v", err)
 		return
 	}
-
-	specStandAlone := map[string]interface{}{
-		"registryName": u.RegistryAdvName + "-spec-stand-alone",
-		"images":       processImageList(images),
-	}
-	u.ImageListSaver, err = NewImageListSaver(u.ImageListPrefix + "-spec-stand-alone")
-	if err != nil {
-		fmt.Printf("Error creating ImageListSaver: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := u.ImageListSaver.UpdateImageList(specStandAlone); err != nil {
-		log.Printf("Failed to save data as ImageList: %v", err)
-		return
-	}
-
 	log.Printf("Update process correctly completed in %.2f seconds", time.Since(start).Seconds())
 }
 
