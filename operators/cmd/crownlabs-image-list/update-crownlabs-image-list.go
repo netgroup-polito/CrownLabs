@@ -367,12 +367,12 @@ func main() {
 	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "The host name of the Docker registry where the images can be retrieved")
 	flag.StringVar(&imageListName, "image-list-name", "", "The name assigned to the resulting ImageList object ")
 	flag.StringVar(&registryURL, "registry-url", "", "The URL used to contact the Docker registry")
-	flag.IntVar(&updateInterval, "update-interval", 60, "the interval (in seconds) between one update and the following")
+	flag.IntVar(&updateInterval, "update-interval", -1, "the interval (in seconds) between one update and the following")
 
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" {
+	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || updateInterval == -1 {
 		fmt.Printf(`Usage: %s
 		--advertised-registry-name <registry-name>
 		--image-list-name <list-name>
