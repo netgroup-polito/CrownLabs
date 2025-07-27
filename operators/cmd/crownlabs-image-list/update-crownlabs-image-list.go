@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 // "k8s.io/client-go/kubernetes"
@@ -359,46 +361,26 @@ func processImageList(images []map[string]interface{}) []map[string]interface{} 
 	return convertedImages
 }
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: update-crownlabs-image-list <image-list-file>")
-		os.Exit(1)
-	}
-
-	for i, arg := range os.Args[1:] {
-		fmt.Printf("Arg %d: %s\n", i+1, arg)
-	}
 	var advertisedRegistryName, imageListName, registryURL string
 	var updateInterval int
 
-	for i := 1; i < len(os.Args); i++ {
-		switch os.Args[i] {
-		case "--advertised-registry-name":
-			if i+1 < len(os.Args) {
-				advertisedRegistryName = os.Args[i+1]
-				i++
-			}
-		case "--image-list-name":
-			if i+1 < len(os.Args) {
-				imageListName = os.Args[i+1]
-				i++
-			}
-		case "--registry-url":
-			if i+1 < len(os.Args) {
-				registryURL = os.Args[i+1]
-				i++
-			}
-		case "--update-interval":
-			if i+1 < len(os.Args) {
-				fmt.Sscanf(os.Args[i+1], "%d", &updateInterval)
-				i++
-			}
-		}
-	}
+	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "The host name of the Docker registry where the images can be retrieved")
+	flag.StringVar(&imageListName, "image-list-name", "", "The name assigned to the resulting ImageList object ")
+	flag.StringVar(&registryURL, "registry-url", "", "The URL used to contact the Docker registry")
+	flag.IntVar(&updateInterval, "update-interval", 60, "the interval (in seconds) between one update and the following")
 
-	fmt.Printf("advertisedRegistryName: %s\n", advertisedRegistryName)
-	fmt.Printf("imageListName: %s\n", imageListName)
-	fmt.Printf("registryURL: %s\n", registryURL)
-	fmt.Printf("updateInterval: %d\n", updateInterval)
+	klog.InitFlags(nil)
+	flag.Parse()
+
+	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" {
+		fmt.Printf(`Usage: %s
+		--advertised-registry-name <registry-name>
+		--image-list-name <list-name>
+		--registry-url <url>
+		--update-interval <seconds>`, os.Args[0])
+		fmt.Println()
+		os.Exit(1)
+	}
 
 	// Example: create ImageListRequestor using parsed arguments
 	imageListRequestor := NewImageListRequestor(registryURL, os.Getenv("REGISTRY_USERNAME"), os.Getenv("REGISTRY_PASSWORD"))
