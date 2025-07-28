@@ -266,3 +266,19 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
     key => enumObj[key] === value,
   );
 }
+
+/**
+ * Build JSON patch string for updating publicExposure ports on an Instance.
+ * @param portsNormalized entries with name, targetPort, and port
+ * @returns JSON patch string
+ */
+export function buildPublicExposurePatch(
+  portsNormalized: Array<{ name?: string; targetPort: number; port?: string }>
+): string {
+  const payload = {
+    kind: 'Instance',
+    apiVersion: 'crownlabs.polito.it/v1alpha2',
+    spec: { publicExposure: { ports: portsNormalized } },
+  };
+  return JSON.stringify(payload);
+}

@@ -14,13 +14,13 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { type FC, useCallback } from 'react';
 import type { PublicExposure } from '../../../../utils';
 import { useApplyInstanceMutation } from '../../../../generated-types';
+import { buildPublicExposurePatch } from '../../../../utils';
 
 interface IPublicExposureModalProps {
   open: boolean;
   onCancel: () => void;
-  /** se true abilita scelta desiredPort, altrimenti solo random */
   allowPublicExposure: boolean;
-  /** valori preesistenti per edit */
+  
   existingExposure?: PublicExposure;
   // k8s patch context
   instanceId: string;
@@ -49,7 +49,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   // GraphQL mutation hook for applyInstance
   const [applyInstanceMutation, { loading, error }] =
     useApplyInstanceMutation();
-  // prepapra valori iniziali da existingExposure (edit) o default
+  
   const initialPorts: PortField[] = existingExposure?.ports.map(p => ({
     name: p.name,
     targetPort: String(p.targetPort),
@@ -64,7 +64,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     parseInt(lastTargetPort, 10) === 0;
 
   const onFinish = async (values: FormValues) => {
-    // costruisci payload per mutation
     const normalized = values.ports.map(p => {
       const targetPort = parseInt(p.targetPort, 10);
       if (allowPublicExposure) {
@@ -73,16 +72,9 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       return { name: p.name, targetPort };
     });
     try {
-      // build patch for publicExposure
-      const patchPayload = {
-        kind: 'Instance',
-        apiVersion: 'crownlabs.polito.it/v1alpha2',
-        spec: { publicExposure: { ports: normalized } },
-      };
-      const patchJson = JSON.stringify(patchPayload);
-      await applyInstanceMutation({
-        variables: { instanceId, tenantNamespace, patchJson, manager },
-      });
+      // build patch for publicExposure via helper
+      const patchJson = buildPublicExposurePatch(normalized);
+      await applyInstanceMutation({ variables: { instanceId, tenantNamespace, patchJson, manager } });
       onCancel();
     } catch {
       // error displayed via Alert

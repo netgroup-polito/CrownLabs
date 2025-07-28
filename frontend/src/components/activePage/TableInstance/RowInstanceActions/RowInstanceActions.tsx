@@ -21,6 +21,10 @@ export interface IRowInstanceActionsProps {
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
+  // Override public exposure in development mode
+  const allowPublic = process.env.NODE_ENV === 'development'
+    ? true
+    : instance.allowPublicExposure;
 
   const { persistent } = instance;
 
@@ -53,12 +57,14 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     return 'now';
   };
 
+  // include public exposure handler only when allowed by template
+  // include public exposure handler only when allowed or in dev
   const fieldsDropdown = {
     instance,
     setSshModal,
     fileManager,
     extended,
-    onEnablePublicExposure,
+    ...(allowPublic ? { onEnablePublicExposure } : {}),
   };
 
   return (
@@ -121,16 +127,19 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
       >
         <SSHModalContent instanceIp={instance.ip} hasSSHKeys={hasSSHKeys!} />
       </Modal>
-      <PublicExposureModal
-        open={showExposureModal}
-        onCancel={() => setShowExposureModal(false)}
-        allowPublicExposure={instance.allowPublicExposure ?? false}
-        existingExposure={instance.publicExposure}
-        // pass actual k8s resource name, not composite id
-        instanceId={instance.name}
-        tenantNamespace={instance.tenantNamespace}
-        manager={instance.tenantId}
-      />
+      {/* show exposure modal only when allowed or in dev */}
+      {allowPublic && (
+        <PublicExposureModal
+          open={showExposureModal}
+          onCancel={() => setShowExposureModal(false)}
+          allowPublicExposure={allowPublic}
+          existingExposure={instance.publicExposure}
+          // pass actual k8s resource name, not composite id
+          instanceId={instance.name}
+          tenantNamespace={instance.tenantNamespace}
+          manager={instance.tenantId}
+        />
+      )}
     </>
   );
 };
