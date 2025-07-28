@@ -275,10 +275,17 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
 export function buildPublicExposurePatch(
   portsNormalized: Array<{ name?: string; targetPort: number; port?: string }>
 ): string {
+  // Convert port strings to numbers for Kubernetes API
+  const portsWithNumericPort = portsNormalized.map(p => ({
+    ...(p.name !== undefined ? { name: p.name } : {}),
+    targetPort: p.targetPort,
+    ...(p.port !== undefined ? { port: parseInt(p.port, 10) } : {}),
+  }));
+  
   const payload = {
     kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
-    spec: { publicExposure: { ports: portsNormalized } },
+    spec: { publicExposure: { ports: portsWithNumericPort } },
   };
   return JSON.stringify(payload);
 }

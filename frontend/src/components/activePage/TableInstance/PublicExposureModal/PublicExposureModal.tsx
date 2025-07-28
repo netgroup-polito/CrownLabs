@@ -71,12 +71,16 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       }
       return { name: p.name, targetPort };
     });
+    
     try {
       // build patch for publicExposure via helper
       const patchJson = buildPublicExposurePatch(normalized);
-      await applyInstanceMutation({ variables: { instanceId, tenantNamespace, patchJson, manager } });
+      const variables = { instanceId, tenantNamespace, patchJson, manager };
+      
+      await applyInstanceMutation({ variables });
       onCancel();
-    } catch {
+    } catch (error) {
+      console.error('❌ Backend error:', error);
       // error displayed via Alert
     }
   };
