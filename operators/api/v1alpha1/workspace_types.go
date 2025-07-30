@@ -81,7 +81,7 @@ type WorkspaceResourceQuota struct {
 
 	// +kubebuilder:validation:Minimum:=1
 	// The maximum number of concurrent instances required by this Workspace.
-	Instances uint32 `json:"instances"`
+	Instances int64 `json:"instances"`
 }
 
 // +kubebuilder:object:root=true

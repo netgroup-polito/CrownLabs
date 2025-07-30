@@ -27,7 +27,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -118,7 +117,7 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 func (r *InstanceReconciler) GetNFSSpecs(ctx context.Context) (nfsServerName, nfsPath string, err error) {
 	var serverNameBytes, serverPathBytes []byte
 	instance := clctx.InstanceFrom(ctx)
-	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: tntctrl.NFSSecretName}
+	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: forge.NFSSecretName}
 
 	secret := corev1.Secret{}
 	if err = r.Get(ctx, secretName, &secret); err != nil {
@@ -126,16 +125,16 @@ func (r *InstanceReconciler) GetNFSSpecs(ctx context.Context) (nfsServerName, nf
 		return
 	}
 
-	serverNameBytes, ok := secret.Data[tntctrl.NFSSecretServerNameKey]
+	serverNameBytes, ok := secret.Data[forge.NFSSecretServerNameKey]
 	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", tntctrl.NFSSecretServerNameKey)
+		err = fmt.Errorf("cannot find %v key in secret", forge.NFSSecretServerNameKey)
 		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
 		return
 	}
 
-	serverPathBytes, ok = secret.Data[tntctrl.NFSSecretPathKey]
+	serverPathBytes, ok = secret.Data[forge.NFSSecretPathKey]
 	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", tntctrl.NFSSecretPathKey)
+		err = fmt.Errorf("cannot find %v key in secret", forge.NFSSecretPathKey)
 		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
 		return
 	}
