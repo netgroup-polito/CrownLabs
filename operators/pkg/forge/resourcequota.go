@@ -68,7 +68,7 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 	if CapMemoryGiga > 0 {
 		quota.Memory = CapResourceQuantity(quota.Memory, *resource.NewScaledQuantity(int64(CapMemoryGiga), resource.Giga))
 	}
-	if CapInstance > 0 {
+	if CapInstance > 0 && CapInstance <= int(^uint32(0)) {
 		quota.Instances = CapIntegerQuantity(quota.Instances, uint32(CapInstance))
 	}
 
