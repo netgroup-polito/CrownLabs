@@ -1,0 +1,8 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: Instance { prettyName } Expired
+plaintext_content: |-
+  Your instance { prettyName } has expired and has now been terminated.
+html_content: |-
+  <p>Your instance <strong>{ prettyName }</strong> has expired and has now been terminated.</p>
