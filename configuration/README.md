@@ -45,7 +45,7 @@ To remove the above label, you can use the following example:
 
 ### Add the proper specification in the VM/container template
 
-This can be done as follows (this refers to a template called `vscode-rust` in workspace `workspace-sid`):
+This can be done as follows (this refers to a template called `vscode-rust` in namespace `workspace-sid`):
 
     admin@k8s-master:~$ kubectl get templates -n workspace-sid vscode-rust -o yaml
     apiVersion: crownlabs.polito.it/v1alpha2
