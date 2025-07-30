@@ -130,7 +130,7 @@ sshKeysSecret:
   webBastionMasterKey:
     secretName: crownlabs-bastion-operator-web-master-key
     type: ed25519
-    comment: "Web SSH Bastion Master Key"
+    comment: webSSH-bastion-master-key
 
 rbacResourcesName: crownlabs-bastion-operator
 
