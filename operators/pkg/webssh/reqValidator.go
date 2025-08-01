@@ -1,3 +1,21 @@
+// Copyright 2025 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package webssh provides a WebSocket-based SSH bridge for CrownLabs instances.
+// A piece of the webssh architecture that validates incoming requests
+// and retrieves VM information from the Kubernetes API.
+// It ensures that the user is authenticated and authorized to access the specified VM.
 package webssh
 
 import (
@@ -20,9 +38,8 @@ type clientInitMessage struct {
 	Namespace string `json:"namespace,omitempty"` // Optional namespace, can be derived from the token
 }
 
-// GetInstance retrieves an Instance CR by namespace and name
+// GetInstance retrieves an Instance CR by namespace and name.
 func GetInstance(token, namespace, instanceName string) (*clv1alpha2.Instance, error) {
-
 	// create the Kubernetes client configuration
 	config := &rest.Config{
 		Host:        "https://apiserver.crownlabs.polito.it",
@@ -64,7 +81,7 @@ func extractUsernameFromToken(tokenString string) (string, error) {
 	return "", errors.New("username not found in token claims")
 }
 
-func validateRequest(firstMsg []byte, conf config) (string, error) {
+func validateRequest(firstMsg []byte, conf *config) (string, error) {
 	var initMsg clientInitMessage
 	if err := json.Unmarshal(firstMsg, &initMsg); err != nil {
 		return "", errors.New("invalid JSON format")

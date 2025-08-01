@@ -1,4 +1,4 @@
-// Copyright 2025-2030 Politecnico di Torino
+// Copyright 2025 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -165,7 +165,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request, config *config) {
 	}
 
 	// Validate the req
-	connString, err := validateRequest(firstMsg, *config)
+	connString, err := validateRequest(firstMsg, config)
 	if err != nil {
 		log.Println("Request validation failed:", err)
 		returnError(ws, "Invalid request")
