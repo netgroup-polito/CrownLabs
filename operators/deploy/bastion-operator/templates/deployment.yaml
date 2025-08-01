@@ -162,6 +162,18 @@ spec:
             - name: webssh
               containerPort: {{ .Values.webSshConfig.WebSshWebskPort }}
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
           env:
             - name: WEBSSH_USER
               value: {{ .Values.webSshConfig.webSshUser | quote }}
@@ -179,7 +191,7 @@ spec:
             - mountPath: /web-keys
               name: web-keys
           resources:
-            {{- toYaml .Values.resources.sidecar | nindent 12 }}
+            {{- toYaml .Values.resources.bastion | nindent 12 }}
       volumes:
         - name: web-keys
           secret:
