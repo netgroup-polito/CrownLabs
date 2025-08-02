@@ -154,7 +154,7 @@ func (r *InstanceReconciler) podScheduleStatusIntoInstance(ctx context.Context, 
 
 	podList := corev1.PodList{}
 	instLabels := forge.InstanceSelectorLabels(instance)
-	err = r.Client.List(ctx, &podList, client.MatchingLabels(instLabels))
+	err = r.List(ctx, &podList, client.MatchingLabels(instLabels))
 	if err != nil {
 		return
 	}
