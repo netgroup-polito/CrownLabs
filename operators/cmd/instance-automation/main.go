@@ -77,8 +77,8 @@ func main() {
 
 	// load Prometheus variables
 	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
-	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics", node=~"worker-.*"} == 1)`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
-	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container='bastion-operator-tracker-sidecar'} >1)`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
+	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service='ingress-nginx-external-controller-metrics'})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
+	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container='bastion-operator-tracker-sidecar'})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
 	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 
