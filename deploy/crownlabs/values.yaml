@@ -85,6 +85,10 @@ instance-operator:
     maxAutomationConcurrentReconciles: 1
     monitoring:
       prometheusURL: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
+      queryNginxAvailable: "count(up{service='ingress-nginx-external-controller-metrics', node=~'worker-.*'} == 1)"
+      queryBastionSSHAvailable: "count(up{container='bastion-operator-tracker-sidecar'} >0)"
+      queryNginxData: "nginx_ingress_controller_requests{exported_namespace='%s', exported_service='%s'}"
+      queryBastionSSHData: "bastion_ssh_connections{destination_ip='%s'}"
     automation:
       enableInstanceSubmission: true
       enableInstanceTermination: true
@@ -99,6 +103,7 @@ instance-operator:
       inactiveTerminationMaxNumberOfAlerts: 3
       enableInactivityNotifications: true
       enableExpirationNotifications: true
+      notificationInterval: "24h"
 
 tenant-operator:
   replicaCount: 1
