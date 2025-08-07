@@ -76,14 +76,14 @@ func main() {
 		"( e.g. key1=value1&key2=value2")
 
 	// load Prometheus variables
-	prometheusURL := flag.String("monitoring-prometheus-url", "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local", "The URL of the Prometheus instance to use for the Inactive Termination")
+	prometheusURL := flag.String("monitoring-prometheus-url", "http://kube-prometheus-stack-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics"})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
 	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container="bastion-operator-tracker-sidecar"})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
 	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
-	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
+	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 24*time.Hour, "The interval to check the status of Instances that require it")
 
 	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
 	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
@@ -91,13 +91,13 @@ func main() {
 
 	instanceInactiveTerminationStatusCheckTimeout := flag.Duration("instance-inactive-termination-status-check-timeout", 5*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "the maximum number of notification that Crownlabs can send before stopping/deleting the Instance. It can be overrided by the AlertAnnotationNum annotation that can be in the Template resource.")
-	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 1*time.Minute, "It represent how long before the instance is deleted the notification email should be sent to the user.")
+	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
 
-	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", true, "Enable the sending of inactivity notifications to users on instance inactivity")
-	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", true, "Enable the sending of expiration notifications to users on instance expiration")
+	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", false, "Enable the sending of inactivity notifications to users on instance inactivity")
+	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", false, "Enable the sending of expiration notifications to users on instance expiration")
 
 	mailConfigMapName := flag.String("mail-config-map-name", "crownlabs-mail-config", "The name of the ConfigMap containing the email configuration")
 	restcfg.InitFlags(nil)
@@ -227,7 +227,6 @@ func main() {
 			Scheme:                        mgr.GetScheme(),
 			EventsRecorder:                mgr.GetEventRecorderFor(instanceExpiration),
 			NamespaceWhitelist:            nsWhitelist,
-			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
 			EnableExpirationNotifications: *enableExpirationNotifications,
 			MailClient:                    mailClient,
 			NotificationInterval:          *instanceInactiveTerminationNotificationInterval,

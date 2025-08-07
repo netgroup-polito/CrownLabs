@@ -268,7 +268,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	BeforeEach(func() {
 		mockProm.EXPECT().
-			IsPrometheusHealthy(gomock.Any()).
+			IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 			Return(true, nil).
 			AnyTimes()
 
@@ -372,7 +372,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 		It("Should succeed: the Persistent instance get the default InactivityTimeout value and it is not stopped", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 
@@ -417,7 +417,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 		It("The non-persistent VM is active and should not be deleted", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 
@@ -453,7 +453,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		It("The non-persistent VM is inactive for a long time and it is deleted", func() {
 
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 
@@ -482,7 +482,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		})
 		It("The persistent VM is inactive for a long time and it is stopped", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 
@@ -519,7 +519,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		})
 		It("The persistent VM is active and is not stopped", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 
@@ -558,7 +558,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 	Context("Testing errors", func() {
 		It("Should fail: prometheus is not healthy", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(false, nil).
 				AnyTimes()
 
@@ -593,7 +593,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		})
 		It("Should fail: activity time not correctly returned, the instance should be running", func() {
 			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any()).
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
 				AnyTimes()
 

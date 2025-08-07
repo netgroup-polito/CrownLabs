@@ -45,7 +45,6 @@ type InstanceExpirationReconciler struct {
 	EventsRecorder                record.EventRecorder
 	Scheme                        *runtime.Scheme
 	NamespaceWhitelist            metav1.LabelSelector
-	StatusCheckRequestTimeout     time.Duration
 	EnableExpirationNotifications bool
 	MailClient                    *mail.Client
 	NotificationInterval          time.Duration
@@ -94,9 +93,21 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "failed to retrieve instance/template/tenant")
 		return ctrl.Result{}, err
 	}
 	tracer.Step("instance, template and tenant retrieved")
+
+	if proceed, err := utils.CheckSelectorLabel(ctrl.LoggerInto(ctx, log), r.Client, instance.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
+		if err != nil {
+			log.Error(err, "failed checking selector labels")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
 
 	// Get lifespan from template's deleteAfter field
 	deleteAfter := template.Spec.DeleteAfter

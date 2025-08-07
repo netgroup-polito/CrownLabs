@@ -196,7 +196,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 	var instances clv1alpha2.InstanceList
 	if err := c.List(ctx, &instances,
 		client.InNamespace(""),
-		client.MatchingLabels{forge.LabelTemplateKey: template.Name},
+		forge.TemplateLabelSelector(template.Name),
 	); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed listing instances for template", "template", template.Name)
 		return requests
@@ -297,9 +297,6 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, c client.C
 
 	var instance clv1alpha2.Instance
 	if err := c.Get(ctx, req.NamespacedName, &instance); err != nil {
-		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed retrieving instance")
-		}
 		return nil, nil, nil, err
 	}
 

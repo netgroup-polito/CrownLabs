@@ -290,7 +290,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	BeforeEach(func() {
 		mockProm.EXPECT().
-			IsPrometheusHealthy(gomock.Any()).
+			IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 			Return(true, nil).
 			AnyTimes()
 

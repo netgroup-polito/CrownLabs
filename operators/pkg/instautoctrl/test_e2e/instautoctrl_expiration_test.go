@@ -182,7 +182,7 @@ var _ = Describe("Instautoctrl-expiration", func() {
 
 	BeforeEach(func() {
 		mockProm.EXPECT().
-			IsPrometheusHealthy(gomock.Any()).
+			IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 			Return(true, nil).
 			AnyTimes()
 

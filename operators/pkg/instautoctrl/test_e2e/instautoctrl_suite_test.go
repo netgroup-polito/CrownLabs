@@ -108,7 +108,7 @@ var _ = BeforeSuite(func() {
 		InstanceMaxNumberOfAlerts:     3,
 		NotificationInterval:          1 * time.Second,
 		EnableInactivityNotifications: false,
-		StatusCheckRequestTimeout:     30 * time.Second,
+		StatusCheckRequestTimeout:     10 * time.Second,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -119,7 +119,6 @@ var _ = BeforeSuite(func() {
 		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		MailClient:                    nil,
 		NotificationInterval:          1 * time.Second,
-		StatusCheckRequestTimeout:     30 * time.Second,
 		EnableExpirationNotifications: false,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())

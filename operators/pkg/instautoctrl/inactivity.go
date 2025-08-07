@@ -22,6 +22,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -124,6 +125,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
 	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "failed to retrieve instance/template/tenant")
 		return ctrl.Result{}, err
 	}
 	tracer.Step("instance, template and tenant retrieved")
@@ -233,7 +238,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// Check Prometheus health first
-	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx) // LOCAL: true, nil
+	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.StatusCheckRequestTimeout) // LOCAL: true, nil
 	if err != nil || !healthy {
 		log.Info("Prometheus is not healthy", "error", err)
 		return err
@@ -249,6 +254,11 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	if errNginx != nil && errSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
 	}
+	//fmt.Println("time Nginx:", lastActivityTimeNginx, "time SSH:", lastActivityTimeSSH)
+	if lastActivityTimeNginx.IsZero() && lastActivityTimeSSH.IsZero() {
+		log.Info("No activity detected for the instance", "instance", instance.Name)
+		return nil // No activity detected, do not update the last activity time
+	}
 
 	var maxLastActivityTime time.Time
 	if lastActivityTimeNginx.After(lastActivityTimeSSH) {
@@ -256,8 +266,16 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	} else {
 		maxLastActivityTime = lastActivityTimeSSH
 	}
-
+	// patch the instance with the new last activity time
+	patch := client.MergeFrom(instance.DeepCopy())
+	if instance.ObjectMeta.Annotations == nil {
+		instance.ObjectMeta.Annotations = make(map[string]string)
+	}
 	instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
+	if err := r.Patch(ctx, instance, patch); err != nil {
+		return err
+	}
+
 	return nil
 }
 

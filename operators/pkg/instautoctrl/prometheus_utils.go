@@ -20,12 +20,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // Prometheus is a client for interacting with a Prometheus server.
@@ -63,13 +62,13 @@ func NewPrometheusObj(
 }
 
 // IsPrometheusHealthy checks if Prometheus and required metrics are available.
-func (p *Prometheus) IsPrometheusHealthy(ctx context.Context) (bool, error) {
+func (p *Prometheus) IsPrometheusHealthy(ctx context.Context, timeout time.Duration) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("prometheus-health")
 
 	// Verify connection to Prometheus health endpoint
 	healthEndpoint := fmt.Sprintf("%s/-/healthy", p.address)
 
-	statusCode, _, err := utils.HTTPGet(ctx, healthEndpoint, 5*time.Second)
+	statusCode, _, err := utils.HTTPGet(ctx, healthEndpoint, timeout)
 	if err != nil {
 		log.Error(err, "Failed to connect to Prometheus health endpoint")
 		return false, fmt.Errorf("prometheus health check failed: %w", err)
@@ -120,6 +119,7 @@ func (p *Prometheus) IsPrometheusHealthy(ctx context.Context) (bool, error) {
 
 // GetLastActivityTime retrieves the last time an instance was accessed.
 func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (time.Time, error) {
+
 	end := time.Now()
 	start := end.Add(-interval)
 
@@ -129,13 +129,13 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 		Step:  time.Minute,
 	}
 
-	result, warnings, err := p.client.QueryRange(context.Background(), query, r)
+	result, _, err := p.client.QueryRange(context.Background(), query, r)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("query failed: %w", err)
 	}
-	if len(warnings) > 0 {
-		fmt.Println("Warnings:", warnings)
-	}
+	// if len(warnings) > 0 {
+	// 	log.Info("Warnings:", warnings)
+	// }
 
 	matrix, ok := result.(model.Matrix)
 	if !ok {
@@ -160,34 +160,19 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 		}
 	}
 
-	if lastChange.IsZero() {
-		return time.Time{}, fmt.Errorf("no changes detected")
-	}
+	// if lastChange.IsZero() {
+	// 	return time.Time{}, fmt.Errorf("no changes detected")
+	// }
 	return lastChange, nil
 }
 
 // PrometheusClientInterface defines the methods for interacting with a Prometheus client.
 type PrometheusClientInterface interface {
-	IsPrometheusHealthy(ctx context.Context) (bool, error)
+	IsPrometheusHealthy(ctx context.Context, timeout time.Duration) (bool, error)
 	GetLastActivityTime(query string, interval time.Duration) (time.Time, error)
 	GetQueryNginxData() string
 	GetQuerySSHData() string
 }
-
-// client, err := api.NewClient(
-// 		api.Config{
-// 			Address: address,
-// 		},
-// 	)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	v1api := v1.NewAPI(client)
-// 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-// 	defer cancel()
-
-// 	return v1api, nil
 
 // GetQueryNginxData returns the query string for Nginx data.
 func (p *Prometheus) GetQueryNginxData() string {
