@@ -91,6 +91,23 @@ type TenantSpec struct {
 	Quota *TenantResourceQuota `json:"quota,omitempty"`
 }
 
+// KeycloakStatus defines the status of the authentication flow with Keycloak.
+type KeycloakStatus struct {
+	// Whether the Tenant has successfully been created in Keycloak.
+	// This is set to true only if the Tenant has been created in Keycloak
+	UserCreated NameCreated `json:"userCreated"`
+
+	// Whether the Tenant has confirmed his/her email address.
+	// Only if the Tenant has confirmed his/her email address, his/her
+	// resources will be created in the cluster.
+	UserConfirmed bool `json:"userConfirmed"`
+
+	// Whether the Tenant has successfully been synchronized with Keycloak.
+	// This is set to true only if the Tenant has been successfully synchronized with Keycloak
+	// the last time the operator has run.
+	UserSynchronized bool `json:"userSynchronized"`
+}
+
 // TenantResourceQuota defines resource quota for each Tenant.
 type TenantResourceQuota struct {
 	// The maximum amount of CPU which can be used by this Tenant.
@@ -101,7 +118,7 @@ type TenantResourceQuota struct {
 
 	// +kubebuilder:validation:Minimum:=0
 	// The maximum number of concurrent instances which can be created by this Tenant.
-	Instances uint32 `json:"instances"`
+	Instances int64 `json:"instances"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.
@@ -119,12 +136,15 @@ type TenantStatus struct {
 	// The list of Workspaces that are throwing errors during subscription.
 	// This mainly happens if .spec.Workspaces contains references to Workspaces
 	// which do not exist.
-	FailingWorkspaces []string `json:"failingWorkspaces"`
+	FailingWorkspaces []string `json:"failingWorkspaces,omitempty"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
 	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
-	Subscriptions map[string]SubscriptionStatus `json:"subscriptions"`
+	Subscriptions map[string]SubscriptionStatus `json:"subscriptions,omitempty"`
+
+	// The status of Keycloak authentication flow
+	Keycloak KeycloakStatus `json:"keycloak"`
 
 	// Whether all subscriptions and resource creations succeeded or an error
 	// occurred. In case of errors, the other status fields provide additional

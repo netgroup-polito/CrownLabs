@@ -84,17 +84,18 @@ run-instance: generate
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: samples-local install-local run-instance
 
-
-run-tenant: generate
-	go run cmd/tenant-operator/main.go\
+run-operator: generate
+	go run cmd/operator/main.go\
 				--target-label=crownlabs.polito.it/operator-selector=local\
-				--kc-url=$(KEYCLOAK_URL)\
-				--kc-tenant-operator-user=$(KEYCLOAK_TENANT_OPERATOR_USER)\
-				--kc-tenant-operator-psw=$(KEYCLOAK_TENANT_OPERATOR_PSW)\
-				--kc-login-realm=$(KEYCLOAK_LOGIN_REALM)\
-				--kc-target-realm=$(KEYCLOAK_TARGET_REALM)\
-				--kc-target-client=$(KEYCLOAK_TARGET_CLIENT)\
+				--keycloak-url=$(KEYCLOAK_URL)\
+				--keycloak-realm=$(KEYCLOAK_REALM)\
+				--keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
+				--keycloak-client-secret=$(KEYCLOAK_CLIENT_SECRET)\
+				--keycloak-roles-client-id=$(KEYCLOAK_TARGET_CLIENT)\
 				--enable-webhooks=false
+
+#kept for compatibility
+run-tenant: run-operator
 
 install-local: manifests
 	kubectl apply -f deploy/crds
