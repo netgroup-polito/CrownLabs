@@ -52,7 +52,7 @@ var _ = Describe("Generation of the container based instances", func() {
 			ds.Template.Spec.InitContainers[i].Env = []corev1.EnvVar{}
 		}
 		ds.Selector = nil
-		ds.Template.ObjectMeta.Labels = nil
+		ds.Template.Labels = nil
 		ds.Template.Spec.NodeSelector = nil
 	}
 

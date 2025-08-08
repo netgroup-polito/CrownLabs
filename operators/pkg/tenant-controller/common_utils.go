@@ -24,12 +24,12 @@ import (
 )
 
 // randomDuration returns a duration between duration value between min and max.
-func randomDuration(min, max time.Duration) time.Duration {
-	if min >= max {
-		return min
+func randomDuration(minDuration, maxDuration time.Duration) time.Duration {
+	if minDuration >= maxDuration {
+		return minDuration
 	}
 
-	return (min + time.Duration(rand.Float64()*float64(max-min))).Truncate(time.Millisecond) //nolint:gosec // don't need crypto/rand
+	return (minDuration + time.Duration(rand.Float64()*float64(maxDuration-minDuration))).Truncate(time.Millisecond) //nolint:gosec // don't need crypto/rand
 }
 
 // Helper functions to check and remove string from a slice of strings.

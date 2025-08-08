@@ -88,7 +88,7 @@ type TenantReconciler struct {
 
 // Reconcile reconciles the state of a tenant resource.
 func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "tenant", req.NamespacedName.Name)
+	log := ctrl.LoggerFrom(ctx, "tenant", req.Name)
 	ctx = ctrl.LoggerInto(ctx, log)
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
@@ -112,7 +112,7 @@ func (r *TenantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	var retrigErr error
 
-	if !tn.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !tn.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of tenant %s", tn.Name)
 		if ctrlUtil.ContainsFinalizer(&tn, crownlabsv1alpha2.TnOperatorFinalizerName) {
 			// reconcile was triggered by a delete request
@@ -510,7 +510,8 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 	}
 	klog.Infof("PVC for tenant %s %s", tn.Name, pvcOpRes)
 
-	if pvc.Status.Phase == v1.ClaimBound {
+	switch pvc.Status.Phase {
+	case v1.ClaimBound:
 		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
 		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
 			klog.Errorf("Unable to get PV for tenant %s -> %s", tn.Name, err)
@@ -559,8 +560,10 @@ func (r *TenantReconciler) createOrUpdateTnPersonalNFSVolume(ctx context.Context
 			}
 			klog.Infof("PVC Provisioning Job updateded PVC label to %s for tenant %s", labelToSet, tn.Name)
 		}
-	} else if pvc.Status.Phase == v1.ClaimPending {
+	case v1.ClaimPending:
 		klog.Infof("PVC pending for tenant %s", tn.Name)
+	default:
+		klog.Errorf("PVC for tenant %s is not bound, phase: %s", tn.Name, pvc.Status.Phase)
 	}
 	return nil
 }

@@ -125,12 +125,13 @@ func main() {
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
 	if err = (&instctrl.InstanceReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist: nsWhitelist,
-		ServiceUrls:        svcUrls,
-		ContainerEnvOpts:   containerEnvOpts,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventsRecorder:      mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:  nsWhitelist,
+		ServiceUrls:         svcUrls,
+		ContainerEnvOpts:    containerEnvOpts,
+		WebSSHMasterKeyPath: "/webbastion-key/ssh_web_bastion_master.pub",
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

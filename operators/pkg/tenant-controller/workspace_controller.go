@@ -74,7 +74,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	var retrigErr error
-	if !ws.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !ws.DeletionTimestamp.IsZero() {
 		klog.Infof("Processing deletion of workspace %s", ws.Name)
 		// workspace is being deleted
 		if ctrlUtil.ContainsFinalizer(&ws, crownlabsv1alpha2.TnOperatorFinalizerName) {

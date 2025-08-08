@@ -328,10 +328,10 @@ func RestrictiveSecurityContext() *corev1.SecurityContext {
 }
 
 // AddTCPPortToContainer appends a TCP port to the given container's ports.
-func AddTCPPortToContainer(c *corev1.Container, name string, port int) {
+func AddTCPPortToContainer(c *corev1.Container, name string, port int32) {
 	c.Ports = append(c.Ports, corev1.ContainerPort{
 		Name:          name,
-		ContainerPort: int32(port),
+		ContainerPort: port,
 		Protocol:      corev1.ProtocolTCP,
 	})
 }
