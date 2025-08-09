@@ -73,6 +73,8 @@ export const makeGuiTemplate = (
     workspaceNamespace:
       'workspace-' +
       (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
+    allowPublicExposure:
+      tq.original.spec?.allowPublicExposure ?? false,
   } as Template;
 };
 

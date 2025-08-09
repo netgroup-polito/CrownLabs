@@ -35,6 +35,7 @@ query instancesLabelSelector($labels: String) {
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent

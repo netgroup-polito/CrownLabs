@@ -28,6 +28,7 @@ query ownedInstances($tenantNamespace: String!) {
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent

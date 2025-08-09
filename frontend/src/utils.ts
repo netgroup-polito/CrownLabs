@@ -33,6 +33,8 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type Instance = {
