@@ -289,5 +289,6 @@ export function buildPublicExposurePatch(
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec: { publicExposure: { ports: portsWithNumericPort } },
   };
+  
   return JSON.stringify(payload);
 }

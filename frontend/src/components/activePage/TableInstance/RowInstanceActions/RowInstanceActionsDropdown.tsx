@@ -15,6 +15,7 @@ import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
   Phase,
+  Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -83,7 +84,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: 'Stop',
       menuAction: () => mutateInstanceStatus(false),
     },
-    [Phase.Off]: {
+    [Phase2.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
       menuAction: () => mutateInstanceStatus(true),
@@ -93,11 +94,11 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: '',
       menuAction: () => null,
     },
-  };
+  } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || status === Phase.Off
-      ? statusComponents[status]
+    status === Phase.Ready || (status as any) === Phase2.Off
+      ? statusComponents[status as keyof typeof statusComponents]
       : statusComponents.Other;
 
   const isContainer =

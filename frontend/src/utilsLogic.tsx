@@ -17,7 +17,7 @@ import type {
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
 } from './generated-types';
-import { AutoEnroll, Phase, UpdateType } from './generated-types';
+import { AutoEnroll, Phase, Phase2, Phase3, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
@@ -139,7 +139,7 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: (status?.phase as unknown) as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -150,6 +150,9 @@ export const makeGuiInstance = (
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
+    tenantDisplayName: '',
+    myDriveUrl: '',
+    publicExposure: undefined,
   } as Instance;
 };
 
@@ -362,10 +365,11 @@ export const getManagerInstances = (
     gui: guiEnabled,
     persistent: persistent,
     templateId: makeTemplateKey(templateName, workspaceName),
+    templateName: templateName,
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: (status?.phase as unknown) as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -374,6 +378,8 @@ export const getManagerInstances = (
     workspaceName: workspaceName,
     running: spec?.running,
     allowPublicExposure,
+    myDriveUrl: '',
+    publicExposure: undefined,
   } as Instance;
 };
 
@@ -470,7 +476,7 @@ const makeNotificationContent = (
               <i>
                 {status === Phase.Ready
                   ? ' started'
-                  : status === Phase.Off && ' stopped'}
+                  : status === Phase2.Off && ' stopped'}
               </i>
             </div>
             {instanceUrl && (
@@ -512,7 +518,7 @@ export const notifyStatus = (
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
     switch (status) {
-      case Phase.Off:
+      case Phase2.Off:
         if (!instance.spec?.running) {
           notify(
             'warning',
@@ -661,7 +667,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase,
+    status: (status?.phase as unknown) as Phase3,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;
