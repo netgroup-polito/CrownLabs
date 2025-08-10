@@ -11,7 +11,7 @@ import {
 } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 
-import { type FC, useCallback } from 'react';
+import { type FC, useCallback, useEffect, useMemo } from 'react';
 import type { PublicExposure } from '../../../../utils';
 import { useApplyInstanceMutation } from '../../../../generated-types';
 import { buildPublicExposurePatch } from '../../../../utils';
@@ -50,11 +50,40 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   const [applyInstanceMutation, { loading, error }] =
     useApplyInstanceMutation();
   
-  const initialPorts: PortField[] = existingExposure?.ports.map(p => ({
-    name: p.name,
-    targetPort: String(p.targetPort),
-    desiredPort: allowPublicExposure ? p.port : '',
-  })) || [{ name: '', targetPort: '', desiredPort: '' }];
+  // Create initial ports from existing exposure
+  const getInitialPorts = useMemo((): PortField[] => {
+    if (existingExposure?.ports && existingExposure.ports.length > 0) {
+      return existingExposure.ports.map(p => ({
+        name: p.name || '',
+        targetPort: String(p.targetPort),
+        desiredPort: allowPublicExposure ? String(p.port) : '',
+      }));
+    }
+    return [{ name: '', targetPort: '', desiredPort: '' }];
+  }, [existingExposure, allowPublicExposure]);
+
+  // Reset form values when modal opens or existingExposure changes
+  useEffect(() => {
+    if (open) {
+      // Use setTimeout to ensure the form is properly initialized
+      setTimeout(() => {
+        form.setFieldsValue({ ports: getInitialPorts });
+      }, 0);
+    }
+  }, [open, existingExposure, allowPublicExposure, form, getInitialPorts]);
+
+  // Additional effect to update form when existingExposure changes while modal is open
+  useEffect(() => {
+    if (open && existingExposure) {
+      // Only update if ports actually changed to avoid infinite loops
+      const currentPorts = form.getFieldValue('ports') || [];
+      const portsChanged = JSON.stringify(currentPorts) !== JSON.stringify(getInitialPorts);
+      
+      if (portsChanged) {
+        form.setFieldsValue({ ports: getInitialPorts });
+      }
+    }
+  }, [existingExposure, open, form, getInitialPorts]);
 
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports?.[ports.length - 1]?.targetPort;
@@ -77,8 +106,12 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       const patchJson = buildPublicExposurePatch(normalized);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
       
-      await applyInstanceMutation({ variables });
-      onCancel();
+      const result = await applyInstanceMutation({ variables });
+      
+      // If mutation successful
+      if (result.data) {
+        onCancel();
+      }
     } catch (error) {
       console.error('❌ Backend error:', error);
       // error displayed via Alert
@@ -130,7 +163,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         onFinish={onFinish}
         autoComplete="off"
         layout="vertical"
-        initialValues={{ ports: initialPorts }}
       >
         <Form.List name="ports">
           {(fields, { add, remove }) => (
@@ -171,7 +203,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           style={{ marginBottom: 8 }}
                           rules={[{ validator: portValidator }]}
                         >
-                          <Input placeholder="e.g. 12345" />
+                          <Input placeholder="auto-assign (leave empty)" />
                         </Form.Item>
                       </Col>
                     )}

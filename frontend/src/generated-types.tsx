@@ -3138,7 +3138,7 @@ export type ApplyInstanceMutationVariables = Exact<{
 }>;
 
 
-export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null } | null } | null };
+export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null } | null } | null };
 
 export type ApplySharedVolumeMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -3251,14 +3251,14 @@ export type OwnedInstancesQueryVariables = Exact<{
 }>;
 
 
-export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type InstancesLabelSelectorQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type NodesLabelsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3344,6 +3344,13 @@ export const ApplyInstanceDocument = gql`
     spec {
       running
       prettyName
+      publicExposure {
+        ports {
+          name
+          port
+          targetPort
+        }
+      }
     }
   }
 }
@@ -3950,6 +3957,13 @@ export const OwnedInstancesDocument = gql`
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+          }
+        }
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
@@ -4025,6 +4039,13 @@ export const InstancesLabelSelectorDocument = gql`
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+          }
+        }
         tenantCrownlabsPolitoItTenantRef {
           name
           tenantV1alpha2Wrapper {

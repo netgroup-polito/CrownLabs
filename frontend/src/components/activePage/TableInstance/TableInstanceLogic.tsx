@@ -52,7 +52,10 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   } = useOwnedInstancesQuery({
     skip: !tenantId,
     variables: { tenantNamespace },
-    onCompleted: setDataInstances,
+    onCompleted: (data) => {
+      console.log('📊 Instances query completed with data:', data);
+      setDataInstances(data);
+    },
     fetchPolicy: 'network-only',
     onError: apolloErrorCatcher,
   });

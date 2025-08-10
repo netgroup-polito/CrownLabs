@@ -103,7 +103,7 @@ export const makeGuiInstance = (
 
   const { metadata, spec, status } = instance;
   const { name, namespace: tenantNamespace } = metadata ?? {};
-  const { running, prettyName } = spec ?? {};
+  const { running, prettyName, publicExposure } = spec ?? {};
   const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
@@ -152,7 +152,16 @@ export const makeGuiInstance = (
     allowPublicExposure,
     tenantDisplayName: '',
     myDriveUrl: '',
-    publicExposure: undefined,
+    publicExposure: publicExposure ? {
+      externalIP: '', // Will be populated from LoadBalancer service status
+      phase: (status?.phase as unknown) as Phase || 'Off',
+      ports: publicExposure.ports?.filter(p => p != null).map(p => ({
+        name: p.name || '',
+        // When port is 0, it means auto-assigned - show empty for user to re-enter
+        port: (p.port && p.port > 0) ? String(p.port) : '',
+        targetPort: p.targetPort || 0,
+      })) || [],
+    } : undefined,
   } as Instance;
 };
 
@@ -333,6 +342,7 @@ export const getManagerInstances = (
     throw new Error('getInstances() error: a required parameter is undefined');
   }
   const { metadata, spec, status } = instance;
+  const { publicExposure } = spec ?? {};
 
   // Template Info
   const {
@@ -379,7 +389,16 @@ export const getManagerInstances = (
     running: spec?.running,
     allowPublicExposure,
     myDriveUrl: '',
-    publicExposure: undefined,
+    publicExposure: publicExposure ? {
+      externalIP: '', // Will be populated from LoadBalancer service status
+      phase: (status?.phase as unknown) as Phase || 'Off',
+      ports: publicExposure.ports?.filter(p => p != null).map(p => ({
+        name: p.name || '',
+        // When port is 0, it means auto-assigned - show empty for user to re-enter
+        port: (p.port && p.port > 0) ? String(p.port) : '',
+        targetPort: p.targetPort || 0,
+      })) || [],
+    } : undefined,
   } as Instance;
 };
 

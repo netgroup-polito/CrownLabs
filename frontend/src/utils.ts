@@ -278,11 +278,15 @@ export function buildPublicExposurePatch(
   portsNormalized: Array<{ name?: string; targetPort: number; port?: string }>
 ): string {
   // Convert port strings to numbers for Kubernetes API
-  const portsWithNumericPort = portsNormalized.map(p => ({
-    ...(p.name !== undefined ? { name: p.name } : {}),
-    targetPort: p.targetPort,
-    ...(p.port !== undefined ? { port: parseInt(p.port, 10) } : {}),
-  }));
+  const portsWithNumericPort = portsNormalized.map(p => {
+    const portNum = p.port ? parseInt(p.port, 10) : 0;
+    return {
+      ...(p.name !== undefined ? { name: p.name } : {}),
+      targetPort: p.targetPort,
+      // Only include port if it's a valid port number (> 0)
+      ...(portNum > 0 ? { port: portNum } : {}),
+    };
+  });
   
   const payload = {
     kind: 'Instance',

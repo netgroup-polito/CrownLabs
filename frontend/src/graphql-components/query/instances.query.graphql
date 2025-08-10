@@ -20,6 +20,13 @@ query ownedInstances($tenantNamespace: String!) {
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+          }
+        }
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
