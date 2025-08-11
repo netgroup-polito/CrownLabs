@@ -31,6 +31,13 @@ configurations:
     maxConcurrentSubmissionReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
+  publicExposure:
+    # The IP pool used to assign public IPs to instances.
+    # for Metallb, specify IPs in format /<subnet-mask> or as a range, not single IP.
+    ipPool:
+      - 172.18.0.240-172.18.0.249
+      - 172.18.0.250/30
+    addressPool: "public-exposure-ip-pool"  
 
 image:
   repository: crownlabs/instance-operator
