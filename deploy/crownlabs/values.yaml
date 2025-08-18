@@ -56,6 +56,11 @@ qlkube:
           parents:
             - itPolitoCrownlabsV1alpha2Instance
 
+crownmail:
+  configmap:
+    name: crownmail
+    sourceFolder: mail-config
+
 instance-operator:
   replicaCount: 1
   image:

@@ -20,29 +20,31 @@ package mail
 
 import (
 	"fmt"
+	"io"
 	"net/smtp"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Client is a simple SMTP client for sending emails.
 type Client struct {
-	SMTPServer string
-	SMTPPort   int
-	Auth       smtp.Auth
-	From       string
+	SMTPServer  string
+	SMTPPort    int
+	Auth        smtp.Auth
+	From        string
+	TemplateDir string
 }
 
 const (
 	// CrownlabsMailTemplatePath is the default path for the CrownLabs email template.
-	CrownlabsMailTemplatePath string = "templates/defaults/crownlabs_mail.eml"
+	CrownlabsMailTemplatePath string = "defaults/crownlabs_mail.eml"
 	// HeaderFooterTemplatePath is the default path for the header/footer template.
-	HeaderFooterTemplatePath string = "templates/defaults/crownlabs_headers.yaml"
+	HeaderFooterTemplatePath string = "defaults/crownlabs_headers.yaml"
 )
 
 // Placeholders is a struct that holds the placeholders values for the email content.
@@ -56,30 +58,27 @@ type Placeholders struct {
 	InstanceName string `name:"instanceName"`
 }
 
-var (
-	configMapData map[string]string
-)
+// NewMailClientFromFilesystem creates a new Client instance that reads templates from filesystem paths.
+func NewMailClientFromFilesystem(templateDir string) (*Client, error) {
+	// Load SMTP configuration from filesystem
+	configPath := filepath.Join(templateDir, "smtp-config.yaml")
 
-// SetConfigMapData sets the ConfigMap data to be used for loading templates and configs.
-func SetConfigMapData(data map[string]string) {
-	configMapData = data
-}
+	configFile, err := os.Open(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open SMTP config file %s: %w", configPath, err)
+	}
+	defer configFile.Close()
 
-// NewMailClientFromConfigMap creates a new Client instance from ConfigMap data.
-func NewMailClientFromConfigMap() (*Client, error) {
-	if configMapData == nil {
-		return nil, fmt.Errorf("configMapData is not set")
+	configData, err := io.ReadAll(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SMTP config file: %w", err)
 	}
-	// Get SMTP configuration from ConfigMap data
-	smtpConfig := configMapData["smtp-config.yaml"]
-	if smtpConfig == "" {
-		return nil, fmt.Errorf("smtp-config.yaml is not found in configMapData")
-	}
-	// Unmarshal the SMTP configuration from YAML file
-	smtpConfigData := make(map[string]string)
-	if err := yaml.Unmarshal([]byte(smtpConfig), &smtpConfigData); err != nil {
+
+	var smtpConfigData map[string]string
+	if err := yaml.Unmarshal(configData, &smtpConfigData); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal smtp-config.yaml: %w", err)
 	}
+
 	smtpServer := smtpConfigData["smtpServer"]
 	smtpPortStr := smtpConfigData["smtpPort"]
 	smtpIdentity := smtpConfigData["smtpIdentity"]
@@ -99,10 +98,11 @@ func NewMailClientFromConfigMap() (*Client, error) {
 
 	auth := smtp.PlainAuth(smtpIdentity, smtpUsername, smtpPassword, smtpServer)
 	return &Client{
-		SMTPServer: smtpServer,
-		SMTPPort:   smtpPort,
-		Auth:       auth,
-		From:       smtpFrom,
+		SMTPServer:  smtpServer,
+		SMTPPort:    smtpPort,
+		Auth:        auth,
+		From:        smtpFrom,
+		TemplateDir: templateDir,
 	}, nil
 }
 
@@ -161,33 +161,23 @@ func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph Placehold
 	return m.sendEmail(ph.TenantEmail, formattedEmail)
 }
 
-// readTemplateFile reads a template file from ConfigMap data.
-func readTemplateFile(templatePath string) ([]byte, error) {
-	// Check if configMapData is set
-	if configMapData == nil {
-		return nil, fmt.Errorf("configMapData is not set")
+// readTemplateFile reads a template file from the filesystem.
+func (m *Client) readTemplateFile(templatePath string) ([]byte, error) {
+	fullPath := filepath.Join(m.TemplateDir, templatePath)
+
+	file, err := os.Open(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open template file %s: %w", fullPath, err)
 	}
-	// Try to find the template in ConfigMap data
-	// Remove "templates/" prefix if present for ConfigMap lookup
-	filename := templatePath
-	if after, ok := strings.CutPrefix(templatePath, "templates/"); ok {
-		filename = after
-	}
-	// Also try with just the basename
-	basename := filepath.Base(templatePath)
-	// Try different possible keys
-	for _, key := range []string{templatePath, filename, basename} {
-		if content, exists := configMapData[key]; exists {
-			return []byte(content), nil
-		}
-	}
-	return nil, fmt.Errorf("template file not found: %s", templatePath)
+	defer file.Close()
+
+	return io.ReadAll(file)
 }
 
 // processEmailContentTemplate loads and processes the content template file.
 func (m *Client) processEmailContentTemplate(templatePath string, ph Placeholders) (map[string]string, error) {
 	// Get the email content template
-	emailContentTemplate, err := readTemplateFile(templatePath)
+	emailContentTemplate, err := m.readTemplateFile(templatePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read email content template: %w", err)
 	}
@@ -219,13 +209,13 @@ func (m *Client) processEmailContentTemplate(templatePath string, ph Placeholder
 // prepareFinalEmail prepares the final email by combining the base template with content.
 func (m *Client) prepareFinalEmail(emailContent map[string]string) (string, error) {
 	// Get the entire email template
-	crownlabsEmailTemplate, err := readTemplateFile(CrownlabsMailTemplatePath)
+	crownlabsEmailTemplate, err := m.readTemplateFile(CrownlabsMailTemplatePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read email template: %w", err)
 	}
 
 	// Get headers template
-	headerFooterTemplate, err := readTemplateFile(HeaderFooterTemplatePath)
+	headerFooterTemplate, err := m.readTemplateFile(HeaderFooterTemplatePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read header/footer template: %w", err)
 	}

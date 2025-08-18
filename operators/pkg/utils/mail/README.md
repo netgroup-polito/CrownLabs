@@ -16,9 +16,7 @@ The logic for email generation and delivery is implemented in the `pkg/utils/mai
 * Sending it to the specified recipient
 
 ## Email Functions
-- **SetConfigMapData**: Sets the ConfigMap data used to load email templates and configuration.
-
-- **NewMailClientFromConfigMap**: Creates a new `Client` instance by reading SMTP configuration from the ConfigMap. It expects a YAML file named `smtp-config.yaml` to be present in the ConfigMap.
+- **NewMailClientFromFilesystem**: Creates a new `Client` instance by reading SMTP configuration and templates from a filesystem directory (typically a mounted ConfigMap volume). It expects a YAML file named `smtp-config.yaml` to be present in the template directory.
 
 - **getPlaceholderMap**: Internal utility that converts a `Placeholders` struct into a map of placeholder names and values. It uses struct tags to determine placeholder keys.
 
@@ -26,7 +24,7 @@ The logic for email generation and delivery is implemented in the `pkg/utils/mai
 
 - **SendCrownLabsMail**: Sends an email using the provided content template and placeholder values. It loads the base template and optional headers/footers, substitutes placeholders, and sends the email.
 
-- **readTemplateFile**: Reads a template file from the ConfigMap.
+- **readTemplateFile**: Reads a template file from the filesystem.
 
 - **processEmailContentTemplate**: Parses the email content template (in YAML format), replaces all placeholders, and returns a map of email fields (e.g., subject, body).
 

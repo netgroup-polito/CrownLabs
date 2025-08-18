@@ -84,14 +84,14 @@ run-instance-automation: generate
 				--enable-instance-termination=false\
 				--enable-instance-inactive-termination=true\
 				--enable-instance-expiration=false\
-				--mail-config-map-name=crownlabs-mail-config
+				--mail-template-dir=deploy/crownmail/mail-config
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
 run-instance-local: install-local samples-res-local run-instance
 
-run-instance-automation-local: install-local samples-res-local samples-email-configmap run-instance-automation
+run-instance-automation-local: install-local samples-res-local run-instance-automation
 
 run-tenant: generate
 	go run cmd/tenant-operator/main.go\
@@ -112,24 +112,13 @@ uninstall-local: manifests
 	kubectl delete -f deploy/crds
 	kubectl delete -f tests/crds
 
-samples-email-configmap:
-# Do not fail if the configmap already exists
-	kubectl create configmap crownlabs-mail-config --namespace=default \
-	--from-file=./samples/email/ \
-	--from-file=./samples/email/defaults/ \
-	--from-file=./samples/email/instance-automation/ \
-	--dry-run=client -o yaml | kubectl replace -f -
-
-clean-samples-email-configmap:
-	kubectl delete configmap crownlabs-mail-config --namespace=default
-
 samples-res-local:
-	kubectl apply -f ./samples/resources/
+	kubectl apply -f ./samples/
 
 clean-res-local:
-	kubectl delete -f ./samples/resources/
+	kubectl delete -f ./samples/
 
-clean-local: clean-res-local clean-samples-email-configmap uninstall-local
+clean-local: clean-res-local uninstall-local
 
 force-clean-local:
 	-for resource in $$(kubectl get tenants.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done

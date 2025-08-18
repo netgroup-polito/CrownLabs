@@ -30,6 +30,11 @@ dependencies:
   repository: file://../../qlkube/deploy/qlkube
   condition: qlkube.enabled
 
+- name: crownmail
+  version: "0.1.0"
+  repository: file://../../operators/deploy/crownmail
+  condition: crownmail.enabled
+
 - name: instance-operator
   version: "0.1.2"
   repository: file://../../operators/deploy/instance-operator

@@ -43,11 +43,11 @@ const (
 	NeverTimeoutValue = "never"
 
 	// InactivityMailTemplatePath is the path to the email template for inactivity notifications.
-	InactivityMailTemplatePath = "templates/instance-automation/inactivity_notification.yaml"
+	InactivityMailTemplatePath = "instance-automation/inactivity_notification.yaml"
 	// ExpirationMailTemplatePath is the path to the email template for expiration notifications.
-	ExpirationMailTemplatePath = "templates/instance-automation/expiration_notification.yaml"
+	ExpirationMailTemplatePath = "instance-automation/expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
-	WarningExpirationMailTemplatePath = "templates/instance-automation/warning_expiration_notification.yaml"
+	WarningExpirationMailTemplatePath = "instance-automation/warning_expiration_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)

@@ -16,7 +16,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
 	"strings"
@@ -25,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
@@ -99,7 +97,7 @@ func main() {
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", false, "Enable the sending of inactivity notifications to users on instance inactivity")
 	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", false, "Enable the sending of expiration notifications to users on instance expiration")
 
-	mailConfigMapName := flag.String("mail-config-map-name", "crownlabs-mail-config", "The name of the ConfigMap containing the email configuration")
+	mailTemplateDir := flag.String("mail-template-dir", "/etc/mail-templates", "The directory containing email templates and configuration (typically through a mounted ConfigMap)")
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -125,26 +123,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a direct Kubernetes client for ConfigMap reading
-	config := restcfg.SetRateLimiter(ctrl.GetConfigOrDie())
-	k8sClient, err := kubernetes.NewForConfig(config)
+	// Create mail client from filesystem
+	mailClient, err = mail.NewMailClientFromFilesystem(*mailTemplateDir)
 	if err != nil {
-		log.Error(err, "unable to create kubernetes client")
+		log.Error(err, "unable to create mail client from filesystem", "templateDir", *mailTemplateDir)
 		os.Exit(1)
 	}
-	// Get the configMap containing the email configuration
-	configMap, err := k8sClient.CoreV1().ConfigMaps("default").Get(context.TODO(), *mailConfigMapName, metav1.GetOptions{})
-	if err != nil {
-		log.Error(err, "unable to get mail config map", "configmap", *mailConfigMapName)
-		os.Exit(1)
-	}
-	mail.SetConfigMapData(configMap.Data)
-	mailClient, err = mail.NewMailClientFromConfigMap()
-	if err != nil {
-		log.Error(err, "unable to create mail client from config map")
-		os.Exit(1)
-	}
-	log.Info("CrownLabs Email client created")
+	log.Info("CrownLabs Email client created", "templateDir", *mailTemplateDir)
 
 	// create the Promtheus client
 	prometheus, err := instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability,

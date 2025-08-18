@@ -5,7 +5,7 @@
 replicaCount: 1
 replicaCountAutomation: 1
 configurations:
-  mailConfigMapName: crownlabs-mail-config
+  mailTemplateDir: /etc/mail-templates
   generic:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com

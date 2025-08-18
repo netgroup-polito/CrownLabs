@@ -5,6 +5,9 @@ dependencies:
 - name: qlkube
   repository: file://../../qlkube/deploy/qlkube
   version: 0.1.0
+- name: crownmail
+  repository: file://../../operators/deploy/crownmail
+  version: 0.1.0
 - name: instance-operator
   repository: file://../../operators/deploy/instance-operator
   version: 0.1.2
@@ -26,5 +29,5 @@ dependencies:
 - name: policies
   repository: file://../../policies
   version: 0.1.0
-digest: sha256:ae52e5e56ae3c8ac9411c8574ee65abf1af716c668608c26a93f9f6684541f26
-generated: "2025-06-06T15:44:10.885075158+02:00"
+digest: sha256:3ef8ee147fe7efb16c335870531e1a71deecbbe87d85671734d71c101560e235
+generated: "2025-08-22T12:30:28.50327485+02:00"
