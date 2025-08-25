@@ -175,7 +175,7 @@ spec:
       volumes:
         - name: mail-templates
           configMap:
-            name: crownlabs-mail-templates
+            name: crownmail
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
