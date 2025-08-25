@@ -36,12 +36,10 @@ const (
 	// EnvironmentPhaseRunning -> the environment is running, but not yet ready.
 	EnvironmentPhaseRunning EnvironmentPhase = "Running"
 	// EnvironmentPhaseReady -> the environment is ready to be accessed.
-	// with the current CrownLabs dashboard.
 	EnvironmentPhaseReady EnvironmentPhase = "Ready"
 	// EnvironmentPhaseStopping -> the environment is being stopped.
 	EnvironmentPhaseStopping EnvironmentPhase = "Stopping"
 	// EnvironmentPhaseOff -> the environment is currently shut down.
-	// with the current CrownLabs dashboard.
 	EnvironmentPhaseOff EnvironmentPhase = "Off"
 	// EnvironmentPhaseFailed -> the environment has failed, and cannot be restarted.
 	EnvironmentPhaseFailed EnvironmentPhase = "Failed"
@@ -93,6 +91,11 @@ type InstanceSpec struct {
 
 	// Optional urls for advanced integration features.
 	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
+
+	// Optional specification of the Instance service exposure.
+	// If set, it will be used to expose the Instance services to the outside world.
+	// LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+	PublicExposure *InstancePublicExposure `json:"publicExposure,omitempty"`
 }
 
 // InstanceAutomationStatus reflects the status of the instance's automation (termination and submission).
@@ -136,6 +139,57 @@ type InstanceStatus struct {
 
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// The status of the Instance service exposure, if any.
+	PublicExposure *InstancePublicExposureStatus `json:"publicExposure,omitempty"`
+}
+
+// InstancePublicExposure defines the specifications for the public exposure of an instance.
+type InstancePublicExposure struct {
+	// The list of ports to expose.
+	// If 'Port' is set to 0, a random port from the ephemeral range will be assigned.
+	// If no ports are specified, the service will not be exposed with a LoadBalancer
+	Ports []PublicServicePort `json:"ports"`
+}
+
+// PublicServicePort defines the mapping of ports for a service.
+type PublicServicePort struct {
+	// A friendly name for the port.
+	Name string `json:"name"`
+	// The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=0
+	Port int32 `json:"port"`
+	// The port on the container to target.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	TargetPort int32 `json:"targetPort"`
+}
+
+// PublicExposurePhase is an enumeration of the different phases associated with the public exposure of an instance.
+// +kubebuilder:validation:Enum="";"Provisioning";"Ready";"Error"
+type PublicExposurePhase string
+
+const (
+	// PublicExposurePhaseUnset -> the public exposure phase is unknown or unset.
+	PublicExposurePhaseUnset PublicExposurePhase = ""
+	// PublicExposurePhaseProvisioning -> the public exposure is being provisioned.
+	PublicExposurePhaseProvisioning PublicExposurePhase = "Provisioning"
+	// PublicExposurePhaseReady -> the public exposure is ready and accessible.
+	PublicExposurePhaseReady PublicExposurePhase = "Ready"
+	// PublicExposurePhaseError -> an error occurred during public exposure provisioning.
+	PublicExposurePhaseError PublicExposurePhase = "Error"
+)
+
+// InstancePublicExposureStatus defines the observed state of the public exposure.
+type InstancePublicExposureStatus struct {
+	// The external IP address assigned to the LoadBalancer service.
+	ExternalIP string `json:"externalIP,omitempty"`
+	// The list of port mappings with the actually assigned public ports in 'Port' field.
+	Ports []PublicServicePort `json:"ports,omitempty"`
+	// The current phase of the public exposure.
+	Phase PublicExposurePhase `json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true

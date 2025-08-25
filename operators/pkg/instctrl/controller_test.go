@@ -25,6 +25,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	virtv1 "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -460,6 +461,196 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 			It("Should fail instance reconcile", func() {
 				Expect(RunReconciler()).To(HaveOccurred())
+			})
+		})
+	})
+
+	Context("Public Exposure functionality", func() {
+		When("the template allows public exposure and instance has public exposure config", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-enabled"
+				runInstance = true
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+
+				// Initialize PublicExposureIPPool in the reconciler
+				instanceReconciler.PublicExposureIPPool = []string{"172.18.0.240", "172.18.0.241", "172.18.0.242", "172.18.0.243", "172.18.0.244", "172.18.0.245"}
+			})
+
+			JustBeforeEach(func() {
+				// Enable public exposure in template after creation
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				// Add public exposure config to instance
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8080,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should create LoadBalancer service for public exposure", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service has been created", func() {
+					serviceName := testName + "-public-exposure"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+
+					// Check service type
+					Expect(lbService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+
+					// Check ports
+					Expect(lbService.Spec.Ports).To(HaveLen(1))
+					Expect(lbService.Spec.Ports[0].Name).To(Equal("http"))
+					Expect(lbService.Spec.Ports[0].Port).To(Equal(int32(8080)))
+					Expect(lbService.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(80)))
+
+					// Check annotations for MetalLB
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/address-pool"))
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/allow-shared-ip"))
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/loadBalancerIPs"))
+				})
+
+				By("Asserting the instance status has been updated", func() {
+					Expect(instance.Status.PublicExposure).NotTo(BeNil())
+					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseReady))
+					Expect(instance.Status.PublicExposure.ExternalIP).NotTo(BeEmpty())
+					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
+				})
+			})
+		})
+
+		When("the template does not allow public exposure", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-disabled"
+				runInstance = true
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+			})
+
+			JustBeforeEach(func() {
+				// Add public exposure config to instance (should be ignored)
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8080,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should not create LoadBalancer service", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was not created", func() {
+					serviceName := testName + "-public-exposure"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status has no public exposure", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
+			})
+		})
+
+		When("the instance is not running", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-not-running"
+				runInstance = false
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+			})
+
+			JustBeforeEach(func() {
+				// Enable public exposure in template
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				// Add public exposure config to instance
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8080,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should not create LoadBalancer service when not running", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was not created", func() {
+					serviceName := testName + "-public-exposure"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status has no public exposure", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
+			})
+		})
+
+		When("public exposure is removed from instance", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-removal"
+				runInstance = true
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+
+				instanceReconciler.PublicExposureIPPool = []string{"172.18.0.246", "172.18.0.247", "172.18.0.248", "172.18.0.249"}
+			})
+
+			It("Should remove LoadBalancer service when public exposure is disabled", func() {
+				// enable public exposure
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8080,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				Expect(RunReconciler()).To(Succeed())
+
+				// Verify service was created
+				serviceName := testName + "-public-exposure"
+				var lbService corev1.Service
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+
+				// remove public exposure
+				instance.Spec.PublicExposure = nil
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was removed", func() {
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status was cleaned up", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
 			})
 		})
 	})
