@@ -1,6 +1,6 @@
 apiVersion: v2
-name: delete-stale-instances
-description: The CrownLabs delete-stale-instances component
+name: crownmail
+description: The CrownLabs Email ConfigMap
 
 # A chart can be either an 'application' or a 'library' chart.
 #
