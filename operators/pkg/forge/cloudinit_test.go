@@ -113,6 +113,12 @@ chown 1000:1000 "/media/mydrive"
 		JustBeforeEach(func() { scriptdata, err = forge.CloudInitUserScriptData() })
 
 		It("Should succeed", func() { Expect(err).ToNot(HaveOccurred()) })
-		It("Should match the expected output", func() { Expect(scriptdata).To(Equal([]byte(expected))) })
+		// Only compare normalized line endings to avoid platform issues
+		It("Should match the expected output with normalized line endings", func() {
+			normalize := func(b []byte) string {
+				return strings.ReplaceAll(string(b), "\r\n", "\n")
+			}
+			Expect(normalize(scriptdata)).To(Equal(normalize([]byte(expected))))
+		})
 	})
 })

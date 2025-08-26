@@ -52,6 +52,9 @@ spec:
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
             - "--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub"
+            - '--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join "," }}'
+            - '--public-exposure-common-annotations={{ .Values.configurations.publicExposure.commonAnnotations | join "," }}'
+            - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
           ports:
             - name: op-metrics
               containerPort: 8080
