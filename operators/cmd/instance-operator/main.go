@@ -40,6 +40,7 @@ import (
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -61,6 +62,9 @@ func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
 	svcUrls := instctrl.ServiceUrls{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
+	publicExposureOpts := forge.PublicExposureOpts{}
+	publicExposureIPPoolRaw := ""
+	publicExposureCommonAnnotationRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -93,6 +97,10 @@ func main() {
 	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 
+	flag.StringVar(&publicExposureIPPoolRaw, "public-exposure-ip-pool", "", "Comma-separated list of IPs, ranges or CIDRs for public exposure")
+	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
+	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
+
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -120,6 +128,25 @@ func main() {
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 
+	// Configure the public exposure IP pool
+	ipPool, err := utils.ParseIPPool(publicExposureIPPoolRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure IP pool")
+		os.Exit(1)
+	}
+	log.Info("PublicExposureIPPool", "pool", ipPool)
+
+	// Parse common annotations
+	commonAnnotations, err := forge.ParseAnnotations(publicExposureCommonAnnotationRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure common annotations")
+		os.Exit(1)
+	}
+	publicExposureOpts.IPPool = ipPool
+	publicExposureOpts.CommonAnnotations = commonAnnotations
+
+	log.Info("Public exposure configuration", "ipPool", publicExposureOpts.IPPool, "commonAnnotations", publicExposureOpts.CommonAnnotations, "loadBalancerIPsKey", publicExposureOpts.LoadBalancerIPsKey)
+
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
 
@@ -143,6 +170,7 @@ func main() {
 		ServiceUrls:           svcUrls,
 		ContainerEnvOpts:      containerEnvOpts,
 		WebSSHMasterPublicKey: pubKeyBytes,
+		PublicExposureOpts:    publicExposureOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

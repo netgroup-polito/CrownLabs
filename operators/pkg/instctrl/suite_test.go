@@ -92,6 +92,14 @@ var _ = BeforeSuite(func() {
 			WebsockifyImg:        "fake-wskfy",
 			ContentDownloaderImg: "fake-archdl",
 		},
+		PublicExposureOpts: forge.PublicExposureOpts{
+			IPPool: []string{"172.18.0.240", "172.18.0.241", "172.18.0.242", "172.18.0.243"},
+			CommonAnnotations: map[string]string{
+				"metallb.universe.tf/allow-shared-ip": "public-exposure",
+				"metallb.universe.tf/address-pool":    "public",
+			},
+			LoadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs",
+		},
 	}
 })
 

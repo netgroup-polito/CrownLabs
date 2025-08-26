@@ -174,6 +174,125 @@ As with inactivity termination, this feature can be managed through Helm chart p
 This feature can be used when we know already that an Instance will not be needed after a given period; a possible example is the instance used to carry out an exam, which can be safely deleted when the exam has finished.
 The `ExpirationIgnoreNamespace` annotation, when set to `True`, allows to ignore all Instances in a Namespace, preventing them from being deleted due to expiration.
 
+### Instance services public exposure
+The "Instance services public exposure" feature allows services running inside an Instance (for example, a web server in a VM) to be reachable from outside the cluster. Public exposure is implemented by creating a Kubernetes Service of type LoadBalancer and mapping public ports on the LoadBalancer IP 1:1 to the target ports inside the VM. MetalLB (or another LoadBalancer controller) is responsible for advertising and assigning the LoadBalancer IP to the Service.
+
+Below you will find a concise description of the reconcile flow, the assignment logic, the main implementation files for developers, and the Helm values that control behavior.
+
+#### Reconcile flow
+- A user updates the Instance CR (for example using `kubectl apply -f instance-spec.yaml`) or issues the request through the frontend UI.
+- The Instance controller reconciles the Instance and invokes the public-exposure enforcement (see `pkg/instctrl/publicexposure.go`). When `spec.publicExposure` is present and valid, the controller creates or updates a `Service` of type `LoadBalancer` to expose the requested port mappings.
+- The public IP and ports are allocated according to controller rules and constraints: the IP is picked from a configured pool (Helm), while target and external ports come from the `spec.publicExposure` request.
+- Once the LoadBalancer Service is created/updated, the operator sets `status.publicExposure` on the Instance and creates or removes the corresponding `NetworkPolicy` to allow traffic to the instance (`pkg/instctrl/networkpolicy.go`).
+
+#### Developer reference (implementation and useful links)
+- `pkg/instctrl/publicexposure.go` — entrypoint for the feature. Contains `EnforcePublicExposure`, `enforcePublicExposurePresence` and `enforcePublicExposureAbsence`, which orchestrate Service creation/update/deletion and Instance status updates.
+- `pkg/instctrl/ip_manager.go` — IP/port allocation logic. Key functions: `BuildPrioritizedIPPool`, `FindBestIPAndAssignPorts`, `UpdateUsedPortsByIP`, `tryAssignPorts`, `splitPorts`.
+- `pkg/instctrl/networkpolicy.go` — creates/removes the `NetworkPolicy` associated to an active public exposure.
+- `pkg/utils/ip.go` — helpers for parsing IP pools (CIDR, ranges, single IPs) via `ParseIPPool`. Utilities currently target IPv4.
+- `pkg/forge/loadbalancers.go` — helpers that build metadata, names, labels and annotations for LoadBalancer Services; labels used to filter relevant Services are defined here and some values are configurable via Helm.
+
+References
+- CRD fields( [Instance](deploy/crds/crownlabs.polito.it_instances.yaml) and [Template](deploy/crds/crownlabs.polito.it_templates.yaml)): `Instance.spec.publicExposure` and `Instance.status.publicExposure`; `Template.spec.allowPublicExposure` enables the feature per-template.
+- [Helm values](deploy/instance-operator/values.yaml) : see `configurations.publicExposure` below.
+- [Deployment template](deploy/instance-operator/templates/deployment.yaml) : the flag `--public-exposure-loadbalancer-ips-key=...` passes the annotation key.
+
+Assignment logic (high level)
+1) IP pool
+  The pool of available public IPs is configured via Helm and passed to the operator in `PublicExposureOpts.IPPool`. Pool entries may be CIDRs, ranges or single IPs; parsing is performed by `operators/pkg/utils/ip.go::ParseIPPool`.
+
+2) Existing services and used ports
+  Before allocating IPs/ports, the operator scans existing LoadBalancer Services (filtered using the labels from `forge.LoadBalancerServiceLabels()`) to build a `usedPortsByIP` map that records which ports are already occupied on each IP. This is implemented in `operators/pkg/instctrl/ip_manager.go::UpdateUsedPortsByIP`.
+
+3) Prioritization and preferences
+  `BuildPrioritizedIPPool` sorts IPs to favour reuse (reducing fragmentation). If the Instance already had a preferred IP (e.g. during updates), that IP is moved to the front by `reorderIPPoolWithPreferredIP`.
+
+4) Port assignment
+  `FindBestIPAndAssignPorts` iterates the prioritized IP list, trying to allocate the requested ports (explicit or automatic). `tryAssignPorts` checks availability and builds the list of assigned ports.
+
+5) Service creation/configuration
+  When a compatible IP/port set is found, the operator creates or updates the `LoadBalancer` Service via `controllerutil.CreateOrUpdate` (see `enforcePublicExposurePresence`). The chosen IP is written using the configured annotation key (for example `metallb.universe.tf/loadBalancerIPs`) and `spec.ports` is set with the assigned mappings.
+
+6) Status and network policy
+  After the Service is ready, the operator updates `instance.Status.PublicExposure` with the `ExternalIP` and the assigned ports, and creates the needed `NetworkPolicy` to allow traffic to the Instance (`pkg/instctrl/networkpolicy.go`).
+
+Helm
+- The public exposure configuration lives in the instance-operator values chart under `configurations.publicExposure`.
+  ```yaml
+  configurations:
+    publicExposure:
+    # IP pool used to assign public IPs to Services
+    ipPool:
+      - "172.18.0.240-172.18.0.249"
+      - "172.18.0.250/30"
+    # Common annotations applied to all LoadBalancers (format: key1=val1,key2=val2)
+    commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Annotation key used to pre-assign IPs to LoadBalancers
+    loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+  ```
+
+Validation and controls
+- Requests are validated by `ValidatePublicExposureRequest` (checks for duplicates, ranges, protocols, etc.).
+- If a request is invalid, `PublicExposure` status is set to `Error` and an explanatory message is recorded.
+
+Notes and operational caveats
+- Requirement: MetalLB (or another LoadBalancer controller that supports the used annotation mechanism) must be installed to make this feature work out-of-the-box.
+- Port-request priority: the allocator prefers to satisfy explicitly requested ports before assigning automatic/random ports. In corner cases where a user requests a specific port on an Instance that previously had that port assigned automatically, the allocator may reassign the old automatic port to the new explicit request and select a different automatic port for the previous service.
+- Enabling public exposure: the feature is available only for Instances that reference Templates with `spec.allowPublicExposure: true`.
+
+
+Below is a minimal example that follows the Instance CRD schema in `deploy/crds/crownlabs.polito.it_instances.yaml`.
+
+Instance spec (CRD-compliant example)
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: example-instance
+spec:
+  ...
+  publicExposure:
+    ports:
+      - name: web
+        protocol: TCP
+        targetPort: 80
+        port: 0        # 0 => assign an external port automatically
+      - name: ssh
+        protocol: TCP
+        targetPort: 22
+        port: 2222     # explicit external port requested
+```
+
+Expected status after reconcile (CRD-compliant example)
+```yaml
+kind: Instance
+metadata:
+  name: example-instance
+spec:
+  ...
+status:
+  ...
+  publicExposure:
+    externalIP: 172.18.0.241
+    phase: Ready
+    message: "Public exposure assigned"
+    ports:
+      - name: web
+        port: 41952
+        protocol: TCP
+        targetPort: 80
+      - name: ssh
+        port: 2222
+        protocol: TCP
+        targetPort: 22
+```
+
+The operator will also create or update the corresponding `Service` of type `LoadBalancer` (annotated with the selected IP) and a `NetworkPolicy` allowing traffic to the Instance. The operator always writes the `status.publicExposure.phase` and `status.publicExposure.message` to reflect the outcome of the request:
+
+- On success or during normal processing the phase will be set to a provisioning/ready state (for example `Provisioning` while resources are being reconciled and `Ready` when fully available) and `message` will contain a short informative text.
+- On failure (for example validation errors or IP/port allocation conflicts) the phase will be set to `Error` and `message` will contain a descriptive error explaining the reason and, when possible, hints to recover.
+
+
 ## SSH bastion
 
 The SSH bastion is composed of three basic blocks:
