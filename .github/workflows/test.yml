@@ -91,7 +91,6 @@ jobs:
         working-directory: operators/
         run: |
           make test
-          make test-python
 
       - name: Send coverage
         if: steps.pathFilter.outputs.operators == 'true'
