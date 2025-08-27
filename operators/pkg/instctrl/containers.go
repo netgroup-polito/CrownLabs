@@ -61,7 +61,7 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
-		if pvc.ObjectMeta.CreationTimestamp.IsZero() {
+		if pvc.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.InstancePVCSpec(environment)
 		}
 		pvc.SetLabels(forge.InstanceObjectLabels(pvc.GetLabels(), instance))

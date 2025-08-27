@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "operator.fullname" . }}
+  labels:
+    {{- include "operator.labels" . | nindent 4 }}
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ include "operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--target-label={{ .Values.configurations.targetLabel }}"
+            - "--keycloak-url={{ .Values.configurations.keycloak.url }}"
+            - "--keycloak-realm={{ .Values.configurations.keycloak.realm }}"
+            - "--keycloak-client-id=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_ID)"
+            - "--keycloak-client-secret=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_SECRET)"
+            - "--keycloak-roles-client-id={{ .Values.configurations.keycloak.rolesClientId }}"
+            - "--wait-user-verification={{ .Values.configurations.waitUserVerification }}"
+            - "--tenant-ns-keep-alive={{ .Values.configurations.tenantNamespaceKeepAlive }}"
+            - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
+            - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
+            - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
+            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
+            - "--mydrive-pvcs-size={{ .Values.configurations.mydrivePVCsSize }}"
+            - "--mydrive-pvcs-storage-class-name={{ .Values.configurations.mydrivePVCsStorageClassName }}"
+            - "--mydrive-pvcs-namespace={{ .Values.configurations.mydrivePVCsNamespace }}"
+            - "--cap-instance={{ .Values.configurations.tenant.resourcecaps.instances }}"
+            - "--cap-cpu={{ .Values.configurations.tenant.resourcecaps.cpu }}"
+            - "--cap-memory-giga={{ .Values.configurations.tenant.resourcecaps.memory }}"
+            # compatibility with older Keycloak versions
+            - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: probes
+              containerPort: 8081
+              protocol: TCP
+            - name: k8s-wh
+              containerPort: 9443
+              protocol: TCP
+            - name: keycloak-wh
+              containerPort: 8082
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: KEYCLOAK_TENANT_OPERATOR_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "operator.fullname" . }}
+                  key: clientId
+            - name: KEYCLOAK_TENANT_OPERATOR_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "operator.fullname" . }}
+                  key: clientSecret
+          volumeMounts:
+          - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
+            name: webhook-certs
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: {{ include "operator.webhookname" . }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "operator.selectorLabels" . | nindent 18 }}
+              topologyKey: kubernetes.io/hostname

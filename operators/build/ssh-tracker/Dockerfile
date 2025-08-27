@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1-alpine AS builder
 WORKDIR /tmp/builder
 
 RUN apk add --no-cache build-base libpcap-dev linux-headers
