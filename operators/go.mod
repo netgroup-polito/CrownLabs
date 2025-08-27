@@ -17,6 +17,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
 	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/common v0.62.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/text v0.23.0
 	google.golang.org/grpc v1.68.1
@@ -61,7 +62,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.6.0
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -73,7 +74,6 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

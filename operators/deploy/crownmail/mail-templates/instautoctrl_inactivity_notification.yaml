@@ -1,0 +1,10 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: Inactivity Detected for instance { prettyName }
+plaintext_content: |-
+  Your instance { prettyName } has been detected as inactive for an extended period.
+  If no activity is detected (either via the web GUI, via SSH, or via the browser-based SSH client) in the next { remainingTime } , the instance will be automatically paused/deleted to save resources.
+html_content: |-
+  <p>Your instance <strong>{ prettyName }</strong> has been detected as inactive for an extended period.</p>
+  <p>If no activity is detected (either via the web GUI, via SSH, or via the browser-based SSH client) in the next <strong>{ remainingTime }</strong>, the instance will be automatically paused/deleted to save resources.</p>
