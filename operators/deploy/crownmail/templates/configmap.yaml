@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.templates.name }}
+  labels:
+    {{- include "crownmail.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crownmail
+data:
+{{- range $path, $_ := .Files.Glob (printf "%s/*" $.Values.templates.sourceFolder) }}
+  {{- $key := $path | replace (printf "%s/" $.Values.templates.sourceFolder) "" }}
+  {{ $key }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}

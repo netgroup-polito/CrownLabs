@@ -1,0 +1,11 @@
+# Default values for crownmail.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+templates:
+  name: crownmail-templates
+  sourceFolder: mail-templates
+
+configs:
+  name: crownmail-configs
+  sourceFolder: mail-configs
