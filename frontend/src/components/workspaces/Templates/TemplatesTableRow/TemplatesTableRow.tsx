@@ -315,7 +315,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                         label: `${cleanupLabels(key)}=${value}`,
                         disabled: loadingLabels,
                         onClick: () => {
-                          createInstance(template.id, JSON.parse(key))
+                          console.log(JSON.parse(JSON.stringify({ [cleanupLabels(key)]: value })))
+                          createInstance(template.id, JSON.parse(JSON.stringify({ [cleanupLabels(key)]: value })))
                             .then(() => {
                               refreshClock();
                               setTimeout(setCreateDisabled, 400, false);
