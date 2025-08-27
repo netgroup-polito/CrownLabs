@@ -31,7 +31,6 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	tntctrl "github.com/netgroup-polito/CrownLabs/operators/pkg/tenant-controller"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
@@ -106,10 +105,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 	JustBeforeEach(func() {
 		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
 		tenantPvcSecret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: tntctrl.NFSSecretName, Namespace: testName},
+			ObjectMeta: metav1.ObjectMeta{Name: forge.NFSSecretName, Namespace: testName},
 			Data: map[string][]byte{
-				tntctrl.NFSSecretServerNameKey: []byte(testName),
-				tntctrl.NFSSecretPathKey:       []byte(testName),
+				forge.NFSSecretServerNameKey: []byte(testName),
+				forge.NFSSecretPathKey:       []byte(testName),
 			},
 		}
 		tenant := clv1alpha2.Tenant{

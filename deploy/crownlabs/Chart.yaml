@@ -30,15 +30,15 @@ dependencies:
   repository: file://../../qlkube/deploy/qlkube
   condition: qlkube.enabled
 
+- name: operator
+  version: "0.1.0"
+  repository: file://../../operators/deploy/operator
+  condition: operator.enabled
+
 - name: instance-operator
   version: "0.1.1"
   repository: file://../../operators/deploy/instance-operator
   condition: instance-operator.enabled
-
-- name: tenant-operator
-  version: "0.1.0"
-  repository: file://../../operators/deploy/tenant-operator
-  condition: tenant-operator.enabled
 
 - name: bastion-operator
   version: "0.1.1"

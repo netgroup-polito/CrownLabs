@@ -106,7 +106,7 @@ spec:
                   instances:
                     description: The maximum number of concurrent instances which
                       can be created by this Tenant.
-                    format: int32
+                    format: int64
                     minimum: 0
                     type: integer
                   memory:
@@ -166,6 +166,40 @@ spec:
                 items:
                   type: string
                 type: array
+              keycloak:
+                description: The status of Keycloak authentication flow
+                properties:
+                  userConfirmed:
+                    description: |-
+                      Whether the Tenant has confirmed his/her email address.
+                      Only if the Tenant has confirmed his/her email address, his/her
+                      resources will be created in the cluster.
+                    type: boolean
+                  userCreated:
+                    description: |-
+                      Whether the Tenant has successfully been created in Keycloak.
+                      This is set to true only if the Tenant has been created in Keycloak
+                    properties:
+                      created:
+                        description: Whether the creation succeeded or not.
+                        type: boolean
+                      name:
+                        description: The name of the considered resource.
+                        type: string
+                    required:
+                    - created
+                    type: object
+                  userSynchronized:
+                    description: |-
+                      Whether the Tenant has successfully been synchronized with Keycloak.
+                      This is set to true only if the Tenant has been successfully synchronized with Keycloak
+                      the last time the operator has run.
+                    type: boolean
+                required:
+                - userConfirmed
+                - userCreated
+                - userSynchronized
+                type: object
               personalNamespace:
                 description: |-
                   The namespace containing all CrownLabs related objects of the Tenant.
@@ -198,7 +232,7 @@ spec:
                   instances:
                     description: The maximum number of concurrent instances which
                       can be created by this Tenant.
-                    format: int32
+                    format: int64
                     minimum: 0
                     type: integer
                   memory:
@@ -250,11 +284,10 @@ spec:
                   occurred.
                 type: object
             required:
-            - failingWorkspaces
+            - keycloak
             - personalNamespace
             - ready
             - sandboxNamespace
-            - subscriptions
             type: object
         type: object
     served: true
