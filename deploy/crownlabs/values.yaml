@@ -77,6 +77,21 @@ operator:
       baseWorkspaces: utilities
     enableMutating: true
 
+crownmail:
+  templates:
+    name: crownmail-templates
+    sourceFolder: mail-templates
+  configs:
+    name: crownmail-configs
+    sourceFolder: mail-configs
+    smtp:
+      server: override.smtp.example.com
+      port: "123"
+      identity: override-debug
+      username: override-debug@example.com
+      password: override-debugpassword
+      from: override-crownlabs@example.com
+
 instance-operator:
   replicaCount: 1
   image:
@@ -89,8 +104,10 @@ instance-operator:
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
+      vncImage: crownlabs/tigervnc
+      contentDownloaderImage: crownlabs/content-downloader
+      contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
@@ -100,6 +117,35 @@ instance-operator:
       url: registry.crownlabs.example.com
       secretName: registry-credentials
     maxConcurrentReconciles: 1
+    maxAutomationConcurrentReconciles: 1
+    monitoring:
+      prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+      queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
+      queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
+      queryWebSSHAvailable: count(up{container="webssh"})
+      queryNginxData: nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}
+      queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
+      queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
+      queryStep: 5m
+    mailTemplateDir: /etc/crownmail/templates
+    mailConfigDir: /etc/crownmail/configs
+    automation:
+      enableInstanceSubmission: true
+      enableInstanceTermination: true
+      enableInstanceInactiveTermination: true
+      enableInstanceExpiration: true
+      maxConcurrentTerminationReconciles: 1
+      maxConcurrentInactiveTerminationReconciles: 1
+      maxConcurrentExpirationReconciles: 1
+      maxConcurrentSubmissionReconciles: 1
+      terminationStatusCheckTimeout: "3s"
+      terminationStatusCheckInterval: "2m"
+      inactiveTerminationStatusCheckTimeout: "3s"
+      inactiveTerminationMaxNumberOfAlerts: 3
+      enableInactivityNotifications: true
+      enableExpirationNotifications: true
+      inactiveTerminationNotificationInterval: "24h"
+      expirationNotificationInterval: "24h"
 
 bastion-operator:
   replicaCount: 1
@@ -138,14 +184,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
 
 exam-agent:
   replicaCount: 1

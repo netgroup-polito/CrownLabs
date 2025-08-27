@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +38,6 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
@@ -77,10 +75,7 @@ func main() {
 
 	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
 
-	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
-	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
-	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
-	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
+	maxConcurrentShVolReconciles := flag.Int("max-concurrent-reconciles-shvol", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Shared Volume controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -153,6 +148,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Configure the SharedVolume controller
+	const sharedVolumeCtrl = "SharedVolume"
+	if err := (&shvolctrl.SharedVolumeReconciler{
+		Client:             mgr.GetClient(),
+		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
+		NamespaceWhitelist: nsWhitelist,
+		PVCStorageClass:    *sharedVolumeStorageClass,
+	}).SetupWithManager(mgr, *maxConcurrentShVolReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
+		os.Exit(1)
+	}
+
 	// Configure the InstanceSnapshot controller
 	instanceSnapshotCtrl := "InstanceSnapshot"
 	if err = (&instancesnapshot_controller.InstanceSnapshotReconciler{
@@ -163,45 +170,6 @@ func main() {
 		ContainersSnapshot: instSnapOpts,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
-		os.Exit(1)
-	}
-
-	// Configure the Instance termination controller
-	instanceTermination := "InstanceTermination"
-	if err := (&instautoctrl.InstanceTerminationReconciler{
-		Client:                      mgr.GetClient(),
-		Scheme:                      mgr.GetScheme(),
-		EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
-		NamespaceWhitelist:          nsWhitelist,
-		StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
-		InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceTermination)
-		os.Exit(1)
-	}
-
-	// Configure the Instance submission controller
-	instanceSubmission := "InstanceSubmission"
-	if err := (&instautoctrl.InstanceSubmissionReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceSubmission),
-		ContainerEnvOpts:   containerEnvOpts,
-		NamespaceWhitelist: nsWhitelist,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceSubmission)
-		os.Exit(1)
-	}
-
-	// Configure the SharedVolume controller
-	const sharedVolumeCtrl = "SharedVolume"
-	if err := (&shvolctrl.SharedVolumeReconciler{
-		Client:             mgr.GetClient(),
-		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
-		NamespaceWhitelist: nsWhitelist,
-		PVCStorageClass:    *sharedVolumeStorageClass,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 

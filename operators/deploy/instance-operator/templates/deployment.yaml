@@ -4,6 +4,7 @@ metadata:
   name: {{ include "instance-operator.fullname" . }}
   labels:
     {{- include "instance-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: operator
 {{- with .Values.deploymentAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -13,6 +14,7 @@ spec:
   selector:
     matchLabels:
       {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: operator
   template:
     metadata:
     {{- with .Values.podAnnotations }}
@@ -21,6 +23,7 @@ spec:
     {{- end }}
       labels:
         {{- include "instance-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: operator
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -48,29 +51,24 @@ spec:
             - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
             - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
-            - "--max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}"
-            - "--max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}"
-            - "--instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}"
-            - "--instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}"
-            - "--shared-volume-storage-class={{ .Values.configurations.sharedVolumeOptions.storageClass }}"
             - "--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub"
           ports:
-            - name: metrics
+            - name: op-metrics
               containerPort: 8080
               protocol: TCP
-            - name: probes
+            - name: op-probes
               containerPort: 8081
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
-              port: probes
+              port: op-probes
             initialDelaySeconds: 3
             periodSeconds: 3
           readinessProbe:
             httpGet:
               path: /ready
-              port: probes
+              port: op-probes
             initialDelaySeconds: 3
             periodSeconds: 3
           resources:
@@ -92,4 +90,118 @@ spec:
               labelSelector:
                 matchLabels:
                   {{- include "instance-operator.selectorLabels" . | nindent 18 }}
+                  app.kubernetes.io/component: operator
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "instance-operator.fullname" . }}-automation
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: automation
+{{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCountAutomation }}
+  selector:
+    matchLabels:
+      {{- include "instance-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: automation
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "instance-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: automation
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "instance-operator.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}-automation
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repositoryAutomation }}:{{ include "instance-operator.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --enable-instance-termination={{ .Values.configurations.automation.enableInstanceTermination }}
+            - --enable-instance-inactive-termination={{ .Values.configurations.automation.enableInstanceInactiveTermination }}
+            - --enable-instance-submission={{ .Values.configurations.automation.enableInstanceSubmission }}
+            - --enable-instance-expiration={{ .Values.configurations.automation.enableInstanceExpiration }}
+            - --namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}
+            - --container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}
+            - --container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}
+            - --monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}
+            - --monitoring-nginx-availability={{ .Values.configurations.monitoring.queryNginxAvailable }}
+            - --monitoring-bastion-ssh-availability={{ .Values.configurations.monitoring.queryBastionSSHAvailable }}
+            - --monitoring-web-ssh-availability={{ .Values.configurations.monitoring.queryWebSSHAvailable }}
+            - --monitoring-nginx-data={{ .Values.configurations.monitoring.queryNginxData  }}
+            - --monitoring-bastion-ssh-data={{ .Values.configurations.monitoring.queryBastionSSHData}}
+            - --monitoring-web-ssh-data={{ .Values.configurations.monitoring.queryWebSSHData}}
+            - --prometheus-query-step={{ .Values.configurations.monitoring.queryStep }}
+            - --max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}
+            - --max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}
+            - --max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}
+            - --max-concurrent-reconciles-expiration={{ .Values.configurations.automation.maxConcurrentExpirationReconciles }}
+            - --instance-termination-status-check-timeout={{ .Values.configurations.automation.terminationStatusCheckTimeout }}
+            - --instance-termination-status-check-interval={{ .Values.configurations.automation.terminationStatusCheckInterval }}
+            - --instance-inactive-termination-status-check-timeout={{ .Values.configurations.automation.inactiveTerminationStatusCheckTimeout }}
+            - --instance-inactive-termination-max-number-of-alerts={{.Values.configurations.automation.inactiveTerminationMaxNumberOfAlerts}}
+            - --instance-inactive-termination-notification-interval={{ .Values.configurations.automation.inactiveTerminationNotificationInterval }}
+            - --expiration-notification-interval={{ .Values.configurations.automation.expirationNotificationInterval }}
+            - --mail-config-dir={{ .Values.configurations.mailConfigDir }}
+            - --mail-template-dir={{ .Values.configurations.mailTemplateDir }}
+            - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}
+            - --enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}
+          ports:
+            - name: auto-metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: auto-probes
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: auto-probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: auto-probes
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: mail-templates
+              mountPath: {{ .Values.configurations.mailTemplateDir }}
+            - name: mail-configs
+              mountPath: {{ .Values.configurations.mailConfigDir }}
+
+      volumes:
+        - name: mail-templates
+          configMap:
+            name: crownmail-templates
+        - name: mail-configs
+          secret:
+            secretName: crownmail-configs
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  {{- include "instance-operator.selectorLabels" . | nindent 18 }}
+                  app.kubernetes.io/component: automation
               topologyKey: kubernetes.io/hostname
