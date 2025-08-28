@@ -1,0 +1,88 @@
+{{ if .Values.configurations.waitUserVerification }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "operator.fullname" . }}-kc-wh-set
+  labels:
+    {{- include "operator.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: webhook-set
+        image: alpine:3.22.0
+        command: 
+        - /bin/sh
+        - -c
+        - |
+          # Install curl and jq
+          apk update && apk add --no-cache curl jq
+          
+          # Login to Keycloak and obtain an access token
+          TOKEN_RESPONSE=$(curl -s -v -X POST \
+            -d "client_id=$CLIENT_ID" \
+            -d "client_secret=$CLIENT_SECRET" \
+            -d "grant_type=client_credentials" \
+            "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token")
+
+          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
+              echo "Error obtaining access token from Keycloak"
+              echo "Response: $TOKEN_RESPONSE"
+              exit 1
+          fi
+
+          echo "Access token obtained successfully"
+
+          # Configure the webhook
+          WEBHOOK_RESPONSE=$(curl -s -v -w "%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -d "{
+                \"enabled\": \"true\",
+                \"url\": \"${WEBHOOK_URL}\",
+                \"eventTypes\": [
+                    \"admin.USER-UPDATE\",
+                    \"access.CUSTOM_REQUIRED_ACTION\"
+                ]
+            }" \
+            "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/webhooks")
+
+          HTTP_STATUS=$(echo "$WEBHOOK_RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$WEBHOOK_RESPONSE" | sed '$ d')
+
+          echo "Response status code: $HTTP_STATUS"
+          echo "Response body: $RESPONSE_BODY"
+
+          if [ "$HTTP_STATUS" != "201" ]; then
+              echo "Error: Expected status code 201, got $HTTP_STATUS"
+              exit 1
+          fi
+
+          echo "Webhook configured successfully"
+        env:
+        - name: KEYCLOAK_URL
+          value: {{ .Values.configurations.keycloak.url | quote }}
+        - name: KEYCLOAK_REALM
+          value: {{ .Values.configurations.keycloak.realm | quote }}
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "operator.fullname" . }}
+              key: clientId
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "operator.fullname" . }}
+              key: clientSecret
+        - name: WEBHOOK_URL
+          value: {{ include "operator.keycloakWebhookServiceURL" . | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+      restartPolicy: OnFailure
+{{ end }}

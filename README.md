@@ -75,3 +75,9 @@ In [infrastructure](infrastructure/), we present all the services which should b
 
 The deployment and configuration of the different CrownLabs components can be performed leveraging the provided Helm Chart.
 Please, refer to the corresponding [README](./deploy/crownlabs/README.md) file for more information about the installation procedure.
+
+# CrownLabs run-time configuration
+
+Crownlabs has several components, mostly operators, which may need to be configured with appropriate labels and/or other information in order to achieve the intended behaviour.
+
+The [Operators/docs](operators/docs/) section of the documentation presents the possible configuration options for the most important components.

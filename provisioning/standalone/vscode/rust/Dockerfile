@@ -29,8 +29,21 @@ USER ${USER}
 ENV HOME=${VSCODE_SRV_DIR}
 RUN curl -sSf https://sh.rustup.rs | /bin/bash -s -- -y -v && \
     ${RSPATH}/rustup component remove rust-docs && \
+    ${RSPATH}/rustup component add rust-src && \
     ${RSPATH}/rustup completions bash >> $HOME/.bashrc && \
     ${RSPATH}/rustup completions bash cargo >> $HOME/.bashrc
+
+# Enable proxy if needed
+ARG PROXY
+ENV https_proxy=${PROXY} http_proxy=${PROXY} no_proxy=localhost 
+RUN if [ -n "${PROXY}" ]; then \
+echo \
+"[http]\n\
+proxy = \"${PROXY}\"\n\
+timeout = 30\n\
+check-revoke = false\n\
+multiplexing = false\n" >> ${RSPATH}/../config.toml; \
+fi
 
 ENTRYPOINT [ "/start.sh" ]
 CMD [ "--load-example", "/vscode/workspace/project" ]

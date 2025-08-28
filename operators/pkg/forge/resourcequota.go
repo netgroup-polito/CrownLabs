@@ -29,7 +29,7 @@ const (
 
 var (
 	// CapInstance -> The maximum number of instances that can be started by a Tenant.
-	CapInstance int
+	CapInstance int64
 
 	// CapCPU -> The total amount of CPU cores that can be requested by a Tenant.
 	CapCPU int
@@ -69,7 +69,7 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 		quota.Memory = CapResourceQuantity(quota.Memory, *resource.NewScaledQuantity(int64(CapMemoryGiga), resource.Giga))
 	}
 	if CapInstance > 0 {
-		quota.Instances = CapIntegerQuantity(quota.Instances, uint32(CapInstance))
+		quota.Instances = CapIntegerQuantity(quota.Instances, CapInstance)
 	}
 
 	return quota
@@ -82,7 +82,7 @@ func TenantResourceQuotaSpec(quota *clv1alpha2.TenantResourceQuota) corev1.Resou
 		corev1.ResourceLimitsMemory:   quota.Memory,
 		corev1.ResourceRequestsCPU:    quota.CPU,
 		corev1.ResourceRequestsMemory: quota.Memory,
-		InstancesCountKey:             *resource.NewQuantity(int64(quota.Instances), resource.DecimalSI),
+		InstancesCountKey:             *resource.NewQuantity(quota.Instances, resource.DecimalSI),
 	}
 }
 

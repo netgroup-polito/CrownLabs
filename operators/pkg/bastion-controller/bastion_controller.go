@@ -47,7 +47,7 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		defer r.ReconcileDeferHook()
 	}
 
-	klog.Infof("reconciling bastion [tenant=%s]", req.NamespacedName.Name)
+	klog.Infof("reconciling bastion [tenant=%s]", req.Name)
 
 	tenant := &crownlabsalpha2.Tenant{}
 	deleted := false
@@ -69,13 +69,13 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		if len(data) > 0 {
-			keys = decomposeAndPurgeEntries(strings.Split(string(data), string("\n")), req.NamespacedName.Name)
+			keys = decomposeAndPurgeEntries(strings.Split(string(data), string("\n")), req.Name)
 		}
 	}
 
 	if !deleted {
 		// if the event was NOT a deletion, add the tenant's keys. Otherwise nothing to do.
-		keys = composeAndMarkEntries(keys, tenant.Spec.PublicKeys, req.NamespacedName.Name)
+		keys = composeAndMarkEntries(keys, tenant.Spec.PublicKeys, req.Name)
 	}
 
 	f, err := os.Create(r.AuthorizedKeysPath)
