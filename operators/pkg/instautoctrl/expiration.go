@@ -206,7 +206,7 @@ func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Conte
 	// Check if the instance is expired
 	remainingTime := expirationDuration - time.Since(instance.CreationTimestamp.Time)
 	if remainingTime <= 0 {
-		log.Info("Instance expiraton detected", "instance", instance.Name)
+		log.Info("Instance expiration detected", "instance", instance.Name)
 		return 0, nil
 	}
 
