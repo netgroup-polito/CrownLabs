@@ -84,7 +84,7 @@ run-instance-automation: generate
 				--enable-instance-termination=false\
 				--enable-instance-inactive-termination=true\
 				--enable-instance-expiration=false\
-				--mail-template-dir=deploy/crownmail/mail-templates
+				--mail-template-dir=deploy/crownmail/mail-templates\
 				--mail-config-dir=deploy/crownmail/mail-configs
 
 #the double target below is used to set DOMAIN for local targets
