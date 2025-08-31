@@ -168,10 +168,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("annotations setup done")
 
-	// Check if the AlertAnnotationNum has to be reset.
-	err = r.ResetAlertAnnotation(ctx)
+	// Verify whether the instance annotations need to be reset, and reset them if necessary.
+	err = r.ResetAnnotations(ctx)
 	if err != nil {
-		log.Error(err, "failed resetting alert annotation")
+		log.Error(err, "failed resetting instance annotations")
 		return ctrl.Result{}, err
 	}
 
@@ -528,9 +528,9 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 	return nil
 }
 
-// ResetAlertAnnotation resets the alert annotation if the instance is running and the last running state was false.
-func (r *InstanceInactiveTerminationReconciler) ResetAlertAnnotation(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx).WithName("reset-alert-annotation")
+// ResetAnnotations resets some instance annotations (such as the number of alerts sent or the last activity field) when the instance Running state changes from false to true.
+func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("reset-annotation")
 
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
@@ -547,10 +547,11 @@ func (r *InstanceInactiveTerminationReconciler) ResetAlertAnnotation(ctx context
 		}
 	}
 
-	// Reset if ruuning changed from false to true
+	// Reset if "Running" changed from false to true
 	if instance.Spec.Running && !lastRunning {
-		log.Info("Detected transition from false to true: resetting alert counter")
+		log.Info("Detected transition from false to true: resetting alert counter and last activity field")
 		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
+		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 		updated = true
 	}
 	// update the LastRunningAnnotation
