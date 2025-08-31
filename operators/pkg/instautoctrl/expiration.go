@@ -251,11 +251,11 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 		if err := SendExpiringNotification(ctx, r.MailClient); err != nil {
 			return fmt.Errorf("failed sending notification email: %w", err)
 		}
+		log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
 	} else {
 		log.Info("Expiration notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
 	}
 
-	log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
 	return nil
 }
 
