@@ -4,19 +4,16 @@ import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import type { ImagesQuery } from '../../../generated-types';
 import {
   EnvironmentType,
   useCreateTemplateMutation,
-  useImagesQuery,
 } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
-import { JSONDeepCopy, WorkspaceRole } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type {
-  Image,
   Template,
 } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
@@ -24,47 +21,14 @@ import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
+  isPersonalWorkspace?: boolean;
 }
-
-const getImages = (dataImages: ImagesQuery) => {
-  let images: Image[] = [];
-  JSONDeepCopy(dataImages?.imageList?.images)?.forEach(i => {
-    const registry = i?.spec?.registryName;
-    const imagesRaw = i?.spec?.images;
-    imagesRaw?.forEach(ir => {
-      let versionsInImageName: Image[];
-      if (registry === 'registry.internal.crownlabs.polito.it') {
-        const latestVersion = `${ir?.name}:${
-          ir?.versions?.sort().reverse()[0]
-        }`;
-        versionsInImageName = [
-          {
-            name: latestVersion,
-            vmorcontainer: [EnvironmentType.VirtualMachine],
-            registry: registry!,
-          },
-        ];
-      } else {
-        versionsInImageName =
-          ir?.versions.map(v => {
-            return {
-              name: `${ir?.name}:${v}`,
-              vmorcontainer: [EnvironmentType.Container],
-              registry: registry || '',
-            };
-          }) || [];
-      }
-      images = [...images, ...versionsInImageName!];
-    });
-  });
-  return images;
-};
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   const { tenantNamespace, workspace } = props;
-
+  console.log('WorkspaceContainer props:', props);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
     onError: apolloErrorCatcher,
@@ -72,29 +36,25 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const [show, setShow] = useState(false);
 
-  const { data: dataImages, refetch: refetchImages } = useImagesQuery({
-    variables: {},
-    onError: apolloErrorCatcher,
-  });
+  const isPersonal = props.isPersonalWorkspace;
 
   const submitHandler = (t: Template) =>
     createTemplateMutation({
       variables: {
         workspaceId: workspace.name,
-        workspaceNamespace: workspace.namespace,
+        workspaceNamespace: isPersonal ? tenantNamespace : workspace.namespace,
         templateId: `${workspace.name}-`,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image: t.registry
-          ? `${t.registry}/${t.image}`.trim()!
-          : `${t.image}`.trim()!,
+        image: t.image?.includes('/') || t.image?.includes(':') 
+          ? t.image  // Already a full image reference
+          : t.registry 
+          ? `${t.registry}/${t.image}`.trim()
+          : t.image,
         guiEnabled: t.gui,
         persistent: t.persistent,
         mountMyDriveVolume: t.mountMyDrive,
-        environmentType:
-          t.vmorcontainer === EnvironmentType.Container
-            ? EnvironmentType.Container
-            : EnvironmentType.VirtualMachine,
+        environmentType: t.imageType,
         resources: {
           cpu: t.cpu,
           memory: `${t.ram * 1000}M`,
@@ -107,16 +67,16 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   return (
     <>
-      <ModalCreateTemplate
+            <ModalCreateTemplate
         workspaceNamespace={workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
         setShow={setShow}
         show={show}
-        images={getImages(dataImages!)}
         submitHandler={submitHandler}
         loading={loading}
+        isPersonal={isPersonal}
       />
       <Box
         header={{
@@ -154,7 +114,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               <Tooltip title="Create template">
                 <Button
                   onClick={() => {
-                    refetchImages();
                     setShow(true);
                   }}
                   type="primary"
@@ -172,6 +131,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           role={workspace.role}
           workspaceNamespace={workspace.namespace}
           workspaceName={workspace.name}
+          workspaceQuota={workspace.quota}
+          isPersonal={isPersonal}
         />
         <Modal
           destroyOnHidden={true}

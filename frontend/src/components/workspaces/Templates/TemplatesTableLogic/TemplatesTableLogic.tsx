@@ -30,26 +30,33 @@ import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import { TenantContext } from '../../../../contexts/TenantContext';
+import QuotaDisplay from '../../QuotaDisplay/QuotaDisplay';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
   workspaceNamespace: string;
   workspaceName: string;
   role: WorkspaceRole;
+  workspaceQuota: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonal?: boolean;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
-
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
-  const { userId } = useContext(AuthContext);
+  // const { userId } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
+  const userId = user?.profile?.sub;
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
-  const { tenantNamespace, workspaceNamespace, workspaceName, role } = props;
+  const { tenantNamespace, workspaceNamespace, workspaceName, role, workspaceQuota, isPersonal } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
-  const notifier = useContext(TenantContext).notify;
-
+  // Add the missing instances query
   const {
     loading: loadingInstances,
     error: errorInstances,
@@ -57,17 +64,20 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   } = useOwnedInstancesQuery({
     variables: { tenantNamespace },
     onError: apolloErrorCatcher,
-    onCompleted: data =>
-      setDataInstances(
-        data.instanceList?.instances
-          ?.map(i => makeGuiInstance(i, userId))
-          .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
-          ) ?? [],
-      ),
+    onCompleted: data => {
+      const instances = data?.instanceList?.instances
+        ?.map(i => {
+          const guiInstance = makeGuiInstance(i, userId);
+          return guiInstance;
+        })
+        .filter(Boolean) ?? [];
+      setDataInstances(instances);
+    },
     fetchPolicy: fetchPolicy_networkOnly,
+    nextFetchPolicy: 'cache-only',
   });
 
+  // Subscribe to instance updates
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe = subscribeToMoreInstances({
@@ -84,8 +94,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       });
       return unsubscribe;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
+
+  const notifier = useContext(TenantContext).notify;
 
   const {
     loading: loadingTemplate,
@@ -100,8 +111,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   const dataTemplate = useMemo(
-    () =>
-      templateListData?.templateList?.templates
+    () => {
+      const templates = templateListData?.templateList?.templates
         ?.map(t =>
           makeGuiTemplate({
             original: t ?? {},
@@ -111,7 +122,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             },
           }),
         )
-        .sort((a, b) => a.name.localeCompare(b.name)) ?? [],
+        .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+      return templates;
+    },
     [templateListData?.templateList?.templates],
   );
 
@@ -176,7 +189,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const createInstance = (templateId: string, nodeSelector?: Record<string, string>) =>
+  const createInstance = (templateId: string, nodeSelector?: JSON) =>
     createInstanceMutation({
       variables: {
         templateId,
@@ -201,56 +214,72 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     });
 
   const templates = useMemo(
-    () => joinInstancesAndTemplates(dataTemplate, dataInstances),
+    () => {      
+      const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
+      return joined;
+    },
     [dataTemplate, dataInstances],
   );
 
   return (
-    <Spin size="large" spinning={loadingTemplate || loadingInstances}>
-      {!loadingTemplate &&
-      !loadingInstances &&
-      !errorTemplate &&
-      !errorInstances &&
-      templates &&
-      dataInstances ? (
-        <TemplatesTable
-          totalInstances={dataInstances.length}
+    <>
+      {isPersonal && (
+        <QuotaDisplay
           tenantNamespace={tenantNamespace}
-          workspaceNamespace={workspaceNamespace}
           templates={templates}
-          role={role}
-          deleteTemplate={(templateId: string) =>
-            deleteTemplateMutation({
-              variables: {
-                workspaceNamespace,
-                templateId,
-              },
-            })
-          }
-          deleteTemplateLoading={loadingDeleteTemplateMutation}
-          editTemplate={() => null}
-          createInstance={createInstance}
+          instances={dataInstances}
+          workspaceQuota={workspaceQuota}
         />
-      ) : (
-        <div
-          className={
-            loadingTemplate ||
-            loadingInstances ||
-            errorTemplate ||
-            errorInstances
-              ? 'invisible'
-              : 'visible'
-          }
-        >
-          <TemplatesEmpty role={role} />
-        </div>
       )}
-      {role === WorkspaceRole.manager &&
-      !loadingTemplate &&
-      !loadingInstances ? (
-        <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
-      ) : null}
-    </Spin>
+      <Spin size="large" spinning={loadingTemplate || loadingInstances}>
+        {!loadingTemplate &&
+        !loadingInstances &&
+        !errorTemplate &&
+        !errorInstances &&
+        templates &&
+        dataInstances ? (
+          <TemplatesTable
+            totalInstances={dataInstances.length}
+            tenantNamespace={tenantNamespace}
+            workspaceNamespace={workspaceNamespace}
+            workspaceName={workspaceName}
+            templates={templates}
+            role={role}
+            deleteTemplate={(templateId: string) =>
+              deleteTemplateMutation({
+                variables: {
+                  workspaceNamespace,
+                  templateId,
+                },
+              })
+            }
+            deleteTemplateLoading={loadingDeleteTemplateMutation}
+            editTemplate={() => null}
+            createInstance={createInstance}
+            workspaceQuota={workspaceQuota}
+            isPersonal={isPersonal}
+          />
+        ) : (
+          <div
+            className={
+              loadingTemplate ||
+              loadingInstances ||
+              errorTemplate ||
+              errorInstances
+                ? 'invisible'
+                : 'visible'
+            }
+          >
+            <TemplatesEmpty role={role} />
+          </div>
+        )}
+        {role === WorkspaceRole.manager &&
+        !loadingTemplate &&
+        !loadingInstances ? (
+          <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
+        ) : null}
+      </Spin>
+    </>
   );
 };
 

@@ -11,20 +11,15 @@ import type { CreateInstanceMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowSettingsProps {
   id: string;
+  template: Template; // <-- Add this
   createInstance: (
     id: string,
-  ) => Promise<
-    FetchResult<
-      CreateInstanceMutation,
-      Record<string, unknown>,
-      Record<string, unknown>
-    >
-  >;
-  editTemplate: (id: string) => void;
+  ) => Promise<FetchResult<CreateInstanceMutation, Record<string, unknown>, Record<string, unknown>>>;
+  editTemplate: (template: Template) => void; // <-- Change signature
   deleteTemplate: (id: string) => void;
 }
 const TemplatesTableRowSettings = ({ ...props }) => {
-  const { id, createInstance, editTemplate, deleteTemplate } = props;
+  const { id, template, createInstance, editTemplate, deleteTemplate } = props;
 
   return (
     <Dropdown
@@ -41,14 +36,9 @@ const TemplatesTableRowSettings = ({ ...props }) => {
           {
             type: 'item',
             key: 2,
-            label: (
-              <Tooltip title="Coming soon" placement="left">
-                Edit
-              </Tooltip>
-            ),
+            label: 'Edit',
             icon: <EditOutlined />,
-            disabled: true,
-            onClick: () => editTemplate(id),
+            onClick: () => editTemplate(template), // <-- Pass template
           },
           {
             type: 'item',
@@ -56,7 +46,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
             label: 'Delete',
             icon: <DeleteOutlined />,
             danger: true,
-            onClick: deleteTemplate,
+            onClick: () => deleteTemplate(id),
           },
         ],
       }}
