@@ -5,7 +5,7 @@ import { AimOutlined } from '@ant-design/icons';
 import { cleanupLabels } from '../../../utils';
 
 export interface INodeSelectorIconProps {
-  nodeSelector: JSON;
+  nodeSelector: Record<string, string>;
   isOnWorkspace: boolean;
 }
 
