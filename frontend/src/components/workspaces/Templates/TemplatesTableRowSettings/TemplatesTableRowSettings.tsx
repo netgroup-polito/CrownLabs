@@ -1,4 +1,4 @@
-import { Dropdown, Tooltip } from 'antd';
+import { Dropdown } from 'antd';
 import { Button } from 'antd';
 import {
   PlayCircleOutlined,
@@ -8,13 +8,20 @@ import {
 } from '@ant-design/icons';
 import type { FetchResult } from '@apollo/client';
 import type { CreateInstanceMutation } from '../../../../generated-types';
+import type { Template } from '../../ModalCreateTemplate/ModalCreateTemplate';
 
 export interface ITemplatesTableRowSettingsProps {
   id: string;
   template: Template; // <-- Add this
   createInstance: (
     id: string,
-  ) => Promise<FetchResult<CreateInstanceMutation, Record<string, unknown>, Record<string, unknown>>>;
+  ) => Promise<
+    FetchResult<
+      CreateInstanceMutation,
+      Record<string, unknown>,
+      Record<string, unknown>
+    >
+  >;
   editTemplate: (template: Template) => void; // <-- Change signature
   deleteTemplate: (id: string) => void;
 }

@@ -23,9 +23,15 @@ export interface ITemplatesTableProps {
   workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
+  workspaceQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       DeleteTemplateMutation,
@@ -36,7 +42,7 @@ export interface ITemplatesTableProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -51,12 +57,9 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     totalInstances,
     templates,
     role,
-    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
-    workspaceNamespace,
-    workspaceName,
     workspaceQuota,
     isPersonal,
   } = props;
@@ -75,13 +78,10 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           template={record}
           role={role}
           totalInstances={totalInstances}
-          editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
-          workspaceNamespace={workspaceNamespace}
-          workspaceName={workspaceName}
           templates={templates} // Pass all templates
           workspaceQuota={workspaceQuota}
           isPersonal={isPersonal}

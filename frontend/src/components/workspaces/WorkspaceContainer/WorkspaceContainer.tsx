@@ -4,18 +4,13 @@ import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import {
-  EnvironmentType,
-  useCreateTemplateMutation,
-} from '../../../generated-types';
+import { useCreateTemplateMutation, EnvironmentType } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
 import { WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
-import type {
-  Template,
-} from '../ModalCreateTemplate/ModalCreateTemplate';
+import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 
 export interface IWorkspaceContainerProps {
@@ -46,15 +41,16 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateId: `${workspace.name}-`,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image: t.image?.includes('/') || t.image?.includes(':') 
-          ? t.image  // Already a full image reference
-          : t.registry 
-          ? `${t.registry}/${t.image}`.trim()
-          : t.image,
+        image:
+          t.image?.includes('/') || t.image?.includes(':')
+            ? t.image // Already a full image reference
+            : t.registry
+              ? `${t.registry}/${t.image}`.trim()
+              : t.image || '', // Ensure we always return a string
         guiEnabled: t.gui,
         persistent: t.persistent,
         mountMyDriveVolume: t.mountMyDrive,
-        environmentType: t.imageType,
+        environmentType: t.imageType || EnvironmentType.Container,
         resources: {
           cpu: t.cpu,
           memory: `${t.ram * 1000}M`,
@@ -67,7 +63,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   return (
     <>
-            <ModalCreateTemplate
+      <ModalCreateTemplate
         workspaceNamespace={workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
@@ -131,7 +127,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           role={workspace.role}
           workspaceNamespace={workspace.namespace}
           workspaceName={workspace.name}
-          workspaceQuota={workspace.quota}
+          workspaceQuota={(workspace as any).quota || { cpu: 8, memory: '16Gi', instances: 8 }}
           isPersonal={isPersonal}
         />
         <Modal

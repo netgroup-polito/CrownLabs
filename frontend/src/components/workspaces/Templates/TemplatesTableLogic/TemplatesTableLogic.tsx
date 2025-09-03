@@ -47,12 +47,17 @@ export interface ITemplateTableLogicProps {
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
-  // const { userId } = useContext(AuthContext);
-  const { user } = useContext(AuthContext);
-  const userId = user?.profile?.sub;
+  const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
-  const { tenantNamespace, workspaceNamespace, workspaceName, role, workspaceQuota, isPersonal } = props;
+  const {
+    tenantNamespace,
+    workspaceNamespace,
+    workspaceName,
+    role,
+    workspaceQuota,
+    isPersonal,
+  } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
@@ -65,12 +70,13 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     variables: { tenantNamespace },
     onError: apolloErrorCatcher,
     onCompleted: data => {
-      const instances = data?.instanceList?.instances
-        ?.map(i => {
-          const guiInstance = makeGuiInstance(i, userId);
-          return guiInstance;
-        })
-        .filter(Boolean) ?? [];
+      const instances =
+        data?.instanceList?.instances
+          ?.map(i => {
+            const guiInstance = makeGuiInstance(i, userId);
+            return guiInstance;
+          })
+          .filter(Boolean) ?? [];
       setDataInstances(instances);
     },
     fetchPolicy: fetchPolicy_networkOnly,
@@ -78,6 +84,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   // Subscribe to instance updates
+  const notifier = useContext(TenantContext).notify;
+
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe = subscribeToMoreInstances({
@@ -94,9 +102,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       });
       return unsubscribe;
     }
-  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
-
-  const notifier = useContext(TenantContext).notify;
+  }, [
+    loadingInstances,
+    errorInstances,
+    errorsQueue.length,
+    subscribeToMoreInstances,
+    tenantNamespace,
+    userId,
+    makeErrorCatcher,
+    notifier,
+  ]);
 
   const {
     loading: loadingTemplate,
@@ -110,9 +125,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     nextFetchPolicy: 'cache-only',
   });
 
-  const dataTemplate = useMemo(
-    () => {
-      const templates = templateListData?.templateList?.templates
+  const dataTemplate = useMemo(() => {
+    const templates =
+      templateListData?.templateList?.templates
         ?.map(t =>
           makeGuiTemplate({
             original: t ?? {},
@@ -123,10 +138,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
-      return templates;
-    },
-    [templateListData?.templateList?.templates],
-  );
+    return templates;
+  }, [templateListData?.templateList?.templates]);
 
   useEffect(() => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
@@ -213,21 +226,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       return i;
     });
 
-  const templates = useMemo(
-    () => {      
-      const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
-      return joined;
-    },
-    [dataTemplate, dataInstances],
-  );
+  const templates = useMemo(() => {
+    const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
+    return joined;
+  }, [dataTemplate, dataInstances]);
 
   return (
     <>
       {isPersonal && (
         <QuotaDisplay
-          tenantNamespace={tenantNamespace}
           templates={templates}
-          instances={dataInstances}
           workspaceQuota={workspaceQuota}
         />
       )}

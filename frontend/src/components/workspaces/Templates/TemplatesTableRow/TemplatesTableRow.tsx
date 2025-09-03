@@ -18,23 +18,30 @@ import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
 } from '../../../../generated-types';
-import { JSONDeepCopy } from '../../../../utils';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
 import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
-import ModalCreateTemplate, { Template as TemplateType } from '../../ModalCreateTemplate/ModalCreateTemplate';
-import { useApplyTemplateMutation, EnvironmentType } from '../../../../generated-types'; // <-- Use the correct hook
+import ModalCreateTemplate, {
+  type Template as TemplateType,
+} from '../../ModalCreateTemplate/ModalCreateTemplate';
+import { useApplyTemplateMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
   totalInstances: number;
-  editTemplate: (id: string) => void;
+  templates: Template[]; // All templates in the workspace
+  workspaceQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonal?: boolean;
   deleteTemplate: (
-    id: string
+    id: string,
   ) => Promise<
     FetchResult<
       DeleteTemplateMutation,
@@ -45,7 +52,7 @@ export interface ITemplatesTableRowProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -61,19 +68,23 @@ const convertMemory = (s: string): string =>
     ? `${Number(s.split('M')[0]) / 1000}G`
     : s;
 
-const canCreateInstance = (template: Template, allTemplates: Template[], workspaceQuota?: {
-  cpu?: string | number;
-  memory?: string;
-  instances?: number;
-}): boolean => {
+const canCreateInstance = (
+  template: Template,
+  allTemplates: Template[],
+  workspaceQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  },
+): boolean => {
   // If no quota defined, default to allowing creation
   if (!workspaceQuota) return true;
-  
+
   // Calculate current usage (similar to QuotaDisplay)
   let usedCpu = 0;
   let usedMemory = 0;
   let runningInstances = 0;
-  
+
   // Sum resources from all running instances
   allTemplates.forEach(tmpl => {
     const count = tmpl.instances?.length || 0;
@@ -83,21 +94,21 @@ const canCreateInstance = (template: Template, allTemplates: Template[], workspa
       usedMemory += parseMemory(tmpl.resources.memory || '0') * count;
     }
   });
-  
+
   // Get the quota limits (with defaults)
   const quotaLimits = {
     cpu: workspaceQuota?.cpu ? parseInt(String(workspaceQuota.cpu)) : 8,
     memory: workspaceQuota?.memory ? parseMemory(workspaceQuota.memory) : 16,
     instances: workspaceQuota?.instances || 8,
   };
-  
+
   // Add the new instance's resource requirements
   const newUsage = {
     cpu: usedCpu + (template.resources?.cpu || 0),
     memory: usedMemory + parseMemory(template.resources?.memory || '0'),
     instances: runningInstances + 1,
   };
-  
+
   // Check if any quota would be exceeded
   return (
     newUsage.cpu <= quotaLimits.cpu &&
@@ -141,18 +152,17 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     role,
     totalInstances,
     createInstance,
-    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     expandRow,
-    templates,  // All templates in the workspace
+    templates, // All templates in the workspace
     workspaceQuota, // Add this to props
     isPersonal,
   } = props;
 
   // Check if we can create an instance based on resources
   const canCreate = canCreateInstance(template, templates, workspaceQuota);
-  
+
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -178,12 +188,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
   // Modal state
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | undefined>(undefined);
+  const [selectedTemplate, setSelectedTemplate] = useState<
+    TemplateType | undefined
+  >(undefined);
 
   // Update mutation
-  const [applyTemplateMutation, { loading: updateLoading }] = useApplyTemplateMutation({
-    onError: apolloErrorCatcher,
-  });
+  const [applyTemplateMutation, { loading: updateLoading }] =
+    useApplyTemplateMutation({
+      onError: apolloErrorCatcher,
+    });
 
   const createInstanceHandler = useCallback(() => {
     setCreateDisabled(true);
@@ -207,7 +220,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     const patch = {
       spec: {
         prettyName: updatedTemplate.name,
-        description: updatedTemplate.description ?? '', // Add description if needed
+        description: updatedTemplate.name || '', // Use name as description if no description field
         environmentList: [
           {
             name: updatedTemplate.name,
@@ -215,20 +228,24 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             guiEnabled: updatedTemplate.gui,
             persistent: updatedTemplate.persistent,
             mountMyDriveVolume: updatedTemplate.mountMyDrive,
-            environmentType: updatedTemplate.vmorcontainer,
+            environmentType: updatedTemplate.imageType, // Use imageType instead of vmorcontainer
             resources: {
               cpu: updatedTemplate.cpu,
               memory: `${updatedTemplate.ram}Gi`,
-              disk: updatedTemplate.persistent ? `${updatedTemplate.disk}Gi` : undefined,
+              disk: updatedTemplate.persistent
+                ? `${updatedTemplate.disk}Gi`
+                : undefined,
             },
-            sharedVolumeMounts: updatedTemplate.sharedVolumeMountInfos?.map(sv => ({
-              sharedVolume: {
-                namespace: sv.sharedVolume.namespace,
-                name: sv.sharedVolume.name,
-              },
-              mountPath: sv.mountPath,
-              readOnly: sv.readOnly,
-            })),
+            sharedVolumeMounts: updatedTemplate.sharedVolumeMountInfos?.map(
+              sv => ({
+                sharedVolume: {
+                  namespace: sv.sharedVolume.namespace,
+                  name: sv.sharedVolume.name,
+                },
+                mountPath: sv.mountPath,
+                readOnly: sv.readOnly,
+              }),
+            ),
           },
         ],
         workspaceCrownlabsPolitoItWorkspaceRef: {
@@ -380,7 +397,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                   CPU: {template.resources.cpu || 'unavailable'} core(s)
                 </div>
                 <div>
-                  RAM: {convertMemory(template.resources.memory) || 'unavailable'}B
+                  RAM:{' '}
+                  {convertMemory(template.resources.memory) || 'unavailable'}B
                 </div>
                 <div>
                   {template.persistent
@@ -437,7 +455,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       </>
                     ) : (
                       <>
-                        <div>You have <b>reached your limit</b> of {instancesLimit} instances</div>
+                        <div>
+                          You have <b>reached your limit</b> of {instancesLimit}{' '}
+                          instances
+                        </div>
                         <div className="text-center mt-2">
                           Please <b>delete</b> an instance to create a new one
                         </div>
@@ -451,7 +472,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 <Button
                   onClick={createInstanceHandler}
                   className="hidden xs:block pointer-events-none"
-                  disabled={totalInstances === instancesLimit || createDisabled || !canCreate}
+                  disabled={
+                    totalInstances === instancesLimit ||
+                    createDisabled ||
+                    !canCreate
+                  }
                   type="primary"
                   shape="round"
                   size={'middle'}
@@ -491,7 +516,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       })) || [],
               }}
               onClick={createInstanceHandler}
-              disabled={totalInstances === instancesLimit || createDisabled || !canCreate}
+              disabled={
+                totalInstances === instancesLimit ||
+                createDisabled ||
+                !canCreate
+              }
               type="primary"
               size={'middle'}
             >
@@ -501,7 +530,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <Button
               onClick={createInstanceHandler}
               className="hidden xs:block"
-              disabled={totalInstances === instancesLimit || createDisabled || !canCreate}
+              disabled={
+                totalInstances === instancesLimit ||
+                createDisabled ||
+                !canCreate
+              }
               type="primary"
               shape="round"
               size={'middle'}

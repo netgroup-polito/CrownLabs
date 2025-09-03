@@ -21,14 +21,15 @@ const WorkspaceGrid: FC<IWorkspaceGridProps> = ({ ...props }) => {
   const { workspaceItems, selectedWs, onClick } = props;
   return (
     <div className="grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:grid-flow-row grid-rows-1 grid-flow-col gap-3 lg:gap-0">
-      {props.tenantPersonalWorkspace?.createPWs && props.tenantPersonalWorkspace?.isPWsCreated && (
-        <WorkspaceGridItem
-          id={-1}
-          title="Personal Static"
-          isActive={selectedWs === -1}
-          onClick={onClick}
-        />
-      )}
+      {props.tenantPersonalWorkspace?.createPWs &&
+        props.tenantPersonalWorkspace?.isPWsCreated && (
+          <WorkspaceGridItem
+            id={-1}
+            title="Personal Static"
+            isActive={selectedWs === -1}
+            onClick={onClick}
+          />
+        )}
       {workspaceItems.map(workspaceItem => (
         <div key={workspaceItem.id} className="h-full flex justify-center">
           <WorkspaceGridItem

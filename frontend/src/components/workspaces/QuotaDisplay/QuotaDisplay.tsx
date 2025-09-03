@@ -6,17 +6,19 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { FC } from 'react';
-import { useContext, useMemo } from 'react';
-import { TenantContext } from '../../../contexts/TenantContext';
-import { ItPolitoCrownlabsV1alpha2Instance } from '../../../generated-types';
+import { useMemo } from 'react';
 import './QuotaDisplay.less';
 
 const { Text, Title } = Typography;
 
 export interface IQuotaDisplayProps {
-  tenantNamespace: string;
-  instances: ItPolitoCrownlabsV1alpha2Instance[];
-  templates: any[]; // keep as is
+  templates: Array<{
+    instances?: Array<unknown>;
+    resources?: {
+      cpu?: number;
+      memory?: string;
+    };
+  }>;
   workspaceQuota: {
     cpu?: string | number;
     memory?: string;
@@ -54,9 +56,9 @@ const parseMemory = (memoryStr: string): number => {
 };
 
 const QuotaDisplay: FC<IQuotaDisplayProps> = ({
-  tenantNamespace,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   templates,
-  instances,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   workspaceQuota,
 }) => {
   // Use workspaceQuota directly
@@ -86,7 +88,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
 
   // Quota limits with defaults
   const quotaLimits = {
-    cpu: quota?.cpu ? parseInt(quota.cpu) : 8,
+    cpu: quota?.cpu ? parseInt(String(quota.cpu)) : 8,
     memory: quota?.memory ? parseMemory(quota.memory) : 16,
     instances: quota?.instances || 8,
   };
@@ -94,10 +96,10 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
   // Calculate percentages
   const cpuPercent = Math.round((currentUsage.cpu / quotaLimits.cpu) * 100);
   const memoryPercent = Math.round(
-    (currentUsage.memory / quotaLimits.memory) * 100
+    (currentUsage.memory / quotaLimits.memory) * 100,
   );
   const instancesPercent = Math.round(
-    (currentUsage.instances / quotaLimits.instances) * 100
+    (currentUsage.instances / quotaLimits.instances) * 100,
   );
 
   const getProgressColor = (percent: number) => {

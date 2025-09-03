@@ -2,6 +2,7 @@ import { Button, Col } from 'antd';
 import type { FC } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceContainer } from '../WorkspaceContainer';
@@ -94,7 +95,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
             workspace={{
               name: 'personal',
               prettyName: 'Personal Workspace',
-              role: 'manager',
+              role: WorkspaceRole.manager,
               namespace: tenantNamespace,
               waitingTenants: undefined,
             }}
@@ -104,7 +105,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           <WorkspaceAdd />
         ) : (
           <WorkspaceWelcome />
-          
         )}
       </Col>
     </>
