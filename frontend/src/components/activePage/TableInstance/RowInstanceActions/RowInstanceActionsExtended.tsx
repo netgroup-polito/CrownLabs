@@ -3,7 +3,7 @@ import { Popover, Tooltip, Typography } from 'antd';
 import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
-import { EnvironmentType, Phase } from '../../../../generated-types';
+import { EnvironmentType, Phase2 } from '../../../../generated-types';
 
 const { Text } = Typography;
 
@@ -43,7 +43,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   } = instance;
 
   const sshDisabled =
-    status !== Phase.Ready ||
+    status !== Phase2.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
@@ -94,7 +94,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === Phase.Ready, environmentType!)}
+          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button

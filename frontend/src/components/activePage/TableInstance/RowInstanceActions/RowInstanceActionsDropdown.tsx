@@ -14,7 +14,7 @@ import {
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
-  Phase,
+  Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -71,12 +71,12 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const statusComponents = {
-    [Phase.Ready]: {
+    [Phase2.Ready]: {
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
       menuAction: () => mutateInstanceStatus(false),
     },
-    [Phase.Off]: {
+    [Phase2.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
       menuAction: () => mutateInstanceStatus(true),
@@ -89,7 +89,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || status === Phase.Off
+    status === Phase2.Ready || status === Phase2.Off
       ? statusComponents[status]
       : statusComponents.Other;
 
@@ -97,11 +97,11 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
-  const sshDisabled = status !== Phase.Ready || isContainer;
+  const sshDisabled = status !== Phase2.Ready || isContainer;
 
-  const fileManagerDisabled = status !== Phase.Ready && isContainer;
+  const fileManagerDisabled = status !== Phase2.Ready && isContainer;
 
-  const connectDisabled = status !== Phase.Ready || (isContainer && !gui);
+  const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
 
   return (
     <Dropdown

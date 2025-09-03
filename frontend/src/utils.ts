@@ -1,5 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -49,7 +49,7 @@ export type Instance = {
   name: string;
   prettyName: string;
   ip: string;
-  status: Phase;
+  status: Phase2;
   url: string | null;
   timeStamp: string;
   workspaceName: string;
@@ -64,7 +64,7 @@ export type SharedVolume = {
   name: string;
   prettyName: string;
   size: string;
-  status: Phase3;
+  status: Phase5;
   timeStamp: string;
   namespace: string;
 };
