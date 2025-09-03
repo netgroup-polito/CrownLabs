@@ -32,10 +32,6 @@ query tenant($tenantId: String!) {
         name
         created
       }
-      personalWorkspace {
-        name
-        created
-      }
       quota {
         cpu
         instances
