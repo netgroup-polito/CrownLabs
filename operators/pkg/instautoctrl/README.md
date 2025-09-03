@@ -67,7 +67,7 @@ This controller is a replacement for the old `delete-stale-instance` python scri
 ### Detailed Behavior
 When the controller starts, it retrieves all the **Instances** and, for each one, it fetches the related **Template** resource. Inside this Template, there is a field called `DeleteAfter` which specifies the maximum lifespan of that Instance. By default, this value is set to never, meaning the Instance is not scheduled for termination. However, it can be configured with a time interval representing durations in minutes, hours, or days.
 
-Using the `DeleteAfter` value, the controller calculates the remaining lifespan of the Instance. Once this lifespan expires, the controller sends an email notification to the Instance owner (tenant) informing them that their Instance will be deleted. After a predefined extra waiting period, the controller proceeds to delete the Instance. Finally, it sends a second email to the tenant confirming that the Instance has reached its maximum lifespan and has been deleted.
+Using the `DeleteAfter` value, the controller calculates the remaining lifespan of the Instance. Once this lifespan expires, the controller sends an email notification to the Instance owner (tenant) informing them that their Instance will be deleted. A new `ExpiringWarningNotificationAnnotation` annotation is added to the Instance to let the controller know that the first warning notification has been sent. After a predefined extra waiting period, the controller proceeds to delete the Instance. Finally, it sends a second email to the tenant confirming that the Instance has reached its maximum lifespan and has been deleted.
 
 
 ### Watch and Predicates for the reconciler

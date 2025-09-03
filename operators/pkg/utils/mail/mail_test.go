@@ -43,13 +43,14 @@ var _ = Describe("Mail", func() {
 
 	writeTemplates := func(templateDir string) {
 		defaultsDir := filepath.Join(templateDir, "defaults")
+
 		Expect(os.MkdirAll(defaultsDir, 0755)).To(Succeed())
 
 		crownlabsTemplate := "From: {from}\nTo: {tenantEmail}\nSubject: Test\n\n{body}\n{footer}"
 		headers := "footer: |\n  --\n  CrownLabs Team"
 
-		Expect(os.WriteFile(filepath.Join(defaultsDir, "crownlabs_mail.eml"), []byte(crownlabsTemplate), 0644)).To(Succeed())
-		Expect(os.WriteFile(filepath.Join(defaultsDir, "crownlabs_headers.yaml"), []byte(headers), 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(templateDir, "defaults_crownlabs_mail.eml"), []byte(crownlabsTemplate), 0644)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(templateDir, "defaults_crownlabs_headers.yaml"), []byte(headers), 0644)).To(Succeed())
 	}
 
 	It("fails if SMTP config file is missing", func() {
@@ -109,6 +110,7 @@ smtpFrom: "sender@example.com"
 		})
 
 		It("combines template, headers, and content", func() {
+
 			content := map[string]string{
 				"tenantEmail": placeholders.TenantEmail,
 				"body":        "Hello world",

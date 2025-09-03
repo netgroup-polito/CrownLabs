@@ -471,6 +471,11 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 		log.Info("Last notification time annotation not found, sending notification", "instance", instance.Name)
 		return true, nil
 	}
+
+	// if this is the first notification, the annotation is still empty, therefore we can send a notification
+	if lastNotificationTimeStr == "" {
+		return true, nil
+	}
 	lastNotificationTime, err := time.Parse(time.RFC3339, lastNotificationTimeStr)
 	if err != nil {
 		log.Error(err, "failed parsing last notification time", "lastNotificationTime", lastNotificationTimeStr)

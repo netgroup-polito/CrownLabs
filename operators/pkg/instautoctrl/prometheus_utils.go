@@ -126,7 +126,7 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 	r := v1.Range{
 		Start: start,
 		End:   end,
-		Step:  time.Minute,
+		Step:  5 * time.Minute,
 	}
 
 	result, _, err := p.client.QueryRange(context.Background(), query, r)

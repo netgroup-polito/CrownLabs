@@ -739,7 +739,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 
 		It("should reset the AlertAnnotationNum to 0", func() {
-			err := r.ResetAlertAnnotation(ctx)
+			err := r.ResetAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(currentInstance.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
 		})
