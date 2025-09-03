@@ -234,10 +234,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   return (
     <>
       {isPersonal && (
-        <QuotaDisplay
-          templates={templates}
-          workspaceQuota={workspaceQuota}
-        />
+        <QuotaDisplay templates={templates} workspaceQuota={workspaceQuota} />
       )}
       <Spin size="large" spinning={loadingTemplate || loadingInstances}>
         {!loadingTemplate &&

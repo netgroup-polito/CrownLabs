@@ -56,9 +56,9 @@ const parseMemory = (memoryStr: string): number => {
 };
 
 const QuotaDisplay: FC<IQuotaDisplayProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   templates,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   workspaceQuota,
 }) => {
   // Use workspaceQuota directly

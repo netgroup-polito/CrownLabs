@@ -4,7 +4,11 @@ import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useCreateTemplateMutation, EnvironmentType } from '../../../generated-types';
+import {
+  useCreateTemplateMutation,
+  EnvironmentType,
+  type Quota,
+} from '../../../generated-types';
 import type { Workspace } from '../../../utils';
 import { WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
@@ -127,7 +131,13 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           role={workspace.role}
           workspaceNamespace={workspace.namespace}
           workspaceName={workspace.name}
-          workspaceQuota={(workspace as any).quota || { cpu: 8, memory: '16Gi', instances: 8 }}
+          workspaceQuota={
+            (workspace as Workspace & { quota?: Quota }).quota || {
+              cpu: 8,
+              memory: '16Gi',
+              instances: 8,
+            }
+          }
           isPersonal={isPersonal}
         />
         <Modal

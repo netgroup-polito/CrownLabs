@@ -122,12 +122,15 @@ const DashboardLogic: FC = () => {
         tenantNamespace={tenantNs}
         tenantPersonalWorkspace={{
           createPWs: tenantData?.tenant?.spec?.createPersonalWorkspace ?? false,
-          isPWsCreated: tenantData?.tenant?.status?.personalNamespace?.created ?? false,
-          quota: tenantData?.tenant?.status?.quota ? {
-            cpu: String(tenantData.tenant.status.quota.cpu),
-            memory: String(tenantData.tenant.status.quota.memory),
-            instances: tenantData.tenant.status.quota.instances,
-          } : null,
+          isPWsCreated:
+            tenantData?.tenant?.status?.personalNamespace?.created ?? false,
+          quota: tenantData?.tenant?.status?.quota
+            ? {
+                cpu: String(tenantData.tenant.status.quota.cpu),
+                memory: String(tenantData.tenant.status.quota.memory),
+                instances: tenantData.tenant.status.quota.instances,
+              }
+            : null,
         }}
         workspaces={viewWs}
         candidatesButton={{
