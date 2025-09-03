@@ -18,11 +18,11 @@ This controller monitors instances and automates actions based on their inactivi
 ### Detailed Behavior
 The controller begins by retrieving all the active **Instances**. For each instance, it determines whether it should be monitored or not. This decision is influenced by a special label that can be added to the associated **Namespace** resource, called `InstanceInactivityIgnoreNamespace`. If the Namespace carries this label, the controller will ignore the instance, allowing it to remain inactive for an extended period without being stopped or deleted.
 
-Once it is established that the instance should be monitored, the controller adds several annotations to it. These include the `AlertAnnotationNum`, which tracks the number of notifications sent to inform the tenant that the instance has been idle for some time and will soon be stopped or deleted. This number ranges from zero up to a maximum limit defined by `InstanceMaxNumberOfAlerts`. This value could be overwritten by the `CustomNumberOfAlertsAnnotation`. Another annotation is the `LastActivityAnnotation`, which records the last time the user accessed the instance either via the frontend through the Ingress or via SSH (through the SSH bastion tracker). The controller also adds the `LastNotificationTimestampAnnotation`, indicating the timestamp when the last notification was sent. This timestamp helps to determine if enough time has passed since the previous notification, allowing a new alert to be sent if needed.
+Once it is established that the instance should be monitored, the controller adds several annotations to it. These include the `AlertAnnotationNum`, which tracks the number of notifications sent to inform the tenant that the instance has been idle for some time and will soon be stopped or deleted. This number ranges from zero up to a maximum limit defined by `InstanceMaxNumberOfAlerts`, a custom parameter defined via Helm chart. This value could be overwritten by the `CustomNumberOfAlertsAnnotation` annotation in the associated Template resource. Another annotation is the `LastActivityAnnotation`, which records the last time the user accessed the instance either via the frontend through the Ingress or via SSH (info available through the SSH bastion tracker). The controller also adds the `LastNotificationTimestampAnnotation`, indicating the timestamp when the last notification was sent (if enabled). This timestamp helps to determine if enough time has passed since the previous notification, allowing a new alert to be sent if needed.
 
-Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the **InactivityTimeout** value specified in the Template. If the instance is found to be inactive (meaning the remaining time is zero or less), a series of notification emails are sent to the instance owner. Once the number of alerts reaches a configurable threshold, CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent. On the other hand, if the instance is still active (the remaining time is greater than zero), the controller reschedules the inactivity check for a future time.
+Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the **InactivityTimeout** value specified in the Template. If the instance is found to be inactive (meaning the remaining time is zero or less), a series of notification emails are sent to the instance owner. Once the number of alerts reaches a configurable threshold (either defined via `InstanceMaxNumberOfAlerts` or `CustomNumberOfAlertsAnnotation`), CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent. On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
 
-Finally, if the instance has been paused and the user restarts it, the `AlertAnnotationNum` is reset. The controller then evaluates the new remaining time, and the entire monitoring process begins again. This mechanism relies on the `LastRunningAnnotation` annotation to detect if the instance has been restarted after being paused.
+Finally, if the instance has been paused and the user restarts it, the `AlertAnnotationNum` annotation is reset and the `LastActivityAnnotation` annotation is updated. The controller then evaluates the new remaining time, and the entire monitoring process begins again. This mechanism relies on the `LastRunningAnnotation` annotation to detect if the instance has been restarted after being paused.
 
 
 ### How does the check is performed?
@@ -30,9 +30,9 @@ The controller focuses on one point: understanding if the **Instance** is being 
 An Instance can be accessed by the Crownlabs Frontend or via SSH.
 The controller uses **Prometheus** to do this check:
 * It uses Nginx metrics to verify the last access to the Frontend
-* It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses.
+* It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses. Read [here](../../README.md#bastion-ssh-tracker) for more info on how SSH connections are monitored.
 
-After this check, the **LastActivityAnnotation** is updated with the most recent timestamp. If the last access is above the max threshold (defined with the `inactivityTimeout` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval (**NotificationInterval** parameter).
+After this check, the **LastActivityAnnotation** is updated with the most recent timestamp. If the last access is above the max threshold (defined with the `inactivityTimeout` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval (**NotificationInterval** parameter in the Helm chart).
 After the maximum time of notifications, the Instance is stopped.
 
 
@@ -45,10 +45,10 @@ The **InstanceInactiveTerminationReconciler** is set to watch and react to event
 
 ### Labels and Annotations
 * **InstanceInactivityIgnoreNamespace**: label added to the `Namespace` to ignore the inactivity termination for the Instances in that `Namespace`. 
-* **AlertAnnotationNum**: annotaion to check the number of email notifications already sent to the `Tenant`.
-* **LastNotificationTimestampAnnotation**: annotation to check the timestamp of the last email notification sent to the `Tenant`.
-* **LastRunningAnnotation**: previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
-* **CustomNumberOfAlertsAnnotation**: override the default `InstanceMaxNumberOfAlerts` in the **InstanceInactiveTerminationReconciler** for a specific template.
+* **AlertAnnotationNum**: annotation in the instance to check the number of email notifications already sent to the `Tenant`.
+* **LastNotificationTimestampAnnotation**: annotation in the instance to check the timestamp of the last email notification sent to the `Tenant`.
+* **LastRunningAnnotation**: annotation in the instance to check the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
+* **CustomNumberOfAlertsAnnotation**: annotation in the template to check the override the default `InstanceMaxNumberOfAlerts` in the **InstanceInactiveTerminationReconciler** for a specific template.
 * **LastRunningAnnotation**:  previous value of the `Running` field of the Instance. It is used to check wheather a persistent Instance was stopped and now has been started again.
 
 
@@ -74,3 +74,20 @@ Using the `DeleteAfter` value, the controller calculates the remaining lifespan 
 The **InstanceExpirationReconciler** is set to watch and react to events related to the following resources:
 * **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
 * **Templates**: if the `deleteAfter` value is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances. There is a predicate filter (**deleteAfterChanged**) to let the reconciler reschedule the Instance to update the new remaining time.
+
+## Helm Chart
+
+The Helm chart for the instance-operator has been updated to include the deployment of the new instance-automation controller. New parameters have been defined:
+* **prometheusURL**: URL of the Prometheus service in the cluster.
+* **queryNginxAvailable**: query to verify if the external ingress is available and is correctly collecting metrics.
+* **queryBastionSSHAvailable**: query to verify if the custom SSH bastion tracker is available and is correctly collecting metrics.
+* **queryNginxData**: query to retrieve info about an Instance access through frontend.
+* **queryBastionSSHData**: query to retrieve info about an Instance access through SSH.
+* **enableInstanceSubmission**: flag to enable the Instance Submission controller.
+* **enableInstanceTermination**: flag to enable the Instance Termination controller.
+* **enableInstanceInactiveTermination**: flag to enable the Instance Inactive Termination controller.
+* **enableInstanceExpiration**: flag to enable the Instance Expiration controller.
+* **inactiveTerminationMaxNumberOfAlerts**: maximum number of email notifications to send to the Tenant before deleting/pausing the Instance.
+* **enableInactivityNotifications**: flag to enable the notification for the Instance Inactive Termination controller.
+* **enableExpirationNotifications**: flag to enable the notification for the Instance Expiration Termination controller.
+* **notificationInterval**: time interval between two consecutive email notifications.
