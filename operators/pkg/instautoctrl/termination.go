@@ -134,8 +134,7 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
 func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-
-	statusCheckURL := instance.Spec.StatusCheckUrl
+	statusCheckURL := instance.Spec.StatusCheckURL
 	if statusCheckURL == "" {
 		return false, errors.New("status check url field is not set for Instance")
 	}
@@ -149,7 +148,9 @@ func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Con
 		return false, err
 	}
 
-	for _, instanceStatusEnv := range instance.Status.Environments {
+	for instStatusEnvIdx := range instance.Status.Environments {
+		instanceStatusEnv := &instance.Status.Environments[instStatusEnvIdx]
+
 		instanceStatusEnv.Automation.LastCheckTime = metav1.Now()
 		switch statusCode {
 		case http.StatusOK:

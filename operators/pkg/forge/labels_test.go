@@ -226,7 +226,7 @@ var _ = Describe("Labels forging", func() {
 								Destination: "",
 							},
 						},
-						StatusCheckUrl: c.StatusCheckUrl,
+						StatusCheckURL: c.StatusCheckUrl,
 					},
 				})
 				if c.ExpectedValue != "" {

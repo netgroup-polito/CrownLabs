@@ -88,8 +88,8 @@ type InstanceSpec struct {
 	// Labels that are used for the selection of the node.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// Optional urls for advanced integration features.
-	StatusCheckUrl string `json:"statusCheckUrl,omitempty"`
+	// StatusCheckURL urls for advanced integration features.
+	StatusCheckURL string `json:"statusCheckUrl,omitempty"`
 
 	ContentUrls map[string]InstanceContentUrls `json:"contentUrls,omitempty"`
 }

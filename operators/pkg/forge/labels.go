@@ -44,6 +44,7 @@ const (
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
 
+	// EnvironmentNameLabel -> Key of the label used to store the environment name.
 	EnvironmentNameLabel = "crownlabs.polito.it/environment-name"
 
 	labelManagedByInstanceValue  = "instance"
@@ -85,8 +86,7 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(instance, template)) || update
 
 	if instance != nil {
-
-		if instance.Spec.StatusCheckUrl != "" && labels[InstanceTerminationSelectorLabel] == "" {
+		if instance.Spec.StatusCheckURL != "" && labels[InstanceTerminationSelectorLabel] == "" {
 			update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
 		}
 	}

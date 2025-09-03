@@ -41,11 +41,11 @@ const (
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
 
-	// ModeStandard -> Normal operation (authentication, ssh, files access).
+	// ScopeStandard -> Normal operation (authentication, ssh, files access).
 	ScopeStandard EnvironmentScope = "Standard"
-	// ModeExam -> Restricted access (no authentication, no mydrive access).
+	// ScopeExam -> Restricted access (no authentication, no mydrive access).
 	ScopeExam EnvironmentScope = "Exam"
-	// ModeExercise -> Restricted access (no authentication, no mydrive access).
+	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
 	ScopeExercise EnvironmentScope = "Exercise"
 )
 
@@ -207,7 +207,7 @@ type SharedVolumeMountInfo struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
-// +kubebuilder:printcolumn:name="Mode",type=string,JSONPath=`.spec.environmentList[0].mode`
+// +kubebuilder:printcolumn:name="Scope",type=string,JSONPath=`.spec.environmentList[0].scope`
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
 // +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10

@@ -20,8 +20,8 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
-    - jsonPath: .spec.environmentList[0].mode
-      name: Mode
+    - jsonPath: .spec.environmentList[0].scope
+      name: Scope
       type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image

@@ -79,26 +79,37 @@ func (r *InstanceReconciler) calculateInstancePhase(environments []clv1alpha2.In
 		stopping, off               int
 	)
 
-	for _, env := range environments {
-		switch env.Phase {
+	for envIdx := range environments {
+		switch environments[envIdx].Phase {
 		case clv1alpha2.EnvironmentPhaseFailed:
 			failed++
+
 		case clv1alpha2.EnvironmentPhaseCreationLoopBackoff:
 			creationLoopBackoff++
+
 		case clv1alpha2.EnvironmentPhaseResourceQuotaExceeded:
 			resourceQuotaExceeded++
+
 		case clv1alpha2.EnvironmentPhaseReady:
 			ready++
+
 		case clv1alpha2.EnvironmentPhaseRunning:
 			running++
+
 		case clv1alpha2.EnvironmentPhaseStarting:
 			starting++
+
 		case clv1alpha2.EnvironmentPhaseImporting:
 			importing++
+
 		case clv1alpha2.EnvironmentPhaseStopping:
 			stopping++
+
 		case clv1alpha2.EnvironmentPhaseOff:
 			off++
+
+		default:
+			continue
 		}
 	}
 
@@ -258,9 +269,9 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
-	//It will set the root url in the instance only if there is at least one environment that is a
-	//vm with gui enabled.
-	url_needed := false
+	// It will set the root url in the instance only if there is at least one environment
+	// that is a vm with gui enabled.
+	urlNeeded := false
 	// Make sure the list of instance environments status is initialized
 	tmplEnvCount := len(template.Spec.EnvironmentList)
 	if len(instance.Status.Environments) != tmplEnvCount {
@@ -285,7 +296,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				return err
 			}
 			if tmplEnv.GuiEnabled {
-				url_needed = true
+				urlNeeded = true
 			}
 
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
@@ -295,8 +306,8 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			}
 		}
 
-		//set the root url in instance Status
-		if url_needed {
+		// Set the root url in instance Status
+		if urlNeeded {
 			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
 			instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
 		} else {
@@ -336,7 +347,6 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 			metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
 			metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
 		}).Observe(duration.Seconds())
-
 	}
 }
 

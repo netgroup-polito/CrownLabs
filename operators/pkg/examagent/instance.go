@@ -313,8 +313,8 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 
 	// get the first ContentUrl if available
 	if len(inst.Spec.ContentUrls) > 0 {
-		for _, contentUrl := range inst.Spec.ContentUrls {
-			adapter.ContentUrls = contentUrl
+		for _, contentURL := range inst.Spec.ContentUrls {
+			adapter.ContentUrls = contentURL
 			break
 		}
 	}

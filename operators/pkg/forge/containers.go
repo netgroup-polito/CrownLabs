@@ -516,7 +516,7 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
-func InstanceHostname(environment *clv1alpha2.Environment, template *clv1alpha2.Template) string {
+func InstanceHostname(_ *clv1alpha2.Environment, template *clv1alpha2.Template) string {
 	if template.Spec.Scope != clv1alpha2.ScopeStandard {
 		return strings.ToLower(string(template.Spec.Scope))
 	}

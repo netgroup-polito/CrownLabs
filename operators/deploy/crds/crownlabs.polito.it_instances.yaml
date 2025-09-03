@@ -106,7 +106,7 @@ spec:
                   subsequent recreation without data loss.
                 type: boolean
               statusCheckUrl:
-                description: Optional urls for advanced integration features.
+                description: StatusCheckURL urls for advanced integration features.
                 type: string
               template.crownlabs.polito.it/TemplateRef:
                 description: The reference to the Template to be instantiated.

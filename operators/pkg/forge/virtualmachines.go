@@ -148,7 +148,7 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 }
 
 // VolumeDiskTargets forges the array of disks to be attached to the VM Domain.
-func VolumeDiskTargets(environment *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Disk {
+func VolumeDiskTargets(_ *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Disk {
 	disks := []virtv1.Disk{VolumeDiskTarget(volumeRootName)}
 	// Attach cloudinit disk on non-restricted environments
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {

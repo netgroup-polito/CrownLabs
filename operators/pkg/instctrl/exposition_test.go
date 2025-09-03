@@ -164,43 +164,37 @@ var _ = Describe("Generation of the exposition environment", func() {
 		},
 		EmptySpec: corev1.ServiceSpec{ClusterIP: clusterIP},
 		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-
 			if index >= len(inst.Status.Environments) {
 				return ""
 			}
 
 			return inst.Status.Environments[index].IP
-
 		},
 		InstanceStatusExpected: clusterIP,
 	}
 
 	DescribeBodyParametersIngressGUI := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, _ *clv1alpha2.Template) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec: netv1.IngressSpec{},
-		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-
+		InstanceStatusGetter: func(_ *clv1alpha2.Instance) string {
 			return ""
-
 		},
 		InstanceStatusExpected: "",
 	}
 
 	DescribeBodyParametersIngressGUIContainer := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, _ *clv1alpha2.Template) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
 		EmptySpec: netv1.IngressSpec{},
-		InstanceStatusGetter: func(inst *clv1alpha2.Instance) string {
-
+		InstanceStatusGetter: func(_ *clv1alpha2.Instance) string {
 			return ""
-
 		},
 		InstanceStatusExpected: "",
 	}

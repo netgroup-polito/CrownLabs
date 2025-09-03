@@ -164,12 +164,12 @@ func IngressGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) str
 }
 
 // IngressGuiStatusFromRootURL returns the path of the ingress targeting the environment given the root url (url of the instance).
-func IngressGuiStatusFromRootURL(rootUrl string, environment *clv1alpha2.Environment) string {
+func IngressGuiStatusFromRootURL(rootURL string, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		return rootUrl + fmt.Sprintf("%v/%v/", environment.Name, IngressAppSuffix)
+		return rootURL + fmt.Sprintf("%v/%v/", environment.Name, IngressAppSuffix)
 	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-		return rootUrl + fmt.Sprintf("%v/", environment.Name)
+		return rootURL + fmt.Sprintf("%v/", environment.Name)
 	}
 	return ""
 }
