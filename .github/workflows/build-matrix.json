@@ -44,7 +44,8 @@
     {
         "component": "crownlabs-image-list",
         "context": "./operators",
-        "dockerfile": "./operators/build/crownlabs-image-list/Dockerfile",
+        "dockerfile": "./operators/build/golang-common/Dockerfile",
+        "build-args": "COMPONENT=crownlabs-image-list",
         "harbor-project": "crownlabs-core"
     },
     {
