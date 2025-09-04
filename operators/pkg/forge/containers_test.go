@@ -279,7 +279,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 
 		It("Should set the container hostname accordingly", func() {
-			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&environment, &template)))
+			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&template)))
 		})
 
 		It("Should set the node selector labels accordingly", func() {
@@ -1293,7 +1293,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual string
 
 		JustBeforeEach(func() {
-			actual = forge.InstanceHostname(&environment, &template)
+			actual = forge.InstanceHostname(&template)
 		})
 
 		type EnvModeCase struct {
