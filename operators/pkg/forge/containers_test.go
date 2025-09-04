@@ -37,6 +37,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 	var (
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		mountInfos  []forge.NFSVolumeMountInfo
 		opts        forge.ContainerEnvOpts
@@ -46,6 +47,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	// example values
 	const (
 		instanceName         = "kubernetes-0000"
+		templateName         = "test-template"
 		envName              = "test-environment"
 		instanceNamespace    = "tenant-tester"
 		image                = "internal/registry/image:v1.0"
@@ -91,12 +93,19 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		environment = clv1alpha2.Environment{
 			Image: image,
 			Name:  envName,
-			Mode:  clv1alpha2.ModeStandard,
 			Resources: clv1alpha2.EnvironmentResources{
 				CPU:                   cpu,
 				ReservedCPUPercentage: cpuReserved,
 				Memory:                resource.MustParse(memory),
 				Disk:                  resource.MustParse(disk),
+			},
+		}
+
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 
@@ -218,17 +227,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec appsv1.DeploymentSpec
 
 		JustBeforeEach(func() {
-			spec = forge.DeploymentSpec(&instance, &environment, mountInfos, &opts)
+			spec = forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &environment, mountInfos, &opts)))
+			Expect(spec.Template.Spec).To(Equal(forge.PodSpec(&instance, &template, &environment, mountInfos, &opts)))
 		})
 		It("Should set the correct selector", func() {
-			Expect(spec.Selector.MatchLabels).To(Equal(forge.InstanceSelectorLabels(&instance)))
+			Expect(spec.Selector.MatchLabels).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 	})
 
@@ -236,7 +245,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec corev1.PodSpec
 
 		type PodSpecContainersCase struct {
-			Mode            clv1alpha2.EnvironmentMode
+			Scope           clv1alpha2.EnvironmentScope
 			EnvironmentType clv1alpha2.EnvironmentType
 			ExpectedOutput  func(*clv1alpha2.Instance, *clv1alpha2.Environment) []corev1.Container
 		}
@@ -244,7 +253,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		ContainersWhenBody := func(psc PodSpecContainersCase) func() {
 			return func() {
 				BeforeEach(func() {
-					environment.Mode = psc.Mode
+					template.Spec.Scope = psc.Scope
 					environment.EnvironmentType = psc.EnvironmentType
 				})
 				It("Should set the correct containers", func() {
@@ -254,7 +263,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		JustBeforeEach(func() {
-			spec = forge.PodSpec(&instance, &environment, mountInfos, &opts)
+			spec = forge.PodSpec(&instance, &template, &environment, mountInfos, &opts)
 		})
 
 		It("Should set the security context", func() {
@@ -270,16 +279,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		})
 
 		It("Should set the container hostname accordingly", func() {
-			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&environment)))
+			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&template)))
 		})
 
 		It("Should set the node selector labels accordingly", func() {
-			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &environment)))
+			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &template)))
 		})
 
 		When("the environment type is Standalone", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				Mode:            clv1alpha2.ModeStandard,
+				Scope:           clv1alpha2.ScopeStandard,
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -291,7 +300,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment type is Container", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				Mode:            clv1alpha2.ModeStandard,
+				Scope:           clv1alpha2.ScopeStandard,
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -303,7 +312,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			}))
 
 			When("the environment mode is Exercise", ContainersWhenBody(PodSpecContainersCase{
-				Mode:            clv1alpha2.ModeExercise,
+				Scope:           clv1alpha2.ScopeStandard,
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -315,7 +324,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			}))
 
 			When("the environment mode is Exam", ContainersWhenBody(PodSpecContainersCase{
-				Mode:            clv1alpha2.ModeExam,
+				Scope:           clv1alpha2.ScopeStandard,
 				EnvironmentType: clv1alpha2.ClassContainer,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -439,7 +448,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment mode is Standard", func() {
 			BeforeEach(func() {
 				instance.UID = instanceName
-				environment.Mode = clv1alpha2.ModeStandard
+				template.Spec.Scope = clv1alpha2.ScopeStandard
 			})
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
@@ -458,7 +467,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment mode is non Standard", func() {
 			BeforeEach(func() {
 				instance.UID = instanceName
-				environment.Mode = clv1alpha2.ModeExercise
+				template.Spec.Scope = clv1alpha2.ScopeExercise
 			})
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
@@ -765,8 +774,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		BeforeEach(func() {
 			environment.Persistent = true
-			instance.Spec.CustomizationUrls = &clv1alpha2.InstanceCustomizationUrls{
-				ContentDestination: httpPath,
+			if instance.Spec.ContentUrls == nil {
+				instance.Spec.ContentUrls = make(map[string]clv1alpha2.InstanceContentUrls)
+			}
+			instance.Spec.ContentUrls[environment.Name] = clv1alpha2.InstanceContentUrls{
+				Destination: httpPath,
 			}
 		})
 
@@ -781,7 +793,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
-							forge.ContentUploaderJobContainer(httpPath, instance.Name, &opts),
+							forge.ContentUploaderJobContainer(httpPath, instance.Name+"-"+environment.Name, &opts),
 						},
 						Volumes:                      forge.ContainerVolumes(&instance, &environment, nil),
 						SecurityContext:              forge.PodSecurityContext(),
@@ -798,7 +810,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual, expected corev1.Container
 
 		JustBeforeEach(func() {
-			actual = forge.ContentUploaderJobContainer(httpPath, instanceName, &opts)
+			actual = forge.ContentUploaderJobContainer(httpPath, instanceName+"-"+environment.Name, &opts)
 		})
 
 		It("Should set the correct container name and image", func() {
@@ -823,7 +835,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		It("Should set the correct environment variables", func() {
 			forge.AddEnvVariableToContainer(&expected, "SOURCE_PATH", forge.PersistentDefaultMountPath)
 			forge.AddEnvVariableToContainer(&expected, "DESTINATION_URL", httpPath)
-			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName)
+			forge.AddEnvVariableToContainer(&expected, "FILENAME", instanceName+"-"+environment.Name)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
 		})
 	})
@@ -1016,7 +1028,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent          bool
 			MountPersonalVolume bool
 			MountInfos          []forge.NFSVolumeMountInfo
-			Mode                clv1alpha2.EnvironmentMode
+			Scope               clv1alpha2.EnvironmentScope
 			StartupOpts         *clv1alpha2.ContainerStartupOpts
 			ExpectedOutputVSs   func(*clv1alpha2.Environment) []corev1.Volume
 		}
@@ -1026,7 +1038,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				BeforeEach(func() {
 					environment.Persistent = c.Persistent
 					environment.ContainerStartupOptions = c.StartupOpts
-					environment.Mode = c.Mode
+					template.Spec.Scope = c.Scope
 					environment.MountMyDriveVolume = c.MountPersonalVolume
 				})
 
@@ -1042,7 +1054,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Mode:       clv1alpha2.ModeStandard,
+			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1050,7 +1062,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Mode:       clv1alpha2.ModeExam,
+			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1058,7 +1070,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Mode:       clv1alpha2.ModeExercise,
+			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1066,7 +1078,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Mode:       clv1alpha2.ModeStandard,
+			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1074,7 +1086,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Mode:       clv1alpha2.ModeExam,
+			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1082,7 +1094,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Mode:       clv1alpha2.ModeExercise,
+			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1091,7 +1103,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment has the source archive url option", WhenBody(ContainerVolumesCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
 			Persistent:  false,
-			Mode:        clv1alpha2.ModeExam,
+			Scope:       clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
 			},
@@ -1180,7 +1192,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	Describe("The forge.NeedsInitContainer function", func() {
 		type NeedsInitContainerCase struct {
 			StartupOpts          *clv1alpha2.ContainerStartupOpts
-			InstCustomOpts       *clv1alpha2.InstanceCustomizationUrls
+			InstCustomOpts       clv1alpha2.InstanceContentUrls
 			ExpectedOutputVal    bool
 			ExpectedOutputOrigin string
 		}
@@ -1189,7 +1201,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			return func() {
 				BeforeEach(func() {
 					environment.ContainerStartupOptions = c.StartupOpts
-					instance.Spec.CustomizationUrls = c.InstCustomOpts
+					if instance.Spec.ContentUrls == nil {
+						instance.Spec.ContentUrls = make(map[string]clv1alpha2.InstanceContentUrls)
+					}
+					instance.Spec.ContentUrls[environment.Name] = c.InstCustomOpts
 				})
 
 				It("Should return the correct values", func() {
@@ -1202,20 +1217,20 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("No origin is provided", WhenBody(NeedsInitContainerCase{
 			StartupOpts:          nil,
-			InstCustomOpts:       nil,
+			InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 			ExpectedOutputVal:    false,
 			ExpectedOutputOrigin: "",
 		}))
 		Context("no instance custom options are provided", func() {
 			When("no source archive is specified in the template", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          &clv1alpha2.ContainerStartupOpts{},
-				InstCustomOpts:       nil,
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    false,
 				ExpectedOutputOrigin: "",
 			}))
 			When("a source archive is specified in the template", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-				InstCustomOpts:       nil,
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    true,
 				ExpectedOutputOrigin: httpPath,
 			}))
@@ -1223,20 +1238,20 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		Context("no template custom options are provied", func() {
 			When("no source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{},
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{},
 				ExpectedOutputVal:    false,
 				ExpectedOutputOrigin: "",
 			}))
 			When("a source archive is specified in the instance", WhenBody(NeedsInitContainerCase{
 				StartupOpts:          nil,
-				InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPath},
+				InstCustomOpts:       clv1alpha2.InstanceContentUrls{Origin: httpPath},
 				ExpectedOutputVal:    true,
 				ExpectedOutputOrigin: httpPath,
 			}))
 		})
 		When("both template and instance custom options are provided", WhenBody(NeedsInitContainerCase{
 			StartupOpts:          &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
-			InstCustomOpts:       &clv1alpha2.InstanceCustomizationUrls{ContentOrigin: httpPathAlternative},
+			InstCustomOpts:       clv1alpha2.InstanceContentUrls{Origin: httpPathAlternative},
 			ExpectedOutputVal:    true,
 			ExpectedOutputOrigin: httpPathAlternative,
 		}))
@@ -1278,18 +1293,18 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var actual string
 
 		JustBeforeEach(func() {
-			actual = forge.InstanceHostname(&environment)
+			actual = forge.InstanceHostname(&template)
 		})
 
 		type EnvModeCase struct {
-			EnvMode        clv1alpha2.EnvironmentMode
+			EnvScope       clv1alpha2.EnvironmentScope
 			ExpectedOutput string
 		}
 
 		WhenBody := func(c EnvModeCase) func() {
 			return func() {
 				BeforeEach(func() {
-					environment.Mode = c.EnvMode
+					template.Spec.Scope = c.EnvScope
 				})
 
 				It("Should return the correct hostname", func() {
@@ -1299,17 +1314,17 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		When("the environment mode is Exercise", WhenBody(EnvModeCase{
-			EnvMode:        clv1alpha2.ModeExercise,
+			EnvScope:       clv1alpha2.ScopeExercise,
 			ExpectedOutput: "exercise",
 		}))
 
 		When("the environment mode is Exam", WhenBody(EnvModeCase{
-			EnvMode:        clv1alpha2.ModeExam,
+			EnvScope:       clv1alpha2.ScopeExam,
 			ExpectedOutput: "exam",
 		}))
 
 		When("the environment mode is Standard", WhenBody(EnvModeCase{
-			EnvMode:        clv1alpha2.ModeStandard,
+			EnvScope:       clv1alpha2.ScopeStandard,
 			ExpectedOutput: "",
 		}))
 	})
@@ -1324,11 +1339,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		WhenBody := func(c NodeSelectorLabelsCase, desc string) func() {
 			return func() {
 				BeforeEach(func() {
-					environment.NodeSelector = c.TemplateLabelSelector
+					template.Spec.NodeSelector = c.TemplateLabelSelector
 					instance.Spec.NodeSelector = c.InstanceLabelSelector
 				})
 				It("Should return the right set of labels: "+desc, func() {
-					Expect(forge.NodeSelectorLabels(&instance, &environment)).To(Equal(c.ExpectedOutput))
+					Expect(forge.NodeSelectorLabels(&instance, &template)).To(Equal(c.ExpectedOutput))
 				})
 			}
 		}
