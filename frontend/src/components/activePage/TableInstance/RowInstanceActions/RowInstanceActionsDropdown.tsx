@@ -97,9 +97,11 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || (status as any) === Phase2.Off
-      ? statusComponents[status as keyof typeof statusComponents]
-      : statusComponents.Other;
+    status === Phase.Ready
+      ? statusComponents[Phase.Ready]
+      : status === (Phase2.Off as unknown as Phase)
+        ? statusComponents[Phase2.Off]
+        : statusComponents.Other;
 
   const isContainer =
     environmentType === EnvironmentType.Container ||

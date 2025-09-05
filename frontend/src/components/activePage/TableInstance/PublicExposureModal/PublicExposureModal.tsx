@@ -20,7 +20,7 @@ interface IPublicExposureModalProps {
   open: boolean;
   onCancel: () => void;
   allowPublicExposure: boolean;
-  
+
   existingExposure?: PublicExposure;
   // k8s patch context
   instanceId: string;
@@ -49,7 +49,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   // GraphQL mutation hook for applyInstance
   const [applyInstanceMutation, { loading, error }] =
     useApplyInstanceMutation();
-  
+
   // Create initial ports from existing exposure
   const getInitialPorts = useMemo((): PortField[] => {
     if (existingExposure?.ports && existingExposure.ports.length > 0) {
@@ -77,8 +77,9 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     if (open && existingExposure) {
       // Only update if ports actually changed to avoid infinite loops
       const currentPorts = form.getFieldValue('ports') || [];
-      const portsChanged = JSON.stringify(currentPorts) !== JSON.stringify(getInitialPorts);
-      
+      const portsChanged =
+        JSON.stringify(currentPorts) !== JSON.stringify(getInitialPorts);
+
       if (portsChanged) {
         form.setFieldsValue({ ports: getInitialPorts });
       }
@@ -100,14 +101,14 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       }
       return { name: p.name, targetPort };
     });
-    
+
     try {
       // build patch for publicExposure via helper
       const patchJson = buildPublicExposurePatch(normalized);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
-      
+
       const result = await applyInstanceMutation({ variables });
-      
+
       // If mutation successful
       if (result.data) {
         onCancel();

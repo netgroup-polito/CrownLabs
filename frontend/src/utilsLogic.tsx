@@ -16,8 +16,9 @@ import type {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
+  Phase3,
 } from './generated-types';
-import { AutoEnroll, Phase, Phase2, Phase3, UpdateType } from './generated-types';
+import { AutoEnroll, Phase, Phase2, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
@@ -73,8 +74,7 @@ export const makeGuiTemplate = (
     workspaceNamespace:
       'workspace-' +
       (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
-    allowPublicExposure:
-      tq.original.spec?.allowPublicExposure ?? false,
+    allowPublicExposure: tq.original.spec?.allowPublicExposure ?? false,
   } as Template;
 };
 
@@ -139,7 +139,7 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: status?.ip,
-    status: (status?.phase as unknown) as Phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -152,16 +152,21 @@ export const makeGuiInstance = (
     allowPublicExposure,
     tenantDisplayName: '',
     myDriveUrl: '',
-    publicExposure: publicExposure ? {
-      externalIP: '', // Will be populated from LoadBalancer service status
-      phase: (status?.phase as unknown) as Phase || 'Off',
-      ports: publicExposure.ports?.filter(p => p != null).map(p => ({
-        name: p.name || '',
-        // When port is 0, it means auto-assigned - show empty for user to re-enter
-        port: (p.port && p.port > 0) ? String(p.port) : '',
-        targetPort: p.targetPort || 0,
-      })) || [],
-    } : undefined,
+    publicExposure: publicExposure
+      ? {
+          externalIP: '', // Will be populated from LoadBalancer service status
+          phase: (status?.phase as unknown as Phase) || 'Off',
+          ports:
+            publicExposure.ports
+              ?.filter(p => p != null)
+              .map(p => ({
+                name: p.name || '',
+                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                port: p.port && p.port > 0 ? String(p.port) : '',
+                targetPort: p.targetPort || 0,
+              })) || [],
+        }
+      : undefined,
   } as Instance;
 };
 
@@ -379,7 +384,7 @@ export const getManagerInstances = (
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
-    status: (status?.phase as unknown) as Phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -389,16 +394,21 @@ export const getManagerInstances = (
     running: spec?.running,
     allowPublicExposure,
     myDriveUrl: '',
-    publicExposure: publicExposure ? {
-      externalIP: '', // Will be populated from LoadBalancer service status
-      phase: (status?.phase as unknown) as Phase || 'Off',
-      ports: publicExposure.ports?.filter(p => p != null).map(p => ({
-        name: p.name || '',
-        // When port is 0, it means auto-assigned - show empty for user to re-enter
-        port: (p.port && p.port > 0) ? String(p.port) : '',
-        targetPort: p.targetPort || 0,
-      })) || [],
-    } : undefined,
+    publicExposure: publicExposure
+      ? {
+          externalIP: '', // Will be populated from LoadBalancer service status
+          phase: (status?.phase as unknown as Phase) || 'Off',
+          ports:
+            publicExposure.ports
+              ?.filter(p => p != null)
+              .map(p => ({
+                name: p.name || '',
+                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                port: p.port && p.port > 0 ? String(p.port) : '',
+                targetPort: p.targetPort || 0,
+              })) || [],
+        }
+      : undefined,
   } as Instance;
 };
 
@@ -686,7 +696,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: (status?.phase as unknown) as Phase3,
+    status: status?.phase as unknown as Phase3,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;

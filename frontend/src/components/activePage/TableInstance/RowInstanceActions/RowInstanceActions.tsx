@@ -21,10 +21,10 @@ export interface IRowInstanceActionsProps {
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
-  
+
   // Use the value from the template (mapped via GraphQL)
   const allowPublic = instance.allowPublicExposure;
-  
+
   const { persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
