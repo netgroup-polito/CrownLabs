@@ -88,10 +88,9 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports?.[ports.length - 1]?.targetPort;
-  const isAddDisabled =
-    !lastTargetPort ||
+  const isAddDisabled = ports?.length > 0 && (!lastTargetPort ||
     !/^\d+$/.test(lastTargetPort) ||
-    parseInt(lastTargetPort, 10) === 0;
+    parseInt(lastTargetPort, 10) === 0);
 
   const onFinish = async (values: FormValues) => {
     const normalized = values.ports.map(p => {
@@ -168,6 +167,15 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         <Form.List name="ports">
           {(fields, { add, remove }) => (
             <>
+              {fields.length === 0 && (
+                <Alert
+                  type="info"
+                  message="No ports exposed"
+                  description="Public exposure is currently disabled for this instance. Add a port to enable external access."
+                  showIcon
+                  style={{ marginBottom: 16 }}
+                />
+              )}
               {fields.map(({ key, name, ...restField }, index) => (
                 <div key={key}>
                   <Row gutter={8} align="bottom">
@@ -217,7 +225,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         danger
                         icon={<DeleteOutlined />}
                         onClick={() => remove(name)}
-                        disabled={fields.length === 1}
                       />
                     </Col>
                   </Row>

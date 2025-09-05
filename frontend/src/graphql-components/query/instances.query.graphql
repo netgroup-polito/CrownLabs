@@ -16,6 +16,15 @@ query ownedInstances($tenantNamespace: String!) {
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            targetPort
+          }
+        }
       }
       spec {
         running

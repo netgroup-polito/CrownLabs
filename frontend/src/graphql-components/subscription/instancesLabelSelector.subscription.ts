@@ -18,10 +18,26 @@ export default gql`
           url
           nodeName
           nodeSelector
+          publicExposure {
+            externalIP
+            phase
+            ports {
+              name
+              port
+              targetPort
+            }
+          }
         }
         spec {
           running
           prettyName
+          publicExposure {
+            ports {
+              name
+              port
+              targetPort
+            }
+          }
           tenantCrownlabsPolitoItTenantRef {
             name
             tenantV1alpha2Wrapper {
@@ -41,6 +57,7 @@ export default gql`
                 spec {
                   prettyName
                   description
+                  allowPublicExposure
                   environmentList {
                     guiEnabled
                     persistent

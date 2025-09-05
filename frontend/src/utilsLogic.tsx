@@ -104,6 +104,7 @@ export const makeGuiInstance = (
   const { metadata, spec, status } = instance;
   const { name, namespace: tenantNamespace } = metadata ?? {};
   const { running, prettyName, publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
   const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
@@ -154,8 +155,8 @@ export const makeGuiInstance = (
     myDriveUrl: '',
     publicExposure: publicExposure
       ? {
-          externalIP: '', // Will be populated from LoadBalancer service status
-          phase: (status?.phase as unknown as Phase) || 'Off',
+          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
             publicExposure.ports
               ?.filter(p => p != null)
@@ -258,11 +259,16 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const { running: oldRunning, status: oldStatus, publicExposure: oldPublicExposure } = oldObj ?? {};
+  const { running: newRunning, status: newStatus, publicExposure: newPublicExposure } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
-    if (oldStatus !== newStatus || oldRunning !== newRunning) {
+    
+    // Check for any significant changes that should trigger UI update
+    const statusChanged = oldStatus !== newStatus || oldRunning !== newRunning;
+    const publicExposureChanged = JSON.stringify(oldPublicExposure) !== JSON.stringify(newPublicExposure);
+    
+    if (statusChanged || publicExposureChanged) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -281,10 +287,14 @@ export const getSubObjTypeK8s = (
   if (oldObj) {
     if (oldSpec?.prettyName !== newSpec?.prettyName)
       return SubObjType.PrettyName;
-    if (
-      oldStatus?.phase !== newStatus?.phase ||
-      oldSpec?.running !== newSpec?.running
-    ) {
+    
+    // Check for phase, running, or publicExposure changes
+    const phaseChanged = oldStatus?.phase !== newStatus?.phase;
+    const runningChanged = oldSpec?.running !== newSpec?.running;
+    const publicExposureSpecChanged = JSON.stringify(oldSpec?.publicExposure) !== JSON.stringify(newSpec?.publicExposure);
+    const publicExposureStatusChanged = JSON.stringify(oldStatus?.publicExposure) !== JSON.stringify(newStatus?.publicExposure);
+    
+    if (phaseChanged || runningChanged || publicExposureSpecChanged || publicExposureStatusChanged) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -348,6 +358,7 @@ export const getManagerInstances = (
   }
   const { metadata, spec, status } = instance;
   const { publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
 
   // Template Info
   const {
@@ -396,8 +407,8 @@ export const getManagerInstances = (
     myDriveUrl: '',
     publicExposure: publicExposure
       ? {
-          externalIP: '', // Will be populated from LoadBalancer service status
-          phase: (status?.phase as unknown as Phase) || 'Off',
+          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
             publicExposure.ports
               ?.filter(p => p != null)
