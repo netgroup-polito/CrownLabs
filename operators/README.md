@@ -136,7 +136,8 @@ go build ./cmd/instance-operator/main.go
 
 ### Instance Automation Operator
 
-The **Instance Automation Controller** (`instautoctrl` package) is responsible for automating the lifecycle management of Instances, focusing on two main aspects: inactivity and expiration. You can find the full documentation [here](/operators/pkg/instautoctrl/README.md).
+The **Instance Automation Controller** (`instautoctrl` package) is responsible for automating the lifecycle management of Instances, focusing on two main aspects: inactivity and expiration.
+You can find the full documentation [here](/operators/pkg/instautoctrl/README.md).
 
 #### Instance Inactive Termination controller
 
