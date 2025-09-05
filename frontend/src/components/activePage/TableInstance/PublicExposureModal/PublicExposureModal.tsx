@@ -131,13 +131,13 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   return (
     <Modal
-      title="Port Exposure"
+      title="TCP Port Exposure"
       open={open}
       onCancel={onCancel}
       width={550}
       footer={[
         <Button key="cancel" onClick={onCancel} disabled={loading}>
-          Close
+          Cancel
         </Button>,
         <Button
           key="send"
@@ -145,7 +145,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           onClick={() => form.submit()}
           loading={loading}
         >
-          Send
+          Ok
         </Button>,
       ]}
     >
@@ -193,7 +193,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                       <Form.Item
                         {...restField}
                         name={[name, 'targetPort']}
-                        label="Target Port"
+                        label="Target Port (internal)"
                         style={{ marginBottom: 8 }}
                         rules={[
                           { required: true, message: 'Required' },
@@ -208,7 +208,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Form.Item
                           {...restField}
                           name={[name, 'desiredPort']}
-                          label="Desired Port"
+                          label="Desired Port (public)"
                           style={{ marginBottom: 8 }}
                           rules={[{ validator: portValidator }]}
                         >
