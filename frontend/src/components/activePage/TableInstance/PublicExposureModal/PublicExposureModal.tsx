@@ -88,9 +88,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports?.[ports.length - 1]?.targetPort;
-  const isAddDisabled = ports?.length > 0 && (!lastTargetPort ||
-    !/^\d+$/.test(lastTargetPort) ||
-    parseInt(lastTargetPort, 10) === 0);
+  const isAddDisabled =
+    ports?.length > 0 &&
+    (!lastTargetPort ||
+      !/^\d+$/.test(lastTargetPort) ||
+      parseInt(lastTargetPort, 10) === 0);
 
   const onFinish = async (values: FormValues) => {
     // Prevent multiple submissions
@@ -103,7 +105,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       const targetPort = parseInt(p.targetPort, 10);
       if (allowPublicExposure) {
         // Only include port if desiredPort is provided and not empty
-        const result: any = { name: p.name, targetPort };
+        const result: { name?: string; targetPort: number; port?: string } = {
+          name: p.name,
+          targetPort,
+        };
         if (p.desiredPort && p.desiredPort.trim() !== '') {
           result.port = p.desiredPort;
         }
