@@ -1,5 +1,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase5 } from './generated-types';
+import type { DeepPartial } from '@apollo/client/utilities';
+import type { EnvironmentType, Phase, Phase5, ItPolitoCrownlabsV1alpha2Instance } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -280,19 +281,28 @@ export function buildPublicExposurePatch(
   // Convert port strings to numbers for Kubernetes API
   const portsWithNumericPort = portsNormalized.map(p => {
     const portNum = p.port ? parseInt(p.port, 10) : 0;
-    return {
-      ...(p.name !== undefined ? { name: p.name } : {}),
+    const result: any = {
       targetPort: p.targetPort,
-      // Only include port if it's a valid port number (> 0)
-      ...(portNum > 0 ? { port: portNum } : {}),
     };
+    
+    // Only include name if it's provided and not empty
+    if (p.name && p.name.trim() !== '') {
+      result.name = p.name.trim();
+    }
+    
+    // Only include port if it's a valid port number (> 0)
+    if (portNum > 0) {
+      result.port = portNum;
+    }
+    
+    return result;
   });
 
-  const payload = {
+  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
     kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
     spec: { publicExposure: { ports: portsWithNumericPort } },
   };
 
-  return JSON.stringify(payload);
+  return JSON.stringify(patchJson);
 }

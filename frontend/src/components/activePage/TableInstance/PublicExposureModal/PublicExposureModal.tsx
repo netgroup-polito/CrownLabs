@@ -62,7 +62,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     return [{ name: '', targetPort: '', desiredPort: '' }];
   }, [existingExposure, allowPublicExposure]);
 
-  // Reset form values when modal opens or existingExposure changes
+  // Reset form values when modal opens
   useEffect(() => {
     if (open) {
       // Use setTimeout to ensure the form is properly initialized
@@ -93,10 +93,21 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     parseInt(lastTargetPort, 10) === 0);
 
   const onFinish = async (values: FormValues) => {
+    // Prevent multiple submissions
+    if (loading) {
+      console.log('⚠️ Submission already in progress, ignoring...');
+      return;
+    }
+
     const normalized = values.ports.map(p => {
       const targetPort = parseInt(p.targetPort, 10);
       if (allowPublicExposure) {
-        return { name: p.name, targetPort, port: p.desiredPort || '0' };
+        // Only include port if desiredPort is provided and not empty
+        const result: any = { name: p.name, targetPort };
+        if (p.desiredPort && p.desiredPort.trim() !== '') {
+          result.port = p.desiredPort;
+        }
+        return result;
       }
       return { name: p.name, targetPort };
     });
@@ -104,6 +115,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     try {
       // build patch for publicExposure via helper
       const patchJson = buildPublicExposurePatch(normalized);
+      console.log('🔧 Sending patch:', patchJson);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
 
       const result = await applyInstanceMutation({ variables });
@@ -142,8 +154,13 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         <Button
           key="send"
           type="primary"
-          onClick={() => form.submit()}
+          onClick={() => {
+            if (!loading) {
+              form.submit();
+            }
+          }}
           loading={loading}
+          disabled={loading}
         >
           Ok
         </Button>,
@@ -179,7 +196,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
               {fields.map(({ key, name, ...restField }, index) => (
                 <div key={key}>
                   <Row gutter={8} align="bottom">
-                    <Col span={7}>
+                    <Col span={6}>
                       <Form.Item
                         {...restField}
                         name={[name, 'name']}
@@ -189,7 +206,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Input placeholder="e.g. web-server" />
                       </Form.Item>
                     </Col>
-                    <Col span={7}>
+                    <Col span={8}>
                       <Form.Item
                         {...restField}
                         name={[name, 'targetPort']}
