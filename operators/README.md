@@ -134,6 +134,28 @@ The Instance Operator requires Golang 1.16 and `make`. To build the operator:
 go build ./cmd/instance-operator/main.go
 ```
 
+### Instance Automation Operator
+
+The **Instance Automation Controller** (`instautoctrl` package) is responsible for automating the lifecycle management of Instances, focusing on two main aspects: inactivity and expiration.
+You can find the full documentation [here](/operators/pkg/instautoctrl/README.md).
+
+#### Instance Inactive Termination controller
+
+This controller periodically checks running Instances to determine if they are still in use or can be terminated because of inactivity. Each **Template** resource associated with an Instance defines an `InactivityTimeout` field, which indicates the period of inactivity after which the Instance is considered unused.
+To evaluate whether an Instance is active, the controller relies on **Prometheus** metrics. It verifies whether the tenant has accessed the Instance recently, either through the frontend (by analyzing Ingress metrics) or via SSH (using a specific SSH bastion tracker metric). If activity is detected, the controller postpones the check. If no activity is recorded for a time longer than the `InactivityTimeout`, the process of inactivity handling begins.
+When an Instance has been marked as inactive, the controller starts sending email notifications to tenants, warning them that the Instance will be paused or deleted if they do not access it.
+The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart.
+Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**.
+After the final action, an additional email is sent to inform the tenant.
+Both the controller and the email notifications can be enabled or disabled through the Helm chart using the `enableInstanceInactiveTermination` and `enableInactivityNotifications` parameters. In addition, the behavior can be customized using annotations. For example, the `CustomNumberOfAlertsAnnotation` on a Template allows overriding the default number of notifications for a specific Instance type, while the `InstanceInactivityIgnoreNamespace` annotation on a Namespace completely excludes its Instances from the inactivity termination logic.
+
+#### Instance Expiration controller
+The second controller focuses on the maximum lifespan of Instances. Each Template defines a `DeleteAfter` field that specifies how long an Instance can exist before it must be removed. When an Instance reaches this limit, the controller automatically deletes it. As with inactivity termination, this feature can be managed through Helm chart parameters: `enableInstanceExpiration` controls whether the controller is active, while `enableExpirationNotifications` enables or disables email alerts to inform tenants before deletion.
+
+
+This approach ensures that unused or expired resources are efficiently managed, improving resource utilization and reducing unnecessary costs, while still providing tenants with proper notifications and flexibility through configuration options and annotations.
+
+
 ## SSH bastion
 
 The SSH bastion is composed of three basic blocks:
