@@ -8,4 +8,10 @@ templates:
 
 configs:
   name: crownmail-configs
-  sourceFolder: mail-configs
+  smtp:
+    server: smtp.example.com
+    port: "587"
+    identity: debug
+    username: debug@example.com
+    password: debugpassword
+    from: crownlabs@example.com

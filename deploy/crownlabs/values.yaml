@@ -78,9 +78,18 @@ operator:
     enableMutating: true
 
 crownmail:
-  configmap:
-    name: crownmail
-    sourceFolder: mail-config
+  templates:
+    name: crownmail-templates
+    sourceFolder: mail-templates
+  configs:
+    name: crownmail-configs
+    smtp:
+      server: smtp.example.com
+      port: "587"
+      identity: debug
+      username: debug@example.com
+      password: debugpassword
+      from: crownlabs@example.com
 
 instance-operator:
   replicaCount: 1
@@ -88,7 +97,6 @@ instance-operator:
     repository: crownlabs/instance-operator
   rbacResourcesName: crownlabs-instance-operator
   configurations:
-    mailConfigMapName: crownlabs-mail-config
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       websiteBaseUrl: crownlabs.example.com

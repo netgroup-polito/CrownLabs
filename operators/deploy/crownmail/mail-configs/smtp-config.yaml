@@ -1,6 +1,0 @@
-smtpServer: smtp.example.com
-smtpPort: "587"
-smtpIdentity: debug
-smtpUsername: debug@example.com
-smtpPassword: debugpassword
-smtpFrom: crownlabs@example.com
