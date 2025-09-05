@@ -221,6 +221,65 @@ export enum EnvironmentType {
   VirtualMachine = 'VirtualMachine'
 }
 
+/** InstanceStatusEnv reflects the status of an instance's environment. */
+export type EnvironmentsListItem = {
+  __typename?: 'EnvironmentsListItem';
+  /** Timestamps of the Instance automation phases (check, termination and submission). */
+  automation?: Maybe<Automation>;
+  /**
+   * The amount of time the Instance required to become ready for the first time
+   * upon creation.
+   */
+  initialReadyTime?: Maybe<Scalars['String']['output']>;
+  /**
+   * The internal IP address associated with the remote environment, which can
+   * be used to access it through the SSH protocol (leveraging the SSH bastion
+   * in case it is not contacted from another CrownLabs Instance).
+   */
+  ip?: Maybe<Scalars['String']['output']>;
+  /**
+   * The name identifying the specific environment.
+   * It is equivalent to the name of a template's environment.
+   */
+  name: Scalars['String']['output'];
+  /**
+   * The current status Instance, with reference to the associated environment
+   * (e.g. VM). This conveys which resource is being created, as well as
+   * whether the associated VM is being scheduled, is running or ready to
+   * accept incoming connections.
+   */
+  phase?: Maybe<Phase>;
+};
+
+/** InstanceStatusEnv reflects the status of an instance's environment. */
+export type EnvironmentsListItemInput = {
+  /** Timestamps of the Instance automation phases (check, termination and submission). */
+  automation?: InputMaybe<AutomationInput>;
+  /**
+   * The amount of time the Instance required to become ready for the first time
+   * upon creation.
+   */
+  initialReadyTime?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The internal IP address associated with the remote environment, which can
+   * be used to access it through the SSH protocol (leveraging the SSH bastion
+   * in case it is not contacted from another CrownLabs Instance).
+   */
+  ip?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The name identifying the specific environment.
+   * It is equivalent to the name of a template's environment.
+   */
+  name: Scalars['String']['input'];
+  /**
+   * The current status Instance, with reference to the associated environment
+   * (e.g. VM). This conveys which resource is being created, as well as
+   * whether the associated VM is being scheduled, is running or ready to
+   * accept incoming connections.
+   */
+  phase?: InputMaybe<Phase>;
+};
+
 /** ImageListItem describes a single VM image. */
 export type ImagesListItem = {
   __typename?: 'ImagesListItem';
@@ -1835,9 +1894,15 @@ export type PersonalNamespaceInput = {
 };
 
 export enum Phase {
-  Error = 'Error',
-  Provisioning = 'Provisioning',
+  CreationLoopBackoff = 'CreationLoopBackoff',
+  Failed = 'Failed',
+  Importing = 'Importing',
+  Off = 'Off',
   Ready = 'Ready',
+  ResourceQuotaExceeded = 'ResourceQuotaExceeded',
+  Running = 'Running',
+  Starting = 'Starting',
+  Stopping = 'Stopping',
   Empty = '_EMPTY_'
 }
 
@@ -1855,6 +1920,13 @@ export enum Phase2 {
 }
 
 export enum Phase3 {
+  Error = 'Error',
+  Provisioning = 'Provisioning',
+  Ready = 'Ready',
+  Empty = '_EMPTY_'
+}
+
+export enum Phase4 {
   Completed = 'Completed',
   Failed = 'Failed',
   Pending = 'Pending',
@@ -1862,7 +1934,7 @@ export enum Phase3 {
   Empty = '_EMPTY_'
 }
 
-export enum Phase4 {
+export enum Phase5 {
   Deleting = 'Deleting',
   Error = 'Error',
   Pending = 'Pending',
@@ -1871,6 +1943,27 @@ export enum Phase4 {
   ResourceQuotaExceeded = 'ResourceQuotaExceeded',
   Empty = '_EMPTY_'
 }
+
+/** PublicServicePort defines the mapping of ports for a service. */
+export type Ports2ListItem = {
+  __typename?: 'Ports2ListItem';
+  /** A friendly name for the port. */
+  name: Scalars['String']['output'];
+  /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
+  port: Scalars['Int']['output'];
+  /** The port on the container to target. */
+  targetPort: Scalars['Int']['output'];
+};
+
+/** PublicServicePort defines the mapping of ports for a service. */
+export type Ports2ListItemInput = {
+  /** A friendly name for the port. */
+  name: Scalars['String']['input'];
+  /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
+  port: Scalars['Int']['input'];
+  /** The port on the container to target. */
+  targetPort: Scalars['Int']['input'];
+};
 
 /** PublicServicePort defines the mapping of ports for a service. */
 export type PortsListItem = {
@@ -1893,25 +1986,54 @@ export type PortsListItemInput = {
   targetPort: Scalars['Int']['input'];
 };
 
-/** The status of the Instance service exposure, if any. */
+/**
+ * Optional specification of the Instance service exposure.
+ * If set, it will be used to expose the Instance services to the outside world.
+ * LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+ */
 export type PublicExposure = {
   __typename?: 'PublicExposure';
-  /** The external IP address assigned to the LoadBalancer service. */
-  externalIP?: Maybe<Scalars['String']['output']>;
-  /** The current phase of the public exposure. */
-  phase?: Maybe<Phase>;
-  /** The list of port mappings with the actually assigned public ports in 'Port' field. */
-  ports?: Maybe<Array<Maybe<PortsListItem>>>;
+  /**
+   * The list of ports to expose.
+   * If 'Port' is set to 0, a random port from the ephemeral range will be assigned.
+   * If no ports are specified, the service will not be exposed with a LoadBalancer
+   */
+  ports: Array<Maybe<PortsListItem>>;
 };
 
 /** The status of the Instance service exposure, if any. */
-export type PublicExposureInput = {
+export type PublicExposure2 = {
+  __typename?: 'PublicExposure2';
+  /** The external IP address assigned to the LoadBalancer service. */
+  externalIP?: Maybe<Scalars['String']['output']>;
+  /** The current phase of the public exposure. */
+  phase?: Maybe<Phase3>;
+  /** The list of port mappings with the actually assigned public ports in 'Port' field. */
+  ports?: Maybe<Array<Maybe<Ports2ListItem>>>;
+};
+
+/** The status of the Instance service exposure, if any. */
+export type PublicExposure2Input = {
   /** The external IP address assigned to the LoadBalancer service. */
   externalIP?: InputMaybe<Scalars['String']['input']>;
   /** The current phase of the public exposure. */
-  phase?: InputMaybe<Phase>;
+  phase?: InputMaybe<Phase3>;
   /** The list of port mappings with the actually assigned public ports in 'Port' field. */
-  ports?: InputMaybe<Array<InputMaybe<PortsListItemInput>>>;
+  ports?: InputMaybe<Array<InputMaybe<Ports2ListItemInput>>>;
+};
+
+/**
+ * Optional specification of the Instance service exposure.
+ * If set, it will be used to expose the Instance services to the outside world.
+ * LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+ */
+export type PublicExposureInput = {
+  /**
+   * The list of ports to expose.
+   * If 'Port' is set to 0, a random port from the ephemeral range will be assigned.
+   * If no ports are specified, the service will not be exposed with a LoadBalancer
+   */
+  ports: Array<InputMaybe<PortsListItemInput>>;
 };
 
 export type Query = {
@@ -2489,6 +2611,12 @@ export type SandboxNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+export enum Scope {
+  Exam = 'Exam',
+  Exercise = 'Exercise',
+  Standard = 'Standard'
+}
+
 /** The reference of the Shared Volume this Mount Info is related to. */
 export type SharedVolume = {
   __typename?: 'SharedVolume';
@@ -2566,6 +2694,7 @@ export type Spec2Input = {
 /** InstanceSpec is the specification of the desired state of the Instance. */
 export type Spec3 = {
   __typename?: 'Spec3';
+  contentUrls?: Maybe<Scalars['JSON']['output']>;
   /** Optional urls for advanced integration features. */
   customizationUrls?: Maybe<CustomizationUrls>;
   /** Labels that are used for the selection of the node. */
@@ -2575,7 +2704,11 @@ export type Spec3 = {
    * in order to more easily identify the instance.
    */
   prettyName?: Maybe<Scalars['String']['output']>;
-  /** The status of the Instance service exposure, if any. */
+  /**
+   * Optional specification of the Instance service exposure.
+   * If set, it will be used to expose the Instance services to the outside world.
+   * LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+   */
   publicExposure?: Maybe<PublicExposure>;
   /**
    * Whether the current instance is running or not.
@@ -2589,6 +2722,8 @@ export type Spec3 = {
    * subsequent recreation without data loss.
    */
   running?: Maybe<Scalars['Boolean']['output']>;
+  /** Optional urls for advanced integration features. */
+  statusCheckUrl?: Maybe<Scalars['String']['output']>;
   /** The reference to the Template to be instantiated. */
   templateCrownlabsPolitoItTemplateRef: TemplateCrownlabsPolitoItTemplateRef;
   /** The reference to the Tenant which owns the Instance object. */
@@ -2597,6 +2732,7 @@ export type Spec3 = {
 
 /** InstanceSpec is the specification of the desired state of the Instance. */
 export type Spec3Input = {
+  contentUrls?: InputMaybe<Scalars['JSON']['input']>;
   /** Optional urls for advanced integration features. */
   customizationUrls?: InputMaybe<CustomizationUrlsInput>;
   /** Labels that are used for the selection of the node. */
@@ -2606,7 +2742,11 @@ export type Spec3Input = {
    * in order to more easily identify the instance.
    */
   prettyName?: InputMaybe<Scalars['String']['input']>;
-  /** The status of the Instance service exposure, if any. */
+  /**
+   * Optional specification of the Instance service exposure.
+   * If set, it will be used to expose the Instance services to the outside world.
+   * LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+   */
   publicExposure?: InputMaybe<PublicExposureInput>;
   /**
    * Whether the current instance is running or not.
@@ -2620,6 +2760,8 @@ export type Spec3Input = {
    * subsequent recreation without data loss.
    */
   running?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Optional urls for advanced integration features. */
+  statusCheckUrl?: InputMaybe<Scalars['String']['input']>;
   /** The reference to the Template to be instantiated. */
   templateCrownlabsPolitoItTemplateRef: TemplateCrownlabsPolitoItTemplateRefInput;
   /** The reference to the Tenant which owns the Instance object. */
@@ -2700,8 +2842,16 @@ export type Spec6 = {
    * save resources.
    */
   inactivityTimeout?: Maybe<Scalars['String']['output']>;
+  /**
+   * Labels that are used for the selection of the node.
+   * They are given by means of a pointer to check the presence of the field.
+   * In case it is present, the labels that are chosen are the ones present on the instance
+   */
+  nodeSelector?: Maybe<Scalars['JSON']['output']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['output'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: Maybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: Maybe<WorkspaceCrownlabsPolitoItWorkspaceRef>;
 };
@@ -2727,8 +2877,16 @@ export type Spec6Input = {
    * save resources.
    */
   inactivityTimeout?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Labels that are used for the selection of the node.
+   * They are given by means of a pointer to check the presence of the field.
+   * In case it is present, the labels that are chosen are the ones present on the instance
+   */
+  nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['input'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: InputMaybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: InputMaybe<WorkspaceCrownlabsPolitoItWorkspaceRefInput>;
 };
@@ -2736,6 +2894,8 @@ export type Spec6Input = {
 /** TenantSpec is the specification of the desired state of the Tenant. */
 export type Spec7 = {
   __typename?: 'Spec7';
+  /** Whether a personal workspace should be created for the tenant */
+  createPersonalWorkspace?: Maybe<Scalars['Boolean']['output']>;
   /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
   createSandbox?: Maybe<Scalars['Boolean']['output']>;
   /** The email associated with the Tenant, which will be used to log-in into the system. */
@@ -2756,6 +2916,8 @@ export type Spec7 = {
 
 /** TenantSpec is the specification of the desired state of the Tenant. */
 export type Spec7Input = {
+  /** Whether a personal workspace should be created for the tenant */
+  createPersonalWorkspace?: InputMaybe<Scalars['Boolean']['input']>;
   /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
   createSandbox?: InputMaybe<Scalars['Boolean']['input']>;
   /** The email associated with the Tenant, which will be used to log-in into the system. */
@@ -2808,6 +2970,8 @@ export type Status3 = {
   __typename?: 'Status3';
   /** Timestamps of the Instance automation phases (check, termination and submission). */
   automation?: Maybe<Automation>;
+  /** Environments contains the status of the instance's environments. */
+  environments?: Maybe<Array<Maybe<EnvironmentsListItem>>>;
   /**
    * The amount of time the Instance required to become ready for the first time
    * upon creation.
@@ -2825,16 +2989,14 @@ export type Status3 = {
   nodeName?: Maybe<Scalars['String']['output']>;
   /** The actual nodeSelector assigned to the Instance. */
   nodeSelector?: Maybe<Scalars['JSON']['output']>;
-  /**
-   * The current status Instance, with reference to the associated environment
-   * (e.g. VM). This conveys which resource is being created, as well as
-   * whether the associated VM is being scheduled, is running or ready to
-   * accept incoming connections.
-   */
+  /** The current phase of the Instance based on all environments. */
   phase?: Maybe<Phase2>;
+  /** The status of the Instance service exposure, if any. */
+  publicExposure?: Maybe<PublicExposure2>;
   /**
-   * The URL where it is possible to access the remote desktop of the instance
-   * (in case of graphical environments)
+   * The URL that consitutes the root for the urls of each environment within the instance.
+   * It is possible to access the remote desktop of the instance
+   * (in case of graphical environments).
    */
   url?: Maybe<Scalars['String']['output']>;
 };
@@ -2843,6 +3005,8 @@ export type Status3 = {
 export type Status3Input = {
   /** Timestamps of the Instance automation phases (check, termination and submission). */
   automation?: InputMaybe<AutomationInput>;
+  /** Environments contains the status of the instance's environments. */
+  environments?: InputMaybe<Array<InputMaybe<EnvironmentsListItemInput>>>;
   /**
    * The amount of time the Instance required to become ready for the first time
    * upon creation.
@@ -2860,16 +3024,14 @@ export type Status3Input = {
   nodeName?: InputMaybe<Scalars['String']['input']>;
   /** The actual nodeSelector assigned to the Instance. */
   nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
-  /**
-   * The current status Instance, with reference to the associated environment
-   * (e.g. VM). This conveys which resource is being created, as well as
-   * whether the associated VM is being scheduled, is running or ready to
-   * accept incoming connections.
-   */
+  /** The current phase of the Instance based on all environments. */
   phase?: InputMaybe<Phase2>;
+  /** The status of the Instance service exposure, if any. */
+  publicExposure?: InputMaybe<PublicExposure2Input>;
   /**
-   * The URL where it is possible to access the remote desktop of the instance
-   * (in case of graphical environments)
+   * The URL that consitutes the root for the urls of each environment within the instance.
+   * It is possible to access the remote desktop of the instance
+   * (in case of graphical environments).
    */
   url?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2878,13 +3040,13 @@ export type Status3Input = {
 export type Status4 = {
   __typename?: 'Status4';
   /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase3;
+  phase: Phase4;
 };
 
 /** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
 export type Status4Input = {
   /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase3;
+  phase: Phase4;
 };
 
 /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
@@ -2893,7 +3055,7 @@ export type Status5 = {
   /** The NFS path. */
   exportPath?: Maybe<Scalars['String']['output']>;
   /** The current phase of the lifecycle of the Shared Volume. */
-  phase?: Maybe<Phase4>;
+  phase?: Maybe<Phase5>;
   /** The NFS server address. */
   serverAddress?: Maybe<Scalars['String']['output']>;
 };
@@ -2903,7 +3065,7 @@ export type Status5Input = {
   /** The NFS path. */
   exportPath?: InputMaybe<Scalars['String']['input']>;
   /** The current phase of the lifecycle of the Shared Volume. */
-  phase?: InputMaybe<Phase4>;
+  phase?: InputMaybe<Phase5>;
   /** The NFS server address. */
   serverAddress?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3138,7 +3300,7 @@ export type ApplyInstanceMutationVariables = Exact<{
 }>;
 
 
-export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null } | null } | null };
+export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> } | null } | null } | null };
 
 export type ApplySharedVolumeMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -3148,7 +3310,7 @@ export type ApplySharedVolumeMutationVariables = Exact<{
 }>;
 
 
-export type ApplySharedVolumeMutation = { __typename?: 'Mutation', applySharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, status?: { __typename?: 'Status5', phase?: Phase4 | null } | null } | null };
+export type ApplySharedVolumeMutation = { __typename?: 'Mutation', applySharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null } | null };
 
 export type ApplyTemplateMutationVariables = Exact<{
   templateId: Scalars['String']['input'];
@@ -3189,7 +3351,7 @@ export type CreateSharedVolumeMutationVariables = Exact<{
 }>;
 
 
-export type CreateSharedVolumeMutation = { __typename?: 'Mutation', createdSharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase4 | null } | null } | null };
+export type CreateSharedVolumeMutation = { __typename?: 'Mutation', createdSharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null } | null };
 
 export type CreateTemplateMutationVariables = Exact<{
   workspaceId: Scalars['String']['input'];
@@ -3251,14 +3413,14 @@ export type OwnedInstancesQueryVariables = Exact<{
 }>;
 
 
-export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> } | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type InstancesLabelSelectorQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports?: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> | null } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
+export type InstancesLabelSelectorQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number } | null> } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string, tenantV1alpha2Wrapper?: { __typename?: 'TenantV1alpha2Wrapper', itPolitoCrownlabsV1alpha2Tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', firstName: string, lastName: string } | null } | null } | null }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type NodesLabelsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3270,7 +3432,7 @@ export type WorkspaceSharedVolumesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceSharedVolumesQuery = { __typename?: 'Query', sharedvolumeList?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList', sharedvolumes: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase4 | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceSharedVolumesQuery = { __typename?: 'Query', sharedvolumeList?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList', sharedvolumes: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type WorkspaceTemplatesQueryVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];

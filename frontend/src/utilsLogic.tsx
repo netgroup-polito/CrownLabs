@@ -16,7 +16,7 @@ import type {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
-  Phase3,
+  Phase5,
 } from './generated-types';
 import { AutoEnroll, Phase, Phase2, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
@@ -438,8 +438,16 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
-      instancesFiltered;
+    const [
+      {
+        templateId,
+        gui,
+        persistent,
+        workspaceName,
+        templatePrettyName,
+        allowPublicExposure,
+      },
+    ] = instancesFiltered;
     return {
       id: templateId,
       name: templatePrettyName,
@@ -449,6 +457,7 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
+      allowPublicExposure,
     };
   });
 };
@@ -696,7 +705,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase as unknown as Phase3,
+    status: status?.phase as unknown as Phase5,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;
