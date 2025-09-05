@@ -1,5 +1,11 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { DeepPartial } from '@apollo/client/utilities';
+import type {
+  EnvironmentType,
+  Phase,
+  Phase5,
+  ItPolitoCrownlabsV1alpha2Instance,
+} from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -33,6 +39,8 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type Instance = {
@@ -57,6 +65,9 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  publicExposure?: PublicExposure;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type SharedVolume = {
@@ -64,11 +75,22 @@ export type SharedVolume = {
   name: string;
   prettyName: string;
   size: string;
-  status: Phase3;
+  status: Phase5;
   timeStamp: string;
   namespace: string;
 };
 
+export type PublicExposure = {
+  externalIP: string;
+  phase: Phase;
+  ports: Array<PortListItem>;
+};
+
+export type PortListItem = {
+  name?: string;
+  port: string;
+  targetPort: number;
+};
 export enum LinkPosition {
   MenuButton,
   NavbarButton,
@@ -251,4 +273,41 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
   return (Object.keys(enumObj) as (keyof T)[]).find(
     key => enumObj[key] === value,
   );
+}
+
+/**
+ * Build JSON patch string for updating publicExposure ports on an Instance.
+ * @param portsNormalized entries with name, targetPort, and port
+ * @returns JSON patch string
+ */
+export function buildPublicExposurePatch(
+  portsNormalized: Array<{ name?: string; targetPort: number; port?: string }>,
+): string {
+  // Convert port strings to numbers for Kubernetes API
+  const portsWithNumericPort = portsNormalized.map(p => {
+    const portNum = p.port ? parseInt(p.port, 10) : 0;
+    const result: { name?: string; targetPort: number; port?: number } = {
+      targetPort: p.targetPort,
+    };
+
+    // Only include name if it's provided and not empty
+    if (p.name && p.name.trim() !== '') {
+      result.name = p.name.trim();
+    }
+
+    // Only include port if it's a valid port number (> 0)
+    if (portNum > 0) {
+      result.port = portNum;
+    }
+
+    return result;
+  });
+
+  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
+    kind: 'Instance',
+    apiVersion: 'crownlabs.polito.it/v1alpha2',
+    spec: { publicExposure: { ports: portsWithNumericPort } },
+  };
+
+  return JSON.stringify(patchJson);
 }

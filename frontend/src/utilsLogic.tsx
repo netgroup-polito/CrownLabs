@@ -16,8 +16,9 @@ import type {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
+  Phase5,
 } from './generated-types';
-import { AutoEnroll, Phase, UpdateType } from './generated-types';
+import { AutoEnroll, Phase, Phase2, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
@@ -73,6 +74,7 @@ export const makeGuiTemplate = (
     workspaceNamespace:
       'workspace-' +
       (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
+    allowPublicExposure: tq.original.spec?.allowPublicExposure ?? false,
   } as Template;
 };
 
@@ -101,7 +103,8 @@ export const makeGuiInstance = (
 
   const { metadata, spec, status } = instance;
   const { name, namespace: tenantNamespace } = metadata ?? {};
-  const { running, prettyName } = spec ?? {};
+  const { running, prettyName, publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
   const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
@@ -111,6 +114,11 @@ export const makeGuiInstance = (
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+
+  // determine if public exposure is allowed from template spec
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
@@ -132,7 +140,7 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -142,6 +150,24 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    allowPublicExposure,
+    tenantDisplayName: '',
+    myDriveUrl: '',
+    publicExposure: publicExposure
+      ? {
+          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+          ports:
+            publicExposure.ports
+              ?.filter(p => p != null)
+              .map(p => ({
+                name: p.name || '',
+                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                port: p.port && p.port > 0 ? String(p.port) : '',
+                targetPort: p.targetPort || 0,
+              })) || [],
+        }
+      : undefined,
   } as Instance;
 };
 
@@ -233,11 +259,25 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const {
+    running: oldRunning,
+    status: oldStatus,
+    publicExposure: oldPublicExposure,
+  } = oldObj ?? {};
+  const {
+    running: newRunning,
+    status: newStatus,
+    publicExposure: newPublicExposure,
+  } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
-    if (oldStatus !== newStatus || oldRunning !== newRunning) {
+
+    // Check for any significant changes that should trigger UI update
+    const statusChanged = oldStatus !== newStatus || oldRunning !== newRunning;
+    const publicExposureChanged =
+      JSON.stringify(oldPublicExposure) !== JSON.stringify(newPublicExposure);
+
+    if (statusChanged || publicExposureChanged) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -256,9 +296,22 @@ export const getSubObjTypeK8s = (
   if (oldObj) {
     if (oldSpec?.prettyName !== newSpec?.prettyName)
       return SubObjType.PrettyName;
+
+    // Check for phase, running, or publicExposure changes
+    const phaseChanged = oldStatus?.phase !== newStatus?.phase;
+    const runningChanged = oldSpec?.running !== newSpec?.running;
+    const publicExposureSpecChanged =
+      JSON.stringify(oldSpec?.publicExposure) !==
+      JSON.stringify(newSpec?.publicExposure);
+    const publicExposureStatusChanged =
+      JSON.stringify(oldStatus?.publicExposure) !==
+      JSON.stringify(newStatus?.publicExposure);
+
     if (
-      oldStatus?.phase !== newStatus?.phase ||
-      oldSpec?.running !== newSpec?.running
+      phaseChanged ||
+      runningChanged ||
+      publicExposureSpecChanged ||
+      publicExposureStatusChanged
     ) {
       return SubObjType.UpdatedInfo;
     }
@@ -322,6 +375,8 @@ export const getManagerInstances = (
     throw new Error('getInstances() error: a required parameter is undefined');
   }
   const { metadata, spec, status } = instance;
+  const { publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
 
   // Template Info
   const {
@@ -333,6 +388,10 @@ export const getManagerInstances = (
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+  // determine if public exposure allowed by template
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
 
   // Tenant Info
   const { namespace: tenantNamespace } = metadata ?? {};
@@ -350,10 +409,11 @@ export const getManagerInstances = (
     gui: guiEnabled,
     persistent: persistent,
     templateId: makeTemplateKey(templateName, workspaceName),
+    templateName: templateName,
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -361,6 +421,23 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    allowPublicExposure,
+    myDriveUrl: '',
+    publicExposure: publicExposure
+      ? {
+          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+          ports:
+            publicExposure.ports
+              ?.filter(p => p != null)
+              .map(p => ({
+                name: p.name || '',
+                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                port: p.port && p.port > 0 ? String(p.port) : '',
+                targetPort: p.targetPort || 0,
+              })) || [],
+        }
+      : undefined,
   } as Instance;
 };
 
@@ -390,8 +467,16 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
-      instancesFiltered;
+    const [
+      {
+        templateId,
+        gui,
+        persistent,
+        workspaceName,
+        templatePrettyName,
+        allowPublicExposure,
+      },
+    ] = instancesFiltered;
     return {
       id: templateId,
       name: templatePrettyName,
@@ -401,6 +486,7 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
+      allowPublicExposure,
     };
   });
 };
@@ -457,7 +543,7 @@ const makeNotificationContent = (
               <i>
                 {status === Phase.Ready
                   ? ' started'
-                  : status === Phase.Off && ' stopped'}
+                  : status === Phase2.Off && ' stopped'}
               </i>
             </div>
             {instanceUrl && (
@@ -499,7 +585,7 @@ export const notifyStatus = (
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
     switch (status) {
-      case Phase.Off:
+      case Phase2.Off:
         if (!instance.spec?.running) {
           notify(
             'warning',
@@ -648,7 +734,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase5,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;

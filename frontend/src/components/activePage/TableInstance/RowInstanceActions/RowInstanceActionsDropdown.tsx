@@ -15,6 +15,7 @@ import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
   Phase,
+  Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -26,12 +27,19 @@ export interface IRowInstanceActionsDropdownProps {
   fileManager?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onEnablePublicExposure?: () => void;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, extended, setSshModal } = props;
+  const {
+    instance,
+    fileManager,
+    extended,
+    setSshModal,
+    onEnablePublicExposure,
+  } = props;
 
   const {
     status,
@@ -76,7 +84,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: 'Stop',
       menuAction: () => mutateInstanceStatus(false),
     },
-    [Phase.Off]: {
+    [Phase2.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
       menuAction: () => mutateInstanceStatus(true),
@@ -86,12 +94,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: '',
       menuAction: () => null,
     },
-  };
+  } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || status === Phase.Off
-      ? statusComponents[status]
-      : statusComponents.Other;
+    status === Phase.Ready
+      ? statusComponents[Phase.Ready]
+      : status === (Phase2.Off as unknown as Phase)
+        ? statusComponents[Phase2.Off]
+        : statusComponents.Other;
 
   const isContainer =
     environmentType === EnvironmentType.Container ||
@@ -139,6 +149,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
           },
+          ...(onEnablePublicExposure
+            ? [
+                {
+                  key: 'expose',
+                  label: 'Port Exposure',
+                  icon: <ExportOutlined style={font20px} />,
+                  onClick: () => onEnablePublicExposure?.(),
+                },
+                {
+                  type: 'divider' as const,
+                },
+              ]
+            : []),
           {
             key: 'ssh',
             label: 'SSH',
