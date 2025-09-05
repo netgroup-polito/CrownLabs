@@ -6,9 +6,9 @@ import (
 	"context"
 	"io"
 
+	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-resty/resty/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/Nerzal/gocloak/v13"
 )
 
 var _ GoCloakIface = (*gocloak.GoCloak)(nil)
@@ -570,4 +570,3 @@ type GoCloakIface interface {
 	// GetUsersManagementPermissions returns the management permissions for users
 	GetUsersManagementPermissions(ctx context.Context, accessToken, realm string) (*gocloak.ManagementPermissionRepresentation, error)
 }
-
