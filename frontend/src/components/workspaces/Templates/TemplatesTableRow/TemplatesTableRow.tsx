@@ -33,8 +33,7 @@ export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
   totalInstances: number;
-  templates: Template[]; // All templates in the workspace
-  workspaceQuota?: {
+  availableQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
@@ -68,60 +67,12 @@ const convertMemory = (s: string): string =>
     ? `${Number(s.split('M')[0]) / 1000}G`
     : s;
 
-const canCreateInstance = (
-  template: Template,
-  allTemplates: Template[],
-  workspaceQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  },
-): boolean => {
-  // If no quota defined, default to allowing creation
-  if (!workspaceQuota) return true;
-
-  // Calculate current usage (similar to QuotaDisplay)
-  let usedCpu = 0;
-  let usedMemory = 0;
-  let runningInstances = 0;
-
-  // Sum resources from all running instances
-  allTemplates.forEach(tmpl => {
-    const count = tmpl.instances?.length || 0;
-    runningInstances += count;
-    if (tmpl.resources) {
-      usedCpu += (tmpl.resources.cpu || 0) * count;
-      usedMemory += parseMemory(tmpl.resources.memory || '0') * count;
-    }
-  });
-
-  // Get the quota limits (with defaults)
-  const quotaLimits = {
-    cpu: workspaceQuota?.cpu ? parseInt(String(workspaceQuota.cpu)) : 8,
-    memory: workspaceQuota?.memory ? parseMemory(workspaceQuota.memory) : 16,
-    instances: workspaceQuota?.instances || 8,
-  };
-
-  // Add the new instance's resource requirements
-  const newUsage = {
-    cpu: usedCpu + (template.resources?.cpu || 0),
-    memory: usedMemory + parseMemory(template.resources?.memory || '0'),
-    instances: runningInstances + 1,
-  };
-
-  // Check if any quota would be exceeded
-  return (
-    newUsage.cpu <= quotaLimits.cpu &&
-    newUsage.memory <= quotaLimits.memory &&
-    newUsage.instances <= quotaLimits.instances
-  );
-};
-
-// Helper function to parse memory (copy from QuotaDisplay.tsx)
-const parseMemory = (memoryStr: string): number => {
+// Helper function to parse memory string (e.g., "4Gi" -> 4)
+const parseMemory = (memoryStr: string | number): number => {
+  if (typeof memoryStr === 'number') return memoryStr;
   if (!memoryStr) return 0;
 
-  const match = memoryStr.match(/^(\d+(?:\.\d+)?)(.*)?$/);
+  const match = String(memoryStr).match(/^(\d+(?:\.\d+)?)(.*)?$/);
   if (!match) return 0;
 
   const value = parseFloat(match[1]);
@@ -146,6 +97,41 @@ const parseMemory = (memoryStr: string): number => {
   }
 };
 
+const canCreateInstance = (
+  template: Template,
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  },
+): boolean => {
+  // If no quota defined, default to allowing creation
+  if (!availableQuota) return true;
+
+  const templateCpu = template.resources?.cpu || 0;
+  const availableCpu =
+    availableQuota.cpu !== undefined
+      ? typeof availableQuota.cpu === 'string'
+        ? parseFloat(availableQuota.cpu)
+        : availableQuota.cpu
+      : 0;
+
+  const templateMemory = parseMemory(template.resources?.memory || '0');
+  const availableMemory =
+    availableQuota.memory !== undefined
+      ? parseMemory(availableQuota.memory)
+      : 0;
+
+  const availableInstances =
+    availableQuota.instances !== undefined ? availableQuota.instances : 0;
+
+  return (
+    templateCpu <= availableCpu &&
+    templateMemory <= availableMemory &&
+    1 <= availableInstances
+  );
+};
+
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const {
     template,
@@ -155,13 +141,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     expandRow,
-    templates, // All templates in the workspace
-    workspaceQuota, // Add this to props
+    availableQuota,
     isPersonal,
   } = props;
 
   // Check if we can create an instance based on resources
-  const canCreate = canCreateInstance(template, templates, workspaceQuota);
+  const canCreate = canCreateInstance(template, availableQuota);
 
   const {
     data: labelsData,
@@ -325,7 +310,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         show={showEditModal}
         setShow={setShowEditModal}
         template={selectedTemplate}
-        cpuInterval={{ min: 1, max: 8 }} // <-- Pass actual intervals
+        cpuInterval={{ min: 1, max: 8 }}
         ramInterval={{ min: 1, max: 32 }}
         diskInterval={{ min: 10, max: 100 }}
         workspaceNamespace={template.workspaceNamespace}
@@ -417,9 +402,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           {role === WorkspaceRole.manager ? (
             <TemplatesTableRowSettings
               id={template.id}
-              template={template} // <-- Pass the template object
+              template={template}
               createInstance={createInstance}
-              editTemplate={handleEditTemplate} // <-- Pass handler
+              editTemplate={handleEditTemplate}
               deleteTemplate={() => {
                 refetchInstancesLabelSelector()
                   .then(ils => {

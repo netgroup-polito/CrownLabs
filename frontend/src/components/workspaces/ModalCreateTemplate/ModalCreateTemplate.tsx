@@ -192,11 +192,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   // Determine if the selected image list contains container images
   const isContainerImageList =
-    selectedImageList?.registryName === 'crownlabs-container-envs';
+    selectedImageList?.registryName === 'crownlabs-container-envs' ||
+    selectedImageList?.registryName === 'registry.internal.crownlabs.polito.it';
 
-  // Determine if the selected image list contains VM images
-  const isVMImageList =
-    selectedImageList?.registryName === 'crownlabs-containerdisks';
+  const isStandaloneImageList =
+    selectedImageList?.registryName === 'crownlabs-standalone';
 
   // Add "External image" to the options only if personal workspace AND container image list is selected
   const imagesNoVersion = [
@@ -326,16 +326,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const onSubmit = () => {
-    const shvolMounts: ShVolFormItemValue[] = form.getFieldValue('shvolss');
-    const sharedVolumeMountInfos: SharedVolumeMountsListItem[] =
-      shvolMounts.map(obj => ({
+    // prepare sharedVolumeMountInfos for submit (empty for personal templates)
+    let sharedVolumeMountInfos: SharedVolumeMountsListItem[] = [];
+    if (!isPersonal) {
+      const shvolMounts: ShVolFormItemValue[] =
+        form.getFieldValue('shvolss') ?? [];
+      sharedVolumeMountInfos = (shvolMounts || []).map(obj => ({
         sharedVolume: {
-          namespace: obj.shvol.split('/')[0],
-          name: obj.shvol.split('/')[1],
+          namespace: String(obj.shvol).split('/')[0],
+          name: String(obj.shvol).split('/')[1],
         },
         mountPath: obj.mountpath,
         readOnly: Boolean(obj.readonly),
       }));
+    }
 
     submitHandler({
       ...formTemplate,
@@ -345,7 +349,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           : (availableImages.find(
               i => getImageNoVer(i.name) === formTemplate.image,
             )?.name ?? formTemplate.image),
-      sharedVolumeMountInfos: sharedVolumeMountInfos,
+      sharedVolumeMountInfos,
     })
       .then(() => {
         setShow(false);
@@ -623,8 +627,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <span>GUI:</span>
             <Checkbox
               className="ml-3"
-              checked={formTemplate.gui}
-              disabled={selectedImageList ? !isVMImageList : false}
+              checked={
+                isContainerImageList
+                  ? true
+                  : isStandaloneImageList
+                    ? false
+                    : formTemplate.gui
+              }
+              disabled={isContainerImageList || isStandaloneImageList}
               onChange={() =>
                 setFormTemplate(old => {
                   return { ...old, gui: !old.gui };
@@ -735,7 +745,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           </div>
         </Form.Item>
 
-        <ShVolFormItem workspaceNamespace={workspaceNamespace} />
+        {!isPersonal && (
+          <ShVolFormItem workspaceNamespace={workspaceNamespace} />
+        )}
 
         <Form.Item {...fullLayout}>
           <div className="flex justify-center">

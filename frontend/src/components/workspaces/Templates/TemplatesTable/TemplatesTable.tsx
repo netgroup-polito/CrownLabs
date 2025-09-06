@@ -23,7 +23,7 @@ export interface ITemplatesTableProps {
   workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
-  workspaceQuota?: {
+  availableQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
@@ -60,7 +60,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
-    workspaceQuota,
+    availableQuota,
     isPersonal,
   } = props;
 
@@ -82,8 +82,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
-          templates={templates} // Pass all templates
-          workspaceQuota={workspaceQuota}
+          availableQuota={availableQuota}
           isPersonal={isPersonal}
         />
       ),

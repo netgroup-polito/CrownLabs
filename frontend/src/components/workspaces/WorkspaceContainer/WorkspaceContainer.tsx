@@ -7,7 +7,6 @@ import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
   useCreateTemplateMutation,
   EnvironmentType,
-  type Quota,
 } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
 import { WorkspaceRole } from '../../../utils';
@@ -20,13 +19,18 @@ import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
   isPersonalWorkspace?: boolean;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const { tenantNamespace, workspace } = props;
+  const { tenantNamespace, workspace, availableQuota } = props;
   console.log('WorkspaceContainer props:', props);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -131,13 +135,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           role={workspace.role}
           workspaceNamespace={workspace.namespace}
           workspaceName={workspace.name}
-          workspaceQuota={
-            (workspace as Workspace & { quota?: Quota }).quota || {
-              cpu: 8,
-              memory: '16Gi',
-              instances: 8,
-            }
-          }
+          availableQuota={availableQuota}
           isPersonal={isPersonal}
         />
         <Modal

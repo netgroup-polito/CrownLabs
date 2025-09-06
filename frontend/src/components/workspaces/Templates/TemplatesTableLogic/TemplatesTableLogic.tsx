@@ -30,14 +30,13 @@ import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import QuotaDisplay from '../../QuotaDisplay/QuotaDisplay';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
   workspaceNamespace: string;
   workspaceName: string;
   role: WorkspaceRole;
-  workspaceQuota: {
+  availableQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
@@ -55,7 +54,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     workspaceNamespace,
     workspaceName,
     role,
-    workspaceQuota,
+    availableQuota,
     isPersonal,
   } = props;
 
@@ -233,9 +232,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   return (
     <>
-      {isPersonal && (
-        <QuotaDisplay templates={templates} workspaceQuota={workspaceQuota} />
-      )}
       <Spin size="large" spinning={loadingTemplate || loadingInstances}>
         {!loadingTemplate &&
         !loadingInstances &&
@@ -261,7 +257,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             deleteTemplateLoading={loadingDeleteTemplateMutation}
             editTemplate={() => null}
             createInstance={createInstance}
-            workspaceQuota={workspaceQuota}
+            availableQuota={availableQuota}
             isPersonal={isPersonal}
           />
         ) : (
@@ -280,7 +276,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         )}
         {role === WorkspaceRole.manager &&
         !loadingTemplate &&
-        !loadingInstances ? (
+        !loadingInstances &&
+        !isPersonal ? (
           <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
         ) : null}
       </Spin>

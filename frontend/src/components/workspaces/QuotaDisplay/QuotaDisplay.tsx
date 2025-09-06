@@ -12,13 +12,11 @@ import './QuotaDisplay.less';
 const { Text, Title } = Typography;
 
 export interface IQuotaDisplayProps {
-  templates: Array<{
-    instances?: Array<unknown>;
-    resources?: {
-      cpu?: number;
-      memory?: string;
-    };
-  }>;
+  consumedQuota: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  } | null; // Allow null
   workspaceQuota: {
     cpu?: string | number;
     memory?: string;
@@ -56,9 +54,7 @@ const parseMemory = (memoryStr: string): number => {
 };
 
 const QuotaDisplay: FC<IQuotaDisplayProps> = ({
-   
-  templates,
-   
+  consumedQuota,
   workspaceQuota,
 }) => {
   // Use workspaceQuota directly
@@ -70,21 +66,22 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
     let usedMemory = 0;
     let runningInstances = 0;
 
-    templates.forEach(template => {
-      const count = template.instances?.length || 0;
-      runningInstances += count;
-      if (template.resources) {
-        usedCpu += (template.resources.cpu || 0) * count;
-        usedMemory += parseMemory(template.resources.memory || '0') * count;
-      }
-    });
+    // Calculate current usage based on consumed resources
+    if (consumedQuota) {
+      usedCpu =
+        typeof consumedQuota.cpu === 'string'
+          ? parseFloat(consumedQuota.cpu) || 0
+          : consumedQuota.cpu || 0;
+      usedMemory = parseMemory(consumedQuota.memory || '0');
+      runningInstances = consumedQuota.instances || 0;
+    }
 
     return {
       cpu: usedCpu,
       memory: usedMemory,
       instances: runningInstances,
     };
-  }, [templates]);
+  }, [consumedQuota]);
 
   // Quota limits with defaults
   const quotaLimits = {
