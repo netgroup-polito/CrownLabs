@@ -5,6 +5,7 @@ query tenant($tenantId: String!) {
       firstName
       lastName
       lastLogin
+      createPersonalWorkspace
       workspaces {
         role
         name

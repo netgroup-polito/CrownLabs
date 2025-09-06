@@ -36,20 +36,31 @@ export interface ITemplateTableLogicProps {
   workspaceNamespace: string;
   workspaceName: string;
   role: WorkspaceRole;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonal?: boolean;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
-
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
-  const { tenantNamespace, workspaceNamespace, workspaceName, role } = props;
+  const {
+    tenantNamespace,
+    workspaceNamespace,
+    workspaceName,
+    role,
+    availableQuota,
+    isPersonal,
+  } = props;
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
-  const notifier = useContext(TenantContext).notify;
-
+  // Add the missing instances query
   const {
     loading: loadingInstances,
     error: errorInstances,
@@ -57,16 +68,22 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   } = useOwnedInstancesQuery({
     variables: { tenantNamespace },
     onError: apolloErrorCatcher,
-    onCompleted: data =>
-      setDataInstances(
-        data.instanceList?.instances
-          ?.map(i => makeGuiInstance(i, userId))
-          .sort((a, b) =>
-            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
-          ) ?? [],
-      ),
+    onCompleted: data => {
+      const instances =
+        data?.instanceList?.instances
+          ?.map(i => {
+            const guiInstance = makeGuiInstance(i, userId);
+            return guiInstance;
+          })
+          .filter(Boolean) ?? [];
+      setDataInstances(instances);
+    },
     fetchPolicy: fetchPolicy_networkOnly,
+    nextFetchPolicy: 'cache-only',
   });
+
+  // Subscribe to instance updates
+  const notifier = useContext(TenantContext).notify;
 
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
@@ -84,8 +101,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       });
       return unsubscribe;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, userId]);
+  }, [
+    loadingInstances,
+    errorInstances,
+    errorsQueue.length,
+    subscribeToMoreInstances,
+    tenantNamespace,
+    userId,
+    makeErrorCatcher,
+    notifier,
+  ]);
 
   const {
     loading: loadingTemplate,
@@ -99,8 +124,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     nextFetchPolicy: 'cache-only',
   });
 
-  const dataTemplate = useMemo(
-    () =>
+  const dataTemplate = useMemo(() => {
+    const templates =
       templateListData?.templateList?.templates
         ?.map(t =>
           makeGuiTemplate({
@@ -111,9 +136,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             },
           }),
         )
-        .sort((a, b) => a.name.localeCompare(b.name)) ?? [],
-    [templateListData?.templateList?.templates],
-  );
+        .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+    return templates;
+  }, [templateListData?.templateList?.templates]);
 
   useEffect(() => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
@@ -176,7 +201,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const createInstance = (templateId: string, nodeSelector?: Record<string, string>) =>
+  const createInstance = (templateId: string, nodeSelector?: JSON) =>
     createInstanceMutation({
       variables: {
         templateId,
@@ -200,57 +225,63 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       return i;
     });
 
-  const templates = useMemo(
-    () => joinInstancesAndTemplates(dataTemplate, dataInstances),
-    [dataTemplate, dataInstances],
-  );
+  const templates = useMemo(() => {
+    const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
+    return joined;
+  }, [dataTemplate, dataInstances]);
 
   return (
-    <Spin size="large" spinning={loadingTemplate || loadingInstances}>
-      {!loadingTemplate &&
-      !loadingInstances &&
-      !errorTemplate &&
-      !errorInstances &&
-      templates &&
-      dataInstances ? (
-        <TemplatesTable
-          totalInstances={dataInstances.length}
-          tenantNamespace={tenantNamespace}
-          workspaceNamespace={workspaceNamespace}
-          templates={templates}
-          role={role}
-          deleteTemplate={(templateId: string) =>
-            deleteTemplateMutation({
-              variables: {
-                workspaceNamespace,
-                templateId,
-              },
-            })
-          }
-          deleteTemplateLoading={loadingDeleteTemplateMutation}
-          editTemplate={() => null}
-          createInstance={createInstance}
-        />
-      ) : (
-        <div
-          className={
-            loadingTemplate ||
-            loadingInstances ||
-            errorTemplate ||
-            errorInstances
-              ? 'invisible'
-              : 'visible'
-          }
-        >
-          <TemplatesEmpty role={role} />
-        </div>
-      )}
-      {role === WorkspaceRole.manager &&
-      !loadingTemplate &&
-      !loadingInstances ? (
-        <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
-      ) : null}
-    </Spin>
+    <>
+      <Spin size="large" spinning={loadingTemplate || loadingInstances}>
+        {!loadingTemplate &&
+        !loadingInstances &&
+        !errorTemplate &&
+        !errorInstances &&
+        templates &&
+        dataInstances ? (
+          <TemplatesTable
+            totalInstances={dataInstances.length}
+            tenantNamespace={tenantNamespace}
+            workspaceNamespace={workspaceNamespace}
+            workspaceName={workspaceName}
+            templates={templates}
+            role={role}
+            deleteTemplate={(templateId: string) =>
+              deleteTemplateMutation({
+                variables: {
+                  workspaceNamespace,
+                  templateId,
+                },
+              })
+            }
+            deleteTemplateLoading={loadingDeleteTemplateMutation}
+            editTemplate={() => null}
+            createInstance={createInstance}
+            availableQuota={availableQuota}
+            isPersonal={isPersonal}
+          />
+        ) : (
+          <div
+            className={
+              loadingTemplate ||
+              loadingInstances ||
+              errorTemplate ||
+              errorInstances
+                ? 'invisible'
+                : 'visible'
+            }
+          >
+            <TemplatesEmpty role={role} />
+          </div>
+        )}
+        {role === WorkspaceRole.manager &&
+        !loadingTemplate &&
+        !loadingInstances &&
+        !isPersonal ? (
+          <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
+        ) : null}
+      </Spin>
+    </>
   );
 };
 
