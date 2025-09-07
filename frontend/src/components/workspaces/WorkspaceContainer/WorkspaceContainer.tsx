@@ -72,7 +72,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   return (
     <>
       <ModalCreateTemplate
-        workspaceNamespace={workspace.namespace}
+        workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
@@ -133,7 +133,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         <TemplatesTableLogic
           tenantNamespace={tenantNamespace}
           role={workspace.role}
-          workspaceNamespace={workspace.namespace}
+          workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
           workspaceName={workspace.name}
           availableQuota={availableQuota}
           isPersonal={isPersonal}
