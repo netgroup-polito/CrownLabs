@@ -17,8 +17,10 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -240,6 +242,198 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 			Expect(actual.Template.Spec.Containers[0].Image).To(Equal("busybox"))
 			Expect(actual.Template.Spec.Containers[0].Command).To(ContainElement("chown"))
 			Expect(actual.Template.Spec.Volumes[0].VolumeSource.PersistentVolumeClaim.ClaimName).To(Equal("shvol-0000"))
+		})
+	})
+
+	var _ = Describe("GetMyDrivePVCName", func() {
+		It("Should correctly format PVC name for tenant name without dots", func() {
+			tenantName := "student"
+
+			pvcName := forge.GetMyDrivePVCName(tenantName)
+
+			Expect(pvcName).To(Equal("student-drive"))
+		})
+
+		It("Should correctly format PVC name for tenant name with dots", func() {
+			tenantName := "s123456.student"
+
+			pvcName := forge.GetMyDrivePVCName(tenantName)
+
+			Expect(pvcName).To(Equal("s123456-student-drive"))
+		})
+	})
+
+	var _ = Describe("ConfigureMyDrivePVC", func() {
+		It("Should initialize labels if nil and set PVC properties", func() {
+			pvc := &v1.PersistentVolumeClaim{}
+			storageClassName := "example-storage-class"
+			storageSize := resource.MustParse("10Gi")
+			labels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels)
+
+			Expect(pvc.Labels).ToNot(BeNil())
+			Expect(pvc.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(pvc.Spec.AccessModes).To(ConsistOf(v1.ReadWriteMany))
+			Expect(pvc.Spec.StorageClassName).ToNot(BeNil())
+			Expect(*pvc.Spec.StorageClassName).To(Equal(storageClassName))
+			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
+			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("10Gi"))
+		})
+
+		It("Should preserve existing labels and update storage size if larger", func() {
+			existingSize := resource.MustParse("5Gi")
+			pvc := &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"existing-label": "existing-value",
+					},
+				},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.VolumeResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceStorage: existingSize,
+						},
+					},
+				},
+			}
+
+			storageClassName := "example-storage-class"
+			storageSize := resource.MustParse("10Gi")
+			labels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels)
+
+			Expect(pvc.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(pvc.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
+			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("10Gi"))
+		})
+
+		It("Should not update storage size if existing size is larger", func() {
+			existingSize := resource.MustParse("20Gi")
+			pvc := &v1.PersistentVolumeClaim{
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.VolumeResourceRequirements{
+						Requests: v1.ResourceList{
+							v1.ResourceStorage: existingSize,
+						},
+					},
+				},
+			}
+
+			storageClassName := "example-storage-class"
+			storageSize := resource.MustParse("10Gi")
+			labels := map[string]string{}
+
+			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels)
+
+			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
+			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("20Gi"))
+		})
+	})
+
+	var _ = Describe("ConfigureMyDriveSecret", func() {
+		It("Should initialize labels if nil and set required data", func() {
+			secret := &v1.Secret{}
+			serverName := "nfs-server.example.com"
+			path := "/exports/tenant-home"
+			labels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			forge.ConfigureMyDriveSecret(secret, serverName, path, labels)
+
+			Expect(secret.Labels).ToNot(BeNil())
+			Expect(secret.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(secret.Type).To(Equal(v1.SecretTypeOpaque))
+			Expect(secret.Data).ToNot(BeNil())
+			Expect(secret.Data).To(HaveLen(2))
+			Expect(secret.Data["server-name"]).To(Equal([]byte("nfs-server.example.com")))
+			Expect(secret.Data["path"]).To(Equal([]byte("/exports/tenant-home")))
+		})
+
+		It("Should preserve existing labels and update data", func() {
+			secret := &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"existing-label": "existing-value",
+					},
+				},
+			}
+
+			serverName := "nfs-server.example.com"
+			path := "/exports/tenant-home"
+			labels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			forge.ConfigureMyDriveSecret(secret, serverName, path, labels)
+
+			Expect(secret.Labels).ToNot(BeNil())
+			Expect(secret.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(secret.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(secret.Type).To(Equal(v1.SecretTypeOpaque))
+			Expect(secret.Data).ToNot(BeNil())
+			Expect(secret.Data).To(HaveLen(2))
+			Expect(secret.Data["server-name"]).To(Equal([]byte("nfs-server.example.com")))
+			Expect(secret.Data["path"]).To(Equal([]byte("/exports/tenant-home")))
+		})
+	})
+
+	var _ = Describe("UpdatePVCProvisioningJobLabel", func() {
+		It("Should initialize labels if nil and set provisioning job label", func() {
+			pvc := &v1.PersistentVolumeClaim{}
+
+			forge.UpdatePVCProvisioningJobLabel(pvc, "job-123")
+
+			Expect(pvc.Labels).ToNot(BeNil())
+			Expect(pvc.Labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-123"))
+		})
+
+		It("Should update provisioning job label on existing labels", func() {
+			pvc := &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"crownlabs.polito.it/volume-provisioning": "old-job",
+						"existing-label": "existing-value",
+					},
+				},
+			}
+
+			forge.UpdatePVCProvisioningJobLabel(pvc, "job-456")
+
+			Expect(pvc.Labels).ToNot(BeNil())
+			Expect(pvc.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(pvc.Labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-456"))
+		})
+	})
+
+	var _ = Describe("ConfigureMyDriveProvisioningJob", func() {
+		It("Should configure the job spec using PVCProvisioningJobSpec", func() {
+			pvc := &v1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-pvc",
+					Namespace: "test-namespace",
+				},
+			}
+			job := &batchv1.Job{}
+
+			forge.ConfigureMyDriveProvisioningJob(job, pvc)
+
+			// Verify that the spec is correctly configured
+			Expect(job.Spec.Template.Spec.RestartPolicy).To(Equal(v1.RestartPolicyOnFailure))
+			Expect(job.Spec.BackoffLimit).ToNot(BeNil())
+			Expect(*job.Spec.BackoffLimit).To(Equal(int32(forge.ProvisionJobMaxRetries)))
+			Expect(job.Spec.TTLSecondsAfterFinished).ToNot(BeNil())
+			Expect(*job.Spec.TTLSecondsAfterFinished).To(Equal(int32(forge.ProvisionJobTTLSeconds)))
+
+			// Verify that there is a container
+			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
 		})
 	})
 })

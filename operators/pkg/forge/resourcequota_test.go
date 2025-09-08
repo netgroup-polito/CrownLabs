@@ -98,7 +98,7 @@ var _ = Describe("Resource quota spec forging", func() {
 				})
 
 				It("Should have total number of instances equal to the sum for each workspace", func() {
-					Expect(tenant.Status.Quota.Instances).To(Equal(uint32(5)))
+					Expect(tenant.Status.Quota.Instances).To(Equal(int64(5)))
 				})
 			})
 		})
@@ -138,7 +138,7 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			It("Should have total number of instances equal to the one associated with the Tenant", func() {
-				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(int64(tenant.Status.Quota.Instances), resource.DecimalSI)))
+				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(tenant.Status.Quota.Instances, resource.DecimalSI)))
 			})
 		})
 	})

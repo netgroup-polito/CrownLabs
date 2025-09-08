@@ -118,7 +118,7 @@ func CapResourceQuantity(quantity, capQuantity resource.Quantity) resource.Quant
 }
 
 // CapIntegerQuantity compares an unsigned integer value with a given cap and returns the lower.
-func CapIntegerQuantity(quantity, capQuantity uint32) uint32 {
+func CapIntegerQuantity(quantity, capQuantity int64) int64 {
 	if quantity < capQuantity {
 		return quantity
 	}

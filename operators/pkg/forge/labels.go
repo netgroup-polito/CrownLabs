@@ -18,6 +18,7 @@ import (
 	"strconv"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -42,9 +43,14 @@ const (
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
 
-	labelManagedByInstanceValue = "instance"
-	labelManagedByTenantValue   = "tenant"
-	labelTypeSandboxValue       = "sandbox"
+	labelManagedByInstanceValue  = "instance"
+	labelManagedByTenantValue    = "tenant"
+	labelManagedByWorkspaceValue = "workspace"
+	labelTypeWorkspaceValue      = "workspace"
+	labelTypeSandboxValue        = "sandbox"
+
+	labelAllowInstanceAccessKey   = "crownlabs.polito.it/allow-instance-access"
+	labelAllowInstanceAccessValue = "true"
 
 	// ProvisionJobValueOk -> Value of the label added by the Provision Job to flag the PVC when everything worked fine.
 	ProvisionJobValueOk = "completed"
@@ -53,6 +59,14 @@ const (
 
 	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
 	VolumeTypeValueShVol = "sharedvolume"
+
+	labelFirstNameKey = "crownlabs.polito.it/first-name"
+	labelLastNameKey  = "crownlabs.polito.it/last-name"
+
+	// NoWorkspacesLabelKey -> label to be set when no workspaces are associated to the tenant.
+	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
+	// NoWorkspacesLabelValue -> value of the label to be set when no workspaces are associated to the tenant.
+	NoWorkspacesLabelValue = "true"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -160,6 +174,17 @@ func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 	return labels
 }
 
+// TenantLabels receives in input a set of labels and returns the updated set depending on the specified tenant.
+func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel common.KVLabel) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
+	labels[labelFirstNameKey] = CleanTenantName(tenant.Spec.FirstName)
+	labels[labelLastNameKey] = CleanTenantName(tenant.Spec.LastName)
+
+	return labels
+}
+
 // deepCopyLabels creates a copy of the labels map.
 func deepCopyLabels(input map[string]string) map[string]string {
 	output := map[string]string{}
@@ -206,4 +231,15 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 	// if labelInstanceKey is present instance will receive the associated value and found will be set to true.
 	instance, found := labels[labelInstanceKey]
 	return instance, found
+}
+
+// UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
+func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
+	}
+	labels[targetLabel.GetKey()] = targetLabel.GetValue()
+	labels[labelManagedByKey] = labelManagedByWorkspaceValue
+
+	return labels
 }

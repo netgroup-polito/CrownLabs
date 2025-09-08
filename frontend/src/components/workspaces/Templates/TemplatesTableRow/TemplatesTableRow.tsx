@@ -42,7 +42,7 @@ export interface ITemplatesTableRowProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON,
+    labelSelector?: Record<string, string>,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -315,7 +315,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                         label: `${cleanupLabels(key)}=${value}`,
                         disabled: loadingLabels,
                         onClick: () => {
-                          createInstance(template.id, JSON.parse(key))
+                          createInstance(template.id, { [key]: value })
                             .then(() => {
                               refreshClock();
                               setTimeout(setCreateDisabled, 400, false);
