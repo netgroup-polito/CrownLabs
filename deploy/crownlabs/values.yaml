@@ -56,6 +56,27 @@ qlkube:
           parents:
             - itPolitoCrownlabsV1alpha2Instance
 
+operator:
+  replicaCount: 1
+  image:
+    repository: crownlabs/operator
+  rbacResourcesName: crownlabs-operator
+  configurations:
+    targetLabel: crownlabs.polito.it/operator-selector=production
+    keycloak:
+      url: "https://auth.crownlabs.example.com/"
+      realm: crownlabs
+      clientId: operator-client
+      clientSecret: my-awesome-secret
+      rolesClientId: client-api-server
+    maxConcurrentReconciles: 1
+    tenantNamespaceKeepAlive: 168h
+  webhook:
+    deployment:
+      webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+      baseWorkspaces: utilities
+    enableMutating: true
+
 instance-operator:
   replicaCount: 1
   image:
@@ -80,39 +101,23 @@ instance-operator:
       secretName: registry-credentials
     maxConcurrentReconciles: 1
 
-tenant-operator:
-  replicaCount: 1
-  image:
-    repository: crownlabs/tenant-operator
-  rbacResourcesName: crownlabs-tenant-operator
-  configurations:
-    targetLabel: crownlabs.polito.it/operator-selector=production
-    keycloak:
-      url: "https://auth.crownlabs.example.com/"
-      loginRealm: master
-      targetRealm: crownlabs
-      targetClient: k8s
-      user: username
-      pass: password
-    maxConcurrentReconciles: 1
-    tenantNamespaceKeepAlive: 168h
-  webhook:
-    deployment:
-      webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
-      baseWorkspaces: utilities
-    enableMutating: true
-
 bastion-operator:
   replicaCount: 1
   image:
     repositoryBastion: crownlabs/ssh-bastion
     repositorySidecar: crownlabs/bastion-operator
+    repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   rbacResourcesName: crownlabs-bastion-operator
   serviceAnnotations: {}
   service:
     type: LoadBalancer
     port: 22
     externalTrafficPolicy: Cluster
+  configurations:
+    sshTrackerInterface: any
+    sshTrackerPort: 22
+    sshTrackerSnaplen: 1600
+    sshTrackerMetricsAddr: ":8082"
 
 image-list:
   replicaCount: 1

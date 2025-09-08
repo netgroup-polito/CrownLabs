@@ -136,10 +136,34 @@ go build ./cmd/instance-operator/main.go
 
 ## SSH bastion
 
-The SSH bastion is composed of two basic blocks:
+The SSH bastion is composed of three basic blocks:
 
 1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
 2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+3. `bastion-ssh-tracker`: a golang app based on Google `gopacket` that passively tracks outbound SSH connections going from the **bastion host** to the associated **target instances**, exposing them as metrics for Prometheus.
+
+### Bastion SSH Tracker
+The `bastion-ssh-tracker` enables lightweight and non-intrusive monitoring of SSH activity from the bastion, complementing monitoring focused on RDP accesses coming from the ingress.
+The idea is to track each time a new SSH session is established from a user to an instance (e.g., VM), in order to monitor whether the instance is currently being used by its owner, or it is a 'stale' instance which consumes resources for no reason.
+This is done by tracking all the TCP SYN packets from the SSH bastion to any instance; when such a packet is detected, the corresponding Prometheus metric is incremented.
+
+An example of the metric exposed by the tracker is the following:
+```
+bastion_ssh_connections{container="bastion-operator-tracker-sidecar", destination_ip="1.2.3.4", destination_port="22", endpoint="metrics", instance="10.244.1.195:8082", job="bastion-bastion-operator-metrics", namespace="default", pod="bastion-bastion-operator-67b688c479-dlx49", service="bastion-bastion-operator-metrics"}
+```
+with its corresponding counter value, which is incremented each time a new SSH connection is established to the instance with IP `1.2.3.4`.
+
+The Bastion SSH Tracker captures raw Ethernet frames using Linux's `AF_PACKET` interface in `TPACKET_V3` mode, a memory-mapped ring buffer mechanism that allows efficient, low-overhead packet capture in user space without interfering with in-kernel networking.
+
+The tracker:
+* Attaches to a specific network interface (via `--ssh-tracker-interface`)
+* Applies a BPF filter that matches outbound TCP SYN packets on a configurable destination port (via `--ssh-tracker-port`)
+* Parses only IPv4 TCP packets with the SYN flag set to detect new SSH connections
+* Exposes Prometheus metrics labeled by destination IP
+* Leaves the original packets untouched, allowing them to pass through the kernel normally without drops or redirection
+
+This tracker runs as a sidecar container within the `bastion` deployment, which is needed to share the same network namespace and see the SSH traffic directly.
+The container requires more privileges to open raw sockets and apply BPF filters, but it avoids full privilege escalation. It needs in fact to run as root inside the container to access the `AF_PACKET` interface, but it drops all other capabilities apart from the required `NET_RAW` and `NET_ADMIN`.
 
 #### SSH Key generation
 
@@ -166,7 +190,7 @@ kubectl create secret generic <secret-name> \
   --from-file=./ssh_host_key_rsa
 ```
 
-## Tenant operator
+## Operator
 
 The tenant operator manages users inside the Crownlabs cluster, its workflow is based upon 2 CRDs:
 
@@ -188,7 +212,7 @@ This prevents the loss of the user data after the deletion of the user account, 
 
 The actions performed by the operator are the following:
 
-- `Tenant` ([details](pkg/tenant-controller/tenant_controller.go))
+- `Tenant` ([details](pkg/controller/tenant/))
   - update the tenant resource with labels for firstName and lastName
   - create or update some cluster resources:
     - namespace: to host all other cluster resources related to the tenant
@@ -207,7 +231,7 @@ The actions performed by the operator are the following:
   - append a label for each subscribed workspace that exists
   - create or update the corresponding user in keycloak and assign him/her a role for each subscribed workspace
   - delete all managed resources upon tenant deletion
-- `Workspace` ([details](pkg/tenant-controller/workspace_controller.go))
+- `Workspace` ([details](pkg/controller/workspace/))
   - create or update some cluster resources
     - namespace: to host all other cluster resources related to the workspace
     - clusterRoleBinding: to allow managers of the workspace to interact with all instances inside the workspace
@@ -218,17 +242,22 @@ The actions performed by the operator are the following:
   - delete all managed resources upon workspace deletion
   - upon deletion, unsubscribe all tenants which previously subscribed to the workspace
 
+### Keycloak integration
+The operator integrates with Keycloak to manage the users and roles of the CrownLabs platform.
+In order to connect to Keycloak, a dedicated Keycloak client is required, which can be created using the Keycloak admin console, and some authorization needs to be granted to the client.
+More information are available in the [dedicated page](./Keycloak.md).
+
 ### Usage
 
 ```
-go run cmd/tenant-operator/main.go
-      --target-label=reconcile=true\
-      --kc-url=KEYCLOAK_URL\
-      --kc-tenant-operator-user=KEYCLOAK_TENANT_OPERATOR_USER\
-      --kc-tenant-operator-psw=KEYCLOAK_TENANT_OPERATOR_PSW\
-      --kc-login-realm=KEYCLOAK_LOGIN_REALM\
-      --kc-target-realm=KEYCLOAK_TARGET_REALM\
-      --kc-target-client=KEYCLOAK_TARGET_CLIENT\
+go run cmd/operator/main.go\
+      --target-label=crownlabs.polito.it/operator-selector=local\
+      --keycloak-url=$(KEYCLOAK_URL)\
+      --keycloak-realm=$(KEYCLOAK_REALM)\
+      --keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
+      --keycloak-client-secret=$(KEYCLOAK_CLIENT_SECRET)\
+      --keycloak-roles-client-id=$(KEYCLOAK_TARGET_CLIENT)\
+      --enable-webhooks=false
       --mydrive-pvcs-size=MYDRIVE_PVCS_SIZE\
       --mydrive-pvcs-storage-class-name=MYDRIVE_PVCS_STORAGE_CLASS\
       --mydrive-pvcs-namespace=MYDRIVE_PVCS_NAMESPACE
@@ -237,22 +266,24 @@ go run cmd/tenant-operator/main.go
 Arguments:
   --target-label
                 The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value
-  --kc-url
+  --keycloak-url
                 The URL of the keycloak server
-  --kc-tenant-operator-user
-                The username of the acting account for keycloak
-  --kc-tenant-operator-psw
-                The password of the acting account for keycloak
-  --kc-login-realm
+  --keycloak-realm
                 The realm where to login the keycloak acting account
-  --kc-target-realm
-                The target realm for keycloak clients, roles and users
-  --kc-target-client
+  --keycloak-client-id
+                The client ID for authentication with keycloak
+  --keycloak-client-secret
+                The client secret for authentication with keycloak
+  --keycloak-roles-client-id
                 The target client for keycloak users and roles
+  --enable-webhooks
+                Enable webhook endpoints in the operator
   --mydrive-pvcs-size
                 The dimension of the user's personal space
   --mydrive-pvcs-storage-class-name
                 The name for the user's storage class
+  --mydrive-pvcs-namespace
+                The namespace where the PVCs are created
   --mydrive-pvcs-namespace
                 The namespace where the PVCs are created
 ```
@@ -260,8 +291,7 @@ Arguments:
 For local development (e.g. using [KinD](https://kind.sigs.k8s.io/)), the operator can be easily started using `make`, after having set the proper environment variables regarding the different configurations:
 
 ```make
-make install-tenant
-make run-tenant
+make run-operator
 ```
 
 ### CRD definitions

@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update && sudo apt-get install --no-install-recommends -y \
+          libpcap-dev
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -25,9 +30,9 @@ jobs:
           go-version-file: ./operators/go.mod
 
       - name: Check linting
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.56
+          version: v2.1.0
           working-directory: operators
 
   gomodtidy:

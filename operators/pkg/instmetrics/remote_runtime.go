@@ -66,6 +66,7 @@ func newRemoteRuntimeServiceClient(ctx context.Context, endpoint string) (*Remot
 	addr := URL.Path
 
 	// Open gRPC connection.
+	//nolint:staticcheck // grpc.WithInsecure is deprecated, but a furher investigation is needed to understand how to replace it (issue #949).
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dial))
 	if err != nil {
 		log.Error(err, "Connect remote runtime failed", "address", addr)
