@@ -179,7 +179,7 @@ func (tv *TenantValidator) ValidateUpdate(
 	}
 	if validate.stopEarly {
 		// only check personal workspace if the validation is overridden, it is handled by the self-edit handler otherwise
-		if validate.oldTenant.Spec.CreatePersonalWorkspace && !validate.newTenant.Spec.CreatePersonalWorkspace {
+		if validate.oldTenant.Spec.CreatePersonalWorkspace != validate.newTenant.Spec.CreatePersonalWorkspace {
 			_, err := tv.HandlePersonalWorkspaceModification(ctx, validate.newTenant, validate.oldTenant)
 			if err != nil {
 				return validate.warnings, err
@@ -376,14 +376,14 @@ func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Conte
 	// personal workspace was enabled, and is being disabled
 	if !newTenant.Spec.CreatePersonalWorkspace {
 		instances := &v1alpha2.InstanceList{}
-		if err := tv.Client.List(ctx, instances, client.InNamespace(newTenant.Status.PersonalNamespace.Name)); err != nil {
+		if err := tv.Client.List(ctx, instances, client.InNamespace(oldTenant.Status.PersonalNamespace.Name)); err != nil {
 			log.Error(err, "failed to list instances in personal namespace")
 			return nil, errors.NewInternalError(err)
 		}
 		for i := 0; i < len(instances.Items); i++ {
-			if instances.Items[i].Spec.Template.Namespace == newTenant.Status.PersonalNamespace.Name {
+			if instances.Items[i].Spec.Template.Namespace == oldTenant.Status.PersonalNamespace.Name {
 				log.Info("denied: cannot disable personal workspace, there are instances of personal workspace templates in the namespace")
-				return nil, errors.NewConflict(schema.GroupResource{}, newTenant.Name, fmt.Errorf("cannot disable personal workspace, there are instances of personal workspace templates in the namespace"))
+				return nil, errors.NewConflict(schema.GroupResource{}, oldTenant.Name, fmt.Errorf("cannot disable personal workspace, there are instances of personal workspace templates in the namespace"))
 			}
 		}
 	}

@@ -855,5 +855,103 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).To(HaveOccurred())
 		})
+
+	})
+
+	Context("When tenant has personal workspace templates", func() {
+		var (
+			testTemplate  *v1alpha2.Template
+			testNamespace *v1.Namespace
+		)
+		BeforeEach(func() {
+			tnResource.Status.PersonalNamespace.Created = true
+			tnResource.Status.PersonalNamespace.Name = tnPersonalNamespace
+			testNamespace = &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tnPersonalNamespace}}
+			addObjToObjectsList(testNamespace)
+			testTemplate = &v1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-template",
+					Namespace: tnPersonalNamespace,
+				},
+			}
+			addObjToObjectsList(testTemplate)
+		})
+		AfterEach(func() {
+			removeObjFromObjectsList(testNamespace)
+			removeObjFromObjectsList(testTemplate)
+		})
+		Context("When personal workspace is enabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = true
+			})
+			Context("When the namespace is present", func() {
+				It("Should keep the namespace", func() {
+					namespace := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
+				})
+				It("Should keep the role binding", func() {
+					rb := &rbacv1.RoleBinding{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeTrue(), timeout, interval)
+				})
+			})
+			Context("When the namespace is absent", func() {
+				BeforeEach(func() {
+					tnResource.Spec.LastLogin = metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second)))
+				})
+				It("Should keep the namespace", func() {
+					namespace := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
+				})
+				It("Should keep the role binding", func() {
+					rb := &rbacv1.RoleBinding{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeTrue(), timeout, interval)
+				})
+			})
+			Context("When there is error when listing templates", func() {
+				BeforeEach(func() {
+					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
+						List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+							if _, ok := list.(*v1alpha2.TemplateList); ok {
+								return fmt.Errorf("simulated error on template list")
+							}
+							return client.List(ctx, list, opts...)
+						},
+					})
+					tnReconcileErrExpected = HaveOccurred()
+				})
+				It("Should keep the namespace unchanged", func() {
+					namespace := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
+				})
+			})
+		})
+		Context("When personal workspace is disabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = false
+			})
+			Context("When the namespace is present", func() {
+				It("Should keep the namespace", func() {
+					namespace := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
+				})
+				It("Should not have the role binding", func() {
+					rb := &rbacv1.RoleBinding{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
+				})
+			})
+			Context("When the namespace is absent", func() {
+				BeforeEach(func() {
+					tnResource.Spec.LastLogin = metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second)))
+				})
+				It("Should delete the namespace", func() {
+					namespace := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeFalse(), timeout, interval)
+				})
+				It("Should delete the role binding", func() {
+					rb := &rbacv1.RoleBinding{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
+				})
+			})
+		})
 	})
 })
