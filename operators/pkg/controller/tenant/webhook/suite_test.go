@@ -40,6 +40,8 @@ var (
 	bypassGroups   = []string{"admins"}
 	testTenantName = "test-tenant"
 	testWorkspace  = "test-workspace"
+
+	testTenantPersonalNamespace = "tenant-" + testTenantName
 )
 
 func TestTenantWebhook(t *testing.T) {
