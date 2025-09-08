@@ -112,6 +112,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     notifier,
   ]);
 
+  console.log('TemplatesTableLogic query val:', workspaceNamespace);
+
   const {
     loading: loadingTemplate,
     error: errorTemplate,

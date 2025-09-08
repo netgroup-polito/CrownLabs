@@ -56,6 +56,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
     dashboard.set(String(selectedWsId));
   }, [selectedWsId]);
 
+  console.log('Dashboard tenantNamespace:', tenantNamespace);
+
   // prepare IWorkspaceGridProps.workspaceItems
   const workspaceItems = useMemo(() => {
     return workspaces

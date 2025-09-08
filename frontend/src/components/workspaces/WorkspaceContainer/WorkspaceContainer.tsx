@@ -41,6 +41,13 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const isPersonal = props.isPersonalWorkspace;
 
+  console.log(
+    'WorkspaceContainer val:',
+    isPersonal ? tenantNamespace : workspace.namespace,
+  );
+  console.log('WorkspaceContainer tenantNamespace:', tenantNamespace);
+  console.log('WorkspaceContainer workspace:', workspace);
+
   const submitHandler = (t: Template) =>
     createTemplateMutation({
       variables: {
@@ -133,7 +140,9 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         <TemplatesTableLogic
           tenantNamespace={tenantNamespace}
           role={workspace.role}
-          workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
+          workspaceNamespace={
+            isPersonal ? tenantNamespace : workspace.namespace
+          }
           workspaceName={workspace.name}
           availableQuota={availableQuota}
           isPersonal={isPersonal}

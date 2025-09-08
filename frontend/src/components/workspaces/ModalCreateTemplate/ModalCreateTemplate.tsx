@@ -315,6 +315,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setShow(false);
   };
 
+  console.log('ModalCreateTemplate query data:', workspaceNamespace);
+
   const {
     data: dataFetchTemplates,
     error: errorFetchTemplates,
