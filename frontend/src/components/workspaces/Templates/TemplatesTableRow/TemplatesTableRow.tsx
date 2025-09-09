@@ -17,6 +17,7 @@ import type {
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
+  useOwnedInstancesQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
@@ -167,6 +168,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       skip: true,
       fetchPolicy: 'network-only',
     });
+
+  const { refetch: refetchOwnedInstances } = useOwnedInstancesQuery({
+    onError: apolloErrorCatcher,
+    variables: {
+      tenantNamespace: tenantNamespace || '',
+    },
+    skip: true,
+    fetchPolicy: 'network-only',
+  });
 
   const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
     useState(false);
@@ -410,9 +420,17 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               createInstance={createInstance}
               editTemplate={handleEditTemplate}
               deleteTemplate={() => {
-                refetchInstancesLabelSelector()
+                const refetchQuery = isPersonal
+                  ? refetchOwnedInstances
+                  : refetchInstancesLabelSelector;
+
+                refetchQuery()
                   .then(ils => {
-                    if (!ils.data.instanceList?.instances!.length && !ils.error)
+                    const instances = isPersonal
+                      ? ils.data.instanceList?.instances
+                      : ils.data.instanceList?.instances;
+
+                    if (!instances?.length && !ils.error)
                       setShowDeleteModalConfirm(true);
                     else setShowDeleteModalNotPossible(true);
                   })

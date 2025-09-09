@@ -112,14 +112,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     isPersonal,
   } = props;
 
-  console.log('ModalCreateTemplate received props:', {
-    workspaceNamespace,
-    isPersonal,
-    show,
-    loading,
-    template,
-  });
-
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
   // Fetch all image lists
@@ -236,20 +228,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>();
 
-  // Track workspaceNamespace changes
-  useEffect(() => {
-    console.log(
-      'ModalCreateTemplate workspaceNamespace changed to:',
-      workspaceNamespace,
-      new Error().stack,
-    );
-  }, [workspaceNamespace]);
-
-  // Track show prop changes
-  useEffect(() => {
-    console.log('ModalCreateTemplate show prop changed to:', show);
-  }, [show]);
-
   useEffect(() => {
     if (
       formTemplate.name &&
@@ -337,12 +315,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setShow(false);
   };
 
-  console.log(
-    'ModalCreateTemplate query data:',
-    workspaceNamespace,
-    new Error().stack,
-  );
-
   const {
     data: dataFetchTemplates,
     error: errorFetchTemplates,
@@ -358,24 +330,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
       apolloErrorCatcher(error);
     },
-    onCompleted: data => {
-      console.log(
-        'ModalCreateTemplate useWorkspaceTemplatesQuery completed:',
-        data,
-        'workspaceNamespace:',
-        workspaceNamespace,
-      );
-    },
     variables: { workspaceNamespace },
   });
 
   const onSubmit = () => {
-    console.log('ModalCreateTemplate onSubmit called with:', {
-      formTemplate,
-      workspaceNamespace,
-      isPersonal,
-    });
-
     // prepare sharedVolumeMountInfos for submit (empty for personal templates)
     let sharedVolumeMountInfos: SharedVolumeMountsListItem[] = [];
     if (!isPersonal) {
@@ -402,11 +360,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       sharedVolumeMountInfos,
     };
 
-    console.log('ModalCreateTemplate submitting template:', templateToSubmit);
-
     submitHandler(templateToSubmit)
-      .then(result => {
-        console.log('ModalCreateTemplate submitHandler result:', result);
+      .then(_result => {
         setShow(false);
         setFormTemplate(old => {
           return {
@@ -564,10 +519,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <Input
             onFocus={() => {
-              console.log(
-                'ModalCreateTemplate template name input focused, calling refetchTemplates with workspaceNamespace:',
-                workspaceNamespace,
-              );
               refetchTemplates({ workspaceNamespace });
             }}
             onChange={e =>
@@ -644,7 +595,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   },
                   {
                     pattern:
-                      /^([a-z0-9]+([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]+([-a-z0-9]*[a-z0-9])?)*(\/[a-z0-9]+([-a-z0-9]*[a-z0-9])?)*)(:[a-z0-9]+)?$/,
+                      /^([a-z0-9]+([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]+([-a-z0-9]*[a-z0-9])?)*(:[0-9]+)?\/)?(([a-z0-9]+([-._]?[a-z0-9]+)*\/)*[a-z0-9]+([-._]?[a-z0-9]+)*)(:[a-zA-Z0-9]+([-._]?[a-zA-Z0-9]+)*)?$/,
                     message: 'Please enter a valid container image name',
                   },
                 ]}

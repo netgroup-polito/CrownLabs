@@ -112,15 +112,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     notifier,
   ]);
 
-  console.log('TemplatesTableLogic received props:', {
-    tenantNamespace,
-    workspaceNamespace,
-    workspaceName,
-    role,
-    isPersonal,
-  });
-  console.log('TemplatesTableLogic query val:', workspaceNamespace);
-
   const {
     loading: loadingTemplate,
     error: errorTemplate,
@@ -136,14 +127,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         workspaceNamespace,
       );
       apolloErrorCatcher(error);
-    },
-    onCompleted: data => {
-      console.log(
-        'TemplatesTableLogic useWorkspaceTemplatesQuery completed:',
-        data,
-        'workspaceNamespace:',
-        workspaceNamespace,
-      );
     },
     fetchPolicy: fetchPolicy_networkOnly,
     nextFetchPolicy: 'cache-only',
@@ -167,21 +150,12 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   useEffect(() => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
-      console.log(
-        'TemplatesTableLogic setting up subscription for workspaceNamespace:',
-        workspaceNamespace,
-      );
       const unsubscribe =
         subscribeToMoreTemplates<UpdatedWorkspaceTemplatesSubscription>({
           onError: makeErrorCatcher(ErrorTypes.GenericError),
           document: updatedWorkspaceTemplates,
           variables: { workspaceNamespace },
           updateQuery: (prev, { subscriptionData }) => {
-            console.log('TemplatesTableLogic subscription update received:', {
-              workspaceNamespace,
-              subscriptionData,
-              prev,
-            });
             const { data } = subscriptionData;
             if (!data?.updatedTemplate?.template) return prev;
             const { template, updateType } = data.updatedTemplate;
@@ -212,10 +186,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 __typename: prev.templateList?.__typename,
               },
             });
-            console.log(
-              'TemplatesTableLogic subscription update result:',
-              result,
-            );
             return result;
           },
         });
@@ -241,13 +211,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     });
 
   const createInstance = (templateId: string, nodeSelector?: JSON) => {
-    console.log('TemplatesTableLogic createInstance called with:', {
-      templateId,
-      tenantNamespace,
-      workspaceNamespace,
-      nodeSelector,
-    });
-
     return createInstanceMutation({
       variables: {
         templateId,
@@ -258,7 +221,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       },
     })
       .then(i => {
-        console.log('TemplatesTableLogic createInstance result:', i);
         setDataInstances(old =>
           !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
             ? [

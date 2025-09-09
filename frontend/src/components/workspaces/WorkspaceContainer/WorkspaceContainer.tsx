@@ -2,7 +2,7 @@ import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { Badge, Modal, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { FC } from 'react';
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
   useCreateTemplateMutation,
@@ -31,36 +31,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   const { tenantNamespace, workspace, availableQuota } = props;
-  console.log('WorkspaceContainer props:', props);
-  console.log('WorkspaceContainer received:', {
-    tenantNamespace,
-    workspace,
-    isPersonal: props.isPersonalWorkspace,
-    calculatedWorkspaceNamespace: props.isPersonalWorkspace
-      ? tenantNamespace
-      : workspace.namespace,
-    workspaceNamespace: workspace.namespace,
-  });
-
-  // Track when workspace.namespace changes
-  useEffect(() => {
-    console.log(
-      'WorkspaceContainer workspace.namespace changed to:',
-      workspace.namespace,
-      'Stack:',
-      new Error().stack,
-    );
-  }, [workspace.namespace]);
-
-  // Track when tenantNamespace changes
-  useEffect(() => {
-    console.log(
-      'WorkspaceContainer tenantNamespace changed to:',
-      tenantNamespace,
-      'Stack:',
-      new Error().stack,
-    );
-  }, [tenantNamespace]);
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -71,28 +41,11 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const isPersonal = props.isPersonalWorkspace;
 
-  console.log(
-    'WorkspaceContainer val:',
-    isPersonal ? tenantNamespace : workspace.namespace,
-  );
-  console.log('WorkspaceContainer tenantNamespace:', tenantNamespace);
-  console.log('WorkspaceContainer workspace:', workspace);
-  console.log('WorkspaceContainer isPersonal:', isPersonal);
-
   const submitHandler = (t: Template) => {
     const finalWorkspaceNamespace = isPersonal
       ? tenantNamespace
       : workspace.namespace;
     const templateIdValue = `${workspace.name}-`;
-
-    console.log('WorkspaceContainer submitHandler called with:', {
-      template: t,
-      isPersonal,
-      tenantNamespace,
-      workspaceNamespace: finalWorkspaceNamespace,
-      templateId: templateIdValue,
-      workspaceName: workspace.name,
-    });
 
     return createTemplateMutation({
       variables: {
@@ -121,10 +74,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       },
     })
       .then(result => {
-        console.log(
-          'WorkspaceContainer createTemplateMutation result:',
-          result,
-        );
         return result;
       })
       .catch(error => {
@@ -138,23 +87,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   return (
     <>
-      {(() => {
-        // For personal workspaces, ALWAYS use tenantNamespace, never workspace.namespace
-        const finalWorkspaceNamespace = isPersonal
-          ? tenantNamespace
-          : workspace.namespace;
-        console.log(
-          'WorkspaceContainer rendering ModalCreateTemplate with workspaceNamespace:',
-          finalWorkspaceNamespace,
-          'isPersonal:',
-          isPersonal,
-          'tenantNamespace:',
-          tenantNamespace,
-          'workspace.namespace:',
-          workspace.namespace,
-        );
-        return null;
-      })()}
       <ModalCreateTemplate
         workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
@@ -224,23 +156,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           availableQuota={availableQuota}
           isPersonal={isPersonal}
         />
-        {(() => {
-          // For personal workspaces, ALWAYS use tenantNamespace, never workspace.namespace
-          const finalWorkspaceNamespace = isPersonal
-            ? tenantNamespace
-            : workspace.namespace;
-          console.log(
-            'WorkspaceContainer rendering TemplatesTableLogic with workspaceNamespace:',
-            finalWorkspaceNamespace,
-            'isPersonal:',
-            isPersonal,
-            'tenantNamespace:',
-            tenantNamespace,
-            'workspace.namespace:',
-            workspace.namespace,
-          );
-          return null;
-        })()}
         <Modal
           destroyOnHidden={true}
           title={`Users in ${workspace.prettyName} `}
