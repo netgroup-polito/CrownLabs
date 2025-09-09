@@ -55,6 +55,7 @@ export interface ITemplatesTableProps {
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
     totalInstances,
+    tenantNamespace,
     templates,
     role,
     deleteTemplate,
@@ -82,6 +83,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
+          tenantNamespace={tenantNamespace}
           availableQuota={availableQuota}
           isPersonal={isPersonal}
         />

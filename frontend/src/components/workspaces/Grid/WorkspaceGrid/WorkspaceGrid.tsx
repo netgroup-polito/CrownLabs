@@ -25,7 +25,7 @@ const WorkspaceGrid: FC<IWorkspaceGridProps> = ({ ...props }) => {
         props.tenantPersonalWorkspace?.isPWsCreated && (
           <WorkspaceGridItem
             id={-1}
-            title="Personal Static"
+            title="Personal Workspace"
             isActive={selectedWs === -1}
             onClick={onClick}
           />

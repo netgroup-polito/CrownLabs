@@ -33,6 +33,7 @@ export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
   totalInstances: number;
+  tenantNamespace: string;
   availableQuota?: {
     cpu?: string | number;
     memory?: string;
@@ -141,6 +142,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     expandRow,
+    tenantNamespace,
     availableQuota,
     isPersonal,
   } = props;
@@ -313,10 +315,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         cpuInterval={{ min: 1, max: 8 }}
         ramInterval={{ min: 1, max: 32 }}
         diskInterval={{ min: 10, max: 100 }}
-        workspaceNamespace={template.workspaceNamespace}
+        workspaceNamespace={
+          isPersonal ? tenantNamespace : template.workspaceNamespace
+        }
         submitHandler={handleUpdateTemplate}
         loading={updateLoading}
         isPersonal={isPersonal}
+        skipInternalQuery={true} // Skip internal query to prevent Apollo cache conflicts
       />
       <div className="w-full flex justify-between py-0">
         <div
