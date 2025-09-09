@@ -60,6 +60,16 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   console.log('Dashboard selectedWsId:', selectedWsId);
   console.log('Dashboard workspaces:', workspaces);
 
+  // Track when tenantNamespace changes
+  useEffect(() => {
+    console.log('Dashboard tenantNamespace changed to:', tenantNamespace, 'Stack:', new Error().stack);
+  }, [tenantNamespace]);
+
+  // Track when workspaces array changes
+  useEffect(() => {
+    console.log('Dashboard workspaces array changed:', workspaces, 'Stack:', new Error().stack);
+  }, [workspaces]);
+
   // prepare IWorkspaceGridProps.workspaceItems
   const workspaceItems = useMemo(() => {
     return workspaces
@@ -147,20 +157,22 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           ) : selectedWsId === -1 ? (
             <>
               {(() => {
+                // Create a completely isolated personal workspace object
+                const personalWorkspace = {
+                  name: 'personal-frontend-only', // Different name to avoid Apollo conflicts
+                  prettyName: 'Personal Workspace',
+                  role: WorkspaceRole.manager,
+                  namespace: tenantNamespace, // Always use tenantNamespace directly
+                  waitingTenants: undefined,
+                };
                 console.log(
                   'Dashboard rendering WorkspaceContainer for personal workspace:',
                   {
                     selectedWsId,
                     tenantNamespace,
-                    workspaceNamespace: tenantNamespace,
+                    workspaceNamespace: tenantNamespace, // Always use tenantNamespace
                     isPersonal: true,
-                    workspace: {
-                      name: 'personal',
-                      prettyName: 'Personal Workspace',
-                      role: WorkspaceRole.manager,
-                      namespace: tenantNamespace,
-                      waitingTenants: undefined,
-                    },
+                    workspace: personalWorkspace,
                   },
                 );
                 return null;
@@ -168,10 +180,10 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               <WorkspaceContainer
                 tenantNamespace={tenantNamespace}
                 workspace={{
-                  name: 'personal',
+                  name: 'personal-frontend-only', // Different name to avoid Apollo conflicts
                   prettyName: 'Personal Workspace',
                   role: WorkspaceRole.manager,
-                  namespace: tenantNamespace,
+                  namespace: tenantNamespace, // Always use tenantNamespace directly
                   waitingTenants: undefined,
                 }}
                 availableQuota={globalQuota?.availableQuota}
