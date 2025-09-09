@@ -57,6 +57,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   }, [selectedWsId]);
 
   console.log('Dashboard tenantNamespace:', tenantNamespace);
+  console.log('Dashboard selectedWsId:', selectedWsId);
+  console.log('Dashboard workspaces:', workspaces);
 
   // prepare IWorkspaceGridProps.workspaceItems
   const workspaceItems = useMemo(() => {
@@ -121,25 +123,49 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
         >
           {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
-            <WorkspaceContainer
-              tenantNamespace={tenantNamespace}
-              workspace={workspaces[selectedWsId]}
-              availableQuota={globalQuota?.availableQuota}
-              isPersonalWorkspace={false}
-            />
+            <>
+              {console.log('Dashboard rendering WorkspaceContainer for regular workspace:', {
+                selectedWsId,
+                workspace: workspaces[selectedWsId],
+                tenantNamespace,
+                workspaceNamespace: workspaces[selectedWsId].namespace,
+                isPersonal: false
+              })}
+              <WorkspaceContainer
+                tenantNamespace={tenantNamespace}
+                workspace={workspaces[selectedWsId]}
+                availableQuota={globalQuota?.availableQuota}
+                isPersonalWorkspace={false}
+              />
+            </>
           ) : selectedWsId === -1 ? (
-            <WorkspaceContainer
-              tenantNamespace={tenantNamespace}
-              workspace={{
-                name: 'personal',
-                prettyName: 'Personal Workspace',
-                role: WorkspaceRole.manager,
-                namespace: tenantNamespace,
-                waitingTenants: undefined,
-              }}
-              availableQuota={globalQuota?.availableQuota}
-              isPersonalWorkspace={true}
-            />
+            <>
+              {console.log('Dashboard rendering WorkspaceContainer for personal workspace:', {
+                selectedWsId,
+                tenantNamespace,
+                workspaceNamespace: tenantNamespace,
+                isPersonal: true,
+                workspace: {
+                  name: 'personal',
+                  prettyName: 'Personal Workspace',
+                  role: WorkspaceRole.manager,
+                  namespace: tenantNamespace,
+                  waitingTenants: undefined,
+                }
+              })}
+              <WorkspaceContainer
+                tenantNamespace={tenantNamespace}
+                workspace={{
+                  name: 'personal',
+                  prettyName: 'Personal Workspace',
+                  role: WorkspaceRole.manager,
+                  namespace: tenantNamespace,
+                  waitingTenants: undefined,
+                }}
+                availableQuota={globalQuota?.availableQuota}
+                isPersonalWorkspace={true}
+              />
+            </>
           ) : selectedWsId === -2 ? (
             <WorkspaceAdd />
           ) : (

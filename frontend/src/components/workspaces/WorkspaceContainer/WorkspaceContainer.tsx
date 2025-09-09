@@ -32,6 +32,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const { tenantNamespace, workspace, availableQuota } = props;
   console.log('WorkspaceContainer props:', props);
+  console.log('WorkspaceContainer received:', {
+    tenantNamespace,
+    workspace,
+    isPersonal: props.isPersonalWorkspace,
+    calculatedWorkspaceNamespace: props.isPersonalWorkspace ? tenantNamespace : workspace.namespace
+  });
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
     onError: apolloErrorCatcher,
@@ -47,13 +53,26 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   );
   console.log('WorkspaceContainer tenantNamespace:', tenantNamespace);
   console.log('WorkspaceContainer workspace:', workspace);
+  console.log('WorkspaceContainer isPersonal:', isPersonal);
 
-  const submitHandler = (t: Template) =>
-    createTemplateMutation({
+  const submitHandler = (t: Template) => {
+    const finalWorkspaceNamespace = isPersonal ? tenantNamespace : workspace.namespace;
+    const templateIdValue = `${workspace.name}-`;
+    
+    console.log('WorkspaceContainer submitHandler called with:', {
+      template: t,
+      isPersonal,
+      tenantNamespace,
+      workspaceNamespace: finalWorkspaceNamespace,
+      templateId: templateIdValue,
+      workspaceName: workspace.name
+    });
+    
+    return createTemplateMutation({
       variables: {
         workspaceId: workspace.name,
-        workspaceNamespace: isPersonal ? tenantNamespace : workspace.namespace,
-        templateId: `${workspace.name}-`,
+        workspaceNamespace: finalWorkspaceNamespace,
+        templateId: templateIdValue,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
         image:
@@ -74,10 +93,18 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         },
         sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
       },
+    }).then(result => {
+      console.log('WorkspaceContainer createTemplateMutation result:', result);
+      return result;
+    }).catch(error => {
+      console.error('WorkspaceContainer createTemplateMutation error:', error);
+      throw error;
     });
+  }
 
   return (
     <>
+      {console.log('WorkspaceContainer rendering ModalCreateTemplate with workspaceNamespace:', isPersonal ? tenantNamespace : workspace.namespace)}
       <ModalCreateTemplate
         workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
@@ -147,6 +174,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           availableQuota={availableQuota}
           isPersonal={isPersonal}
         />
+        {console.log('WorkspaceContainer rendering TemplatesTableLogic with workspaceNamespace:', isPersonal ? tenantNamespace : workspace.namespace)}
         <Modal
           destroyOnHidden={true}
           title={`Users in ${workspace.prettyName} `}
