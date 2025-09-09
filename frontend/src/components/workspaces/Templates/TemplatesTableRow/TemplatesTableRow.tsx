@@ -321,7 +321,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         submitHandler={handleUpdateTemplate}
         loading={updateLoading}
         isPersonal={isPersonal}
-        skipInternalQuery={true} // Skip internal query to prevent Apollo cache conflicts
       />
       <div className="w-full flex justify-between py-0">
         <div
