@@ -7,6 +7,7 @@ import {
   Col,
   Divider,
   Alert,
+  Radio,
   type FormRule,
 } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
@@ -31,6 +32,7 @@ interface PortField {
   name?: string;
   targetPort: string;
   desiredPort?: string;
+  protocol?: string;
 }
 interface FormValues {
   ports: PortField[];
@@ -57,12 +59,13 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         name: p.name || '',
         targetPort: String(p.targetPort),
         desiredPort: allowPublicExposure ? String(p.port) : '',
+        protocol: (p as any).protocol || 'TCP', // Safe cast until types are updated
       }));
     }
-    return [{ name: '', targetPort: '', desiredPort: '' }];
+    return [{ name: '', targetPort: '', desiredPort: '', protocol: 'TCP' }];
   }, [existingExposure, allowPublicExposure]);
 
-  // Reset form values when modal opens
+  // Reset form values when modal opens or existingExposure changes
   useEffect(() => {
     if (open) {
       // Use setTimeout to ensure the form is properly initialized
@@ -89,10 +92,9 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports?.[ports.length - 1]?.targetPort;
   const isAddDisabled =
-    ports?.length > 0 &&
-    (!lastTargetPort ||
-      !/^\d+$/.test(lastTargetPort) ||
-      parseInt(lastTargetPort, 10) === 0);
+    !lastTargetPort ||
+    !/^\d+$/.test(lastTargetPort) ||
+    parseInt(lastTargetPort, 10) === 0;
 
   const onFinish = async (values: FormValues) => {
     // Prevent multiple submissions
@@ -104,23 +106,31 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     const normalized = values.ports.map(p => {
       const targetPort = parseInt(p.targetPort, 10);
       if (allowPublicExposure) {
-        // Only include port if desiredPort is provided and not empty
-        const result: { name?: string; targetPort: number; port?: string } = {
-          name: p.name,
-          targetPort,
+        // Ensure name is provided (required by CRD)
+        const name = p.name && p.name.trim() !== '' ? p.name.trim() : `port-${targetPort}`;
+        // Parse port or set to 0 for auto-assignment (required by CRD)
+        const port = p.desiredPort && p.desiredPort.trim() !== '' ? parseInt(p.desiredPort, 10) : 0;
+        
+        return { 
+          name, 
+          targetPort, 
+          port,
+          protocol: p.protocol || 'TCP' // Use protocol from form or default to TCP
         };
-        if (p.desiredPort && p.desiredPort.trim() !== '') {
-          result.port = p.desiredPort;
-        }
-        return result;
       }
-      return { name: p.name, targetPort };
+      // For non-public exposure, still need required fields
+      const name = p.name && p.name.trim() !== '' ? p.name.trim() : `port-${targetPort}`;
+      return { 
+        name, 
+        targetPort, 
+        port: 0,
+        protocol: p.protocol || 'TCP'
+      };
     });
 
     try {
       // build patch for publicExposure via helper
       const patchJson = buildPublicExposurePatch(normalized);
-      console.log('🔧 Sending patch:', patchJson);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
 
       const result = await applyInstanceMutation({ variables });
@@ -148,26 +158,21 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   return (
     <Modal
-      title="TCP Port Exposure"
+      title="Port Exposure"
       open={open}
       onCancel={onCancel}
       width={550}
       footer={[
         <Button key="cancel" onClick={onCancel} disabled={loading}>
-          Cancel
+          Close
         </Button>,
         <Button
           key="send"
           type="primary"
-          onClick={() => {
-            if (!loading) {
-              form.submit();
-            }
-          }}
+          onClick={() => form.submit()}
           loading={loading}
-          disabled={loading}
         >
-          Ok
+          Send
         </Button>,
       ]}
     >
@@ -189,19 +194,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         <Form.List name="ports">
           {(fields, { add, remove }) => (
             <>
-              {fields.length === 0 && (
-                <Alert
-                  type="info"
-                  message="No ports exposed"
-                  description="Public exposure is currently disabled for this instance. Add a port to enable external access."
-                  showIcon
-                  style={{ marginBottom: 16 }}
-                />
-              )}
               {fields.map(({ key, name, ...restField }, index) => (
                 <div key={key}>
                   <Row gutter={8} align="bottom">
-                    <Col span={6}>
+                    <Col span={4}>
                       <Form.Item
                         {...restField}
                         name={[name, 'name']}
@@ -211,11 +207,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Input placeholder="e.g. web-server" />
                       </Form.Item>
                     </Col>
-                    <Col span={8}>
+                    <Col span={5}>
                       <Form.Item
                         {...restField}
                         name={[name, 'targetPort']}
-                        label="Target Port (internal)"
+                        label="Target Port"
                         style={{ marginBottom: 8 }}
                         rules={[
                           { required: true, message: 'Required' },
@@ -225,12 +221,34 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Input placeholder="e.g. 8080" />
                       </Form.Item>
                     </Col>
+                    <Col span={6}>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'protocol']}
+                        label="Protocol"
+                        style={{ marginBottom: 8 }}
+                        initialValue="TCP"
+                      >
+                        <Radio.Group 
+                          size="small" 
+                          style={{ 
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: '4px',
+                            flexWrap: 'nowrap'
+                          }}
+                        >
+                          <Radio value="TCP" style={{ fontSize: '11px', margin: 0 }}>TCP</Radio>
+                          <Radio value="UDP" style={{ fontSize: '11px', margin: 0 }}>UDP</Radio>
+                        </Radio.Group>
+                      </Form.Item>
+                    </Col>
                     {allowPublicExposure && (
-                      <Col span={7}>
+                      <Col span={5}>
                         <Form.Item
                           {...restField}
                           name={[name, 'desiredPort']}
-                          label="Desired Port (public)"
+                          label="Desired Port"
                           style={{ marginBottom: 8 }}
                           rules={[{ validator: portValidator }]}
                         >
@@ -247,6 +265,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         danger
                         icon={<DeleteOutlined />}
                         onClick={() => remove(name)}
+                        disabled={fields.length === 1}
                       />
                     </Col>
                   </Row>

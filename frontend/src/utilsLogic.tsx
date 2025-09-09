@@ -259,25 +259,11 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const {
-    running: oldRunning,
-    status: oldStatus,
-    publicExposure: oldPublicExposure,
-  } = oldObj ?? {};
-  const {
-    running: newRunning,
-    status: newStatus,
-    publicExposure: newPublicExposure,
-  } = newObj;
+  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
+  const { running: newRunning, status: newStatus } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
-
-    // Check for any significant changes that should trigger UI update
-    const statusChanged = oldStatus !== newStatus || oldRunning !== newRunning;
-    const publicExposureChanged =
-      JSON.stringify(oldPublicExposure) !== JSON.stringify(newPublicExposure);
-
-    if (statusChanged || publicExposureChanged) {
+    if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -296,22 +282,9 @@ export const getSubObjTypeK8s = (
   if (oldObj) {
     if (oldSpec?.prettyName !== newSpec?.prettyName)
       return SubObjType.PrettyName;
-
-    // Check for phase, running, or publicExposure changes
-    const phaseChanged = oldStatus?.phase !== newStatus?.phase;
-    const runningChanged = oldSpec?.running !== newSpec?.running;
-    const publicExposureSpecChanged =
-      JSON.stringify(oldSpec?.publicExposure) !==
-      JSON.stringify(newSpec?.publicExposure);
-    const publicExposureStatusChanged =
-      JSON.stringify(oldStatus?.publicExposure) !==
-      JSON.stringify(newStatus?.publicExposure);
-
     if (
-      phaseChanged ||
-      runningChanged ||
-      publicExposureSpecChanged ||
-      publicExposureStatusChanged
+      oldStatus?.phase !== newStatus?.phase ||
+      oldSpec?.running !== newSpec?.running
     ) {
       return SubObjType.UpdatedInfo;
     }

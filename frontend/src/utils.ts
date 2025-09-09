@@ -1,10 +1,8 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { DeepPartial } from '@apollo/client/utilities';
 import type {
   EnvironmentType,
   Phase,
   Phase5,
-  ItPolitoCrownlabsV1alpha2Instance,
 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
@@ -277,37 +275,30 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
 
 /**
  * Build JSON patch string for updating publicExposure ports on an Instance.
- * @param portsNormalized entries with name, targetPort, and port
+ * @param portsNormalized entries with name, targetPort, port, and protocol
  * @returns JSON patch string
  */
 export function buildPublicExposurePatch(
-  portsNormalized: Array<{ name?: string; targetPort: number; port?: string }>,
+  portsNormalized: Array<{ 
+    name: string; 
+    targetPort: number; 
+    port: number; 
+    protocol: string;
+  }>,
 ): string {
-  // Convert port strings to numbers for Kubernetes API
-  const portsWithNumericPort = portsNormalized.map(p => {
-    const portNum = p.port ? parseInt(p.port, 10) : 0;
-    const result: { name?: string; targetPort: number; port?: number } = {
-      targetPort: p.targetPort,
-    };
+  // Ensure all required fields are present according to CRD
+  const portsFormatted = portsNormalized.map(p => ({
+    name: p.name,
+    targetPort: p.targetPort,
+    port: p.port,
+    protocol: p.protocol,
+  }));
 
-    // Only include name if it's provided and not empty
-    if (p.name && p.name.trim() !== '') {
-      result.name = p.name.trim();
-    }
-
-    // Only include port if it's a valid port number (> 0)
-    if (portNum > 0) {
-      result.port = portNum;
-    }
-
-    return result;
-  });
-
-  const patchJson: DeepPartial<ItPolitoCrownlabsV1alpha2Instance> = {
+  const payload = {
     kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
-    spec: { publicExposure: { ports: portsWithNumericPort } },
+    spec: { publicExposure: { ports: portsFormatted } },
   };
 
-  return JSON.stringify(patchJson);
+  return JSON.stringify(payload);
 }
