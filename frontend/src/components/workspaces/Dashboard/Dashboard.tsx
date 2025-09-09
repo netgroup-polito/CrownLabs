@@ -62,12 +62,22 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
 
   // Track when tenantNamespace changes
   useEffect(() => {
-    console.log('Dashboard tenantNamespace changed to:', tenantNamespace, 'Stack:', new Error().stack);
+    console.log(
+      'Dashboard tenantNamespace changed to:',
+      tenantNamespace,
+      'Stack:',
+      new Error().stack,
+    );
   }, [tenantNamespace]);
 
   // Track when workspaces array changes
   useEffect(() => {
-    console.log('Dashboard workspaces array changed:', workspaces, 'Stack:', new Error().stack);
+    console.log(
+      'Dashboard workspaces array changed:',
+      workspaces,
+      'Stack:',
+      new Error().stack,
+    );
   }, [workspaces]);
 
   // prepare IWorkspaceGridProps.workspaceItems

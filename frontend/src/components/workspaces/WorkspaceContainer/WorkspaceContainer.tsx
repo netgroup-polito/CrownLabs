@@ -39,17 +39,27 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     calculatedWorkspaceNamespace: props.isPersonalWorkspace
       ? tenantNamespace
       : workspace.namespace,
-    workspaceNamespace: workspace.namespace
+    workspaceNamespace: workspace.namespace,
   });
-  
+
   // Track when workspace.namespace changes
   useEffect(() => {
-    console.log('WorkspaceContainer workspace.namespace changed to:', workspace.namespace, 'Stack:', new Error().stack);
+    console.log(
+      'WorkspaceContainer workspace.namespace changed to:',
+      workspace.namespace,
+      'Stack:',
+      new Error().stack,
+    );
   }, [workspace.namespace]);
-  
+
   // Track when tenantNamespace changes
   useEffect(() => {
-    console.log('WorkspaceContainer tenantNamespace changed to:', tenantNamespace, 'Stack:', new Error().stack);
+    console.log(
+      'WorkspaceContainer tenantNamespace changed to:',
+      tenantNamespace,
+      'Stack:',
+      new Error().stack,
+    );
   }, [tenantNamespace]);
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -130,13 +140,18 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     <>
       {(() => {
         // For personal workspaces, ALWAYS use tenantNamespace, never workspace.namespace
-        const finalWorkspaceNamespace = isPersonal ? tenantNamespace : workspace.namespace;
+        const finalWorkspaceNamespace = isPersonal
+          ? tenantNamespace
+          : workspace.namespace;
         console.log(
           'WorkspaceContainer rendering ModalCreateTemplate with workspaceNamespace:',
           finalWorkspaceNamespace,
-          'isPersonal:', isPersonal,
-          'tenantNamespace:', tenantNamespace,
-          'workspace.namespace:', workspace.namespace
+          'isPersonal:',
+          isPersonal,
+          'tenantNamespace:',
+          tenantNamespace,
+          'workspace.namespace:',
+          workspace.namespace,
         );
         return null;
       })()}
@@ -211,13 +226,18 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         />
         {(() => {
           // For personal workspaces, ALWAYS use tenantNamespace, never workspace.namespace
-          const finalWorkspaceNamespace = isPersonal ? tenantNamespace : workspace.namespace;
+          const finalWorkspaceNamespace = isPersonal
+            ? tenantNamespace
+            : workspace.namespace;
           console.log(
             'WorkspaceContainer rendering TemplatesTableLogic with workspaceNamespace:',
             finalWorkspaceNamespace,
-            'isPersonal:', isPersonal,
-            'tenantNamespace:', tenantNamespace,
-            'workspace.namespace:', workspace.namespace
+            'isPersonal:',
+            isPersonal,
+            'tenantNamespace:',
+            tenantNamespace,
+            'workspace.namespace:',
+            workspace.namespace,
           );
           return null;
         })()}
