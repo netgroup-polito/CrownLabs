@@ -117,7 +117,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     workspaceNamespace,
     workspaceName,
     role,
-    isPersonal
+    isPersonal,
   });
   console.log('TemplatesTableLogic query val:', workspaceNamespace);
 
@@ -128,12 +128,22 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     data: templateListData,
   } = useWorkspaceTemplatesQuery({
     variables: { workspaceNamespace },
-    onError: (error) => {
-      console.error('TemplatesTableLogic useWorkspaceTemplatesQuery error:', error, 'workspaceNamespace:', workspaceNamespace);
+    onError: error => {
+      console.error(
+        'TemplatesTableLogic useWorkspaceTemplatesQuery error:',
+        error,
+        'workspaceNamespace:',
+        workspaceNamespace,
+      );
       apolloErrorCatcher(error);
     },
-    onCompleted: (data) => {
-      console.log('TemplatesTableLogic useWorkspaceTemplatesQuery completed:', data, 'workspaceNamespace:', workspaceNamespace);
+    onCompleted: data => {
+      console.log(
+        'TemplatesTableLogic useWorkspaceTemplatesQuery completed:',
+        data,
+        'workspaceNamespace:',
+        workspaceNamespace,
+      );
     },
     fetchPolicy: fetchPolicy_networkOnly,
     nextFetchPolicy: 'cache-only',
@@ -157,7 +167,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   useEffect(() => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
-      console.log('TemplatesTableLogic setting up subscription for workspaceNamespace:', workspaceNamespace);
+      console.log(
+        'TemplatesTableLogic setting up subscription for workspaceNamespace:',
+        workspaceNamespace,
+      );
       const unsubscribe =
         subscribeToMoreTemplates<UpdatedWorkspaceTemplatesSubscription>({
           onError: makeErrorCatcher(ErrorTypes.GenericError),
@@ -167,7 +180,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             console.log('TemplatesTableLogic subscription update received:', {
               workspaceNamespace,
               subscriptionData,
-              prev
+              prev,
             });
             const { data } = subscriptionData;
             if (!data?.updatedTemplate?.template) return prev;
@@ -199,7 +212,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 __typename: prev.templateList?.__typename,
               },
             });
-            console.log('TemplatesTableLogic subscription update result:', result);
+            console.log(
+              'TemplatesTableLogic subscription update result:',
+              result,
+            );
             return result;
           },
         });
@@ -229,9 +245,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       templateId,
       tenantNamespace,
       workspaceNamespace,
-      nodeSelector
+      nodeSelector,
     });
-    
+
     return createInstanceMutation({
       variables: {
         templateId,
@@ -240,25 +256,27 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         workspaceNamespace,
         nodeSelector,
       },
-    }).then(i => {
-      console.log('TemplatesTableLogic createInstance result:', i);
-      setDataInstances(old =>
-        !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
-          ? [
-              ...old,
-              makeGuiInstance(i.data?.createdInstance, userId, {
-                templateName: templateId,
-                workspaceName: workspaceName,
-              }),
-            ]
-          : old,
-      );
-      return i;
-    }).catch(error => {
-      console.error('TemplatesTableLogic createInstance error:', error);
-      throw error;
-    });
-  }
+    })
+      .then(i => {
+        console.log('TemplatesTableLogic createInstance result:', i);
+        setDataInstances(old =>
+          !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
+            ? [
+                ...old,
+                makeGuiInstance(i.data?.createdInstance, userId, {
+                  templateName: templateId,
+                  workspaceName: workspaceName,
+                }),
+              ]
+            : old,
+        );
+        return i;
+      })
+      .catch(error => {
+        console.error('TemplatesTableLogic createInstance error:', error);
+        throw error;
+      });
+  };
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);

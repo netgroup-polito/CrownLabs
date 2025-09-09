@@ -117,7 +117,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     isPersonal,
     show,
     loading,
-    template
+    template,
   });
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -238,7 +238,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   // Track workspaceNamespace changes
   useEffect(() => {
-    console.log('ModalCreateTemplate workspaceNamespace changed to:', workspaceNamespace, new Error().stack);
+    console.log(
+      'ModalCreateTemplate workspaceNamespace changed to:',
+      workspaceNamespace,
+      new Error().stack,
+    );
   }, [workspaceNamespace]);
 
   // Track show prop changes
@@ -333,7 +337,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setShow(false);
   };
 
-  console.log('ModalCreateTemplate query data:', workspaceNamespace, new Error().stack);
+  console.log(
+    'ModalCreateTemplate query data:',
+    workspaceNamespace,
+    new Error().stack,
+  );
 
   const {
     data: dataFetchTemplates,
@@ -341,12 +349,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     loading: loadingFetchTemplates,
     refetch: refetchTemplates,
   } = useWorkspaceTemplatesQuery({
-    onError: (error) => {
-      console.error('ModalCreateTemplate useWorkspaceTemplatesQuery error:', error, 'workspaceNamespace:', workspaceNamespace);
+    onError: error => {
+      console.error(
+        'ModalCreateTemplate useWorkspaceTemplatesQuery error:',
+        error,
+        'workspaceNamespace:',
+        workspaceNamespace,
+      );
       apolloErrorCatcher(error);
     },
-    onCompleted: (data) => {
-      console.log('ModalCreateTemplate useWorkspaceTemplatesQuery completed:', data, 'workspaceNamespace:', workspaceNamespace);
+    onCompleted: data => {
+      console.log(
+        'ModalCreateTemplate useWorkspaceTemplatesQuery completed:',
+        data,
+        'workspaceNamespace:',
+        workspaceNamespace,
+      );
     },
     variables: { workspaceNamespace },
   });
@@ -355,9 +373,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     console.log('ModalCreateTemplate onSubmit called with:', {
       formTemplate,
       workspaceNamespace,
-      isPersonal
+      isPersonal,
     });
-    
+
     // prepare sharedVolumeMountInfos for submit (empty for personal templates)
     let sharedVolumeMountInfos: SharedVolumeMountsListItem[] = [];
     if (!isPersonal) {
@@ -387,7 +405,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     console.log('ModalCreateTemplate submitting template:', templateToSubmit);
 
     submitHandler(templateToSubmit)
-      .then((result) => {
+      .then(result => {
         console.log('ModalCreateTemplate submitHandler result:', result);
         setShow(false);
         setFormTemplate(old => {
@@ -406,7 +424,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           image: undefined,
         });
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('ModalCreateTemplate submitHandler error:', error);
         apolloErrorCatcher(error);
       });
@@ -546,7 +564,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <Input
             onFocus={() => {
-              console.log('ModalCreateTemplate template name input focused, calling refetchTemplates with workspaceNamespace:', workspaceNamespace);
+              console.log(
+                'ModalCreateTemplate template name input focused, calling refetchTemplates with workspaceNamespace:',
+                workspaceNamespace,
+              );
               refetchTemplates({ workspaceNamespace });
             }}
             onChange={e =>

@@ -124,13 +124,19 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
         >
           {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
             <>
-              {console.log('Dashboard rendering WorkspaceContainer for regular workspace:', {
-                selectedWsId,
-                workspace: workspaces[selectedWsId],
-                tenantNamespace,
-                workspaceNamespace: workspaces[selectedWsId].namespace,
-                isPersonal: false
-              })}
+              {(() => {
+                console.log(
+                  'Dashboard rendering WorkspaceContainer for regular workspace:',
+                  {
+                    selectedWsId,
+                    workspace: workspaces[selectedWsId],
+                    tenantNamespace,
+                    workspaceNamespace: workspaces[selectedWsId].namespace,
+                    isPersonal: false,
+                  },
+                );
+                return null;
+              })()}
               <WorkspaceContainer
                 tenantNamespace={tenantNamespace}
                 workspace={workspaces[selectedWsId]}
@@ -140,19 +146,25 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
             </>
           ) : selectedWsId === -1 ? (
             <>
-              {console.log('Dashboard rendering WorkspaceContainer for personal workspace:', {
-                selectedWsId,
-                tenantNamespace,
-                workspaceNamespace: tenantNamespace,
-                isPersonal: true,
-                workspace: {
-                  name: 'personal',
-                  prettyName: 'Personal Workspace',
-                  role: WorkspaceRole.manager,
-                  namespace: tenantNamespace,
-                  waitingTenants: undefined,
-                }
-              })}
+              {(() => {
+                console.log(
+                  'Dashboard rendering WorkspaceContainer for personal workspace:',
+                  {
+                    selectedWsId,
+                    tenantNamespace,
+                    workspaceNamespace: tenantNamespace,
+                    isPersonal: true,
+                    workspace: {
+                      name: 'personal',
+                      prettyName: 'Personal Workspace',
+                      role: WorkspaceRole.manager,
+                      namespace: tenantNamespace,
+                      waitingTenants: undefined,
+                    },
+                  },
+                );
+                return null;
+              })()}
               <WorkspaceContainer
                 tenantNamespace={tenantNamespace}
                 workspace={{
