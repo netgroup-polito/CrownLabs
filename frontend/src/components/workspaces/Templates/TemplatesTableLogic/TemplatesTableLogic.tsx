@@ -157,27 +157,51 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           variables: { workspaceNamespace },
           updateQuery: (prev, { subscriptionData }) => {
             const { data } = subscriptionData;
-            if (!data?.updatedTemplate?.template) return prev;
+            if (!data?.updatedTemplate) return prev;
+            
             const { template, updateType } = data.updatedTemplate;
             const templates = prev.templateList?.templates ?? [];
+            
             let out = [] as NonNullable<
               NonNullable<
                 UpdatedWorkspaceTemplatesSubscriptionResult['data']
               >['updatedTemplate']
             >['template'][];
+            
             switch (updateType) {
               case UpdateType.Added:
-                out = [...templates, template];
+                // Only process if template data is valid
+                if (template) {
+                  out = [...templates, template];
+                } else {
+                  out = templates;
+                }
                 break;
               case UpdateType.Modified:
-                out = templates.map(t =>
-                  t?.metadata?.name === template.metadata?.name ? template : t,
-                );
+                // Only process if template data is valid
+                if (template) {
+                  out = templates.map(t =>
+                    t?.metadata?.name === template.metadata?.name ? template : t,
+                  );
+                } else {
+                  out = templates;
+                }
                 break;
               case UpdateType.Deleted:
-                out = templates.filter(
-                  t => t?.metadata?.name !== template.metadata?.name,
-                );
+                // For deletions, we only need the template metadata (name) to filter
+                // Don't try to access template.spec or other potentially malformed data
+                if (template?.metadata?.name) {
+                  out = templates.filter(
+                    t => t?.metadata?.name !== template.metadata?.name,
+                  );
+                } else {
+                  out = templates;
+                }
+                break;
+              default:
+                out = templates;
+                break;
+            }
                 break;
             }
             const result = Object.assign({}, prev, {

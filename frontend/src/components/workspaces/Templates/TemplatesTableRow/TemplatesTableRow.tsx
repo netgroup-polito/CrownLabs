@@ -214,37 +214,39 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   // Handler to submit the update mutation
   const handleUpdateTemplate = async (updatedTemplate: TemplateType) => {
     // Build the patch JSON for the template update
+    const environmentConfig: any = {
+      name: updatedTemplate.name,
+      image: updatedTemplate.image,
+      guiEnabled: updatedTemplate.gui,
+      persistent: updatedTemplate.persistent,
+      mountMyDriveVolume: updatedTemplate.mountMyDrive,
+      environmentType: updatedTemplate.imageType,
+      resources: {
+        cpu: updatedTemplate.cpu,
+        memory: `${updatedTemplate.ram}Gi`,
+        disk: updatedTemplate.persistent
+          ? `${updatedTemplate.disk}Gi`
+          : undefined,
+      },
+    };
+
+    // Only add sharedVolumeMounts for non-personal workspaces
+    if (!isPersonal && updatedTemplate.sharedVolumeMountInfos?.length) {
+      environmentConfig.sharedVolumeMounts = updatedTemplate.sharedVolumeMountInfos.map(sv => ({
+        sharedVolume: {
+          namespace: sv.sharedVolume.namespace,
+          name: sv.sharedVolume.name,
+        },
+        mountPath: sv.mountPath,
+        readOnly: sv.readOnly,
+      }));
+    }
+
     const patch = {
       spec: {
         prettyName: updatedTemplate.name,
-        description: updatedTemplate.name || '', // Use name as description if no description field
-        environmentList: [
-          {
-            name: updatedTemplate.name,
-            image: updatedTemplate.image,
-            guiEnabled: updatedTemplate.gui,
-            persistent: updatedTemplate.persistent,
-            mountMyDriveVolume: updatedTemplate.mountMyDrive,
-            environmentType: updatedTemplate.imageType, // Use imageType instead of vmorcontainer
-            resources: {
-              cpu: updatedTemplate.cpu,
-              memory: `${updatedTemplate.ram}Gi`,
-              disk: updatedTemplate.persistent
-                ? `${updatedTemplate.disk}Gi`
-                : undefined,
-            },
-            sharedVolumeMounts: updatedTemplate.sharedVolumeMountInfos?.map(
-              sv => ({
-                sharedVolume: {
-                  namespace: sv.sharedVolume.namespace,
-                  name: sv.sharedVolume.name,
-                },
-                mountPath: sv.mountPath,
-                readOnly: sv.readOnly,
-              }),
-            ),
-          },
-        ],
+        description: updatedTemplate.name || '',
+        environmentList: [environmentConfig],
         workspaceCrownlabsPolitoItWorkspaceRef: {
           name: template.workspaceName,
           namespace: template.workspaceNamespace,
@@ -257,7 +259,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         templateId: template.id,
         workspaceNamespace: template.workspaceNamespace,
         patchJson: JSON.stringify(patch),
-        manager: 'web-frontend', // or your manager string
+        manager: 'web-frontend',
       },
     });
   };
