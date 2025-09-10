@@ -309,7 +309,26 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             onClick={() =>
               deleteTemplate(template.id)
                 .then(() => setShowDeleteModalConfirm(false))
-                .catch(console.warn)
+                .catch(error => {
+                  // Handle 404 errors gracefully (template deletion succeeded but GraphQL can't return the deleted object)
+                  const isNotFoundError =
+                    error?.graphQLErrors?.[0]?.extensions?.statusCode === 404 ||
+                    error?.graphQLErrors?.[0]?.extensions?.responseBody
+                      ?.code === 404 ||
+                    error?.graphQLErrors?.[0]?.message?.includes('not found');
+
+                  if (isNotFoundError) {
+                    // Template was successfully deleted, just close the modal
+                    setShowDeleteModalConfirm(false);
+                    console.info(
+                      `Template ${template.id} was successfully deleted (404 is expected for DELETE operations)`,
+                    );
+                  } else {
+                    // For other errors, use the error handler
+                    console.error('Delete template error:', error);
+                    apolloErrorCatcher(error);
+                  }
+                })
             }
           >
             {!deleteTemplateLoading && 'Delete'}
@@ -426,9 +445,21 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
                 refetchQuery()
                   .then(ils => {
-                    const instances = isPersonal
-                      ? ils.data.instanceList?.instances
-                      : ils.data.instanceList?.instances;
+                    let instances;
+
+                    if (isPersonal) {
+                      // Filter instances by current template for personal workspaces
+                      const allInstances =
+                        ils.data.instanceList?.instances || [];
+                      instances = allInstances.filter(
+                        instance =>
+                          instance?.spec?.templateCrownlabsPolitoItTemplateRef
+                            ?.name === template.id,
+                      );
+                    } else {
+                      // For non-personal workspaces, use all instances (already filtered by label selector)
+                      instances = ils.data.instanceList?.instances || [];
+                    }
 
                     if (!instances?.length && !ils.error)
                       setShowDeleteModalConfirm(true);
