@@ -56,6 +56,7 @@ const (
 // The `name` tag specifies the placeholder name to be used in the template.
 // e.g. `{tenantName}` will be replaced with the value of `TenantName` field.
 type Placeholders struct {
+	Date         string `name:"date"`
 	TenantName   string `name:"tenantName"`
 	TenantEmail  string `name:"tenantEmail"`
 	PrettyName   string `name:"prettyName"`
