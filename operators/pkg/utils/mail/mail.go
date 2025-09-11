@@ -56,10 +56,11 @@ const (
 // The `name` tag specifies the placeholder name to be used in the template.
 // e.g. `{tenantName}` will be replaced with the value of `TenantName` field.
 type Placeholders struct {
-	TenantName   string `name:"tenantName"`
-	TenantEmail  string `name:"tenantEmail"`
-	PrettyName   string `name:"prettyName"`
-	InstanceName string `name:"instanceName"`
+	TenantName    string `name:"tenantName"`
+	TenantEmail   string `name:"tenantEmail"`
+	PrettyName    string `name:"prettyName"`
+	InstanceName  string `name:"instanceName"`
+	RemainingTime string `name:"remainingTime"`
 }
 
 // NewMailClientFromFilesystem creates a new Client instance that reads configs and templates from filesystem paths.

@@ -87,21 +87,21 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 }
 
 // SendInactivityNotification sends notification about instance inactivity detection.
-func SendInactivityNotification(ctx context.Context, mc *mail.Client) error {
-	return sendNotification(ctx, mc, InactivityMailTemplatePath)
+func SendInactivityNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, InactivityMailTemplatePath, remainingTime)
 }
 
 // SendExpiringWarningNotification sends expiration warning notification.
-func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client) error {
-	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath)
+func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath, remainingTime)
 }
 
 // SendExpiringNotification sends expiration warning notification.
 func SendExpiringNotification(ctx context.Context, mc *mail.Client) error {
-	return sendNotification(ctx, mc, ExpirationMailTemplatePath)
+	return sendNotification(ctx, mc, ExpirationMailTemplatePath, 0)
 }
 
-func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath string) error {
+func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath string, remainingTime time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notification-email-instance")
 
 	if mc == nil {
@@ -119,10 +119,11 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
 
 	ph := mail.Placeholders{
-		TenantName:   tenant.Name,
-		TenantEmail:  tenant.Spec.Email,
-		PrettyName:   instance.Spec.PrettyName,
-		InstanceName: instance.Name,
+		TenantName:    tenant.Name,
+		TenantEmail:   tenant.Spec.Email,
+		PrettyName:    instance.Spec.PrettyName,
+		InstanceName:  instance.Name,
+		RemainingTime: remainingTime.String(),
 	}
 	err := mc.SendCrownLabsMail(mailTemplatePath, ph)
 	if err != nil {

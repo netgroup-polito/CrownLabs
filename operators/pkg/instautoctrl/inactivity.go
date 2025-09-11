@@ -530,7 +530,14 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 		return fmt.Errorf("tenant not found in context")
 	}
 
-	err := SendInactivityNotification(ctx, r.MailClient)
+	// Calculate the remaining time available for sending inactivity notifications
+	remainingTime, err := r.GetInactivityNotificationWindow(ctx, instance)
+	if err != nil {
+		log.Error(err, "failed calculating remaining time for inactivity notifications")
+		return err
+	}
+
+	err = SendInactivityNotification(ctx, r.MailClient, remainingTime)
 	if err != nil {
 		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
 		return err
