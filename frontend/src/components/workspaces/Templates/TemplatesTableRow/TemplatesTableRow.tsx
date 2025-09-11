@@ -13,12 +13,14 @@ import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
   CreateInstanceMutation,
   DeleteTemplateMutation,
+  EnvironmentListListItemInput,
 } from '../../../../generated-types';
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
   useOwnedInstancesQuery,
 } from '../../../../generated-types';
+import { EnvironmentType } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
 import { cleanupLabels, WorkspaceRole } from '../../../../utils';
@@ -214,32 +216,35 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   // Handler to submit the update mutation
   const handleUpdateTemplate = async (updatedTemplate: TemplateType) => {
     // Build the patch JSON for the template update
-    const environmentConfig: any = {
-      name: updatedTemplate.name,
-      image: updatedTemplate.image,
+    const environmentConfig: EnvironmentListListItemInput = {
+      name: updatedTemplate.name ?? '',
+      image: updatedTemplate.image ?? '',
       guiEnabled: updatedTemplate.gui,
       persistent: updatedTemplate.persistent,
       mountMyDriveVolume: updatedTemplate.mountMyDrive,
-      environmentType: updatedTemplate.imageType,
+      environmentType: updatedTemplate.imageType ?? EnvironmentType.Container,
       resources: {
         cpu: updatedTemplate.cpu,
-        memory: `${updatedTemplate.ram}Gi`,
+        // generated types expect JSON for memory/disk; follow WorkspaceContainer conventions
+        memory: `${updatedTemplate.ram * 1000}M`,
         disk: updatedTemplate.persistent
-          ? `${updatedTemplate.disk}Gi`
+          ? `${updatedTemplate.disk * 1000}M`
           : undefined,
+        reservedCPUPercentage: 50,
       },
     };
 
     // Only add sharedVolumeMounts for non-personal workspaces
     if (!isPersonal && updatedTemplate.sharedVolumeMountInfos?.length) {
-      environmentConfig.sharedVolumeMounts = updatedTemplate.sharedVolumeMountInfos.map(sv => ({
-        sharedVolume: {
-          namespace: sv.sharedVolume.namespace,
-          name: sv.sharedVolume.name,
-        },
-        mountPath: sv.mountPath,
-        readOnly: sv.readOnly,
-      }));
+      environmentConfig.sharedVolumeMounts =
+        updatedTemplate.sharedVolumeMountInfos.map(sv => ({
+          sharedVolume: {
+            namespace: sv.sharedVolume.namespace,
+            name: sv.sharedVolume.name,
+          },
+          mountPath: sv.mountPath,
+          readOnly: sv.readOnly,
+        }));
     }
 
     const patch = {

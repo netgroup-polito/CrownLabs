@@ -158,16 +158,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           updateQuery: (prev, { subscriptionData }) => {
             const { data } = subscriptionData;
             if (!data?.updatedTemplate) return prev;
-            
+
             const { template, updateType } = data.updatedTemplate;
             const templates = prev.templateList?.templates ?? [];
-            
+
             let out = [] as NonNullable<
               NonNullable<
                 UpdatedWorkspaceTemplatesSubscriptionResult['data']
               >['updatedTemplate']
             >['template'][];
-            
+
             switch (updateType) {
               case UpdateType.Added:
                 // Only process if template data is valid
@@ -181,7 +181,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 // Only process if template data is valid
                 if (template) {
                   out = templates.map(t =>
-                    t?.metadata?.name === template.metadata?.name ? template : t,
+                    t?.metadata?.name === template.metadata?.name
+                      ? template
+                      : t,
                   );
                 } else {
                   out = templates;
@@ -202,8 +204,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 out = templates;
                 break;
             }
-                break;
-            }
+
             const result = Object.assign({}, prev, {
               templateList: {
                 templates: out,
