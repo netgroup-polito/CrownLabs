@@ -94,7 +94,8 @@ export interface IModalCreateTemplateProps {
 }
 
 const getImageNoVer = (image: string) =>
-  image.split(':').length === 2 ? image.split(':')[0] : image;
+  // split on the last ':' to correctly handle registry:port/repo:tag cases
+  image.includes(':') ? image.slice(0, image.lastIndexOf(':')) : image;
 
 const isEmptyOrSpaces = (str: string) => !str || str.match(/^ *$/);
 
@@ -199,10 +200,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     selectedImageList?.registryName === 'crownlabs-standalone';
 
   // Add "External image" to the options only if personal workspace AND container image list is selected
-  const imagesNoVersion = [
-    ...(isPersonal && isContainerImageList ? ['**-- External image --**'] : []),
-    ...availableImages.map(x => getImageNoVer(x.name)),
-  ];
+  // Deduplicate base names (remove duplicates caused by multiple versions) and sort for stable display
+  const imagesNoVersion = (() => {
+    const external =
+      isPersonal && isContainerImageList ? ['**-- External image --**'] : [];
+    const baseNames = availableImages.map(x => getImageNoVer(x.name));
+    const uniqueSorted = Array.from(new Set(baseNames)).sort((a, b) =>
+      a.localeCompare(b),
+    );
+    return [...external, ...uniqueSorted];
+  })();
 
   const [buttonDisabled, setButtonDisabled] = useState(true);
 
@@ -402,7 +409,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     if (selectedList) {
       setSelectedImageList(selectedList);
       const images = getImagesFromList(selectedList);
-      setAvailableImages(images);
+
+      // dedupe images by base name (remove entries that differ only by version)
+      const dedupedImages = images.reduce<Image[]>((acc, img) => {
+        const base = getImageNoVer(img.name);
+        if (!acc.some(a => getImageNoVer(a.name) === base)) acc.push(img);
+        return acc;
+      }, []);
+
+      setAvailableImages(dedupedImages);
+      setImagesSearchOptions(undefined);
 
       // Determine GUI setting based on image list type
       let guiSetting = true;
@@ -475,6 +491,23 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       }
     }
   };
+
+  // Initialize selected list & available images when editing an existing template
+  useEffect(() => {
+    if (template?.imageList && imageLists.length) {
+      const selected = imageLists.find(l => l.name === template.imageList);
+      if (selected) {
+        setSelectedImageList(selected);
+        const imgs = getImagesFromList(selected);
+        const dedupedImgs = imgs.reduce<Image[]>((acc, img) => {
+          const base = getImageNoVer(img.name);
+          if (!acc.some(a => getImageNoVer(a.name) === base)) acc.push(img);
+          return acc;
+        }, []);
+        setAvailableImages(dedupedImgs);
+      }
+    }
+  }, [template?.imageList, imageLists]);
 
   return (
     <Modal
@@ -567,11 +600,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             ]}
           >
             <AutoComplete
-              options={imagesNoVersion.map(x => ({ value: x }))}
+              options={(imagesSearchOptions ?? imagesNoVersion).map(x => ({
+                value: x,
+              }))}
               disabled={!selectedImageList}
               onFocus={() => {
                 if (!imagesSearchOptions?.length)
-                  setImagesSearchOptions(imagesNoVersion!);
+                  setImagesSearchOptions(imagesNoVersion);
               }}
               onChange={handleImageChange}
               placeholder={
