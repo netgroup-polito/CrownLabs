@@ -303,6 +303,27 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 	return remainingTime, nil
 }
 
+// GetInactivityNotificationWindow calculates the remaining time available for sending inactivity notifications to the given instance, based on the maximum allowed number of notifications and those already sent.
+func (r *InstanceInactiveTerminationReconciler) GetInactivityNotificationWindow(ctx context.Context, instance *clv1alpha2.Instance) (time.Duration, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("GetInactivityNotificationWindow")
+
+	// Calculate the remaining number of alerts that should be sent
+	maxNumAlerts := r.InstanceMaxNumberOfAlerts
+	numAlertsSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	if err != nil {
+		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		return 0, err
+	}
+
+	remainingAlerts := maxNumAlerts - numAlertsSent
+	if remainingAlerts <= 0 {
+		return 0, nil
+	}
+
+	// Calculate the remaining time before reaching the maximum number of alerts
+	return time.Duration(remainingAlerts) * r.NotificationInterval, nil
+}
+
 // IsTemplatePersistent checks if the instance template has at least one persistent environment.
 func IsTemplatePersistent(template *clv1alpha2.Template) bool {
 	if template == nil || template.Spec.EnvironmentList == nil {
