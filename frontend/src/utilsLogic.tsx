@@ -55,18 +55,52 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
-  const environment = (tq.original.spec?.environmentList ?? [])[0];
+  const environmentList = tq.original.spec?.environmentList ?? [];
+  const hasMultipleEnvironments = environmentList.length > 1;
+  
+  // For backwards compatibility use the first environment for main properties
+  const primaryEnvironment = environmentList[0];
+
+  const hasGUI = environmentList.some(env => env?.guiEnabled);
+  const hasPersistent = environmentList.some(env => env?.persistent);
+  
+  const aggregatedResources = environmentList.reduce(
+    (acc, env) => {
+      if (env?.resources) {
+        acc.cpu += env.resources.cpu ?? 0;
+        const memoryNum = parseInt(env.resources.memory?.replace(/[^\d]/g, '') || '0');
+        const diskNum = parseInt(env.resources.disk?.replace(/[^\d]/g, '') || '0');
+        acc.memorySum += memoryNum;
+        acc.diskSum += diskNum;
+      }
+      return acc;
+    },
+    { cpu: 0, memorySum: 0, diskSum: 0 }
+  );
+
   return {
     id: tq.alias.id ?? '',
     name: tq.alias.name ?? '',
-    gui: !!environment?.guiEnabled,
-    persistent: !!environment?.persistent,
-    nodeSelector: environment?.nodeSelector,
+    gui: hasGUI,
+    persistent: hasPersistent,
+    nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
-      cpu: environment?.resources?.cpu ?? 0,
-      memory: environment?.resources?.memory ?? '',
-      disk: environment?.resources?.disk ?? '',
+      cpu: aggregatedResources.cpu,
+      memory: aggregatedResources.memorySum > 0 ? `${aggregatedResources.memorySum}G` : '',
+      disk: aggregatedResources.diskSum > 0 ? `${aggregatedResources.diskSum}G` : '',
     },
+    environmentList: environmentList.map(env => ({
+      name: env?.name ?? '',
+      guiEnabled: !!env?.guiEnabled,
+      persistent: !!env?.persistent,
+      environmentType: env?.environmentType,
+      resources: {
+        cpu: env?.resources?.cpu ?? 0,
+        memory: env?.resources?.memory ?? '',
+        disk: env?.resources?.disk ?? '',
+      },
+    })),
+    hasMultipleEnvironments,
     workspaceName:
       tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
     instances: [],
@@ -109,8 +143,21 @@ export const makeGuiInstance = (
     prettyName: '',
   };
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+  
+  // Get environments status from instance status
+  const environments = status?.environments?.map(env => ({
+    name: env?.name ?? '',
+    phase: env?.phase,
+    ip: env?.ip,
+  })) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
@@ -131,8 +178,8 @@ export const makeGuiInstance = (
         '',
     ),
     environmentType: environmentType,
-    ip: status?.ip,
-    status: status?.phase,
+    ip: primaryStatus?.ip ?? status?.ip ?? '',
+    status: primaryStatus?.phase ?? status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -142,6 +189,8 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    environments,
+    hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -331,8 +380,21 @@ export const getManagerInstances = (
   } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
   const { prettyName: templatePrettyname, environmentList } =
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+  
+  // Get environments status from instance status
+  const environments = status?.environments?.map(env => ({
+    name: env?.name ?? '',
+    phase: env?.phase,
+    ip: env?.ip,
+  })) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   // Tenant Info
   const { namespace: tenantNamespace } = metadata ?? {};
@@ -352,8 +414,8 @@ export const getManagerInstances = (
     templateId: makeTemplateKey(templateName, workspaceName),
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
-    ip: status?.ip,
-    status: status?.phase,
+    ip: primaryStatus?.ip ?? status?.ip,
+    status: primaryStatus?.phase ?? status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -361,6 +423,8 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    environments,
+    hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -648,7 +712,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase,
+    status: status?.phase as any,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;

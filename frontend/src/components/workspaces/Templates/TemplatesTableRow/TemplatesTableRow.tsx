@@ -167,14 +167,42 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         >
           <Space size="middle">
             <div className="flex items-center">
-              {template.gui ? (
-                <DesktopOutlined
-                  style={{ fontSize: '24px', color: '#1c7afd' }}
-                />
+              {template.hasMultipleEnvironments ? (
+                <div className="flex items-center">
+                  <div className="flex">
+                    {template.environmentList.map((env, index) => (
+                      <div
+                        key={index}
+                        className="bg-transparent p-1"
+                      >
+                        {env.guiEnabled ? (
+                          <DesktopOutlined
+                            style={{ fontSize: '16px', color: '#1c7afd' }}
+                          />
+                        ) : (
+                          <CodeOutlined style={{ fontSize: '16px', color: '#1c7afd' }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : (
-                <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+                template.gui ? (
+                  <DesktopOutlined
+                    style={{ fontSize: '24px', color: '#1c7afd' }}
+                  />
+                ) : (
+                  <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+                )
               )}
-              <label className="ml-3 cursor-pointer">{template.name}</label>
+              <label className="ml-3 cursor-pointer">
+                {template.name}
+                {template.hasMultipleEnvironments && (
+                  <span className="text-xs text-gray-500 ml-2">
+                    ({template.environmentList.length} environments)
+                  </span>
+                )}
+              </label>
               {template.persistent && (
                 <Tooltip
                   title={
@@ -220,19 +248,46 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             placement="left"
             title={
               <>
-                <div>
-                  CPU: {template.resources.cpu || 'unavailable'} core(s)
-                </div>
-                <div>
-                  RAM: {convertInG(template.resources.memory) || 'unavailable'}B
-                </div>
-                <div>
-                  {template.persistent
-                    ? ` DISK: ${
-                        convertInG(template.resources.disk) || 'unavailable'
-                      }B`
-                    : ``}
-                </div>
+                {template.hasMultipleEnvironments ? (
+                  <div>
+                    <div className="font-semibold mb-2">Multiple Environments ({template.environmentList.length}):</div>
+                    {template.environmentList.map((env, index) => (
+                      <div key={index} className="mb-2 p-2 border-l-2 border-blue-300">
+                        <div className="font-medium">Env {index+1}</div>
+                        <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
+                        <div>CPU: {env.resources.cpu} core(s)</div>
+                        <div>RAM: {convertInG(env.resources.memory) || 'unavailable'}B</div>
+                        {env.persistent && (
+                          <div>DISK: {convertInG(env.resources.disk) || 'unavailable'}B</div>
+                        )}
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-2 border-t border-gray-300">
+                      <div className="font-medium">Total Resources:</div>
+                      <div>Total CPU: {template.resources.cpu} core(s)</div>
+                      <div>Total RAM: {convertInG(template.resources.memory)}B</div>
+                      {template.persistent && (
+                        <div>Total DISK: {convertInG(template.resources.disk)}B</div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      CPU: {template.resources.cpu || 'unavailable'} core(s)
+                    </div>
+                    <div>
+                      RAM: {convertInG(template.resources.memory) || 'unavailable'}B
+                    </div>
+                    <div>
+                      {template.persistent
+                        ? ` DISK: ${
+                            convertInG(template.resources.disk) || 'unavailable'
+                          }B`
+                        : ``}
+                    </div>
+                  </>
+                )}
               </>
             }
           >
