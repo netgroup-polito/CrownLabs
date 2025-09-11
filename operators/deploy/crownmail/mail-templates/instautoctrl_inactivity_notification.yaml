@@ -4,7 +4,7 @@ subject: |-
   CrownLabs: Inactivity Detected for { prettyName }
 plaintext_content: |-
   Your instance { prettyName } has been detected as inactive for an extended period.
-  If no activity is detected, the instance will be automatically terminated to conserve resources.
+  If no activity is detected (either via the web GUI or via SSH) in the next { remainingTime } , the instance will be automatically terminated to save resources.
 html_content: |-
   <p>Your instance <strong>{ prettyName }</strong> has been detected as inactive for an extended period.</p>
-  <p>If no activity is detected, the instance will be automatically terminated to conserve resources.</p>
+  <p>If no activity is detected (either via the web GUI or via SSH) in the next <strong>{ remainingTime }</strong>, the instance will be automatically terminated to save resources.</p>

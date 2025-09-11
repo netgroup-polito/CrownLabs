@@ -142,7 +142,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 			}
 			if shouldSendWarning {
-				if err := SendExpiringWarningNotification(ctx, r.MailClient); err != nil {
+				if err := SendExpiringWarningNotification(ctx, r.MailClient, r.NotificationInterval); err != nil {
 					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 				}
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
