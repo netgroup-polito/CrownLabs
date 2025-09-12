@@ -266,12 +266,12 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 		return false, fmt.Errorf("instance not found in context")
 	}
 
-	// Se l'annotation è già presente, ritorna false
+	// If annotation already existing, return false
 	if _, ok := instance.Annotations[forge.ExpiringWarningNotificationAnnotation]; ok {
 		return false, nil
 	}
 
-	// Se non è presente, aggiungila e ritorna true
+	// If not present, add it and return true
 	patch := client.MergeFrom(instance.DeepCopy())
 	if instance.Annotations == nil {
 		instance.Annotations = make(map[string]string)

@@ -73,7 +73,6 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
-	// load Prometheus variables
 	prometheusURL := flag.String("monitoring-prometheus-url", "http://kube-prometheus-stack-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics"})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
 	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container="bastion-operator-tracker-sidecar"})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
@@ -111,7 +110,6 @@ func main() {
 	whiteListMap := parseMap(*namespaceWhiteList)
 	log.Info("restricting reconciled namespaces", "labels", *namespaceWhiteList)
 
-	// Configure the manager
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                server.Options{BindAddress: *metricsAddr},
@@ -125,7 +123,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create mail client from filesystem
 	mailClient, err = mail.NewMailClientFromFilesystem(*mailConfigDir, *mailTemplateDir)
 	if err != nil {
 		log.Error(err, "unable to create mail client from filesystem", "templateDir", *mailTemplateDir)
@@ -133,7 +130,6 @@ func main() {
 	}
 	log.Info("CrownLabs Email client created", "templateDir", *mailTemplateDir)
 
-	// create the Promtheus client
 	prometheus, err := instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability,
 		*prometheusNginxData, *prometheusBastionSSHData)
 	if err != nil {
@@ -145,6 +141,7 @@ func main() {
 
 	if *enableInstanceTermination {
 		log.Info("Instance Termination controller enabled.")
+
 		// Configure the Instance termination controller
 		instanceTermination := "InstanceTermination"
 		if err := (&instautoctrl.InstanceTerminationReconciler{
@@ -207,6 +204,7 @@ func main() {
 
 	if *enableInstanceExpiration {
 		log.Info("Instance Expiration controller enabled.")
+
 		// Configure the Instance Expiration controller
 		instanceExpiration := "InstanceExpiration"
 		if err := (&instautoctrl.InstanceExpirationReconciler{

@@ -144,7 +144,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	ctx, _ = pkgcontext.TemplateInto(ctx, template)
 	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
-	// Get inactivityTimeout from the template
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NeverTimeoutValue {
@@ -175,7 +174,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
-	// LOCAL: comment this check
 	// update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
 		log.Error(err, "failed updating last login time of the instance")

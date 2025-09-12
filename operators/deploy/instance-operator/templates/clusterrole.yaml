@@ -56,7 +56,3 @@ rules:
 - apiGroups: ["cdi.kubevirt.io"]
   resources: ["datavolumes/source"]
   verbs: ["create", "patch", "update"]
-
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get", "list", "watch"]
