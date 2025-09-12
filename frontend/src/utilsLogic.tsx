@@ -153,18 +153,23 @@ export const makeGuiInstance = (
     allowPublicExposure,
     tenantDisplayName: '',
     myDriveUrl: '',
-    publicExposure: publicExposure
+    publicExposure: publicExposure && publicExposure.ports && publicExposure.ports.length > 0
       ? {
           externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
           phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
-            publicExposure.ports
+            // Use status ports (actual assigned ports) if available, fallback to spec ports (requested ports)
+            (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
+              ? publicExposureStatus.ports 
+              : publicExposure.ports)
               ?.filter(p => p != null)
               .map(p => ({
                 name: p.name || '',
-                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                // Show the actual assigned port (from status) or requested port (from spec)
                 port: p.port && p.port > 0 ? String(p.port) : '',
                 targetPort: p.targetPort || 0,
+                // Protocol: default to TCP since backend doesn't expose it yet
+                protocol: 'TCP' as const,
               })) || [],
         }
       : undefined,
@@ -211,42 +216,37 @@ export const updateQueryOwnedInstancesQuery = (
     let notify = false;
 
     setDataInstances(old => {
-      const instance = makeGuiInstance(instanceK8s, userId);
-      const found = old.find(i => i.id === instance.id);
-      const objType = getSubObjTypeCustom(found, instance, updateType);
+      const instanceGui = makeGuiInstance(instanceK8s, userId);
+      const objType = getSubObjTypeCustom(
+        old.find(i => i.id === instanceGui.id),
+        instanceGui,
+        updateType,
+      );
+
       switch (objType) {
-        case SubObjType.Deletion:
-          old = old.filter(i => i.id !== instance.id);
-          notify = false;
-          break;
         case SubObjType.Addition:
-          old = !old.find(i => i.id === instance.id) ? [...old, instance] : old;
           notify = true;
-          break;
-        case SubObjType.PrettyName:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
-          notify = false;
-          break;
+          return [...old, instanceGui];
+        case SubObjType.Deletion:
+          notify = true;
+          return old.filter(i => i.id !== instanceGui.id);
         case SubObjType.UpdatedInfo:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
-          notify = true;
-          break;
+          // Don't notify for publicExposure-only changes
+          if (JSON.stringify(old.find(i => i.id === instanceGui.id)?.publicExposure) !== 
+              JSON.stringify(instanceGui.publicExposure)) {
+            // This is a publicExposure change, update silently
+            return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
+          } else {
+            notify = true;
+            return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
+          }
+        case SubObjType.PrettyName:
+          return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
         case SubObjType.Drop:
-          notify = false;
-          break;
         default:
-          break;
+          // Always apply updates to ensure real-time sync
+          return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
       }
-
-      if (notify)
-        notifyStatus(
-          instanceK8s.status?.phase,
-          instanceK8s,
-          updateType,
-          notifier,
-        );
-
-      return old;
     });
 
     return prev;
@@ -259,19 +259,30 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const { running: oldRunning, status: oldStatus, publicExposure: oldPublicExposure } = oldObj ?? {};
+  const { running: newRunning, status: newStatus, publicExposure: newPublicExposure } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
+    
     if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
     }
+    
+    // Check for publicExposure changes
+    const oldPEString = JSON.stringify(oldPublicExposure);
+    const newPEString = JSON.stringify(newPublicExposure);
+    if (oldPEString !== newPEString) {
+      // PublicExposure changed - force UI update without notification
+      return SubObjType.UpdatedInfo;
+    }
+    
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
 };
 
-export const getSubObjTypeK8s = (
+// Enhanced version of getSubObjTypeK8s to detect publicExposure changes
+const getSubObjTypeK8sEnhanced = (
   oldObj: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   newObj: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
   uType: Nullable<UpdateType>,
@@ -279,19 +290,35 @@ export const getSubObjTypeK8s = (
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
   const { spec: oldSpec, status: oldStatus } = oldObj ?? {};
   const { spec: newSpec, status: newStatus } = newObj;
+  
   if (oldObj) {
-    if (oldSpec?.prettyName !== newSpec?.prettyName)
-      return SubObjType.PrettyName;
+    if (oldSpec?.prettyName !== newSpec?.prettyName) return SubObjType.PrettyName;
+
     if (
       oldStatus?.phase !== newStatus?.phase ||
       oldSpec?.running !== newSpec?.running
     ) {
       return SubObjType.UpdatedInfo;
     }
+    
+    // Check for publicExposure changes in both spec and status
+    const oldSpecPE = JSON.stringify(oldSpec?.publicExposure);
+    const newSpecPE = JSON.stringify(newSpec?.publicExposure);
+    const oldStatusPE = JSON.stringify(oldStatus?.publicExposure);
+    const newStatusPE = JSON.stringify(newStatus?.publicExposure);
+    
+    if (oldSpecPE !== newSpecPE || oldStatusPE !== newStatusPE) {
+      // PublicExposure changed - treat as UpdatedInfo but without notification
+      return SubObjType.UpdatedInfo;
+    }
+    
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
 };
+
+// Override the original function
+export { getSubObjTypeK8sEnhanced as getSubObjTypeK8s };
 
 export const joinInstancesAndTemplates = (
   templates: Template[],
@@ -396,18 +423,23 @@ export const getManagerInstances = (
     running: spec?.running,
     allowPublicExposure,
     myDriveUrl: '',
-    publicExposure: publicExposure
+    publicExposure: publicExposure && publicExposure.ports && publicExposure.ports.length > 0
       ? {
           externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
           phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
-            publicExposure.ports
+            // Use status ports (actual assigned ports) if available, fallback to spec ports (requested ports)
+            (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
+              ? publicExposureStatus.ports 
+              : publicExposure.ports)
               ?.filter(p => p != null)
               .map(p => ({
                 name: p.name || '',
-                // When port is 0, it means auto-assigned - show empty for user to re-enter
+                // Show the actual assigned port (from status) or requested port (from spec)
                 port: p.port && p.port > 0 ? String(p.port) : '',
                 targetPort: p.targetPort || 0,
+                // Protocol: default to TCP since backend doesn't expose it yet
+                protocol: 'TCP' as const,
               })) || [],
         }
       : undefined,

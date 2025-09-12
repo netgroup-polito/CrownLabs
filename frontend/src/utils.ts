@@ -88,6 +88,10 @@ export type PortListItem = {
   name?: string;
   port: string;
   targetPort: number;
+  protocol?: 'TCP' | 'UDP' | 'SCTP';
+  // Additional fields to track desired vs actual ports
+  _actualPort?: string;
+  _desiredPort?: string;
 };
 export enum LinkPosition {
   MenuButton,
@@ -286,6 +290,11 @@ export function buildPublicExposurePatch(
     protocol: string;
   }>,
 ): string {
+  // Backend requires at least one port, so this should never be empty
+  if (portsNormalized.length === 0) {
+    throw new Error('Backend cannot handle empty ports array. At least one port is required.');
+  }
+
   // Ensure all required fields are present according to CRD
   const portsFormatted = portsNormalized.map(p => ({
     name: p.name,
@@ -300,5 +309,6 @@ export function buildPublicExposurePatch(
     spec: { publicExposure: { ports: portsFormatted } },
   };
 
+  console.log(`📦 Building patch with ${portsFormatted.length} ports`);
   return JSON.stringify(payload);
 }
