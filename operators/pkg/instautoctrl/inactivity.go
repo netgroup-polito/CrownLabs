@@ -267,10 +267,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 	// patch the instance with the new last activity time
 	patch := client.MergeFrom(instance.DeepCopy())
-	if instance.ObjectMeta.Annotations == nil {
-		instance.ObjectMeta.Annotations = make(map[string]string)
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
 	}
-	instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
+	instance.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 	}
 	var remainingTime time.Duration
 
-	lastLogin, err := time.Parse(time.RFC3339, instance.ObjectMeta.Annotations[forge.LastActivityAnnotation])
+	lastLogin, err := time.Parse(time.RFC3339, instance.Annotations[forge.LastActivityAnnotation])
 	if err != nil {
 		log.Error(err, "failed parsing LastLogin time")
 		return 0, err
@@ -309,9 +309,9 @@ func (r *InstanceInactiveTerminationReconciler) GetInactivityNotificationWindow(
 
 	// Calculate the remaining number of alerts that should be sent
 	maxNumAlerts := r.InstanceMaxNumberOfAlerts
-	numAlertsSent, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	numAlertsSent, err := strconv.Atoi(instance.Annotations[forge.AlertAnnotationNum])
 	if err != nil {
-		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.Annotations[forge.AlertAnnotationNum])
 		return 0, err
 	}
 
@@ -360,9 +360,9 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 		instance.Spec.Running = false
 		// Update the last running annotation
 		currentRunningStr := strconv.FormatBool(instance.Spec.Running)
-		lastRunningStr, ok := instance.ObjectMeta.Annotations[forge.LastRunningAnnotation]
+		lastRunningStr, ok := instance.Annotations[forge.LastRunningAnnotation]
 		if !ok || lastRunningStr != currentRunningStr {
-			instance.ObjectMeta.Annotations[forge.LastRunningAnnotation] = currentRunningStr
+			instance.Annotations[forge.LastRunningAnnotation] = currentRunningStr
 		}
 		return r.Update(ctx, instance)
 	}
@@ -399,30 +399,30 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 
 	original := instance.DeepCopy()
 	// add annotations to the instance if not present
-	if instance.ObjectMeta.Annotations == nil {
-		instance.ObjectMeta.Annotations = make(map[string]string)
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
 	}
 
 	updated := false
 
 	// Check and set the alert annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.AlertAnnotationNum]; !ok {
+	if _, ok := instance.Annotations[forge.AlertAnnotationNum]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
-		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
+		instance.Annotations[forge.AlertAnnotationNum] = "0"
 		updated = true
 	}
 
 	// Check and set the last activity annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.LastActivityAnnotation]; !ok {
+	if _, ok := instance.Annotations[forge.LastActivityAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
-		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+		instance.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 		updated = true
 	}
 
 	// Check and set the last notification time annotation if not present
-	if _, ok := instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
+	if _, ok := instance.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
 		log.Info("adding annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
-		instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = ""
+		instance.Annotations[forge.LastNotificationTimestampAnnotation] = ""
 		updated = true
 	}
 
@@ -479,13 +479,13 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 		return false, nil
 	}
 
-	numAlerts, err := strconv.Atoi(instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	numAlerts, err := strconv.Atoi(instance.Annotations[forge.AlertAnnotationNum])
 	if err != nil {
-		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+		log.Error(err, "failed converting string of alerts sent in int number", "annotation", instance.Annotations[forge.AlertAnnotationNum])
 		return false, err
 	}
 
-	lastNotificationTimeStr, ok := instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation]
+	lastNotificationTimeStr, ok := instance.Annotations[forge.LastNotificationTimestampAnnotation]
 	if !ok {
 		log.Info("Last notification time annotation not found, sending notification", "instance", instance.Name)
 		return true, nil
@@ -510,7 +510,7 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendNotification(ctx conte
 	template := pkgcontext.TemplateFrom(ctx)
 	if template != nil {
 		// if the CustomNumberOfAlertsAnnotation is set, override the default max alerts
-		if customMaxAlertsStr, ok := template.ObjectMeta.Annotations[forge.CustomNumberOfAlertsAnnotation]; ok {
+		if customMaxAlertsStr, ok := template.Annotations[forge.CustomNumberOfAlertsAnnotation]; ok {
 			customMaxAlerts, err := strconv.Atoi(customMaxAlertsStr)
 
 			if err != nil {
@@ -543,15 +543,15 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 		return err
 	}
 
-	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.ObjectMeta.Annotations[forge.AlertAnnotationNum])
+	newNumberOfAlerts, err := r.IncrementAnnotation(ctx, instance.Annotations[forge.AlertAnnotationNum])
 	if err != nil {
 		log.Error(err, "failed incrementing annotation")
 		return err
 	}
 
 	patch := client.MergeFrom(instance.DeepCopy())
-	instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
-	instance.ObjectMeta.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	instance.Annotations[forge.AlertAnnotationNum] = newNumberOfAlerts
+	instance.Annotations[forge.LastNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		log.Error(err, "failed updating instance annotations")
 		return err
@@ -570,7 +570,7 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 	original := instance.DeepCopy()
 	updated := false
 
-	lastRunningStr := instance.ObjectMeta.Annotations[forge.LastRunningAnnotation]
+	lastRunningStr := instance.Annotations[forge.LastRunningAnnotation]
 	lastRunning := false
 	if lastRunningStr != "" {
 		if val, err := strconv.ParseBool(lastRunningStr); err == nil {
@@ -581,14 +581,14 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 	// Reset if "Running" changed from false to true
 	if instance.Spec.Running && !lastRunning {
 		log.Info("Detected transition from false to true: resetting alert counter and last activity field")
-		instance.ObjectMeta.Annotations[forge.AlertAnnotationNum] = "0"
-		instance.ObjectMeta.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+		instance.Annotations[forge.AlertAnnotationNum] = "0"
+		instance.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 		updated = true
 	}
 	// update the LastRunningAnnotation
 	currentRunningStr := strconv.FormatBool(instance.Spec.Running)
 	if lastRunningStr != currentRunningStr {
-		instance.ObjectMeta.Annotations[forge.LastRunningAnnotation] = currentRunningStr
+		instance.Annotations[forge.LastRunningAnnotation] = currentRunningStr
 		updated = true
 	}
 
