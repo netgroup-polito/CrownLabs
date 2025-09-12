@@ -116,8 +116,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
 	if deleteAfter == NeverTimeoutValue {
-		log.Info("Instance marked as never delete", "name", instance.GetName(), "namespace", instance.GetNamespace())
-		dbgLog.Info("Instance marked as never delete", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		dbgLog.Info("Instance marked as never expiring", "instance", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
 
@@ -143,6 +142,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 			if shouldSendWarning {
 				if err := SendExpiringWarningNotification(ctx, r.MailClient, r.NotificationInterval); err != nil {
+					log.Error(err, "failed sending expiring warning notification email")
 					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 				}
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
@@ -153,7 +153,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if r.EnableExpirationNotifications {
 			if instance.Annotations[forge.ExpiringWarningNotificationAnnotation] == "true" {
 				if err := r.DeleteInstance(ctx); err != nil {
-					log.Error(err, "failed to delete instance")
+					log.Error(err, "failed to delete expired instance")
 					return ctrl.Result{}, err
 				}
 			} else {
@@ -161,7 +161,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 		} else {
 			if err := r.DeleteInstance(ctx); err != nil {
-				log.Error(err, "failed to delete instance")
+				log.Error(err, "failed to delete expired instance")
 				return ctrl.Result{}, err
 			}
 		}
@@ -174,7 +174,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 		tracer.Step("deletion notification sent")
-		dbgLog.Info("Instance deletion and notification completed", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		log.Info("Expired instance has been deleted", "instance", instance.Name, "namespace", instance.Namespace)
 	}
 
 	// Calculate requeue time at the instance inactive deadline time:
@@ -183,7 +183,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// add 1 minute to the remaining time to avoid requeueing just before the deadline
 	// avoiding a double requeue
 	requeueTime += 1 * time.Minute
-	log.Info("Remaining time before expiration", "remainingTime", remainingTime.String(), "instance", instance.GetName(), "namespace", instance.GetNamespace())
+	dbgLog.Info("Remaining time before expiration", "remainingTime", remainingTime.String(), "instance", instance.Name, "namespace", instance.Namespace)
 
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil

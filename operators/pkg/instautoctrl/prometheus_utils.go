@@ -76,7 +76,7 @@ func (p *Prometheus) IsPrometheusHealthy(ctx context.Context, timeout time.Durat
 	}
 
 	if statusCode != http.StatusOK {
-		log.Info("Prometheus health check returned non-OK status", "statusCode", statusCode)
+		log.Error(fmt.Errorf("Prometheus health check returned non-OK status"), "statusCode", statusCode)
 		return false, nil
 	}
 
@@ -110,7 +110,7 @@ func (p *Prometheus) IsPrometheusHealthy(ctx context.Context, timeout time.Durat
 	}
 
 	if !active1 && !active2 {
-		log.Info("Neither ingress metrics nor bastion SSH metrics are available on worker nodes")
+		log.Error(fmt.Errorf("Neither ingress metrics nor bastion SSH metrics are available on worker nodes"), "Neither ingress metrics nor bastion SSH metrics are available on worker nodes")
 		return false, nil
 	}
 

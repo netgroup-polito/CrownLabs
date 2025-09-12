@@ -147,7 +147,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NeverTimeoutValue {
-		log.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
 
@@ -188,7 +188,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
-	log.Info("instance termination check", "remainingTime", remainingTime.String(), "instance", instance.Name)
+	dbgLog.Info("instance termination check", "remainingTime", remainingTime.String(), "instance", instance.Name)
 	tracer.Step("Inactive termination check done")
 
 	// Check if the instance has expired
@@ -210,10 +210,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		// If all notifications have been sent, terminate the instance
 		if instance.Spec.Running {
 			if err := r.TerminateInstance(ctx); err != nil {
-				log.Error(err, "failed terminating instance", "instance", instance.Name)
+				log.Error(err, "failed terminating inactive instance", "instance", instance.Name, "namespace", instance.Namespace)
 				return ctrl.Result{}, err
 			}
-			log.Info("Instance has been paused/deleted due to inactivity", "instance", instance.Name)
+			log.Info("Inactive instance has been paused/deleted", "instance", instance.Name, "namespace", instance.Namespace)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -236,9 +236,9 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// Check Prometheus health first
-	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.StatusCheckRequestTimeout) // LOCAL: true, nil
+	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.StatusCheckRequestTimeout)
 	if err != nil || !healthy {
-		log.Info("Prometheus is not healthy", "error", err)
+		log.Error(err, "Prometheus is not healthy")
 		return err
 	}
 

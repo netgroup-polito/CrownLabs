@@ -119,7 +119,6 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 	log.Info("sending email notification to user", "instance", instance.Name, "email", tenant.Spec.Email)
 
 	ph := mail.Placeholders{
-		Date:          time.Now().Format(time.RFC1123Z),
 		TenantName:    tenant.Name,
 		TenantEmail:   tenant.Spec.Email,
 		PrettyName:    instance.Spec.PrettyName,

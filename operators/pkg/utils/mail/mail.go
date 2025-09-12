@@ -29,6 +29,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 
 	"gopkg.in/yaml.v3"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,7 +56,6 @@ const (
 // The `name` tag specifies the placeholder name to be used in the template.
 // e.g. `{tenantName}` will be replaced with the value of `TenantName` field.
 type Placeholders struct {
-	Date          string `name:"date"`
 	TenantName    string `name:"tenantName"`
 	TenantEmail   string `name:"tenantEmail"`
 	PrettyName    string `name:"prettyName"`
@@ -242,6 +242,9 @@ func (m *Client) PrepareFinalEmail(emailContent map[string]string) (string, erro
 
 	// Add sender info to email content
 	emailContent["from"] = m.From
+
+	// Add date to email content
+	emailContent["date"] = time.Now().Format(time.RFC1123Z)
 
 	// Substitute placeholders with formatted content
 	formattedEmail, err := replacePlaceholders(string(crownlabsEmailTemplate), emailContent)
