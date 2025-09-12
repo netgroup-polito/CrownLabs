@@ -113,7 +113,7 @@ func NewMailClientFromFilesystem(configDir, templateDir string) (*Client, error)
 
 // getPlaceholderKeys returns a map of placeholder where the key
 // is the placeholder name and the value is the placeholder value.
-func getPlaceholderMap(ph Placeholders) map[string]string {
+func getPlaceholderMap(ph *Placeholders) map[string]string {
 	t := reflect.TypeOf(ph)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -148,7 +148,7 @@ func replacePlaceholders(content string, emailValues map[string]string) (string,
 }
 
 // SendCrownLabsMail sends an email using the SMTP server configured in the Client.
-func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph Placeholders) error {
+func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph *Placeholders) error {
 	log := ctrl.LoggerFrom(context.Background())
 
 	if emailContentTemplatePath == "" {
@@ -184,7 +184,7 @@ func (m *Client) readTemplateFile(templatePath string) ([]byte, error) {
 }
 
 // processEmailContentTemplate loads and processes the content template file.
-func (m *Client) processEmailContentTemplate(templatePath string, ph Placeholders) (map[string]string, error) {
+func (m *Client) processEmailContentTemplate(templatePath string, ph *Placeholders) (map[string]string, error) {
 	// Get the email content template
 	emailContentTemplate, err := m.readTemplateFile(templatePath)
 	if err != nil {
