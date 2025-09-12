@@ -20,8 +20,15 @@ export interface ITemplatesTableProps {
   totalInstances: number;
   tenantNamespace: string;
   workspaceNamespace: string;
+  workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
     id: string,
@@ -35,7 +42,7 @@ export interface ITemplatesTableProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: Record<string, string>,
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -48,12 +55,14 @@ export interface ITemplatesTableProps {
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
     totalInstances,
+    tenantNamespace,
     templates,
     role,
-    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
+    availableQuota,
+    isPersonal,
   } = props;
 
   const { hasSSHKeys } = useContext(TenantContext);
@@ -70,11 +79,13 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           template={record}
           role={role}
           totalInstances={totalInstances}
-          editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
+          tenantNamespace={tenantNamespace}
+          availableQuota={availableQuota}
+          isPersonal={isPersonal}
         />
       ),
     },

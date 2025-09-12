@@ -7,11 +7,11 @@ import {
   WarningOutlined,
   PauseCircleOutlined,
 } from '@ant-design/icons';
-import { Phase } from '../../../../generated-types';
+import { Phase2 } from '../../../../generated-types';
 import { findKeyByValue } from '../../../../utils';
 
 export interface IRowInstanceStatusProps {
-  status: Phase;
+  status: Phase2;
 }
 
 const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
@@ -19,42 +19,42 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   const font20px = { fontSize: '20px' };
   const statusIcon = {
-    [Phase.Empty]: (
+    [Phase2.Empty]: (
       <WarningOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.CreationLoopBackoff]: (
+    [Phase2.CreationLoopBackoff]: (
       <WarningOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.Running]: (
+    [Phase2.Running]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.Importing]: (
+    [Phase2.Importing]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.ResourceQuotaExceeded]: (
+    [Phase2.ResourceQuotaExceeded]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    [Phase.Ready]: (
+    [Phase2.Ready]: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
     ),
-    [Phase.Failed]: (
+    [Phase2.Failed]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    [Phase.Off]: (
+    [Phase2.Off]: (
       <PauseCircleOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.Starting]: (
+    [Phase2.Starting]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase.Stopping]: (
+    [Phase2.Stopping]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
   };
 
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={findKeyByValue(Phase, status || Phase.Starting)}>
-        {statusIcon[status || Phase.Starting]}
+      <Tooltip title={findKeyByValue(Phase2, status || Phase2.Starting)}>
+        {statusIcon[status || Phase2.Starting]}
       </Tooltip>
     </div>
   );

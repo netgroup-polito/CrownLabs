@@ -17,7 +17,7 @@ import type {
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
 } from './generated-types';
-import { AutoEnroll, Phase, UpdateType } from './generated-types';
+import { AutoEnroll, Phase2, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
@@ -136,12 +136,14 @@ export const makeGuiInstance = (
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
+    tenantDisplayName: userId, // Using userId as display name since tenant info is not available
     tenantNamespace: tenantNamespace,
     workspaceName:
       getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    myDriveUrl: '', // Default empty since drive URL is not available in this context
   } as Instance;
 };
 
@@ -350,6 +352,7 @@ export const getManagerInstances = (
     gui: guiEnabled,
     persistent: persistent,
     templateId: makeTemplateKey(templateName, workspaceName),
+    templateName: templateName ?? '', // Add the missing templateName property
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
@@ -361,6 +364,7 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    myDriveUrl: '', // Default empty since drive URL is not available in this context
   } as Instance;
 };
 
@@ -431,7 +435,7 @@ const makeNotificationContent = (
     content: (
       <div className="flex justify-between items-start gap-1 p-1 w-72">
         <div className="flex flex-none items-start ">
-          {status === Phase.Ready ? (
+          {status === Phase2.Ready ? (
             <CheckCircleOutlined
               className="success-color-fg mr-3"
               style={font20px}
@@ -455,9 +459,9 @@ const makeNotificationContent = (
             <div>
               Status:
               <i>
-                {status === Phase.Ready
-                  ? ' started'
-                  : status === Phase.Off && ' stopped'}
+                {status === Phase2.Ready
+                  ? ' running'
+                  : status === Phase2.Off && ' stopped'}
               </i>
             </div>
             {instanceUrl && (
@@ -499,7 +503,7 @@ export const notifyStatus = (
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
     switch (status) {
-      case Phase.Off:
+      case Phase2.Off:
         if (!instance.spec?.running) {
           notify(
             'warning',
@@ -508,7 +512,7 @@ export const notifyStatus = (
           );
         }
         break;
-      case Phase.Ready:
+      case Phase2.Ready:
         if (instance.spec?.running) {
           notify(
             'success',

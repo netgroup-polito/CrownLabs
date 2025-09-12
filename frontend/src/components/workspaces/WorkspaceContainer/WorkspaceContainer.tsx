@@ -4,66 +4,33 @@ import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import type { ImagesQuery } from '../../../generated-types';
 import {
-  EnvironmentType,
   useCreateTemplateMutation,
-  useImagesQuery,
+  EnvironmentType,
 } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
-import { JSONDeepCopy, WorkspaceRole } from '../../../utils';
+import { WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
-import type {
-  Image,
-  Template,
-} from '../ModalCreateTemplate/ModalCreateTemplate';
+import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  isPersonalWorkspace?: boolean;
 }
-
-const getImages = (dataImages: ImagesQuery) => {
-  let images: Image[] = [];
-  JSONDeepCopy(dataImages?.imageList?.images)?.forEach(i => {
-    const registry = i?.spec?.registryName;
-    const imagesRaw = i?.spec?.images;
-    imagesRaw?.forEach(ir => {
-      let versionsInImageName: Image[];
-      if (registry === 'registry.internal.crownlabs.polito.it') {
-        const latestVersion = `${ir?.name}:${
-          ir?.versions?.sort().reverse()[0]
-        }`;
-        versionsInImageName = [
-          {
-            name: latestVersion,
-            vmorcontainer: [EnvironmentType.VirtualMachine],
-            registry: registry!,
-          },
-        ];
-      } else {
-        versionsInImageName =
-          ir?.versions.map(v => {
-            return {
-              name: `${ir?.name}:${v}`,
-              vmorcontainer: [EnvironmentType.Container],
-              registry: registry || '',
-            };
-          }) || [];
-      }
-      images = [...images, ...versionsInImageName!];
-    });
-  });
-  return images;
-};
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const { tenantNamespace, workspace } = props;
+  const { tenantNamespace, workspace, availableQuota } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -72,29 +39,35 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   const [show, setShow] = useState(false);
 
-  const { data: dataImages, refetch: refetchImages } = useImagesQuery({
-    variables: {},
-    onError: apolloErrorCatcher,
-  });
+  const isPersonal = props.isPersonalWorkspace;
 
-  const submitHandler = (t: Template) =>
-    createTemplateMutation({
+  const submitHandler = (t: Template) => {
+    const finalWorkspaceNamespace = isPersonal
+      ? tenantNamespace
+      : workspace.namespace;
+    const templateIdValue = `${workspace.name}-`;
+
+    // The image should already be properly formatted from ModalCreateTemplate
+    // But add a fallback just in case
+    let finalImage = t.image || '';
+
+    // Only apply fallback logic if the image doesn't already contain a registry
+    if (finalImage && !finalImage.includes('/') && !finalImage.includes('.')) {
+      finalImage = `registry.internal.crownlabs.polito.it/${finalImage}`;
+    }
+
+    return createTemplateMutation({
       variables: {
         workspaceId: workspace.name,
-        workspaceNamespace: workspace.namespace,
-        templateId: `${workspace.name}-`,
+        workspaceNamespace: finalWorkspaceNamespace,
+        templateId: templateIdValue,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image: t.registry
-          ? `${t.registry}/${t.image}`.trim()!
-          : `${t.image}`.trim()!,
+        image: finalImage,
         guiEnabled: t.gui,
         persistent: t.persistent,
         mountMyDriveVolume: t.mountMyDrive,
-        environmentType:
-          t.vmorcontainer === EnvironmentType.Container
-            ? EnvironmentType.Container
-            : EnvironmentType.VirtualMachine,
+        environmentType: t.imageType || EnvironmentType.Container,
         resources: {
           cpu: t.cpu,
           memory: `${t.ram * 1000}M`,
@@ -103,20 +76,31 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         },
         sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
       },
-    });
+    })
+      .then(result => {
+        return result;
+      })
+      .catch(error => {
+        console.error(
+          'WorkspaceContainer createTemplateMutation error:',
+          error,
+        );
+        throw error;
+      });
+  };
 
   return (
     <>
       <ModalCreateTemplate
-        workspaceNamespace={workspace.namespace}
+        workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
         setShow={setShow}
         show={show}
-        images={getImages(dataImages!)}
         submitHandler={submitHandler}
         loading={loading}
+        isPersonal={isPersonal}
       />
       <Box
         header={{
@@ -154,7 +138,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               <Tooltip title="Create template">
                 <Button
                   onClick={() => {
-                    refetchImages();
                     setShow(true);
                   }}
                   type="primary"
@@ -170,8 +153,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         <TemplatesTableLogic
           tenantNamespace={tenantNamespace}
           role={workspace.role}
-          workspaceNamespace={workspace.namespace}
+          workspaceNamespace={
+            isPersonal ? tenantNamespace : workspace.namespace
+          }
           workspaceName={workspace.name}
+          availableQuota={availableQuota}
+          isPersonal={isPersonal}
         />
         <Modal
           destroyOnHidden={true}
