@@ -126,7 +126,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		InstanceName:  instance.Name,
 		RemainingTime: remainingTime.String(),
 	}
-	err := mc.SendCrownLabsMail(mailTemplatePath, ph)
+	err := mc.SendCrownLabsMail(mailTemplatePath, &ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
