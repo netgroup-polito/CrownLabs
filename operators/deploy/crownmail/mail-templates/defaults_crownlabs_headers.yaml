@@ -1,0 +1,35 @@
+from: noreply@crownlabs.polito.it
+html_header: |-
+  <!DOCTYPE html>
+  <html>
+  <body>
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h2>CrownLabs Notification</h2>
+      </div>
+      <div style="padding: 20px;">
+          <p>Dear user,</p>
+html_footer: |-
+  <p>Best regards,<br>
+          CrownLabs Team</p>
+      </div>
+      <div style="background-color: #f8f9fa; padding: 15px; font-size: 12px; text-align: center;">
+          <p>This is an automated message from CrownLabs.</p>
+          <p>If you need assistance, please contact support.</p>
+      </div>
+  </div>
+  </body>
+  </html>
+plaintext_header: |
+  === CROWNLABS NOTIFICATION ===
+
+  Dear user,
+
+plaintext_footer: |
+
+  Best regards,
+  CrownLabs Team
+
+  ---
+  This is an automated message from CrownLabs.
+  If you need assistance, please contact support.

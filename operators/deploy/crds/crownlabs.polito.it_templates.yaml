@@ -268,6 +268,14 @@ spec:
                   - resources
                   type: object
                 type: array
+              inactivityTimeout:
+                default: never
+                description: |-
+                  The maximum period of inactivity after which an Instance referencing
+                  the current Template will be automatically stopped or deleted to
+                  save resources.
+                pattern: ^(never|[0-9]+[mhd])$
+                type: string
               prettyName:
                 description: The human-readable name of the Template.
                 type: string
