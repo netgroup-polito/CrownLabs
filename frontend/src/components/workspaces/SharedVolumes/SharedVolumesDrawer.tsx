@@ -183,7 +183,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
             rootStyle={{
               position: 'absolute',
               opacity: open ? 1 : 0,
-              transition: 'all 0.3',
+              transition: 'all 0.3s',
               overflow: open ? 'auto' : 'hidden',
             }}
             extra={
