@@ -30,9 +30,8 @@ import (
 	"regexp"
 	"strconv"
 
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"gopkg.in/yaml.v3"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // Client is a simple SMTP client for sending emails.
@@ -261,6 +260,7 @@ func (m *Client) sendEmail(recipient, emailContent string) error {
 
 	tlsConfig := &tls.Config{
 		ServerName: m.SMTPServer,
+		MinVersion: tls.VersionTLS12,
 	}
 	conn, err := tls.Dial("tcp", address, tlsConfig)
 	if err != nil {
@@ -273,8 +273,8 @@ func (m *Client) sendEmail(recipient, emailContent string) error {
 		return fmt.Errorf("failed to create SMTP client: %w", err)
 	}
 	defer func() {
-		client.Quit()
-		client.Close()
+		_ = client.Quit()
+		_ = client.Close()
 	}()
 
 	if err := client.Auth(m.Auth); err != nil {
@@ -294,7 +294,7 @@ func (m *Client) sendEmail(recipient, emailContent string) error {
 	}
 
 	if _, err := writer.Write(msg); err != nil {
-		writer.Close()
+		_ = writer.Close()
 		return fmt.Errorf("failed to write message: %w", err)
 	}
 

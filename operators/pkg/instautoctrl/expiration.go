@@ -221,7 +221,7 @@ func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context) error
 		return fmt.Errorf("instance not found in context")
 	}
 
-	if err := r.Client.Delete(ctx, instance); err != nil {
+	if err := r.Delete(ctx, instance); err != nil {
 		if kerrors.IsNotFound(err) {
 			log.Info("Instance already deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
 			return nil
@@ -277,7 +277,7 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 		instance.Annotations = make(map[string]string)
 	}
 	instance.Annotations[forge.ExpiringWarningNotificationAnnotation] = "true"
-	if err := r.Client.Patch(ctx, instance, patch); err != nil {
+	if err := r.Patch(ctx, instance, patch); err != nil {
 		return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
 	}
 	return true, nil
