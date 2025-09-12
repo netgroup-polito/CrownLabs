@@ -47,6 +47,15 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       : workspace.namespace;
     const templateIdValue = `${workspace.name}-`;
 
+    // The image should already be properly formatted from ModalCreateTemplate
+    // But add a fallback just in case
+    let finalImage = t.image || '';
+
+    // Only apply fallback logic if the image doesn't already contain a registry
+    if (finalImage && !finalImage.includes('/') && !finalImage.includes('.')) {
+      finalImage = `registry.internal.crownlabs.polito.it/${finalImage}`;
+    }
+
     return createTemplateMutation({
       variables: {
         workspaceId: workspace.name,
@@ -54,12 +63,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateId: templateIdValue,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image:
-          t.image?.includes('/') || t.image?.includes(':')
-            ? t.image // Already a full image reference
-            : t.registry
-              ? `${t.registry}/${t.image}`.trim()
-              : t.image || '', // Ensure we always return a string
+        image: finalImage,
         guiEnabled: t.gui,
         persistent: t.persistent,
         mountMyDriveVolume: t.mountMyDrive,

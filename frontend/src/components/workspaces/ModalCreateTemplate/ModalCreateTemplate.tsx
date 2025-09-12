@@ -9,8 +9,10 @@ import {
   Tooltip,
   AutoComplete,
   Select,
+  Alert,
 } from 'antd';
 import { Button } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import type {
   CreateTemplateMutation,
   SharedVolumeMountsListItem,
@@ -72,6 +74,23 @@ type Valid = {
   name: { status: string; help?: string };
   image: { status: string; help?: string };
 };
+
+// Add this helper function near the top
+const getEnvironmentTypeTooltip = (type: ImageType): string => {
+  switch (type) {
+    case EnvironmentType.Container:
+      return 'GUI-based container applications with desktop environment access via web browser. Must follow CrownLabs container guidelines.';
+    case EnvironmentType.Standalone:
+      return 'Web-based applications exposed over HTTP. Perfect for web services, IDEs, and tools with web interfaces.';
+    case EnvironmentType.VirtualMachine:
+      return 'Full virtual machines with complete operating system. Supports both GUI and command-line environments.';
+    case EnvironmentType.CloudVm:
+      return 'Cloud-init compatible virtual machines. SSH access only, no GUI. Suitable for server workloads and CLI applications.';
+    default:
+      return 'Select the appropriate environment type for your application.';
+  }
+};
+
 export interface IModalCreateTemplateProps {
   workspaceNamespace: string;
   template?: Template;
@@ -144,40 +163,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     const images: Image[] = [];
 
     imageList.images.forEach(img => {
-      let versionsInImageName: Image[];
-
-      if (imageList.registryName === 'crownlabs-containerdisks') {
-        // VM images from containerdisks registry
-        const latestVersion = `${img.name}:${img.versions.sort().reverse()[0]}`;
-        versionsInImageName = [
-          {
-            name: latestVersion,
-            type: [EnvironmentType.VirtualMachine],
-            registry: imageList.registryName,
-          },
-        ];
-      } else if (imageList.registryName === 'crownlabs-container-envs') {
-        // Container images
-        versionsInImageName = img.versions.map(v => ({
-          name: `${img.name}:${v}`,
-          type: [EnvironmentType.Container],
-          registry: imageList.registryName,
-        }));
-      } else if (imageList.registryName === 'crownlabs-standalone') {
-        // Standalone/cloud images
-        versionsInImageName = img.versions.map(v => ({
-          name: `${img.name}:${v}`,
-          type: [EnvironmentType.Standalone],
-          registry: imageList.registryName,
-        }));
-      } else {
-        // Default to container for unknown registries
-        versionsInImageName = img.versions.map(v => ({
-          name: `${img.name}:${v}`,
-          type: [EnvironmentType.Container],
-          registry: imageList.registryName,
-        }));
-      }
+      // Fix: Declare and initialize in one line to satisfy both ESLint and TypeScript
+      const versionsInImageName: Image[] = img.versions.map(v => ({
+        name: `${img.name}:${v}`,
+        type: [EnvironmentType.Container], // Default type
+        registry: imageList.registryName,
+      }));
 
       images.push(...versionsInImageName);
     });
@@ -196,22 +187,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     selectedImageList?.registryName === 'crownlabs-container-envs' ||
     selectedImageList?.registryName === 'registry.internal.crownlabs.polito.it';
 
-  const isStandaloneImageList =
-    selectedImageList?.registryName === 'crownlabs-standalone';
-
-  // Add "External image" to the options only if personal workspace AND container image list is selected
-  // Deduplicate base names (remove duplicates caused by multiple versions) and sort for stable display
-  const imagesNoVersion = (() => {
-    const external =
-      isPersonal && isContainerImageList ? ['**-- External image --**'] : [];
-    const baseNames = availableImages.map(x => getImageNoVer(x.name));
-    const uniqueSorted = Array.from(new Set(baseNames)).sort((a, b) =>
-      a.localeCompare(b),
-    );
-    return [...external, ...uniqueSorted];
-  })();
-
-  const [buttonDisabled, setButtonDisabled] = useState(true);
+  // const isStandaloneImageList =
+  //   selectedImageList?.registryName === 'crownlabs-standalone';
 
   const [formTemplate, setFormTemplate] = useState<Template>({
     name: template && template.name,
@@ -228,6 +205,23 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     sharedVolumeMountInfos: template ? template.sharedVolumeMountInfos : [],
   });
 
+  // Move this before the useEffect that uses it
+  const isExternalImage = formTemplate.image === '**-- External image --**';
+
+  // Add "External image" to the options only if personal workspace AND container image list is selected
+  // Deduplicate base names (remove duplicates caused by multiple versions) and sort for stable display
+  const imagesNoVersion = (() => {
+    const external =
+      isPersonal && isContainerImageList ? ['**-- External image --**'] : [];
+    const baseNames = availableImages.map(x => getImageNoVer(x.name));
+    const uniqueSorted = Array.from(new Set(baseNames)).sort((a, b) =>
+      a.localeCompare(b),
+    );
+    return [...external, ...uniqueSorted];
+  })();
+
+  const [buttonDisabled, setButtonDisabled] = useState(true);
+
   const [valid, setValid] = useState<Valid>({
     name: { status: 'success', help: undefined },
     image: { status: 'success', help: undefined },
@@ -242,6 +236,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       formTemplate.imageType &&
       formTemplate.imageList &&
       valid.name.status === 'success' &&
+      // For external images, also check that registry is provided
+      (!isExternalImage || (isExternalImage && formTemplate.registry)) &&
       (template
         ? template.name !== formTemplate.name ||
           template.image !== formTemplate.image ||
@@ -252,13 +248,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           template.cpu !== formTemplate.cpu ||
           template.ram !== formTemplate.ram ||
           template.disk !== formTemplate.disk ||
+          template.registry !== formTemplate.registry ||
           JSON.stringify(template.sharedVolumeMountInfos) !==
             JSON.stringify(formTemplate.sharedVolumeMountInfos)
         : true)
     )
       setButtonDisabled(false);
     else setButtonDisabled(true);
-  }, [formTemplate, template, valid.name.status]);
+  }, [formTemplate, template, valid.name.status, isExternalImage]);
 
   const nameValidator = () => {
     if (formTemplate.name === '' || formTemplate.name === undefined) {
@@ -356,15 +353,39 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       }));
     }
 
+    // Determine the final image URL
+    let finalImage = '';
+
+    if (formTemplate.image === '**-- External image --**') {
+      // For external images, use the registry field as the complete image URL
+      finalImage = formTemplate.registry || '';
+
+      // If it doesn't include a registry, default to internal registry
+      if (finalImage && !finalImage.includes('/')) {
+        finalImage = `registry.internal.crownlabs.polito.it/${finalImage}`;
+      }
+    } else {
+      // For selected images from image lists
+      const selectedImage = availableImages.find(
+        i => getImageNoVer(i.name) === formTemplate.image,
+      );
+
+      if (selectedImage) {
+        // Images from the internal registry already have the full name
+        // Just need to add the registry prefix
+        finalImage = `registry.internal.crownlabs.polito.it/${selectedImage.name}`;
+      } else if (formTemplate.image) {
+        // Fallback for any other case
+        finalImage = formTemplate.image.includes('/')
+          ? formTemplate.image
+          : `registry.internal.crownlabs.polito.it/${formTemplate.image}`;
+      }
+    }
+
     const templateToSubmit = {
       ...formTemplate,
-      image:
-        formTemplate.image === '**-- External image --**'
-          ? formTemplate.registry // Use registry for external images
-          : (availableImages.find(
-              i => getImageNoVer(i.name) === formTemplate.image,
-            )?.name ?? formTemplate.image),
-      sharedVolumeMountInfos,
+      image: finalImage,
+      sharedVolumeMounts: sharedVolumeMountInfos,
     };
 
     submitHandler(templateToSubmit)
@@ -392,8 +413,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       });
   };
 
-  // Track if "External image" is selected
-  const isExternalImage = formTemplate.image === '**-- External image --**';
+  // Helper function to map registry names to URLs
+  // const getRegistryUrl = (registryName: string): string => {
+  //   // Since we only have one registry, just return it as-is
+  //   if (registryName === 'registry.internal.crownlabs.polito.it') {
+  //     return registryName;
+  //   }
+  //   // For any other registry, return as-is
+  //   return registryName;
+  // };
 
   // Environment type options for external images
   const environmentOptions = [
@@ -420,29 +448,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       setAvailableImages(dedupedImages);
       setImagesSearchOptions(undefined);
 
-      // Determine GUI setting based on image list type
-      let guiSetting = true;
-      if (selectedList.registryName === 'crownlabs-containerdisks') {
-        // VM images - GUI is selectable (keep current value or default to true)
-        guiSetting = formTemplate.gui ?? true;
-      } else if (selectedList.registryName === 'crownlabs-container-envs') {
-        // Container images - GUI always enabled
-        guiSetting = true;
-      } else if (selectedList.registryName === 'crownlabs-standalone') {
-        // Cloud/standalone images - GUI always disabled
-        guiSetting = false;
-      } else {
-        // Default behavior for unknown registries
-        guiSetting = formTemplate.gui ?? true;
-      }
-
+      // For the single internal registry, allow GUI selection
+      // Users can override via external image option if needed
       setFormTemplate(old => ({
         ...old,
         imageList: imageListName,
         image: undefined,
         registry: undefined,
         imageType: undefined,
-        gui: guiSetting,
+        gui: true, // Default to GUI enabled
       }));
 
       form.setFieldsValue({
@@ -464,7 +478,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ...old,
           image: '**-- External image --**',
           registry: '', // reset registry
-          imageType: EnvironmentType.Container,
+          imageType: EnvironmentType.Container, // Default to Container
           persistent: false,
           gui: true,
         }));
@@ -480,13 +494,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ...old,
           image: String(value),
           registry: imageFound?.registry,
-          imageType: imageFound?.type[0] ?? EnvironmentType.Container,
+          imageType: EnvironmentType.Container, // Default to Container for internal images
           persistent: false,
           gui: true,
         }));
         form.setFieldsValue({
           image: value,
-          imageType: imageFound?.type[0] ?? EnvironmentType.Container,
+          imageType: EnvironmentType.Container,
         });
       }
     }
@@ -619,8 +633,110 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
           {isExternalImage && (
             <>
+              {/* Information section for external image requirements */}
+              <Alert
+                message="External Image Requirements"
+                description={
+                  <div>
+                    <p>
+                      When using external images, please ensure your
+                      container/image complies with the appropriate CrownLabs
+                      requirements:
+                    </p>
+                    <ul style={{ marginBottom: 0, paddingLeft: '20px' }}>
+                      <li>
+                        <strong>Container:</strong> Must be compliant with{' '}
+                        <a
+                          href="https://github.com/netgroup-polito/CrownLabs/tree/master/provisioning/containers"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          CrownLabs container guidelines
+                        </a>
+                      </li>
+                      <li>
+                        <strong>Standalone:</strong> Must be compliant with{' '}
+                        <a
+                          href="https://github.com/netgroup-polito/CrownLabs/tree/master/provisioning/standalone"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          CrownLabs standalone guidelines
+                        </a>
+                      </li>
+                      <li>
+                        <strong>Virtual Machine:</strong> Must be compliant with{' '}
+                        <a
+                          href="https://github.com/netgroup-polito/CrownLabs/tree/master/provisioning/virtual-machines"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          CrownLabs VM guidelines
+                        </a>
+                      </li>
+                      <li>
+                        <strong>CloudVM:</strong> Can be any cloud-init
+                        compatible image, but will only be accessible via SSH{' '}
+                        <Tooltip title="CloudVM images must support cloud-init and will not have GUI access - SSH access only">
+                          <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                        </Tooltip>
+                      </li>
+                    </ul>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+
+              {/* Environment Type Selection */}
               <Form.Item
-                className="mb-4"
+                label="Environment Type"
+                name="imageType"
+                required
+                rules={[
+                  {
+                    required: true,
+                    message: 'Please select an environment type',
+                  },
+                ]}
+              >
+                <Select
+                  value={formTemplate.imageType}
+                  onChange={(value: ImageType) =>
+                    setFormTemplate(old => ({
+                      ...old,
+                      imageType: value,
+                    }))
+                  }
+                  placeholder="Select environment type"
+                >
+                  {environmentOptions.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        <Tooltip
+                          title={getEnvironmentTypeTooltip(option.value)}
+                        >
+                          <InfoCircleOutlined
+                            style={{ color: '#1890ff', marginLeft: 8 }}
+                          />
+                        </Tooltip>
+                      </div>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              {/* External Image Input */}
+              <Form.Item
+                label="Container Image"
                 name="registry"
                 required
                 rules={[
@@ -630,10 +746,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   },
                   {
                     pattern:
-                      /^([a-z0-9]+([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]+([-a-z0-9]*[a-z0-9])?)*(:[0-9]+)?\/)?(([a-z0-9]+([-._]?[a-z0-9]+)*\/)*[a-z0-9]+([-._]?[a-z0-9]+)*)(:[a-zA-Z0-9]+([-._]?[a-zA-Z0-9]+)*)?$/,
+                      /^([a-z0-9]+([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]+([-a-z0-9]*[a-z0-9])?)*(:[0-9]+)?\/)?(([a-z0-9]+([-._]?[a-z0-9]+)*\/)*[a-z0-9]+([-._]?[a-z0-9]+)*)(:[a-zA-Z0-9]+([-._]?[a-zA-Z0-9]+)*)?$|^[a-z0-9]+([-._]?[a-z0-9]+)*\/[a-z0-9]+([-._]?[a-z0-9]+)*(:[a-zA-Z0-9]+([-._]?[a-z0-9]+)*)?$/,
                     message: 'Please enter a valid container image name',
                   },
                 ]}
+                extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest, registry.internal.crownlabs.polito.it/netgroup/ubuntu-server-base:20200922"
               >
                 <Input
                   value={formTemplate.registry}
@@ -643,31 +760,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                       registry: e.target.value,
                     }))
                   }
-                  placeholder="docker.io/library/ubuntu:22.04"
-                />
-              </Form.Item>
-
-              <Form.Item
-                className="mb-4"
-                name="imageType"
-                required
-                rules={[
-                  { required: true, message: 'Please select environment type' },
-                ]}
-              >
-                <Select
-                  value={formTemplate.imageType}
-                  onChange={value => {
-                    setFormTemplate(old => ({
-                      ...old,
-                      imageType: value,
-                    }));
-                    form.setFieldsValue({
-                      imageType: value,
-                    });
-                  }}
-                  options={environmentOptions}
-                  placeholder="Select environment type"
+                  placeholder="Enter image name (e.g., ubuntu:22.04)"
+                  suffix={
+                    <Tooltip title="Image format: [registry/]repository[:tag]">
+                      <InfoCircleOutlined
+                        style={{ color: 'rgba(0,0,0,.45)' }}
+                      />
+                    </Tooltip>
+                  }
                 />
               </Form.Item>
             </>
@@ -677,14 +777,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <span>GUI:</span>
             <Checkbox
               className="ml-3"
-              checked={
-                isContainerImageList
-                  ? true
-                  : isStandaloneImageList
-                    ? false
-                    : formTemplate.gui
-              }
-              disabled={isContainerImageList || isStandaloneImageList}
+              checked={formTemplate.gui}
+              disabled={false} // Always allow GUI selection
               onChange={() =>
                 setFormTemplate(old => {
                   return { ...old, gui: !old.gui };
