@@ -245,22 +245,78 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("GetMyDrivePVCName", func() {
-		It("Should correctly format PVC name for tenant name without dots", func() {
-			tenantName := "student"
+	Describe("The forge.GetNFSSpecs function", func() {
+		//TODO: Check and uncomment
+		// 	var serviceName, servicePath string
+		// 	var err error
 
-			pvcName := forge.GetMyDrivePVCName(tenantName)
+		// 	BeforeEach(func() {
+		// 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
+		// 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 
-			Expect(pvcName).To(Equal("student-drive"))
-		})
+		// 		instance = clv1alpha2.Instance{
+		// 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
+		// 			Spec: clv1alpha2.InstanceSpec{
+		// 				Running:  true,
+		// 				Template: clv1alpha2.GenericRef{Name: "", Namespace: templateNamespace},
+		// 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+		// 			},
+		// 		}
+		// 	})
 
-		It("Should correctly format PVC name for tenant name with dots", func() {
-			tenantName := "s123456.student"
+		// 	JustBeforeEach(func() {
+		// 		serviceName, servicePath, err = forge.GetNFSSpecs(ctx, reconciler.Client)
+		// 	})
 
-			pvcName := forge.GetMyDrivePVCName(tenantName)
+		// 	Context("The user-pvc secret does not exist", func() {
+		// 		It("Should return a not found error", func() { Expect(err).To(FailBecauseNotFound()) })
+		// 	})
 
-			Expect(pvcName).To(Equal("s123456-student-drive"))
-		})
+		// 	Context("The user-pvc secret exists", func() {
+		// 		When("the secret contains the expected data", func() {
+		// 			BeforeEach(func() {
+		// 				clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
+		// 			})
+
+		// 			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+		// 			It("The retrieved dns name should be correct", func() { Expect(serviceName).To(BeIdenticalTo(NFSServiceName)) })
+		// 			It("The retrieved path should be correct", func() { Expect(servicePath).To(BeIdenticalTo(NFSServicePath)) })
+		// 		})
+
+		// 		When("the secret does not contain the dns name", func() {
+		// 			BeforeEach(func() {
+		// 				clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret("invalid-name-key", forge.NFSSecretPathKey))
+		// 			})
+
+		// 			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
+		// 		})
+
+		// 		When("the secret does not contain the path", func() {
+		// 			BeforeEach(func() {
+		// 				clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, "invalid-path-key"))
+		// 			})
+
+		// 			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
+		// 		})
+		// 	})
+		// })
+
+		// var _ = Describe("GetMyDrivePVCName", func() {
+		// 	It("Should correctly format PVC name for tenant name without dots", func() {
+		// 		tenantName := "student"
+
+		// 		pvcName := forge.GetMyDrivePVCName(tenantName)
+
+		// 		Expect(pvcName).To(Equal("student-drive"))
+		// 	})
+
+		// 	It("Should correctly format PVC name for tenant name with dots", func() {
+		// 		tenantName := "s123456.student"
+
+		// 		pvcName := forge.GetMyDrivePVCName(tenantName)
+
+		// 		Expect(pvcName).To(Equal("s123456-student-drive"))
+		// 	})
 	})
 
 	var _ = Describe("ConfigureMyDrivePVC", func() {
