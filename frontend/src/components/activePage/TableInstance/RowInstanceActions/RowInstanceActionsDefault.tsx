@@ -30,6 +30,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     name,
     tenantNamespace,
     environmentType,
+    environments,
   } = instance;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -168,18 +169,22 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               : 'sm:block '
           } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
-          <Button
-            className={`${connectDisabled ? 'pointer-events-none' : ''}`}
-            color={classFromProps()}
-            type="primary"
-            variant="solid"
-            shape="round"
-            size="middle"
-            {...connectOptions}
-            disabled={connectDisabled}
-          >
-            Connect
-          </Button>
+          {environments && environments.length > 1 ? (
+            <div>ciao</div>
+          ) : (
+            <Button
+              className={`${connectDisabled ? 'pointer-events-none' : ''}`}
+              color={classFromProps()}
+              type="primary"
+              variant="solid"
+              shape="round"
+              size="middle"
+              {...connectOptions}
+              disabled={connectDisabled}
+            >
+              Connect
+            </Button>
+          )}
         </div>
         <div
           className={`hidden ${

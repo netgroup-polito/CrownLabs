@@ -3358,14 +3358,15 @@ export type CreateTemplateMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
   templateName: Scalars['String']['input'];
   descriptionTemplate: Scalars['String']['input'];
-  image: Scalars['String']['input'];
-  guiEnabled: Scalars['Boolean']['input'];
-  persistent: Scalars['Boolean']['input'];
-  mountMyDriveVolume: Scalars['Boolean']['input'];
-  resources: ResourcesInput;
+  // image: Scalars['String']['input'];
+  // guiEnabled: Scalars['Boolean']['input'];
+  // persistent: Scalars['Boolean']['input'];
+  // mountMyDriveVolume: Scalars['Boolean']['input'];
+  // resources: ResourcesInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
-  environmentType: EnvironmentType;
-  sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
+  // environmentType: EnvironmentType;
+  // sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
+  environmentList: Array<EnvironmentListListItemInput>;
 }>;
 
 
@@ -3833,10 +3834,10 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput]) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $templateId: String = "template-", $environmentList: [EnvironmentListListItemInput!]!) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume, sharedVolumeMounts: $sharedVolumeMounts}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: $environmentList, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName

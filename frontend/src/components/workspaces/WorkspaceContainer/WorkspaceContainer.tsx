@@ -4,7 +4,7 @@ import { Button } from 'antd';
 import type { FC } from 'react';
 import { useContext, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import type { ImagesQuery } from '../../../generated-types';
+import type { EnvironmentListListItemInput, ImagesQuery } from '../../../generated-types';
 import {
   EnvironmentType,
   useCreateTemplateMutation,
@@ -77,33 +77,37 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const submitHandler = (t: Template) =>
-    createTemplateMutation({
+  const submitHandler = (t: Template) => {
+    const envList:  EnvironmentListListItemInput[] = []
+    for(const env of t.environmentList) {
+      envList.push({
+        name: env.name,
+        image: env.registry?`${env.registry}/${env.image}`.trim()! : `${env.image}`.trim()!,
+        guiEnabled: env.gui,
+        persistent: env.persistent,
+        mountMyDriveVolume: env.mountMyDrive,
+        environmentType: env.vmorcontainer === EnvironmentType.Container ? EnvironmentType.Container : EnvironmentType.VirtualMachine,
+        resources: {
+          cpu: env.cpu,
+          memory: `${env.ram * 1000}M`,
+          disk: env.disk?`${env.disk * 1000}M`: undefined,
+          reservedCPUPercentage: 50
+        },
+        sharedVolumeMounts: env.sharedVolumeMountInfos ?? []
+      })
+    } 
+    
+    return createTemplateMutation({
       variables: {
         workspaceId: workspace.name,
         workspaceNamespace: workspace.namespace,
         templateId: `${workspace.name}-`,
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
-        image: t.environmentList[0].registry
-          ? `${t.environmentList[0].registry}/${t.environmentList[0].image}`.trim()!
-          : `${t.environmentList[0].image}`.trim()!,
-        guiEnabled: t.environmentList[0].gui,
-        persistent: t.environmentList[0].persistent,
-        mountMyDriveVolume: t.environmentList[0].mountMyDrive,
-        environmentType:
-          t.environmentList[0].vmorcontainer === EnvironmentType.Container
-            ? EnvironmentType.Container
-            : EnvironmentType.VirtualMachine,
-        resources: {
-          cpu: t.environmentList[0].cpu,
-          memory: `${t.environmentList[0].ram * 1000}M`,
-          disk: t.environmentList[0].disk ? `${t.environmentList[0].disk * 1000}M` : undefined,
-          reservedCPUPercentage: 50,
-        },
-        sharedVolumeMounts: t.environmentList[0].sharedVolumeMountInfos ?? [],
+        environmentList: envList
       },
     });
+  }
 
   return (
     <>
