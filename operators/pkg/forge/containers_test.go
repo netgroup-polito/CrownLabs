@@ -546,7 +546,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 					})
 
 					JustBeforeEach(func() {
-						fmt.Printf("Using mountInfos %v\n", c.MountInfos)
 						actual = forge.AppContainer(&environment, forge.PersistentMountPath(&environment), c.MountInfos)
 					})
 
