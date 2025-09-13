@@ -126,7 +126,6 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                   )}
                 </div>
               )}
-
               <Text
                 editable={{
                   tooltip: 'Click to Edit',
