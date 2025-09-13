@@ -32,6 +32,12 @@ spec:
         cpu: 2
         memory: 2G
         reservedCPUPercentage: 25
+      sharedVolumeMounts:
+      - sharedVolume:
+          name: mylemon
+          namespace: workspace-tea
+        mountPath: /mnt/lemon
+        readOnly: false
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: tea
   deleteAfter: 30d
