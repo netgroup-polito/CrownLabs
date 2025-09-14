@@ -3358,15 +3358,8 @@ export type CreateTemplateMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
   templateName: Scalars['String']['input'];
   descriptionTemplate: Scalars['String']['input'];
-  // image: Scalars['String']['input'];
-  // guiEnabled: Scalars['Boolean']['input'];
-  // persistent: Scalars['Boolean']['input'];
-  // mountMyDriveVolume: Scalars['Boolean']['input'];
-  // resources: ResourcesInput;
+  environmentList: Array<EnvironmentListListItemInput> | EnvironmentListListItemInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
-  // environmentType: EnvironmentType;
-  // sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
-  environmentList: Array<EnvironmentListListItemInput>;
 }>;
 
 
@@ -3834,7 +3827,7 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $templateId: String = "template-", $environmentList: [EnvironmentListListItemInput!]!) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-") {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
     itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: $environmentList, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
@@ -3878,14 +3871,8 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      workspaceNamespace: // value for 'workspaceNamespace'
  *      templateName: // value for 'templateName'
  *      descriptionTemplate: // value for 'descriptionTemplate'
- *      image: // value for 'image'
- *      guiEnabled: // value for 'guiEnabled'
- *      persistent: // value for 'persistent'
- *      mountMyDriveVolume: // value for 'mountMyDriveVolume'
- *      resources: // value for 'resources'
+ *      environmentList: // value for 'environmentList'
  *      templateId: // value for 'templateId'
- *      environmentType: // value for 'environmentType'
- *      sharedVolumeMounts: // value for 'sharedVolumeMounts'
  *   },
  * });
  */

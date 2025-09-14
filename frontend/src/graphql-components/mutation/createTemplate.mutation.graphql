@@ -3,14 +3,8 @@ mutation createTemplate(
   $workspaceNamespace: String!
   $templateName: String!
   $descriptionTemplate: String!
-  $image: String!
-  $guiEnabled: Boolean!
-  $persistent: Boolean!
-  $mountMyDriveVolume: Boolean!
-  $resources: ResourcesInput!
+  $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
-  $environmentType: EnvironmentType!
-  $sharedVolumeMounts: [SharedVolumeMountsListItemInput]
 ) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
@@ -20,18 +14,7 @@ mutation createTemplate(
       spec: {
         prettyName: $templateName
         description: $descriptionTemplate
-        environmentList: [
-          {
-            name: "default"
-            environmentType: $environmentType
-            image: $image
-            guiEnabled: $guiEnabled
-            persistent: $persistent
-            resources: $resources
-            mountMyDriveVolume: $mountMyDriveVolume
-            sharedVolumeMounts: $sharedVolumeMounts
-          }
-        ]
+        environmentList: $environmentList
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
       metadata: { generateName: $templateId, namespace: $workspaceNamespace }
