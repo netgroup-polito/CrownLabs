@@ -28,6 +28,7 @@ export interface ITemplatesTableProps {
     memory?: string;
     instances?: number;
   };
+  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
@@ -62,6 +63,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     deleteTemplateLoading,
     createInstance,
     availableQuota,
+    refreshQuota,
     isPersonal,
   } = props;
 
@@ -85,6 +87,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           expandRow={listToggler}
           tenantNamespace={tenantNamespace}
           availableQuota={availableQuota}
+          refreshQuota={refreshQuota} // Pass refresh function
           isPersonal={isPersonal}
         />
       ),

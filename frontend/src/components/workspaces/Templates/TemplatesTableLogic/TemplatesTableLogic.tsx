@@ -41,6 +41,7 @@ export interface ITemplateTableLogicProps {
     memory?: string;
     instances?: number;
   };
+  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
 }
 
@@ -55,6 +56,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     workspaceName,
     role,
     availableQuota,
+    refreshQuota,
     isPersonal,
   } = props;
 
@@ -257,6 +259,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
               ]
             : old,
         );
+        // Refresh quota after instance creation
+        refreshQuota?.();
         return i;
       })
       .catch(error => {
@@ -292,12 +296,17 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                   workspaceNamespace,
                   templateId,
                 },
+              }).then(result => {
+                // Refresh quota after template deletion
+                refreshQuota?.();
+                return result;
               })
             }
             deleteTemplateLoading={loadingDeleteTemplateMutation}
             editTemplate={() => null}
             createInstance={createInstance}
             availableQuota={availableQuota}
+            refreshQuota={refreshQuota} // Pass refresh function
             isPersonal={isPersonal}
           />
         ) : (

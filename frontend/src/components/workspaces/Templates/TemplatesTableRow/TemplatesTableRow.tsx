@@ -7,7 +7,7 @@ import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
 import type { FetchResult } from '@apollo/client';
 import type { FC } from 'react';
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useState, useMemo } from 'react';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
@@ -42,6 +42,7 @@ export interface ITemplatesTableRowProps {
     memory?: string;
     instances?: number;
   };
+  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
   deleteTemplate: (
     id: string,
@@ -147,11 +148,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     expandRow,
     tenantNamespace,
     availableQuota,
+    refreshQuota,
     isPersonal,
   } = props;
 
-  // Check if we can create an instance based on resources
-  const canCreate = canCreateInstance(template, availableQuota);
+  // Memoize the quota check to be reactive to availableQuota changes
+  const canCreate = useMemo(
+    () => canCreateInstance(template, availableQuota),
+    [template, availableQuota],
+  );
 
   const {
     data: labelsData,
@@ -202,11 +207,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     createInstance(template.id)
       .then(() => {
         refreshClock();
+        // Refresh quota after instance creation
+        refreshQuota?.();
         setTimeout(setCreateDisabled, 400, false);
         expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
-  }, [createInstance, expandRow, refreshClock, template.id]);
+  }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
 
   const handleEditTemplate = (template: TemplateType) => {
     setSelectedTemplate(template);
@@ -266,6 +273,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         patchJson: JSON.stringify(patch),
         manager: 'web-frontend',
       },
+    }).then(result => {
+      // Refresh quota after template update
+      refreshQuota?.();
+      return result;
     });
   };
 
@@ -553,6 +564,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                           createInstance(template.id, JSON.parse(key))
                             .then(() => {
                               refreshClock();
+                              // Refresh quota after instance creation
+                              refreshQuota?.();
                               setTimeout(setCreateDisabled, 400, false);
                               expandRow(template.id, true);
                             })

@@ -38,62 +38,91 @@ const DashboardLogic: FC = () => {
   const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
 
   // Get all instances for the tenant (includes both workspace and personal instances)
-  const { data: instancesData, loading: instancesLoading } =
-    useOwnedInstancesQuery({
-      variables: { tenantNamespace: tenantNs || '' },
-      skip: !tenantNs,
-      onError: apolloErrorCatcher,
-    });
+  const {
+    data: instancesData,
+    loading: instancesLoading,
+    refetch: refetchInstances,
+  } = useOwnedInstancesQuery({
+    variables: { tenantNamespace: tenantNs || '' },
+    skip: !tenantNs,
+    onError: apolloErrorCatcher,
+    fetchPolicy: 'cache-and-network', // Ensure we get fresh data
+  });
 
-  // simple aggregated consumed resources: cpu (cores), memoryGi (Gi), instances (count)
-  const parseMemoryToGi = (v: string | number | null | undefined): number => {
-    if (v == null) return 0;
-    if (typeof v === 'number') return v;
-    const s = String(v).trim();
-    const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
-    if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
-    const val = parseFloat(m[1]);
-    const unit = (m[2] || '').toLowerCase();
-    const pow = (n: number) => Math.pow(1024, n);
-    if (unit === 'ki') return (val * pow(1)) / pow(3);
-    if (unit === 'mi') return (val * pow(2)) / pow(3);
-    if (unit === 'gi') return val;
-    if (unit === 'ti') return (val * pow(4)) / pow(3);
-    if (unit === 'k') return (val * 1e3) / pow(3);
-    if (unit === 'm') return (val * 1e6) / pow(3);
-    if (unit === 'g') return (val * 1e9) / pow(3);
-    if (unit === 't') return (val * 1e12) / pow(3);
-    return val;
-  };
+  // Memoized quota calculations that react to instance changes
+  const quotaCalculations = useMemo(() => {
+    const parseMemoryToGi = (v: string | number | null | undefined): number => {
+      if (v == null) return 0;
+      if (typeof v === 'number') return v;
+      const s = String(v).trim();
+      const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
+      if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
+      const val = parseFloat(m[1]);
+      const unit = (m[2] || '').toLowerCase();
+      const pow = (n: number) => Math.pow(1024, n);
+      if (unit === 'ki') return (val * pow(1)) / pow(3);
+      if (unit === 'mi') return (val * pow(2)) / pow(3);
+      if (unit === 'gi') return val;
+      if (unit === 'ti') return (val * pow(4)) / pow(3);
+      if (unit === 'k') return (val * 1e3) / pow(3);
+      if (unit === 'm') return (val * 1e6) / pow(3);
+      if (unit === 'g') return (val * 1e9) / pow(3);
+      if (unit === 't') return (val * 1e12) / pow(3);
+      return val;
+    };
 
-  const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
-  const items = instancesData?.instanceList?.instances ?? [];
-  for (const inst of items) {
-    const resources =
-      inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-        ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList?.[0]
-        ?.resources;
-    const cpu = Number(resources?.cpu ?? 0);
-    const mem = resources?.memory ?? '0Gi';
-    consumedQuota.cpu += cpu;
-    consumedQuota.memoryGi += parseMemoryToGi(mem);
-    consumedQuota.instances += 1;
-  }
+    const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
+    const items = instancesData?.instanceList?.instances ?? [];
 
-  // Calculate available resources from quota - consumed
-  const totalQuota = tenantData?.tenant?.status?.quota;
-  const availableQuota = {
-    cpu:
-      (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
-      consumedQuota.cpu,
-    memory: String(
-      (totalQuota?.memory ? parseMemoryToGi(totalQuota.memory) : 0) -
-        consumedQuota.memoryGi,
-    ),
-    instances:
-      (totalQuota?.instances ? totalQuota.instances : 0) -
-      consumedQuota.instances,
-  };
+    for (const inst of items) {
+      const resources =
+        inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+          ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList?.[0]
+          ?.resources;
+      const cpu = Number(resources?.cpu ?? 0);
+      const mem = resources?.memory ?? '0Gi';
+      consumedQuota.cpu += cpu;
+      consumedQuota.memoryGi += parseMemoryToGi(mem);
+      consumedQuota.instances += 1;
+    }
+
+    // Calculate available resources from quota - consumed
+    const totalQuota = tenantData?.tenant?.status?.quota;
+    const availableQuota = {
+      cpu:
+        (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
+        consumedQuota.cpu,
+      memory: String(
+        (totalQuota?.memory ? parseMemoryToGi(totalQuota.memory) : 0) -
+          consumedQuota.memoryGi,
+      ),
+      instances:
+        (totalQuota?.instances ? totalQuota.instances : 0) -
+        consumedQuota.instances,
+    };
+
+    return {
+      consumedQuota: {
+        cpu: consumedQuota.cpu,
+        memory: String(consumedQuota.memoryGi),
+        instances: consumedQuota.instances,
+      },
+      availableQuota,
+      workspaceQuota: totalQuota || {
+        cpu: 0,
+        memory: 0,
+        instances: 0,
+      },
+    };
+  }, [
+    instancesData?.instanceList?.instances,
+    tenantData?.tenant?.status?.quota,
+  ]);
+
+  // Provide a function to refresh quota data
+  const refreshQuota = useCallback(() => {
+    refetchInstances();
+  }, [refetchInstances]);
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();
@@ -183,11 +212,11 @@ const DashboardLogic: FC = () => {
         createPWs: tenantData?.tenant?.spec?.createPersonalWorkspace ?? false,
         isPWsCreated:
           tenantData?.tenant?.status?.personalNamespace?.created ?? false,
-        quota: totalQuota
+        quota: quotaCalculations.workspaceQuota
           ? {
-              cpu: String(totalQuota.cpu),
-              memory: String(totalQuota.memory),
-              instances: totalQuota.instances,
+              cpu: String(quotaCalculations.workspaceQuota.cpu),
+              memory: String(quotaCalculations.workspaceQuota.memory),
+              instances: quotaCalculations.workspaceQuota.instances,
             }
           : null,
       }}
@@ -197,20 +226,13 @@ const DashboardLogic: FC = () => {
         selected: loadCandidates,
         select: selectLoadCandidates,
       }}
-      // Pass quota data as props
+      // Pass reactive quota data as props
       globalQuota={{
-        consumedQuota: {
-          cpu: consumedQuota.cpu,
-          memory: String(consumedQuota.memoryGi),
-          instances: consumedQuota.instances,
-        },
-        workspaceQuota: tenantData?.tenant?.status?.quota || {
-          cpu: 0,
-          memory: 0,
-          instances: 0,
-        }, // Provide default instead of null
-        availableQuota: availableQuota,
-        showQuotaDisplay: true, // Add the missing property
+        consumedQuota: quotaCalculations.consumedQuota,
+        workspaceQuota: quotaCalculations.workspaceQuota,
+        availableQuota: quotaCalculations.availableQuota,
+        showQuotaDisplay: true,
+        refreshQuota, // Pass the refresh function
       }}
     />
   ) : (

@@ -45,6 +45,7 @@ export interface IDashboardProps {
       instances?: number;
     };
     showQuotaDisplay: boolean;
+    refreshQuota?: () => void; // Add refresh function
   };
 }
 
@@ -124,6 +125,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
                 tenantNamespace={tenantNamespace}
                 workspace={workspaces[selectedWsId]}
                 availableQuota={globalQuota?.availableQuota}
+                refreshQuota={globalQuota?.refreshQuota} // Pass refresh function
                 isPersonalWorkspace={false}
               />
             </>
@@ -139,6 +141,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
                   waitingTenants: undefined,
                 }}
                 availableQuota={globalQuota?.availableQuota}
+                refreshQuota={globalQuota?.refreshQuota} // Pass refresh function
                 isPersonalWorkspace={true}
               />
             </>

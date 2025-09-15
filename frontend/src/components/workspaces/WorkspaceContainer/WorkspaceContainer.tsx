@@ -24,13 +24,14 @@ export interface IWorkspaceContainerProps {
     memory?: string;
     instances?: number;
   };
+  refreshQuota?: () => void; // Add refresh function
   isPersonalWorkspace?: boolean;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const { tenantNamespace, workspace, availableQuota } = props;
+  const { tenantNamespace, workspace, availableQuota, refreshQuota } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -78,6 +79,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       },
     })
       .then(result => {
+        // Refresh quota after template creation
+        refreshQuota?.();
         return result;
       })
       .catch(error => {
@@ -158,6 +161,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           }
           workspaceName={workspace.name}
           availableQuota={availableQuota}
+          refreshQuota={refreshQuota} // Pass refresh function
           isPersonal={isPersonal}
         />
         <Modal
