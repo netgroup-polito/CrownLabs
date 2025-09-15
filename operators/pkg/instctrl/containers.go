@@ -78,34 +78,16 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 // enforceContainer enforces the actual deployment
 // which contains all the container based instance components.
 func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
-	var nfsServerName, nfsPath string
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
 	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
 
-	mountInfos := []forge.NFSVolumeMountInfo{}
-
-	if environment.MountMyDriveVolume {
-		var err error
-		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
-		if err != nil {
-			log.Error(err, "can't get NFS spec")
-			return err
-		}
-
-		mountInfos = append(mountInfos, forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
-	}
-
-	for i, mount := range environment.SharedVolumeMounts {
-		var shvol clv1alpha2.SharedVolume
-		if err := r.Get(ctx, forge.NamespacedNameFromMount(mount), &shvol); err != nil {
-			log.Error(err, "unable to retrieve shvol to mount")
-			return err
-		}
-
-		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
+	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, environment)
+	if err != nil {
+		log.Error(err, msg)
+		return err
 	}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
