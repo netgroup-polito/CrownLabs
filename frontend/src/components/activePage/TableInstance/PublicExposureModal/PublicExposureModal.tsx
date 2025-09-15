@@ -36,15 +36,12 @@ interface PortField {
   targetPort: string;
   desiredPort?: string;
   protocol?: string;
-  // Campo virtuale solo per visualizzazione - non viene inviato al backend
   _displayActualPort?: string;
 }
 
 interface FormValues {
   ports: PortField[];
 }
-
-// Removed FormRule interface, use antd's RuleObject type for validator
 
 export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   open,
@@ -63,14 +60,12 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     useApplyInstanceMutation();
 
   const getInitialPorts = useMemo((): PortField[] => {
-    console.log('🔍 Debug - getInitialPorts called with existingExposure:', existingExposure);
-    
     if (
       existingExposure?.ports &&
       Array.isArray(existingExposure.ports) &&
       existingExposure.ports.length > 0
     ) {
-      const mappedPorts = existingExposure.ports.map(p => ({
+      return existingExposure.ports.map(p => ({
         name: p?.name || '',
         targetPort: p?.targetPort ? String(p.targetPort) : '',
         desiredPort: allowPublicExposure
@@ -83,16 +78,9 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         )
           ? ((p as { protocol?: string })?.protocol ?? 'TCP')
           : 'TCP',
-        // Campo virtuale per mostrare la porta effettivamente assegnata dal backend status
         _displayActualPort: p?.port && p.port !== '0' ? String(p.port) : '',
       }));
-      
-      console.log('🔍 Debug - Mapped ports:', mappedPorts);
-      return mappedPorts;
     }
-    
-    console.log('🔍 Debug - No existing ports, returning empty port');
-    // Se non c'è esistingExposure o non ha porte, inizializza con una porta vuota
     return [
       {
         name: '',
@@ -104,26 +92,18 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     ];
   }, [existingExposure, allowPublicExposure]);
 
-  // Inizializza il form solo all'apertura del modal e quando cambia existingExposure significativamente
   useEffect(() => {
     if (open) {
       const initialPorts = getInitialPorts;
       form.setFieldsValue({ ports: initialPorts });
-      console.log('🔄 Form initialized with ports:', initialPorts);
     }
   }, [open, form, getInitialPorts]);
 
-  // Aggiorna il form solo quando esistingExposure cambia e non stiamo aggiornando
   useEffect(() => {
     if (open && existingExposure && !isUpdating) {
       const currentPorts = form.getFieldValue('ports') || [];
       const newInitialPorts = getInitialPorts;
 
-      console.log('🔍 Debug - Current ports in form:', currentPorts);
-      console.log('🔍 Debug - New initial ports from existingExposure:', newInitialPorts);
-      console.log('🔍 Debug - existingExposure:', existingExposure);
-
-      // Confronta solo se c'è una vera differenza nei dati essenziali
       const hasSignificantChanges =
         newInitialPorts.length !== currentPorts.length ||
         newInitialPorts.some((np, index) => {
@@ -138,11 +118,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           );
         });
 
-      console.log('🔍 Debug - Has significant changes:', hasSignificantChanges);
-
       if (hasSignificantChanges) {
-        console.log('📝 Updating form due to external changes');
-        console.log('🔍 Debug - Overwriting form with:', newInitialPorts);
         form.setFieldsValue({ ports: newInitialPorts });
       }
     }
@@ -157,12 +133,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     getInitialPorts,
   ]);
 
-  // Gestisci il completamento delle operazioni
   useEffect(() => {
     if (lastSentData && existingExposure && isUpdating) {
       const currentData = JSON.stringify(existingExposure);
       if (currentData !== lastSentData) {
-        console.log('✅ Update completed, resetting state');
         setIsUpdating(false);
         setLastSentData(null);
       }
@@ -182,7 +156,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       !/^\d+$/.test(lastTargetPort) ||
       parseInt(lastTargetPort, 10) === 0);
 
-  // Check if we have any valid ports for Send button
   const hasValidPorts =
     ports &&
     Array.isArray(ports) &&
@@ -194,11 +167,22 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         parseInt(p.targetPort, 10) > 0,
     );
 
-  // Aggiorna la logica per il pulsante "Add Port" - rimuove variabile non utilizzata
+  const duplicateTargetPorts = useMemo(() => {
+    if (!ports || !Array.isArray(ports)) return [];
+    
+    const targetPorts = ports
+      .filter(p => p?.targetPort && p.targetPort.trim() !== '')
+      .map(p => parseInt(p?.targetPort || '0', 10))
+      .filter(port => !isNaN(port) && port > 0);
+      
+    return targetPorts.filter((port, index) => 
+      targetPorts.indexOf(port) !== index
+    );
+  }, [ports]);
+
   const addButtonText =
     !ports || ports.length === 0 ? 'Add Port' : '+ Add Port';
 
-  // Determina se dovremmo mostrare "Disable Public Exposure"
   const shouldShowDisableButton = () => {
     const hasExistingExposure =
       existingExposure &&
@@ -215,21 +199,17 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           parseInt(p.targetPort, 10) > 0,
       );
 
-    // Mostra "Disable" solo se:
-    // 1. Non ci sono porte valide nel form corrente E
-    // 2. C'è un'esposizione esistente attiva (IP esterno o porte)
     return !hasCurrentPorts && hasExistingExposure;
   };
 
-  // Determina se il pulsante Send dovrebbe essere disabilitato
   const isSendDisabled =
     isUpdating ||
+    duplicateTargetPorts.length > 0 ||
     (!hasValidPorts &&
       ports &&
       ports.length > 0 &&
       ports.some(p => p?.targetPort && p.targetPort.trim() !== ''));
 
-  // Determina il testo del pulsante
   const getButtonText = () => {
     if (shouldShowDisableButton()) {
       return 'Disable Public Exposure';
@@ -239,11 +219,8 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   const onFinish = async (values: FormValues) => {
     if (loading || isUpdating) {
-      console.log('⚠️ Operation already in progress, ignoring...');
       return;
     }
-
-    console.log('🔍 Debug - Form values received:', values);
 
     const validPorts =
       values.ports?.filter(
@@ -254,9 +231,21 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           parseInt(p.targetPort, 10) > 0,
       ) || [];
 
-    console.log('🔍 Debug - Valid ports after filtering:', validPorts);
+    const targetPorts = validPorts.map(p => parseInt(p?.targetPort || '0', 10));
+    const duplicateTargetPorts = targetPorts.filter((port, index) => 
+      targetPorts.indexOf(port) !== index
+    );
 
-    // Create a map to track targetPort counts for unique naming
+    if (duplicateTargetPorts.length > 0) {
+      form.setFields([
+        {
+          name: ['ports'],
+          errors: [`Cannot expose the same target port multiple times. Duplicate target ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`],
+        },
+      ]);
+      return;
+    }
+
     const targetPortCounts = new Map<number, number>();
     validPorts.forEach(p => {
       const targetPort = parseInt(p?.targetPort || '0', 10);
@@ -275,14 +264,12 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                 ? p.protocol
                 : 'TCP';
 
-            // Generate unique name if not provided
             let name: string;
             if (p?.name && p.name.trim() !== '') {
               name = p.name.trim();
             } else {
               const count = targetPortCounts.get(targetPort) || 1;
               if (count > 1) {
-                // Multiple ports with same targetPort, add index
                 const currentIndex = (targetPortIndexes.get(targetPort) || 0) + 1;
                 targetPortIndexes.set(targetPort, currentIndex);
                 name = `port-${targetPort}-${currentIndex}`;
@@ -302,45 +289,31 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
             return { name, targetPort, port: 0, protocol };
           });
 
-    console.log('🔍 Debug - Normalized ports to send:', normalized);
-
     try {
       const patchJson = buildPublicExposurePatch(normalized);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
 
-      console.log('📦 Sending patch:', patchJson);
-      console.log('🔍 Debug - Variables:', variables);
-
-      // Imposta il flag di aggiornamento prima della mutazione
       setIsUpdating(true);
       setLastSentData(JSON.stringify(existingExposure));
 
       const result = await applyInstanceMutation({ variables });
 
-      console.log('🔍 Debug - Mutation result:', result);
-
       if (result.data) {
-        console.log('✅ Public exposure updated successfully');
-        console.log('🔍 Debug - Result data:', result.data);
 
-        // Non chiudere il modal automaticamente per permettere ulteriori modifiche
         if (normalized.length === 0) {
-          // Per la disabilitazione, chiudi il modal dopo un breve delay
           setTimeout(() => {
             setIsUpdating(false);
             setLastSentData(null);
             onCancel();
           }, 1000);
         } else {
-          // Per l'abilitazione, mantieni il modal aperto
           setTimeout(() => {
             setIsUpdating(false);
             setLastSentData(null);
           }, 1000);
         }
       }
-    } catch (error) {
-      console.error('❌ Backend error:', error);
+    } catch (_error) {
       setIsUpdating(false);
       setLastSentData(null);
     }
@@ -356,6 +329,32 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     }
     return Promise.resolve();
   }, []);
+
+  const targetPortValidator = useCallback(
+    (_rule: RuleObject, value: string, fieldKey?: number) => {
+      if (!value) {
+        return Promise.resolve();
+      }
+      
+      const num = parseInt(value, 10);
+      if (isNaN(num) || num <= 0 || num > 65535) {
+        return Promise.reject(new Error('Port must be between 1 and 65535'));
+      }
+
+      const currentPorts = form.getFieldValue('ports') || [];
+      const duplicateCount = currentPorts.filter(
+        (p: PortField, index: number) => 
+          p?.targetPort === value && index !== fieldKey
+      ).length;
+
+      if (duplicateCount > 0) {
+        return Promise.reject(new Error('This target port is already in use'));
+      }
+
+      return Promise.resolve();
+    },
+    [form],
+  );
 
   return (
     <Modal
@@ -385,6 +384,15 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         <Alert
           type="error"
           message={error.message}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {duplicateTargetPorts.length > 0 && (
+        <Alert
+          type="error"
+          message={`Cannot expose the same target port multiple times. Duplicate target ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
           showIcon
           style={{ marginBottom: 16 }}
         />
@@ -437,7 +445,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           label={index === 0 ? 'Target Port' : ''}
                           rules={[
                             { required: true, message: 'Required' },
-                            { validator: portValidator },
+                            { 
+                              validator: (rule, value) => 
+                                targetPortValidator(rule, value, name)
+                            },
                           ]}
                           validateTrigger={['onChange', 'onBlur']}
                           hasFeedback={false}
@@ -515,6 +526,16 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                     )}
                   </div>
                 ))}
+
+                {(!ports || ports.length === 0) && (
+                  <Alert
+                    type="info"
+                    message="No ports configured"
+                    description="Add a port to expose your instance services to the external network. Specify the target port of your service and optionally a desired public port."
+                    showIcon
+                    style={{ marginBottom: 16, textAlign: 'left' }}
+                  />
+                )}
 
                 <Form.Item style={{ textAlign: 'center', marginTop: 24 }}>
                   <Button
