@@ -63,12 +63,14 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     useApplyInstanceMutation();
 
   const getInitialPorts = useMemo((): PortField[] => {
+    console.log('🔍 Debug - getInitialPorts called with existingExposure:', existingExposure);
+    
     if (
       existingExposure?.ports &&
       Array.isArray(existingExposure.ports) &&
       existingExposure.ports.length > 0
     ) {
-      return existingExposure.ports.map(p => ({
+      const mappedPorts = existingExposure.ports.map(p => ({
         name: p?.name || '',
         targetPort: p?.targetPort ? String(p.targetPort) : '',
         desiredPort: allowPublicExposure
@@ -84,7 +86,12 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         // Campo virtuale per mostrare la porta effettivamente assegnata dal backend status
         _displayActualPort: p?.port && p.port !== '0' ? String(p.port) : '',
       }));
+      
+      console.log('🔍 Debug - Mapped ports:', mappedPorts);
+      return mappedPorts;
     }
+    
+    console.log('🔍 Debug - No existing ports, returning empty port');
     // Se non c'è esistingExposure o non ha porte, inizializza con una porta vuota
     return [
       {
@@ -112,6 +119,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       const currentPorts = form.getFieldValue('ports') || [];
       const newInitialPorts = getInitialPorts;
 
+      console.log('🔍 Debug - Current ports in form:', currentPorts);
+      console.log('🔍 Debug - New initial ports from existingExposure:', newInitialPorts);
+      console.log('🔍 Debug - existingExposure:', existingExposure);
+
       // Confronta solo se c'è una vera differenza nei dati essenziali
       const hasSignificantChanges =
         newInitialPorts.length !== currentPorts.length ||
@@ -127,8 +138,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           );
         });
 
+      console.log('🔍 Debug - Has significant changes:', hasSignificantChanges);
+
       if (hasSignificantChanges) {
         console.log('📝 Updating form due to external changes');
+        console.log('🔍 Debug - Overwriting form with:', newInitialPorts);
         form.setFieldsValue({ ports: newInitialPorts });
       }
     }
@@ -229,6 +243,8 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       return;
     }
 
+    console.log('🔍 Debug - Form values received:', values);
+
     const validPorts =
       values.ports?.filter(
         p =>
@@ -237,6 +253,17 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           !isNaN(parseInt(p.targetPort, 10)) &&
           parseInt(p.targetPort, 10) > 0,
       ) || [];
+
+    console.log('🔍 Debug - Valid ports after filtering:', validPorts);
+
+    // Create a map to track targetPort counts for unique naming
+    const targetPortCounts = new Map<number, number>();
+    validPorts.forEach(p => {
+      const targetPort = parseInt(p?.targetPort || '0', 10);
+      targetPortCounts.set(targetPort, (targetPortCounts.get(targetPort) || 0) + 1);
+    });
+
+    const targetPortIndexes = new Map<number, number>();
 
     const normalized =
       validPorts.length === 0
@@ -248,11 +275,23 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                 ? p.protocol
                 : 'TCP';
 
+            // Generate unique name if not provided
+            let name: string;
+            if (p?.name && p.name.trim() !== '') {
+              name = p.name.trim();
+            } else {
+              const count = targetPortCounts.get(targetPort) || 1;
+              if (count > 1) {
+                // Multiple ports with same targetPort, add index
+                const currentIndex = (targetPortIndexes.get(targetPort) || 0) + 1;
+                targetPortIndexes.set(targetPort, currentIndex);
+                name = `port-${targetPort}-${currentIndex}`;
+              } else {
+                name = `port-${targetPort}`;
+              }
+            }
+
             if (allowPublicExposure) {
-              const name =
-                p?.name && p.name.trim() !== ''
-                  ? p.name.trim()
-                  : `port-${targetPort}`;
               const port =
                 p?.desiredPort && p.desiredPort.trim() !== ''
                   ? parseInt(p.desiredPort, 10)
@@ -260,18 +299,17 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
               return { name, targetPort, port, protocol };
             }
-            const name =
-              p?.name && p.name.trim() !== ''
-                ? p.name.trim()
-                : `port-${targetPort}`;
             return { name, targetPort, port: 0, protocol };
           });
+
+    console.log('🔍 Debug - Normalized ports to send:', normalized);
 
     try {
       const patchJson = buildPublicExposurePatch(normalized);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
 
       console.log('📦 Sending patch:', patchJson);
+      console.log('🔍 Debug - Variables:', variables);
 
       // Imposta il flag di aggiornamento prima della mutazione
       setIsUpdating(true);
@@ -279,8 +317,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
       const result = await applyInstanceMutation({ variables });
 
+      console.log('🔍 Debug - Mutation result:', result);
+
       if (result.data) {
         console.log('✅ Public exposure updated successfully');
+        console.log('🔍 Debug - Result data:', result.data);
 
         // Non chiudere il modal automaticamente per permettere ulteriori modifiche
         if (normalized.length === 0) {
