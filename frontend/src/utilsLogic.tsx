@@ -153,26 +153,24 @@ export const makeGuiInstance = (
     allowPublicExposure,
     tenantDisplayName: '',
     myDriveUrl: '',
-    publicExposure: publicExposure && publicExposure.ports && publicExposure.ports.length > 0
+    publicExposure: (publicExposure && publicExposure.ports && publicExposure.ports.length > 0) ||
+                   (publicExposureStatus && publicExposureStatus.ports && publicExposureStatus.ports.length > 0 && (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
       ? {
-          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          externalIP: publicExposureStatus?.externalIP || '',
           phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
-            // Use status ports (actual assigned ports) if available, fallback to spec ports (requested ports)
             (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
               ? publicExposureStatus.ports 
-              : publicExposure.ports)
+              : publicExposure?.ports ?? [])
               ?.filter(p => p != null)
               .map(p => ({
                 name: p.name || '',
-                // Show the actual assigned port (from status) or requested port (from spec)
                 port: p.port && p.port > 0 ? String(p.port) : '',
                 targetPort: p.targetPort || 0,
-                // Protocol: default to TCP since backend doesn't expose it yet
                 protocol: 'TCP' as const,
               })) || [],
         }
-      : undefined,
+      : undefined, // Questo sarà undefined quando non ci sono porte esposte O quando la fase è Off
   } as Instance;
 };
 
@@ -423,22 +421,20 @@ export const getManagerInstances = (
     running: spec?.running,
     allowPublicExposure,
     myDriveUrl: '',
-    publicExposure: publicExposure && publicExposure.ports && publicExposure.ports.length > 0
+    publicExposure: (publicExposure && publicExposure.ports && publicExposure.ports.length > 0) ||
+                   (publicExposureStatus && publicExposureStatus.ports && publicExposureStatus.ports.length > 0 && (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
       ? {
-          externalIP: publicExposureStatus?.externalIP || '', // From LoadBalancer service status
+          externalIP: publicExposureStatus?.externalIP || '',
           phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
           ports:
-            // Use status ports (actual assigned ports) if available, fallback to spec ports (requested ports)
             (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
               ? publicExposureStatus.ports 
-              : publicExposure.ports)
+              : publicExposure?.ports ?? [])
               ?.filter(p => p != null)
               .map(p => ({
                 name: p.name || '',
-                // Show the actual assigned port (from status) or requested port (from spec)
                 port: p.port && p.port > 0 ? String(p.port) : '',
                 targetPort: p.targetPort || 0,
-                // Protocol: default to TCP since backend doesn't expose it yet
                 protocol: 'TCP' as const,
               })) || [],
         }

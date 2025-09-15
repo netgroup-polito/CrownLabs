@@ -1,43 +1,34 @@
-import {
-  Modal,
-  Button,
-  Form,
-  Input,
-  Row,
-  Col,
-  Divider,
-  Alert,
-  Radio,
-  Spin,
-  type FormRule,
-} from 'antd';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { FC } from 'react';
+import { Modal, Form, Button, Alert, Spin, Row, Col, Input, Select, Divider } from 'antd';
 import { DeleteOutlined, LoadingOutlined } from '@ant-design/icons';
-
-import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
-import type { PublicExposure } from '../../../../utils';
+import type { RuleObject } from 'antd/lib/form';
 import { useApplyInstanceMutation } from '../../../../generated-types';
-import { buildPublicExposurePatch } from '../../../../utils';
+import { buildPublicExposurePatch, type PublicExposure } from '../../../../utils';
+import { Phase } from '../../../../generated-types';
 
 interface IPublicExposureModalProps {
   open: boolean;
   onCancel: () => void;
   allowPublicExposure: boolean;
-
   existingExposure?: PublicExposure;
-  // k8s patch context
   instanceId: string;
   tenantNamespace: string;
   manager: string;
 }
+
 interface PortField {
   name?: string;
   targetPort: string;
   desiredPort?: string;
   protocol?: string;
 }
+
 interface FormValues {
   ports: PortField[];
 }
+
+// Removed FormRule interface, use antd's RuleObject type for validator
 
 export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   open,
@@ -49,88 +40,80 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   manager,
 }) => {
   const [form] = Form.useForm<FormValues>();
-  // Internal loading state for real-time updates
   const [isUpdating, setIsUpdating] = useState(false);
-  // Store the last sent data to detect when updates are complete
   const [lastSentData, setLastSentData] = useState<string | null>(null);
-  
-  // GraphQL mutation hook for applyInstance
-  const [applyInstanceMutation, { loading, error }] =
-    useApplyInstanceMutation();
 
-  // Create initial ports from existing exposure
+  const [applyInstanceMutation, { loading, error }] = useApplyInstanceMutation();
+
   const getInitialPorts = useMemo((): PortField[] => {
-    // Safe check for existing exposure and ports array
     if (existingExposure?.ports && Array.isArray(existingExposure.ports) && existingExposure.ports.length > 0) {
       return existingExposure.ports.map(p => ({
         name: p?.name || '',
         targetPort: p?.targetPort ? String(p.targetPort) : '',
-        // For Desired Port: show the original requested value
-        // If the port is auto-assigned (was 0 or empty), leave empty to indicate auto-assignment
-        desiredPort: allowPublicExposure 
+        desiredPort: allowPublicExposure
           ? (p?.port === '0' || !p?.port ? '' : String(p.port))
           : '',
-        // Protocol: use the value from backend, default to TCP if not set, support SCTP
-        protocol: (p as any)?.protocol && ['TCP', 'UDP', 'SCTP'].includes((p as any).protocol) 
-          ? (p as any).protocol 
+        protocol: (p as any)?.protocol && ['TCP', 'UDP', 'SCTP'].includes((p as any).protocol)
+          ? (p as any).protocol
           : 'TCP',
       }));
     }
-    // If no existing exposure or no ports, start with a single empty port
+    // Se non c'è esistingExposure o non ha porte, inizializza con una porta vuota
     return [{ name: '', targetPort: '', desiredPort: '', protocol: 'TCP' }];
   }, [existingExposure, allowPublicExposure]);
 
-  // Reset form values when modal opens or existingExposure changes
+  // Inizializza il form solo all'apertura del modal e quando cambia existingExposure significativamente
   useEffect(() => {
     if (open) {
-      // Use setTimeout to ensure the form is properly initialized
-      setTimeout(() => {
-        form.setFieldsValue({ ports: getInitialPorts });
-      }, 0);
+      const initialPorts = getInitialPorts;
+      form.setFieldsValue({ ports: initialPorts });
+      console.log('🔄 Form initialized with ports:', initialPorts);
     }
-  }, [open, existingExposure, allowPublicExposure, form, getInitialPorts]);
+  }, [open, form]);
 
-  // Additional effect to update form when existingExposure changes while modal is open
+  // Aggiorna il form solo quando esistingExposure cambia e non stiamo aggiornando
   useEffect(() => {
-    if (open && existingExposure) {
-      try {
-        // Only update if ports actually changed to avoid infinite loops
-        const currentPorts = form.getFieldValue('ports') || [];
-        const newInitialPorts = getInitialPorts;
-        const portsChanged =
-          JSON.stringify(currentPorts) !== JSON.stringify(newInitialPorts);
+    if (open && existingExposure && !isUpdating) {
+      const currentPorts = form.getFieldValue('ports') || [];
+      const newInitialPorts = getInitialPorts;
+      
+      // Confronta solo se c'è una vera differenza nei dati essenziali
+      const hasSignificantChanges = newInitialPorts.length !== currentPorts.length ||
+        newInitialPorts.some((np, index) => {
+          const cp = currentPorts[index];
+          return !cp || 
+                 cp.targetPort !== np.targetPort || 
+                 cp.name !== np.name ||
+                 cp.protocol !== np.protocol ||
+                 cp.desiredPort !== np.desiredPort;
+        });
 
-        if (portsChanged) {
-          form.setFieldsValue({ ports: newInitialPorts });
-        }
-      } catch (error) {
-        console.error('Error updating form values:', error);
-        // Fallback to safe default
-        form.setFieldsValue({ ports: [{ name: '', targetPort: '', desiredPort: '', protocol: 'TCP' }] });
+      if (hasSignificantChanges) {
+        console.log('📝 Updating form due to external changes');
+        form.setFieldsValue({ ports: newInitialPorts });
       }
     }
-  }, [existingExposure, open, form, getInitialPorts]);
+  }, [existingExposure?.externalIP, existingExposure?.phase, open, form, isUpdating]);
 
-  // Effect to manage loading state based on data updates
+  // Gestisci il completamento delle operazioni
   useEffect(() => {
-    if (lastSentData && existingExposure) {
+    if (lastSentData && existingExposure && isUpdating) {
       const currentData = JSON.stringify(existingExposure);
       if (currentData !== lastSentData) {
-        // Data has been updated, stop loading
+        console.log('✅ Update completed, resetting state');
         setIsUpdating(false);
         setLastSentData(null);
       }
     }
-  }, [existingExposure, lastSentData]);
+  }, [existingExposure, lastSentData, isUpdating]);
 
   const ports = Form.useWatch('ports', form);
   const lastTargetPort = ports && Array.isArray(ports) && ports.length > 0 ? ports[ports.length - 1]?.targetPort : undefined;
-  const isAddDisabled =
-    ports && Array.isArray(ports) && ports.length > 0 && (
-      !lastTargetPort ||
-      !/^\d+$/.test(lastTargetPort) ||
-      parseInt(lastTargetPort, 10) === 0
-    );
+  const isAddDisabled = ports && Array.isArray(ports) && ports.length > 0 && (
+    !lastTargetPort ||
+    !/^\d+$/.test(lastTargetPort) ||
+    parseInt(lastTargetPort, 10) === 0
+  );
 
   // Check if we have any valid ports for Send button
   const hasValidPorts = ports && Array.isArray(ports) && ports.some(p => 
@@ -139,87 +122,104 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     parseInt(p.targetPort, 10) > 0
   );
 
-  const isSendDisabled = isUpdating || !hasValidPorts;
+  // Aggiorna la logica per il pulsante "Add Port"
+  const showAddButton = !ports || ports.length === 0 || hasValidPorts;
+  const addButtonText = (!ports || ports.length === 0) ? 'Add Port' : '+ Add Port';
 
-  const onFinish = async (values: FormValues) => {
-    // Prevent multiple submissions
-    if (loading) {
-      console.log('⚠️ Submission already in progress, ignoring...');
-      return;
-    }
-
-    // Backend cannot handle empty ports, so prevent submission
-    if (!values.ports || !Array.isArray(values.ports) || values.ports.length === 0) {
-      console.log('❌ No ports to submit - backend requires at least one port');
-      return;
-    }
-
-    // Filter out empty ports (ports without targetPort)
-    const validPorts = values.ports.filter(p => 
+  // Determina se dovremmo mostrare "Disable Public Exposure"
+  const shouldShowDisableButton = () => {
+    const hasExistingExposure = existingExposure && (
+      (existingExposure.externalIP && existingExposure.phase !== Phase.Off) ||
+      (existingExposure.ports && existingExposure.ports.length > 0)
+    );
+    const hasCurrentPorts = ports && ports.length > 0 && ports.some(p => 
       p?.targetPort && p.targetPort.trim() !== '' && 
       !isNaN(parseInt(p.targetPort, 10)) && 
       parseInt(p.targetPort, 10) > 0
     );
+    
+    // Mostra "Disable" solo se:
+    // 1. Non ci sono porte valide nel form corrente E
+    // 2. C'è un'esposizione esistente attiva (IP esterno o porte)
+    return !hasCurrentPorts && hasExistingExposure;
+  };
 
-    if (validPorts.length === 0) {
-      console.log('❌ No valid ports to submit - backend requires at least one valid port');
+  // Determina se il pulsante Send dovrebbe essere disabilitato
+  const isSendDisabled = isUpdating || (!hasValidPorts && ports && ports.length > 0 && ports.some(p => p?.targetPort && p.targetPort.trim() !== ''));
+
+  // Determina il testo del pulsante
+  const getButtonText = () => {
+    if (shouldShowDisableButton()) {
+      return 'Disable Public Exposure';
+    }
+    return 'Send';
+  };
+
+  const onFinish = async (values: FormValues) => {
+    if (loading || isUpdating) {
+      console.log('⚠️ Operation already in progress, ignoring...');
       return;
     }
 
-    const normalized = validPorts.map(p => {
+    const validPorts = values.ports?.filter(p =>
+      p?.targetPort && p.targetPort.trim() !== '' &&
+      !isNaN(parseInt(p.targetPort, 10)) &&
+      parseInt(p.targetPort, 10) > 0
+    ) || [];
+
+    const normalized = validPorts.length === 0 ? [] : validPorts.map(p => {
       const targetPort = parseInt(p?.targetPort || '0', 10);
-      // Ensure protocol is valid according to CRD (TCP, UDP, SCTP)
       const protocol = p?.protocol && ['TCP', 'UDP', 'SCTP'].includes(p.protocol) ? p.protocol : 'TCP';
-      
+
       if (allowPublicExposure) {
-        // Ensure name is provided (required by CRD)
         const name = p?.name && p.name.trim() !== '' ? p.name.trim() : `port-${targetPort}`;
-        // Parse port or set to 0 for auto-assignment (required by CRD)
         const port = p?.desiredPort && p.desiredPort.trim() !== '' ? parseInt(p.desiredPort, 10) : 0;
-        
-        return { 
-          name, 
-          targetPort, 
-          port,
-          protocol
-        };
+
+        return { name, targetPort, port, protocol };
       }
-      // For non-public exposure, still need required fields
       const name = p?.name && p.name.trim() !== '' ? p.name.trim() : `port-${targetPort}`;
-      return { 
-        name, 
-        targetPort, 
-        port: 0,
-        protocol
-      };
+      return { name, targetPort, port: 0, protocol };
     });
 
     try {
-      // build patch for publicExposure via helper
       const patchJson = buildPublicExposurePatch(normalized);
       const variables = { instanceId, tenantNamespace, patchJson, manager };
 
-      // Set loading state and store current data to detect updates
+      console.log('📦 Sending patch:', patchJson);
+      
+      // Imposta il flag di aggiornamento prima della mutazione
       setIsUpdating(true);
       setLastSentData(JSON.stringify(existingExposure));
 
       const result = await applyInstanceMutation({ variables });
 
-      // If mutation successful, keep modal open to see real-time updates
       if (result.data) {
         console.log('✅ Public exposure updated successfully');
-        // Loading state will be cleared by the effect when data updates
+        
+        // Non chiudere il modal automaticamente per permettere ulteriori modifiche
+        if (normalized.length === 0) {
+          // Per la disabilitazione, chiudi il modal dopo un breve delay
+          setTimeout(() => {
+            setIsUpdating(false);
+            setLastSentData(null);
+            onCancel();
+          }, 1000);
+        } else {
+          // Per l'abilitazione, mantieni il modal aperto
+          setTimeout(() => {
+            setIsUpdating(false);
+            setLastSentData(null);
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error('❌ Backend error:', error);
-      // Clear loading state on error
       setIsUpdating(false);
       setLastSentData(null);
-      // error displayed via Alert
     }
   };
 
-  const portValidator = useCallback((_rule: FormRule, value: string) => {
+  const portValidator = useCallback((_rule: RuleObject, value: string) => {
     if (!value) {
       return Promise.resolve();
     }
@@ -232,7 +232,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   return (
     <Modal
-      title="Port Exposure"
       open={open}
       onCancel={onCancel}
       width={650}
@@ -244,10 +243,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           key="send"
           type="primary"
           onClick={() => form.submit()}
-          loading={loading}
+          loading={loading || isUpdating}
           disabled={isSendDisabled}
         >
-          Send
+          {getButtonText()}
         </Button>,
       ]}
     >
@@ -259,18 +258,18 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           style={{ marginBottom: 16 }}
         />
       )}
-      
-      {!hasValidPorts && (
+
+      {!hasValidPorts && ports && ports.length > 0 && (
         <Alert
-          type="info"
-          message="At least one port with a valid Target Port is required to enable public exposure."
+          type="warning"
+          message="At least one port with a valid Target Port is required to enable public exposure, or remove all ports to disable it."
           showIcon
           style={{ marginBottom: 16 }}
         />
       )}
-      
-      <Spin 
-        spinning={isUpdating} 
+
+      <Spin
+        spinning={isUpdating}
         tip="Updating ports..."
         indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />}
       >
@@ -281,161 +280,113 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           autoComplete="off"
           layout="vertical"
         >
-        <Form.List name="ports">
-          {(fields, { add, remove }) => (
-            <>
-              {fields.map(({ key, name, ...restField }, index) => (
-                <div key={key}>
-                  <Row gutter={8} align="bottom">
-                    <Col span={4}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'name']}
-                        label="Name"
-                        style={{ marginBottom: 8 }}
-                      >
-                        <Input placeholder="web" size="small" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={4}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'targetPort']}
-                        label={<span style={{ whiteSpace: 'nowrap' }}>Target Port (internal)</span>}
-                        style={{ marginBottom: 8 }}
-                        rules={[
-                          { required: true, message: 'Required' },
-                          { validator: portValidator },
-                        ]}
-                      >
-                        <Input placeholder="8080" size="small" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={3}>
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'protocol']}
-                        label={<span style={{ whiteSpace: 'nowrap' }}>Protocol</span>}
-                        style={{ marginBottom: 8 }}
-                        initialValue="TCP"
-                      >
-                        <Radio.Group 
-                          size="small" 
-                          style={{ 
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1px',
-                            fontSize: '9px'
-                          }}
-                        >
-                          <Radio value="TCP" style={{ fontSize: '9px', margin: 0, lineHeight: '12px' }}>TCP</Radio>
-                          <Radio value="UDP" style={{ fontSize: '9px', margin: 0, lineHeight: '12px' }}>UDP</Radio>
-                        </Radio.Group>
-                      </Form.Item>
-                    </Col>
-                    {allowPublicExposure && (
+          <Form.List name="ports">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }, index) => (
+                  <div key={key}>
+                    <Row gutter={8} align="bottom">
                       <Col span={4}>
                         <Form.Item
                           {...restField}
-                          name={[name, 'desiredPort']}
-                          label={<span style={{ whiteSpace: 'nowrap' }}>Desired Port (public)</span>}
-                          style={{ marginBottom: 8 }}
-                          rules={[{ validator: portValidator }]}
+                          name={[name, 'name']}
+                          label={index === 0 ? 'Name' : ''}
+                          rules={[{ required: false }]}
                         >
-                          <Input placeholder="auto" size="small" />
+                          <Input placeholder="Port name" disabled={isUpdating} />
                         </Form.Item>
                       </Col>
-                    )}
-                    {allowPublicExposure && (
                       <Col span={4}>
                         <Form.Item
-                          label={<span style={{ whiteSpace: 'nowrap' }}>Actual Port (public)</span>}
-                          style={{ marginBottom: 8 }}
+                          {...restField}
+                          name={[name, 'targetPort']}
+                          label={index === 0 ? 'Target Port' : ''}
+                          rules={[
+                            { required: true, message: 'Required' },
+                            { validator: portValidator }
+                          ]}
                         >
-                          <Input 
-                            value={(() => {
-                              // Safe access to the actual assigned port from existing exposure
-                              const ports = existingExposure?.ports;
-                              if (!ports || !Array.isArray(ports) || index >= ports.length) {
-                                return 'N/A';
-                              }
-                              
-                              const actualPort = ports[index]?.port;
-                              
-                              // Show actual port if assigned and not 0, otherwise show "N/A"
-                              if (actualPort && actualPort !== '0' && String(actualPort).trim() !== '') {
-                                return String(actualPort);
-                              }
-                              
-                              return 'N/A';
-                            })()} 
-                            disabled 
-                            size="small"
-                            style={{ 
-                              backgroundColor: '#f5f5f5',
-                              color: '#666',
-                              cursor: 'not-allowed',
-                              fontSize: '11px'
-                            }}
+                          <Input placeholder="8080" disabled={isUpdating} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={3}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'protocol']}
+                          label={index === 0 ? 'Protocol' : ''}
+                          rules={[{ required: true, message: 'Required' }]}
+                          initialValue="TCP"
+                        >
+                          <Select placeholder="Select protocol" disabled={isUpdating}>
+                            <Select.Option value="TCP">TCP</Select.Option>
+                            <Select.Option value="UDP">UDP</Select.Option>
+                            <Select.Option value="SCTP">SCTP</Select.Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      {allowPublicExposure && (
+                        <Col span={4}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'desiredPort']}
+                            label={index === 0 ? 'Desired Port' : ''}
+                            rules={[{ validator: portValidator }]}
+                          >
+                            <Input placeholder="Auto" disabled={isUpdating} />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      <Col span={1} style={{ textAlign: 'center' }}>
+                        <Form.Item
+                          label={index === 0 ? '\u00A0' : ''}
+                        >
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => remove(name)}
+                            disabled={isUpdating}
                           />
                         </Form.Item>
                       </Col>
+                    </Row>
+                    {index < fields.length - 1 && (
+                      <Divider style={{ margin: '12px 0' }} />
                     )}
-                    <Col
-                      span={1}
-                      style={{ textAlign: 'center', paddingBottom: '8px' }}
-                    >
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => remove(name)}
-                        size="small"
-                      />
-                    </Col>
-                  </Row>
-                  {index < fields.length - 1 && (
-                    <Divider style={{ margin: '12px 0' }} />
+                  </div>
+                ))}
+                
+                <Form.Item style={{ textAlign: 'center', marginTop: 24 }}>
+                  <Button
+                    type="dashed"
+                    onClick={() => add({ name: '', targetPort: '', desiredPort: '', protocol: 'TCP' })}
+                    disabled={isAddDisabled || isUpdating}
+                  >
+                    {addButtonText}
+                  </Button>
+                </Form.Item>
+
+                <div style={{
+                  marginTop: 16,
+                  textAlign: 'left',
+                  fontSize: '12px',
+                  color: '#666',
+                  lineHeight: '1.4'
+                }}>
+                  {existingExposure?.externalIP && existingExposure.phase !== Phase.Off ? (
+                    <div>
+                      External IP: {existingExposure.externalIP}
+                    </div>
+                  ) : (
+                    <div>
+                      No external IP assigned yet
+                    </div>
                   )}
                 </div>
-              ))}
-              <Form.Item style={{ textAlign: 'center', marginTop: 24 }}>
-                <Button
-                  type="dashed"
-                  onClick={() => add()}
-                  disabled={isAddDisabled}
-                >
-                  + Add Port
-                </Button>
-              </Form.Item>
-              
-              {/* IP Address Display */}
-              <div style={{ 
-                marginTop: 16, 
-                textAlign: 'left',
-                fontSize: '12px',
-                color: '#666',
-                lineHeight: '1.4'
-              }}>
-                {existingExposure?.externalIP ? (
-                  <div>
-                    <strong>External IP:</strong> {existingExposure.externalIP}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ color: '#999', marginBottom: '4px' }}>
-                      External IP not yet synchronized in instance status
-                    </div>
-                    <div style={{ color: '#1890ff', fontSize: '11px' }}>
-                      💡 Check LoadBalancer service: <code>{instanceId}-pe</code>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </Form.List>
-      </Form>
+              </>
+            )}
+          </Form.List>
+        </Form>
       </Spin>
     </Modal>
   );

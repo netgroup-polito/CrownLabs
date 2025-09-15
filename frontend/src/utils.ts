@@ -288,11 +288,22 @@ export function buildPublicExposurePatch(
     targetPort: number; 
     port: number; 
     protocol: string;
-  }>,
+  }>
 ): string {
-  // Backend requires at least one port, so this should never be empty
+  // Handle empty ports array case - this will disable public exposure completely
   if (portsNormalized.length === 0) {
-    throw new Error('Backend cannot handle empty ports array. At least one port is required.');
+    console.log('📦 Building patch to disable public exposure (empty ports)');
+    // Try using empty ports array instead of null
+    const payload = {
+      apiVersion: 'crownlabs.polito.it/v1alpha2',
+      kind: 'Instance',
+      spec: { 
+        publicExposure: { 
+          ports: [] 
+        } 
+      }
+    };
+    return JSON.stringify(payload);
   }
 
   // Ensure all required fields are present according to CRD
@@ -304,11 +315,10 @@ export function buildPublicExposurePatch(
   }));
 
   const payload = {
-    kind: 'Instance',
     apiVersion: 'crownlabs.polito.it/v1alpha2',
+    kind: 'Instance',
     spec: { publicExposure: { ports: portsFormatted } },
   };
-
   console.log(`📦 Building patch with ${portsFormatted.length} ports`);
   return JSON.stringify(payload);
 }
