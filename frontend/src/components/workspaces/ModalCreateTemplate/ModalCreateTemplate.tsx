@@ -163,10 +163,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     const images: Image[] = [];
 
     imageList.images.forEach(img => {
-      // Fix: Declare and initialize in one line to satisfy both ESLint and TypeScript
+      // Don't set a default type - let users choose
       const versionsInImageName: Image[] = img.versions.map(v => ({
         name: `${img.name}:${v}`,
-        type: [EnvironmentType.Container], // Default type
+        type: [], // No default type - user must choose
         registry: imageList.registryName,
       }));
 
@@ -448,14 +448,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       setAvailableImages(dedupedImages);
       setImagesSearchOptions(undefined);
 
-      // For the single internal registry, allow GUI selection
-      // Users can override via external image option if needed
+      // Reset form when changing image list
       setFormTemplate(old => ({
         ...old,
         imageList: imageListName,
         image: undefined,
         registry: undefined,
-        imageType: undefined,
+        imageType: undefined, // Reset imageType so user must choose
         gui: true, // Default to GUI enabled
       }));
 
@@ -478,13 +477,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ...old,
           image: '**-- External image --**',
           registry: '', // reset registry
-          imageType: EnvironmentType.Container, // Default to Container
+          imageType: undefined, // Let user choose type
           persistent: false,
           gui: true,
         }));
         form.setFieldsValue({
           image: value,
-          imageType: EnvironmentType.Container,
+          imageType: undefined,
         });
       } else {
         const imageFound = availableImages.find(
@@ -494,13 +493,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ...old,
           image: String(value),
           registry: imageFound?.registry,
-          imageType: EnvironmentType.Container, // Default to Container for internal images
+          imageType: undefined, // Let user choose type for all images
           persistent: false,
           gui: true,
         }));
         form.setFieldsValue({
           image: value,
-          imageType: EnvironmentType.Container,
+          imageType: undefined,
         });
       }
     }
@@ -631,6 +630,56 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             />
           </Form.Item>
 
+          {/* Environment Type Selection - Always show when image is selected */}
+          {formTemplate.image &&
+            formTemplate.image !== '**-- External image --**' && (
+              <Form.Item
+                {...fullLayout}
+                label="Environment Type"
+                name="imageType"
+                className="mb-4"
+                required
+                rules={[
+                  {
+                    required: true,
+                    message: 'Please select an environment type',
+                  },
+                ]}
+              >
+                <Select
+                  value={formTemplate.imageType}
+                  onChange={(value: ImageType) =>
+                    setFormTemplate(old => ({
+                      ...old,
+                      imageType: value,
+                    }))
+                  }
+                  placeholder="Select environment type"
+                >
+                  {environmentOptions.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        <Tooltip
+                          title={getEnvironmentTypeTooltip(option.value)}
+                        >
+                          <InfoCircleOutlined
+                            style={{ color: '#1890ff', marginLeft: 8 }}
+                          />
+                        </Tooltip>
+                      </div>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
+
           {isExternalImage && (
             <>
               {/* Information section for external image requirements */}
@@ -689,7 +738,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 style={{ marginBottom: 16 }}
               />
 
-              {/* Environment Type Selection */}
+              {/* Environment Type Selection for External Images */}
               <Form.Item
                 label="Environment Type"
                 name="imageType"
@@ -778,14 +827,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <Checkbox
               className="ml-3"
               checked={formTemplate.gui}
-              disabled={false} // Always allow GUI selection
+              disabled={formTemplate.imageType === EnvironmentType.CloudVm} // Disable GUI for CloudVM
               onChange={() =>
                 setFormTemplate(old => {
                   return { ...old, gui: !old.gui };
                 })
               }
             />
+            {formTemplate.imageType === EnvironmentType.CloudVm && (
+              <div
+                style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
+              >
+                CloudVM instances do not support GUI access
+              </div>
+            )}
           </Form.Item>
+
           <Form.Item className="mb-4">
             <span>Persistent: </span>
             <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
