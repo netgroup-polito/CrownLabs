@@ -153,24 +153,33 @@ export const makeGuiInstance = (
     allowPublicExposure,
     tenantDisplayName: '',
     myDriveUrl: '',
-    publicExposure: (publicExposure && publicExposure.ports && publicExposure.ports.length > 0) ||
-                   (publicExposureStatus && publicExposureStatus.ports && publicExposureStatus.ports.length > 0 && (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
-      ? {
-          externalIP: publicExposureStatus?.externalIP || '',
-          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
-          ports:
-            (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
-              ? publicExposureStatus.ports 
-              : publicExposure?.ports ?? [])
-              ?.filter(p => p != null)
-              .map(p => ({
-                name: p.name || '',
-                port: p.port && p.port > 0 ? String(p.port) : '',
-                targetPort: p.targetPort || 0,
-                protocol: 'TCP' as const,
-              })) || [],
-        }
-      : undefined, // Questo sarà undefined quando non ci sono porte esposte O quando la fase è Off
+    publicExposure:
+      (publicExposure &&
+        publicExposure.ports &&
+        publicExposure.ports.length > 0) ||
+      (publicExposureStatus &&
+        publicExposureStatus.ports &&
+        publicExposureStatus.ports.length > 0 &&
+        (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
+        ? {
+            externalIP: publicExposureStatus?.externalIP || '',
+            phase:
+              (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+            ports:
+              (publicExposureStatus?.ports &&
+              publicExposureStatus.ports.length > 0
+                ? publicExposureStatus.ports
+                : (publicExposure?.ports ?? [])
+              )
+                ?.filter(p => p != null)
+                .map(p => ({
+                  name: p.name || '',
+                  port: p.port && p.port > 0 ? String(p.port) : '',
+                  targetPort: p.targetPort || 0,
+                  protocol: 'TCP' as const,
+                })) || [],
+          }
+        : undefined, // Questo sarà undefined quando non ci sono porte esposte O quando la fase è Off
   } as Instance;
 };
 
@@ -199,7 +208,7 @@ interface InstancesSubscriptionData {
 export const updateQueryOwnedInstancesQuery = (
   setDataInstances: Dispatch<SetStateAction<Instance[]>>,
   userId: string,
-  notifier: Notifier,
+  _notifier: Notifier,
 ) => {
   return (
     prev: OwnedInstancesQuery,
@@ -211,7 +220,7 @@ export const updateQueryOwnedInstancesQuery = (
     if (!data?.updateInstance?.instance) return prev;
 
     const { instance: instanceK8s, updateType } = data.updateInstance;
-    let notify = false;
+    let shouldNotify = false;
 
     setDataInstances(old => {
       const instanceGui = makeGuiInstance(instanceK8s, userId);
@@ -223,19 +232,22 @@ export const updateQueryOwnedInstancesQuery = (
 
       switch (objType) {
         case SubObjType.Addition:
-          notify = true;
+          shouldNotify = true;
           return [...old, instanceGui];
         case SubObjType.Deletion:
-          notify = true;
+          shouldNotify = true;
           return old.filter(i => i.id !== instanceGui.id);
         case SubObjType.UpdatedInfo:
           // Don't notify for publicExposure-only changes
-          if (JSON.stringify(old.find(i => i.id === instanceGui.id)?.publicExposure) !== 
-              JSON.stringify(instanceGui.publicExposure)) {
+          if (
+            JSON.stringify(
+              old.find(i => i.id === instanceGui.id)?.publicExposure,
+            ) !== JSON.stringify(instanceGui.publicExposure)
+          ) {
             // This is a publicExposure change, update silently
             return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
           } else {
-            notify = true;
+            shouldNotify = true;
             return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
           }
         case SubObjType.PrettyName:
@@ -247,6 +259,16 @@ export const updateQueryOwnedInstancesQuery = (
       }
     });
 
+    // Send notification if needed
+    if (shouldNotify) {
+      notifyStatus(
+        instanceK8s.status?.phase,
+        instanceK8s,
+        updateType,
+        _notifier,
+      );
+    }
+
     return prev;
   };
 };
@@ -257,15 +279,23 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus, publicExposure: oldPublicExposure } = oldObj ?? {};
-  const { running: newRunning, status: newStatus, publicExposure: newPublicExposure } = newObj;
+  const {
+    running: oldRunning,
+    status: oldStatus,
+    publicExposure: oldPublicExposure,
+  } = oldObj ?? {};
+  const {
+    running: newRunning,
+    status: newStatus,
+    publicExposure: newPublicExposure,
+  } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
-    
+
     if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
     }
-    
+
     // Check for publicExposure changes
     const oldPEString = JSON.stringify(oldPublicExposure);
     const newPEString = JSON.stringify(newPublicExposure);
@@ -273,7 +303,7 @@ export const getSubObjTypeCustom = (
       // PublicExposure changed - force UI update without notification
       return SubObjType.UpdatedInfo;
     }
-    
+
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -288,9 +318,10 @@ const getSubObjTypeK8sEnhanced = (
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
   const { spec: oldSpec, status: oldStatus } = oldObj ?? {};
   const { spec: newSpec, status: newStatus } = newObj;
-  
+
   if (oldObj) {
-    if (oldSpec?.prettyName !== newSpec?.prettyName) return SubObjType.PrettyName;
+    if (oldSpec?.prettyName !== newSpec?.prettyName)
+      return SubObjType.PrettyName;
 
     if (
       oldStatus?.phase !== newStatus?.phase ||
@@ -298,18 +329,18 @@ const getSubObjTypeK8sEnhanced = (
     ) {
       return SubObjType.UpdatedInfo;
     }
-    
+
     // Check for publicExposure changes in both spec and status
     const oldSpecPE = JSON.stringify(oldSpec?.publicExposure);
     const newSpecPE = JSON.stringify(newSpec?.publicExposure);
     const oldStatusPE = JSON.stringify(oldStatus?.publicExposure);
     const newStatusPE = JSON.stringify(newStatus?.publicExposure);
-    
+
     if (oldSpecPE !== newSpecPE || oldStatusPE !== newStatusPE) {
       // PublicExposure changed - treat as UpdatedInfo but without notification
       return SubObjType.UpdatedInfo;
     }
-    
+
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -421,24 +452,33 @@ export const getManagerInstances = (
     running: spec?.running,
     allowPublicExposure,
     myDriveUrl: '',
-    publicExposure: (publicExposure && publicExposure.ports && publicExposure.ports.length > 0) ||
-                   (publicExposureStatus && publicExposureStatus.ports && publicExposureStatus.ports.length > 0 && (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
-      ? {
-          externalIP: publicExposureStatus?.externalIP || '',
-          phase: (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
-          ports:
-            (publicExposureStatus?.ports && publicExposureStatus.ports.length > 0 
-              ? publicExposureStatus.ports 
-              : publicExposure?.ports ?? [])
-              ?.filter(p => p != null)
-              .map(p => ({
-                name: p.name || '',
-                port: p.port && p.port > 0 ? String(p.port) : '',
-                targetPort: p.targetPort || 0,
-                protocol: 'TCP' as const,
-              })) || [],
-        }
-      : undefined,
+    publicExposure:
+      (publicExposure &&
+        publicExposure.ports &&
+        publicExposure.ports.length > 0) ||
+      (publicExposureStatus &&
+        publicExposureStatus.ports &&
+        publicExposureStatus.ports.length > 0 &&
+        (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
+        ? {
+            externalIP: publicExposureStatus?.externalIP || '',
+            phase:
+              (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+            ports:
+              (publicExposureStatus?.ports &&
+              publicExposureStatus.ports.length > 0
+                ? publicExposureStatus.ports
+                : (publicExposure?.ports ?? [])
+              )
+                ?.filter(p => p != null)
+                .map(p => ({
+                  name: p.name || '',
+                  port: p.port && p.port > 0 ? String(p.port) : '',
+                  targetPort: p.targetPort || 0,
+                  protocol: 'TCP' as const,
+                })) || [],
+          }
+        : undefined,
   } as Instance;
 };
 

@@ -1,9 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type {
-  EnvironmentType,
-  Phase,
-  Phase5,
-} from './generated-types';
+import type { EnvironmentType, Phase, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -283,12 +279,12 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
  * @returns JSON patch string
  */
 export function buildPublicExposurePatch(
-  portsNormalized: Array<{ 
-    name: string; 
-    targetPort: number; 
-    port: number; 
+  portsNormalized: Array<{
+    name: string;
+    targetPort: number;
+    port: number;
     protocol: string;
-  }>
+  }>,
 ): string {
   // Handle empty ports array case - this will disable public exposure completely
   if (portsNormalized.length === 0) {
@@ -297,11 +293,11 @@ export function buildPublicExposurePatch(
     const payload = {
       apiVersion: 'crownlabs.polito.it/v1alpha2',
       kind: 'Instance',
-      spec: { 
-        publicExposure: { 
-          ports: [] 
-        } 
-      }
+      spec: {
+        publicExposure: {
+          ports: [],
+        },
+      },
     };
     return JSON.stringify(payload);
   }
