@@ -111,24 +111,45 @@ func NewMailClientFromFilesystem(configDir, templateDir string) (*Client, error)
 	}, nil
 }
 
-// getPlaceholderKeys returns a map of placeholder where the key
-// is the placeholder name and the value is the placeholder value.
-func getPlaceholderMap(ph *Placeholders) map[string]string {
-	t := reflect.TypeOf(ph)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
+// getPlaceholderMap returns a map of placeholder where the key is the placeholder name and the value is the placeholder value.
+func getPlaceholderMap(placeholders *Placeholders) map[string]string {
+	if placeholders == nil {
+		return make(map[string]string)
 	}
-	fieldMap := make(map[string]string)
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		name := field.Tag.Get("name")
-		if name == "" {
-			name = field.Name
+
+	placeholdersType := reflect.TypeOf(placeholders)
+	placeholdersValue := reflect.ValueOf(placeholders)
+
+	// Handle pointer to struct
+	if placeholdersType.Kind() == reflect.Ptr {
+		if placeholdersValue.IsNil() {
+			return make(map[string]string)
 		}
-		value := reflect.ValueOf(ph).FieldByName(field.Name).String()
-		fieldMap[name] = value
+		placeholdersType = placeholdersType.Elem()
+		placeholdersValue = placeholdersValue.Elem()
 	}
-	return fieldMap
+
+	placeholdersMap := make(map[string]string)
+	for i := 0; i < placeholdersType.NumField(); i++ {
+		structField := placeholdersType.Field(i)
+
+		fieldName := structField.Tag.Get("name")
+		if fieldName == "" {
+			fieldName = structField.Name
+		}
+
+		fieldValue := placeholdersValue.Field(i)
+
+		// Skip unexported fields that can't be accessed
+		if !fieldValue.CanInterface() {
+			continue
+		}
+		value := fmt.Sprintf("%v", fieldValue.Interface())
+
+		placeholdersMap[fieldName] = value
+	}
+
+	return placeholdersMap
 }
 
 // replaceTemplateVars replaces template variables in content using a map of replacements.
