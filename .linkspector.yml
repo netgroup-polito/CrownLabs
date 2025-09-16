@@ -1,5 +1,5 @@
 ignorePatterns:
   - pattern: "^https://.*\\.example\\.com/.*$"
-  - pattern : "^https://packer.io/.*$"
+  - pattern : "^https://www.packer.io/.*$"
 dirs:
   - .
