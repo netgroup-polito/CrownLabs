@@ -169,52 +169,56 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
   const duplicateTargetPorts = useMemo(() => {
     if (!ports || !Array.isArray(ports)) return [];
-    
+
     const targetPorts = ports
       .filter(p => p?.targetPort && p.targetPort.trim() !== '')
       .map(p => parseInt(p?.targetPort || '0', 10))
       .filter(port => !isNaN(port) && port > 0);
-      
-    return targetPorts.filter((port, index) => 
-      targetPorts.indexOf(port) !== index
+
+    return targetPorts.filter(
+      (port, index) => targetPorts.indexOf(port) !== index,
     );
   }, [ports]);
 
   const addButtonText =
     !ports || ports.length === 0 ? 'Add Port' : '+ Add Port';
 
-  const shouldShowDisableButton = () => {
-    const hasExistingExposure =
-      existingExposure &&
-      ((existingExposure.externalIP && existingExposure.phase !== Phase.Off) ||
-        (existingExposure.ports && existingExposure.ports.length > 0));
-    const hasCurrentPorts =
-      ports &&
-      ports.length > 0 &&
-      ports.some(
-        p =>
-          p?.targetPort &&
-          p.targetPort.trim() !== '' &&
-          !isNaN(parseInt(p.targetPort, 10)) &&
-          parseInt(p.targetPort, 10) > 0,
-      );
+  const hasUnsavedChanges = useMemo(() => {
+    if (!ports) return false;
 
-    return !hasCurrentPorts && hasExistingExposure;
-  };
+    const currentPorts = ports || [];
+    const initialPorts = getInitialPorts;
+
+    // Compare array lengths
+    if (currentPorts.length !== initialPorts.length) {
+      return true;
+    }
+
+    // Compare each port's properties
+    return currentPorts.some((currentPort, index) => {
+      const initialPort = initialPorts[index];
+      if (!initialPort) return true;
+
+      return (
+        currentPort?.name !== initialPort?.name ||
+        currentPort?.targetPort !== initialPort?.targetPort ||
+        currentPort?.protocol !== initialPort?.protocol ||
+        currentPort?.desiredPort !== initialPort?.desiredPort
+      );
+    });
+  }, [ports, getInitialPorts]);
 
   const isSendDisabled =
     isUpdating ||
     duplicateTargetPorts.length > 0 ||
+    !hasUnsavedChanges ||
     (!hasValidPorts &&
       ports &&
       ports.length > 0 &&
       ports.some(p => p?.targetPort && p.targetPort.trim() !== ''));
 
   const getButtonText = () => {
-    if (shouldShowDisableButton()) {
-      return 'Disable Public Exposure';
-    }
-    return 'Send';
+    return 'Save';
   };
 
   const onFinish = async (values: FormValues) => {
@@ -232,15 +236,17 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       ) || [];
 
     const targetPorts = validPorts.map(p => parseInt(p?.targetPort || '0', 10));
-    const duplicateTargetPorts = targetPorts.filter((port, index) => 
-      targetPorts.indexOf(port) !== index
+    const duplicateTargetPorts = targetPorts.filter(
+      (port, index) => targetPorts.indexOf(port) !== index,
     );
 
     if (duplicateTargetPorts.length > 0) {
       form.setFields([
         {
           name: ['ports'],
-          errors: [`Cannot expose the same target port multiple times. Duplicate target ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`],
+          errors: [
+            `Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`,
+          ],
         },
       ]);
       return;
@@ -249,7 +255,10 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
     const targetPortCounts = new Map<number, number>();
     validPorts.forEach(p => {
       const targetPort = parseInt(p?.targetPort || '0', 10);
-      targetPortCounts.set(targetPort, (targetPortCounts.get(targetPort) || 0) + 1);
+      targetPortCounts.set(
+        targetPort,
+        (targetPortCounts.get(targetPort) || 0) + 1,
+      );
     });
 
     const targetPortIndexes = new Map<number, number>();
@@ -270,7 +279,8 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
             } else {
               const count = targetPortCounts.get(targetPort) || 1;
               if (count > 1) {
-                const currentIndex = (targetPortIndexes.get(targetPort) || 0) + 1;
+                const currentIndex =
+                  (targetPortIndexes.get(targetPort) || 0) + 1;
                 targetPortIndexes.set(targetPort, currentIndex);
                 name = `port-${targetPort}-${currentIndex}`;
               } else {
@@ -299,7 +309,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       const result = await applyInstanceMutation({ variables });
 
       if (result.data) {
-
         if (normalized.length === 0) {
           setTimeout(() => {
             setIsUpdating(false);
@@ -335,7 +344,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       if (!value) {
         return Promise.resolve();
       }
-      
+
       const num = parseInt(value, 10);
       if (isNaN(num) || num <= 0 || num > 65535) {
         return Promise.reject(new Error('Port must be between 1 and 65535'));
@@ -343,12 +352,14 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
       const currentPorts = form.getFieldValue('ports') || [];
       const duplicateCount = currentPorts.filter(
-        (p: PortField, index: number) => 
-          p?.targetPort === value && index !== fieldKey
+        (p: PortField, index: number) =>
+          p?.targetPort === value && index !== fieldKey,
       ).length;
 
       if (duplicateCount > 0) {
-        return Promise.reject(new Error('This target port is already in use'));
+        return Promise.reject(
+          new Error('This internal port is already in use'),
+        );
       }
 
       return Promise.resolve();
@@ -392,7 +403,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       {duplicateTargetPorts.length > 0 && (
         <Alert
           type="error"
-          message={`Cannot expose the same target port multiple times. Duplicate target ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
+          message={`Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
           showIcon
           style={{ marginBottom: 16 }}
         />
@@ -401,7 +412,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       {!hasValidPorts && ports && ports.length > 0 && (
         <Alert
           type="warning"
-          message="At least one port with a valid Target Port is required to enable public exposure, or remove all ports to disable it."
+          message="At least one port with a valid Internal value is required to enable public exposure, or remove all ports to disable it."
           showIcon
           style={{ marginBottom: 16 }}
         />
@@ -414,7 +425,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       >
         <Form
           form={form}
-          name="dynamic_port_form"
+          name={`dynamic_port_form_${instanceId}`}
           onFinish={onFinish}
           autoComplete="off"
           layout="vertical"
@@ -425,7 +436,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                 {fields.map(({ key, name, ...restField }, index) => (
                   <div key={key}>
                     <Row gutter={8} align="bottom">
-                      <Col span={allowPublicExposure ? 4 : 5}>
+                      <Col span={allowPublicExposure ? 5 : 5}>
                         <Form.Item
                           {...restField}
                           name={[name, 'name']}
@@ -438,16 +449,16 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           />
                         </Form.Item>
                       </Col>
-                      <Col span={allowPublicExposure ? 4 : 5}>
+                      <Col span={allowPublicExposure ? 5 : 5}>
                         <Form.Item
                           {...restField}
                           name={[name, 'targetPort']}
-                          label={index === 0 ? 'Target Port' : ''}
+                          label={index === 0 ? 'Internal' : ''}
                           rules={[
                             { required: true, message: 'Required' },
-                            { 
-                              validator: (rule, value) => 
-                                targetPortValidator(rule, value, name)
+                            {
+                              validator: (rule, value) =>
+                                targetPortValidator(rule, value, name),
                             },
                           ]}
                           validateTrigger={['onChange', 'onBlur']}
@@ -457,7 +468,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           <Input placeholder="8080" disabled={isUpdating} />
                         </Form.Item>
                       </Col>
-                      <Col span={allowPublicExposure ? 3 : 4}>
+                      <Col span={allowPublicExposure ? 4 : 4}>
                         <Form.Item
                           {...restField}
                           name={[name, 'protocol']}
@@ -476,11 +487,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         </Form.Item>
                       </Col>
                       {allowPublicExposure && (
-                        <Col span={3}>
+                        <Col span={4}>
                           <Form.Item
                             {...restField}
                             name={[name, 'desiredPort']}
-                            label={index === 0 ? 'Desired Port' : ''}
+                            label={index === 0 ? 'Request' : ''}
                             rules={[{ validator: portValidator }]}
                             validateTrigger={['onChange', 'onBlur']}
                             hasFeedback={false}
@@ -491,25 +502,17 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         </Col>
                       )}
                       {allowPublicExposure && (
-                        <Col span={3}>
+                        <Col span={4}>
                           <Form.Item
                             {...restField}
                             name={[name, '_displayActualPort']}
-                            label={index === 0 ? 'Actual Port' : ''}
+                            label={index === 0 ? 'Assigned' : ''}
                           >
-                            <Input
-                              placeholder="—"
-                              disabled={true}
-                              style={{
-                                backgroundColor: '#f5f5f5',
-                                color: '#8c8c8c',
-                                cursor: 'not-allowed',
-                              }}
-                            />
+                            <Input placeholder="—" disabled={true} />
                           </Form.Item>
                         </Col>
                       )}
-                      <Col span={1} style={{ textAlign: 'center' }}>
+                      <Col span={2} style={{ textAlign: 'center' }}>
                         <Form.Item label={index === 0 ? '\u00A0' : ''}>
                           <Button
                             type="text"
@@ -531,7 +534,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                   <Alert
                     type="info"
                     message="No ports configured"
-                    description="Add a port to expose your instance services to the external network. Specify the target port of your service and optionally a desired public port."
+                    description="Add a port to expose your instance services to the external network. Specify the internal port of your service and optionally a request port."
                     showIcon
                     style={{ marginBottom: 16, textAlign: 'left' }}
                   />
@@ -566,7 +569,16 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                 >
                   {existingExposure?.externalIP &&
                   existingExposure.phase !== Phase.Off ? (
-                    <div>External IP: {existingExposure.externalIP}</div>
+                    <div
+                      style={{
+                        textDecoration: !hasValidPorts
+                          ? 'line-through'
+                          : 'none',
+                        color: !hasValidPorts ? '#ff4d4f' : '#666',
+                      }}
+                    >
+                      External IP: {existingExposure.externalIP}
+                    </div>
                   ) : (
                     <div>No external IP assigned yet</div>
                   )}
