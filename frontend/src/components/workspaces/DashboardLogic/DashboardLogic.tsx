@@ -15,6 +15,7 @@ import { WorkspaceRole } from '../../../utils';
 import { useApolloClient } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { LocalValue, StorageKeys } from '../../../utilsStorage';
+import type { ApolloError } from '@apollo/client';
 
 const dashboard = new LocalValue(StorageKeys.Dashboard_LoadCandidates, 'false');
 
@@ -119,10 +120,22 @@ const DashboardLogic: FC = () => {
     tenantData?.tenant?.status?.quota,
   ]);
 
-  // Provide a function to refresh quota data
-  const refreshQuota = useCallback(() => {
-    refetchInstances();
-  }, [refetchInstances]);
+  // Enhanced refresh function with better error handling and logging
+  const refreshQuota = useCallback(async () => {
+    console.log('Refreshing quota data...'); // Debug log
+    try {
+      await refetchInstances();
+      console.log('Quota data refreshed successfully'); // Debug log
+    } catch (error) {
+      console.error('Error refreshing quota data:', error);
+      // Type cast the error to ApolloError or create a new one
+      if (error && typeof error === 'object' && 'message' in error) {
+        apolloErrorCatcher(error as ApolloError);
+      } else {
+        apolloErrorCatcher(new Error(String(error)) as ApolloError);
+      }
+    }
+  }, [refetchInstances, apolloErrorCatcher]);
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();

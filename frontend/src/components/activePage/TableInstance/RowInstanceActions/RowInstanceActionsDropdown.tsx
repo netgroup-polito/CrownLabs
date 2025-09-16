@@ -20,6 +20,7 @@ import {
 } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -53,6 +54,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
+  const { refreshQuota } = useQuotaContext(); // Use the quota context
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {
@@ -176,6 +178,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                   instanceId: name,
                   tenantNamespace: tenantNamespace!,
                 },
+              }).then(() => {
+                // Refresh quota after deletion
+                refreshQuota?.();
               }),
             className: `flex items-center ${
               extended ? ' sm:hidden' : 'xs:hidden'

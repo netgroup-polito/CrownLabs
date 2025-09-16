@@ -9,6 +9,7 @@ import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
+import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 import './TableInstance.less';
 
 const { Column } = Table;
@@ -51,18 +52,24 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
   });
+  const { refreshQuota } = useQuotaContext(); // Use the quota context
 
   const destroyAll = () => {
-    instances
+    const deletePromises = instances
       .filter(i => i.persistent === false)
-      .forEach(instance => {
+      .map(instance =>
         deleteInstanceMutation({
           variables: {
             instanceId: instance.name,
             tenantNamespace: instance.tenantNamespace!,
           },
-        });
-      });
+        }),
+      );
+
+    // Wait for all deletions to complete, then refresh quota
+    Promise.allSettled(deletePromises).then(() => {
+      refreshQuota?.(); // Add optional chaining
+    });
   };
 
   const disabled = !instances.find(i => i.persistent === false);
