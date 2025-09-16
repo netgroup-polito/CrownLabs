@@ -1,7 +1,7 @@
 to: |-
   { tenantEmail }
 subject: |-
-  CrownLabs: Inactivity Detected for { prettyName }
+  CrownLabs: Inactivity Detected for instance { prettyName }
 plaintext_content: |-
   Your instance { prettyName } has been detected as inactive for an extended period.
   If no activity is detected (either via the web GUI or via SSH) in the next { remainingTime } , the instance will be automatically terminated to save resources.
