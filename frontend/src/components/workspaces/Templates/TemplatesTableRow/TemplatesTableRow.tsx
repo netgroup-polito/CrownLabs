@@ -215,6 +215,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       .catch(() => setCreateDisabled(false));
   }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
 
+  // Add instance deletion handler with quota refresh
+  const handleInstanceDeletion = useCallback(() => {
+    // Refresh quota after any instance operation
+    refreshQuota?.();
+    refreshClock();
+  }, [refreshQuota, refreshClock]);
+
   const handleEditTemplate = (template: TemplateType) => {
     setSelectedTemplate(template);
     setShowEditModal(true);
@@ -602,6 +609,19 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           )}
         </Space>
       </div>
+
+      {/* Pass the instance deletion handler to child components */}
+      {template.instances && template.instances.length > 0 && (
+        <div style={{ display: 'none' }}>
+          {/* This is a hack to pass the refresh function to instances */}
+          {template.instances.map(instance => (
+            <div
+              key={instance.name}
+              data-refresh-handler={handleInstanceDeletion}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 };
