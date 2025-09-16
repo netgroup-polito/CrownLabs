@@ -42,8 +42,10 @@ const (
 	// NeverTimeoutValue is the value used to indicate that no timeout should be applied.
 	NeverTimeoutValue = "never"
 
-	// InactivityMailTemplatePath is the path to the email template for inactivity notifications.
-	InactivityMailTemplatePath = "instautoctrl_inactivity_notification.yaml"
+	// InactivityDetectedMailTemplatePath is the path to the email template for inactivity warning notifications.
+	InactivityDetectedMailTemplatePath = "instautoctrl_inactivity_notification.yaml"
+	// InactivityTerminatedMailTemplatePath is the path to the email template for inactivity terminated notifications.
+	InactivityTerminatedMailTemplatePath = "instautoctrl_inactivity_stopped_notification.yaml"
 	// ExpirationMailTemplatePath is the path to the email template for expiration notifications.
 	ExpirationMailTemplatePath = "instautoctrl_expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
@@ -86,9 +88,14 @@ func ParseDurationWithDays(ctx context.Context, input string) (time.Duration, er
 	return parsedDuration, nil
 }
 
-// SendInactivityNotification sends notification about instance inactivity detection.
-func SendInactivityNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
-	return sendNotification(ctx, mc, InactivityMailTemplatePath, remainingTime)
+// SendInactivityDetectionNotification sends notification about instance inactivity detection.
+func SendInactivityDetectionNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, InactivityDetectedMailTemplatePath, remainingTime)
+}
+
+// SendInactivityTerminationNotification sends notification about instance inactivity termination.
+func SendInactivityTerminationNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, InactivityTerminatedMailTemplatePath, remainingTime)
 }
 
 // SendExpiringWarningNotification sends expiration warning notification.

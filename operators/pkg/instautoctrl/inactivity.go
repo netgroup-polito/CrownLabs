@@ -202,6 +202,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 		if shouldSend {
 			if err := r.SendInactivityWarning(ctx, instance); err != nil {
+				log.Error(err, "failed sending inactivity warning email", "instance", instance.Name, "namespace", instance.Namespace)
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
@@ -214,6 +215,10 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				return ctrl.Result{}, err
 			}
 			log.Info("Inactive instance has been paused/deleted", "instance", instance.Name, "namespace", instance.Namespace)
+			if err := r.SendTerminationNotification(ctx); err != nil {
+				log.Error(err, "failed sending termination notification email", "instance", instance.Name, "namespace", instance.Namespace)
+				return ctrl.Result{}, err
+			}
 			return ctrl.Result{}, nil
 		}
 	}
@@ -535,7 +540,7 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 		return err
 	}
 
-	err = SendInactivityNotification(ctx, r.MailClient, remainingTime)
+	err = SendInactivityDetectionNotification(ctx, r.MailClient, remainingTime)
 	if err != nil {
 		log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
 		return err
@@ -554,6 +559,31 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 		log.Error(err, "failed updating instance annotations")
 		return err
 	}
+	return nil
+}
+
+// NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
+func (r *InstanceInactiveTerminationReconciler) SendTerminationNotification(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("send-termination-notification")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
+
+	if r.EnableInactivityNotifications {
+		if err := SendInactivityTerminationNotification(ctx, r.MailClient, 0); err != nil {
+			return fmt.Errorf("failed sending termination notification email: %w", err)
+		}
+		log.Info("Termination notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
+	} else {
+		log.Info("Inactivity notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
+	}
+
 	return nil
 }
 
