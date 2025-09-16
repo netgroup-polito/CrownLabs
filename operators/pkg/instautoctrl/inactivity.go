@@ -562,7 +562,7 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 	return nil
 }
 
-// NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
+// SendTerminationNotification handles sending notification emails when an instance is deleted.
 func (r *InstanceInactiveTerminationReconciler) SendTerminationNotification(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("send-termination-notification")
 	instance := pkgcontext.InstanceFrom(ctx)
