@@ -26,6 +26,11 @@ query ownedInstances($tenantNamespace: String!) {
             targetPort
           }
         }
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running

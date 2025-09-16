@@ -10,6 +10,7 @@ import {
 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
+import MultiEnvironmentConnectModal from './MultiEnvironmentConnectModal';
 
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
@@ -95,6 +96,17 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     : { onClick: () => setSshModal(true), ghost: true };
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+  const [showEnvironmentModal, setShowEnvironmentModal] = useState(false);
+
+  const handleConnect = () => {
+    if (environments && environments.length > 1) {
+      setShowEnvironmentModal(true);
+    } else if (gui) {
+      window.open(url!, '_blank');
+    } else {
+      setSshModal(true);
+    }
+  };
 
   return (
     <>
@@ -170,7 +182,18 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
           {environments && environments.length > 1 ? (
-            <div>ciao</div>
+            <Button
+              className={`${connectDisabled ? 'pointer-events-none' : ''}`}
+              color={classFromProps()}
+              type="primary"
+              variant="solid"
+              shape="round"
+              size="middle"
+              onClick={handleConnect}
+              disabled={connectDisabled}
+            >
+              Connect ({environments.length} envs)
+            </Button>
           ) : (
             <Button
               className={`${connectDisabled ? 'pointer-events-none' : ''}`}
@@ -205,7 +228,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             color={classFromPropsMobile()}
             shape="circle"
             size="middle"
-            {...connectOptions}
+            onClick={handleConnect}
             disabled={connectDisabled}
             icon={
               <ExportOutlined
@@ -216,6 +239,18 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           />
         </div>
       </Tooltip>
+      
+      {/* Multi Environment Connect Modal */}
+      {environments && environments.length > 1 && (
+        <MultiEnvironmentConnectModal
+          open={showEnvironmentModal}
+          onCancel={() => setShowEnvironmentModal(false)}
+          environments={environments}
+          instanceUrl={url}
+          gui={gui}
+          setSshModal={setSshModal}
+        />
+      )}
     </>
   );
 };

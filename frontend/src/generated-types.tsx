@@ -3720,6 +3720,11 @@ export const CreateInstanceDocument = gql`
       url
       nodeName
       nodeSelector
+      environments {
+        name
+        phase
+        ip
+      }      
     }
     spec {
       running
@@ -4096,6 +4101,11 @@ export const OwnedInstancesDocument = gql`
         url
         nodeName
         nodeSelector
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running
@@ -4170,6 +4180,11 @@ export const InstancesLabelSelectorDocument = gql`
         url
         nodeName
         nodeSelector
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running

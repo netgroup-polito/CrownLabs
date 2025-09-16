@@ -22,6 +22,11 @@ query instancesLabelSelector($labels: String) {
             targetPort
           }
         }
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running
