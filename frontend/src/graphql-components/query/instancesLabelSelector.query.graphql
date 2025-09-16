@@ -12,6 +12,11 @@ query instancesLabelSelector($labels: String) {
         url
         nodeName
         nodeSelector
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running
