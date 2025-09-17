@@ -2,6 +2,7 @@ import {
   CodeOutlined,
   DesktopOutlined,
   PlayCircleOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -174,7 +175,22 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               ) : (
                 <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
               )}
-              <label className="ml-3 cursor-pointer">{template.name}</label>
+              <label className="ml-3 cursor-pointer">{template.name}
+                {template.instances && template.instances.some(i => i.allowPublicExposure) && (
+                  <Tooltip title="Port Exposure abilitato">
+                    <span style={{
+                      background: '#222',
+                      borderRadius: '6px',
+                      padding: '2px 6px',
+                      marginLeft: '6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                    }}>
+                      <ExportOutlined style={{ color: '#fff', fontSize: '14px' }} />
+                    </span>
+                  </Tooltip>
+                )}
+              </label>
               {template.persistent && (
                 <Tooltip
                   title={

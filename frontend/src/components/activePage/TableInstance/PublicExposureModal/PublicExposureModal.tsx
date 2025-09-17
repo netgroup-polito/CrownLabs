@@ -27,6 +27,7 @@ interface IPublicExposureModalProps {
   allowPublicExposure: boolean;
   existingExposure?: PublicExposure;
   instanceId: string;
+  instancePrettyName: string;
   tenantNamespace: string;
   manager: string;
 }
@@ -49,9 +50,12 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   allowPublicExposure,
   existingExposure,
   instanceId,
+  instancePrettyName,
   tenantNamespace,
   manager,
 }) => {
+  // Ricava il nome dell'istanza dalla exposure o dall'id
+  const instanceName = instancePrettyName;
   const [form] = Form.useForm<FormValues>();
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastSentData, setLastSentData] = useState<string | null>(null);
@@ -372,6 +376,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       open={open}
       onCancel={onCancel}
       width={650}
+      title={`Public Exposure for - ${instanceName}`}
       footer={[
         <Button
           key="cancel"
@@ -436,7 +441,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                 {fields.map(({ key, name, ...restField }, index) => (
                   <div key={key}>
                     <Row gutter={8} align="bottom">
-                      <Col span={allowPublicExposure ? 5 : 5}>
+                      <Col span={allowPublicExposure ? 4 : 4}>
                         <Form.Item
                           {...restField}
                           name={[name, 'name']}
@@ -453,7 +458,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         <Form.Item
                           {...restField}
                           name={[name, 'targetPort']}
-                          label={index === 0 ? 'Internal' : ''}
+                          label={index === 0 ? 'Internal Port' : ''}
                           rules={[
                             { required: true, message: 'Required' },
                             {
@@ -491,7 +496,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           <Form.Item
                             {...restField}
                             name={[name, 'desiredPort']}
-                            label={index === 0 ? 'Request' : ''}
+                            label={index === 0 ? 'Request Port' : ''}
                             rules={[{ validator: portValidator }]}
                             validateTrigger={['onChange', 'onBlur']}
                             hasFeedback={false}
@@ -502,11 +507,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                         </Col>
                       )}
                       {allowPublicExposure && (
-                        <Col span={4}>
+                        <Col span={5}>
                           <Form.Item
                             {...restField}
                             name={[name, '_displayActualPort']}
-                            label={index === 0 ? 'Assigned' : ''}
+                            label={index === 0 ? 'Assigned Port' : ''}
                           >
                             <Input placeholder="—" disabled={true} />
                           </Form.Item>

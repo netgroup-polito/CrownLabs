@@ -133,8 +133,8 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           onCancel={() => setShowExposureModal(false)}
           allowPublicExposure={allowPublic}
           existingExposure={instance.publicExposure}
-          // pass actual k8s resource name, not composite id
           instanceId={instance.name}
+          instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
           manager={instance.tenantId}
         />

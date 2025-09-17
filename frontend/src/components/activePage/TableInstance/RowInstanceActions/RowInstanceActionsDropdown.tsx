@@ -153,7 +153,29 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             ? [
                 {
                   key: 'expose',
-                  label: 'Port Exposure',
+                  label: (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      Port Exposure
+                      {instance.publicExposure && Array.isArray(instance.publicExposure.ports) && instance.publicExposure.ports.length > 0 && (
+                        <span
+                          style={{
+                            background: '#1677ff',
+                            color: 'white',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            padding: '0 6px',
+                            marginLeft: '4px',
+                            minWidth: '18px',
+                            textAlign: 'center',
+                            lineHeight: '18px',
+                            display: 'inline-block',
+                          }}
+                        >
+                          {instance.publicExposure.ports.length}
+                        </span>
+                      )}
+                    </span>
+                  ),
                   icon: <ExportOutlined style={font20px} />,
                   onClick: () => onEnablePublicExposure?.(),
                 },
