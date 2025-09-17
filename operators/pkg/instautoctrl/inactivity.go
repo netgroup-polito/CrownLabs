@@ -177,7 +177,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 	}
 
 	tracer.Step("instance last login updated")
@@ -258,49 +258,24 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		return fmt.Errorf("failed retrieving last activity time from both Nginx and SSH queries: %w", errNginx)
 	}
 	if lastActivityTimeNginx.IsZero() && lastActivityTimeSSH.IsZero() {
-		log.Info("No activity detected for the instance", "instance", instance.Name, "namespace", instance.Namespace)
+		log.Info("No activity detected on Prometheus for the instance", "instance", instance.Name)
 		return nil // No activity detected, do not update the last activity time
 	}
 
-	var newLastActivityTime time.Time
-
-	// Take the most recent activity time between Nginx and SSH
+	var maxLastActivityTime time.Time
 	if lastActivityTimeNginx.After(lastActivityTimeSSH) {
-		newLastActivityTime = lastActivityTimeNginx
+		maxLastActivityTime = lastActivityTimeNginx
 	} else {
-		newLastActivityTime = lastActivityTimeSSH
+		maxLastActivityTime = lastActivityTimeSSH
 	}
-
-	// Save the current instance in order to be able to patch it later
-	originalInstance := instance.DeepCopy()
-
+	// patch the instance with the new last activity time
+	patch := client.MergeFrom(instance.DeepCopy())
 	if instance.Annotations == nil {
 		instance.Annotations = make(map[string]string)
 	}
-
-	// Compare with the previously stored last activity to detect new activity
-	var prevLastActivity time.Time
-	if instance.Annotations[forge.LastActivityAnnotation] != "" {
-		if prevLastActivityTime, err := time.Parse(time.RFC3339, instance.Annotations[forge.LastActivityAnnotation]); err == nil {
-			prevLastActivity = prevLastActivityTime
-		} else {
-			log.Error(err, "failed parsing previous last activity timestamp; treating as zero time", "value", instance.Annotations[forge.LastActivityAnnotation], "instance", instance.Name, "namespace", instance.Namespace)
-			prevLastActivity = time.Time{}
-		}
-	} else {
-		log.Info("previous last activity annotation not found; treating as zero time", "instance", instance.Name, "namespace", instance.Namespace)
-		prevLastActivity = time.Time{}
-	}
-
-	// If a new activity is detected, update the annotations.
-	if newLastActivityTime.After(prevLastActivity) {
-		log.Info("New activity detected for the instance. Updating last activity time and resetting alerts counter", "instance", instance.Name, "namespace", instance.Namespace)
-		instance.Annotations[forge.LastActivityAnnotation] = newLastActivityTime.Format(time.RFC3339)
-		instance.Annotations[forge.AlertAnnotationNum] = "0"
-	}
-
-	// finally patch the instance with the new annotations
-	if err := r.Patch(ctx, instance, client.MergeFrom(originalInstance)); err != nil {
+	instance.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
+	instance.Annotations[forge.AlertAnnotationNum] = "0"
+	if err := r.Patch(ctx, instance, patch); err != nil {
 		return err
 	}
 

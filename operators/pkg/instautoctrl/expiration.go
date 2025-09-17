@@ -146,35 +146,29 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 				}
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
-			}
-		}
-
-		// If we reached this point, instance is expired and must be deleted
-		if r.EnableExpirationNotifications {
-			if instance.Annotations[forge.ExpiringWarningNotificationAnnotation] == "true" {
+			} else {
 				if err := r.DeleteInstance(ctx); err != nil {
 					log.Error(err, "failed to delete expired instance")
+					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
+				}
+				// Send notification for instance deletion
+				if err := r.NotifyInstanceDeletion(ctx); err != nil {
+					log.Error(err, "failed to send deletion notification")
 					return ctrl.Result{}, err
 				}
-			} else {
-				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+				tracer.Step("deletion notification sent")
+
 			}
 		} else {
 			if err := r.DeleteInstance(ctx); err != nil {
 				log.Error(err, "failed to delete expired instance")
-				return ctrl.Result{}, err
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 			}
 		}
 
 		tracer.Step("instance deleted")
-
-		// Send notification
-		if err := r.NotifyInstanceDeletion(ctx); err != nil {
-			log.Error(err, "failed to send deletion notification")
-			return ctrl.Result{}, err
-		}
-		tracer.Step("deletion notification sent")
 		log.Info("Expired instance has been deleted", "instance", instance.Name, "namespace", instance.Namespace)
+
 	}
 
 	// Calculate requeue time at the instance inactive deadline time:
