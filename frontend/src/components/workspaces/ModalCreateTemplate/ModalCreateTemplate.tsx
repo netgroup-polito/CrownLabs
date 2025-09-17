@@ -75,22 +75,6 @@ type Valid = {
   image: { status: string; help?: string };
 };
 
-// Add this helper function near the top
-const getEnvironmentTypeTooltip = (type: ImageType): string => {
-  switch (type) {
-    case EnvironmentType.Container:
-      return 'GUI-based container applications with desktop environment access via web browser. Must follow CrownLabs container guidelines.';
-    case EnvironmentType.Standalone:
-      return 'Web-based applications exposed over HTTP. Perfect for web services, IDEs, and tools with web interfaces.';
-    case EnvironmentType.VirtualMachine:
-      return 'Full virtual machines with complete operating system. Supports both GUI and command-line environments.';
-    case EnvironmentType.CloudVm:
-      return 'Cloud-init compatible virtual machines. SSH access only, no GUI. Suitable for server workloads and CLI applications.';
-    default:
-      return 'Select the appropriate environment type for your application.';
-  }
-};
-
 export interface IModalCreateTemplateProps {
   workspaceNamespace: string;
   template?: Template;
@@ -608,16 +592,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   }}
                 >
                   <span>{option.label}</span>
-                  <Tooltip
-                    title={getEnvironmentTypeTooltip(option.value)}
-                    getPopupContainer={trigger =>
-                      trigger.parentElement || document.body
-                    } // Fix overlap
-                  >
-                    <InfoCircleOutlined
-                      style={{ color: '#1890ff', marginLeft: 8 }}
-                    />
-                  </Tooltip>
                 </div>
               </Select.Option>
             ))}
@@ -754,7 +728,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <Checkbox
               className="ml-3"
               checked={formTemplate.gui}
-              disabled={formTemplate.imageType === EnvironmentType.CloudVm} // Disable GUI for CloudVM
+              disabled={
+                formTemplate.imageType === EnvironmentType.CloudVm ||
+                formTemplate.imageType === EnvironmentType.Standalone ||
+                formTemplate.imageType === EnvironmentType.Container
+              } // Disable GUI for CloudVM, Standalone, and Container
               onChange={() =>
                 setFormTemplate(old => {
                   return { ...old, gui: !old.gui };
@@ -766,6 +744,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
               >
                 CloudVM instances do not support GUI access
+              </div>
+            )}
+            {(formTemplate.imageType === EnvironmentType.Standalone ||
+              formTemplate.imageType === EnvironmentType.Container) && (
+              <div
+                style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
+              >
+                Standalone and Container environments only work with GUI and not
+                SSH
               </div>
             )}
           </Form.Item>

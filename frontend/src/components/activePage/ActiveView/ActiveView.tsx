@@ -10,6 +10,7 @@ import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Toolbox from '../Toolbox/Toolbox';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
+import QuotaDisplay from '../../workspaces/QuotaDisplay/QuotaDisplay'; // Import QuotaDisplay
 
 const view = new SessionValue(StorageKeys.Active_View, WorkspaceRole.user);
 const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
@@ -18,10 +19,27 @@ export interface IActiveViewProps {
   user: User;
   workspaces: Array<Workspace>;
   managerView: boolean;
+  quotaData: {
+    consumedQuota: {
+      cpu: number;
+      memory: string;
+      instances: number;
+    };
+    availableQuota: {
+      cpu: number;
+      memory: string;
+      instances: number;
+    };
+    workspaceQuota: {
+      cpu: number;
+      memory: string;
+      instances: number;
+    };
+  };
 }
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
-  const { managerView, user, workspaces } = props;
+  const { managerView, user, workspaces, quotaData } = props;
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
   const [destroySelectedTrigger, setDestroySelectedTrigger] = useState(false);
@@ -114,6 +132,11 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           ),
         }}
       >
+        {/* Render QuotaDisplay */}
+        <QuotaDisplay
+          consumedQuota={quotaData.consumedQuota}
+          workspaceQuota={quotaData.workspaceQuota}
+        />
         {currentView === WorkspaceRole.manager && managerView ? (
           <div className="flex flex-col justify-start">
             <TableWorkspaceLogic
