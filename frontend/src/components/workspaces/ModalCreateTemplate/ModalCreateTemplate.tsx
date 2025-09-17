@@ -165,7 +165,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     imageList.images.forEach(img => {
       const versionsInImageName: Image[] = img.versions.map(v => ({
         name: `${img.name}:${v}`,
-        type: [], 
+        type: [],
         registry: imageList.registryName,
       }));
 
@@ -194,7 +194,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   // Determine if we're using external images (for non-VM types)
-  const isUsingExternalImage = formTemplate.imageType && formTemplate.imageType !== EnvironmentType.VirtualMachine;
+  const isUsingExternalImage =
+    formTemplate.imageType &&
+    formTemplate.imageType !== EnvironmentType.VirtualMachine;
 
   // Get available images based on environment type
   const imagesNoVersion = (() => {
@@ -221,7 +223,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       formTemplate.imageType &&
       valid.name.status === 'success' &&
       // For VMs, check if image is selected from the list
-      (formTemplate.imageType === EnvironmentType.VirtualMachine 
+      (formTemplate.imageType === EnvironmentType.VirtualMachine
         ? formTemplate.image && formTemplate.imageList
         : formTemplate.registry) && // For others, check if external image is provided
       (template
@@ -300,7 +302,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         setValid(old => {
           return {
             ...old,
-            image: { status: 'error', help: 'Enter an external image reference' },
+            image: {
+              status: 'error',
+              help: 'Enter an external image reference',
+            },
           };
         });
       } else {
@@ -447,9 +452,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     // For VMs, load the internal registry images
     if (value === EnvironmentType.VirtualMachine) {
       const internalRegistry = imageLists.find(
-        list => list.registryName === 'registry.internal.crownlabs.polito.it'
+        list => list.registryName === 'registry.internal.crownlabs.polito.it',
       );
-      
+
       if (internalRegistry) {
         const images = getImagesFromList(internalRegistry);
         const dedupedImages = images.reduce<Image[]>((acc, img) => {
@@ -457,7 +462,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           if (!acc.some(a => getImageNoVer(a.name) === base)) acc.push(img);
           return acc;
         }, []);
-        
+
         setAvailableImages(dedupedImages);
         setFormTemplate(old => ({
           ...old,
@@ -480,13 +485,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       const imageFound = availableImages.find(
         i => getImageNoVer(i.name) === value,
       );
-      
+
       setFormTemplate(old => ({
         ...old,
         image: String(value),
         registry: imageFound?.registry,
       }));
-      
+
       form.setFieldsValue({
         image: value,
       });
@@ -495,11 +500,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   // Initialize available images when editing an existing template
   useEffect(() => {
-    if (template?.imageType === EnvironmentType.VirtualMachine && imageLists.length) {
+    if (
+      template?.imageType === EnvironmentType.VirtualMachine &&
+      imageLists.length
+    ) {
       const internalRegistry = imageLists.find(
-        list => list.registryName === 'registry.internal.crownlabs.polito.it'
+        list => list.registryName === 'registry.internal.crownlabs.polito.it',
       );
-      
+
       if (internalRegistry) {
         const imgs = getImagesFromList(internalRegistry);
         const dedupedImgs = imgs.reduce<Image[]>((acc, img) => {
@@ -656,7 +664,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                       >
                         CrownLabs container guidelines
                       </a>
-                      . GUI-based container applications with desktop environment access via web browser.
+                      . GUI-based container applications with desktop
+                      environment access via web browser.
                     </p>
                   )}
                   {formTemplate.imageType === EnvironmentType.Standalone && (
@@ -669,12 +678,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                       >
                         CrownLabs standalone guidelines
                       </a>
-                      . Web-based applications exposed over HTTP, perfect for web services, IDEs, and tools with web interfaces.
+                      . Web-based applications exposed over HTTP, perfect for
+                      web services, IDEs, and tools with web interfaces.
                     </p>
                   )}
                   {formTemplate.imageType === EnvironmentType.CloudVm && (
                     <p>
-                      Can be any cloud-init compatible image, but will only be accessible via SSH{' '}
+                      Can be any cloud-init compatible image, but will only be
+                      accessible via SSH{' '}
                       <Tooltip title="CloudVM images must support cloud-init and will not have GUI access - SSH access only">
                         <InfoCircleOutlined style={{ color: '#1890ff' }} />
                       </Tooltip>
@@ -716,9 +727,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 placeholder="Enter image name (e.g., ubuntu:22.04)"
                 suffix={
                   <Tooltip title="Image format: [registry/]repository[:tag]">
-                    <InfoCircleOutlined
-                      style={{ color: 'rgba(0,0,0,.45)' }}
-                    />
+                    <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
                   </Tooltip>
                 }
               />
