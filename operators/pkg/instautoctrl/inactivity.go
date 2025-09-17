@@ -294,6 +294,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 
 	// If a new activity is detected, update the annotations.
 	if newLastActivityTime.After(prevLastActivity) {
+		log.Info("New activity detected for the instance. Updating last activity time and resetting alerts counter", "instance", instance.Name, "namespace", instance.Namespace)
 		instance.Annotations[forge.LastActivityAnnotation] = newLastActivityTime.Format(time.RFC3339)
 		instance.Annotations[forge.AlertAnnotationNum] = "0"
 	}
