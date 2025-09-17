@@ -42,6 +42,8 @@ const (
 	WebsockifyRewriteEndpoint = "/websockify"
 	// StandaloneRewriteEndpoint -> endpoint of the standalone application.
 	StandaloneRewriteEndpoint = "/$2"
+	// GUIRewriteEndpoint -> used to clean the path of the ingress targeting the environment GUI.
+	GUIRewriteEndpoint = "/$1"
 )
 
 // IngressSpec forges the specification of a Kubernetes Ingress resource.
@@ -75,11 +77,16 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
+
 	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
+	} else {
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = GUIRewriteEndpoint
 	}
+
 	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "3600"
 	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = "3600"
+
 	return annotations
 }
 
@@ -137,7 +144,7 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	case clv1alpha2.ClassContainer:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressVNCGUIPathSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", IngressInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
 	}
 	return ""
 }

@@ -95,9 +95,11 @@ var _ = Describe("Ingresses", func() {
 					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("When the input annotations map is nil and RewriteURL false", InstanceGUIAnnotationsCase{
-					Annotations:    nil,
-					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+					}, "3600"),
 				}),
 				Entry("When the input annotations map is nil and RewriteURL true", InstanceGUIAnnotationsCase{
 					Annotations: nil,
@@ -108,10 +110,12 @@ var _ = Describe("Ingresses", func() {
 				}),
 				Entry("When the input labels map already contains the expected values and RewriteURL false", InstanceGUIAnnotationsCase{
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
@@ -121,6 +125,7 @@ var _ = Describe("Ingresses", func() {
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
@@ -154,25 +159,31 @@ var _ = Describe("Ingresses", func() {
 					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-					Annotations:    nil,
-					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+					}, "3600"),
 				}),
 				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
 				Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
 						"user/key": "user/value",
 					}, "3600"),
 				}),
