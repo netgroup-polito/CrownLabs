@@ -54,7 +54,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   tenantNamespace,
   manager,
 }) => {
-  // Ricava il nome dell'istanza dalla exposure o dall'id
   const instanceName = instancePrettyName;
   const [form] = Form.useForm<FormValues>();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -443,7 +442,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                           hasFeedback={false}
                           help=""
                         >
-                          <Input placeholder="8080" disabled={isUpdating} />
+                          <Input placeholder="e.g. 8080" disabled={isUpdating} />
                         </Form.Item>
                       </Col>
                       <Col span={allowPublicExposure ? 4 : 4}>
@@ -512,7 +511,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                   <Alert
                     type="info"
                     message="No ports configured"
-                    description="Add a port to expose your instance services to the external network. Specify the internal port of your service and optionally a request port."
+                    description="Add a port to expose your instance services to the external network. Specify the internal port of your service and optionally a request port. Note: Saving without any valid ports will remove the external IP address if one is currently assigned."
                     showIcon
                     style={{ marginBottom: 16, textAlign: 'left' }}
                   />
