@@ -575,9 +575,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           />
         </Form.Item>
 
-        {/* Environment Type Selection - Now comes first */}
+        {/* Environment Type Selection - Remove {...fullLayout} */}
         <Form.Item
-          {...fullLayout}
           label="Environment Type"
           name="imageType"
           className="mb-4"
@@ -616,11 +615,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           </Select>
         </Form.Item>
 
-        {/* VM Image Selection */}
+        {/* VM Image Selection - Remove {...fullLayout} */}
         {formTemplate.imageType === EnvironmentType.VirtualMachine && (
           <Form.Item
             className="mb-4"
-            {...fullLayout}
             label="Image"
             name="image"
             required
