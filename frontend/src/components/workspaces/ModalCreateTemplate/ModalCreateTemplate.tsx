@@ -579,7 +579,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         <Form.Item
           label="Environment Type"
           name="imageType"
-          className="mb-4"
+          className="mb-4" // Add margin to separate it from other components
           required
           rules={[
             {
@@ -587,12 +587,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               message: 'Please select an environment type',
             },
           ]}
+          labelCol={{ span: 6 }} // Adjust label width
+          wrapperCol={{ span: 18 }} // Adjust input width
         >
           <Select
             value={formTemplate.imageType}
             onChange={handleEnvironmentTypeChange}
             placeholder="Select environment type"
-            getPopupContainer={(trigger) => trigger.parentElement || document.body}
+            getPopupContainer={trigger =>
+              trigger.parentElement || document.body
+            } // Fix overlap
           >
             {environmentOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
@@ -604,7 +608,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   }}
                 >
                   <span>{option.label}</span>
-                  <Tooltip title={getEnvironmentTypeTooltip(option.value)}>
+                  <Tooltip
+                    title={getEnvironmentTypeTooltip(option.value)}
+                    getPopupContainer={trigger =>
+                      trigger.parentElement || document.body
+                    } // Fix overlap
+                  >
                     <InfoCircleOutlined
                       style={{ color: '#1890ff', marginLeft: 8 }}
                     />
@@ -631,6 +640,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 validator: imageValidator,
               },
             ]}
+            labelCol={{ span: 6 }} // Adjust label width
+            wrapperCol={{ span: 18 }} // Adjust input width
           >
             <AutoComplete
               options={(imagesSearchOptions ?? imagesNoVersion).map(x => ({
@@ -642,7 +653,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }}
               onChange={handleImageChange}
               placeholder="Select a virtual machine image"
-              getPopupContainer={(trigger) => trigger.parentElement || document.body}
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
             />
           </Form.Item>
         )}
@@ -686,11 +699,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   {formTemplate.imageType === EnvironmentType.CloudVm && (
                     <p>
                       Can be any cloud-init compatible image, but will only be
-                      accessible via SSH{' '}
-                      <Tooltip title="CloudVM images must support cloud-init and will not have GUI access - SSH access only">
-                        <InfoCircleOutlined style={{ color: '#1890ff' }} />
-                      </Tooltip>
-                      . Suitable for server workloads and CLI applications.
+                      accessible via SSH. Suitable for server workloads and CLI
+                      applications.
                     </p>
                   )}
                 </div>
@@ -704,6 +714,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             <Form.Item
               label="External Image"
               name="registry"
+              className="mb-4" // Add margin to separate it from other components
               required
               validateStatus={valid.image.status as 'success' | 'error'}
               help={valid.image.help}
@@ -714,7 +725,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   validator: imageValidator,
                 },
               ]}
-              extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest, registry.internal.crownlabs.polito.it/netgroup/ubuntu-server-base:20200922"
+              labelCol={{ span: 6 }} // Adjust label width
+              wrapperCol={{ span: 18 }} // Adjust input width
+              extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest"
             >
               <Input
                 value={formTemplate.registry}
