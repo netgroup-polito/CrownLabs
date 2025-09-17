@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useCallback } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
@@ -7,6 +7,7 @@ import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import { useOwnedInstancesQuery } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import type { ApolloError } from '@apollo/client';
 
 const ActiveViewLogic: FC = () => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -17,16 +18,20 @@ const ActiveViewLogic: FC = () => {
     error: tenantError,
   } = useContext(TenantContext);
 
+  const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Fetch instance data for quota calculations
-  const { data: instancesData, loading: instancesLoading } =
-    useOwnedInstancesQuery({
-      variables: { tenantNamespace: tenantNamespace || '' },
-      skip: !tenantNamespace,
-      onError: apolloErrorCatcher,
-      fetchPolicy: 'cache-and-network',
-    });
+  const {
+    data: instancesData,
+    loading: instancesLoading,
+    refetch: refetchInstances,
+  } = useOwnedInstancesQuery({
+    variables: { tenantNamespace: tenantNs || '' },
+    skip: !tenantNs,
+    onError: apolloErrorCatcher,
+    fetchPolicy: 'cache-and-network',
+  });
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
@@ -74,18 +79,18 @@ const ActiveViewLogic: FC = () => {
       consumedQuota.instances += 1;
     }
 
-    const totalQuota = tenantData?.tenant?.status?.quota || {
-      cpu: 0,
-      memory: '0Gi',
-      instances: 0,
-    };
-
+    const totalQuota = tenantData?.tenant?.status?.quota;
     const availableQuota = {
-      cpu: totalQuota.cpu - consumedQuota.cpu,
+      cpu:
+        (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
+        consumedQuota.cpu,
       memory: String(
-        parseMemoryToGi(totalQuota.memory) - consumedQuota.memoryGi,
+        (totalQuota?.memory ? parseMemoryToGi(totalQuota.memory) : 0) -
+          consumedQuota.memoryGi,
       ),
-      instances: totalQuota.instances - consumedQuota.instances,
+      instances:
+        (totalQuota?.instances ? totalQuota.instances : 0) -
+        consumedQuota.instances,
     };
 
     return {
@@ -95,12 +100,33 @@ const ActiveViewLogic: FC = () => {
         instances: consumedQuota.instances,
       },
       availableQuota,
-      workspaceQuota: totalQuota,
+      workspaceQuota: totalQuota || {
+        cpu: 0,
+        memory: 0,
+        instances: 0,
+      },
     };
   }, [
     instancesData?.instanceList?.instances,
     tenantData?.tenant?.status?.quota,
   ]);
+
+  // Enhanced refresh function with better error handling and logging
+  const refreshQuota = useCallback(async () => {
+    console.log('Refreshing quota data...'); // Debug log
+    try {
+      await refetchInstances();
+      console.log('Quota data refreshed successfully'); // Debug log
+    } catch (error) {
+      console.error('Error refreshing quota data:', error);
+      // Type cast the error to ApolloError or create a new one
+      if (error && typeof error === 'object' && 'message' in error) {
+        apolloErrorCatcher(error as ApolloError);
+      } else {
+        apolloErrorCatcher(new Error(String(error)) as ApolloError);
+      }
+    }
+  }, [refetchInstances, apolloErrorCatcher]);
 
   const isLoading = tenantLoading || instancesLoading;
 
@@ -113,7 +139,13 @@ const ActiveViewLogic: FC = () => {
       user={{ tenantId, tenantNamespace }}
       managerView={managerWorkspaces.length > 0}
       workspaces={managerWorkspaces}
-      quotaData={quotaData} // Pass quota data to ActiveView
+      quotaData={{
+        consumedQuota: quotaData.consumedQuota,
+        workspaceQuota: quotaData.workspaceQuota,
+        availableQuota: quotaData.availableQuota,
+        showQuotaDisplay: true,
+        refreshQuota,
+      }} // Pass quota data to ActiveView
     />
   ) : (
     <div className="h-full w-full flex justify-center items-center">
