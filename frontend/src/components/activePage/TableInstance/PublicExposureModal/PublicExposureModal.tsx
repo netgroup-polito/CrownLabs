@@ -376,7 +376,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
       open={open}
       onCancel={onCancel}
       width={650}
-      title={`Public Exposure for - ${instanceName}`}
+      title={`Public Port Exposure for - ${instanceName}`}
       footer={[
         <Button
           key="cancel"
@@ -396,33 +396,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
         </Button>,
       ]}
     >
-      {error && (
-        <Alert
-          type="error"
-          message={error.message}
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      {duplicateTargetPorts.length > 0 && (
-        <Alert
-          type="error"
-          message={`Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      {!hasValidPorts && ports && ports.length > 0 && (
-        <Alert
-          type="warning"
-          message="At least one port with a valid Internal value is required to enable public exposure, or remove all ports to disable it."
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
       <Spin
         spinning={isUpdating}
         tip="Updating ports..."
@@ -562,6 +535,33 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                     {addButtonText}
                   </Button>
                 </Form.Item>
+
+                {error && (
+                  <Alert
+                    type="error"
+                    message={error.message}
+                    showIcon
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+
+                {!hasValidPorts && ports && ports.length > 0 && (
+                  <Alert
+                    type="warning"
+                    message="At least one port with a valid Internal value is required to enable public exposure, or remove all ports to disable it."
+                    showIcon
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+
+                {duplicateTargetPorts.length > 0 && (
+                  <Alert
+                    type="error"
+                    message={`Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
+                    showIcon
+                    style={{ marginTop: 16 }}
+                  />
+                )}
 
                 <div
                   style={{
