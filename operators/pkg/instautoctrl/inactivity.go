@@ -410,21 +410,21 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 
 	// Check and set the alert annotation if not present
 	if _, ok := instance.Annotations[forge.AlertAnnotationNum]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
+		log.Info("adding alert number annotation to instance for the first time", "annotation", forge.AlertAnnotationNum)
 		instance.Annotations[forge.AlertAnnotationNum] = "0"
 		updated = true
 	}
 
 	// Check and set the last activity annotation if not present
 	if _, ok := instance.Annotations[forge.LastActivityAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
+		log.Info("adding last activity annotation to instance for the first time", "annotation", forge.LastActivityAnnotation)
 		instance.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
 		updated = true
 	}
 
 	// Check and set the last notification time annotation if not present
 	if _, ok := instance.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
-		log.Info("adding annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
+		log.Info("adding last notification time annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
 		instance.Annotations[forge.LastNotificationTimestampAnnotation] = ""
 		updated = true
 	}
