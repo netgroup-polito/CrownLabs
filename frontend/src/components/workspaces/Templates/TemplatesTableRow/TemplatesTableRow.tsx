@@ -179,14 +179,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 {template.instances && template.instances.some(i => i.allowPublicExposure) && (
                   <Tooltip title="Port Exposure abilitato">
                     <span style={{
-                      background: '#222',
                       borderRadius: '6px',
                       padding: '2px 6px',
                       marginLeft: '6px',
                       display: 'inline-flex',
                       alignItems: 'center',
                     }}>
-                      <ExportOutlined style={{ color: '#fff', fontSize: '14px' }} />
+                      <ExportOutlined style={{ color: '#7d34ddff', fontSize: '16px', fontWeight: 'bold'}} />
                     </span>
                   </Tooltip>
                 )}
