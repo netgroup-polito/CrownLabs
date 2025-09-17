@@ -593,6 +593,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             value={formTemplate.imageType}
             onChange={handleEnvironmentTypeChange}
             placeholder="Select environment type"
+            getPopupContainer={(trigger) => trigger.parentElement || document.body}
           >
             {environmentOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
@@ -620,6 +621,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <Form.Item
             className="mb-4"
             {...fullLayout}
+            label="Image"
             name="image"
             required
             validateStatus={valid.image.status as 'success' | 'error'}
@@ -642,6 +644,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }}
               onChange={handleImageChange}
               placeholder="Select a virtual machine image"
+              getPopupContainer={(trigger) => trigger.parentElement || document.body}
             />
           </Form.Item>
         )}
@@ -701,7 +704,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
             {/* External Image Input */}
             <Form.Item
-              {...fullLayout}
               label="External Image"
               name="registry"
               required
