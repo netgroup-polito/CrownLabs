@@ -199,9 +199,10 @@ func (r *InstanceSubmissionReconciler) CheckLabelSelectors(ctx context.Context, 
 //
 // ATTENTION: this function returns nil if no match is found.
 func getInstanceStatusEnv(instance *clv1alpha2.Instance, envName string) *clv1alpha2.InstanceStatusEnv {
-	for _, env := range instance.Status.Environments {
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
 		if env.Name == envName {
-			return &env
+			return env
 		}
 	}
 	return nil

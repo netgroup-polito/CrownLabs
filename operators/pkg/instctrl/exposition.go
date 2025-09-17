@@ -48,7 +48,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
-	//index out of range
+	// Check if index is out of range
 	if envIndex >= len(instance.Status.Environments) {
 		return nil
 	}

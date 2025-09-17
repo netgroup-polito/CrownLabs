@@ -246,7 +246,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	// Enforce the ingress to access the GUI
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
 
-	//Define url of the instance. This will be the root for the urls of the single environments
+	// Define url of the instance. This will be the root for the urls of the single environments
 	instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, &instance)
 
 	// Iterate over and enforce the instance environments.
