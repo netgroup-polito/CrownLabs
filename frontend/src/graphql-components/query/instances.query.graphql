@@ -34,6 +34,7 @@ query ownedInstances($tenantNamespace: String!) {
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

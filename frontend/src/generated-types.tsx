@@ -4119,6 +4119,7 @@ export const OwnedInstancesDocument = gql`
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

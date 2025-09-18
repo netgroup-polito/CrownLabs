@@ -48,7 +48,6 @@ type Environment = {
 
 type Template = {
   name?: string;
-  description?: string;
   environmentList: Environment[];
 }
 
@@ -107,7 +106,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [formTemplate, setFormTemplate] = useState<Template>({
     name: template && template?.name,
-    description: template && template?.description || undefined,
     environmentList: template?.environmentList || [{
       name: 'main',
       image: '',
@@ -197,7 +195,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     if (!template) return true;
 
     if (template.name !== formTemplate.name) return true;
-    if (template.description !== formTemplate.description) return true;
 
     if (template.environmentList.length !== formTemplate.environmentList.length) return true;
 
@@ -336,7 +333,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         setFormTemplate(old => ({
           ...old,
           name: undefined,
-          description: undefined,
           environmentList: [{
             name: 'main',
             image: '',
@@ -353,7 +349,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         }));
         form.setFieldsValue({
           templatename: undefined,
-          description: undefined,
         });
       })
       .catch(apolloErrorCatcher);
@@ -377,7 +372,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         onSubmitCapture={onSubmit}
         initialValues={{
           templatename: formTemplate.name,
-          description: formTemplate.description,
         }}
       >
         <Form.Item
@@ -403,23 +397,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               })
             }
             placeholder="Insert template name"
-            allowClear
-          />
-        </Form.Item>
-
-        {/* Description field */}
-        <Form.Item
-          {...fullLayout}
-          name="description"
-          className="mt-1"
-        >
-          <Input.TextArea
-            onChange={e =>
-              setFormTemplate(old => {
-                return { ...old, description: e.target.value };
-              })
-            }
-            placeholder="Insert template description"
             allowClear
           />
         </Form.Item>

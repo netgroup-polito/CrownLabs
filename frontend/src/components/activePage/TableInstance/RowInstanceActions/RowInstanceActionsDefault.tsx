@@ -105,7 +105,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const handleEnvironmentConnect = (env: any) => {
-    if (gui && env.guiEnabled !== false) {
+    if (env.guiEnabled) {
       const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
       const envUrl = `${baseUrl}/${env.name}/`;
       window.open(envUrl, '_blank');
@@ -119,8 +119,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     if (!environments || environments.length <= 1) return [];
     
     return environments.map((env, index) => {
-      const isReady = env.phase === Phase.Ready || (status === Phase.Ready && env.guiEnabled !== false);
-      const isGuiEnabled = env.guiEnabled !== false;
+      const isReady = env.phase === Phase.Ready;
+      const isGuiEnabled = env.guiEnabled;
       
       return {
         key: env.name,

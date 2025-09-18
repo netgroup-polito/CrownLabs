@@ -41,6 +41,7 @@ query instancesLabelSelector($labels: String) {
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

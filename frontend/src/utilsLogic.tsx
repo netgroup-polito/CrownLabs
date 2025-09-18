@@ -143,13 +143,18 @@ export const makeGuiInstance = (
     prettyName: '',
   };
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
-  
-  // Get environments status from instance status
-  const environments = status?.environments?.map(env => ({
-    name: env?.name ?? '',
-    phase: env?.phase,
-    ip: env?.ip,
-  })) ?? [];
+
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
   
   const hasMultipleEnvironments = environments.length > 1;
   
@@ -189,7 +194,7 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
-    environments,
+    environments: environments,
     hasMultipleEnvironments,
   } as Instance;
 };
@@ -381,12 +386,17 @@ export const getManagerInstances = (
   const { prettyName: templatePrettyname, environmentList } =
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
   
-  // Get environments status from instance status
-  const environments = status?.environments?.map(env => ({
-    name: env?.name ?? '',
-    phase: env?.phase,
-    ip: env?.ip,
-  })) ?? [];
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
   
   const hasMultipleEnvironments = environments.length > 1;
   
@@ -423,7 +433,7 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
-    environments,
+    environments: environments,
     hasMultipleEnvironments,
   } as Instance;
 };
