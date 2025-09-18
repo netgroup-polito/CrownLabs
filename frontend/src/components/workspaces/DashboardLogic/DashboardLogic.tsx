@@ -122,10 +122,8 @@ const DashboardLogic: FC = () => {
 
   // Enhanced refresh function with better error handling and logging
   const refreshQuota = useCallback(async () => {
-    console.log('Refreshing quota data...'); // Debug log
     try {
       await refetchInstances();
-      console.log('Quota data refreshed successfully'); // Debug log
     } catch (error) {
       console.error('Error refreshing quota data:', error);
       // Type cast the error to ApolloError or create a new one

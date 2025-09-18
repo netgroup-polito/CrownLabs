@@ -21,8 +21,6 @@ const ActiveViewLogic: FC = () => {
   const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  console.log('ActiveView Tenant namespace:', tenantNs); // Debug log
-
   // Fetch instance data for quota calculations
   const {
     data: instancesData,
@@ -34,8 +32,6 @@ const ActiveViewLogic: FC = () => {
     onError: apolloErrorCatcher,
     fetchPolicy: 'cache-and-network',
   });
-
-  console.log('ActiveView Instances data:', instancesData); // Debug log
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
@@ -71,8 +67,6 @@ const ActiveViewLogic: FC = () => {
     const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
     const items = instancesData?.instanceList?.instances ?? [];
 
-    console.log('activeView items:', items); // Debug log
-
     for (const inst of items) {
       const resources =
         inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
@@ -87,8 +81,6 @@ const ActiveViewLogic: FC = () => {
 
     const totalQuota = tenantData?.tenant?.status?.quota;
 
-    console.log('activeView totalQuota:', totalQuota); // Debug log
-
     const availableQuota = {
       cpu:
         (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
@@ -101,8 +93,6 @@ const ActiveViewLogic: FC = () => {
         (totalQuota?.instances ? totalQuota.instances : 0) -
         consumedQuota.instances,
     };
-    console.log('activeView consumedQuota:', consumedQuota); // Debug log
-    console.log('activeView availableQuota:', availableQuota); // Debug log
     return {
       consumedQuota: {
         cpu: consumedQuota.cpu,
@@ -123,10 +113,8 @@ const ActiveViewLogic: FC = () => {
 
   // Enhanced refresh function with better error handling and logging
   const refreshQuota = useCallback(async () => {
-    console.log('Refreshing quota data...'); // Debug log
     try {
       await refetchInstances();
-      console.log('Quota data refreshed successfully'); // Debug log
     } catch (error) {
       console.error('Error refreshing quota data:', error);
       // Type cast the error to ApolloError or create a new one

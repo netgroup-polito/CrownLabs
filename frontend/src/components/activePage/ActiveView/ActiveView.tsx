@@ -43,7 +43,6 @@ export interface IActiveViewProps {
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const { managerView, user, workspaces, quotaData } = props;
 
-  console.log('ActiveView quotaData:', quotaData); // Debug log
 
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
