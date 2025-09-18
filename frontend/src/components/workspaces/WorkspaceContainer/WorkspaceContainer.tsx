@@ -105,76 +105,84 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         loading={loading}
         isPersonal={isPersonal}
       />
-      <Box
-        header={{
-          size: 'large',
-          center: (
-            <div className="h-full flex justify-center items-center px-5">
-              <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{workspace.prettyName}</b>
-              </p>
-            </div>
-          ),
-          left: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<UserSwitchOutlined />}
-                  onClick={() => setShowUserListModal(true)}
-                >
-                  {workspace.waitingTenants && (
-                    <Badge
-                      count={workspace.waitingTenants}
-                      color="yellow"
-                      className="absolute -top-2.5 -right-2.5"
-                    />
-                  )}
-                </Button>
-              </Tooltip>
-            </div>
-          ),
-          right: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pr-10">
-              <Tooltip title="Create template">
-                <Button
-                  onClick={() => {
-                    setShow(true);
-                  }}
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<PlusOutlined />}
-                />
-              </Tooltip>
-            </div>
-          ),
-        }}
-      >
-        <TemplatesTableLogic
-          tenantNamespace={tenantNamespace}
-          role={workspace.role}
-          workspaceNamespace={
-            isPersonal ? tenantNamespace : workspace.namespace
-          }
-          workspaceName={workspace.name}
-          availableQuota={availableQuota}
-          refreshQuota={refreshQuota} // Pass refresh function
-          isPersonal={isPersonal}
-        />
-        <Modal
-          destroyOnHidden={true}
-          title={`Users in ${workspace.prettyName} `}
-          width="800px"
-          open={showUserListModal}
-          footer={null}
-          onCancel={() => setShowUserListModal(false)}
+
+      {/* Wrapper div to constrain height */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box
+          header={{
+            size: 'large',
+            center: (
+              <div className="h-full flex justify-center items-center px-5">
+                <p className="md:text-4xl text-2xl text-center mb-0">
+                  <b>{workspace.prettyName}</b>
+                </p>
+              </div>
+            ),
+            left: workspace.role === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center pl-10">
+                <Tooltip title="Manage users">
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<UserSwitchOutlined />}
+                    onClick={() => setShowUserListModal(true)}
+                  >
+                    {workspace.waitingTenants && (
+                      <Badge
+                        count={workspace.waitingTenants}
+                        color="yellow"
+                        className="absolute -top-2.5 -right-2.5"
+                      />
+                    )}
+                  </Button>
+                </Tooltip>
+              </div>
+            ),
+            right: workspace.role === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center pr-10">
+                <Tooltip title="Create template">
+                  <Button
+                    onClick={() => {
+                      setShow(true);
+                    }}
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<PlusOutlined />}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          }}
         >
-          <UserListLogic workspace={workspace} />
-        </Modal>
-      </Box>
+          {/* Make the content scrollable */}
+          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <TemplatesTableLogic
+              tenantNamespace={tenantNamespace}
+              role={workspace.role}
+              workspaceNamespace={
+                isPersonal ? tenantNamespace : workspace.namespace
+              }
+              workspaceName={workspace.name}
+              availableQuota={availableQuota}
+              refreshQuota={refreshQuota}
+              isPersonal={isPersonal}
+            />
+          </div>
+        </Box>
+      </div>
+
+      <Modal
+        destroyOnHidden={true}
+        title={`Users in ${workspace.prettyName} `}
+        width="800px"
+        open={showUserListModal}
+        footer={null}
+        onCancel={() => setShowUserListModal(false)}
+      >
+        <UserListLogic workspace={workspace} />
+      </Modal>
     </>
   );
 };
