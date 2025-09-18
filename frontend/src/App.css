@@ -3,10 +3,27 @@ body {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  margin: 0;
+  padding: 0; /* Add this */
 }
 
 #root {
   height: 100%;
   width: 100%;
   min-height: 100vh;
+  display: flex; /* Add this */
+  flex-direction: column; /* Add this */
+}
+
+/* Force Ant Design layout to take full height */
+.ant-layout {
+  min-height: 100vh !important;
+  flex: 1; /* Add this if using flexbox */
+}
+
+/* Remove any default margins from the main content area */
+.ant-layout-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto;
 }

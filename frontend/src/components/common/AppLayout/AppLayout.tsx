@@ -36,9 +36,9 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
 
   return (
     <BrowserRouter basename={BASE_URL}>
-      <Layout className="h-full">
+      <Layout className="min-h-screen flex flex-col">
         <Navbar routes={routes} transparent={transparentNavbar} />
-        <Content className="flex">
+        <Content className="flex flex-1">
           {tenantNsIsReady ? (
             <Routes>
               {routes
