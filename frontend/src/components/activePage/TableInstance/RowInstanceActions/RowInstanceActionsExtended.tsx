@@ -1,5 +1,5 @@
 import type { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Typography } from 'antd';
+import { Popover, Tooltip, Typography, List } from 'antd';
 import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
@@ -40,6 +40,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     prettyName,
     nodeName,
     running,
+    environments
   } = instance;
 
   const sshDisabled =
@@ -53,18 +54,28 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         <strong>Instance ID: </strong>
         <Text italic>{name}</Text>
       </p>
-      {running && (
+      {running && environments && environments.length > 0 && (
         <>
-          <p className="m-0">
-            <strong>IP: </strong>
-            <Text type="warning" copyable={!!ip}>
-              {ip ?? 'unknown'}
-            </Text>
-          </p>
           <p className="m-0">
             <strong>Node: </strong>
             <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
           </p>
+          <List
+            dataSource={environments}
+            renderItem={(env) => (
+              <List.Item className="py-1 px-0">
+                <div className="w-full">
+                <Text strong>{env.name}</Text>
+                  <p className="m-0">
+                    <strong>IP: </strong>
+                    <Text type="warning" copyable={!!env.ip}>
+                      {env.ip ?? 'unknown'}
+                    </Text> 
+                  </p>
+                </div>
+              </List.Item>
+            )}
+          />
         </>
       )}
       {viewMode === WorkspaceRole.manager && (
