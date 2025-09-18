@@ -15,6 +15,7 @@ import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
+import { Col } from 'antd';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -93,7 +94,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   };
 
   return (
-    <>
+    <Col span={24}>
       <ModalCreateTemplate
         workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
         cpuInterval={{ max: 8, min: 1 }}
@@ -183,7 +184,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       >
         <UserListLogic workspace={workspace} />
       </Modal>
-    </>
+    </Col>
   );
 };
 

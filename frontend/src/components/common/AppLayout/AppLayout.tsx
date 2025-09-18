@@ -38,7 +38,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
     <BrowserRouter basename={BASE_URL}>
       <Layout className="min-h-screen flex flex-col">
         <Navbar routes={routes} transparent={transparentNavbar} />
-        <Content className="flex flex-1">
+        <Content className="flex-1 overflow-hidden">
           {tenantNsIsReady ? (
             <Routes>
               {routes
@@ -48,11 +48,26 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
                     key={r.route.path}
                     path={r.route.path}
                     element={
-                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                        <Col span={0} lg={1} xxl={2}></Col>
-                        {r.content}
-                        <Col span={0} lg={1} xxl={2}></Col>
-                      </Row>
+                      <div
+                        style={{
+                          height: '100%',
+                          padding: '20px 0',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Row style={{ height: '100%' }}>
+                          <Col span={0} lg={1} xxl={2}></Col>
+                          <Col
+                            span={24}
+                            lg={22}
+                            xxl={20}
+                            style={{ height: '100%' }}
+                          >
+                            {r.content}
+                          </Col>
+                          <Col span={0} lg={1} xxl={2}></Col>
+                        </Row>
+                      </div>
                     }
                   />
                 ))}
