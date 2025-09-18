@@ -16,8 +16,9 @@ import type {
   OwnedInstancesQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
+  Phase5,
 } from './generated-types';
-import { AutoEnroll, Phase, UpdateType } from './generated-types';
+import { AutoEnroll, Phase, Phase2, UpdateType } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
@@ -73,6 +74,7 @@ export const makeGuiTemplate = (
     workspaceNamespace:
       'workspace-' +
       (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
+    allowPublicExposure: tq.original.spec?.allowPublicExposure ?? false,
   } as Template;
 };
 
@@ -101,7 +103,8 @@ export const makeGuiInstance = (
 
   const { metadata, spec, status } = instance;
   const { name, namespace: tenantNamespace } = metadata ?? {};
-  const { running, prettyName } = spec ?? {};
+  const { running, prettyName, publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
   const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
@@ -111,6 +114,11 @@ export const makeGuiInstance = (
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+
+  // determine if public exposure is allowed from template spec
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
@@ -132,7 +140,7 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -142,6 +150,38 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    allowPublicExposure,
+    tenantDisplayName: '',
+    myDriveUrl: '',
+    publicExposure:
+      (publicExposure &&
+        publicExposure.ports &&
+        publicExposure.ports.length > 0) ||
+      (publicExposureStatus &&
+        publicExposureStatus.ports &&
+        publicExposureStatus.ports.length > 0 &&
+        (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
+        ? {
+            externalIP: publicExposureStatus?.externalIP || '',
+            phase:
+              (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+            ports:
+              (publicExposureStatus?.ports &&
+              publicExposureStatus.ports.length > 0
+                ? publicExposureStatus.ports
+                : (publicExposure?.ports ?? [])
+              )
+                ?.filter(p => p != null)
+                .map(p => ({
+                  name: p.name || '',
+                  port: p.port && p.port > 0 ? String(p.port) : '',
+                  targetPort: p.targetPort || 0,
+                  protocol:
+                    (p as { protocol?: 'TCP' | 'UDP' | 'SCTP' })?.protocol ||
+                    'TCP',
+                })) || [],
+          }
+        : undefined, // Questo sarà undefined quando non ci sono porte esposte O quando la fase è Off
   } as Instance;
 };
 
@@ -170,7 +210,7 @@ interface InstancesSubscriptionData {
 export const updateQueryOwnedInstancesQuery = (
   setDataInstances: Dispatch<SetStateAction<Instance[]>>,
   userId: string,
-  notifier: Notifier,
+  _notifier: Notifier,
 ) => {
   return (
     prev: OwnedInstancesQuery,
@@ -182,46 +222,54 @@ export const updateQueryOwnedInstancesQuery = (
     if (!data?.updateInstance?.instance) return prev;
 
     const { instance: instanceK8s, updateType } = data.updateInstance;
-    let notify = false;
+    let shouldNotify = false;
 
     setDataInstances(old => {
-      const instance = makeGuiInstance(instanceK8s, userId);
-      const found = old.find(i => i.id === instance.id);
-      const objType = getSubObjTypeCustom(found, instance, updateType);
+      const instanceGui = makeGuiInstance(instanceK8s, userId);
+      const objType = getSubObjTypeCustom(
+        old.find(i => i.id === instanceGui.id),
+        instanceGui,
+        updateType,
+      );
+
       switch (objType) {
-        case SubObjType.Deletion:
-          old = old.filter(i => i.id !== instance.id);
-          notify = false;
-          break;
         case SubObjType.Addition:
-          old = !old.find(i => i.id === instance.id) ? [...old, instance] : old;
-          notify = true;
-          break;
-        case SubObjType.PrettyName:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
-          notify = false;
-          break;
+          shouldNotify = true;
+          return [...old, instanceGui];
+        case SubObjType.Deletion:
+          shouldNotify = true;
+          return old.filter(i => i.id !== instanceGui.id);
         case SubObjType.UpdatedInfo:
-          old = old?.map(i => (i.id === instance.id ? instance : i));
-          notify = true;
-          break;
+          // Don't notify for publicExposure-only changes
+          if (
+            JSON.stringify(
+              old.find(i => i.id === instanceGui.id)?.publicExposure,
+            ) !== JSON.stringify(instanceGui.publicExposure)
+          ) {
+            // This is a publicExposure change, update silently
+            return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
+          } else {
+            shouldNotify = true;
+            return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
+          }
+        case SubObjType.PrettyName:
+          return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
         case SubObjType.Drop:
-          notify = false;
-          break;
         default:
-          break;
+          // Always apply updates to ensure real-time sync
+          return old.map(i => (i.id === instanceGui.id ? instanceGui : i));
       }
-
-      if (notify)
-        notifyStatus(
-          instanceK8s.status?.phase,
-          instanceK8s,
-          updateType,
-          notifier,
-        );
-
-      return old;
     });
+
+    // Send notification if needed
+    if (shouldNotify) {
+      notifyStatus(
+        instanceK8s.status?.phase,
+        instanceK8s,
+        updateType,
+        _notifier,
+      );
+    }
 
     return prev;
   };
@@ -233,19 +281,38 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const {
+    running: oldRunning,
+    status: oldStatus,
+    publicExposure: oldPublicExposure,
+  } = oldObj ?? {};
+  const {
+    running: newRunning,
+    status: newStatus,
+    publicExposure: newPublicExposure,
+  } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
+
     if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
     }
+
+    // Check for publicExposure changes
+    const oldPEString = JSON.stringify(oldPublicExposure);
+    const newPEString = JSON.stringify(newPublicExposure);
+    if (oldPEString !== newPEString) {
+      // PublicExposure changed - force UI update without notification
+      return SubObjType.UpdatedInfo;
+    }
+
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
 };
 
-export const getSubObjTypeK8s = (
+// Enhanced version of getSubObjTypeK8s to detect publicExposure changes
+const getSubObjTypeK8sEnhanced = (
   oldObj: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
   newObj: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
   uType: Nullable<UpdateType>,
@@ -253,19 +320,36 @@ export const getSubObjTypeK8s = (
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
   const { spec: oldSpec, status: oldStatus } = oldObj ?? {};
   const { spec: newSpec, status: newStatus } = newObj;
+
   if (oldObj) {
     if (oldSpec?.prettyName !== newSpec?.prettyName)
       return SubObjType.PrettyName;
+
     if (
       oldStatus?.phase !== newStatus?.phase ||
       oldSpec?.running !== newSpec?.running
     ) {
       return SubObjType.UpdatedInfo;
     }
+
+    // Check for publicExposure changes in both spec and status
+    const oldSpecPE = JSON.stringify(oldSpec?.publicExposure);
+    const newSpecPE = JSON.stringify(newSpec?.publicExposure);
+    const oldStatusPE = JSON.stringify(oldStatus?.publicExposure);
+    const newStatusPE = JSON.stringify(newStatus?.publicExposure);
+
+    if (oldSpecPE !== newSpecPE || oldStatusPE !== newStatusPE) {
+      // PublicExposure changed - treat as UpdatedInfo but without notification
+      return SubObjType.UpdatedInfo;
+    }
+
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
 };
+
+// Override the original function
+export { getSubObjTypeK8sEnhanced as getSubObjTypeK8s };
 
 export const joinInstancesAndTemplates = (
   templates: Template[],
@@ -322,6 +406,8 @@ export const getManagerInstances = (
     throw new Error('getInstances() error: a required parameter is undefined');
   }
   const { metadata, spec, status } = instance;
+  const { publicExposure } = spec ?? {};
+  const { publicExposure: publicExposureStatus } = status ?? {};
 
   // Template Info
   const {
@@ -333,6 +419,10 @@ export const getManagerInstances = (
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
+  // determine if public exposure allowed by template
+  const allowPublicExposure =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
 
   // Tenant Info
   const { namespace: tenantNamespace } = metadata ?? {};
@@ -350,10 +440,11 @@ export const getManagerInstances = (
     gui: guiEnabled,
     persistent: persistent,
     templateId: makeTemplateKey(templateName, workspaceName),
+    templateName: templateName,
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -361,6 +452,37 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    allowPublicExposure,
+    myDriveUrl: '',
+    publicExposure:
+      (publicExposure &&
+        publicExposure.ports &&
+        publicExposure.ports.length > 0) ||
+      (publicExposureStatus &&
+        publicExposureStatus.ports &&
+        publicExposureStatus.ports.length > 0 &&
+        (publicExposureStatus.phase as unknown as Phase) !== Phase.Off)
+        ? {
+            externalIP: publicExposureStatus?.externalIP || '',
+            phase:
+              (publicExposureStatus?.phase as unknown as Phase) || Phase.Off,
+            ports:
+              (publicExposureStatus?.ports &&
+              publicExposureStatus.ports.length > 0
+                ? publicExposureStatus.ports
+                : (publicExposure?.ports ?? [])
+              )
+                ?.filter(p => p != null)
+                .map(p => ({
+                  name: p.name || '',
+                  port: p.port && p.port > 0 ? String(p.port) : '',
+                  targetPort: p.targetPort || 0,
+                  protocol:
+                    (p as { protocol?: 'TCP' | 'UDP' | 'SCTP' })?.protocol ||
+                    'TCP',
+                })) || [],
+          }
+        : undefined,
   } as Instance;
 };
 
@@ -390,8 +512,16 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
-      instancesFiltered;
+    const [
+      {
+        templateId,
+        gui,
+        persistent,
+        workspaceName,
+        templatePrettyName,
+        allowPublicExposure,
+      },
+    ] = instancesFiltered;
     return {
       id: templateId,
       name: templatePrettyName,
@@ -401,6 +531,7 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
+      allowPublicExposure,
     };
   });
 };
@@ -457,7 +588,7 @@ const makeNotificationContent = (
               <i>
                 {status === Phase.Ready
                   ? ' started'
-                  : status === Phase.Off && ' stopped'}
+                  : status === Phase2.Off && ' stopped'}
               </i>
             </div>
             {instanceUrl && (
@@ -499,7 +630,7 @@ export const notifyStatus = (
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
     switch (status) {
-      case Phase.Off:
+      case Phase2.Off:
         if (!instance.spec?.running) {
           notify(
             'warning',
@@ -648,7 +779,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase,
+    status: status?.phase as unknown as Phase5,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;

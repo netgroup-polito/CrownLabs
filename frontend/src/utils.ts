@@ -1,5 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { EnvironmentType, Phase, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -33,6 +33,8 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type Instance = {
@@ -57,6 +59,9 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  publicExposure?: PublicExposure;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type SharedVolume = {
@@ -64,11 +69,26 @@ export type SharedVolume = {
   name: string;
   prettyName: string;
   size: string;
-  status: Phase3;
+  status: Phase5;
   timeStamp: string;
   namespace: string;
 };
 
+export type PublicExposure = {
+  externalIP: string;
+  phase: Phase;
+  ports: Array<PortListItem>;
+};
+
+export type PortListItem = {
+  name?: string;
+  port: string;
+  targetPort: number;
+  protocol?: 'TCP' | 'UDP' | 'SCTP';
+  // Additional fields to track desired vs actual ports
+  _actualPort?: string;
+  _desiredPort?: string;
+};
 export enum LinkPosition {
   MenuButton,
   NavbarButton,
@@ -251,4 +271,50 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
   return (Object.keys(enumObj) as (keyof T)[]).find(
     key => enumObj[key] === value,
   );
+}
+
+/**
+ * Build JSON patch string for updating publicExposure ports on an Instance.
+ * @param portsNormalized entries with name, targetPort, port, and protocol
+ * @returns JSON patch string
+ */
+export function buildPublicExposurePatch(
+  portsNormalized: Array<{
+    name: string;
+    targetPort: number;
+    port: number;
+    protocol: string;
+  }>,
+): string {
+  // Handle empty ports array case - this will disable public exposure completely
+  if (portsNormalized.length === 0) {
+    console.log('📦 Building patch to disable public exposure (empty ports)');
+    // Try using empty ports array instead of null
+    const payload = {
+      apiVersion: 'crownlabs.polito.it/v1alpha2',
+      kind: 'Instance',
+      spec: {
+        publicExposure: {
+          ports: [],
+        },
+      },
+    };
+    return JSON.stringify(payload);
+  }
+
+  // Ensure all required fields are present according to CRD
+  const portsFormatted = portsNormalized.map(p => ({
+    name: p.name,
+    targetPort: p.targetPort,
+    port: p.port,
+    protocol: p.protocol,
+  }));
+
+  const payload = {
+    apiVersion: 'crownlabs.polito.it/v1alpha2',
+    kind: 'Instance',
+    spec: { publicExposure: { ports: portsFormatted } },
+  };
+  console.log(`📦 Building patch with ${portsFormatted.length} ports`);
+  return JSON.stringify(payload);
 }
