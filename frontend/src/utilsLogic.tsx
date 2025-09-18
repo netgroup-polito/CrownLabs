@@ -475,6 +475,8 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
+      environmentList: [],
+      hasMultipleEnvironments: false,
     };
   });
 };

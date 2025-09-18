@@ -3598,6 +3598,7 @@ export const ApplyTemplateDocument = gql`
       name: prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
         resources {
@@ -3739,6 +3740,7 @@ export const CreateInstanceDocument = gql`
               prettyName
               description
               environmentList {
+                name
                 guiEnabled
                 persistent
                 environmentType
@@ -3841,6 +3843,7 @@ export const CreateTemplateDocument = gql`
       prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
         resources {
@@ -4210,6 +4213,7 @@ export const InstancesLabelSelectorDocument = gql`
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType
@@ -4360,6 +4364,7 @@ export const WorkspaceTemplatesDocument = gql`
         prettyName
         description
         environmentList {
+          name
           guiEnabled
           persistent
           nodeSelector
@@ -4625,6 +4630,7 @@ export const UpdatedOwnedInstancesDocument = gql`
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType
@@ -4704,6 +4710,7 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType
@@ -4752,6 +4759,7 @@ export const UpdatedWorkspaceTemplatesDocument = gql`
         prettyName
         description
         environmentList {
+          name
           guiEnabled
           persistent
           nodeSelector

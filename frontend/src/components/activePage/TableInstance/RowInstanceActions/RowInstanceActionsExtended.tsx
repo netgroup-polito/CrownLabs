@@ -32,7 +32,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
   const {
-    ip,
     environmentType,
     status,
     templatePrettyName,
