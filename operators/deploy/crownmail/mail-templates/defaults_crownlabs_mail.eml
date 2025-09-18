@@ -2,6 +2,7 @@ From: { from }
 To: { to }
 Subject: { subject }
 Date: { date }
+Message-ID: { message-id }
 MIME-Version: 1.0
 Content-Type: multipart/alternative; boundary=CrownLabsEmailBoundary
 

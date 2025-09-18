@@ -23,14 +23,17 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net/mail"
 	"net/smtp"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
+	UUID "github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -236,6 +239,31 @@ func (m *Client) processEmailContentTemplate(templatePath string, ph *Placeholde
 	return emailValues, nil
 }
 
+// parseDomain extracts the domain from an email address.
+func parseDomain(email string) (string, error) {
+	address, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse email address from %q: %w", email, err)
+	}
+
+	at := strings.LastIndex(address.Address, "@")
+	if at == -1 || at == len(address.Address)-1 {
+		return "", fmt.Errorf("invalid email address, missing or misplaced @: %q", address.Address)
+	}
+	return strings.ToLower(address.Address[at+1:]), nil
+}
+
+// generateMessageID generates a unique message ID based on the sender's email domain.
+func generateMessageID(from string) (string, error) {
+	domain, err := parseDomain(from)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse domain from email address %q: %w", from, err)
+	}
+
+	messageID := fmt.Sprintf("<%s@%s>", UUID.NewString(), domain)
+	return messageID, nil
+}
+
 // PrepareFinalEmail prepares the final email by combining the base template with content.
 func (m *Client) PrepareFinalEmail(emailContent map[string]string) (string, error) {
 	// Get the entire email template
@@ -263,6 +291,13 @@ func (m *Client) PrepareFinalEmail(emailContent map[string]string) (string, erro
 
 	// Add sender info to email content
 	emailContent["from"] = m.From
+
+	// Add unique message ID to email
+	messageID, err := generateMessageID(m.From)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate message ID: %w", err)
+	}
+	emailContent["message-id"] = messageID
 
 	// Add date to email content
 	emailContent["date"] = time.Now().Format(time.RFC1123Z)
