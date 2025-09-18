@@ -2,10 +2,12 @@ import type { FC } from 'react';
 import { Card } from 'antd';
 import './Box.less';
 import type { BoxHeaderSize } from '../../../utils';
+
 export interface IBoxProps {
   header?: BoxHeader;
   footer?: React.ReactNode;
   children?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 export type BoxHeader = {
@@ -16,7 +18,7 @@ export type BoxHeader = {
 };
 
 const Box: FC<IBoxProps> = ({ ...props }) => {
-  const { header, children, footer } = props;
+  const { header, children, footer, style } = props;
   const { center, left, right, size } = header || {};
 
   const classPerSize = {
@@ -32,6 +34,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
         styles={{
           body: { height: '100%', flexDirection: 'column', display: 'flex' },
         }}
+        style={style}
       >
         <div className="w-full flex-none">
           {header && (
@@ -46,7 +49,10 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
             </div>
           )}
         </div>
-        <div className="w-full flex-grow">{children}</div>
+        {/* Changed from "w-full flex-grow" to use flex with proper constraints */}
+        <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {children}
+        </div>
         <div className="w-full flex-none inner">{footer}</div>
       </Card>
     </>

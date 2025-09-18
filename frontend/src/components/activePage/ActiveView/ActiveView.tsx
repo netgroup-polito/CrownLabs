@@ -89,7 +89,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
       refreshQuota={quotaData?.refreshQuota}
       availableQuota={quotaData?.availableQuota}
     >
-      <Col span={24} lg={22} xxl={20}>
+      <Col span={30} lg={22} xxl={20}>
         <ModalGroupDeletion
           view={WorkspaceRole.manager}
           persistent={selectedPersistent}
@@ -102,7 +102,11 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
 
         {/* Wrapper div to handle the flex layout */}
         <div
-          style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+          style={{
+            height: '80vh', // Use calc instead of 80vh
+            display: 'flex',
+            flexDirection: 'column',
+          }}
         >
           <Box
             header={{
