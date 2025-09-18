@@ -91,10 +91,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
   const font22px = { fontSize: '22px' };
 
-  const connectOptions = gui
-    ? { href: url!, target: '_blank' }
-    : { onClick: () => setSshModal(true), ghost: true };
-
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
 
    const handleConnect = () => {
@@ -118,7 +114,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   const createEnvironmentMenuItems = (): MenuProps['items'] => {
     if (!environments || environments.length <= 1) return [];
     
-    return environments.map((env, index) => {
+    return environments.map(env => {
       const isReady = env.phase === Phase.Ready;
       const isGuiEnabled = env.guiEnabled;
       

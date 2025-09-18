@@ -673,6 +673,8 @@ export const getTemplatesMapped = (
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
       allowPublicExposure,
+      environmentList: [],
+      hasMultipleEnvironments: false,
     };
   });
 };
