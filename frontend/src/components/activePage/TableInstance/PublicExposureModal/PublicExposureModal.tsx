@@ -410,102 +410,114 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
           <Form.List name="ports">
             {(fields, { add, remove }) => (
               <>
-                {fields.map(({ key, name, ...restField }, index) => (
-                  <div key={key}>
-                    <Row gutter={8} align="bottom">
-                      <Col span={allowPublicExposure ? 4 : 4}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'name']}
-                          label={index === 0 ? 'Name' : ''}
-                          rules={[{ required: false }]}
-                        >
-                          <Input
-                            placeholder="Port name"
-                            disabled={isUpdating}
-                          />
-                        </Form.Item>
-                      </Col>
-                      <Col span={allowPublicExposure ? 5 : 5}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'targetPort']}
-                          label={index === 0 ? 'Internal Port' : ''}
-                          rules={[
-                            { required: true, message: 'Required' },
-                            {
-                              validator: (rule, value) =>
-                                targetPortValidator(rule, value, name),
-                            },
-                          ]}
-                          validateTrigger={['onChange', 'onBlur']}
-                          hasFeedback={false}
-                          help=""
-                        >
-                          <Input placeholder="e.g. 8080" disabled={isUpdating} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={allowPublicExposure ? 4 : 4}>
-                        <Form.Item
-                          {...restField}
-                          name={[name, 'protocol']}
-                          label={index === 0 ? 'Protocol' : ''}
-                          rules={[{ required: true, message: 'Required' }]}
-                          initialValue="TCP"
-                        >
-                          <Select
-                            placeholder="Select protocol"
-                            disabled={isUpdating}
-                          >
-                            <Select.Option value="TCP">TCP</Select.Option>
-                            <Select.Option value="UDP">UDP</Select.Option>
-                            <Select.Option value="SCTP">SCTP</Select.Option>
-                          </Select>
-                        </Form.Item>
-                      </Col>
-                      {allowPublicExposure && (
-                        <Col span={4}>
+                <div
+                  style={{
+                    maxHeight: '320px', // Circa 4 righe di porte (80px per riga)
+                    overflowY: 'auto',
+                    paddingRight: '8px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  {fields.map(({ key, name, ...restField }, index) => (
+                    <div key={key}>
+                      <Row gutter={8} align="bottom">
+                        <Col span={allowPublicExposure ? 4 : 4}>
                           <Form.Item
                             {...restField}
-                            name={[name, 'desiredPort']}
-                            label={index === 0 ? 'Request Port' : ''}
-                            rules={[{ validator: portValidator }]}
+                            name={[name, 'name']}
+                            label={index === 0 ? 'Name' : ''}
+                            rules={[{ required: false }]}
+                          >
+                            <Input
+                              placeholder="Port name"
+                              disabled={isUpdating}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={allowPublicExposure ? 5 : 5}>
+                          <Form.Item
+                            {...restField}
+                            name={[name, 'targetPort']}
+                            label={index === 0 ? 'Internal Port' : ''}
+                            rules={[
+                              { required: true, message: 'Required' },
+                              {
+                                validator: (rule, value) =>
+                                  targetPortValidator(rule, value, name),
+                              },
+                            ]}
                             validateTrigger={['onChange', 'onBlur']}
                             hasFeedback={false}
                             help=""
                           >
-                            <Input placeholder="Auto" disabled={isUpdating} />
+                            <Input
+                              placeholder="e.g. 8080"
+                              disabled={isUpdating}
+                            />
                           </Form.Item>
                         </Col>
-                      )}
-                      {allowPublicExposure && (
-                        <Col span={5}>
+                        <Col span={allowPublicExposure ? 4 : 4}>
                           <Form.Item
                             {...restField}
-                            name={[name, '_displayActualPort']}
-                            label={index === 0 ? 'Assigned Port' : ''}
+                            name={[name, 'protocol']}
+                            label={index === 0 ? 'Protocol' : ''}
+                            rules={[{ required: true, message: 'Required' }]}
+                            initialValue="TCP"
                           >
-                            <Input placeholder="—" disabled={true} />
+                            <Select
+                              placeholder="Select protocol"
+                              disabled={isUpdating}
+                            >
+                              <Select.Option value="TCP">TCP</Select.Option>
+                              <Select.Option value="UDP">UDP</Select.Option>
+                              <Select.Option value="SCTP">SCTP</Select.Option>
+                            </Select>
                           </Form.Item>
                         </Col>
+                        {allowPublicExposure && (
+                          <Col span={4}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'desiredPort']}
+                              label={index === 0 ? 'Request Port' : ''}
+                              rules={[{ validator: portValidator }]}
+                              validateTrigger={['onChange', 'onBlur']}
+                              hasFeedback={false}
+                              help=""
+                            >
+                              <Input placeholder="Auto" disabled={isUpdating} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                        {allowPublicExposure && (
+                          <Col span={5}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, '_displayActualPort']}
+                              label={index === 0 ? 'Assigned Port' : ''}
+                            >
+                              <Input placeholder="—" disabled={true} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                        <Col span={2} style={{ textAlign: 'center' }}>
+                          <Form.Item label={index === 0 ? '\u00A0' : ''}>
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => remove(name)}
+                              disabled={isUpdating}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+                      {index < fields.length - 1 && (
+                        <Divider style={{ margin: '12px 0' }} />
                       )}
-                      <Col span={2} style={{ textAlign: 'center' }}>
-                        <Form.Item label={index === 0 ? '\u00A0' : ''}>
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => remove(name)}
-                            disabled={isUpdating}
-                          />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                    {index < fields.length - 1 && (
-                      <Divider style={{ margin: '12px 0' }} />
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  ))}
+                </div>
 
                 {(!ports || ports.length === 0) && (
                   <Alert

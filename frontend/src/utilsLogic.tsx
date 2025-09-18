@@ -176,7 +176,9 @@ export const makeGuiInstance = (
                   name: p.name || '',
                   port: p.port && p.port > 0 ? String(p.port) : '',
                   targetPort: p.targetPort || 0,
-                  protocol: 'TCP' as const,
+                  protocol:
+                    (p as { protocol?: 'TCP' | 'UDP' | 'SCTP' })?.protocol ||
+                    'TCP',
                 })) || [],
           }
         : undefined, // Questo sarà undefined quando non ci sono porte esposte O quando la fase è Off
@@ -475,7 +477,9 @@ export const getManagerInstances = (
                   name: p.name || '',
                   port: p.port && p.port > 0 ? String(p.port) : '',
                   targetPort: p.targetPort || 0,
-                  protocol: 'TCP' as const,
+                  protocol:
+                    (p as { protocol?: 'TCP' | 'UDP' | 'SCTP' })?.protocol ||
+                    'TCP',
                 })) || [],
           }
         : undefined,
