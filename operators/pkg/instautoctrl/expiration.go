@@ -146,31 +146,26 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 				}
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
-			} else {
-				if err := r.DeleteInstance(ctx); err != nil {
-					log.Error(err, "failed to delete expired instance")
-					return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
-				}
-				// Send notification for instance deletion
-				if err := r.NotifyInstanceDeletion(ctx); err != nil {
-					log.Error(err, "failed to send deletion notification")
-					return ctrl.Result{}, err
-				}
-				tracer.Step("deletion notification sent")
-
 			}
+			if err := r.DeleteInstance(ctx); err != nil {
+				log.Error(err, "failed to delete expired instance")
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
+			}
+			// Send notification for instance deletion
+			if err := r.NotifyInstanceDeletion(ctx); err != nil {
+				log.Error(err, "failed to send deletion notification")
+				return ctrl.Result{}, err
+			}
+			tracer.Step("deletion notification sent")
 		} else {
 			if err := r.DeleteInstance(ctx); err != nil {
 				log.Error(err, "failed to delete expired instance")
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 			}
 		}
-
 		tracer.Step("instance deleted")
 		log.Info("Expired instance has been deleted", "instance", instance.Name, "namespace", instance.Namespace)
-
 	}
-
 	// Calculate requeue time at the instance inactive deadline time:
 	// if the instance is not yet to be terminated, we requeue it after the remaining time
 	requeueTime := remainingTime
