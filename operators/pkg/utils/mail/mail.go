@@ -33,7 +33,7 @@ import (
 	"strings"
 	"time"
 
-	UUID "github.com/google/uuid"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -260,7 +260,7 @@ func generateMessageID(from string) (string, error) {
 		return "", fmt.Errorf("failed to parse domain from email address %q: %w", from, err)
 	}
 
-	messageID := fmt.Sprintf("<%s@%s>", UUID.NewString(), domain)
+	messageID := fmt.Sprintf("<%s@%s>", uuid.NewString(), domain)
 	return messageID, nil
 }
 
