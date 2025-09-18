@@ -60,6 +60,7 @@ query instancesLabelSelector($labels: String) {
                 description
                 allowPublicExposure
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

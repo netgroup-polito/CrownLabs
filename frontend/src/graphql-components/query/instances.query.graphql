@@ -53,6 +53,7 @@ query ownedInstances($tenantNamespace: String!) {
                 description
                 allowPublicExposure
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType
