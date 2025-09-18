@@ -72,7 +72,7 @@ spec:
       environmentType: Standalone
       mode: Standard
       mountMyDriveVolume: false
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
         startupArgs:
@@ -99,7 +99,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
       resources:
@@ -126,7 +126,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
       containerStartupOptions:
         contentPath: /home/crownlabs
       resources:
