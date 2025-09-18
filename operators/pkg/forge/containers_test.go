@@ -385,7 +385,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		It("Should set the env variables", func() {
 			expected.Name = envName
-			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_BASE_PATH", forge.IngressGUICleanPath(&instance))
+			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_BASE_PATH", forge.IngressGUICleanPath(&instance, &environment))
 			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_LISTEN_PORT", "6080")
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
@@ -453,7 +453,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
-					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
+					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance, &environment)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
 					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
 					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
@@ -472,7 +472,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("Should set the correct arguments", func() {
 				Expect(actual.Args).To(ConsistOf([]string{
 					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
-					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance)),
+					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance, &environment)),
 					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
 					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
 					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),

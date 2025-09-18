@@ -150,8 +150,8 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 }
 
 // IngressGUICleanPath returns the path of the ingress targeting the environment GUI vnc or Standalone, without the url-rewrite's regex.
-func IngressGUICleanPath(instance *clv1alpha2.Instance) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, IngressAppSuffix), "/")
+func IngressGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+	return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
 }
 
 // IngressGuiStatusURL returns the path of the ingress targeting the environment.

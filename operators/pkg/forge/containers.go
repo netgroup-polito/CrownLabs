@@ -219,7 +219,7 @@ func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environ
 	AddTCPPortToContainer(&websockifyContainer, GUIPortName, GUIPortNumber)
 	AddTCPPortToContainer(&websockifyContainer, MetricsPortName, MetricsPortNumber)
 	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
-	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance))
+	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance, environment))
 	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
 	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(!environment.DisableControls))
 	AddContainerArg(&websockifyContainer, "instmetrics-server-endpoint", opts.InstMetricsEndpoint)
@@ -244,7 +244,7 @@ func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.
 	standaloneContainer := AppContainer(environment, volumeMountPath, mountInfos)
 	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
 
-	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance))
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance, environment))
 	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_LISTEN_PORT", strconv.Itoa(GUIPortNumber))
 
 	if environment.RewriteURL {
