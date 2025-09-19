@@ -73,7 +73,12 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={globalQuota?.availableQuota}
     >
-      <Col span={24} lg={22} xxl={20}>
+      <Col 
+        span={24}
+        lg={24}
+        xxl={24}
+        className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
+      >
         {/* Remove the hardcoded height container */}
         <div
           style={{ display: 'flex', flexDirection: 'column', height: '100%' }}

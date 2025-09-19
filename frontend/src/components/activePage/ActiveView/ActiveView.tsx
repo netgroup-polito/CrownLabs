@@ -89,7 +89,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
       refreshQuota={quotaData?.refreshQuota}
       availableQuota={quotaData?.availableQuota}
     >
-      <Col span={30} lg={22} xxl={20}>
+      <Col span={24} style={{ height: '85vh' }}>
         <ModalGroupDeletion
           view={WorkspaceRole.manager}
           persistent={selectedPersistent}
@@ -100,56 +100,57 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           destroy={() => setDestroySelectedTrigger(true)}
         />
 
-        {/* Wrapper div to handle the flex layout */}
-        <div
-          style={{
-            height: '80vh', // Use calc instead of 80vh
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <Box
-            header={{
-              center: !managerView ? (
-                <div className="h-full flex justify-center items-center px-5">
-                  <p className="md:text-2xl text-lg text-center mb-0">
-                    <b>Active Instances</b>
-                  </p>
-                </div>
-              ) : (
-                ''
-              ),
-              size: 'middle',
-              right: managerView && (
-                <div className="h-full flex justify-center items-center pr-10">
-                  <Space size="small">
-                    <ViewModeButton
-                      setCurrentView={setCurrentView}
-                      currentView={currentView}
-                    />
-                  </Space>
-                </div>
-              ),
-              left: managerView && currentView === WorkspaceRole.manager && (
-                <div className="h-full flex justify-center items-center pl-6 gap-4">
-                  <Toolbox
-                    setSearchField={setSearchField}
-                    setExpandAll={setExpandAll}
-                    setCollapseAll={setCollapseAll}
-                    showAdvanced={showAdvanced}
-                    setShowAdvanced={setShowAdvanced}
-                    showCheckbox={showCheckbox}
-                    setShowCheckbox={displayCheckbox}
-                    setShowAlert={setShowAlert}
-                    selectiveDestroy={selectiveDestroy}
-                    deselectAll={deselectAll}
+        {/* Remove the wrapper div with fixed height and use full height */}
+        <Box
+          header={{
+            center: !managerView ? (
+              <div className="h-full flex justify-center items-center px-5">
+                <p className="md:text-2xl text-lg text-center mb-0">
+                  <b>Active Instances</b>
+                </p>
+              </div>
+            ) : (
+              ''
+            ),
+            size: 'middle',
+            right: managerView && (
+              <div className="h-full flex justify-center items-center pr-10">
+                <Space size="small">
+                  <ViewModeButton
+                    setCurrentView={setCurrentView}
+                    currentView={currentView}
                   />
-                </div>
-              ),
-            }}
-          >
+                </Space>
+              </div>
+            ),
+            left: managerView && currentView === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center pl-6 gap-4">
+                <Toolbox
+                  setSearchField={setSearchField}
+                  setExpandAll={setExpandAll}
+                  setCollapseAll={setCollapseAll}
+                  showAdvanced={showAdvanced}
+                  setShowAdvanced={setShowAdvanced}
+                  showCheckbox={showCheckbox}
+                  setShowCheckbox={displayCheckbox}
+                  setShowAlert={setShowAlert}
+                  selectiveDestroy={selectiveDestroy}
+                  deselectAll={deselectAll}
+                />
+              </div>
+            ),
+          }}
+          style={{ height: '100%' }} // Make Box take full height
+        >
+          {/* Add padding wrapper */}
+          <div style={{ 
+            padding: '24px',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             {/* Fixed QuotaDisplay */}
-            <div style={{ flexShrink: 0 }}>
+            <div style={{ flexShrink: 0, marginBottom: '16px' }}>
               <QuotaDisplay
                 consumedQuota={quotaData.consumedQuota}
                 workspaceQuota={quotaData.workspaceQuota}
@@ -184,8 +185,8 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
                 />
               )}
             </div>
-          </Box>
-        </div>
+          </div>
+        </Box>
       </Col>
     </QuotaProvider>
   );
