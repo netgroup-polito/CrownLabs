@@ -12,10 +12,14 @@ import { findKeyByValue } from '../../../../utils';
 
 export interface IRowInstanceStatusProps {
   status: Phase;
+  environments?: Array<{
+    name: string;
+    phase?: Phase;
+  }>;
 }
 
 const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
-  const { status } = props;
+  const { status, environments } = props;
 
   const font20px = { fontSize: '20px' };
   const statusIcon = {
@@ -51,9 +55,33 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
     ),
   };
 
+  const getTooltipContent = () => {
+    const mainStatus = findKeyByValue(Phase, status || Phase.Starting);
+    
+    if (!environments || environments.length === 0) {
+      return mainStatus;
+    }
+
+    return (
+      <div>
+        <div><strong>Instance:</strong> {mainStatus}</div>
+        {environments.length > 0 && (
+          <>
+            <div style={{ marginTop: '2px' }}><strong>Environments:</strong></div>
+            {environments.map((env, index) => (
+              <div key={index} style={{ marginLeft: '8px' }}>
+                {env.name}: {findKeyByValue(Phase, env.phase || Phase.Starting)}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={findKeyByValue(Phase, status || Phase.Starting)}>
+      <Tooltip title={getTooltipContent()}>
         {statusIcon[status || Phase.Starting]}
       </Tooltip>
     </div>

@@ -15,6 +15,7 @@ export default gql`
           prettyName
           description
           environmentList {
+            name
             guiEnabled
             persistent
             nodeSelector

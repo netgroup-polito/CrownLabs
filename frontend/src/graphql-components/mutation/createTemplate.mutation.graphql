@@ -24,6 +24,7 @@ mutation createTemplate(
       prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
         resources {

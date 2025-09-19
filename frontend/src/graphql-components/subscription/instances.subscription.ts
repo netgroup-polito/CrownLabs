@@ -23,6 +23,12 @@ export default gql`
           url
           nodeName
           nodeSelector
+          environments {
+            name
+            phase
+            ip
+            initialReadyTime
+          }
         }
         spec {
           running
@@ -36,6 +42,7 @@ export default gql`
                   prettyName
                   description
                   environmentList {
+                    name
                     guiEnabled
                     persistent
                     environmentType

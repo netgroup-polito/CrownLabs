@@ -94,7 +94,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 />
               </div>
             )}
-          <RowInstanceStatus status={status} />
+          <RowInstanceStatus status={status} environments={instance.environments}/>
 
           {viewMode === WorkspaceRole.manager ? (
             <div className="flex items-center gap-4">
