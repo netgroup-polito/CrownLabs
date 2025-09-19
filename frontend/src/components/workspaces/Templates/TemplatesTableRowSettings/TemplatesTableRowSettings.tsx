@@ -1,4 +1,4 @@
-import { Dropdown, Tooltip } from 'antd';
+import { Dropdown } from 'antd';
 import { Button } from 'antd';
 import {
   PlayCircleOutlined,
@@ -8,9 +8,11 @@ import {
 } from '@ant-design/icons';
 import type { FetchResult } from '@apollo/client';
 import type { CreateInstanceMutation } from '../../../../generated-types';
+import type { Template } from '../../ModalCreateTemplate/ModalCreateTemplate';
 
 export interface ITemplatesTableRowSettingsProps {
   id: string;
+  template: Template; // <-- Add this
   createInstance: (
     id: string,
   ) => Promise<
@@ -20,11 +22,11 @@ export interface ITemplatesTableRowSettingsProps {
       Record<string, unknown>
     >
   >;
-  editTemplate: (id: string) => void;
+  editTemplate: (template: Template) => void; // <-- Change signature
   deleteTemplate: (id: string) => void;
 }
 const TemplatesTableRowSettings = ({ ...props }) => {
-  const { id, createInstance, editTemplate, deleteTemplate } = props;
+  const { id, template, createInstance, editTemplate, deleteTemplate } = props;
 
   return (
     <Dropdown
@@ -41,14 +43,9 @@ const TemplatesTableRowSettings = ({ ...props }) => {
           {
             type: 'item',
             key: 2,
-            label: (
-              <Tooltip title="Coming soon" placement="left">
-                Edit
-              </Tooltip>
-            ),
+            label: 'Edit',
             icon: <EditOutlined />,
-            disabled: true,
-            onClick: () => editTemplate(id),
+            onClick: () => editTemplate(template), // <-- Pass template
           },
           {
             type: 'item',
@@ -56,7 +53,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
             label: 'Delete',
             icon: <DeleteOutlined />,
             danger: true,
-            onClick: deleteTemplate,
+            onClick: () => deleteTemplate(id),
           },
         ],
       }}

@@ -5,10 +5,11 @@ import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
-  Phase,
+  Phase2,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
+import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
 import { ModalAlert } from '../../../common/ModalAlert';
 
 export interface IRowInstanceActionsDefaultProps {
@@ -33,6 +34,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   } = instance;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { refreshQuota } = useQuotaContext(); // Use the quota context
+
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
   });
@@ -44,7 +47,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       return (
         <>
           <div>
-            {status === Phase.ResourceQuotaExceeded ? (
+            {status === Phase2.ResourceQuotaExceeded ? (
               <div>
                 <b>You have reached your limit of resources</b>
                 <br />
@@ -84,7 +87,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const connectDisabled =
-    status !== Phase.Ready ||
+    status !== Phase2.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
 
   const font22px = { fontSize: '22px' };
@@ -129,8 +132,11 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
                   tenantNamespace: tenantNamespace!,
                 },
               })
-                .then(() => setShowDeleteModalConfirm(false))
-                //TODO manage error
+                .then(() => {
+                  setShowDeleteModalConfirm(false);
+                  // Refresh quota after deletion
+                  refreshQuota?.();
+                })
                 .catch(() => null)
             }
           >
