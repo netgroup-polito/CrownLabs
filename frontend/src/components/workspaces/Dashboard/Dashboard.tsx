@@ -73,7 +73,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={globalQuota?.availableQuota}
     >
-      <Col 
+      <Col
         span={24}
         lg={24}
         xxl={24}

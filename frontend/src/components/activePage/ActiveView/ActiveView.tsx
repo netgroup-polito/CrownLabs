@@ -143,12 +143,14 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           style={{ height: '100%' }} // Make Box take full height
         >
           {/* Add padding wrapper */}
-          <div style={{ 
-            padding: '24px',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
+          <div
+            style={{
+              padding: '24px',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             {/* Fixed QuotaDisplay */}
             <div style={{ flexShrink: 0, marginBottom: '16px' }}>
               <QuotaDisplay
