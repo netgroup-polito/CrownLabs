@@ -80,9 +80,10 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             dataSource={environments}
             renderItem={(env) => (
               <List.Item className="py-1 px-0">
-                <div className="w-full">
-                <Text strong>{env.name}</Text>
-                  <p className="m-0">
+                <div className="w-full text-right">
+                  <Text strong>Environment ID: </Text>
+                  <Text>{env.name}</Text>
+                  <p className="m-0 text-right">
                     <strong>IP: </strong>
                     <Text type="warning" copyable={!!env.ip}>
                       {env.ip ?? 'unknown'}

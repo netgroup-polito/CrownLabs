@@ -33,6 +33,12 @@ export default gql`
               targetPort
             }
           }
+          environments {
+            name
+            phase
+            ip
+            initialReadyTime
+          }
         }
         spec {
           running
@@ -55,6 +61,7 @@ export default gql`
                   description
                   allowPublicExposure
                   environmentList {
+                    name
                     guiEnabled
                     persistent
                     environmentType
