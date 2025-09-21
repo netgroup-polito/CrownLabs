@@ -370,7 +370,7 @@ func mapFromWorkspacesList(tenant *v1alpha2.Tenant) map[string]v1alpha2.Workspac
 func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Context, newTenant, oldTenant *v1alpha2.Tenant) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// if the personal workspace was disabled before then there is nothing to check
-	if !oldTenant.Spec.CreatePersonalWorkspace || !oldTenant.Status.PersonalWorkspaceCreated {
+	if !oldTenant.Spec.CreatePersonalWorkspace {
 		return nil, nil
 	}
 	// personal workspace was enabled, and is being disabled

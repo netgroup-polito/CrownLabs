@@ -456,17 +456,24 @@ var _ = Describe("Validator webhook", func() {
 
 	})
 	When("Modifying the createPersonalWorkspace spec", func() {
+		var oldTenant, newTenant *v1alpha2.Tenant
+		BeforeEach(func() {
+			oldTenant = &v1alpha2.Tenant{}
+			newTenant = oldTenant.DeepCopy()
+		})
 		When("The user is in bypass group", func() {
 			JustBeforeEach(func() {
+				request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
 				request.UserInfo.Groups = bypassGroups
 				response = tnWebhook.Handle(ctx, request)
 			})
 			When("The personal workspace is being enabled", func() {
+				BeforeEach(func() {
+					newTenant.Spec.CreatePersonalWorkspace = true
+				})
 				When("It was disabled before", func() {
 					BeforeEach(func() {
-						oldTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: false}}
-						newTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: true}}
-						request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+						oldTenant.Spec.CreatePersonalWorkspace = false
 					})
 					It("should allow the change", func() {
 						Expect(response.Allowed).To(BeTrue())
@@ -474,9 +481,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: true}}
-						newTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: true}}
-						request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+						oldTenant.Spec.CreatePersonalWorkspace = true
 					})
 					It("should allow the change", func() {
 						Expect(response.Allowed).To(BeTrue())
@@ -484,11 +489,12 @@ var _ = Describe("Validator webhook", func() {
 				})
 			})
 			When("The personal workspace is being disabled", func() {
+				BeforeEach(func() {
+					newTenant.Spec.CreatePersonalWorkspace = false
+				})
 				When("It was disabled before", func() {
 					BeforeEach(func() {
-						oldTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: false}}
-						newTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: false}}
-						request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+						oldTenant.Spec.CreatePersonalWorkspace = false
 					})
 					It("should allow the change", func() {
 						Expect(response.Allowed).To(BeTrue())
@@ -496,22 +502,9 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant := &v1alpha2.Tenant{
-							ObjectMeta: metav1.ObjectMeta{Name: testTenantName},
-							Spec: v1alpha2.TenantSpec{
-								CreatePersonalWorkspace: true,
-							},
-							Status: v1alpha2.TenantStatus{
-								PersonalNamespace: v1alpha2.NameCreated{
-									Created: true,
-									Name:    testTenantPersonalNamespace,
-								},
-								PersonalWorkspaceCreated: true,
-							},
-						}
-						newTenant := oldTenant.DeepCopy()
-						newTenant.Spec.CreatePersonalWorkspace = false
-						request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+						oldTenant.Spec.CreatePersonalWorkspace = true
+						oldTenant.Status.PersonalNamespace.Created = true
+						oldTenant.Status.PersonalNamespace.Name = testTenantPersonalNamespace
 					})
 					When("The personal workspace has active instances", func() {
 						BeforeEach(func() {
@@ -534,6 +527,17 @@ var _ = Describe("Validator webhook", func() {
 							Expect(response.Allowed).To(BeFalse())
 							Expect(response.Result.Code).To(BeNumerically("==", http.StatusConflict))
 							Expect(response.Result.Reason).NotTo(BeEmpty())
+						})
+						When("The personal workspace is failing", func() {
+							BeforeEach(func() {
+								oldTenant.Status.FailingWorkspaces = []string{"personal-workspace"}
+								oldTenant.Status.PersonalWorkspaceCreated = false
+							})
+							It("should deny the change", func() {
+								Expect(response.Allowed).To(BeFalse())
+								Expect(response.Result.Code).To(BeNumerically("==", http.StatusConflict))
+								Expect(response.Result.Reason).NotTo(BeEmpty())
+							})
 						})
 					})
 					When("The personal workspace has no active instances", func() {
@@ -570,17 +574,30 @@ var _ = Describe("Validator webhook", func() {
 		})
 		When("The user is in not bypass group", func() {
 			JustBeforeEach(func() {
+				request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
 				response = tnWebhook.Handle(ctx, request)
 			})
-			BeforeEach(func() {
-				oldTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: false}}
-				newTenant := &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{CreatePersonalWorkspace: true}}
-				request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+			When("The personal workspace is being enabled", func() {
+				BeforeEach(func() {
+					oldTenant.Spec.CreatePersonalWorkspace = false
+					newTenant.Spec.CreatePersonalWorkspace = true
+				})
+				It("should deny the change", func() {
+					Expect(response.Allowed).To(BeFalse())
+					Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+					Expect(response.Result.Reason).NotTo(BeEmpty())
+				})
 			})
-			It("should deny the change", func() {
-				Expect(response.Allowed).To(BeFalse())
-				Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
-				Expect(response.Result.Reason).NotTo(BeEmpty())
+			When("The personal workspace is being disabled", func() {
+				BeforeEach(func() {
+					oldTenant.Spec.CreatePersonalWorkspace = true
+					newTenant.Spec.CreatePersonalWorkspace = false
+				})
+				It("should deny the change", func() {
+					Expect(response.Allowed).To(BeFalse())
+					Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+					Expect(response.Result.Reason).NotTo(BeEmpty())
+				})
 			})
 		})
 	})
