@@ -174,13 +174,6 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	if err := r.List(ctx, list, client.InNamespace(forge.GetTenantNamespaceName(tn))); err != nil {
 		return true, err
 	}
-	// Attempt to get templates in current namespace
-	templateList := &v1alpha2.TemplateList{}
-	if tn.Spec.CreatePersonalWorkspace {
-		if err := r.List(ctx, templateList, client.InNamespace(forge.GetTenantNamespaceName(tn))); err != nil {
-			return true, err
-		}
-	}
 
 	if sPassed > r.TenantNSKeepAlive { // seconds
 		log.Info("Over elapsed since last login of tenant: tenant namespace shall be absent", "elapsed", r.TenantNSKeepAlive, "tenant", tn.Name)
@@ -189,9 +182,10 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 			log.Info("Instances found for tenant", "tenant", tn.Name)
 			resourcesPresent = true
 		}
-		if len(templateList.Items) > 0 {
-			log.Info("Templates found for tenant", "tenant", tn.Name)
-			resourcesPresent = true
+		if res, err := r.checkPersonalWorkspaceKeepAlive(ctx, tn); err == nil {
+			resourcesPresent = resourcesPresent || res
+		} else {
+			return res, err
 		}
 		if !resourcesPresent {
 			log.Info("No resources found for tenant: namespace can be deleted", "tenant", tn.Name)
