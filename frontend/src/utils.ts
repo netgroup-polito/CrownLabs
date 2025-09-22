@@ -28,7 +28,7 @@ export type Template = {
   name: string;
   gui: boolean;
   persistent: boolean;
-  nodeSelector?: JSON;
+  nodeSelector?: Record<string, string>;
   resources: Resources;
   instances: Array<Instance>;
   workspaceName: string;
@@ -54,7 +54,7 @@ export type Instance = {
   timeStamp: string;
   workspaceName: string;
   running: boolean;
-  nodeSelector?: JSON;
+  nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
 };

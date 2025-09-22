@@ -78,7 +78,7 @@ spec:
                   instances:
                     description: The maximum number of concurrent instances required
                       by this Workspace.
-                    format: int32
+                    format: int64
                     minimum: 1
                     type: integer
                   memory:
