@@ -100,9 +100,10 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       <div
         className={`rowInstance-bg-color ${
           viewMode === WorkspaceRole.user && extended
-            ? 'cl-table-instance flex-grow flex-wrap content-between py-0 overflow-auto scrollbar'
+            ? 'cl-table-instance flex-wrap content-between py-0'
             : ''
         }`}
+        style={{ overflow: 'visible' }} // ensure no forced inner scrolling
       >
         {extended && showAdvanced && (
           <Table

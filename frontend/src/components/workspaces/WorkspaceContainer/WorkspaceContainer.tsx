@@ -108,7 +108,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       />
 
       {/* Wrapper div to constrain height */}
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
         <Box
           header={{
             size: 'large',
