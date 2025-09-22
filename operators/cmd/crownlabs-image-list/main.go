@@ -6,12 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
-	"sync"
-
-	"log"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,16 +23,29 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// ///////////////////Image List Requester //////////////////////
 // "k8s.io/client-go/kubernetes"
-type ImageListRequestor struct {
+type ImageListRequestor interface {
+	getImageList() ([]map[string]interface{}, error)
+}
+type DefaultImageListRequestor struct {
 	URL      string
 	Username string
 	Password string
 	client   *http.Client
 }
 
-func NewImageListRequestor(url, username, password string) *ImageListRequestor {
-	return &ImageListRequestor{
+func NewDefaultImageListRequestor(url string) *DefaultImageListRequestor {
+	var username, password, registryURL string
+
+	username = os.Getenv("REGISTRY_USERNAME")
+	password = os.Getenv("REGISTRY_PASSWORD")
+	flag.StringVar(&registryURL, "registry-url", "", "The URL used to contact the Docker registry")
+	if username == "" || password == "" || registryURL == "" {
+		fmt.Printf("Is Not a valid Image source definition. Skipping...\n")
+		return nil
+	}
+	return &DefaultImageListRequestor{
 		URL:      url,
 		Username: username,
 		Password: password,
@@ -41,7 +53,7 @@ func NewImageListRequestor(url, username, password string) *ImageListRequestor {
 	}
 }
 
-func (r *ImageListRequestor) getImageList() ([]map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) getImageList() ([]map[string]interface{}, error) {
 	repositories, err := r.doSingleGet(r.getCatalogPath())
 	if err != nil {
 		return nil, err
@@ -55,7 +67,7 @@ func (r *ImageListRequestor) getImageList() ([]map[string]interface{}, error) {
 	return r.doParallelGets(paths)
 }
 
-func (r *ImageListRequestor) doSingleGet(path string) (map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interface{}, error) {
 	req, err := http.NewRequest("GET", r.URL+path, nil)
 	if err != nil {
 		return nil, err
@@ -79,7 +91,7 @@ func (r *ImageListRequestor) doSingleGet(path string) (map[string]interface{}, e
 	return result, nil
 }
 
-func (r *ImageListRequestor) doParallelGets(paths []string) ([]map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) doParallelGets(paths []string) ([]map[string]interface{}, error) {
 	var wg sync.WaitGroup
 	results := make([]map[string]interface{}, len(paths))
 	errors := make([]error, len(paths))
@@ -106,11 +118,11 @@ func (r *ImageListRequestor) doParallelGets(paths []string) ([]map[string]interf
 	return results, nil
 }
 
-func (r *ImageListRequestor) getCatalogPath() string {
+func (r *DefaultImageListRequestor) getCatalogPath() string {
 	return "/v2/_catalog"
 }
 
-func (r *ImageListRequestor) mapRepositoriesToPaths(repositories []interface{}) []string {
+func (r *DefaultImageListRequestor) mapRepositoriesToPaths(repositories []interface{}) []string {
 	paths := make([]string, len(repositories))
 	for i, repo := range repositories {
 		paths[i] = fmt.Sprintf("/v2/%v/tags/list", repo)
@@ -229,7 +241,7 @@ func (s *ImageListSaver) createImageListObject(imageListSpec map[string]interfac
 // ImageListUpdater periodically requests the list of images from the Docker registry
 // and saves the obtained information as a Kubernetes object.
 type ImageListUpdater struct {
-	ImageListRequestor *ImageListRequestor
+	ImageListRequestor []ImageListRequestor
 	ImageListSaver     *ImageListSaver
 	RegistryAdvName    string
 	ImageListPrefix    string // Prefix for the ImageList name, if needed
@@ -237,10 +249,10 @@ type ImageListUpdater struct {
 }
 
 // NewImageListUpdater initializes the object.
-func NewImageListUpdater(imageListRequestor *ImageListRequestor, imageListSaver *ImageListSaver, imageListPrefix string, registryAdvName string) *ImageListUpdater {
+func NewImageListUpdater(imageListRequestors []ImageListRequestor, imageListSaver *ImageListSaver, imageListPrefix string, registryAdvName string) *ImageListUpdater {
 	return &ImageListUpdater{
 		ImageListPrefix:    imageListPrefix,
-		ImageListRequestor: imageListRequestor,
+		ImageListRequestor: imageListRequestors, // For now, use the first requestor; adapt logic as needed
 		ImageListSaver:     imageListSaver,
 		RegistryAdvName:    registryAdvName,
 	}
@@ -265,7 +277,16 @@ func (u *ImageListUpdater) Update() {
 	start := time.Now()
 	log.Println("Starting the update process")
 
-	images, err := u.ImageListRequestor.getImageList()
+	var images []map[string]interface{}
+	var err error
+	for _, req := range u.ImageListRequestor {
+		list, reqErr := req.getImageList()
+		if reqErr != nil {
+			err = reqErr
+			break
+		}
+		images = append(images, list...)
+	}
 	if err != nil {
 		log.Printf("Failed to retrieve data from upstream: %v", err)
 		return
@@ -366,7 +387,6 @@ func main() {
 
 	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "The host name of the Docker registry where the images can be retrieved")
 	flag.StringVar(&imageListName, "image-list-name", "", "The name assigned to the resulting ImageList object ")
-	flag.StringVar(&registryURL, "registry-url", "", "The URL used to contact the Docker registry")
 	flag.IntVar(&updateInterval, "update-interval", -1, "the interval (in seconds) between one update and the following")
 
 	klog.InitFlags(nil)
@@ -383,10 +403,38 @@ func main() {
 	}
 
 	// Example: create ImageListRequestor using parsed arguments
-	imageListRequestor := NewImageListRequestor(registryURL, os.Getenv("REGISTRY_USERNAME"), os.Getenv("REGISTRY_PASSWORD"))
+	var imageListRequestors []ImageListRequestor
+	var tempImageListRequestors []ImageListRequestor
+
+	// Example: add multiple registries here if needed
+	tempImageListRequestors = append(tempImageListRequestors,
+		NewDefaultImageListRequestor(registryURL),
+		// Add other ImageListRequestor implementations here as needed
+	)
+	for _, r := range tempImageListRequestors {
+		if r != nil {
+			imageListRequestors = append(imageListRequestors, r)
+		}
+	}
+	if len(imageListRequestors) == 0 {
+		fmt.Printf(`No valid Image source is defined`)
+		fmt.Println()
+		os.Exit(1)
+	}
+	// imageListRequestor := NewDefaultImageListRequestor(registryURL, os.Getenv("REGISTRY_USERNAME"), os.Getenv("REGISTRY_PASSWORD"))
 
 	// Example usage: get image list
-	imageList, err := imageListRequestor.getImageList()
+	var imageList []map[string]interface{}
+	var err error
+	imageList = nil
+	for _, req := range imageListRequestors {
+		list, errReq := req.getImageList()
+		if errReq != nil {
+			err = errReq
+			break
+		}
+		imageList = append(imageList, list...)
+	}
 	if err != nil {
 		fmt.Printf("Error retrieving image list: %v\n", err)
 		os.Exit(1)
@@ -399,7 +447,7 @@ func main() {
 		fmt.Printf("Error creating ImageListSaver: %v\n", err)
 		os.Exit(1)
 	}
-	imageListUpdater := NewImageListUpdater(imageListRequestor, imageListSaver, imageListName, advertisedRegistryName)
+	imageListUpdater := NewImageListUpdater(imageListRequestors, imageListSaver, imageListName, advertisedRegistryName)
 
 	log.Println("Starting the update process")
 	stopCh := make(chan struct{})
