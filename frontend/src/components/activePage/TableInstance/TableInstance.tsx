@@ -103,7 +103,6 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             ? 'cl-table-instance flex-wrap content-between py-0'
             : ''
         }`}
-        style={{ overflow: 'visible' }} // ensure no forced inner scrolling
       >
         {extended && showAdvanced && (
           <Table
