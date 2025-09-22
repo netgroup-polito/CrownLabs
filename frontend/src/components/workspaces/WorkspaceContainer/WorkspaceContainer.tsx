@@ -157,8 +157,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             ),
           }}
         >
-          {/* Make the content scrollable */}
-          <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          {/* Let outer layout handle scrolling (do not force inner scroll) */}
+          <div style={{ flex: 1, minHeight: 0 }}>
             <TemplatesTableLogic
               tenantNamespace={tenantNamespace}
               role={workspace.role}
