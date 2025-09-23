@@ -1,16 +1,47 @@
 /* Box */
 
 .cl-card-box {
+  /* ensure the card is a column flex container and clips overflow (keeps footer inside rounded border) */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  /* keep previous padding rule */
   body.light & .ant-card-body,
   .ant-card-body {
     padding: 0;
   }
+
+  /* make the card body a column flex that can shrink */
+  .ant-card-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0; /* important so children can shrink in flex layout */
+  }
+
   .box-header {
     border-bottom: solid #000000 3px;
   }
   body.light & .box-header {
     border-color: #f1f1f1;
   }
+
+  /* table / content area: make this the scrollable flex child */
+  .cl-table-instance {
+    flex: 1 1 auto;
+    min-height: 0; /* crucial for Chromium to allow internal scrolling */
+    overflow: auto;
+  }
+
+  /* footer that should stay inside the card (attach this class to the Destroy All wrapper) */
+  .destroy-footer {
+    flex: 0 0 auto;
+    padding: 1rem 0;
+    text-align: center;
+  }
+
   .inner {
     min-height: 1.5rem;
   }

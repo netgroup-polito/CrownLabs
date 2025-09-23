@@ -104,7 +104,8 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            height: 'calc(100vh - 160px)', // adjust 160px to account for header/nav if needed
+            height: 'calc(100vh - 160px)', // adjust to match header/nav height
+            overflow: 'hidden', // clip outside card (rounded borders) while inner area scrolls
           }}
         >
           {quotaData?.showQuotaDisplay && (
@@ -117,7 +118,15 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           )}
 
           {/* make Box area flexible and scrollable */}
-          <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
+          <div
+            style={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden', // ensure card itself contains children; inner table will scroll
+            }}
+          >
             <Box
               header={{
                 center: !managerView ? (
