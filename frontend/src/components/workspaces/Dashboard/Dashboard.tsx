@@ -74,13 +74,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       availableQuota={globalQuota?.availableQuota}
     >
       <>
-        <Col
-          span={24}
-          lg={8}
-          xxl={8}
-          className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
-        >
-          {/* Global Quota Display - Fixed Height */}
+        {/* Global Quota Display - Fixed Height */}
           {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
             <div style={{ flexShrink: 0 }}>
               <QuotaDisplay
@@ -89,6 +83,12 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               />
             </div>
           )}
+        <Col
+          span={24}
+          lg={8}
+          xxl={8}
+          className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
+        >
           <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
             <WorkspaceGrid
               tenantPersonalWorkspace={props.tenantPersonalWorkspace}
