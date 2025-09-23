@@ -100,7 +100,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       <div
         className={`rowInstance-bg-color ${
           viewMode === WorkspaceRole.user && extended
-            ? 'cl-table-instance flex-wrap content-between py-0'
+            ? 'cl-table-instance flex-grow flex-wrap content-between py-0 overflow-auto scrollbar'
             : ''
         }`}
       >

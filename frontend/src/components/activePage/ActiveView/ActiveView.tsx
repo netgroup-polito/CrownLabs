@@ -89,7 +89,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
       refreshQuota={quotaData?.refreshQuota}
       availableQuota={quotaData?.availableQuota}
     >
-      <Col span={24} style={{ height: '85vh' }}>
+      <Col span={24} lg={22} xxl={20}>
         <ModalGroupDeletion
           view={WorkspaceRole.manager}
           persistent={selectedPersistent}
@@ -99,8 +99,10 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           setShow={setShowAlert}
           destroy={() => setDestroySelectedTrigger(true)}
         />
-
-        {/* Remove the wrapper div with fixed height and use full height */}
+        <QuotaDisplay
+          consumedQuota={quotaData.consumedQuota}
+          workspaceQuota={quotaData.workspaceQuota}
+        />
         <Box
           header={{
             center: !managerView ? (
@@ -140,54 +142,34 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               </div>
             ),
           }}
-          style={{ height: '100%' }} // Make Box take full height
         >
-          {/* Add padding wrapper */}
-          <div
-            style={{
-              padding: '24px',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            {/* Fixed QuotaDisplay */}
-            <div style={{ flexShrink: 0, marginBottom: '16px' }}>
-              <QuotaDisplay
-                consumedQuota={quotaData.consumedQuota}
-                workspaceQuota={quotaData.workspaceQuota}
+          {currentView === WorkspaceRole.manager && managerView ? (
+            <div className="flex flex-col justify-start">
+              <TableWorkspaceLogic
+                workspaces={workspaces}
+                user={user}
+                filter={searchField}
+                collapseAll={collapseAll}
+                expandAll={expandAll}
+                setCollapseAll={setCollapseAll}
+                setExpandAll={setExpandAll}
+                showAdvanced={showAdvanced}
+                showCheckbox={showCheckbox}
+                destroySelectedTrigger={destroySelectedTrigger}
+                setDestroySelectedTrigger={setDestroySelectedTrigger}
+                selectiveDestroy={selectiveDestroy}
+                selectToDestroy={selectToDestroy}
+                setSelectedPersistent={setSelectedPersistent}
               />
             </div>
-
-            {/* Scrollable content */}
-            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-              {currentView === WorkspaceRole.manager && managerView ? (
-                <TableWorkspaceLogic
-                  workspaces={workspaces}
-                  user={user}
-                  filter={searchField}
-                  collapseAll={collapseAll}
-                  expandAll={expandAll}
-                  setCollapseAll={setCollapseAll}
-                  setExpandAll={setExpandAll}
-                  showAdvanced={showAdvanced}
-                  showCheckbox={showCheckbox}
-                  destroySelectedTrigger={destroySelectedTrigger}
-                  setDestroySelectedTrigger={setDestroySelectedTrigger}
-                  selectiveDestroy={selectiveDestroy}
-                  selectToDestroy={selectToDestroy}
-                  setSelectedPersistent={setSelectedPersistent}
-                />
-              ) : (
-                <TableInstanceLogic
-                  showGuiIcon={true}
-                  user={user}
-                  viewMode={currentView}
-                  extended={true}
-                />
-              )}
-            </div>
-          </div>
+          ) : (
+            <TableInstanceLogic
+              showGuiIcon={true}
+              user={user}
+              viewMode={currentView}
+              extended={true}
+            />
+          )}
         </Box>
       </Col>
     </QuotaProvider>

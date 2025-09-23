@@ -11,23 +11,11 @@
   <title>CrownLabs</title>
   <script type="text/javascript" src="%BASE_URL%config.js"></script>
   <style>
-    /* make percent heights work and ensure page background covers viewport */
-    html,
-    body,
-    #root {
-      height: 100%;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    /* default theme only when no theme class is set on body */
     body:not(.dark):not(.light) {
       background: #000;
       color: #fff;
-    }
 
-    @media (prefers-color-scheme: light) {
-      body:not(.dark):not(.light) {
+      @media (prefers-color-scheme: light) {
         background: #fff;
         color: #000;
       }
@@ -41,7 +29,7 @@
       body {
         margin: 0;
         padding: 0;
-        min-height: 100vh;
+        height: 100vh;
       }
 
       #loader {

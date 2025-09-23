@@ -3,8 +3,9 @@
 
 .cl-templates-table {
   min-height: 171px;
-  max-height: calc(100vh - var(--box-ext-height, 320px));
-  overflow: auto;
+  height: calc(
+    100vh - var(--box-ext-height, 320px)
+  ); //465px if we want to add a Box footer
 }
 
 tr.ant-table-expanded-row > td {
