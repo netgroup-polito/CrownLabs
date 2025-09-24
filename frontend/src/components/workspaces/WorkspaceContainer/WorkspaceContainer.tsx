@@ -157,17 +157,36 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             ),
           }}
         >
-          <TemplatesTableLogic
-            tenantNamespace={tenantNamespace}
-            role={workspace.role}
-            workspaceNamespace={
-              isPersonal ? tenantNamespace : workspace.namespace
-            }
-            workspaceName={workspace.name}
-            availableQuota={availableQuota}
-            refreshQuota={refreshQuota}
-            isPersonal={isPersonal}
-          />
+          {/* make the Box body a flex column and make the templates area scrollable */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1 1 auto',
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflow: 'auto',
+              }}
+            >
+              <TemplatesTableLogic
+                tenantNamespace={tenantNamespace}
+                role={workspace.role}
+                workspaceNamespace={
+                  isPersonal ? tenantNamespace : workspace.namespace
+                }
+                workspaceName={workspace.name}
+                availableQuota={availableQuota}
+                refreshQuota={refreshQuota}
+                isPersonal={isPersonal}
+              />
+            </div>
+          </div>
         </Box>
       </div>
 

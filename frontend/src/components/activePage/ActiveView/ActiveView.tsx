@@ -89,7 +89,14 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
       refreshQuota={quotaData?.refreshQuota}
       availableQuota={quotaData?.availableQuota}
     >
-      <Col span={24} lg={22} xxl={20}>
+      {/* Make column constrained to viewport minus header so inner Box can flex/scroll */}
+      <Col
+        span={24}
+        lg={22}
+        xxl={20}
+        className="min-h-0"
+        style={{ height: 'calc(100vh - 120px)', minHeight: 0 }}
+      >
         <ModalGroupDeletion
           view={WorkspaceRole.manager}
           persistent={selectedPersistent}
@@ -104,9 +111,11 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            height: 'calc(100vh - 160px)', // adjust to match header/nav height
-            overflow: 'hidden', // clip outside card (rounded borders) while inner area scrolls
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden', // clip outside card while inner area scrolls
           }}
+          className="min-h-0"
         >
           {quotaData?.showQuotaDisplay && (
             <div style={{ flex: '0 0 auto' }}>
@@ -124,8 +133,9 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               minHeight: 0,
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden', // ensure card itself contains children; inner table will scroll
+              overflow: 'hidden',
             }}
+            className="min-h-0"
           >
             {/* Ensure Box fills remaining space and the whole Box content can scroll.
                 This keeps child elements (e.g. Destroy All button) inside the scrollable area. */}
