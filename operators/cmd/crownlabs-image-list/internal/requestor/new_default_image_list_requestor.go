@@ -13,7 +13,7 @@ type DefaultImageListRequestor struct {
 	URL      string
 	Username string
 	Password string
-	client   *http.Client
+	Client   *http.Client
 }
 
 func NewDefaultImageListRequestor() *DefaultImageListRequestor {
@@ -30,7 +30,7 @@ func NewDefaultImageListRequestor() *DefaultImageListRequestor {
 		URL:      registryURL,
 		Username: username,
 		Password: password,
-		client:   &http.Client{},
+		Client:   &http.Client{},
 	}
 }
 
@@ -56,7 +56,7 @@ func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interfa
 	if r.Username != "" && r.Password != "" {
 		req.SetBasicAuth(r.Username, r.Password)
 	}
-	resp, err := r.client.Do(req)
+	resp, err := r.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
