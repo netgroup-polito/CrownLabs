@@ -127,74 +127,79 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               overflow: 'hidden', // ensure card itself contains children; inner table will scroll
             }}
           >
-            <Box
-              header={{
-                center: !managerView ? (
-                  <div className="h-full flex justify-center items-center px-5">
-                    <p className="md:text-2xl text-lg text-center mb-0">
-                      <b>Active Instances</b>
-                    </p>
-                  </div>
-                ) : (
-                  ''
-                ),
-                size: 'middle',
-                right: managerView && (
-                  <div className="h-full flex justify-center items-center pr-10">
-                    <Space size="small">
-                      <ViewModeButton
-                        setCurrentView={setCurrentView}
-                        currentView={currentView}
-                      />
-                    </Space>
-                  </div>
-                ),
-                left: managerView && currentView === WorkspaceRole.manager && (
-                  <div className="h-full flex justify-center items-center pl-6 gap-4">
-                    <Toolbox
-                      setSearchField={setSearchField}
-                      setExpandAll={setExpandAll}
+            {/* Ensure Box fills remaining space and the whole Box content can scroll.
+                This keeps child elements (e.g. Destroy All button) inside the scrollable area. */}
+            <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
+              <Box
+                header={{
+                  center: !managerView ? (
+                    <div className="h-full flex justify-center items-center px-5">
+                      <p className="md:text-2xl text-lg text-center mb-0">
+                        <b>Active Instances</b>
+                      </p>
+                    </div>
+                  ) : (
+                    ''
+                  ),
+                  size: 'middle',
+                  right: managerView && (
+                    <div className="h-full flex justify-center items-center pr-10">
+                      <Space size="small">
+                        <ViewModeButton
+                          setCurrentView={setCurrentView}
+                          currentView={currentView}
+                        />
+                      </Space>
+                    </div>
+                  ),
+                  left: managerView &&
+                    currentView === WorkspaceRole.manager && (
+                      <div className="h-full flex justify-center items-center pl-6 gap-4">
+                        <Toolbox
+                          setSearchField={setSearchField}
+                          setExpandAll={setExpandAll}
+                          setCollapseAll={setCollapseAll}
+                          showAdvanced={showAdvanced}
+                          setShowAdvanced={setShowAdvanced}
+                          showCheckbox={showCheckbox}
+                          setShowCheckbox={displayCheckbox}
+                          setShowAlert={setShowAlert}
+                          selectiveDestroy={selectiveDestroy}
+                          deselectAll={deselectAll}
+                        />
+                      </div>
+                    ),
+                }}
+              >
+                {currentView === WorkspaceRole.manager && managerView ? (
+                  <div className="flex flex-col justify-start">
+                    <TableWorkspaceLogic
+                      workspaces={workspaces}
+                      user={user}
+                      filter={searchField}
+                      collapseAll={collapseAll}
+                      expandAll={expandAll}
                       setCollapseAll={setCollapseAll}
+                      setExpandAll={setExpandAll}
                       showAdvanced={showAdvanced}
-                      setShowAdvanced={setShowAdvanced}
                       showCheckbox={showCheckbox}
-                      setShowCheckbox={displayCheckbox}
-                      setShowAlert={setShowAlert}
+                      destroySelectedTrigger={destroySelectedTrigger}
+                      setDestroySelectedTrigger={setDestroySelectedTrigger}
                       selectiveDestroy={selectiveDestroy}
-                      deselectAll={deselectAll}
+                      selectToDestroy={selectToDestroy}
+                      setSelectedPersistent={setSelectedPersistent}
                     />
                   </div>
-                ),
-              }}
-            >
-              {currentView === WorkspaceRole.manager && managerView ? (
-                <div className="flex flex-col justify-start">
-                  <TableWorkspaceLogic
-                    workspaces={workspaces}
+                ) : (
+                  <TableInstanceLogic
+                    showGuiIcon={true}
                     user={user}
-                    filter={searchField}
-                    collapseAll={collapseAll}
-                    expandAll={expandAll}
-                    setCollapseAll={setCollapseAll}
-                    setExpandAll={setExpandAll}
-                    showAdvanced={showAdvanced}
-                    showCheckbox={showCheckbox}
-                    destroySelectedTrigger={destroySelectedTrigger}
-                    setDestroySelectedTrigger={setDestroySelectedTrigger}
-                    selectiveDestroy={selectiveDestroy}
-                    selectToDestroy={selectToDestroy}
-                    setSelectedPersistent={setSelectedPersistent}
+                    viewMode={currentView}
+                    extended={true}
                   />
-                </div>
-              ) : (
-                <TableInstanceLogic
-                  showGuiIcon={true}
-                  user={user}
-                  viewMode={currentView}
-                  extended={true}
-                />
-              )}
-            </Box>
+                )}
+              </Box>
+            </div>
           </div>
         </div>
       </Col>

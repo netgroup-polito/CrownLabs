@@ -74,81 +74,86 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       availableQuota={globalQuota?.availableQuota}
     >
       {/* make a column layout so quota area is fixed and row fills remaining space */}
-      <div className="flex flex-col lg:h-full h-auto">
-        {/* Global Quota Display - Fixed Height */}
-        {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
-          <div style={{ flexShrink: 0 }}>
-            <QuotaDisplay
-              consumedQuota={globalQuota.consumedQuota}
-              workspaceQuota={globalQuota.workspaceQuota}
-            />
-          </div>
-        )}
-
-        {/* Row ensures Antd Cols behave as a grid and sit side-by-side */}
-        <Row gutter={16} className="flex-1 lg:h-full" align="stretch">
-          <Col
-            span={24}
-            lg={8}
-            xxl={8}
-            className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
-          >
-            <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
-              <WorkspaceGrid
-                tenantPersonalWorkspace={props.tenantPersonalWorkspace}
-                selectedWs={selectedWsId}
-                workspaceItems={workspaceItems}
-                onClick={setSelectedWs}
+      <div className="flex flex-col lg:h-full h-auto min-h-0">
+        {/* center both QuotaDisplay and the content Row inside the same max-width container
+            so they share the exact horizontal length. Make the container flex so the Row
+            can grow and be scrollable while the QuotaDisplay stays fixed. */}
+        <div className="w-full max-w-6xl mx-auto px-4 flex flex-col flex-1 min-h-0">
+          {/* Global Quota Display - Fixed Height */}
+          {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
+            <div style={{ flexShrink: 0 }}>
+              <QuotaDisplay
+                consumedQuota={globalQuota.consumedQuota}
+                workspaceQuota={globalQuota.workspaceQuota}
               />
-              {candidatesButton?.show && (
-                <div className="lg:mt-4 mt-0 text-center">
-                  <Button
-                    shape="round"
-                    size={'middle'}
-                    onClick={candidatesButton.select}
-                  >
-                    {candidatesButton.selected ? 'Hide' : 'Load'} candidates
-                  </Button>
-                </div>
-              )}
             </div>
-          </Col>
+          )}
 
-          <Col
-            span={24}
-            lg={14}
-            xxl={12}
-            className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
-          >
-            {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
-              <WorkspaceContainer
-                tenantNamespace={tenantNamespace}
-                workspace={workspaces[selectedWsId]}
-                availableQuota={globalQuota?.availableQuota}
-                refreshQuota={globalQuota?.refreshQuota}
-                isPersonalWorkspace={false}
-              />
-            ) : selectedWsId === -1 ? (
-              <WorkspaceContainer
-                tenantNamespace={tenantNamespace}
-                workspace={{
-                  name: 'personal-frontend-only',
-                  prettyName: 'Personal Workspace',
-                  role: WorkspaceRole.manager,
-                  namespace: tenantNamespace,
-                  waitingTenants: undefined,
-                }}
-                availableQuota={globalQuota?.availableQuota}
-                refreshQuota={globalQuota?.refreshQuota}
-                isPersonalWorkspace={true}
-              />
-            ) : selectedWsId === -2 ? (
-              <WorkspaceAdd />
-            ) : (
-              <WorkspaceWelcome />
-            )}
-          </Col>
-        </Row>
+          {/* Row ensures Antd Cols behave as a grid and sit side-by-side */}
+          <Row gutter={16} className="flex-1 lg:h-full min-h-0" align="stretch">
+            <Col
+              span={24}
+              lg={8}
+              xxl={8}
+              className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
+            >
+              <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
+                <WorkspaceGrid
+                  tenantPersonalWorkspace={props.tenantPersonalWorkspace}
+                  selectedWs={selectedWsId}
+                  workspaceItems={workspaceItems}
+                  onClick={setSelectedWs}
+                />
+                {candidatesButton?.show && (
+                  <div className="lg:mt-4 mt-0 text-center">
+                    <Button
+                      shape="round"
+                      size={'middle'}
+                      onClick={candidatesButton.select}
+                    >
+                      {candidatesButton.selected ? 'Hide' : 'Load'} candidates
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Col>
+
+            <Col
+              span={24}
+              lg={14}
+              xxl={12}
+              className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
+            >
+              {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
+                <WorkspaceContainer
+                  tenantNamespace={tenantNamespace}
+                  workspace={workspaces[selectedWsId]}
+                  availableQuota={globalQuota?.availableQuota}
+                  refreshQuota={globalQuota?.refreshQuota}
+                  isPersonalWorkspace={false}
+                />
+              ) : selectedWsId === -1 ? (
+                <WorkspaceContainer
+                  tenantNamespace={tenantNamespace}
+                  workspace={{
+                    name: 'personal-frontend-only',
+                    prettyName: 'Personal Workspace',
+                    role: WorkspaceRole.manager,
+                    namespace: tenantNamespace,
+                    waitingTenants: undefined,
+                  }}
+                  availableQuota={globalQuota?.availableQuota}
+                  refreshQuota={globalQuota?.refreshQuota}
+                  isPersonalWorkspace={true}
+                />
+              ) : selectedWsId === -2 ? (
+                <WorkspaceAdd />
+              ) : (
+                <WorkspaceWelcome />
+              )}
+            </Col>
+          </Row>
+        </div>
       </div>
     </QuotaProvider>
   );

@@ -94,77 +94,82 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   return (
     <>
-      <ModalCreateTemplate
-        workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
-        cpuInterval={{ max: 8, min: 1 }}
-        ramInterval={{ max: 32, min: 1 }}
-        diskInterval={{ max: 50, min: 10 }}
-        setShow={setShow}
-        show={show}
-        submitHandler={submitHandler}
-        loading={loading}
-        isPersonal={isPersonal}
-      />
-      <Box
-        header={{
-          size: 'large',
-          center: (
-            <div className="h-full flex justify-center items-center px-5">
-              <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{workspace.prettyName}</b>
-              </p>
-            </div>
-          ),
-          left: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<UserSwitchOutlined />}
-                  onClick={() => setShowUserListModal(true)}
-                >
-                  {workspace.waitingTenants && (
-                    <Badge
-                      count={workspace.waitingTenants}
-                      color="yellow"
-                      className="absolute -top-2.5 -right-2.5"
-                    />
-                  )}
-                </Button>
-              </Tooltip>
-            </div>
-          ),
-          right: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pr-10">
-              <Tooltip title="Create template">
-                <Button
-                  onClick={() => {
-                    setShow(true);
-                  }}
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<PlusOutlined />}
-                />
-              </Tooltip>
-            </div>
-          ),
-        }}
-      >
-        <TemplatesTableLogic
-          tenantNamespace={tenantNamespace}
-          role={workspace.role}
+      {/* make Box fill available vertical space so its inner table can scroll */}
+      <div className="flex flex-col flex-1 min-h-0">
+        <ModalCreateTemplate
           workspaceNamespace={
             isPersonal ? tenantNamespace : workspace.namespace
           }
-          workspaceName={workspace.name}
-          availableQuota={availableQuota}
-          refreshQuota={refreshQuota}
+          cpuInterval={{ max: 8, min: 1 }}
+          ramInterval={{ max: 32, min: 1 }}
+          diskInterval={{ max: 50, min: 10 }}
+          setShow={setShow}
+          show={show}
+          submitHandler={submitHandler}
+          loading={loading}
           isPersonal={isPersonal}
         />
-      </Box>
+        <Box
+          header={{
+            size: 'large',
+            center: (
+              <div className="h-full flex justify-center items-center px-5">
+                <p className="md:text-4xl text-2xl text-center mb-0">
+                  <b>{workspace.prettyName}</b>
+                </p>
+              </div>
+            ),
+            left: workspace.role === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center pl-10">
+                <Tooltip title="Manage users">
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<UserSwitchOutlined />}
+                    onClick={() => setShowUserListModal(true)}
+                  >
+                    {workspace.waitingTenants && (
+                      <Badge
+                        count={workspace.waitingTenants}
+                        color="yellow"
+                        className="absolute -top-2.5 -right-2.5"
+                      />
+                    )}
+                  </Button>
+                </Tooltip>
+              </div>
+            ),
+            right: workspace.role === WorkspaceRole.manager && (
+              <div className="h-full flex justify-center items-center pr-10">
+                <Tooltip title="Create template">
+                  <Button
+                    onClick={() => {
+                      setShow(true);
+                    }}
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<PlusOutlined />}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          }}
+        >
+          <TemplatesTableLogic
+            tenantNamespace={tenantNamespace}
+            role={workspace.role}
+            workspaceNamespace={
+              isPersonal ? tenantNamespace : workspace.namespace
+            }
+            workspaceName={workspace.name}
+            availableQuota={availableQuota}
+            refreshQuota={refreshQuota}
+            isPersonal={isPersonal}
+          />
+        </Box>
+      </div>
 
       <Modal
         destroyOnHidden={true}
