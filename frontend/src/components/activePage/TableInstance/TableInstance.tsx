@@ -142,7 +142,12 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
 
         {/* main table: scrollable area */}
         <div
-          style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflowY: 'auto', // vertical scrolling only
+            overflowX: 'hidden',
+          }}
           className="rowInstance-bg-color"
         >
           <Table

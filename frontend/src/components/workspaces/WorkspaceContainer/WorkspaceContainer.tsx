@@ -167,12 +167,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               overflow: 'hidden',
             }}
           >
+            {/* use the box helper class so the CSS (.cl-table-instance) takes effect; keeps scroll surface correct */}
             <div
-              style={{
-                flex: '1 1 auto',
-                minHeight: 0,
-                overflow: 'auto',
-              }}
+              className="cl-table-instance"
+              style={{ flex: '1 1 auto', minHeight: 0 }}
             >
               <TemplatesTableLogic
                 tenantNamespace={tenantNamespace}
