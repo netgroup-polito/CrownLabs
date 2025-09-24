@@ -105,7 +105,12 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   return (
     <div
       className="w-full flex-wrap content-between py-0 scrollbar cl-templates-table"
-      style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}
+      style={{
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflow: 'auto',
+        height: '100%',
+      }}
     >
       <Table
         size="middle"

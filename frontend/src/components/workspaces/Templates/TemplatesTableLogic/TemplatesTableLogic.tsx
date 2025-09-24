@@ -276,60 +276,96 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   return (
     <>
-      <Spin size="large" spinning={loadingTemplate || loadingInstances}>
-        {!loadingTemplate &&
-        !loadingInstances &&
-        !errorTemplate &&
-        !errorInstances &&
-        templates &&
-        dataInstances ? (
-          <TemplatesTable
-            totalInstances={dataInstances.length}
-            tenantNamespace={tenantNamespace}
-            workspaceNamespace={workspaceNamespace}
-            workspaceName={workspaceName}
-            templates={templates}
-            role={role}
-            deleteTemplate={(templateId: string) =>
-              deleteTemplateMutation({
-                variables: {
-                  workspaceNamespace,
-                  templateId,
-                },
-              }).then(result => {
-                // Refresh quota after template deletion
-                refreshQuota?.();
-                return result;
-              })
-            }
-            deleteTemplateLoading={loadingDeleteTemplateMutation}
-            editTemplate={() => null}
-            createInstance={createInstance}
-            availableQuota={availableQuota}
-            refreshQuota={refreshQuota} // Pass refresh function
-            isPersonal={isPersonal}
-          />
-        ) : (
-          <div
-            className={
-              loadingTemplate ||
-              loadingInstances ||
-              errorTemplate ||
-              errorInstances
-                ? 'invisible'
-                : 'visible'
-            }
-          >
-            <TemplatesEmpty role={role} />
-          </div>
-        )}
-        {role === WorkspaceRole.manager &&
-        !loadingTemplate &&
-        !loadingInstances &&
-        !isPersonal ? (
-          <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
-        ) : null}
-      </Spin>
+      {/* Ensure this logic component fills the parent and allows the inner table to size/scroll */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          minHeight: 0,
+        }}
+      >
+        <Spin
+          size="large"
+          spinning={loadingTemplate || loadingInstances}
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {!loadingTemplate &&
+          !loadingInstances &&
+          !errorTemplate &&
+          !errorInstances &&
+          templates &&
+          dataInstances ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: '1 1 auto',
+                minHeight: 0,
+              }}
+            >
+              <TemplatesTable
+                totalInstances={dataInstances.length}
+                tenantNamespace={tenantNamespace}
+                workspaceNamespace={workspaceNamespace}
+                workspaceName={workspaceName}
+                templates={templates}
+                role={role}
+                deleteTemplate={(templateId: string) =>
+                  deleteTemplateMutation({
+                    variables: {
+                      workspaceNamespace,
+                      templateId,
+                    },
+                  }).then(result => {
+                    // Refresh quota after template deletion
+                    refreshQuota?.();
+                    return result;
+                  })
+                }
+                deleteTemplateLoading={loadingDeleteTemplateMutation}
+                editTemplate={() => null}
+                createInstance={createInstance}
+                availableQuota={availableQuota}
+                refreshQuota={refreshQuota} // Pass refresh function
+                isPersonal={isPersonal}
+              />
+            </div>
+          ) : (
+            <div
+              className={
+                loadingTemplate ||
+                loadingInstances ||
+                errorTemplate ||
+                errorInstances
+                  ? 'invisible'
+                  : 'visible'
+              }
+              style={{
+                flex: '1 1 auto',
+                minHeight: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <TemplatesEmpty role={role} />
+            </div>
+          )}
+
+          {role === WorkspaceRole.manager &&
+          !loadingTemplate &&
+          !loadingInstances &&
+          !isPersonal ? (
+            <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
+          ) : null}
+        </Spin>
+      </div>
     </>
   );
 };
