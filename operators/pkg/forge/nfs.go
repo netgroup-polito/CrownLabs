@@ -17,6 +17,7 @@
 package forge
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"strings"
@@ -24,9 +25,13 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 )
 
 const (
@@ -131,6 +136,88 @@ func NFSShVolSpec(pv *v1.PersistentVolume) (serverAddress, exportPath string) {
 	}
 
 	return
+}
+
+// GetNFSSpecs extracts the NFS server name and path for the tenant's personal NFS volume,
+// required to mount the MyDrive disk of a given tenant from the associated secret.
+func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath string, err error) {
+	var serverNameBytes, serverPathBytes []byte
+	instance := clctx.InstanceFrom(ctx)
+	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: NFSSecretName}
+
+	secret := v1.Secret{}
+	if err = c.Get(ctx, secretName, &secret); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve secret", "secret", secretName)
+		return
+	}
+
+	serverNameBytes, ok := secret.Data[NFSSecretServerNameKey]
+	if !ok {
+		err = fmt.Errorf("cannot find %v key in secret", NFSSecretServerNameKey)
+		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
+		return
+	}
+
+	serverPathBytes, ok = secret.Data[NFSSecretPathKey]
+	if !ok {
+		err = fmt.Errorf("cannot find %v key in secret", NFSSecretPathKey)
+		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
+		return
+	}
+
+	return string(serverNameBytes), string(serverPathBytes), nil
+}
+
+// NFSVolumeMountInfosFromEnvironment extracts the array of NFSVolumeMountInfo from the passed environment
+// adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
+// In case of error, the first value returned is nil, followed by error reason (string) and error.
+func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, env *clv1alpha2.Environment) ([]NFSVolumeMountInfo, string, error) {
+	mountInfos := []NFSVolumeMountInfo{}
+
+	// Check and mount MyDrive
+	if env.MountMyDriveVolume {
+		nfsServerName, nfsPath, err := GetNFSSpecs(ctx, c)
+		if err != nil {
+			return nil, "unable to retrieve NFS specs", err
+		}
+
+		mountInfos = append(mountInfos, MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
+	}
+
+	// Check if tenant is manager of workspace
+	tenant := clctx.TenantFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
+	workspaceName := template.Spec.WorkspaceRef.Name
+	labelSelector := map[string]string{clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager)}
+
+	var managers clv1alpha2.TenantList
+	if err := c.List(ctx, &managers, client.MatchingLabels(labelSelector)); err != nil {
+		return nil, "failed to retrieve managers for workspace " + workspaceName, err
+	}
+
+	isManager := false
+	for i := range managers.Items {
+		if managers.Items[i].Name == tenant.Name {
+			isManager = true
+			break
+		}
+	}
+
+	// Check and mount SharedVolumes
+	for i, mount := range env.SharedVolumeMounts {
+		var shvol clv1alpha2.SharedVolume
+		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
+			return nil, "unable to retrieve shvol to mount", err
+		}
+
+		if isManager {
+			mount.ReadOnly = false
+		}
+
+		mountInfos = append(mountInfos, ShVolNFSVolumeMountInfo(i, &shvol, mount))
+	}
+
+	return mountInfos, "", nil
 }
 
 // PVCProvisioningJobSpec forges the spec for the PVC Provisioning job.
