@@ -74,10 +74,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       availableQuota={globalQuota?.availableQuota}
     >
       <div className="flex flex-col lg:h-full h-auto min-h-0">
-        <div
-          className="w-full px-4 flex flex-col min-h-0"
-          style={{ height: '100%', minHeight: 0 }}
-        >
+        {/* rely on flex to size content; do not force height via inline styles */}
+        <div className="w-full px-4 flex flex-col min-h-0 flex-1">
           {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
             <div style={{ flexShrink: 0 }}>
               <QuotaDisplay

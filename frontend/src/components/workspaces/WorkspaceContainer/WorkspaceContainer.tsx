@@ -2,7 +2,7 @@ import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { Badge, Modal, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { FC } from 'react';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
   useCreateTemplateMutation,
@@ -39,6 +39,28 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   });
 
   const [show, setShow] = useState(false);
+  // Template currently being edited (undefined => create new)
+  const [editingTemplate, setEditingTemplate] = useState<Template | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const t = (e as CustomEvent).detail as Template | undefined;
+      if (t) {
+        setEditingTemplate(t);
+        setShow(true);
+      }
+    };
+    window.addEventListener('openTemplateModal', handler as EventListener);
+    return () =>
+      window.removeEventListener('openTemplateModal', handler as EventListener);
+  }, []);
+
+  // clear editingTemplate when modal hidden
+  useEffect(() => {
+    if (!show) setEditingTemplate(undefined);
+  }, [show]);
 
   const isPersonal = props.isPersonalWorkspace;
 
@@ -66,6 +88,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         descriptionTemplate: t.name?.trim() || '',
         image: finalImage,
         guiEnabled: t.gui,
+        // include rewriteURL flag (matches CRD field name)
+        rewriteURL: t.rewriteUrl,
         persistent: t.persistent,
         mountMyDriveVolume: t.mountMyDrive,
         environmentType: t.imageType || EnvironmentType.Container,
@@ -100,6 +124,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           workspaceNamespace={
             isPersonal ? tenantNamespace : workspace.namespace
           }
+          // pass the template to edit (undefined for creation)
+          template={editingTemplate}
           cpuInterval={{ max: 8, min: 1 }}
           ramInterval={{ max: 32, min: 1 }}
           diskInterval={{ max: 50, min: 10 }}
@@ -145,6 +171,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                 <Tooltip title="Create template">
                   <Button
                     onClick={() => {
+                      // open modal in "create" mode
+                      setEditingTemplate(undefined);
                       setShow(true);
                     }}
                     type="primary"
@@ -198,6 +226,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       >
         <UserListLogic workspace={workspace} />
       </Modal>
+      {/* Listen for global edit requests from row settings if parent wiring isn't present */}
+      {/* This ensures clicking "Edit" always opens the modal with the selected template */}
+      {/* Add listener once per container */}
+      <script
+      // inline script placeholder removed — use effect below instead
+      />
     </>
   );
 };

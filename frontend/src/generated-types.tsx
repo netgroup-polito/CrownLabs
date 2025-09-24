@@ -1951,6 +1951,8 @@ export type Ports2ListItem = {
   name: Scalars['String']['output'];
   /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
   port: Scalars['Int']['output'];
+  /** The port protocol */
+  protocol?: Maybe<Protocol>;
   /** The port on the container to target. */
   targetPort: Scalars['Int']['output'];
 };
@@ -1961,6 +1963,8 @@ export type Ports2ListItemInput = {
   name: Scalars['String']['input'];
   /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
   port: Scalars['Int']['input'];
+  /** The port protocol */
+  protocol?: InputMaybe<Protocol>;
   /** The port on the container to target. */
   targetPort: Scalars['Int']['input'];
 };
@@ -1972,6 +1976,8 @@ export type PortsListItem = {
   name: Scalars['String']['output'];
   /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
   port: Scalars['Int']['output'];
+  /** The port protocol */
+  protocol?: Maybe<Protocol>;
   /** The port on the container to target. */
   targetPort: Scalars['Int']['output'];
 };
@@ -1982,9 +1988,17 @@ export type PortsListItemInput = {
   name: Scalars['String']['input'];
   /** The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned. */
   port: Scalars['Int']['input'];
+  /** The port protocol */
+  protocol?: InputMaybe<Protocol>;
   /** The port on the container to target. */
   targetPort: Scalars['Int']['input'];
 };
+
+export enum Protocol {
+  Sctp = 'SCTP',
+  Tcp = 'TCP',
+  Udp = 'UDP'
+}
 
 /**
  * Optional specification of the Instance service exposure.
@@ -2006,6 +2020,8 @@ export type PublicExposure2 = {
   __typename?: 'PublicExposure2';
   /** The external IP address assigned to the LoadBalancer service. */
   externalIP?: Maybe<Scalars['String']['output']>;
+  /** Message provides more details about the status, especially in case of an error. */
+  message?: Maybe<Scalars['String']['output']>;
   /** The current phase of the public exposure. */
   phase?: Maybe<Phase3>;
   /** The list of port mappings with the actually assigned public ports in 'Port' field. */
@@ -2016,6 +2032,8 @@ export type PublicExposure2 = {
 export type PublicExposure2Input = {
   /** The external IP address assigned to the LoadBalancer service. */
   externalIP?: InputMaybe<Scalars['String']['input']>;
+  /** Message provides more details about the status, especially in case of an error. */
+  message?: InputMaybe<Scalars['String']['input']>;
   /** The current phase of the public exposure. */
   phase?: InputMaybe<Phase3>;
   /** The list of port mappings with the actually assigned public ports in 'Port' field. */
@@ -3079,6 +3097,8 @@ export type Status7 = {
   keycloak?: Maybe<Keycloak>;
   /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
   personalNamespace: PersonalNamespace;
+  /** Whether a personal workspace has been created for the tenant. */
+  personalWorkspaceCreated?: Maybe<Scalars['Boolean']['output']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: Maybe<Quota3>;
   /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
@@ -3097,6 +3117,8 @@ export type Status7Input = {
   keycloak?: InputMaybe<KeycloakInput>;
   /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
   personalNamespace: PersonalNamespaceInput;
+  /** Whether a personal workspace has been created for the tenant. */
+  personalWorkspaceCreated?: InputMaybe<Scalars['Boolean']['input']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: InputMaybe<Quota3Input>;
   /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
@@ -3366,6 +3388,7 @@ export type CreateTemplateMutationVariables = Exact<{
   templateId?: InputMaybe<Scalars['String']['input']>;
   environmentType: EnvironmentType;
   sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
+  rewriteURL?: InputMaybe<Scalars['Boolean']['input']>;
 }>;
 
 
@@ -3840,10 +3863,10 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput]) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput], $rewriteURL: Boolean) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume, sharedVolumeMounts: $sharedVolumeMounts}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, rewriteURL: $rewriteURL, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume, sharedVolumeMounts: $sharedVolumeMounts}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName
@@ -3892,6 +3915,7 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      templateId: // value for 'templateId'
  *      environmentType: // value for 'environmentType'
  *      sharedVolumeMounts: // value for 'sharedVolumeMounts'
+ *      rewriteURL: // value for 'rewriteURL'
  *   },
  * });
  */

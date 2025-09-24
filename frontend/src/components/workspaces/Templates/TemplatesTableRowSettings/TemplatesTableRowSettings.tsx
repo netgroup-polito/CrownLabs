@@ -45,7 +45,22 @@ const TemplatesTableRowSettings = ({ ...props }) => {
             key: 2,
             label: 'Edit',
             icon: <EditOutlined />,
-            onClick: () => editTemplate(template), // <-- Pass template
+            onClick: () => {
+              // call provided handler if any
+              try {
+                editTemplate?.(template);
+              } catch (_e) {
+                /* ignore handler errors */
+              }
+              // also emit a global event so parents that didn't wire editTemplate can react
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('openTemplateModal', { detail: template }),
+                );
+              } catch (_e) {
+                /* ignore dispatch errors */
+              }
+            },
           },
           {
             type: 'item',

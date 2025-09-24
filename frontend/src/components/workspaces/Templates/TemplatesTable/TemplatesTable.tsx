@@ -108,7 +108,6 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
       style={{
         flex: '1 1 auto',
         minHeight: 0,
-        height: '100%',
         overflowY: 'auto',
         overflowX: 'hidden',
       }}

@@ -281,7 +281,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: '100%',
+          flex: '1 1 auto',
           minHeight: 0,
         }}
       >

@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'antd';
 import { Button } from 'antd';
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, RightOutlined } from '@ant-design/icons';
 import type {
   CreateTemplateMutation,
   SharedVolumeMountsListItem,
@@ -59,6 +59,7 @@ type Template = {
   persistent: boolean;
   mountMyDrive: boolean;
   gui: boolean;
+  rewriteUrl?: boolean;
   cpu: number;
   ram: number;
   disk: number;
@@ -171,6 +172,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     persistent: template?.persistent ?? false,
     mountMyDrive: template?.mountMyDrive ?? true,
     gui: template?.gui ?? true,
+    rewriteUrl: template?.rewriteUrl ?? false,
     cpu: template ? template.cpu : cpuInterval.min,
     ram: template ? template.ram : ramInterval.min,
     disk: template ? template.disk : diskInterval.min,
@@ -200,6 +202,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>();
+
+  // Advanced options toggle (hide/show GUI, Persistent, RewriteUrl)
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(!!template);
 
   useEffect(() => {
     if (
@@ -390,6 +395,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             image: undefined,
             imageType: undefined,
             registry: undefined,
+            rewriteUrl: undefined,
           };
         });
         setAvailableImages([]);
@@ -399,6 +405,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           image: undefined,
           imageType: undefined,
           registry: undefined,
+          rewriteUrl: undefined,
         });
       })
       .catch(error => {
@@ -424,6 +431,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       registry: undefined,
       imageList: undefined,
       gui: value === EnvironmentType.CloudVm ? false : true, // CloudVM has no GUI
+      // Ensure CloudVM has persistent disk enabled by default
+      persistent: value === EnvironmentType.CloudVm ? true : old.persistent,
+      disk:
+        value === EnvironmentType.CloudVm
+          ? old.disk || diskInterval.min
+          : old.disk,
     }));
 
     // Reset form fields
@@ -504,6 +517,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   }, [template?.imageType, imageLists]);
 
+  // Enforce CloudVM persistent + disk when imageType changes from other places (e.g. template load)
+  useEffect(() => {
+    if (formTemplate.imageType === EnvironmentType.CloudVm) {
+      setFormTemplate(old => ({
+        ...old,
+        persistent: true,
+        disk: old.disk || diskInterval.min,
+      }));
+    }
+    // Intentionally no else branch to avoid overriding user's persistent choice when switching away
+  }, [formTemplate.imageType, diskInterval.min]);
+
   return (
     <Modal
       destroyOnHidden={true}
@@ -528,6 +553,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           cpu: formTemplate.cpu,
           ram: formTemplate.ram,
           disk: formTemplate.disk,
+          rewriteUrl: formTemplate.rewriteUrl,
         }}
       >
         <Form.Item
@@ -722,61 +748,122 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           </>
         )}
 
-        <div className="flex justify-between items-start inline mb-6">
-          <Form.Item className="mb-4">
-            <span>GUI:</span>
-            <Checkbox
-              className="ml-3"
-              checked={formTemplate.gui}
-              disabled={
-                formTemplate.imageType === EnvironmentType.CloudVm ||
-                formTemplate.imageType === EnvironmentType.Standalone ||
-                formTemplate.imageType === EnvironmentType.Container
-              } // Disable GUI for CloudVM, Standalone, and Container
-              onChange={() =>
-                setFormTemplate(old => {
-                  return { ...old, gui: !old.gui };
-                })
-              }
-            />
-            {formTemplate.imageType === EnvironmentType.CloudVm && (
-              <div
-                style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
-              >
-                CloudVM instances do not support GUI access
-              </div>
-            )}
-            {(formTemplate.imageType === EnvironmentType.Standalone ||
-              formTemplate.imageType === EnvironmentType.Container) && (
-              <div
-                style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}
-              >
-                Standalone and Container environments only work with GUI and not
-                SSH
-              </div>
-            )}
-          </Form.Item>
-
-          <Form.Item className="mb-4">
-            <span>Persistent: </span>
-            <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
-              <Checkbox
-                className="ml-3"
-                checked={formTemplate.persistent}
-                onChange={() =>
-                  setFormTemplate(old => {
-                    return {
-                      ...old,
-                      persistent: !old.persistent,
-                      disk: !old.persistent
-                        ? template?.disk || diskInterval.min
-                        : 0,
-                    };
-                  })
-                }
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setShowAdvanced(old => !old)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ')
+                  setShowAdvanced(old => !old);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <RightOutlined
+                style={{
+                  transform: showAdvanced ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 0.18s ease',
+                  marginRight: 8,
+                }}
               />
-            </Tooltip>
-          </Form.Item>
+              <div style={{ fontWeight: 500 }}>Advanced Options</div>
+            </div>
+          </div>
+
+          {showAdvanced && (
+            <div className="mt-3 flex justify-between items-start inline">
+              <Form.Item className="mb-4">
+                <span>GUI:</span>
+                <Checkbox
+                  className="ml-3"
+                  checked={formTemplate.gui}
+                  disabled={
+                    formTemplate.imageType === EnvironmentType.CloudVm ||
+                    formTemplate.imageType === EnvironmentType.Standalone ||
+                    formTemplate.imageType === EnvironmentType.Container
+                  }
+                  onChange={() =>
+                    setFormTemplate(old => {
+                      return { ...old, gui: !old.gui };
+                    })
+                  }
+                />
+                {formTemplate.imageType === EnvironmentType.CloudVm && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: '4px',
+                    }}
+                  >
+                    CloudVM instances do not support GUI access
+                  </div>
+                )}
+                {(formTemplate.imageType === EnvironmentType.Standalone ||
+                  formTemplate.imageType === EnvironmentType.Container) && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Standalone and Container environments only work with GUI and
+                    not SSH
+                  </div>
+                )}
+              </Form.Item>
+
+              <Form.Item className="mb-4">
+                <span>Persistent: </span>
+                <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
+                  <Checkbox
+                    className="ml-3"
+                    checked={formTemplate.persistent}
+                    disabled={
+                      formTemplate.imageType === EnvironmentType.CloudVm
+                    }
+                    onChange={() =>
+                      setFormTemplate(old => {
+                        return {
+                          ...old,
+                          persistent: !old.persistent,
+                          disk: !old.persistent
+                            ? template?.disk || diskInterval.min
+                            : 0,
+                        };
+                      })
+                    }
+                  />
+                </Tooltip>
+              </Form.Item>
+
+              {/* bind rewriteUrl into the form so it's included in form values */}
+              <Form.Item
+                className="mb-4"
+                name="rewriteUrl"
+                valuePropName="checked"
+              >
+                <span>RewriteUrl: </span>
+                <Tooltip title="Rewrite incoming URLs to the application URL when enabled.">
+                  <Checkbox
+                    className="ml-3"
+                    checked={Boolean(formTemplate.rewriteUrl)}
+                    onChange={e =>
+                      setFormTemplate(old => {
+                        return { ...old, rewriteUrl: !!e.target.checked };
+                      })
+                    }
+                  />
+                </Tooltip>
+              </Form.Item>
+            </div>
+          )}
         </div>
 
         <Form.Item labelAlign="left" className="mt-10" label="CPU" name="cpu">
