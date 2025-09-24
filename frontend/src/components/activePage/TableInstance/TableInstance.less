@@ -14,11 +14,12 @@ body.light {
   }
 }
 
+/* cl-table-instance should not force viewport height; allow flex to control sizing */
 .cl-table-instance {
-  min-height: 171px;
-  height: calc(
-    100vh - var(--box-ext-height, 344px)
-  ); //465px if we want to add a Box footer
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .cl-templates-table .ant-table-container {

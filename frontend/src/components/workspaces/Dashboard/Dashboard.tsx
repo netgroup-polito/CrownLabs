@@ -73,17 +73,11 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={globalQuota?.availableQuota}
     >
-      {/* make a column layout so quota area is fixed and row fills remaining space */}
       <div className="flex flex-col lg:h-full h-auto min-h-0">
-        {/* center both QuotaDisplay and the content Row inside the same max-width container
-            so they share the exact horizontal length. Make the container flex so the Row
-            can grow and be scrollable while the QuotaDisplay stays fixed. */}
-        {/* Constrain this centered container to the viewport minus the app header so flex children compute height */}
         <div
-          className="w-full max-w-6xl mx-auto px-4 flex flex-col min-h-0"
-          style={{ height: 'calc(100vh - 120px)', minHeight: 0 }}
+          className="w-full px-4 flex flex-col min-h-0"
+          style={{ height: '100%', minHeight: 0 }}
         >
-          {/* Global Quota Display - Fixed Height */}
           {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
             <div style={{ flexShrink: 0 }}>
               <QuotaDisplay
@@ -93,8 +87,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
             </div>
           )}
 
-          {/* Row ensures Antd Cols behave as a grid and sit side-by-side */}
-          {/* Row will now get a constrained height from the centered container above */}
           <Row
             gutter={16}
             className="flex-1 lg:h-full min-h-0"

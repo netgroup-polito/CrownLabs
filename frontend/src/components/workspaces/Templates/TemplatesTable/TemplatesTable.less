@@ -2,10 +2,11 @@
 // document.documentElement.style.setProperty('--box-ext-height', `${value}px`);
 
 .cl-templates-table {
-  min-height: 171px;
-  height: calc(
-    100vh - var(--box-ext-height, 320px)
-  ); //465px if we want to add a Box footer
+  /* let the component / Box control height via flex; allow vertical scrolling only */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 tr.ant-table-expanded-row > td {
