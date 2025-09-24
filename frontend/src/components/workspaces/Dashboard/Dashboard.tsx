@@ -133,8 +133,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
 
             <Col
               span={24}
-              lg={14}
-              xxl={12}
+              lg={16} // <-- make columns sum to 24 (8 + 16)
+              xxl={16}
               className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
             >
               <div

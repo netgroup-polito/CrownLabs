@@ -46,7 +46,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
             </div>
           )}
         </div>
-        {/* allow this child to shrink inside the ant-card-body flex container */}
+        {/* allow Box body to shrink inside the flex chain */}
         <div className="w-full flex-grow min-h-0">{children}</div>
         <div className="w-full flex-none inner">{footer}</div>
       </Card>

@@ -140,12 +140,12 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           </div>
         )}
 
-        {/* main table: scrollable area */}
+        {/* main table: scrollable area (vertical only). When nested (expanded row) height is adaptive. */}
         <div
           style={{
             flex: '1 1 auto',
             minHeight: 0,
-            overflowY: 'auto', // vertical scrolling only
+            overflowY: 'auto',
             overflowX: 'hidden',
           }}
           className="rowInstance-bg-color"

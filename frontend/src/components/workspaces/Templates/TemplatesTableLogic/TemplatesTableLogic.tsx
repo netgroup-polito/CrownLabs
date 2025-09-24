@@ -276,7 +276,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   return (
     <>
-      {/* Ensure this logic component fills the parent and allows the inner table to size/scroll */}
+      {/* full-height flex column so TemplatesTable can take the remaining space and scroll */}
       <div
         style={{
           display: 'flex',
@@ -289,10 +289,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           size="large"
           spinning={loadingTemplate || loadingInstances}
           style={{
-            flex: '1 1 auto',
-            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
+            flex: '1 1 auto',
+            minHeight: 0,
           }}
         >
           {!loadingTemplate &&
@@ -332,7 +332,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 editTemplate={() => null}
                 createInstance={createInstance}
                 availableQuota={availableQuota}
-                refreshQuota={refreshQuota} // Pass refresh function
+                refreshQuota={refreshQuota}
                 isPersonal={isPersonal}
               />
             </div>
