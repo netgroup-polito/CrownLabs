@@ -2,15 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -21,116 +17,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+
+	"crownlab.imagelist/internal/requestor"
 )
-
-// ///////////////////Image List Requester //////////////////////
-// "k8s.io/client-go/kubernetes"
-type ImageListRequestor interface {
-	getImageList() ([]map[string]interface{}, error)
-}
-type DefaultImageListRequestor struct {
-	URL      string
-	Username string
-	Password string
-	client   *http.Client
-}
-
-func NewDefaultImageListRequestor(url string) *DefaultImageListRequestor {
-	var username, password, registryURL string
-
-	username = os.Getenv("REGISTRY_USERNAME")
-	password = os.Getenv("REGISTRY_PASSWORD")
-	flag.StringVar(&registryURL, "registry-url", "", "The URL used to contact the Docker registry")
-	if username == "" || password == "" || registryURL == "" {
-		fmt.Printf("Is Not a valid Image source definition. Skipping...\n")
-		return nil
-	}
-	return &DefaultImageListRequestor{
-		URL:      url,
-		Username: username,
-		Password: password,
-		client:   &http.Client{},
-	}
-}
-
-func (r *DefaultImageListRequestor) getImageList() ([]map[string]interface{}, error) {
-	repositories, err := r.doSingleGet(r.getCatalogPath())
-	if err != nil {
-		return nil, err
-	}
-	repos, ok := repositories["repositories"].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected catalog format")
-	}
-
-	paths := r.mapRepositoriesToPaths(repos)
-	return r.doParallelGets(paths)
-}
-
-func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interface{}, error) {
-	req, err := http.NewRequest("GET", r.URL+path, nil)
-	if err != nil {
-		return nil, err
-	}
-	if r.Username != "" && r.Password != "" {
-		req.SetBasicAuth(r.Username, r.Password)
-	}
-	resp, err := r.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (r *DefaultImageListRequestor) doParallelGets(paths []string) ([]map[string]interface{}, error) {
-	var wg sync.WaitGroup
-	results := make([]map[string]interface{}, len(paths))
-	errors := make([]error, len(paths))
-
-	for i, path := range paths {
-		wg.Add(1)
-		go func(i int, path string) {
-			defer wg.Done()
-			resp, err := r.doSingleGet(path)
-			if err != nil {
-				errors[i] = err
-				return
-			}
-			results[i] = resp
-		}(i, path)
-	}
-	wg.Wait()
-
-	for _, err := range errors {
-		if err != nil {
-			return nil, err
-		}
-	}
-	return results, nil
-}
-
-func (r *DefaultImageListRequestor) getCatalogPath() string {
-	return "/v2/_catalog"
-}
-
-func (r *DefaultImageListRequestor) mapRepositoriesToPaths(repositories []interface{}) []string {
-	paths := make([]string, len(repositories))
-	for i, repo := range repositories {
-		paths[i] = fmt.Sprintf("/v2/%v/tags/list", repo)
-	}
-	return paths
-}
-
-/////////////////////Image Saver start //////////////////////
 
 type ImageListSaver struct {
 	Name      string
@@ -238,180 +127,137 @@ func (s *ImageListSaver) createImageListObject(imageListSpec map[string]interfac
 	return &unstructured.Unstructured{Object: obj}
 }
 
-// ImageListUpdater periodically requests the list of images from the Docker registry
-// and saves the obtained information as a Kubernetes object.
 type ImageListUpdater struct {
-	ImageListRequestor []ImageListRequestor
-	ImageListSaver     *ImageListSaver
-	RegistryAdvName    string
-	ImageListPrefix    string // Prefix for the ImageList name, if needed
-	// Scheduler removed; using goroutine and time.Ticker for scheduling
+	Requestors        []requestor.ImageListRequestor
+	Saver             *ImageListSaver
+	RegistryAdvName   string
+	ImageListBaseName string
 }
 
-// NewImageListUpdater initializes the object.
-func NewImageListUpdater(imageListRequestors []ImageListRequestor, imageListSaver *ImageListSaver, imageListPrefix string, registryAdvName string) *ImageListUpdater {
+func NewImageListUpdater(reqs []requestor.ImageListRequestor, sv *ImageListSaver, imageListBase, registryAdv string) *ImageListUpdater {
 	return &ImageListUpdater{
-		ImageListPrefix:    imageListPrefix,
-		ImageListRequestor: imageListRequestors, // For now, use the first requestor; adapt logic as needed
-		ImageListSaver:     imageListSaver,
-		RegistryAdvName:    registryAdvName,
+		Requestors:        reqs,
+		Saver:             sv,
+		ImageListBaseName: imageListBase,
+		RegistryAdvName:   registryAdv,
 	}
 }
 
-// RunUpdateProcess starts the scheduler loop to request and save the image list.
-func (u *ImageListUpdater) RunUpdateProcess(interval time.Duration, stopCh <-chan struct{}) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+func (u *ImageListUpdater) RunUpdateProcess(interval time.Duration, stop <-chan struct{}) {
+	t := time.NewTicker(interval)
+	defer t.Stop()
 	for {
 		select {
-		case <-ticker.C:
+		case <-t.C:
 			u.Update()
-		case <-stopCh:
+		case <-stop:
 			return
 		}
 	}
 }
 
-// Update performs the actual update process.
 func (u *ImageListUpdater) Update() {
 	start := time.Now()
-	log.Println("Starting the update process")
+	log.Println("Starting update process")
 
-	var images []map[string]interface{}
-	var err error
-	for _, req := range u.ImageListRequestor {
-		list, reqErr := req.getImageList()
-		if reqErr != nil {
-			err = reqErr
-			break
+	var all []map[string]interface{}
+	for _, r := range u.Requestors {
+		list, err := r.GetImageList()
+		if err != nil {
+			log.Printf("requestor error: %v", err)
+			return
 		}
-		images = append(images, list...)
-	}
-	if err != nil {
-		log.Printf("Failed to retrieve data from upstream: %v", err)
-		return
+		all = append(all, list...)
 	}
 
-	// spec := map[string]interface{}{
-	// 	"registryName": u.RegistryAdvName,
-	// 	"images":       processImageList(images),
-	// }
-
-	// if err := u.ImageListSaver.UpdateImageList(spec); err != nil {
-	// 	log.Printf("Failed to save data as ImageList: %v", err)
-	// 	return
-	// }
-
-	speccrownlabs_containerdisks := map[string]interface{}{
-		"registryName": "crownlabs-containerdisks",
-		"images":       processImageList(images),
+	blocks := []struct {
+		name         string
+		registryName string
+	}{
+		{"crownlabs-containerdisks", "crownlabs-containerdisks"},
+		{"crownlabs-container-envs", "crownlabs-container-envs"},
+		{"crownlabs-standalone", "crownlabs-standalone"},
 	}
-	u.ImageListSaver, err = NewImageListSaver("crownlabs-containerdisks")
-	if err != nil {
-		fmt.Printf("Error creating ImageListSaver: %v\n", err)
-		os.Exit(1)
-	}
-	if err := u.ImageListSaver.UpdateImageList(speccrownlabs_containerdisks); err != nil {
-		log.Printf("Failed to save data as ImageList: %v", err)
-		return
-	}
-
-	spec_crownlabs_container_envs := map[string]interface{}{
-		"registryName": "crownlabs-container-envs",
-		"images":       processImageList(images),
+	for _, b := range blocks {
+		spec := map[string]interface{}{
+			"registryName": b.registryName,
+			"images":       processImageList(all),
+		}
+		sv, err := NewImageListSaver(b.name)
+		if err != nil {
+			log.Printf("saver(%s) error: %v", b.name, err)
+			return
+		}
+		if err := sv.UpdateImageList(spec); err != nil {
+			log.Printf("update(%s) error: %v", b.name, err)
+			return
+		}
 	}
 
-	u.ImageListSaver, err = NewImageListSaver("crownlabs-container-envs")
-	if err != nil {
-		fmt.Printf("Error creating ImageListSaver: %v\n", err)
-		os.Exit(1)
-	}
-	if err := u.ImageListSaver.UpdateImageList(spec_crownlabs_container_envs); err != nil {
-		log.Printf("Failed to save data as ImageList: %v", err)
-		return
-	}
-
-	specCloadVm := map[string]interface{}{
-		"registryName": "crownlabs-standalone",
-		"images":       processImageList(images),
-	}
-	u.ImageListSaver, err = NewImageListSaver("crownlabs-standalone")
-	if err != nil {
-		fmt.Printf("Error creating ImageListSaver: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := u.ImageListSaver.UpdateImageList(specCloadVm); err != nil {
-		log.Printf("Failed to save data as ImageList: %v", err)
-		return
-	}
-	log.Printf("Update process correctly completed in %.2f seconds", time.Since(start).Seconds())
+	log.Printf("Update completed in %.2fs", time.Since(start).Seconds())
 }
 
-// processImageList processes the list of images returned from upstream to remove the "latest" tags
-// and converts it to the correct format expected by Kubernetes.
 func processImageList(images []map[string]interface{}) []map[string]interface{} {
-	var convertedImages []map[string]interface{}
+	var out []map[string]interface{}
 	for _, image := range images {
 		name, _ := image["name"].(string)
-		tagsIface, ok := image["tags"]
 		var versions []string
-		if ok {
+
+		if tagsIface, ok := image["tags"]; ok {
 			switch tags := tagsIface.(type) {
 			case []interface{}:
 				for _, t := range tags {
-					if tagStr, ok := t.(string); ok && tagStr != "latest" {
-						versions = append(versions, tagStr)
+					if s, ok := t.(string); ok && s != "latest" {
+						versions = append(versions, s)
 					}
 				}
 			case []string:
-				for _, tagStr := range tags {
-					if tagStr != "latest" {
-						versions = append(versions, tagStr)
+				for _, s := range tags {
+					if s != "latest" {
+						versions = append(versions, s)
 					}
 				}
 			}
 		}
+
 		if len(versions) > 0 {
-			convertedImages = append(convertedImages, map[string]interface{}{
+			out = append(out, map[string]interface{}{
 				"name":     name,
 				"versions": versions,
 			})
 		}
 	}
-	return convertedImages
+	return out
 }
+
 func main() {
-	var advertisedRegistryName, imageListName, registryURL string
-	var updateInterval int
+	var (
+		advertisedRegistryName string
+		imageListName          string
+		registryURL            string
+		updateIntervalSec      int
+	)
 
-	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "The host name of the Docker registry where the images can be retrieved")
-	flag.StringVar(&imageListName, "image-list-name", "", "The name assigned to the resulting ImageList object ")
-	flag.IntVar(&updateInterval, "update-interval", -1, "the interval (in seconds) between one update and the following")
-
+	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "Hostname of the Docker registry as advertised to consumers")
+	flag.StringVar(&imageListName, "image-list-name", "", "Base name/prefix for ImageList objects")
+	flag.StringVar(&registryURL, "registry-url", "", "Docker registry base URL (e.g. https://registry.example.com)")
+	flag.IntVar(&updateIntervalSec, "update-interval", 60, "Interval in seconds between updates")
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || updateInterval == -1 {
-		fmt.Printf(`Usage: %s
-		--advertised-registry-name <registry-name>
-		--image-list-name <list-name>
-		--registry-url <url>
-		--update-interval <seconds>`, os.Args[0])
-		fmt.Println()
+	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || updateIntervalSec <= 0 {
+		fmt.Printf(`Usage:
+			--advertised-registry-name <registry-name>
+			--image-list-name <list-name>
+			--registry-url <url>
+			--update-interval <seconds>
+			`)
 		os.Exit(1)
 	}
 
-	// Example: create ImageListRequestor using parsed arguments
-	var imageListRequestors []ImageListRequestor
-	var tempImageListRequestors []ImageListRequestor
+	var imageListRequestors []requestor.ImageListRequestor
 
-	// Example: add multiple registries here if needed
-	tempImageListRequestors = append(tempImageListRequestors,
-		NewDefaultImageListRequestor(registryURL),
-		// Add other ImageListRequestor implementations here as needed
-	)
-	for _, r := range tempImageListRequestors {
+	for _, r := range requestor.RegisteredRequestors {
 		if r != nil {
 			imageListRequestors = append(imageListRequestors, r)
 		}
@@ -421,43 +267,20 @@ func main() {
 		fmt.Println()
 		os.Exit(1)
 	}
-	// imageListRequestor := NewDefaultImageListRequestor(registryURL, os.Getenv("REGISTRY_USERNAME"), os.Getenv("REGISTRY_PASSWORD"))
 
-	// Example usage: get image list
-	var imageList []map[string]interface{}
-	var err error
-	imageList = nil
-	for _, req := range imageListRequestors {
-		list, errReq := req.getImageList()
-		if errReq != nil {
-			err = errReq
-			break
-		}
-		imageList = append(imageList, list...)
-	}
+	sv, err := NewImageListSaver(imageListName)
 	if err != nil {
-		fmt.Printf("Error retrieving image list: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("creating saver: %v", err)
 	}
-	fmt.Printf("Retrieved image list: %+v\n", imageList)
 
-	fmt.Printf("Target ImageList object: '%s'\n", imageListName)
-	imageListSaver, err := NewImageListSaver(imageListName)
-	if err != nil {
-		fmt.Printf("Error creating ImageListSaver: %v\n", err)
-		os.Exit(1)
-	}
-	imageListUpdater := NewImageListUpdater(imageListRequestors, imageListSaver, imageListName, advertisedRegistryName)
+	up := NewImageListUpdater(imageListRequestors, sv, imageListName, advertisedRegistryName)
 
-	log.Println("Starting the update process")
-	stopCh := make(chan struct{})
-	go imageListUpdater.RunUpdateProcess(time.Duration(updateInterval)*time.Second, stopCh)
+	stop := make(chan struct{})
+	go up.RunUpdateProcess(time.Duration(updateIntervalSec)*time.Second, stop)
 
-	// Wait for interrupt signal to gracefully shutdown
-	c := make(chan os.Signal, 1)
-	// import "os/signal" and "syscall" at the top
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
-	log.Println("Received stop signal. Exiting")
-	close(stopCh)
+	// graceful shutdown
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
+	<-sigc
+	close(stop)
 }
