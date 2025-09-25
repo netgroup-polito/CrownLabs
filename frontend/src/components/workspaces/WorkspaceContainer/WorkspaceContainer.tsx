@@ -46,7 +46,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const t = (e as CustomEvent).detail as Template | undefined;
+      console.debug('[openTemplateModal] event received', e);
+      const t = (e as CustomEvent).detail as Template;
       if (t) {
         setEditingTemplate(t);
         setShow(true);

@@ -204,15 +204,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     refreshClock();
   }, [refreshQuota, refreshClock]);
 
-  const handleEditTemplate = (tOrId?: Template | string) => {
-    // Accept either a Template object (new UI paths) or an id string
-    // (TemplatesTableRowSettings calls editTemplate(id:string)).
-    const payload: Template =
-      typeof tOrId === 'string' || !tOrId ? template : (tOrId as Template);
-    // Open the global WorkspaceContainer modal with the template data
-    // WorkspaceContainer listens for 'openTemplateModal' and will set editingTemplate
+  const handleEditTemplate = () => {
     window.dispatchEvent(
-      new CustomEvent('openTemplateModal', { detail: payload }),
+      new CustomEvent('openTemplateModal', { detail: template }),
     );
   };
 

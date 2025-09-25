@@ -163,6 +163,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const imageLists = getImageLists(dataImages!);
   const [availableImages, setAvailableImages] = useState<Image[]>([]);
 
+  // create the Ant form instance before any effects that call form.setFieldsValue
+  const [form] = Form.useForm();
+
   const [formTemplate, setFormTemplate] = useState<Template>({
     name: template && template.name,
     image: template && template.image,
@@ -178,6 +181,59 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     disk: template ? template.disk : diskInterval.min,
     sharedVolumeMountInfos: template ? template.sharedVolumeMountInfos : [],
   });
+
+  // Keep internal form state in sync when parent passes a template to edit
+  useEffect(() => {
+    if (template) {
+      setFormTemplate({
+        name: template.name,
+        image: template.image,
+        registry: template.registry,
+        imageType: template.imageType,
+        imageList: template.imageList,
+        persistent: template?.persistent ?? false,
+        mountMyDrive: template?.mountMyDrive ?? true,
+        gui: template?.gui ?? true,
+        rewriteUrl: template?.rewriteUrl ?? false,
+        cpu: template?.cpu ?? cpuInterval.min,
+        ram: template?.ram ?? ramInterval.min,
+        disk: template?.disk ?? diskInterval.min,
+        sharedVolumeMountInfos: template?.sharedVolumeMountInfos ?? [],
+      });
+      // show advanced options for edits
+      setShowAdvanced(true);
+      // update Form fields so initialValues reflect the new template immediately
+      form.setFieldsValue({
+        templatename: template.name,
+        imageType: template.imageType,
+        image: template.image,
+        registry: template.registry,
+        cpu: template.cpu,
+        ram: template.ram,
+        disk: template.disk,
+        rewriteUrl: template.rewriteUrl,
+      });
+    } else {
+      // reset to defaults when creating a new template
+      setFormTemplate({
+        name: undefined,
+        image: undefined,
+        registry: undefined,
+        imageType: undefined,
+        imageList: undefined,
+        persistent: false,
+        mountMyDrive: true,
+        gui: true,
+        rewriteUrl: false,
+        cpu: cpuInterval.min,
+        ram: ramInterval.min,
+        disk: diskInterval.min,
+        sharedVolumeMountInfos: [],
+      });
+      setShowAdvanced(false);
+      form.resetFields();
+    }
+  }, [template, cpuInterval.min, ramInterval.min, diskInterval.min, form]);
 
   // Determine if we're using external images (for non-VM types)
   const isUsingExternalImage =
@@ -307,8 +363,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       }
     }
   };
-
-  const [form] = Form.useForm();
 
   const fullLayout = {
     wrapperCol: { offset: 0, span: 24 },

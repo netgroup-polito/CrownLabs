@@ -39,3 +39,28 @@ body.light {
 .rowInstance-bg-color .ant-table-cell {
   word-break: break-word;
 }
+
+/* ensure root / app has a height so inner flex can be constrained */
+html, body, #root {
+  height: 100%;
+}
+
+/* make card and table containers participate in the flex chain and allow children to shrink */
+.cl-card-box,
+.ant-card-body,
+.cl-table-instance,
+.cl-templates-table,
+.ant-table-wrapper,
+.ant-table-container,
+.ant-spin-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0; /* critical so children can overflow/scroll */
+}
+
+/* keep the table scrollable */
+.cl-templates-table {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
