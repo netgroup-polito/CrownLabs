@@ -192,7 +192,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               flexDirection: 'column',
               flex: '1 1 auto',
               minHeight: 0,
-              overflow: 'hidden',
+              // do not clip overflow here — let the inner scrollable element handle scrolling
             }}
           >
             {/* use the box helper class so the CSS (.cl-table-instance) takes effect; keeps scroll surface correct */}

@@ -13,24 +13,18 @@ import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
   CreateInstanceMutation,
   DeleteTemplateMutation,
-  EnvironmentListListItemInput,
 } from '../../../../generated-types';
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
   useOwnedInstancesQuery,
 } from '../../../../generated-types';
-import { EnvironmentType } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
 import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
-import ModalCreateTemplate, {
-  type Template as TemplateType,
-} from '../../ModalCreateTemplate/ModalCreateTemplate';
-import { useApplyTemplateMutation } from '../../../../generated-types';
 
 export interface ITemplatesTableRowProps {
   template: Template;
@@ -190,18 +184,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   const [createDisabled, setCreateDisabled] = useState(false);
 
-  // Modal state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<
-    TemplateType | undefined
-  >(undefined);
-
-  // Update mutation
-  const [applyTemplateMutation, { loading: updateLoading }] =
-    useApplyTemplateMutation({
-      onError: apolloErrorCatcher,
-    });
-
   const createInstanceHandler = useCallback(() => {
     setCreateDisabled(true);
     createInstance(template.id)
@@ -222,70 +204,20 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     refreshClock();
   }, [refreshQuota, refreshClock]);
 
-  const handleEditTemplate = (template: TemplateType) => {
-    setSelectedTemplate(template);
-    setShowEditModal(true);
+  const handleEditTemplate = (tOrId?: Template | string) => {
+    // Accept either a Template object (new UI paths) or an id string
+    // (TemplatesTableRowSettings calls editTemplate(id:string)).
+    const payload: Template =
+      typeof tOrId === 'string' || !tOrId ? template : (tOrId as Template);
+    // Open the global WorkspaceContainer modal with the template data
+    // WorkspaceContainer listens for 'openTemplateModal' and will set editingTemplate
+    window.dispatchEvent(
+      new CustomEvent('openTemplateModal', { detail: payload }),
+    );
   };
 
-  // Handler to submit the update mutation
-  const handleUpdateTemplate = async (updatedTemplate: TemplateType) => {
-    // Build the patch JSON for the template update
-    const environmentConfig: EnvironmentListListItemInput = {
-      name: updatedTemplate.name ?? '',
-      image: updatedTemplate.image ?? '',
-      guiEnabled: updatedTemplate.gui,
-      persistent: updatedTemplate.persistent,
-      mountMyDriveVolume: updatedTemplate.mountMyDrive,
-      environmentType: updatedTemplate.imageType ?? EnvironmentType.Container,
-      resources: {
-        cpu: updatedTemplate.cpu,
-        // generated types expect JSON for memory/disk; follow WorkspaceContainer conventions
-        memory: `${updatedTemplate.ram * 1000}M`,
-        disk: updatedTemplate.persistent
-          ? `${updatedTemplate.disk * 1000}M`
-          : undefined,
-        reservedCPUPercentage: 50,
-      },
-    };
-
-    // Only add sharedVolumeMounts for non-personal workspaces
-    if (!isPersonal && updatedTemplate.sharedVolumeMountInfos?.length) {
-      environmentConfig.sharedVolumeMounts =
-        updatedTemplate.sharedVolumeMountInfos.map(sv => ({
-          sharedVolume: {
-            namespace: sv.sharedVolume.namespace,
-            name: sv.sharedVolume.name,
-          },
-          mountPath: sv.mountPath,
-          readOnly: sv.readOnly,
-        }));
-    }
-
-    const patch = {
-      spec: {
-        prettyName: updatedTemplate.name,
-        description: updatedTemplate.name || '',
-        environmentList: [environmentConfig],
-        workspaceCrownlabsPolitoItWorkspaceRef: {
-          name: template.workspaceName,
-          namespace: template.workspaceNamespace,
-        },
-      },
-    };
-
-    return applyTemplateMutation({
-      variables: {
-        templateId: template.id,
-        workspaceNamespace: template.workspaceNamespace,
-        patchJson: JSON.stringify(patch),
-        manager: 'web-frontend',
-      },
-    }).then(result => {
-      // Refresh quota after template update
-      refreshQuota?.();
-      return result;
-    });
-  };
+  // Updates are handled by the workspace-level modal's submitHandler.
+  // TemplatesTableRow no longer performs update mutations directly.
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
@@ -361,20 +293,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
         ]}
         show={showDeleteModalConfirm}
         setShow={setShowDeleteModalConfirm}
-      />
-      <ModalCreateTemplate
-        show={showEditModal}
-        setShow={setShowEditModal}
-        template={selectedTemplate}
-        cpuInterval={{ min: 1, max: 8 }}
-        ramInterval={{ min: 1, max: 32 }}
-        diskInterval={{ min: 10, max: 100 }}
-        workspaceNamespace={
-          isPersonal ? tenantNamespace : template.workspaceNamespace
-        }
-        submitHandler={handleUpdateTemplate}
-        loading={updateLoading}
-        isPersonal={isPersonal}
       />
       <div className="w-full flex justify-between py-0">
         <div
