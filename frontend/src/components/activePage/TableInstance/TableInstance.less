@@ -23,6 +23,20 @@ body.light {
   overflow-x: hidden;
 }
 
+/* Ensure nested Ant wrappers don't introduce overflow clipping and participate in flex sizing */
+.cl-table-instance,
+.cl-table-instance > div,
+.cl-table-instance .ant-spin-nested-loading,
+.cl-table-instance .ant-spin-container,
+.cl-table-instance .ant-table-wrapper,
+.cl-table-instance .ant-table,
+.cl-table-instance .ant-table-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .cl-templates-table .ant-table-container {
   overflow-x: hidden;
 }

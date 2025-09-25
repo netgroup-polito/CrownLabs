@@ -9,6 +9,16 @@
   overflow-x: hidden;
 }
 
+/* Make Ant's table wrapper/container participate in the flex chain and provide the scroll surface */
+.cl-templates-table .ant-table-wrapper,
+.cl-templates-table .ant-table-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
 tr.ant-table-expanded-row > td {
   background-color: #141414 !important;
 }
