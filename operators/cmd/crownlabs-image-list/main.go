@@ -254,6 +254,8 @@ func main() {
 			`)
 		os.Exit(1)
 	}
+	//Temporal solution until we refactor the imgretriever package
+	os.Setenv("registry-url", registryURL)
 
 	var imageListRequestors []imgretriever.ImageListRequestor
 
