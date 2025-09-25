@@ -19,13 +19,16 @@
 }
 
 /* Make Ant wrappers participate in the flex chain and provide the scroll surface */
+/* (removed the previous flex forcing on Ant internals: that breaks table layout) */
+
+/* Ensure Ant internals keep their native layout; the explicit scroll surface is .cl-templates-scroll */
 .cl-templates-table .ant-table-wrapper,
 .cl-templates-table .ant-table-container,
 .cl-templates-table .ant-table-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto !important;
+  display: block !important;
+  flex: none !important;
   min-height: 0 !important;
+  overflow: visible !important;
 }
 
 /* The visible scroll area should be the table content */
