@@ -125,7 +125,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               span={24}
               lg={16} // <-- make columns sum to 24 (8 + 16)
               xxl={16}
-              className="lg:pl-4 lg:pr-0 px-4 flex flex-auto"
+              // ensure the right column is full height on large screens so its children can stretch
+              className="lg:pl-4 lg:pr-0 px-4 flex flex-auto lg:h-full"
             >
               <div
                 style={{

@@ -28,8 +28,13 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
   return (
     <Card
       className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box h-full"
-      // use Ant Design's bodyStyle so the card body becomes a flex column
-      bodyStyle={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      // make the card body a true flex item so inner scroll surfaces can compute height
+      bodyStyle={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+        minHeight: 0,
+      }}
     >
       <div className="w-full flex-none">
         {header && (
