@@ -104,41 +104,41 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
 
   return (
     <div className="w-full flex-wrap content-between py-0 scrollbar cl-templates-table">
-      <Table
-        size="middle"
-        showHeader={false}
-        rowKey={record => record.id}
-        columns={columns}
-        dataSource={templates}
-        pagination={false}
-        expandable={{
-          onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
-          rowExpandable: record => !!record.instances.length,
-          expandedRowKeys: expandedId,
-          expandIcon: ({ expanded, onExpand, record }) =>
-            record.instances.length ? (
-              <CaretRightOutlined
-                className="transition-icon"
-                onClick={e => onExpand(record, e)}
-                rotate={expanded ? 90 : 0}
+      {/* explicit scroll surface to guarantee bounded scrolling inside the card */}
+      <div className="cl-templates-scroll">
+        <Table
+          size="middle"
+          showHeader={false}
+          rowKey={record => record.id}
+          columns={columns}
+          dataSource={templates}
+          pagination={false}
+          expandable={{
+            onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
+            rowExpandable: record => !!record.instances.length,
+            expandedRowKeys: expandedId,
+            expandIcon: ({ expanded, onExpand, record }) =>
+              record.instances.length ? (
+                <CaretRightOutlined
+                  className="transition-icon"
+                  onClick={e => onExpand(record, e)}
+                  rotate={expanded ? 90 : 0}
+                />
+              ) : (
+                false
+              ),
+            expandedRowRender: template => (
+              <TableInstance
+                showGuiIcon={false}
+                viewMode={WorkspaceRole.user}
+                extended={false}
+                instances={template.instances}
+                hasSSHKeys={hasSSHKeys}
               />
-            ) : (
-              false
             ),
-          /**
-           * Here we render the expandable content, for example with a nested Table
-           */
-          expandedRowRender: template => (
-            <TableInstance
-              showGuiIcon={false}
-              viewMode={WorkspaceRole.user}
-              extended={false}
-              instances={template.instances}
-              hasSSHKeys={hasSSHKeys}
-            />
-          ),
-        }}
-      />
+          }}
+        />
+      </div>
     </div>
   );
 };
