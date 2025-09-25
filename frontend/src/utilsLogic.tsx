@@ -450,7 +450,7 @@ export const getManagerInstances = (
     nodeSelector: status?.nodeSelector,
     nodeName: status?.nodeName,
     environments: environments,
-    hasMultipleEnvironments,
+    hasMultipleEnvironments: hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -480,7 +480,7 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
+    const [{ templateId, gui, persistent, workspaceName, templatePrettyName, environments, hasMultipleEnvironments }] =
       instancesFiltered;
     return {
       id: templateId,
@@ -491,8 +491,8 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
-      environmentList: [],
-      hasMultipleEnvironments: false,
+      environmentList: environments,
+      hasMultipleEnvironments: hasMultipleEnvironments,
     };
   });
 };
