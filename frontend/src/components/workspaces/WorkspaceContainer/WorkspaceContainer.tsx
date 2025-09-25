@@ -1,6 +1,6 @@
 import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { Badge, Modal, Tooltip } from 'antd';
-import { Button } from 'antd';
+import { Button, Card } from 'antd';
 import type { FC } from 'react';
 import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
@@ -47,8 +47,16 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   useEffect(() => {
     const handler = (e: Event) => {
       console.debug('[openTemplateModal] event received', e);
-      const t = (e as CustomEvent).detail as Template;
+      const detail = (e as CustomEvent).detail;
+      const t = detail as Template;
       if (t) {
+        t.cpu = detail.resources.cpu || 1;
+        t.ram = detail.resources.memory
+          ? parseInt(detail.resources.memory) / 1000
+          : 1;
+        t.disk = detail.resources.disk
+          ? parseInt(detail.resources.disk) / 1000
+          : 10;
         setEditingTemplate(t);
         setShow(true);
       }
@@ -118,8 +126,19 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   };
 
   return (
-    <>
-      {/* make Box fill available vertical space so its inner table can scroll */}
+    <Card
+      className="cl-card-box"
+      bordered={false}
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'transparent',
+        boxShadow: 'none',
+      }} // force bounded card + transparent background
+      bodyStyle={{ background: 'transparent', padding: 0 }} // make inner body transparent
+    >
+      {/* keep header / controls as-is inside the card */}
       <div className="flex flex-col flex-1 min-h-0">
         <ModalCreateTemplate
           workspaceNamespace={
@@ -199,7 +218,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             {/* use the box helper class so the CSS (.cl-table-instance) takes effect; keeps scroll surface correct */}
             <div
               className="cl-table-instance"
-              style={{ flex: '1 1 auto', minHeight: 0 }}
+              style={{
+                flex: '1 1 auto',
+                minHeight: 0,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
             >
               <TemplatesTableLogic
                 tenantNamespace={tenantNamespace}
@@ -230,10 +254,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       {/* Listen for global edit requests from row settings if parent wiring isn't present */}
       {/* This ensures clicking "Edit" always opens the modal with the selected template */}
       {/* Add listener once per container */}
-      <script
-      // inline script placeholder removed — use effect below instead
-      />
-    </>
+    </Card>
   );
 };
 
