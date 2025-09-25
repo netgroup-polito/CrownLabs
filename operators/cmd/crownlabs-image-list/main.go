@@ -255,13 +255,19 @@ func main() {
 		os.Exit(1)
 	}
 	//Temporal solution until we refactor the imgretriever package
-	os.Setenv("registry-url", registryURL)
+	defaultRequestorUsername := os.Getenv("REGISTRY_USERNAME")
+	defaultRequestorPassword := os.Getenv("REGISTRY_PASSWORD")
+	imgretriever.RequestersSharedData["default-requestor-registryurl"] = registryURL
+	imgretriever.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = defaultRequestorUsername
+	imgretriever.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = defaultRequestorPassword
 
 	var imageListRequestors []imgretriever.ImageListRequestor
 
 	for _, r := range imgretriever.RegisteredRequestors {
 		if r != nil {
-			imageListRequestors = append(imageListRequestors, r)
+			if initResult, err := r.Initialize(); initResult && err == nil {
+				imageListRequestors = append(imageListRequestors, r)
+			}
 		}
 	}
 	if len(imageListRequestors) == 0 {

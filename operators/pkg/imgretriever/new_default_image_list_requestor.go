@@ -5,35 +5,43 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"sync"
 )
 
 type DefaultImageListRequestor struct {
-	URL      string
-	Username string
-	Password string
-	Client   *http.Client
+	URL         string
+	Username    string
+	Password    string
+	Client      *http.Client
+	Initialized bool
 }
 
 func NewDefaultImageListRequestor() *DefaultImageListRequestor {
-	var username, password, registryURL string
-
-	username = os.Getenv("REGISTRY_USERNAME")
-	password = os.Getenv("REGISTRY_PASSWORD")
-	registryURL = os.Getenv("REGISTRY_SERVICE_URL")
-	if username == "" || password == "" || registryURL == "" {
-		fmt.Printf("Is Not a valid Image source definition. Skipping...\n")
-		return nil
-	}
 	return &DefaultImageListRequestor{
-		URL:      registryURL,
-		Username: username,
-		Password: password,
-		Client:   &http.Client{},
+		URL:         "",
+		Username:    "",
+		Password:    "",
+		Client:      &http.Client{},
+		Initialized: false,
 	}
 }
 
+func (r *DefaultImageListRequestor) Initialize() (bool, error) {
+	var username, password, registryURL string
+
+	username = RequestersSharedData["default-requestor-REGISTRY_USERNAME"]
+	password = RequestersSharedData["default-requestor-REGISTRY_PASSWORD"]
+	registryURL = RequestersSharedData["default-requestor-registryurl"]
+	if username == "" || password == "" || registryURL == "" {
+		fmt.Printf("Is Not a valid Image source definition (DefaultImageListRequestor ). Skipping...\n")
+		return false, fmt.Errorf("Is Not a valid Image source definition (DefaultImageListRequestor ). Skipping...\n")
+	}
+	r.URL = registryURL
+	r.Username = username
+	r.Password = password
+	r.Initialized = true
+	return true, nil
+}
 func (r *DefaultImageListRequestor) GetImageList() ([]map[string]interface{}, error) {
 	repositories, err := r.doSingleGet(r.getCatalogPath())
 	if err != nil {
