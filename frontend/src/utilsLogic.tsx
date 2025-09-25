@@ -75,10 +75,24 @@ export const makeGuiTemplate = (
     (acc, env) => {
       if (env?.resources) {
         acc.cpu += env.resources.cpu ?? 0;
-        const memoryNum = parseInt(env.resources.memory?.replace(/[^\d]/g, '') || '0');
-        const diskNum = parseInt(env.resources.disk?.replace(/[^\d]/g, '') || '0');
-        acc.memorySum += memoryNum;
-        acc.diskSum += diskNum;
+        const memoryStr = env.resources.memory || '0';
+        let memoryGB = 0;
+        if (memoryStr.includes('G')) {
+          memoryGB = parseInt(memoryStr.replace(/[^\d]/g, '')) || 0;
+        } else if (memoryStr.includes('M')) {
+          memoryGB = (parseInt(memoryStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+
+        const diskStr = env.resources.disk || '0';
+        let diskGB = 0;
+        if (diskStr.includes('G')) {
+          diskGB = parseInt(diskStr.replace(/[^\d]/g, '')) || 0;
+        } else if (diskStr.includes('M')) {
+          diskGB = (parseInt(diskStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+        
+        acc.memorySum += memoryGB;
+        acc.diskSum += diskGB;
       }
       return acc;
     },
@@ -622,6 +636,8 @@ export const getManagerInstances = (
       publicExposure,
       publicExposureStatus,
     ),
+    nodeSelector: status?.nodeSelector,
+    nodeName: status?.nodeName,
     environments: environments,
     hasMultipleEnvironments,
   } as Instance;
