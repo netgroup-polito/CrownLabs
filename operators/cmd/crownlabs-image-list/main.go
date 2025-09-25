@@ -18,7 +18,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
-	"crownlab.imagelist/internal/requestor"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/imgretriever"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/imgretriever/internal/requestor"
 )
 
 type ImageListSaver struct {
@@ -128,13 +129,13 @@ func (s *ImageListSaver) createImageListObject(imageListSpec map[string]interfac
 }
 
 type ImageListUpdater struct {
-	Requestors        []requestor.ImageListRequestor
+	Requestors        []imgretriever.ImageListRequestor
 	Saver             *ImageListSaver
 	RegistryAdvName   string
 	ImageListBaseName string
 }
 
-func NewImageListUpdater(reqs []requestor.ImageListRequestor, sv *ImageListSaver, imageListBase, registryAdv string) *ImageListUpdater {
+func NewImageListUpdater(reqs []imgretriever.ImageListRequestor, sv *ImageListSaver, imageListBase, registryAdv string) *ImageListUpdater {
 	return &ImageListUpdater{
 		Requestors:        reqs,
 		Saver:             sv,

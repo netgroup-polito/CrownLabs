@@ -1,4 +1,4 @@
-package requestor
+package imgretriever
 
 import (
 	"encoding/json"
