@@ -1,5 +1,6 @@
-import { CodeOutlined, DesktopOutlined } from '@ant-design/icons';
-import { Checkbox, Space, Typography } from 'antd';
+import { CodeOutlined, DesktopOutlined, AppstoreAddOutlined, DockerOutlined } from '@ant-design/icons';
+import { Checkbox, Space, Tooltip, Typography } from 'antd';
+import SvgInfinite from '../../../../assets/infinite.svg?react';
 import type { ApolloError } from '@apollo/client';
 import { type FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
@@ -41,6 +42,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
     persistent,
     nodeSelector,
     gui,
+    hasMultipleEnvironments
   } = instance;
 
   const [edit, setEdit] = useState(false);
@@ -94,7 +96,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 />
               </div>
             )}
-          <RowInstanceStatus status={status} environments={instance.environments}/>
+          <RowInstanceStatus status={status} environments={instance.environments} />
 
           {viewMode === WorkspaceRole.manager ? (
             <div className="flex items-center gap-4">
@@ -113,7 +115,63 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
             <>
               {showGuiIcon && extended && (
                 <div className="flex items-center">
-                  {gui ? (
+                  {instance.environments && hasMultipleEnvironments ? (
+                    <Tooltip
+                      placement="right"
+                      title={
+                        <div className="p-2">
+                          <div className="font-semibold mb-2 text-center">
+                            Multiple Environments ({instance.environments.length})
+                          </div>
+                          {instance.environments.map((env, index) => (
+                            <div key={index} className="p-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">{env.name}</span>
+                                {env.guiEnabled ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <DesktopOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                    <span className="text-xs">VM GUI</span>
+                                    {env.persistent && (
+                                      <>
+                                        <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                        <span className="text-xs">Persistent</span>
+                                      </>
+                                    )}
+                                  </div>
+                                ) : (
+                                  env.environmentType === 'Container' ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <DockerOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                      <span className="text-xs">Container SSH</span>
+                                      {env.persistent && (
+                                        <>
+                                          <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                          <span className="text-xs">Persistent</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <CodeOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                      <span className="text-xs">VM SSH</span>
+                                      {env.persistent && (
+                                        <>
+                                          <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                          <span className="text-xs">Persistent</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      }
+                    >
+                      <AppstoreAddOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+                    </Tooltip>
+                  ) : gui ? (
                     <DesktopOutlined
                       className="primary-color-fg"
                       style={{ fontSize: '24px' }}
