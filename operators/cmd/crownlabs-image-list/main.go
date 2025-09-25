@@ -19,7 +19,6 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/imgretriever"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/imgretriever/internal/requestor"
 )
 
 type ImageListSaver struct {
@@ -256,9 +255,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	var imageListRequestors []requestor.ImageListRequestor
+	var imageListRequestors []imgretriever.ImageListRequestor
 
-	for _, r := range requestor.RegisteredRequestors {
+	for _, r := range imgretriever.RegisteredRequestors {
 		if r != nil {
 			imageListRequestors = append(imageListRequestors, r)
 		}
