@@ -1,17 +1,57 @@
-/* Box */
+/* Ensure the top-level context gives flex children a bounded height */
+html,
+body,
+#root {
+  height: 100%;
+}
 
+/* Card + ant wrappers must be allowed to shrink so inner flex:1 can compute height */
+.cl-card-box,
+.cl-card-box .ant-card,
+.cl-card-box .ant-card-body,
+.cl-card-box .ant-spin-nested-loading,
+.cl-card-box .ant-spin-container,
 .cl-card-box {
-  body.light & .ant-card-body,
+  min-height: 0;
+}
+
+/* Keep card as column flex and preserve current rules */
+.cl-card-box {
+  /* ensure the card is a column flex container and clips overflow (keeps footer inside rounded border) */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  /* ensure the Ant Card body is a column flex that can shrink */
   .ant-card-body {
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0; /* critical so inner flex:1 elements can compute height */
+    padding: 0; /* preserve layout — adjust if needed */
   }
+
   .box-header {
     border-bottom: solid #000000 3px;
   }
   body.light & .box-header {
     border-color: #f1f1f1;
   }
+
+  /* footer that should stay inside the card (attach this class to the Destroy All wrapper) */
+  .destroy-footer {
+    flex: 0 0 auto;
+    padding: 1rem 0;
+    text-align: center;
+  }
+
   .inner {
     min-height: 1.5rem;
   }
+}
+
+/* Templates wrapper cleanup: avoid changing display of ant elements */
+.cl-templates-table {
+  padding: 0;
 }

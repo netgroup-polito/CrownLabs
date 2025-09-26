@@ -26,30 +26,33 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
   };
 
   return (
-    <>
-      <Card
-        className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box h-full"
-        styles={{
-          body: { height: '100%', flexDirection: 'column', display: 'flex' },
-        }}
-      >
-        <div className="w-full flex-none">
-          {header && (
-            <div
-              className={`${
-                size ? classPerSize[size] : ''
-              } flex justify-center items-center box-header`}
-            >
-              <div className="flex-none h-full">{left}</div>
-              <div className="flex-grow h-full">{center}</div>
-              <div className="flex-none h-full">{right}</div>
-            </div>
-          )}
-        </div>
-        <div className="w-full flex-grow">{children}</div>
-        <div className="w-full flex-none inner">{footer}</div>
-      </Card>
-    </>
+    <Card
+      className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box h-full"
+      // make the card body a true flex item so inner scroll surfaces can compute height
+      bodyStyle={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+        minHeight: 0,
+      }}
+    >
+      <div className="w-full flex-none">
+        {header && (
+          <div
+            className={`${
+              size ? classPerSize[size] : ''
+            } flex justify-center items-center box-header`}
+          >
+            <div className="flex-none h-full">{left}</div>
+            <div className="flex-grow h-full">{center}</div>
+            <div className="flex-none h-full">{right}</div>
+          </div>
+        )}
+      </div>
+      {/* allow Box body to shrink inside the flex chain */}
+      <div className="w-full flex-grow min-h-0">{children}</div>
+      <div className="w-full flex-none inner">{footer}</div>
+    </Card>
   );
 };
 

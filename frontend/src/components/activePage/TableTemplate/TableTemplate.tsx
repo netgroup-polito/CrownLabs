@@ -108,42 +108,40 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
   }, [collapseAll, expandAll]);
 
   return (
-    <div className="rowInstance-bg-color">
-      <Table
-        /* className="rowInstance-bg-color" */
-        rowKey={record => record.id}
-        columns={columns}
-        size="middle"
-        dataSource={templates}
-        pagination={false}
-        showHeader={false}
-        expandable={{
-          onExpand: (_expanded, ws) => expandRow(ws.id),
-          expandedRowKeys: expandedId,
-          expandIcon: ({ expanded, onExpand, record }) => (
-            <CaretRightOutlined
-              className="transition-icon"
-              onClick={e => onExpand(record, e)}
-              rotate={expanded ? 90 : 0}
-            />
-          ),
-          expandedRowRender: ({ instances }) => (
-            <TableInstance
-              showGuiIcon={false}
-              viewMode={WorkspaceRole.manager}
-              extended={true}
-              instances={instances}
-              hasSSHKeys={hasSSHKeys}
-              handleManagerSorting={handleManagerSorting}
-              showAdvanced={showAdvanced}
-              showCheckbox={showCheckbox}
-              selectiveDestroy={selectiveDestroy}
-              selectToDestroy={selectToDestroy}
-            />
-          ),
-        }}
-      />
-    </div>
+    <Table
+      /* className="rowInstance-bg-color" */
+      rowKey={record => record.id}
+      columns={columns}
+      size="middle"
+      dataSource={templates}
+      pagination={false}
+      showHeader={false}
+      expandable={{
+        onExpand: (_expanded, ws) => expandRow(ws.id),
+        expandedRowKeys: expandedId,
+        expandIcon: ({ expanded, onExpand, record }) => (
+          <CaretRightOutlined
+            className="transition-icon"
+            onClick={e => onExpand(record, e)}
+            rotate={expanded ? 90 : 0}
+          />
+        ),
+        expandedRowRender: ({ instances }) => (
+          <TableInstance
+            showGuiIcon={false}
+            viewMode={WorkspaceRole.manager}
+            extended={true}
+            instances={instances}
+            hasSSHKeys={hasSSHKeys}
+            handleManagerSorting={handleManagerSorting}
+            showAdvanced={showAdvanced}
+            showCheckbox={showCheckbox}
+            selectiveDestroy={selectiveDestroy}
+            selectToDestroy={selectToDestroy}
+          />
+        ),
+      }}
+    />
   );
 };
 
