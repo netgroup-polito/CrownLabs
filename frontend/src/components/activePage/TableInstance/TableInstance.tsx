@@ -112,7 +112,6 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         {extended && showAdvanced && (
           <div style={{ flex: '0 0 auto' }}>
             <Table
-              className="rowInstance-bg-color h-10"
               dataSource={[{}]}
               showHeader={false}
               pagination={false}
@@ -145,22 +144,13 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
           style={{
             flex: '1 1 auto',
             minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
           }}
-          className="rowInstance-bg-color"
         >
           <Table
-            className="rowInstance-bg-color"
             dataSource={instances}
             showHeader={false}
             pagination={false}
             size="middle"
-            rowClassName={
-              viewMode === WorkspaceRole.user && extended
-                ? ''
-                : 'rowInstance-bg-color'
-            }
             rowKey={record => record.id + (record.templateId || '')}
           >
             <Column

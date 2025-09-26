@@ -11,7 +11,7 @@ body,
 .cl-card-box .ant-card-body,
 .cl-card-box .ant-spin-nested-loading,
 .cl-card-box .ant-spin-container,
-.cl-card-box .ant-table-wrapper {
+.cl-card-box {
   min-height: 0;
 }
 
@@ -39,14 +39,6 @@ body,
     border-color: #f1f1f1;
   }
 
-  /* helper used by WorkspaceContainer to host scrollable table area */
-  .cl-table-instance {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
   /* footer that should stay inside the card (attach this class to the Destroy All wrapper) */
   .destroy-footer {
     flex: 0 0 auto;
@@ -62,13 +54,4 @@ body,
 /* Templates wrapper cleanup: avoid changing display of ant elements */
 .cl-templates-table {
   padding: 0;
-}
-
-/* cl-table-instance is the scroll surface — keep overflow there */
-.cl-table-instance {
-  /* existing rules already set — this reaffirms them */
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
 }

@@ -1,120 +1,47 @@
-// WE HAVE TO FIX THIS HARD CODED HEIGHT
-// document.documentElement.style.setProperty('--box-ext-height', `${value}px`);
-
 .cl-templates-table {
-  /* let the component / Box control height via flex; allow vertical scrolling only */
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
 }
 
-/* Make the templates wrapper a proper flex column and force the Ant wrapper to be the scroll surface */
 .cl-templates-table {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto !important;
   min-height: 0 !important;
-  /* do not rely only on this: the .ant-table-content below is the real scroll surface */
 }
 
-/* Make Ant wrappers participate in the flex chain and provide the scroll surface */
-/* (removed the previous flex forcing on Ant internals: that breaks table layout) */
-
-/* Ensure Ant internals keep their native layout; the explicit scroll surface is .cl-templates-scroll */
-.cl-templates-table .ant-table-wrapper,
-.cl-templates-table .ant-table-container,
-.cl-templates-table .ant-table-content {
-  display: block !important;
-  flex: none !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-/* The visible scroll area should be the table content */
-.cl-templates-table .ant-table-content {
-  overflow: auto;
-}
-
-/* keep table layout stable */
-.cl-templates-table .ant-table-container table,
-.cl-templates-table .ant-table-content table {
-  width: 100% !important;
-  table-layout: fixed;
-}
-
-tr.ant-table-expanded-row > td {
-  background-color: #141414 !important;
-}
-
-body.light {
-  tr.ant-table-expanded-row > td {
-    background-color: #ffffff !important;
-  }
-}
-
-.rowInstance-bg-color .ant-table-container {
-  overflow-x: hidden;
-}
-.rowInstance-bg-color .ant-table-container table {
-  width: 100% !important;
-  table-layout: fixed;
-}
-.rowInstance-bg-color .ant-table-cell {
-  word-break: break-word;
-}
-
-/* ensure root / app has a height so inner flex can be constrained */
 html, body, #root {
   height: 100%;
 }
 
-/* root wrapper for the component: preserve original layout */
 .cl-templates-table {
   display: block;
   width: 100%;
-  /* let the parent Box / Card control final height via flex */
   min-height: 0;
   overflow: hidden; /* don't let this element itself create an extra scrollbar */
 }
 
-/* explicit, single scroll surface to contain the Table */
 .cl-templates-scroll {
-  /* participates in parent flex chains */
   display: block;
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  height: 100%;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* keep Ant table rendering untouched (do NOT set display:flex on ant-table-container/content) */
-.cl-templates-table .ant-table,
-.cl-templates-scroll .ant-table {
-  width: 100%;
-}
-
-/* Prefer fixed table layout to keep column sizes stable */
 .cl-templates-table .ant-table table,
 .cl-templates-scroll .ant-table table {
   width: 100% !important;
   table-layout: fixed;
 }
 
-/* If Ant provides .ant-table-body, let it be scrollable inside the scroll wrapper only */
 .cl-templates-scroll .ant-table-body {
   max-height: none; /* avoid antd internal max-height fights */
   overflow: visible; /* outer wrapper handles scrolling */
 }
 
-/* keep table cells word-break safe */
-.rowInstance-bg-color .ant-table-cell {
-  word-break: break-word;
-}
-
-/* visual tweaks for expanded rows */
 tr.ant-table-expanded-row > td {
   background-color: #141414 !important;
 }
@@ -122,20 +49,17 @@ body.light tr.ant-table-expanded-row > td {
   background-color: #ffffff !important;
 }
 
-/* make the local flex-height chain definite so inner flex:1 elements are bounded */
 .w-full.flex-grow.min-h-0,
 .w-full.flex-grow.min-h-0 > div,
 .cl-table-instance,
 .cl-table-instance > div,
 .cl-templates-table {
-  /* ensure the element participates in the height chain */
   min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* the explicit scroll surface */
 .cl-templates-scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -144,8 +68,6 @@ body.light tr.ant-table-expanded-row > td {
   overflow-x: hidden;
 }
 
-/* Ensure Ant table internals don't create their own scroll surfaces
-   and participate in the outer scroll wrapper's height. */
 .cl-templates-scroll .ant-table-wrapper,
 .cl-templates-scroll .ant-table,
 .cl-templates-scroll .ant-table-container,
@@ -157,7 +79,6 @@ body.light tr.ant-table-expanded-row > td {
   overflow: visible;
 }
 
-/* Disable any internal fixed max-height/overflow on the body/scroll area */
 .cl-templates-scroll .ant-table-body,
 .cl-templates-scroll .ant-table-scroll,
 .cl-templates-scroll .ant-table-scroll .ant-table-body {
@@ -166,7 +87,6 @@ body.light tr.ant-table-expanded-row > td {
   overflow: visible !important;
 }
 
-/* Spin containers sometimes set flex/height — make them neutral here */
 .cl-templates-scroll .ant-spin-nested-loading,
 .cl-templates-scroll .ant-spin-container {
   display: block;
@@ -174,7 +94,6 @@ body.light tr.ant-table-expanded-row > td {
   min-height: 0;
 }
 
-/* Keep table layout predictable inside the scroll surface */
 .cl-templates-scroll .ant-table table {
   width: 100% !important;
   table-layout: fixed;

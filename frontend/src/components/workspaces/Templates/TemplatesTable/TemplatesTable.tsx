@@ -103,7 +103,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   }, [expandedId]);
 
   return (
-    <div className="w-full flex-wrap content-between py-0 scrollbar cl-templates-table">
+    <div className="w-full content-between py-0 scrollbar cl-templates-table">
       {/* explicit scroll surface to guarantee bounded scrolling inside the card */}
       <div className="cl-templates-scroll">
         <Table

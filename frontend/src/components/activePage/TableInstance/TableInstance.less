@@ -4,9 +4,7 @@
 }
 
 body.light {
-  tr.rowInstance-bg-color > td {
-    background-color: #fafafa !important;
-  }
+
 
   .rowHeader-bg-color {
     background-color: #f1f1f1;
@@ -14,37 +12,27 @@ body.light {
   }
 }
 
-/* cl-table-instance should not force viewport height; allow flex to control sizing */
 .cl-table-instance {
   flex: 1 1 auto;
   min-height: 0;
-  /* allow vertical scrolling inside the workspace card */
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
 }
-
-/* Ensure nested Ant wrappers don't introduce overflow clipping and participate in flex sizing */
 .cl-table-instance,
 .cl-table-instance > div,
 .cl-table-instance .ant-spin-nested-loading,
-.cl-table-instance .ant-spin-container,
-.cl-table-instance .ant-table-wrapper,
-.cl-table-instance .ant-table,
-.cl-table-instance .ant-table-container {
+.cl-table-instance .ant-spin-container {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.cl-templates-table .ant-table-container {
-  overflow-x: hidden;
+.cl-table-instance,
+.cl-table-instance,
+.cl-table-instance,
+.cl-table-instance {
+  display: block;
+  min-height: 0;
+  overflow: visible;
 }
-.cl-templates-table .ant-table-container table {
-  width: 100% !important;
-  table-layout: fixed;
-}
-.cl-templates-table .ant-table-cell {
-  word-break: break-word;
-}
-
