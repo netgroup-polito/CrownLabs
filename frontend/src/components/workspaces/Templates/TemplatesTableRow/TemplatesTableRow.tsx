@@ -224,7 +224,14 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                     </div>
                   }
                 >
+                  <Badge
+                    count={template.environmentList.length}
+                    size="small"
+                    color="green"
+                    offset={[3, -3]}
+                  >
                   <AppstoreAddOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+                </Badge>
                 </Tooltip>
               ) : (
                 template.gui ? (

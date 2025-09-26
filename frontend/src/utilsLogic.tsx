@@ -444,11 +444,13 @@ export const getSubObjTypeCustom = (
     running: oldRunning,
     status: oldStatus,
     publicExposure: oldPublicExposure,
+    environments: oldEnvironments
   } = oldObj ?? {};
   const {
     running: newRunning,
     status: newStatus,
     publicExposure: newPublicExposure,
+    environments: newEnvironments
   } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
@@ -465,6 +467,16 @@ export const getSubObjTypeCustom = (
       return SubObjType.UpdatedInfo;
     }
 
+    if (oldEnvironments && newEnvironments) {
+      const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+        const newEnv = newEnvironments[index];
+        return newEnv && oldEnv?.phase !== newEnv?.phase;
+      });
+
+      if (environmentPhaseChanged) {
+        return SubObjType.UpdatedInfo;
+      }
+    }
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -502,6 +514,18 @@ const getSubObjTypeK8sEnhanced = (
       return SubObjType.PublicExposureChange;
     }
 
+    // Check if any environment phase changed
+    const oldEnvironments = oldStatus?.environments || [];
+    const newEnvironments = newStatus?.environments || [];
+    
+    const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+      const newEnv = newEnvironments[index];
+      return newEnv && oldEnv?.phase !== newEnv?.phase;
+    });
+    
+    if (environmentPhaseChanged) {
+      return SubObjType.UpdatedInfo;
+    }
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -681,6 +705,15 @@ export const getTemplatesMapped = (
         hasMultipleEnvironments
       },
     ] = instancesFiltered;
+
+    const environmentList = environments?.map(env => ({
+      name: env.name,
+      guiEnabled: env.guiEnabled || false,
+      persistent: env.persistent || false,
+      environmentType: env.environmentType,
+      resources: { cpu: 0, disk: '', memory: '' },
+    })) || [];
+  
     return {
       id: templateId,
       name: templatePrettyName,
@@ -691,8 +724,8 @@ export const getTemplatesMapped = (
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
       allowPublicExposure,
-      environmentList: environments || [],
-      hasMultipleEnvironments: hasMultipleEnvironments || false,
+      environmentList: environmentList,
+      hasMultipleEnvironments: hasMultipleEnvironments ?? false,
     };
   });
 };
