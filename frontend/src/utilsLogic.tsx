@@ -301,12 +301,22 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const { running: oldRunning, status: oldStatus, environments: oldEnvironments } = oldObj ?? {};
+  const { running: newRunning, status: newStatus, environments: newEnvironments } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
     if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
+    }
+    if (oldEnvironments && newEnvironments) {
+      const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+        const newEnv = newEnvironments[index];
+        return newEnv && oldEnv?.phase !== newEnv?.phase;
+      });
+
+      if (environmentPhaseChanged) {
+        return SubObjType.UpdatedInfo;
+      }
     }
     return SubObjType.Drop;
   }
@@ -328,6 +338,18 @@ export const getSubObjTypeK8s = (
       oldStatus?.phase !== newStatus?.phase ||
       oldSpec?.running !== newSpec?.running
     ) {
+      return SubObjType.UpdatedInfo;
+    }
+    // Check if any environment phase changed
+    const oldEnvironments = oldStatus?.environments || [];
+    const newEnvironments = newStatus?.environments || [];
+    
+    const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+      const newEnv = newEnvironments[index];
+      return newEnv && oldEnv?.phase !== newEnv?.phase;
+    });
+    
+    if (environmentPhaseChanged) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -482,6 +504,15 @@ export const getTemplatesMapped = (
 
     const [{ templateId, gui, persistent, workspaceName, templatePrettyName, environments, hasMultipleEnvironments }] =
       instancesFiltered;
+
+    const environmentList = environments?.map(env => ({
+      name: env.name,
+      guiEnabled: env.guiEnabled || false,
+      persistent: env.persistent || false,
+      environmentType: env.environmentType,
+      resources: { cpu: 0, disk: '', memory: '' },
+    })) || [];
+  
     return {
       id: templateId,
       name: templatePrettyName,
@@ -491,8 +522,8 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
-      environmentList: environments,
-      hasMultipleEnvironments: hasMultipleEnvironments,
+      environmentList: environmentList,
+      hasMultipleEnvironments: hasMultipleEnvironments ?? false,
     };
   });
 };

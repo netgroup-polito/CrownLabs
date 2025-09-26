@@ -20,6 +20,7 @@ query ownedInstances($tenantNamespace: String!) {
           name
           phase
           ip
+          initialReadyTime
         }
       }
       spec {

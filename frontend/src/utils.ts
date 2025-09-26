@@ -35,7 +35,7 @@ export type InstanceEnvironment = {
   name: string;
   phase?: Phase;
   ip?: string;
-  guiEnabled?: boolean; // to fix
+  guiEnabled?: boolean;
   persistent?: boolean;
   environmentType?: EnvironmentType;
 };
