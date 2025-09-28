@@ -269,9 +269,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
-	// It will set the root url in the instance only if there is at least one environment
-	// that is a vm with gui enabled.
-	urlNeeded := false
 	// Make sure the list of instance environments status is initialized
 	tmplEnvCount := len(template.Spec.EnvironmentList)
 	if len(instance.Status.Environments) != tmplEnvCount {
@@ -295,9 +292,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
-			if tmplEnv.GuiEnabled {
-				urlNeeded = true
-			}
 
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
@@ -307,7 +301,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		}
 
 		// Set the root url in instance Status
-		if urlNeeded {
+		if tmplEnv.GuiEnabled {
 			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
 			instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
 		} else {
