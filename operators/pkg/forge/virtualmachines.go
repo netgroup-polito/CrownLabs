@@ -54,11 +54,11 @@ var (
 func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{Labels: InstanceSelectorLabels(instance)},
+			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
 			Spec:       VirtualMachineInstanceSpec(instance, template, environment),
 		},
 		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
-			DataVolumeTemplate(NamespacedName(instance).Name, environment),
+			DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
 		},
 	}
 }
@@ -95,7 +95,7 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
 	// Attach cloudinit volume on non-restricted environments
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
-		volumes = append(volumes, VolumeCloudInit(NamespacedName(instance).Name))
+		volumes = append(volumes, VolumeCloudInit(NamespacedNameWithSuffix(instance, environment.Name).Name))
 	}
 	return volumes
 }
@@ -104,7 +104,7 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 // the environment characteristics.
 func VolumeRootDisk(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) virtv1.Volume {
 	if environment.Persistent {
-		return VolumePersistentDisk(NamespacedName(instance).Name)
+		return VolumePersistentDisk(NamespacedNameWithSuffix(instance, environment.Name).Name)
 	}
 	return VolumeContainerDisk(environment.Image)
 }
