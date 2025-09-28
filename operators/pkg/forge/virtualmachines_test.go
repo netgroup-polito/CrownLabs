@@ -76,14 +76,14 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.InstanceSelectorLabels(&instance)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
 		})
 		It("Should set the correct datavolume template", func() {
 			Expect(spec.DataVolumeTemplates).To(ContainElement(
-				forge.DataVolumeTemplate(forge.NamespacedName(&instance).Name, &environment)))
+				forge.DataVolumeTemplate(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name, &environment)))
 		})
 	})
 
@@ -98,7 +98,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, &template)))
 		})
 		It("Should set the cloud-init volumes", func() {
-			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.NamespacedName(&instance).Name)))
+			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name)))
 		})
 		It("Should set the correct readiness probe", func() {
 			Expect(spec.ReadinessProbe).To(Equal(forge.VirtualMachineReadinessProbe(&environment)))
@@ -120,7 +120,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() { environment.Persistent = true })
 			It("Should set the persistent-disk volume", func() {
-				Expect(spec.Volumes).To(ContainElement(forge.VolumePersistentDisk(forge.NamespacedName(&instance).Name)))
+				Expect(spec.Volumes).To(ContainElement(forge.VolumePersistentDisk(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name)))
 			})
 		})
 	})
@@ -177,7 +177,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Scope: clv1alpha2.ScopeStandard,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{
-					forge.VolumeCloudInit(forge.NamespacedName(i).Name),
+					forge.VolumeCloudInit(forge.NamespacedNameWithSuffix(i, e.Name).Name),
 					forge.VolumeRootDisk(i, e),
 				}
 			},
@@ -215,7 +215,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() { environment.Persistent = true })
 			It("Should forge the persistent-disk volume", func() {
-				Expect(volume).To(Equal(forge.VolumePersistentDisk(forge.NamespacedName(&instance).Name)))
+				Expect(volume).To(Equal(forge.VolumePersistentDisk(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name)))
 			})
 		})
 	})

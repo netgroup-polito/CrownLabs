@@ -1056,7 +1056,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1064,7 +1064,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1072,7 +1072,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: false,
 			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1080,7 +1080,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1088,7 +1088,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1096,7 +1096,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent: true,
 			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1105,7 +1105,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent:  false,
 			Scope:       clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
-				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e)}
+				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
 		}))
 
@@ -1116,7 +1116,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			},
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{
-					forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e),
+					forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e),
 					forge.NFSVolume(mountInfos[0]),
 				}
 			},
@@ -1136,7 +1136,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			},
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{
-					forge.ContainerVolume(forge.PersistentVolumeName, instanceName, e),
+					forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e),
 					forge.NFSVolume(mountInfos[0]),
 					forge.NFSVolume(mountInfos[1]),
 				}

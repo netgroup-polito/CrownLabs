@@ -300,14 +300,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			}
 		}
 
-		// Set the root url in instance Status
-		if tmplEnv.GuiEnabled {
-			host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
-			instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
-		} else {
-			instance.Status.URL = ""
-		}
-
 		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
 

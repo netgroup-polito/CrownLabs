@@ -165,7 +165,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		It("Should correctly reconcile the instance", func() {
 			Expect(RunReconciler()).To(Succeed())
 
-			expectedURL := ""
+			expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
 			Expect(instance.Status.URL).To(Equal(expectedURL))
 
 			Expect(instance.Status.Environments).ToNot(BeEmpty())
@@ -229,7 +229,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			})
 
 			By("Asserting the root url is empty", func() {
-				expectedURL := ""
+				expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
 				Expect(instance.Status.URL).To(Equal(expectedURL))
 			})
 		})
