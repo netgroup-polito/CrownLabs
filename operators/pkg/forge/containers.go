@@ -444,7 +444,7 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty
 // list in case the environment is not standard and not persistent.
 func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo) []corev1.Volume {
-	vols := []corev1.Volume{ContainerVolume(PersistentVolumeName, NamespacedName(instance).Name, environment)}
+	vols := []corev1.Volume{ContainerVolume(PersistentVolumeName, NamespacedNameWithSuffix(instance, environment.Name).Name, environment)}
 
 	for _, mountInfo := range mountInfos {
 		vols = append(vols, NFSVolume(mountInfo))
