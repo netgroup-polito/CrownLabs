@@ -33,7 +33,6 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
 var _ = Describe("Generation of the cloud-init configuration", func() {
@@ -193,46 +192,6 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			})
 		})
 
-	})
-
-	Describe("The NFSSpecs function", func() {
-		var serviceName, servicePath string
-
-		JustBeforeEach(func() {
-			serviceName, servicePath, err = reconciler.GetNFSSpecs(ctx)
-		})
-
-		Context("The user-pvc secret does not exist", func() {
-			It("Should return a not found error", func() { Expect(err).To(FailBecauseNotFound()) })
-		})
-
-		Context("The user-pvc secret exists", func() {
-			When("the secret contains the expected data", func() {
-				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
-				})
-
-				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
-				It("The retrieved dns name should be correct", func() { Expect(serviceName).To(BeIdenticalTo(NFSServiceName)) })
-				It("The retrieved path should be correct", func() { Expect(servicePath).To(BeIdenticalTo(NFSServicePath)) })
-			})
-
-			When("the secret does not contain the dns name", func() {
-				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret("invalid-name-key", forge.NFSSecretPathKey))
-				})
-
-				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
-			})
-
-			When("the secret does not contain the path", func() {
-				BeforeEach(func() {
-					clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, "invalid-path-key"))
-				})
-
-				It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
-			})
-		})
 	})
 
 	Describe("The GetPublicKeys function", func() {

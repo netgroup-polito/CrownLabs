@@ -31,7 +31,7 @@ type WorkspaceUserRole string
 
 const (
 	// Manager -> a Tenant with Manager role can interact with all the environments
-	// (i.e. VMs) in a Workspace, as well as add new Tenants to the Workspace.
+	// (e.g. VMs) in a Workspace, as well as add new Tenants to the Workspace.
 	Manager WorkspaceUserRole = "manager"
 	// User -> a Tenant with User role can only interact with his/her own
 	// environments (e.g. VMs) within that Workspace.

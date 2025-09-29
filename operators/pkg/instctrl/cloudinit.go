@@ -16,10 +16,8 @@ package instctrl
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,8 +41,6 @@ const (
 // EnforceCloudInitSecret enforces the creation/update of a secret containing the cloud-init configuration,
 // based on the information retrieved for the tenant object and its associated WebDav credentials.
 func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
-	var nfsServerName, nfsPath string
-
 	log := ctrl.LoggerFrom(ctx)
 	env := clctx.EnvironmentFrom(ctx)
 
@@ -56,29 +52,10 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	}
 	log.V(utils.LogDebugLevel).Info("public keys correctly retrieved")
 
-	if env.MountMyDriveVolume {
-		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
-
-		if err != nil {
-			log.Error(err, "unable to retrieve NFS volume dns name and path")
-			return err
-		}
-	}
-
-	mountInfos := []forge.NFSVolumeMountInfo{}
-
-	if nfsServerName != "" && nfsPath != "" {
-		mountInfos = append(mountInfos, forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
-	}
-
-	for i, mount := range env.SharedVolumeMounts {
-		var shvol clv1alpha2.SharedVolume
-		if err := r.Get(ctx, forge.NamespacedNameFromMount(mount), &shvol); err != nil {
-			log.Error(err, "unable to retrieve shvol to mount")
-			return err
-		}
-
-		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
+	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, env)
+	if err != nil {
+		log.Error(err, msg)
+		return err
 	}
 
 	userdata, err := forge.CloudInitUserData(publicKeys, mountInfos)
@@ -110,36 +87,6 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 
 	log.V(utils.FromResult(res)).Info("cloud-init secret enforced", "secret", klog.KObj(&secret), "result", res)
 	return nil
-}
-
-// GetNFSSpecs extracts the NFS server name and path for the user's personal NFS volume,
-// required to mount the MyDrive disk of a given tenant from the associated secret.
-func (r *InstanceReconciler) GetNFSSpecs(ctx context.Context) (nfsServerName, nfsPath string, err error) {
-	var serverNameBytes, serverPathBytes []byte
-	instance := clctx.InstanceFrom(ctx)
-	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: forge.NFSSecretName}
-
-	secret := corev1.Secret{}
-	if err = r.Get(ctx, secretName, &secret); err != nil {
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve secret", "secret", secretName)
-		return
-	}
-
-	serverNameBytes, ok := secret.Data[forge.NFSSecretServerNameKey]
-	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", forge.NFSSecretServerNameKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
-		return
-	}
-
-	serverPathBytes, ok = secret.Data[forge.NFSSecretPathKey]
-	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", forge.NFSSecretPathKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
-		return
-	}
-
-	return string(serverNameBytes), string(serverPathBytes), nil
 }
 
 // GetPublicKeys extracts and returns the set of public keys associated with a
