@@ -65,7 +65,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
 		manager     clv1alpha2.Tenant
-		template    clv1alpha2.Template
 		index       int
 
 		objectName types.NamespacedName
