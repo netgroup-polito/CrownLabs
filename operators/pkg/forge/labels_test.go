@@ -63,7 +63,7 @@ var _ = Describe("Labels forging", func() {
 		type InstanceAutomationLabelCase struct {
 			Input          map[string]string
 			ContentUrls    map[string]*clv1alpha2.InstanceContentUrls
-			StatusCheckUrl string
+			StatusCheckURL string
 			ExpectedValue  string
 		}
 
@@ -226,7 +226,7 @@ var _ = Describe("Labels forging", func() {
 								Destination: "",
 							},
 						},
-						StatusCheckURL: c.StatusCheckUrl,
+						StatusCheckURL: c.StatusCheckURL,
 					},
 				})
 				if c.ExpectedValue != "" {
@@ -237,24 +237,24 @@ var _ = Describe("Labels forging", func() {
 			},
 			Entry("When the Instance customizationUrls is nil", InstanceAutomationLabelCase{
 				Input:          map[string]string{},
-				StatusCheckUrl: "",
+				StatusCheckURL: "",
 				ExpectedValue:  "",
 			}),
 			Entry("When the Instance customizationUrls statusCheck is not set", InstanceAutomationLabelCase{
 				Input:          map[string]string{},
-				StatusCheckUrl: "",
+				StatusCheckURL: "",
 				ExpectedValue:  "",
 			}),
 			Entry("When the Instance customizationUrls statusCheck is set", InstanceAutomationLabelCase{
 				Input:          map[string]string{},
-				StatusCheckUrl: statusCheckURL,
+				StatusCheckURL: statusCheckURL,
 				ExpectedValue:  "true",
 			}),
 			Entry("When the Instance termination label was already set", InstanceAutomationLabelCase{
 				Input: map[string]string{
 					forge.InstanceTerminationSelectorLabel: "false",
 				},
-				StatusCheckUrl: statusCheckURL,
+				StatusCheckURL: statusCheckURL,
 				ExpectedValue:  "false",
 			}),
 		)

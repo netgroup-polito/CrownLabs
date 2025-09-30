@@ -115,9 +115,9 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 
 	switch phase {
 	case clv1alpha2.EnvironmentPhaseReady:
-		url := fmt.Sprintf("%v%v/", inst.Status.URL, inst.Status.Environments[0].Name)
-		log.Info("redirecting", "url", url)
-		http.Redirect(w, r, url, http.StatusFound)
+		instanceURL := fmt.Sprintf("%v%v/", inst.Status.URL, inst.Status.Environments[0].Name)
+		log.Info("redirecting", "url", instanceURL)
+		http.Redirect(w, r, instanceURL, http.StatusFound)
 	case clv1alpha2.EnvironmentPhaseOff:
 		log.Error(fmt.Errorf("instance off"), "invalid phase")
 		WriteError(w, r, log, http.StatusGone, "The requested Instance is not running.")

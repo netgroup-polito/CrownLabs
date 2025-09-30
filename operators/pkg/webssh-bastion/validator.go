@@ -33,7 +33,6 @@ import (
 
 // Retrieves the environment information from the Kubernetes API using the provided token for authentication.
 func (webCtx *ServerContext) getEnvironment(ctx context.Context, token, environment, namespace, instanceName string) (*clv1alpha2.InstanceStatusEnv, error) {
-
 	if webCtx.BaseConfig == nil {
 		return nil, errors.New("baseConfig is not initialized")
 	}
