@@ -52,8 +52,8 @@ configurations:
     terminationStatusCheckInterval: "2m"
     inactiveTerminationStatusCheckTimeout: "3s"
     inactiveTerminationMaxNumberOfAlerts: 3
-    enableInactivityNotifications: true
-    enableExpirationNotifications: true
+    enableInactivityNotifications: false
+    enableExpirationNotifications: false
     inactiveTerminationNotificationInterval: "24h"
     expirationNotificationInterval: "24h"
   publicExposure:
