@@ -60,10 +60,10 @@ securityContext:
 
 resources:
   limits:
-    memory: 500Mi
+    memory: 700Mi
     cpu: 1000m
   requests:
-    memory: 100Mi
+    memory: 700Mi
     cpu: 100m
 
 webhook:
