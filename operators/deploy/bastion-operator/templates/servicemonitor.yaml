@@ -20,3 +20,25 @@ spec:
     matchLabels:
       {{- include "bastion-operator.selectorLabels" . | nindent 6 }}
       {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 6 }}
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webssh
+  labels:
+    {{- include "webssh.labels" . | nindent 4 }}
+    {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "webssh.labels" . | nindent 4 }}
+      {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
+  endpoints:
+    - interval: 15s
+      path: /metrics
+      port: webssh

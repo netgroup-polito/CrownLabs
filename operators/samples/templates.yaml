@@ -41,6 +41,7 @@ spec:
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: tea
   deleteAfter: 30d
+  inactivityTimeout: 24h
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -63,7 +64,8 @@ spec:
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee
-  deleteAfter: 1h
+  deleteAfter: 10h
+  inactivityTimeout: 30m
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -90,13 +92,14 @@ spec:
       rewriteURL: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
   name: vscode-c-cpp-persistent
   namespace: workspace-standalone
+  annotations:
+    crownlabs.polito.it/custom-number-alerts: "5" # Custom number of alerts for this template
 spec:
   prettyName: vscode c-cpp persistent
   description: A template about vscode
@@ -117,7 +120,6 @@ spec:
       persistent: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -141,4 +143,3 @@ spec:
         reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d

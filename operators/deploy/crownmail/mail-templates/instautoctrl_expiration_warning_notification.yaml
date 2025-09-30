@@ -1,0 +1,9 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: Instance { prettyName } is expiring soon
+plaintext_content: |-
+  Your instance { prettyName } will expire in { remainingTime } and will be permanently deleted. Please take any necessary actions to save your data.
+html_content: |-
+  <p>Your instance <strong>{ prettyName }</strong> will expire in <strong>{ remainingTime }</strong> and will be permanently deleted. </p>
+  <p>Please take any necessary actions to save your data.</p>

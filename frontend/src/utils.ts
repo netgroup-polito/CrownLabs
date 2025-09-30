@@ -93,6 +93,7 @@ export type SharedVolume = {
 export enum LinkPosition {
   MenuButton,
   NavbarButton,
+  Hidden,
 }
 
 export enum WorkspacesAvailableAction {

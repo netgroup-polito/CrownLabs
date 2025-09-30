@@ -187,7 +187,7 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 
 	environment, err := RetrieveEnvironment(ctx, r.Client, instance)
 	if err != nil {
-		log.Info("failed retrieving environment", "error", err)
+		log.Error(err, "failed retrieving environment")
 		return err
 	}
 

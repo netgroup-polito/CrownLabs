@@ -7,7 +7,7 @@ import AppLayout from './components/common/AppLayout';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
-
+import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
 function App() {
   const { data: tenantData } = useContext(TenantContext);
 
@@ -61,6 +61,16 @@ function App() {
           },
           content: <UserPanelLogic key="/account" />,
           linkPosition: LinkPosition.MenuButton,
+        },
+        {
+          route: {
+            name: 'Web SSH',
+            path: '/instance/:namespace/:VMname/:environment/ssh',
+          },
+          content: (
+            <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
+          ),
+          linkPosition: LinkPosition.Hidden,
         },
       ]}
     />

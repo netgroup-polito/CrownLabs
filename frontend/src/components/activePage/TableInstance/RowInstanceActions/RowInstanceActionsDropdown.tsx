@@ -1,6 +1,7 @@
 import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { Dropdown } from 'antd';
 import { Button } from 'antd';
+import { Link } from 'react-router-dom';
 import {
   ExportOutlined,
   CodeOutlined,
@@ -103,6 +104,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const connectDisabled = status !== Phase.Ready || (isContainer && !gui);
 
+  const ENV_PLACEHOLDER = 'env';
+
   return (
     <Dropdown
       trigger={['click']}
@@ -141,13 +144,41 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           },
           {
             key: 'ssh',
-            label: 'SSH',
             icon: <CodeOutlined style={font20px} />,
-            onClick: () => setSshModal(true),
-            className: `flex items-center ${
-              extended ? 'xl:hidden' : ''
-            } ${sshDisabled ? 'pointer-events-none' : ''}`,
             disabled: sshDisabled,
+            label: (
+              <>
+                SSH
+                <Button
+                  disabled={sshDisabled}
+                  type="link"
+                  className="ml-3"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={`/instance/${instance.tenantNamespace}/${instance.name}/${ENV_PLACEHOLDER}/ssh`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    </Link>
+                  }
+                ></Button>
+              </>
+            ),
+            onClick: () => setSshModal(true),
+            className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
           {
             key: 'upload',

@@ -1,7 +1,7 @@
 import { MenuOutlined } from '@ant-design/icons';
 import { Divider, Drawer, Layout, Typography } from 'antd';
 import { Button } from 'antd';
-import { type FC, useContext, useState } from 'react';
+import { type FC, useContext, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
 import {
@@ -14,6 +14,7 @@ import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
 import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
+import { useEffect } from 'react';
 
 const Header = Layout.Header;
 const { Title } = Typography;
@@ -35,7 +36,12 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
 
   const currentPath = useLocation().pathname;
 
+  const isSSHRoute = /^\/instance\/[^/]+\/[^/]+(?:\/[^/]+)?\/ssh$/.test(
+    currentPath,
+  );
+
   const currentName = routesData.find(r => r.path === currentPath)?.name || '';
+  const displayName = currentName || (isSSHRoute ? 'Web SSH' : '');
 
   const buttons = routes.map((b, i) => {
     const routeData = b.route;
@@ -45,23 +51,47 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
       content: (
         <Link
           key={i}
-          to={{ pathname: isExtLink ? '' : routeData.path }}
+          to={{
+            pathname:
+              b.linkPosition === LinkPosition.Hidden && isSSHRoute
+                ? currentPath
+                : isExtLink
+                  ? ''
+                  : routeData.path,
+          }}
           rel={isExtLink ? 'noopener noreferrer' : ''}
         >
           <Button
             onClick={() =>
               isExtLink ? window.open(routeData.path, '_blank') : setShow(false)
             }
-            ghost={currentPath !== routeData.path}
+            ghost={
+              b.linkPosition === LinkPosition.Hidden
+                ? false
+                : currentPath !== routeData.path
+            }
             className={
-              'w-full flex justify-center my-3 ' +
+              'my-3 ' +
+              (isSSHRoute
+                ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
+                : 'w-full flex justify-center ') +
               (routes.length <= 4
                 ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
                 : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-              (currentPath !== routeData.path ? ' navbar-button ' : '')
+              (b.linkPosition === LinkPosition.Hidden
+                ? ''
+                : currentPath !== routeData.path
+                  ? ' navbar-button '
+                  : '')
             }
             size="large"
-            type={currentPath !== routeData.path ? 'default' : 'primary'}
+            type={
+              b.linkPosition === LinkPosition.Hidden
+                ? 'primary'
+                : currentPath !== routeData.path
+                  ? 'default'
+                  : 'primary'
+            }
             shape="round"
           >
             {routeData.name}
@@ -71,84 +101,138 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
     };
   });
 
+  const [isHeightTooSmall, setIsHeightTooSmall] = useState(false);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const checkHeight = () => {
+      if (isSSHRoute) {
+        const isTooShort = window.innerHeight < window.screen.height * 0.3;
+        setIsHeightTooSmall(isTooShort);
+
+        if (isTooShort) {
+          document.documentElement.style.setProperty('--navbar-h', '0px');
+        } else {
+          const realHeight = headerRef.current?.offsetHeight || 0;
+          document.documentElement.style.setProperty(
+            '--navbar-h',
+            realHeight + 'px',
+          );
+        }
+
+        // Trigger resize for components that might need (sshterminal)
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+    };
+
+    checkHeight();
+    window.addEventListener('resize', checkHeight);
+    return () => window.removeEventListener('resize', checkHeight);
+  }, [isSSHRoute]);
+
   return (
     <>
-      <Header
-        className={
-          'flex h-auto pr-6 pl-8 justify-between ' +
-          (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
-        }
-      >
-        <div className="flex flex-none items-center w-24 ">
-          <div className="flex h-full items-center">
-            <Logo widthPx={55} />
+      {!isHeightTooSmall && (
+        <Header
+          ref={headerRef}
+          className={
+            'flex h-auto pr-6 pl-8 justify-between ' +
+            (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
+          }
+        >
+          <div className="flex flex-none items-center w-24 ">
+            <div className="flex h-full items-center">
+              <Logo widthPx={55} />
+            </div>
+            <h2
+              className={
+                'flex whitespace-nowrap py-0 my-0 ml-4 navbar-title ' +
+                (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              }
+            >
+              {displayName}
+            </h2>
           </div>
-          <h2
-            className={
-              'flex whitespace-nowrap py-0 my-0 ml-4 navbar-title ' +
-              (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
-            }
-          >
-            {currentName}
-          </h2>
-        </div>
-        <div
-          className={
-            'hidden justify-around ' +
-            (routes.length > 4 ? 'lg:flex' : 'md:flex')
-          }
-        >
-          {buttons
-            .filter(b => b.linkPosition === LinkPosition.NavbarButton)
-            .map(b => b.content)}
-        </div>
-        <div
-          className={
-            'w-full hidden sm:flex justify-end ' +
-            (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
-          }
-        >
-          {buttons
-            .map(b => b.content)
-            .filter((x, i) => (i < 2 ? x : null))
-            .map((b, i) => (
-              <div key={i} className="w-28  mr-3">
-                {b}
-              </div>
-            ))}
-        </div>
-        <div
-          className={
-            'flex items-center justify-end w-auto ' +
-            (routes.length > 4
-              ? 'lg:flex-none lg:w-24'
-              : 'md:flex:none md:w-24')
-          }
-        >
           <div
             className={
-              'hidden flex items-center justify-end ' +
+              'hidden justify-around ' +
               (routes.length > 4 ? 'lg:flex' : 'md:flex')
             }
           >
-            <ThemeSwitcher />
-
-            {!tenantLoading && !tenantError && (
-              <>
-                <Divider className="ml-4 mr-0" type="vertical" />
-                <NavbarMenu
-                  routes={routes
-                    .filter(r => r.linkPosition === LinkPosition.MenuButton)
-                    .map(r => r.route)}
-                />
-              </>
-            )}
+            {buttons
+              .filter(
+                b =>
+                  b.linkPosition === LinkPosition.NavbarButton ||
+                  (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+              )
+              .map(b => b.content)}
           </div>
-          <Button
+          <div
             className={
-              'flex items-center ' +
+              'w-full hidden sm:flex justify-end ' +
               (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
             }
+          >
+            {buttons
+              .filter(
+                b =>
+                  b.linkPosition === LinkPosition.NavbarButton ||
+                  (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+              )
+              .slice(0, 2)
+              .map((b, i) => (
+                <div key={i} className="w-28  mr-3">
+                  {b.content}
+                </div>
+              ))}
+          </div>
+          <div
+            className={
+              'flex items-center justify-end w-auto ' +
+              (routes.length > 4
+                ? 'lg:flex-none lg:w-24'
+                : 'md:flex:none md:w-24')
+            }
+          >
+            <div
+              className={
+                'hidden flex items-center justify-end ' +
+                (routes.length > 4 ? 'lg:flex' : 'md:flex')
+              }
+            >
+              <ThemeSwitcher />
+
+              {!tenantLoading && !tenantError && (
+                <>
+                  <Divider className="ml-4 mr-0" type="vertical" />
+                  <NavbarMenu
+                    routes={routes
+                      .filter(r => r.linkPosition === LinkPosition.MenuButton)
+                      .map(r => r.route)}
+                  />
+                </>
+              )}
+            </div>
+            <Button
+              className={
+                'flex items-center ' +
+                (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              }
+              shape="round"
+              size="large"
+              type="primary"
+              onClick={() => setShow(true)}
+              icon={<MenuOutlined />}
+            />
+          </div>
+        </Header>
+      )}
+      {isHeightTooSmall && (
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            className="flex items-center"
             shape="round"
             size="large"
             type="primary"
@@ -156,7 +240,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             icon={<MenuOutlined />}
           />
         </div>
-      </Header>
+      )}
       <Drawer
         className={
           'cl-navbar block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
@@ -188,7 +272,13 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               className="justify-end"
             />
           </div>
-          {buttons.map(x => x.content)}
+          {buttons
+            .filter(
+              b =>
+                b.linkPosition !== LinkPosition.Hidden ||
+                (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+            )
+            .map(b => b.content)}
         </div>
       </Drawer>
     </>

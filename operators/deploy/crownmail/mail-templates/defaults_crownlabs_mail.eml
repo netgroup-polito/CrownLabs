@@ -1,0 +1,23 @@
+From: { from }
+To: { to }
+Subject: { subject }
+Date: { date }
+Message-ID: { message-id }
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary=CrownLabsEmailBoundary
+
+--CrownLabsEmailBoundary
+Content-Type: text/plain; charset=UTF-8
+
+{ plaintext_header }
+{ plaintext_content }
+{ plaintext_footer }
+
+--CrownLabsEmailBoundary
+Content-Type: text/html; charset=UTF-8
+
+{ html_header }
+{ html_content }
+{ html_footer }
+
+--CrownLabsEmailBoundary--
