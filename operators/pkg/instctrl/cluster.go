@@ -371,7 +371,7 @@ func (r *InstanceReconciler) enforceroleBinding(ctx context.Context) error {
 
 	roleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-visualizer" + ns,
+			Name: "capi-visualizer",
 		},
 	}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, roleBinding, func() error {
@@ -388,6 +388,21 @@ func (r *InstanceReconciler) enforceroleBinding(ctx context.Context) error {
 					Namespace: ns,
 				},
 			}
+		} else {
+			found := false
+			for _, s := range roleBinding.Subjects {
+				if s.Namespace == ns {
+					found = true
+					break
+				}
+			}
+			if !found {
+				roleBinding.Subjects = append(roleBinding.Subjects, rbacv1.Subject{
+					Kind:      "ServiceAccount",
+					Name:      "capi-visualizer",
+					Namespace: ns,
+				})
+			}
 		}
 		return nil
 	})
@@ -401,11 +416,9 @@ func (r *InstanceReconciler) enforceroleBinding(ctx context.Context) error {
 
 func (r *InstanceReconciler) enforceClusterRole(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	instance := clctx.InstanceFrom(ctx)
-	ns := instance.Namespace
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "capi-visualizer" + ns,
+			Name: "capi-visualizer",
 		},
 	}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, role, func() error {

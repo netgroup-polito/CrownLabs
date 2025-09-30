@@ -2,37 +2,37 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: tenant-b
+  name: tenant-d
   labels:
     crownlabs.polito.it/operator-selector: local
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: workspace-123
+  name: workspace-1234
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Instance
 metadata:
-  name: green-tea-6831
-  namespace: tenant-b
+  name: red-tea-68312
+  namespace: tenant-d
 spec:
   template.crownlabs.polito.it/TemplateRef:
-    name: green-tea
-    namespace: workspace-123
+    name: red-tea
+    namespace: workspace-1234
   tenant.crownlabs.polito.it/TenantRef:
-    name: john.doe
+    name: john.doesssss
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Tenant
 metadata:
-  name: john.doe
+  name: john.doesssss
   labels:
     crownlabs.polito.it/operator-selector: local
 spec:
   firstName: John
-  lastName: Doe
-  email: jonh.doe@email.com
+  lastName: doesssss
+  email: jonh.doesssss@email.com
   workspaces:
     - name: tea
       role: user
@@ -45,23 +45,19 @@ spec:
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
-  name: green-tea
-  namespace: workspace-123
+  name: red-tea
+  namespace: workspace-1234
 spec:
-  prettyName: Green Tea
+  prettyName: Red Tea
   description: "This is an example."
   environmentList:
-  - name: green-tea-1
+  - name: red-tea-1
     image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v1.30.3
     environmentType: Cluster
-    guiEnabled: false
-    persistent: true
     resources:
         cpu: 2
         memory: 4G
         reservedCPUPercentage: 50
-    mode: Standard
-    mountMyDriveVolume: false
     cluster:
       name: testdemo
       version: v1.30.2
