@@ -23,8 +23,18 @@ export interface ISSHModalContentProps {
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
   const { instanceIp, hasSSHKeys, environments } = props;
+  
+  const getFirstEnvironmentName = () => {
+    return environments?.[0]?.name || 'env';
+  };
+  
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${props.namespace}/${props.name}/${envName}/ssh`;
+    }
+    return `/instance/${props.namespace}/${props.name}/env/ssh`;
+  };
 
-  const ENV_PLACEHOLDER = 'env';
 
   const getEnvironmentStatus = (env: InstanceEnvironment) => {
     const isReady = env.phase === Phase.Ready;
@@ -49,21 +59,6 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
         to use your own terminal.
       </Text>
 
-      <Link
-        to={`/instance/${props.namespace}/${props.name}/${ENV_PLACEHOLDER}/ssh`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={props.onClose}
-      >
-        <Button
-          className="mt-4 bg-green-600 hover:bg-green-700"
-          type="primary"
-          shape="round"
-        >
-          <CodeOutlined></CodeOutlined>
-          Connect via browser
-        </Button>
-      </Link>
 
       <div className="border-t border-gray-400 w-full mt-4" />
 
@@ -76,10 +71,6 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
           
           {environments && environments.length > 1 ? (
             <>
-              <Text className="flex justify-center mb-2">
-                Connect to your remote environments via the following commands:
-              </Text>
-              
               <List
                 dataSource={environments}
                 renderItem={(env) => (
@@ -89,9 +80,26 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                       {getEnvironmentStatus(env)}
                     </div>
                     {env.ip && env.phase === Phase.Ready ? (
+                      <>
                       <Text type="warning" code copyable className="text-center">
                         {getSshCommand(env.ip)}
                       </Text>
+                      <Link
+                        to={buildSSHLink(env.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        // onClick={props.onClose}
+                      >
+                        <Button
+                          className="mt-4 bg-green-600 hover:bg-green-700"
+                          type="primary"
+                          shape="round"
+                        >
+                          <CodeOutlined></CodeOutlined>
+                          Connect via browser
+                        </Button>
+                      </Link>
+                      </>
                     ) : (
                       <Text type="secondary" className="text-center">
                         Environment is not ready to connect via SSH
@@ -110,6 +118,21 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
               <Text type="warning" code copyable className="flex justify-center">
                 {getSshCommand(instanceIp)}
               </Text>
+              <Link
+                to={buildSSHLink(getFirstEnvironmentName())}
+                target="_blank"
+                rel="noopener noreferrer"
+                // onClick={props.onClose}
+              >
+                <Button
+                  className="mt-4 bg-green-600 hover:bg-green-700"
+                  type="primary"
+                  shape="round"
+                >
+                  <CodeOutlined></CodeOutlined>
+                  Connect via browser
+                </Button>
+              </Link>
             </>
           )}
           
