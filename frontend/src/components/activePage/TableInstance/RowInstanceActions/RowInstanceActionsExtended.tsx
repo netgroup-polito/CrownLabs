@@ -62,8 +62,17 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     return 'Manage Public Exposure';
   };
 
-  const ENV_PLACEHOLDER = 'env';
-
+  const getFirstEnvironmentName = () => {
+      return instance.environments?.[0]?.name || 'env';
+  };
+  
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
+    }
+    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
+  };
+  
   const infoContent = (
     <>
       <p className="m-0">
@@ -134,32 +143,35 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
-              <Button
-                disabled={sshDisabled}
-                type="link"
-                className="ml-3"
-                color="primary"
-                variant="solid"
-                shape="circle"
-                size="small"
-                icon={
-                  <Link
-                    to={`/instance/${instance.tenantNamespace}/${instance.name}/${ENV_PLACEHOLDER}/ssh`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      color: 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                      <ExportOutlined style={{ fontSize: 15 }} />
-                    </span>
-                  </Link>
-                }
-              ></Button>
+              {/* Only show direct link button if there's exactly one environment */}
+              {(!instance.environments || instance.environments.length === 1) && (
+                <Button
+                  disabled={sshDisabled}
+                  type="link"
+                  className="ml-3"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={buildSSHLink(getFirstEnvironmentName())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    </Link>
+                  }
+                ></Button>
+              )}
             </Button>
           </span>
         </Tooltip>
