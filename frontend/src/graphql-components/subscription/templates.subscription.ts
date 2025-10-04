@@ -14,6 +14,7 @@ export default gql`
         spec {
           prettyName
           description
+          allowPublicExposure
           environmentList {
             guiEnabled
             persistent

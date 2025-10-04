@@ -1,9 +1,9 @@
 import { type FC, type SetStateAction, useContext, useState } from 'react';
-import { Dropdown } from 'antd';
+import { Dropdown, Badge, Space } from 'antd';
 import { Button } from 'antd';
 import { Link } from 'react-router-dom';
 import {
-  ExportOutlined,
+  SelectOutlined,
   CodeOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
@@ -11,11 +11,13 @@ import {
   PoweroffOutlined,
   CaretRightOutlined,
   ExclamationCircleOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
   Phase,
+  Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -27,12 +29,19 @@ export interface IRowInstanceActionsDropdownProps {
   fileManager?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onEnablePublicExposure?: () => void;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, extended, setSshModal } = props;
+  const {
+    instance,
+    fileManager,
+    extended,
+    setSshModal,
+    onEnablePublicExposure,
+  } = props;
 
   const {
     status,
@@ -77,7 +86,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: 'Stop',
       menuAction: () => mutateInstanceStatus(false),
     },
-    [Phase.Off]: {
+    [Phase2.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
       menuAction: () => mutateInstanceStatus(true),
@@ -87,12 +96,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: '',
       menuAction: () => null,
     },
-  };
+  } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || status === Phase.Off
-      ? statusComponents[status]
-      : statusComponents.Other;
+    status === Phase.Ready
+      ? statusComponents[Phase.Ready]
+      : status === (Phase2.Off as unknown as Phase)
+        ? statusComponents[Phase2.Off]
+        : statusComponents.Other;
 
   const isContainer =
     environmentType === EnvironmentType.Container ||
@@ -115,7 +126,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             key: 'connect',
             label: 'Connect',
             disabled: connectDisabled,
-            icon: <ExportOutlined style={font20px} />,
+            icon: <SelectOutlined style={font20px} />,
             onClick: gui
               ? () => window.open(url!, '_blank')
               : () => setSshModal(true),
@@ -142,6 +153,31 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
           },
+          ...(onEnablePublicExposure
+            ? [
+                {
+                  key: 'expose',
+                  label: (
+                    <Space align="center">
+                      Port Exposure
+                      {instance.publicExposure &&
+                        (instance.publicExposure?.ports ?? []).length > 0 && (
+                          <Badge
+                            count={(instance.publicExposure?.ports ?? []).length}
+                            showZero={false}
+                            size="small"
+                          />
+                        )}
+                    </Space>
+                  ),
+                  icon: <SelectOutlined style={font20px} />,
+                  onClick: () => onEnablePublicExposure?.(),
+                },
+                {
+                  type: 'divider' as const,
+                },
+              ]
+            : []),
           {
             key: 'ssh',
             icon: <CodeOutlined style={font20px} />,
