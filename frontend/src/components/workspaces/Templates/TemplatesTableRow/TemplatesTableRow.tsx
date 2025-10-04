@@ -2,6 +2,7 @@ import {
   CodeOutlined,
   DesktopOutlined,
   PlayCircleOutlined,
+  SelectOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -174,7 +175,16 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               ) : (
                 <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
               )}
-              <label className="ml-3 cursor-pointer">{template.name}</label>
+              <label className="ml-3 cursor-pointer">
+                <Space>
+                  {template.name}
+                  {template.allowPublicExposure && (
+                    <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
+                      <SelectOutlined className="text-fuchsia-400" />
+                    </Tooltip>
+                  )}
+                </Space>
+              </label>
               {template.persistent && (
                 <Tooltip
                   title={
