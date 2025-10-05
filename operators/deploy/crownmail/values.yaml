@@ -1,0 +1,32 @@
+# Default values for crownmail.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+templates:
+  name: crownmail-templates
+  sourceFolder: mail-templates
+  # Override specific templates with Helm values (optional)
+  # overrides:
+  #   instautoctrl_inactivity_notification.yaml: |
+  #     to: |-
+  #       custom@example.com
+  #     subject: |-
+  #       My custom subject
+  #     plaintext_content: |-
+  #       My custom plaintext content
+  #     html_content: |-
+  #       <p>My custom HTML content</p>
+
+configs:
+  name: crownmail-configs
+  sourceFolder: mail-configs
+  # Override specific SMTP settings with Helm values (optional)
+  overrides:
+    smtp:
+      smtpServer: override.smtp.example.com
+      smtpPort: "123"
+      smtpIdentity: override-debug
+      smtpUsername: override-debug@example.com
+      smtpPassword: override-debugpassword
+      smtpFrom: override-crownlabs@example.com
+

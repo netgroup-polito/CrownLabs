@@ -17,6 +17,8 @@ package forge
 import (
 	"strconv"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
@@ -43,6 +45,10 @@ const (
 	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
+	// InstanceInactivityIgnoreNamespace -> label added to the Namespace to ignore inactivity termination for Instances in it.
+	InstanceInactivityIgnoreNamespace = "crownlabs.polito.it/instance-inactivity-ignore"
+	// ExpirationIgnoreNamespace -> label added to the Namespace to ignore expiration termination for Instances in it.
+	ExpirationIgnoreNamespace = "crownlabs.polito.it/expiration-ignore"
 
 	// EnvironmentNameLabel -> Key of the label used to store the environment name.
 	EnvironmentNameLabel = "crownlabs.polito.it/environment-name"
@@ -66,11 +72,27 @@ const (
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
+	// AlertAnnotationNum -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
+	AlertAnnotationNum = "crownlabs.polito.it/number-alerts-sent"
+
+	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
+	LastActivityAnnotation = "crownlabs.polito.it/last-activity"
+
+	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
+	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
+
+	// LastRunningAnnotation ->  previous value of the `Running` field of the Instance.
+	LastRunningAnnotation = "crownlabs.polito.it/last-running"
 
 	// NoWorkspacesLabelKey -> label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
 	// NoWorkspacesLabelValue -> value of the label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelValue = "true"
+	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
+	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
+
+	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.
+	ExpiringWarningNotificationAnnotation = "crownlabs.polito.it/sent-expiring-warning-notification"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -267,4 +289,11 @@ func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel c
 	labels[labelManagedByKey] = labelManagedByWorkspaceValue
 
 	return labels
+}
+
+// TemplateLabelSelector returns a label selector for a specific template name.
+func TemplateLabelSelector(templateName string) client.MatchingLabels {
+	return client.MatchingLabels{
+		labelTemplateKey: templateName,
+	}
 }

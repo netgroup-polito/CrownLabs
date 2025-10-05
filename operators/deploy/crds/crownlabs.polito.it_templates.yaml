@@ -268,6 +268,14 @@ spec:
                   They are given by means of a pointer to check the presence of the field.
                   In case it is present, the labels that are chosen are the ones present on the instance
                 type: object
+              inactivityTimeout:
+                default: never
+                description: |-
+                  The maximum period of inactivity after which an Instance referencing
+                  the current Template will be automatically stopped or deleted to
+                  save resources.
+                pattern: ^(never|[0-9]+[mhd])$
+                type: string
               prettyName:
                 description: The human-readable name of the Template.
                 type: string

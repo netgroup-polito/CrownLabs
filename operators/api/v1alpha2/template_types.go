@@ -84,6 +84,13 @@ type TemplateSpec struct {
 
 	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
 	Scope EnvironmentScope `json:"scope,omitempty"`
+
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
+	// +kubebuilder:default="never"
+	// The maximum period of inactivity after which an Instance referencing
+	// the current Template will be automatically stopped or deleted to
+	// save resources.
+	InactivityTimeout string `json:"inactivityTimeout,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.

@@ -1,0 +1,10 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: Instance { prettyName } terminated due to inactivity
+plaintext_content: |-
+  Your instance { prettyName } has been terminated due to prolonged inactivity.
+  No activity was detected (via the web GUI or SSH) for an extended period, so the instance has been paused/deleted to save resources.
+html_content: |-
+  <p>Your instance <strong>{ prettyName }</strong> has been terminated due to prolonged inactivity.</p>
+  <p>No activity was detected (via the web GUI or SSH) for an extended period, so the instance has been paused/deleted to save resources.</p>
