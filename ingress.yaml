@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  creationTimestamp: "2025-09-30T17:23:08Z"
+  generation: 1
+  labels:
+    crownlabs.polito.it/environment: vscode
+    crownlabs.polito.it/instance: instance-99874
+    crownlabs.polito.it/managed-by: instance
+    crownlabs.polito.it/template: test-staging-938-vscode-py-noexts
+    crownlabs.polito.it/tenant: s332826
+  name: instance-99874-vscode-app
+  namespace: tenant-s332826
+  ownerReferences:
+  - apiVersion: crownlabs.polito.it/v1alpha2
+    blockOwnerDeletion: true
+    controller: true
+    kind: Instance
+    name: instance-99874
+    uid: 447a1196-33f4-450f-b7d9-f62203693eac
+  resourceVersion: "2033135685"
+  uid: 8c17e29c-8de5-4055-b7a5-e5c606351370
+spec:
+  ingressClassName: nginx-external
+  rules:
+  - host: exercise.crownlabs.polito.it
+    http:
+      paths:
+      - backend:
+          service:
+            name: instance-99874-vscode
+            port:
+              name: gui
+        path: /instance/447a1196-33f4-450f-b7d9-f62203693eac/vscode/(.*)
+        pathType: Prefix
+  tls:
+  - hosts:
+    - exercise.crownlabs.polito.it
+    secretName: crownlabs-ingress-secret
+status:
+  loadBalancer:
+    ingress:
+    - ip: 130.192.226.226

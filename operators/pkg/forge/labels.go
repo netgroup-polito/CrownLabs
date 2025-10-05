@@ -72,6 +72,7 @@ const (
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
+
 	// AlertAnnotationNum -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
 	AlertAnnotationNum = "crownlabs.polito.it/number-alerts-sent"
 
@@ -88,7 +89,8 @@ const (
 	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
 	// NoWorkspacesLabelValue -> value of the label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelValue = "true"
-	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
+
+	// CustomNumberOfAlertsAnnotation -> annotation to mark an Instance as having a custom number of alerts.
 	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
 
 	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.

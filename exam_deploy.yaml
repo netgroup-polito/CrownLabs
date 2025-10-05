@@ -1,0 +1,32 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: test-staging-938-vscode-py-noexts
+  namespace:  workspace-sid2
+spec:
+  allowPublicExposure: false
+  deleteAfter: 1d
+  description: A template about vscode
+  scope: Exercise
+  environmentList:
+  - containerStartupOptions:
+      contentPath: /workspace
+      enforceWorkdir: false
+      startupArgs:
+      - --disable-marketplace
+      - /workspace
+    disableControls: false
+    environmentType: Standalone
+    guiEnabled: true
+    image: qcfe/vscode-server-python:2023061700
+    mountMyDriveVolume: false
+    name: vscode
+    persistent: true
+    resources:
+      cpu: 1
+      disk: 100Mi
+      memory: 2Gi
+      reservedCPUPercentage: 25
+    rewriteURL: true
+  inactivityTimeout: never
+  prettyName: Vtest-staging-938-vscode-py-noexts

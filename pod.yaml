@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2025-09-30T16:35:05Z"
+  generateName: instance-s4grh-vscode-84f7899b54-
+  labels:
+    crownlabs.polito.it/environment: vscode
+    crownlabs.polito.it/instance: instance-s4grh
+    crownlabs.polito.it/template: test-staging-938-vscode-py-noexts
+    crownlabs.polito.it/tenant: s332826
+    pod-template-hash: 84f7899b54
+  name: instance-s4grh-vscode-84f7899b54-fbxq6
+  namespace: tenant-s332826
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReplicaSet
+    name: instance-s4grh-vscode-84f7899b54
+    uid: e0655075-f2a9-44eb-9b7d-fce7a9974891
+  resourceVersion: "2033092237"
+  uid: 0d11d1a7-744e-464d-b8b6-a961754dc736
+spec:
+  automountServiceAccountToken: false
+  containers:
+  - args:
+    - --disable-marketplace
+    - /workspace
+    env:
+    - name: CROWNLABS_CPU_REQUESTS
+      valueFrom:
+        resourceFieldRef:
+          containerName: vscode
+          divisor: "0"
+          resource: requests.cpu
+    - name: CROWNLABS_CPU_LIMITS
+      valueFrom:
+        resourceFieldRef:
+          containerName: vscode
+          divisor: "0"
+          resource: limits.cpu
+    - name: CROWNLABS_BASE_PATH
+      value: /instance/8ffff419-0ace-44f5-85a0-d9ed63b97ce4/vscode/app
+    - name: CROWNLABS_LISTEN_PORT
+      value: "6080"
+    image: qcfe/vscode-server-python:2023061700
+    imagePullPolicy: IfNotPresent
+    name: vscode
+    ports:
+    - containerPort: 6080
+      name: gui
+      protocol: TCP
+    readinessProbe:
+      failureThreshold: 5
+      httpGet:
+        path: /
+        port: gui
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 2
+      successThreshold: 2
+      timeoutSeconds: 1
+    resources:
+      limits:
+        cpu: "1"
+        memory: 2Gi
+      requests:
+        cpu: 250m
+        memory: 2Gi
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      privileged: false
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /workspace
+      name: persistent
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: false
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: 1010
+    runAsGroup: 1010
+    runAsNonRoot: true
+    runAsUser: 1010
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 10
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: persistent
+    persistentVolumeClaim:
+     claimName: instance-s4grh-vscode
+

@@ -1,0 +1,23 @@
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: test-staging-938-exam
+  namespace: workspace-sid2
+spec:
+  prettyName: "test-staging-938-exam"
+  description: "A template with one exam environment"
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: sid2
+    namespace: workspace-sid2
+  environmentList:
+    - name: ubuntu
+      image: "registry.internal.crownlabs.polito.it/ilkhomabdusamatov/ubuntu2204-base:20250616t210636"
+      environmentType: CloudVM
+      guiEnabled: true
+      persistent: false
+      resources:
+        cpu: 1
+        reservedCPUPercentage: 50
+        memory: 4Gi
+        disk: 20Gi
+    
