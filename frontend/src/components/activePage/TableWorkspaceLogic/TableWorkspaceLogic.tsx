@@ -102,7 +102,15 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe =
         subscribeToMoreInstances<UpdatedInstancesLabelSelectorSubscription>({
-          onError: makeErrorCatcher(ErrorTypes.GenericError),
+          onError: (error) => {
+            // Suppress the environments error during instance deletion
+            if (error.message.includes('Expected Iterable') && error.message.includes('environments')) {
+              console.warn('Suppressed environments GraphQL error in TableWorkspaceLogic');
+              // window.location.reload();
+              return;
+            }
+            makeErrorCatcher(ErrorTypes.GenericError)(error);
+          },
           document: UpdatedInstancesLabelSelectorDocument,
           variables: { labels },
           updateQuery: (prev, { subscriptionData }) => {
