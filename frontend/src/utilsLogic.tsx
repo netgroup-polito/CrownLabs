@@ -973,7 +973,7 @@ export const makeGuiSharedVolume = (
     name: metadata?.name,
     prettyName: spec?.prettyName,
     size: spec?.size,
-    status: status?.phase as any,
+    status: status?.phase,
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;

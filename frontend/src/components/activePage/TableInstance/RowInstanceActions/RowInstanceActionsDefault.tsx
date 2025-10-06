@@ -11,7 +11,7 @@ import {
 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
-
+import type { InstanceEnvironment } from '../../../../utils';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -93,14 +93,14 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
 
-   const handleConnect = () => {
+  const handleConnect = () => {
     if (environments && environments.length == 1) {
       const env = environments[0];
       handleEnvironmentConnect(env);
     }
   };
 
-  const handleEnvironmentConnect = (env: any) => {
+  const handleEnvironmentConnect = (env: InstanceEnvironment) => {
     if (env.guiEnabled) {
       const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
       const envUrl = `${baseUrl}/${env.name}/`;
@@ -113,11 +113,11 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   // Dropdown menu items for environments
   const createEnvironmentMenuItems = (): MenuProps['items'] => {
     if (!environments || environments.length <= 1) return [];
-    
+
     return environments.map(env => {
       const isReady = env.phase === Phase.Ready;
       const isGuiEnabled = env.guiEnabled;
-      
+
       return {
         key: env.name,
         label: env.name,
@@ -207,22 +207,22 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
         >
           {environments && environments.length > 1 ? (
             <Dropdown
-            menu={environmentMenuProps}
-            disabled={connectDisabled}
-            trigger={['click']}
-          >
-            <Button
-              type="primary"
-              color={classFromProps()}
-              variant="solid"
-              shape="round"
-              size="middle"
+              menu={environmentMenuProps}
               disabled={connectDisabled}
-              icon={<DownOutlined />}
+              trigger={['click']}
             >
-              Connect ({environments.length} envs)
-            </Button>
-          </Dropdown>
+              <Button
+                type="primary"
+                color={classFromProps()}
+                variant="solid"
+                shape="round"
+                size="middle"
+                disabled={connectDisabled}
+                icon={<DownOutlined />}
+              >
+                Connect ({environments.length} envs)
+              </Button>
+            </Dropdown>
           ) : (
             <Button
               className={`${connectDisabled ? 'pointer-events-none' : ''}`}
