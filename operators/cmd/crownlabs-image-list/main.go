@@ -20,16 +20,20 @@ func main() {
 		imageListName          string
 		registryURL            string
 		updateIntervalSec      int
+		registryUsername       string
+		registryPassword       string
 	)
 
 	flag.StringVar(&advertisedRegistryName, "advertised-registry-name", "", "Hostname of the Docker registry as advertised to consumers")
 	flag.StringVar(&imageListName, "image-list-name", "", "Base name/prefix for ImageList objects")
 	flag.StringVar(&registryURL, "registry-url", "", "Docker registry base URL (e.g. https://registry.example.com)")
 	flag.IntVar(&updateIntervalSec, "update-interval", 60, "Interval in seconds between updates")
+	flag.StringVar(&registryUsername, "registry-username", "", "Main Resitry User Name")
+	flag.StringVar(&registryPassword, "registry-password", "", "Main Registry Password")
 	klog.InitFlags(nil)
 	flag.Parse()
 
-	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || updateIntervalSec <= 0 {
+	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || registryUsername == "" || registryPassword == "" || updateIntervalSec <= 0 {
 		fmt.Printf(`Usage:
 			--advertised-registry-name <registry-name>
 			--image-list-name <list-name>
@@ -39,11 +43,9 @@ func main() {
 		os.Exit(1)
 	}
 	//Temporal solution until we refactor the imgretriever package
-	defaultRequestorUsername := os.Getenv("REGISTRY_USERNAME")
-	defaultRequestorPassword := os.Getenv("REGISTRY_PASSWORD")
 	imgretriever.RequestersSharedData["default-requestor-registryurl"] = registryURL
-	imgretriever.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = defaultRequestorUsername
-	imgretriever.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = defaultRequestorPassword
+	imgretriever.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = registryUsername
+	imgretriever.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = registryPassword
 
 	var imageListRequestors []imgretriever.ImageListRequestor
 
