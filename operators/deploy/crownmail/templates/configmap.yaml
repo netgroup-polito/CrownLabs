@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.templates.name }}
+  labels:
+    {{- include "crownmail.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crownmail
+data:
+{{- range $path, $_ := .Files.Glob (printf "%s/*" $.Values.templates.sourceFolder) }}
+  {{- $key := $path | replace (printf "%s/" $.Values.templates.sourceFolder) "" }}
+  {{ $key }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- /* Template overrides from Helm values - last entry wins, so values override files */ -}}
+{{- if .Values.templates.overrides }}
+{{- range $key, $content := .Values.templates.overrides }}
+  {{ $key }}: |-
+{{ $content | indent 4 }}
+{{- end }}
+{{- end }}

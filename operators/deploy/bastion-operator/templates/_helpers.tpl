@@ -52,11 +52,24 @@ app.kubernetes.io/version: {{ include "bastion-operator.version" . | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{- define "webssh.labels" -}}
+helm.sh/chart: {{ include "bastion-operator.chart" . }}
+{{ include "webssh.selectorLabels" . }}
+app.kubernetes.io/version: {{ include "bastion-operator.version" . | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/component: webssh
+{{- end }}
+
 {{/*
 Selector labels
 */}}
 {{- define "bastion-operator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "bastion-operator.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{- define "webssh.selectorLabels" -}}
+app.kubernetes.io/name: webssh
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 

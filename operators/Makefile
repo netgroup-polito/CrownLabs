@@ -20,9 +20,6 @@ gen: generate fmt vet manifests
 test:
 	go test ./... -coverprofile coverage.out -covermode=count
 
-test-python: python-dependencies
-	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
-
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f deploy/crds
@@ -79,10 +76,25 @@ run-instance: generate
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
 				--container-env-sidecars-tag=v0.14.5
 
+run-instance-automation: generate
+	go run cmd/instance-automation/main.go\
+				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
+				--container-env-sidecars-tag=v0.14.5\
+				--enable-instance-submission=false\
+				--enable-instance-termination=false\
+				--enable-instance-inactive-termination=true\
+				--enable-instance-expiration=false\
+				--mail-template-dir=deploy/crownmail/mail-templates\
+				--mail-config-dir=deploy/crownmail/mail-configs\
+				--enable-inactivity-notifications=false\
+				--enable-expiration-notifications=false
+
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
-run-instance-local: samples-local install-local run-instance
+run-instance-local: install-local samples-res-local run-instance
+
+run-instance-automation-local: install-local samples-res-local run-instance-automation
 
 run-operator: generate
 	go run cmd/operator/main.go\
@@ -98,14 +110,27 @@ run-operator: generate
 run-tenant: run-operator
 
 install-local: manifests
-	kubectl apply -f deploy/crds
-	kubectl apply -f tests/crds
+	kubectl apply -f deploy/crds --wait
+	kubectl apply -f tests/crds --wait
 
-python-dependencies:
-	pip3 install -r ./build/delete-stale-instances/requirements.txt
+uninstall-local: manifests
+	kubectl delete -f deploy/crds
+	kubectl delete -f tests/crds
 
-samples-local:
+samples-res-local:
 	kubectl apply -f ./samples/
 
-clean-local:
+clean-res-local:
 	kubectl delete -f ./samples/
+
+clean-local: clean-res-local uninstall-local
+
+force-clean-local:
+	-for resource in $$(kubectl get tenants.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get workspaces.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get instances.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get templates.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-kubectl delete tenants.crownlabs.polito.it,workspaces.crownlabs.polito.it,instances.crownlabs.polito.it,templates.crownlabs.polito.it --all --force --grace-period=0 2>/dev/null || true
+	-kubectl delete configmap crownlabs-mail-config --namespace=default --ignore-not-found
+	-kubectl delete -f deploy/crds --ignore-not-found
+	-kubectl delete -f tests/crds --ignore-not-found
