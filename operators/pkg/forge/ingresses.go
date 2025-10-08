@@ -80,27 +80,14 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 
 	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
-	} else {
+	}
+
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassVM {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = GUIRewriteEndpoint
 	}
 
 	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "3600"
 	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = "3600"
-
-	return annotations
-}
-
-// IngressMyDriveAnnotations receives in input a set of annotations and returns the updated set including
-// the ones associated with the ingress targeting the environment "MyDrive".
-func IngressMyDriveAnnotations(annotations map[string]string) map[string]string {
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-
-	annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "0"
-	annotations["nginx.ingress.kubernetes.io/proxy-max-temp-file-size"] = "0"
-	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "600"
-	annotations["nginx.ingress.kubernetes.io/proxy-send-timeout"] = "600"
 
 	return annotations
 }
@@ -138,11 +125,11 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
 		if environment.RewriteURL {
-			return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix+"(/|$)(.*)"), "/")
+			return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, "(/|$)(.*)"), "/")
 		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassContainer:
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, IngressAppSuffix), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", IngressInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
 	}
