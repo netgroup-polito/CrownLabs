@@ -95,7 +95,7 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
 	// Attach cloudinit volume on non-restricted environments
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
-		volumes = append(volumes, VolumeCloudInit(NamespacedNameWithSuffix(instance, environment.Name).Name))
+		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
 	}
 	return volumes
 }

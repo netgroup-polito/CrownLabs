@@ -98,7 +98,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, &template)))
 		})
 		It("Should set the cloud-init volumes", func() {
-			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name)))
+			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.CanonicalName(instance.GetName()))))
 		})
 		It("Should set the correct readiness probe", func() {
 			Expect(spec.ReadinessProbe).To(Equal(forge.VirtualMachineReadinessProbe(&environment)))
@@ -177,7 +177,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Scope: clv1alpha2.ScopeStandard,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{
-					forge.VolumeCloudInit(forge.NamespacedNameWithSuffix(i, e.Name).Name),
+					forge.VolumeCloudInit(forge.CanonicalName(i.GetName())),
 					forge.VolumeRootDisk(i, e),
 				}
 			},

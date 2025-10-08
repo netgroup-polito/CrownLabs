@@ -309,7 +309,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 		// Define url of the instance. This will be the root for the urls of the single environments
 		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
-
 	} else {
 		instance.Status.URL = ""
 	}

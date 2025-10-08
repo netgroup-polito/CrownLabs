@@ -240,7 +240,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	// Aggregate SSH activity times across all environments (find minimum non-zero)
 	var lastActivityTimeSSH time.Time
 	lastActivityTimeSSHFound := false
-	for _, env := range instance.Status.Environments {
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
 		querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
 		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration)
 		if errSSH == nil && !envActivityTime.IsZero() {
