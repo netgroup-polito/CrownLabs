@@ -1,5 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { EnvironmentType, Phase, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -23,6 +23,23 @@ export type Resources = {
   disk: string;
   memory: string;
 };
+export type TemplateEnvironment = {
+  name: string;
+  guiEnabled: boolean;
+  persistent: boolean;
+  environmentType?: EnvironmentType;
+  resources: Resources;
+};
+
+export type InstanceEnvironment = {
+  name: string;
+  phase?: Phase;
+  ip?: string;
+  guiEnabled?: boolean;
+  persistent?: boolean;
+  environmentType?: EnvironmentType;
+};
+
 export type Template = {
   id: string;
   name: string;
@@ -33,6 +50,8 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  environmentList: Array<TemplateEnvironment>;
+  hasMultipleEnvironments: boolean;
 };
 
 export type Instance = {
@@ -57,6 +76,8 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  environments?: Array<InstanceEnvironment>;
+  hasMultipleEnvironments?: boolean;
 };
 
 export type SharedVolume = {
@@ -64,7 +85,7 @@ export type SharedVolume = {
   name: string;
   prettyName: string;
   size: string;
-  status: Phase3;
+  status: Phase5;
   timeStamp: string;
   namespace: string;
 };

@@ -113,6 +113,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
         <SSHModalContent
           instanceIp={instance.ip}
           hasSSHKeys={hasSSHKeys!}
+          environments={instance.environments}
           namespace={instance.tenantNamespace}
           name={instance.name}
           prettyName={instance.prettyName}

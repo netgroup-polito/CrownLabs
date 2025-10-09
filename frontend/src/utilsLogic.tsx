@@ -55,18 +55,66 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
-  const environment = (tq.original.spec?.environmentList ?? [])[0];
+  const environmentList = tq.original.spec?.environmentList ?? [];
+  const hasMultipleEnvironments = environmentList.length > 1;
+  
+  // For backwards compatibility use the first environment for main properties
+  const primaryEnvironment = environmentList[0];
+
+  const hasGUI = environmentList.some(env => env?.guiEnabled);
+  const hasPersistent = environmentList.some(env => env?.persistent);
+  
+  const aggregatedResources = environmentList.reduce(
+    (acc, env) => {
+      if (env?.resources) {
+        acc.cpu += env.resources.cpu ?? 0;
+        const memoryStr = env.resources.memory || '0';
+        let memoryGB = 0;
+        if (memoryStr.includes('G')) {
+          memoryGB = parseInt(memoryStr.replace(/[^\d]/g, '')) || 0;
+        } else if (memoryStr.includes('M')) {
+          memoryGB = (parseInt(memoryStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+
+        const diskStr = env.resources.disk || '0';
+        let diskGB = 0;
+        if (diskStr.includes('G')) {
+          diskGB = parseInt(diskStr.replace(/[^\d]/g, '')) || 0;
+        } else if (diskStr.includes('M')) {
+          diskGB = (parseInt(diskStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+        
+        acc.memorySum += memoryGB;
+        acc.diskSum += diskGB;
+      }
+      return acc;
+    },
+    { cpu: 0, memorySum: 0, diskSum: 0 }
+  );
+
   return {
     id: tq.alias.id ?? '',
     name: tq.alias.name ?? '',
-    gui: !!environment?.guiEnabled,
-    persistent: !!environment?.persistent,
-    nodeSelector: environment?.nodeSelector,
+    gui: hasGUI,
+    persistent: hasPersistent,
+    nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
-      cpu: environment?.resources?.cpu ?? 0,
-      memory: environment?.resources?.memory ?? '',
-      disk: environment?.resources?.disk ?? '',
+      cpu: aggregatedResources.cpu,
+      memory: aggregatedResources.memorySum > 0 ? `${aggregatedResources.memorySum}G` : '',
+      disk: aggregatedResources.diskSum > 0 ? `${aggregatedResources.diskSum}G` : '',
     },
+    environmentList: environmentList.map(env => ({
+      name: env?.name ?? '',
+      guiEnabled: !!env?.guiEnabled,
+      persistent: !!env?.persistent,
+      environmentType: env?.environmentType,
+      resources: {
+        cpu: env?.resources?.cpu ?? 0,
+        memory: env?.resources?.memory ?? '',
+        disk: env?.resources?.disk ?? '',
+      },
+    })),
+    hasMultipleEnvironments,
     workspaceName:
       tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
     instances: [],
@@ -109,8 +157,26 @@ export const makeGuiInstance = (
     prettyName: '',
   };
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
@@ -131,8 +197,8 @@ export const makeGuiInstance = (
         '',
     ),
     environmentType: environmentType,
-    ip: status?.ip,
-    status: status?.phase,
+    ip: primaryStatus?.ip ?? status?.ip ?? '',
+    status: primaryStatus?.phase ?? status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -142,6 +208,8 @@ export const makeGuiInstance = (
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
+    environments: environments,
+    hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -233,12 +301,22 @@ export const getSubObjTypeCustom = (
   uType: Nullable<UpdateType>,
 ) => {
   if (uType === UpdateType.Deleted) return SubObjType.Deletion;
-  const { running: oldRunning, status: oldStatus } = oldObj ?? {};
-  const { running: newRunning, status: newStatus } = newObj;
+  const { running: oldRunning, status: oldStatus, environments: oldEnvironments } = oldObj ?? {};
+  const { running: newRunning, status: newStatus, environments: newEnvironments } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
     if (oldStatus !== newStatus || oldRunning !== newRunning) {
       return SubObjType.UpdatedInfo;
+    }
+    if (oldEnvironments && newEnvironments) {
+      const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+        const newEnv = newEnvironments[index];
+        return newEnv && oldEnv?.phase !== newEnv?.phase;
+      });
+
+      if (environmentPhaseChanged) {
+        return SubObjType.UpdatedInfo;
+      }
     }
     return SubObjType.Drop;
   }
@@ -260,6 +338,18 @@ export const getSubObjTypeK8s = (
       oldStatus?.phase !== newStatus?.phase ||
       oldSpec?.running !== newSpec?.running
     ) {
+      return SubObjType.UpdatedInfo;
+    }
+    // Check if any environment phase changed
+    const oldEnvironments = oldStatus?.environments || [];
+    const newEnvironments = newStatus?.environments || [];
+    
+    const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+      const newEnv = newEnvironments[index];
+      return newEnv && oldEnv?.phase !== newEnv?.phase;
+    });
+    
+    if (environmentPhaseChanged) {
       return SubObjType.UpdatedInfo;
     }
     return SubObjType.Drop;
@@ -331,8 +421,26 @@ export const getManagerInstances = (
   } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
   const { prettyName: templatePrettyname, environmentList } =
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+  
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   // Tenant Info
   const { namespace: tenantNamespace } = metadata ?? {};
@@ -352,8 +460,8 @@ export const getManagerInstances = (
     templateId: makeTemplateKey(templateName, workspaceName),
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
-    ip: status?.ip,
-    status: status?.phase,
+    ip: primaryStatus?.ip ?? status?.ip,
+    status: primaryStatus?.phase ?? status?.phase,
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -361,6 +469,10 @@ export const getManagerInstances = (
     tenantDisplayName: `${firstName}\n${lastName}`,
     workspaceName: workspaceName,
     running: spec?.running,
+    nodeSelector: status?.nodeSelector,
+    nodeName: status?.nodeName,
+    environments: environments,
+    hasMultipleEnvironments: hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -390,8 +502,17 @@ export const getTemplatesMapped = (
       );
     }
 
-    const [{ templateId, gui, persistent, workspaceName, templatePrettyName }] =
+    const [{ templateId, gui, persistent, workspaceName, templatePrettyName, environments, hasMultipleEnvironments }] =
       instancesFiltered;
+
+    const environmentList = environments?.map(env => ({
+      name: env.name,
+      guiEnabled: env.guiEnabled || false,
+      persistent: env.persistent || false,
+      environmentType: env.environmentType,
+      resources: { cpu: 0, disk: '', memory: '' },
+    })) || [];
+  
     return {
       id: templateId,
       name: templatePrettyName,
@@ -401,6 +522,8 @@ export const getTemplatesMapped = (
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
+      environmentList: environmentList,
+      hasMultipleEnvironments: hasMultipleEnvironments ?? false,
     };
   });
 };

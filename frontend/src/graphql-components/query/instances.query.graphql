@@ -16,6 +16,12 @@ query ownedInstances($tenantNamespace: String!) {
         url
         nodeName
         nodeSelector
+        environments {
+          name
+          phase
+          ip
+          initialReadyTime
+        }
       }
       spec {
         running
@@ -29,6 +35,7 @@ query ownedInstances($tenantNamespace: String!) {
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

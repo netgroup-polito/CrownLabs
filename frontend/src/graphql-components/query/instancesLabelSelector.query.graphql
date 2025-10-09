@@ -12,6 +12,11 @@ query instancesLabelSelector($labels: String) {
         url
         nodeName
         nodeSelector
+        environments {
+          name
+          phase
+          ip
+        }
       }
       spec {
         running
@@ -36,6 +41,7 @@ query instancesLabelSelector($labels: String) {
                 prettyName
                 description
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType
