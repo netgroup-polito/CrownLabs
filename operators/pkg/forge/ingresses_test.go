@@ -292,7 +292,7 @@ var _ = Describe("Ingresses", func() {
 					})
 					Context("The instance has no special configurations", func() {
 						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "/(/|$)(.*)"))
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "(/|$)(.*)"))
 						})
 					})
 				})

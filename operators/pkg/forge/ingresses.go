@@ -125,7 +125,7 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone:
 		if environment.RewriteURL {
-			return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name, "(/|$)(.*)"), "/")
+			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)
 		}
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassContainer:
