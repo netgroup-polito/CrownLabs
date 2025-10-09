@@ -57,14 +57,14 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMeta(instance)}
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
 		if pvc.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.InstancePVCSpec(environment)
 		}
-		pvc.SetLabels(forge.InstanceObjectLabels(pvc.GetLabels(), instance))
+		pvc.SetLabels(forge.EnvironmentObjectLabels(pvc.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
 	})
 	if err != nil {
@@ -81,8 +81,9 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
-	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
+	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, environment)
 	if err != nil {
@@ -94,12 +95,12 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 		// Deployment specifications are forged only at creation time, as changing them later may be
 		// either rejected or cause the restart of the Pod, with consequent possible data loss.
 		if depl.CreationTimestamp.IsZero() {
-			depl.Spec = forge.DeploymentSpec(instance, environment, mountInfos, &r.ContainerEnvOpts)
+			depl.Spec = forge.DeploymentSpec(instance, template, environment, mountInfos, &r.ContainerEnvOpts)
 		}
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())
 
-		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
+		depl.SetLabels(forge.EnvironmentObjectLabels(depl.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	})
 
@@ -118,10 +119,12 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 		phase = clv1alpha2.EnvironmentPhaseOff
 	}
 
-	if phase != instance.Status.Phase {
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	instanceStatusEnv := instance.Status.Environments[envIndex]
+	if phase != instanceStatusEnv.Phase {
 		log.Info("phase changed", "deployment", klog.KObj(&depl),
-			"previous", string(instance.Status.Phase), "current", string(phase))
-		instance.Status.Phase = phase
+			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
+		instance.Status.Environments[envIndex].Phase = phase
 	}
 
 	return nil

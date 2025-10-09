@@ -40,7 +40,7 @@ func init() {
 // ObjectMeta returns the namespace/name pair given an instance object.
 func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      canonicalName(instance.GetName()),
+		Name:      CanonicalName(instance.GetName()),
 		Namespace: instance.GetNamespace(),
 	}
 }
@@ -48,7 +48,7 @@ func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
 // ObjectMetaWithSuffix returns the namespace/name pair given an instance object and a name suffix.
 func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      canonicalName(instance.GetName()) + StringSeparator + suffix,
+		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
 		Namespace: instance.GetNamespace(),
 	}
 }
@@ -56,7 +56,7 @@ func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.O
 // NamespacedName returns the namespace/name pair given an instance object.
 func NamespacedName(instance *clv1alpha2.Instance) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      canonicalName(instance.GetName()),
+		Name:      CanonicalName(instance.GetName()),
 		Namespace: instance.GetNamespace(),
 	}
 }
@@ -64,7 +64,7 @@ func NamespacedName(instance *clv1alpha2.Instance) types.NamespacedName {
 // NamespacedNameWithSuffix returns the namespace/name pair given an instance object and a name suffix.
 func NamespacedNameWithSuffix(instance *clv1alpha2.Instance, suffix string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      canonicalName(instance.GetName()) + StringSeparator + suffix,
+		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
 		Namespace: instance.GetNamespace(),
 	}
 }
@@ -93,15 +93,15 @@ func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.N
 	}
 }
 
-// canonicalName returns a canonical name given a resource name, to
+// CanonicalName returns a canonical name given a resource name, to
 // prevent issues with DNS style requirements.
-func canonicalName(name string) string {
+func CanonicalName(name string) string {
 	return strings.ReplaceAll(name, ".", StringSeparator)
 }
 
 // CanonicalSandboxName returns a name given a tenant name.
 func CanonicalSandboxName(name string) string {
-	return fmt.Sprintf("sandbox-%s", canonicalName(name))
+	return fmt.Sprintf("sandbox-%s", CanonicalName(name))
 }
 
 // RandomInstancePrettyName generates a random name of 2 capitalized words.

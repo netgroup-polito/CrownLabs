@@ -90,7 +90,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			Description:  "Description of my template",
 			EnvironmentList: []crownlabsv1alpha2.Environment{
 				{
-					Name:       "Env-1",
+					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: crownlabsv1alpha2.EnvironmentResources{
 						CPU:                   1,
@@ -109,7 +109,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			Description:  "Description of my template",
 			EnvironmentList: []crownlabsv1alpha2.Environment{
 				{
-					Name:       "Env-1",
+					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: crownlabsv1alpha2.EnvironmentResources{
 						CPU:                   1,
@@ -130,7 +130,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			Description:  "Description of my template",
 			EnvironmentList: []crownlabsv1alpha2.Environment{
 				{
-					Name:       "Env-1",
+					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: crownlabsv1alpha2.EnvironmentResources{
 						CPU:                   1,

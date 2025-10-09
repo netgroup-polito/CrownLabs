@@ -41,7 +41,8 @@ type Server struct {
 
 // Start metricsScraper and RPC server.
 func (instmetrics *Server) Start(ctx context.Context) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s%d", "0.0.0.0:", instmetrics.Port))
+	lc := net.ListenConfig{}
+	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf("%s%d", "0.0.0.0:", instmetrics.Port))
 	if err != nil {
 		return err
 	}

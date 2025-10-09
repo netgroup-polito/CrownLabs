@@ -31,10 +31,8 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// Retrieves the instance information from the Kubernetes API using the provided token for authentication.
-func (webCtx *ServerContext) getInstance(ctx context.Context, token, environment, namespace, instanceName string) (*clv1alpha2.Instance, error) {
-	_ = environment // Currently unused, but may be used in the future for multi-environment support.
-
+// Retrieves the environment information from the Kubernetes API using the provided token for authentication.
+func (webCtx *ServerContext) getEnvironment(ctx context.Context, token, environment, namespace, instanceName string) (*clv1alpha2.InstanceStatusEnv, error) {
 	if webCtx.BaseConfig == nil {
 		return nil, errors.New("baseConfig is not initialized")
 	}
@@ -56,14 +54,21 @@ func (webCtx *ServerContext) getInstance(ctx context.Context, token, environment
 	err = k8sClient.Get(ctx, client.ObjectKey{
 		Namespace: namespace,
 		Name:      instanceName,
-		//Environment: environment,
 	}, instance)
 
 	if err != nil {
 		return nil, errors.New("failed to get instance: " + err.Error())
 	}
 
-	return instance, nil
+	// Find the environment by name
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
+		if env.Name == environment {
+			return env, nil
+		}
+	}
+
+	return nil, errors.New("environment not found")
 }
 
 // Extracts the username from the JWT token.
@@ -91,23 +96,23 @@ func (webCtx *ServerContext) validateRequest(vmName, token string, localCtx *Loc
 
 	localCtx.username = username
 
-	// get the instance by name and namespace
-	instance, err := webCtx.getInstance(localCtx.ctxReq, token, localCtx.environment, localCtx.namespace, vmName)
+	// get the environment by name and namespace
+	env, err := webCtx.getEnvironment(localCtx.ctxReq, token, localCtx.environment, localCtx.namespace, vmName)
 	if err != nil {
 		return errors.New("failed to get instance: " + err.Error())
 	}
 
-	// check if the instance is running
-	if instance.Status.Phase != clv1alpha2.EnvironmentPhaseReady {
-		return errors.New("instance is not running")
+	// check if the environment is running
+	if env.Phase != clv1alpha2.EnvironmentPhaseReady {
+		return errors.New("environment is not running")
 	}
 
-	// extract the IP address from the instance status
-	if instance.Status.IP == "" {
-		return errors.New("instance has no IP address assigned")
+	// extract the IP address from the environment status
+	if env.IP == "" {
+		return errors.New("environment has no IP address assigned")
 	}
 
-	localCtx.ip = instance.Status.IP
+	localCtx.ip = env.IP
 
 	return nil
 }
