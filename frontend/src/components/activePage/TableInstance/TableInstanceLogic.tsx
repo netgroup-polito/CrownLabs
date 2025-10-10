@@ -52,7 +52,9 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   } = useOwnedInstancesQuery({
     skip: !tenantId,
     variables: { tenantNamespace },
-    onCompleted: setDataInstances,
+    onCompleted: data => {
+      setDataInstances(data);
+    },
     fetchPolicy: 'network-only',
     onError: apolloErrorCatcher,
   });
@@ -95,6 +97,10 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
                 case SubObjType.UpdatedInfo:
                   instances = instances.map(replaceK8sObject(instance));
                   notify = true;
+                  break;
+                case SubObjType.PublicExposureChange:
+                  instances = instances.map(replaceK8sObject(instance));
+                  notify = false;
                   break;
                 case SubObjType.Drop:
                   notify = false;

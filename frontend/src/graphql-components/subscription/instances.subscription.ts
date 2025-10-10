@@ -23,10 +23,28 @@ export default gql`
           url
           nodeName
           nodeSelector
+          publicExposure {
+            externalIP
+            phase
+            ports {
+              name
+              port
+              protocol
+              targetPort
+            }
+          }
         }
         spec {
           running
           prettyName
+          publicExposure {
+            ports {
+              name
+              port
+              protocol
+              targetPort
+            }
+          }
           templateCrownlabsPolitoItTemplateRef {
             name
             namespace
@@ -35,6 +53,7 @@ export default gql`
                 spec {
                   prettyName
                   description
+                  allowPublicExposure
                   environmentList {
                     guiEnabled
                     persistent
