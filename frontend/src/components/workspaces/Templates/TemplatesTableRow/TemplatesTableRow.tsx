@@ -231,7 +231,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             title={
               <>
                 <div>
-                  CPU: {template.resources.cpu || 'unavailable'} core(s)
+                  CPU: {template.resources.cpu || 'unavailable'}vCPU(s)
                 </div>
                 <div>
                   RAM: {convertInG(template.resources.memory) || 'unavailable'}B
