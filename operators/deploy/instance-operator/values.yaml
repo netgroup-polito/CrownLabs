@@ -105,6 +105,6 @@ resources:
 webssh:
   masterKey:
     secretName: crownlabs-bastion-operator-web-master-key
-    keyName: webssh-bastion-master
+    keyName: webssh-master
 
 rbacResourcesName: crownlabs-instance-operator

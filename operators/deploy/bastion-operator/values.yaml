@@ -13,7 +13,7 @@ configurations:
 image:
   repositoryBastion: crownlabs/ssh-bastion
   repositorySidecar: crownlabs/bastion-operator
-  repositoryWebBastion: crownlabs/webssh-bastion
+  repositoryWebBastion: crownlabs/webssh
   repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
@@ -139,8 +139,8 @@ webssh:
   masterKey:
     secretName: crownlabs-bastion-operator-web-master-key
     type: ed25519
-    name: webssh-bastion-master
-    comment: webssh-bastion-master-key
+    name: webssh-master
+    comment: webssh-master-key
   config:
     user: crownlabs
     timeoutDuration: 30 # minutes
