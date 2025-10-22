@@ -30,7 +30,7 @@ import (
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/webssh-bastion"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/webssh"
 )
 
 var (
