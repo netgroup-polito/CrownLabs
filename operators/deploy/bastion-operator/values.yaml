@@ -114,7 +114,7 @@ service:
 sshKeysSecret:
   name: crownlabs-bastion-operator-ssh-keys
   keygenImage: kroniak/ssh-client:3.9
-  kubectlImage: bitnami/kubectl:1.19
+  kubectlImage: registry.k8s.io/kubectl:v1.31.13
 
 rbacResourcesName: crownlabs-bastion-operator
 
