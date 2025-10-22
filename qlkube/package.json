@@ -41,7 +41,7 @@
     "@graphql-tools/stitch": "^9.2.9",
     "@graphql-tools/wrap": "10.0.5",
     "@kubernetes/client-node": "^0.22.3",
-    "compression": "^1.7.4",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^9.0.2",
     "express": "^4.19.2",
