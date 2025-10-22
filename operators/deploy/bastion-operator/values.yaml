@@ -13,7 +13,7 @@ configurations:
 image:
   repositoryBastion: crownlabs/ssh-bastion
   repositorySidecar: crownlabs/bastion-operator
-  repositoryWebBastion: crownlabs/webssh
+  repositoryWebSSH: crownlabs/webssh
   repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
