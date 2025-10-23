@@ -46,6 +46,8 @@ const (
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 	tnName   = "testuser"
+
+	tnPersonalNamespace = "tenant-" + tnName
 )
 
 var (

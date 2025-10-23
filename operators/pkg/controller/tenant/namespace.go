@@ -177,11 +177,21 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 
 	if sPassed > r.TenantNSKeepAlive { // seconds
 		log.Info("Over elapsed since last login of tenant: tenant namespace shall be absent", "elapsed", r.TenantNSKeepAlive, "tenant", tn.Name)
-		if len(list.Items) == 0 {
-			log.Info("No instances found for tenant: namespace can be deleted", "tenant", tn.Name)
+		resourcesPresent := false
+		if len(list.Items) > 0 {
+			log.Info("Instances found for tenant", "tenant", tn.Name)
+			resourcesPresent = true
+		}
+		if res, err := r.checkPersonalWorkspaceKeepAlive(ctx, tn); err == nil {
+			resourcesPresent = resourcesPresent || res
+		} else {
+			return res, err
+		}
+		if !resourcesPresent {
+			log.Info("No resources found for tenant: namespace can be deleted", "tenant", tn.Name)
 			return false, nil
 		}
-		log.Info("Instances found for tenant: namespace will not be deleted", "tenant", tn.Name)
+		log.Info("Resources found for tenant: namespace will not be deleted", "tenant", tn.Name)
 	} else {
 		log.Info("Under (limit) elapsed since last login of tenant: tenant namespace shall be present", "limit", r.TenantNSKeepAlive, "tenant", tn.Name)
 	}

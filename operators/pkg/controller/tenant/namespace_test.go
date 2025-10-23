@@ -855,5 +855,95 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).To(HaveOccurred())
 		})
+
+	})
+	When("Namespace is absent", func() {
+		var testNamespace *v1.Namespace
+		BeforeEach(func() {
+			tnResource.Status.PersonalNamespace.Created = true
+			tnResource.Status.PersonalNamespace.Name = tnPersonalNamespace
+			testNamespace = &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tnPersonalNamespace}}
+			addObjToObjectsList(testNamespace)
+			tnResource.Spec.LastLogin = metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second)))
+		})
+		AfterEach(func() {
+			removeObjFromObjectsList(testNamespace)
+		})
+		When("Personal workspace is enabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = true
+			})
+			When("Personal workspace has templates", func() {
+				var testTemplate *v1alpha2.Template
+				BeforeEach(func() {
+					testTemplate = &v1alpha2.Template{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-template",
+							Namespace: tnPersonalNamespace,
+						},
+					}
+					addObjToObjectsList(testTemplate)
+				})
+				AfterEach(func() {
+					removeObjFromObjectsList(testTemplate)
+				})
+				It("Should keep the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+				})
+			})
+			When("Personal workspace does not have templates", func() {
+				It("Should delete the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
+				})
+			})
+			When("Listing templates errors", func() {
+				BeforeEach(func() {
+					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
+						List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+							if _, ok := list.(*v1alpha2.TemplateList); ok {
+								return fmt.Errorf("simulated error on template list")
+							}
+							return client.List(ctx, list, opts...)
+						},
+					})
+					tnReconcileErrExpected = HaveOccurred()
+				})
+				It("Should keep the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+				})
+			})
+		})
+		When("Personal workspace is disabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = false
+			})
+			It("Should delete the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
+			})
+		})
+	})
+	When("Namespace is present", func() {
+		When("Personal workspace is enabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = true
+			})
+			It("Should keep the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+			})
+		})
+		When("Personal workspace is disabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.CreatePersonalWorkspace = false
+			})
+			It("Should keep the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+			})
+		})
 	})
 })
