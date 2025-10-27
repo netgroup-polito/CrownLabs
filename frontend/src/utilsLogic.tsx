@@ -100,6 +100,10 @@ const safePhaseConversion = (phase: unknown): Phase => {
   return (phase as Phase) || Phase.Starting;
 };
 
+const safePhase2Conversion = (phase: unknown): Phase2 => {
+  return (phase as Phase2) || Phase2.Off;
+};
+
 const safePhase5Conversion = (phase: unknown): Phase5 => {
   return (phase as Phase5) || Phase5.Pending;
 };
@@ -213,16 +217,13 @@ export const makeGuiInstance = (
   }
 
   const { metadata, spec, status } = instance;
-  const { name, namespace: tenantNamespace } = metadata ?? {};
-  const { running, prettyName, publicExposure } = spec ?? {};
+  const { namespace: tenantNamespace } = metadata ?? {};
+  const { running, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
-  const { environmentList, prettyName: templatePrettyName } = spec
-    ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-    ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
+  const { environmentList } = spec?.templateCrownlabsPolitoItTemplateRef
+    ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
     environmentList: [],
-    prettyName: '',
   };
-  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
@@ -243,12 +244,10 @@ export const makeGuiInstance = (
   }
   return {
     id: instanceID,
-    name: name,
-    prettyName: prettyName,
+    name: metadata?.name,
+    prettyName: spec?.prettyName,
     gui: guiEnabled,
     persistent: persistent,
-    templatePrettyName: templatePrettyName,
-    templateName: templateName ?? '',
     templateId: makeTemplateKey(
       getInstanceLabels(instance)?.crownlabsPolitoItTemplate ??
         optional?.templateName ??
@@ -259,11 +258,10 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: status?.ip,
-    status: safePhaseConversion(status?.phase),
+    status: safePhase2Conversion(status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
-    tenantDisplayName: userId, // Using userId as display name since tenant info is not available
     tenantNamespace: tenantNamespace,
     workspaceName:
       getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
@@ -271,7 +269,7 @@ export const makeGuiInstance = (
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
-    tenantDisplayName: '',
+    tenantDisplayName: userId, // Using userId as display name since tenant info is not available
     myDriveUrl: '',
     publicExposure: publicExposureObj,
   } as Instance;
@@ -536,7 +534,7 @@ export const getManagerInstances = (
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: status?.ip,
-    status: safePhaseConversion(status?.phase),
+    status: safePhase2Conversion(status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,

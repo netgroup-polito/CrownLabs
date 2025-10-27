@@ -6,7 +6,7 @@ import { InfoOutlined } from '@ant-design/icons';
 import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
-import { EnvironmentType, Phase } from '../../../../generated-types';
+import { EnvironmentType, Phase2 } from '../../../../generated-types';
 import { Link } from 'react-router-dom';
 import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
@@ -53,7 +53,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     environmentType === EnvironmentType.Standalone;
 
   // Disable Public Exposure if instance is not ready
-  const publicExposureDisabled = status !== Phase.Ready;
+  const publicExposureDisabled = status !== Phase2.Ready;
 
   const getPublicExposureTooltipText = () => {
     if (publicExposureDisabled) {

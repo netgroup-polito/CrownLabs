@@ -237,17 +237,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const createInstance = (
-    templateId: string,
-    nodeSelector?: Record<string, string>,
-  ) =>
+  const createInstance = (templateId: string, labelSelector?: JSON) =>
     createInstanceMutation({
       variables: {
         templateId,
         tenantNamespace,
         tenantId: userId ?? '',
         workspaceNamespace,
-        nodeSelector,
+        nodeSelector: labelSelector as Record<string, string> | undefined,
       },
     })
       .then(i => {
@@ -275,7 +272,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
-    const originalById = new Map<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalById = new Map<string, any>();
     (templateListData?.templateList?.templates ?? []).forEach(t => {
       const id = t?.metadata?.name;
       if (id) originalById.set(id, t);
@@ -283,12 +281,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
     // Enrich joined templates using the original template spec when available
     return (joined || []).map(t => {
-      const id = t?.id ?? t?.templateId ?? t?.original?.id;
+      const id = t?.id;
       const original = id ? originalById.get(id) : undefined;
-      const env =
-        original?.spec?.environmentList?.[0] ??
-        t?.original?.spec?.environmentList?.[0] ??
-        t?.spec?.environmentList?.[0];
+      const env = original?.spec?.environmentList?.[0];
       return {
         ...t,
         image: env?.image ?? null,

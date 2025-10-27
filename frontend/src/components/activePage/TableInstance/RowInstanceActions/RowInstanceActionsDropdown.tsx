@@ -16,7 +16,6 @@ import {
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
-  Phase,
   Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
@@ -101,9 +100,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready
-      ? statusComponents[Phase.Ready]
-      : status === (Phase2.Off as unknown as Phase)
+    status === Phase2.Ready
+      ? statusComponents[Phase2.Ready]
+      : status === Phase2.Off
         ? statusComponents[Phase2.Off]
         : statusComponents.Other;
 

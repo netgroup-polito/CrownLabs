@@ -111,6 +111,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           environmentList: [
             {
               name: t.environmentName || t.name?.trim() || 'env-0',
+              mountMyDriveVolume: !!t.mountMyDrive,
               environmentType: t.imageType || EnvironmentType.Container,
               image: finalImage,
               guiEnabled: !!t.gui,

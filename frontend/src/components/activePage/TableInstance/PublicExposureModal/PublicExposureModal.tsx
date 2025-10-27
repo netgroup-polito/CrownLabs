@@ -26,7 +26,7 @@ import {
   type PublicExposure,
   type PortListItem,
 } from '../../../../utils';
-import { Phase } from '../../../../generated-types';
+import { Phase2 } from '../../../../generated-types';
 const { Text } = Typography;
 
 interface IPublicExposureModalProps {
@@ -732,7 +732,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {existingExposure?.externalIP &&
-                    existingExposure.phase !== Phase.Off ? (
+                    existingExposure.phase !== Phase2.Off ? (
                       <span
                         style={{
                           textDecoration: !hasValidPorts

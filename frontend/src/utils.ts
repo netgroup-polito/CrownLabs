@@ -76,7 +76,7 @@ export type SharedVolume = {
 
 export type PublicExposure = {
   externalIP: string;
-  phase: Phase;
+  phase: Phase2;
   ports: Array<PortListItem>;
 };
 

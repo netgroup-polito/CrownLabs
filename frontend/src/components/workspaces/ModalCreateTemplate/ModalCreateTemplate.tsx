@@ -65,6 +65,8 @@ type Template = {
   ram: number;
   disk: number;
   sharedVolumeMountInfos?: SharedVolumeMountsListItem[];
+  environmentName?: string;
+  reservedCPUPercentage?: number;
 };
 
 type Interval = {
