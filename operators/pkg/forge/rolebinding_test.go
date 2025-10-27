@@ -21,16 +21,27 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("RoleBinding forging", func() {
 	var (
+		tenant    *v1alpha2.Tenant
 		workspace *v1alpha1.Workspace
 		labels    map[string]string
 	)
 
 	BeforeEach(func() {
+		tenant = &v1alpha2.Tenant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-tenant",
+			},
+			Spec: v1alpha2.TenantSpec{
+				FirstName: "Test",
+				LastName:  "Tenant",
+			},
+		}
 		workspace = &v1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-workspace",
@@ -207,4 +218,69 @@ var _ = Describe("RoleBinding forging", func() {
 			})
 		})
 	})
+
+	Describe("The forge.ConfigurePersonalWorkspaceManageTemplatesBinding function", func() {
+		var rb *rbacv1.RoleBinding
+		BeforeEach(func() {
+			rb = &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-manage-templates",
+					Namespace: "default",
+				},
+			}
+		})
+
+		Context("When the RoleBinding has no labels", func() {
+			It("Should set the correct labels, RoleRef and Subject", func() {
+				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+
+				// Check labels
+				for k, v := range labels {
+					Expect(rb.Labels).To(HaveKeyWithValue(k, v))
+				}
+				// Check Namespace
+				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
+				// Check RoleRef
+				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
+				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
+
+				// Check Subject
+				Expect(rb.Subjects).To(HaveLen(1))
+				Expect(rb.Subjects[0].Kind).To(Equal("User"))
+				Expect(rb.Subjects[0].Name).To(Equal(tenant.Name))
+				Expect(rb.Subjects[0].APIGroup).To(Equal("rbac.authorization.k8s.io"))
+			})
+		})
+
+		Context("When the RoleBinding already has labels", func() {
+			BeforeEach(func() {
+				rb.Labels = map[string]string{
+					"existing": "label",
+				}
+			})
+
+			It("Should keep existing labels, add new ones, and set correct Namespace, RoleRef and Subject ", func() {
+				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+
+				Expect(rb.Labels).To(HaveKeyWithValue("existing", "label"))
+				for k, v := range labels {
+					Expect(rb.Labels).To(HaveKeyWithValue(k, v))
+				}
+				// Check Namespace
+				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
+				// Check RoleRef
+				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
+				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
+
+				// Check Subject
+				Expect(rb.Subjects).To(HaveLen(1))
+				Expect(rb.Subjects[0].Kind).To(Equal("User"))
+				Expect(rb.Subjects[0].Name).To(Equal(tenant.Name))
+				Expect(rb.Subjects[0].APIGroup).To(Equal("rbac.authorization.k8s.io"))
+			})
+		})
+	})
+
 })

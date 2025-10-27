@@ -211,6 +211,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
+	if err := r.handlePersonalWorkspace(ctx, &tn); err != nil {
+		log.Error(err, "Error handling personal workspace for tenant %s: %w", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "handle-personal-workspace").Inc()
+		return reschedule, fmt.Errorf("error handling personal workspace for tenant %s: %w", tn.Name, err)
+	}
+
 	// esporta/disesporta tutto
 	if err = r.enforceSandboxResources(ctx, &tn); err != nil {
 		log.Error(err, "Failed checking sandbox for tenant", "tenant", tn.Name)
