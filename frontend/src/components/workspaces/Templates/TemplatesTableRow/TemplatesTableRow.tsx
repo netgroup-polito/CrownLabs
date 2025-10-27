@@ -358,9 +358,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             placement="left"
             title={
               <>
-                <div>
-                  CPU: {template.resources.cpu || 'unavailable'}vCPU(s)
-                </div>
+                <div>CPU: {template.resources.cpu || 'unavailable'}vCPU(s)</div>
                 <div>
                   RAM:{' '}
                   {convertMemory(template.resources.memory) || 'unavailable'}B

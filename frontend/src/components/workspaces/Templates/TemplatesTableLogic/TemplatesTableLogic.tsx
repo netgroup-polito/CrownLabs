@@ -10,7 +10,6 @@ import {
   useDeleteTemplateMutation,
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
-  useImagesQuery,
   type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
@@ -271,13 +270,12 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         console.error('TemplatesTableLogic createInstance error:', error);
         throw error;
       });
-  };
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
-    const originalById = new Map<string, any>();
+    const originalById = new Map<string>();
     (templateListData?.templateList?.templates ?? []).forEach(t => {
       const id = t?.metadata?.name;
       if (id) originalById.set(id, t);
@@ -285,19 +283,19 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
     // Enrich joined templates using the original template spec when available
     return (joined || []).map(t => {
-      const id = (t as any)?.id ?? (t as any)?.templateId ?? (t as any)?.original?.id;
+      const id = t?.id ?? t?.templateId ?? t?.original?.id;
       const original = id ? originalById.get(id) : undefined;
       const env =
         original?.spec?.environmentList?.[0] ??
-        (t as any)?.original?.spec?.environmentList?.[0] ??
-        (t as any)?.spec?.environmentList?.[0];
+        t?.original?.spec?.environmentList?.[0] ??
+        t?.spec?.environmentList?.[0];
       return {
         ...t,
         image: env?.image ?? null,
         environmentType: env?.environmentType ?? null,
       };
     });
-  }, [dataTemplate, dataInstances]);
+  }, [dataTemplate, dataInstances, templateListData?.templateList?.templates]);
 
   return (
     <>

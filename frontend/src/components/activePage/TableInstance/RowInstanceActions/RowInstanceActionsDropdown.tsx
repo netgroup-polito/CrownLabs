@@ -165,7 +165,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                       {instance.publicExposure &&
                         (instance.publicExposure?.ports ?? []).length > 0 && (
                           <Badge
-                            count={(instance.publicExposure?.ports ?? []).length}
+                            count={
+                              (instance.publicExposure?.ports ?? []).length
+                            }
                             showZero={false}
                             size="small"
                           />

@@ -165,7 +165,11 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                 className="hidden mr-3 xl:inline-block"
                 shape="circle"
                 icon={<SelectOutlined style={{ fontSize: '16px' }} />}
-                onClick={() => publicExposureDisabled ? undefined : setShowExposureModal(true)}
+                onClick={() =>
+                  publicExposureDisabled
+                    ? undefined
+                    : setShowExposureModal(true)
+                }
                 disabled={publicExposureDisabled}
               />
             </Badge>

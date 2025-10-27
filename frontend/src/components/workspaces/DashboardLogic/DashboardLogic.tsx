@@ -142,7 +142,10 @@ const DashboardLogic: FC = () => {
     const handler = (e: Event) => {
       try {
         const detail = (e as CustomEvent)?.detail ?? {};
-        console.debug('templatesChanged event received in DashboardLogic', detail);
+        console.debug(
+          'templatesChanged event received in DashboardLogic',
+          detail,
+        );
         // Refetch active queries so TemplatesTableLogic / other components update.
         client
           .refetchQueries({ include: 'active' })

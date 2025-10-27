@@ -51,7 +51,7 @@ type ImageType =
   | EnvironmentType.Standalone;
 
 type Template = {
-  id?: string;                         // <-- add id here
+  id?: string;
   name?: string;
   image?: string;
   registry?: string;
@@ -176,7 +176,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const [form] = Form.useForm();
 
   const [formTemplate, setFormTemplate] = useState<Template>({
-    id: template && (template as any).id,
+    id: template && template.id,
     name: template && template.name,
     image: template && template.image,
     registry: template && template.registry,
@@ -196,7 +196,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   useEffect(() => {
     if (template) {
       setFormTemplate({
-        id: (template as any).id,             // <-- preserve id on sync
+        id: template.id,
         name: template.name,
         image: template.image,
         registry: template.registry,
@@ -227,7 +227,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     } else {
       // reset to defaults when creating a new template
       setFormTemplate({
-        id: undefined,                        // <-- clear id on reset
+        id: undefined,
         name: undefined,
         image: undefined,
         registry: undefined,
@@ -864,8 +864,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   }
                 />
                 {formTemplate.imageType === EnvironmentType.CloudVm}
-                {(formTemplate.imageType === EnvironmentType.Standalone ||
-                  formTemplate.imageType === EnvironmentType.Container)}
+                {formTemplate.imageType === EnvironmentType.Standalone ||
+                  formTemplate.imageType === EnvironmentType.Container}
               </Form.Item>
 
               <Form.Item className="mb-4">

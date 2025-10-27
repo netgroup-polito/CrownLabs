@@ -43,11 +43,7 @@ const ErrorItem: FC<IErrorItemProps> = ({ ...props }) => {
             {ae.protocolErrors?.length ? (
               <li>
                 Protocol errors:{' '}
-                <ul>
-                  {ae.protocolErrors?.map(e => (
-                    <li>{e.message}</li>
-                  ))}
-                </ul>
+                <ul>{ae.protocolErrors?.map(e => <li>{e.message}</li>)}</ul>
               </li>
             ) : null}
             {ae.graphQLErrors.length ? (

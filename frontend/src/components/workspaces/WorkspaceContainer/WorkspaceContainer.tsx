@@ -34,7 +34,8 @@ export interface IWorkspaceContainerProps {
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
-  const getManager = () => `${workspace.name}-${userId || makeRandomDigits(10)}`;
+  const getManager = () =>
+    `${workspace.name}-${userId || makeRandomDigits(10)}`;
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   const { tenantNamespace, workspace, availableQuota, refreshQuota } = props;
@@ -60,7 +61,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       const t = detail as Template;
       if (t) {
         t.imageType = detail.environmentType || null;
-        if(t.imageType === EnvironmentType.VirtualMachine) {
+        if (t.imageType === EnvironmentType.VirtualMachine) {
           t.image = detail.image || '';
         } else {
           t.registry = detail.image || '';
@@ -100,8 +101,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     }
 
     // If editing an existing template (has id) -> apply patch
-    if (t && (t.id)) {
-      const templateId = (t).id;
+    if (t && t.id) {
+      const templateId = t.id;
       const patchJson = getTemplatePatchJson({
         metadata: { name: templateId, namespace: finalWorkspaceNamespace },
         spec: {
@@ -109,7 +110,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           description: t.name?.trim() || '',
           environmentList: [
             {
-              name: (t as any).environmentName || t.name?.trim() || 'env-0',
+              name: t.environmentName || t.name?.trim() || 'env-0',
               environmentType: t.imageType || EnvironmentType.Container,
               image: finalImage,
               guiEnabled: !!t.gui,
@@ -119,7 +120,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                 cpu: t.cpu,
                 memory: `${t.ram * 1000}M`,
                 disk: t.disk ? `${t.disk * 1000}M` : undefined,
-                reservedCPUPercentage: (t as any).reservedCPUPercentage ?? 50,
+                reservedCPUPercentage: t.reservedCPUPercentage ?? 50,
               },
               sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
             },
@@ -140,59 +141,65 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           // notify other components to refresh templates data
           window.dispatchEvent(
             new CustomEvent('templatesChanged', {
-              detail: { workspaceNamespace: finalWorkspaceNamespace, templateId },
+              detail: {
+                workspaceNamespace: finalWorkspaceNamespace,
+                templateId,
+              },
             }),
           );
           return result;
         })
         .catch(error => {
-          console.error('WorkspaceContainer applyTemplateMutation error:', error);
+          console.error(
+            'WorkspaceContainer applyTemplateMutation error:',
+            error,
+          );
           throw error;
         });
     }
 
     // Create new template flow (keep existing behavior)
     const templateIdValue = `${workspace.name}-`;
-     return createTemplateMutation({
-       variables: {
-         workspaceId: workspace.name,
-         workspaceNamespace: finalWorkspaceNamespace,
-         templateId: templateIdValue,
-         templateName: t.name?.trim() || '',
-         descriptionTemplate: t.name?.trim() || '',
-         image: finalImage,
-         guiEnabled: t.gui,
-         rewriteURL: t.rewriteUrl,
-         persistent: t.persistent,
-         mountMyDriveVolume: t.mountMyDrive,
-         environmentType: t.imageType || EnvironmentType.Container,
-         resources: {
-           cpu: t.cpu,
-           memory: `${t.ram * 1000}M`,
-           disk: t.disk ? `${t.disk * 1000}M` : undefined,
-           reservedCPUPercentage: 50,
-         },
-         sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
-       },
-     })
-       .then(result => {
-         refreshQuota?.();
+    return createTemplateMutation({
+      variables: {
+        workspaceId: workspace.name,
+        workspaceNamespace: finalWorkspaceNamespace,
+        templateId: templateIdValue,
+        templateName: t.name?.trim() || '',
+        descriptionTemplate: t.name?.trim() || '',
+        image: finalImage,
+        guiEnabled: t.gui,
+        rewriteURL: t.rewriteUrl,
+        persistent: t.persistent,
+        mountMyDriveVolume: t.mountMyDrive,
+        environmentType: t.imageType || EnvironmentType.Container,
+        resources: {
+          cpu: t.cpu,
+          memory: `${t.ram * 1000}M`,
+          disk: t.disk ? `${t.disk * 1000}M` : undefined,
+          reservedCPUPercentage: 50,
+        },
+        sharedVolumeMounts: t.sharedVolumeMountInfos ?? [],
+      },
+    })
+      .then(result => {
+        refreshQuota?.();
         // notify other components to refresh templates data (new template created)
         window.dispatchEvent(
           new CustomEvent('templatesChanged', {
             detail: { workspaceNamespace: finalWorkspaceNamespace },
           }),
         );
-         return result;
-       })
-       .catch(error => {
-         console.error(
-           'WorkspaceContainer createTemplateMutation error:',
-           error,
-         );
-         throw error;
-       });
-   };
+        return result;
+      })
+      .catch(error => {
+        console.error(
+          'WorkspaceContainer createTemplateMutation error:',
+          error,
+        );
+        throw error;
+      });
+  };
 
   return (
     <Card

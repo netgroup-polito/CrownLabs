@@ -303,10 +303,11 @@ spec:
   // Ensure all required fields are present according to CRD and sanitize names
   const portsFormatted = portsNormalized.map(p => ({
     // Sanitize name: replace spaces with hyphens and remove special characters
-    name: p.name.trim()
-      .replace(/\s+/g, '-')      // Replace one or more spaces with single hyphen
-      .replace(/[^a-zA-Z0-9-]/g, '')  // Remove any non-alphanumeric characters except hyphens
-      .toLowerCase(),             // Convert to lowercase for consistency
+    name: p.name
+      .trim()
+      .replace(/\s+/g, '-') // Replace one or more spaces with single hyphen
+      .replace(/[^a-zA-Z0-9-]/g, '') // Remove any non-alphanumeric characters except hyphens
+      .toLowerCase(), // Convert to lowercase for consistency
     targetPort: p.targetPort,
     port: p.port,
     protocol: p.protocol.toUpperCase(), // Ensure uppercase protocol
@@ -328,6 +329,6 @@ spec:
   publicExposure:
     ports:
 ${yamlPorts}`;
-  
+
   return finalPatch;
 }
