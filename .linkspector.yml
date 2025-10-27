@@ -1,5 +1,6 @@
 ignorePatterns:
   - pattern: "^https://.*\\.example\\.com/.*$"
-  - pattern : "^https://www.packer.io/.*$"
+  # This link often returns http code 429 ("too many requests") when executed from github  
+  - pattern: "^https://developer.hashicorp.com/packer$"
 dirs:
   - .
