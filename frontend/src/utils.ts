@@ -33,6 +33,8 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type Instance = {
@@ -57,6 +59,9 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  publicExposure?: PublicExposure;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
 };
 
 export type SharedVolume = {
@@ -69,9 +74,29 @@ export type SharedVolume = {
   namespace: string;
 };
 
+export type PublicExposure = {
+  externalIP: string;
+  phase: Phase;
+  ports: Array<PortListItem>;
+};
+
+export type PortListItem = {
+  name?: string;
+  port: string;
+  targetPort: number;
+  protocol?: 'TCP' | 'UDP' | 'SCTP';
+  // Additional fields to track desired vs actual ports
+  _actualPort?: string;
+  _desiredPort?: string;
+  // New fields to preserve spec vs status information
+  isAutoPort?: boolean;
+  specPort?: number;
+};
+
 export enum LinkPosition {
   MenuButton,
   NavbarButton,
+  Hidden,
 }
 
 export enum WorkspacesAvailableAction {
@@ -251,4 +276,58 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
   return (Object.keys(enumObj) as (keyof T)[]).find(
     key => enumObj[key] === value,
   );
+}
+
+/**
+ * Build YAML patch string for updating publicExposure ports on an Instance.
+ * @param portsNormalized entries with name, targetPort, port, and protocol
+ * @returns YAML patch string
+ */
+export function buildPublicExposurePatch(
+  portsNormalized: Array<{
+    name: string;
+    targetPort: number;
+    port: number;
+    protocol: string;
+  }>,
+): string {
+  // Handle empty ports array case - this will disable public exposure completely
+  if (portsNormalized.length === 0) {
+    return `apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+spec:
+  publicExposure:
+    ports: []`;
+  }
+
+  // Ensure all required fields are present according to CRD and sanitize names
+  const portsFormatted = portsNormalized.map(p => ({
+    // Sanitize name: replace spaces with hyphens and remove special characters
+    name: p.name.trim()
+      .replace(/\s+/g, '-')      // Replace one or more spaces with single hyphen
+      .replace(/[^a-zA-Z0-9-]/g, '')  // Remove any non-alphanumeric characters except hyphens
+      .toLowerCase(),             // Convert to lowercase for consistency
+    targetPort: p.targetPort,
+    port: p.port,
+    protocol: p.protocol.toUpperCase(), // Ensure uppercase protocol
+  }));
+
+  // Build YAML string with correct indentation (names are now sanitized, no quotes needed)
+  const yamlPorts = portsFormatted
+    .map(p => {
+      return `    - name: ${p.name}
+      targetPort: ${p.targetPort}
+      port: ${p.port}
+      protocol: ${p.protocol}`;
+    })
+    .join('\n');
+
+  const finalPatch = `apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+spec:
+  publicExposure:
+    ports:
+${yamlPorts}`;
+  
+  return finalPatch;
 }

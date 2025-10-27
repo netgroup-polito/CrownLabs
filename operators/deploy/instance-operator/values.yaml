@@ -3,6 +3,7 @@
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
+replicaCountAutomation: 1
 
 configurations:
   generic:
@@ -24,16 +25,53 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
-  automation:
-    maxConcurrentTerminationReconciles: 1
-    terminationStatusCheckTimeout: "3s"
-    terminationStatusCheckInterval: "2m"
-    maxConcurrentSubmissionReconciles: 1
+  maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
+  monitoring:
+    prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+    queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
+    queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
+    queryWebSSHAvailable: count(up{container="webssh"})
+    queryNginxData: nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}
+    queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
+    queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
+    queryStep: 5m
+  mailTemplateDir: /etc/crownmail/templates
+  mailConfigDir: /etc/crownmail/configs
+  automation:
+    enableInstanceSubmission: true
+    enableInstanceTermination: true
+    enableInstanceInactiveTermination: true
+    enableInstanceExpiration: true
+    maxConcurrentTerminationReconciles: 1
+    maxConcurrentInactiveTerminationReconciles: 1
+    maxConcurrentExpirationReconciles: 1
+    maxConcurrentSubmissionReconciles: 1
+    terminationStatusCheckTimeout: "3s"
+    terminationStatusCheckInterval: "2m"
+    inactiveTerminationStatusCheckTimeout: "3s"
+    inactiveTerminationMaxNumberOfAlerts: 3
+    enableInactivityNotifications: true
+    enableExpirationNotifications: true
+    inactiveTerminationNotificationInterval: "24h"
+    expirationNotificationInterval: "24h"
+  publicExposure:
+    # The IP pool used to assign public IPs to instances.
+    # Specify IPs as ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30"
+    ipPool:
+      - "172.18.0.240-172.18.0.249"
+      - "172.18.0.250/30"
+    # Common annotations to be added to all LoadBalancer services
+    # Format: "key1=val1,key2=val2"
+    commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Annotation key for specifying LoadBalancer IPs
+    loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+      
 
 image:
   repository: crownlabs/instance-operator
+  repositoryAutomation: crownlabs/instance-automation
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
   tag: ""
@@ -63,5 +101,10 @@ resources:
   requests:
     memory: 250Mi
     cpu: 100m
+
+webssh:
+  masterKey:
+    secretName: crownlabs-bastion-operator-web-master-key
+    keyName: webssh-master
 
 rbacResourcesName: crownlabs-instance-operator

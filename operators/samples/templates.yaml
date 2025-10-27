@@ -32,9 +32,16 @@ spec:
         cpu: 2
         memory: 2G
         reservedCPUPercentage: 25
+      sharedVolumeMounts:
+      - sharedVolume:
+          name: mylemon
+          namespace: workspace-tea
+        mountPath: /mnt/lemon
+        readOnly: false
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: tea
   deleteAfter: 30d
+  inactivityTimeout: 24h
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -57,7 +64,8 @@ spec:
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee
-  deleteAfter: 1h
+  deleteAfter: 10h
+  inactivityTimeout: 30m
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -72,7 +80,7 @@ spec:
       environmentType: Standalone
       mode: Standard
       mountMyDriveVolume: false
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
         startupArgs:
@@ -84,13 +92,14 @@ spec:
       rewriteURL: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
   name: vscode-c-cpp-persistent
   namespace: workspace-standalone
+  annotations:
+    crownlabs.polito.it/custom-number-alerts: "5" # Custom number of alerts for this template
 spec:
   prettyName: vscode c-cpp persistent
   description: A template about vscode
@@ -99,7 +108,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
       resources:
@@ -111,7 +120,6 @@ spec:
       persistent: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
@@ -126,7 +134,7 @@ spec:
       mountMyDriveVolume: false
       environmentType: Standalone
       mode: Standard
-      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.3
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
       containerStartupOptions:
         contentPath: /home/crownlabs
       resources:
@@ -135,4 +143,3 @@ spec:
         reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
-  deleteAfter: 30d

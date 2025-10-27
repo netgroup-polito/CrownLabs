@@ -1,8 +1,9 @@
 import { type FC, type SetStateAction, useContext, useState } from 'react';
-import { Dropdown } from 'antd';
+import { Dropdown, Badge, Space } from 'antd';
 import { Button } from 'antd';
+import { Link } from 'react-router-dom';
 import {
-  ExportOutlined,
+  SelectOutlined,
   CodeOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
@@ -10,10 +11,12 @@ import {
   PoweroffOutlined,
   CaretRightOutlined,
   ExclamationCircleOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
+  Phase,
   Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
@@ -27,12 +30,19 @@ export interface IRowInstanceActionsDropdownProps {
   fileManager?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onEnablePublicExposure?: () => void;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, extended, setSshModal } = props;
+  const {
+    instance,
+    fileManager,
+    extended,
+    setSshModal,
+    onEnablePublicExposure,
+  } = props;
 
   const {
     status,
@@ -88,12 +98,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: '',
       menuAction: () => null,
     },
-  };
+  } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase2.Ready || status === Phase2.Off
-      ? statusComponents[status]
-      : statusComponents.Other;
+    status === Phase.Ready
+      ? statusComponents[Phase.Ready]
+      : status === (Phase2.Off as unknown as Phase)
+        ? statusComponents[Phase2.Off]
+        : statusComponents.Other;
 
   const isContainer =
     environmentType === EnvironmentType.Container ||
@@ -105,6 +117,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
 
+  const ENV_PLACEHOLDER = 'env';
+
   return (
     <Dropdown
       trigger={['click']}
@@ -114,7 +128,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             key: 'connect',
             label: 'Connect',
             disabled: connectDisabled,
-            icon: <ExportOutlined style={font20px} />,
+            icon: <SelectOutlined style={font20px} />,
             onClick: gui
               ? () => window.open(url!, '_blank')
               : () => setSshModal(true),
@@ -141,15 +155,68 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
           },
+          ...(onEnablePublicExposure
+            ? [
+                {
+                  key: 'expose',
+                  label: (
+                    <Space align="center">
+                      Port Exposure
+                      {instance.publicExposure &&
+                        (instance.publicExposure?.ports ?? []).length > 0 && (
+                          <Badge
+                            count={(instance.publicExposure?.ports ?? []).length}
+                            showZero={false}
+                            size="small"
+                          />
+                        )}
+                    </Space>
+                  ),
+                  icon: <SelectOutlined style={font20px} />,
+                  onClick: () => onEnablePublicExposure?.(),
+                },
+                {
+                  type: 'divider' as const,
+                },
+              ]
+            : []),
           {
             key: 'ssh',
-            label: 'SSH',
             icon: <CodeOutlined style={font20px} />,
-            onClick: () => setSshModal(true),
-            className: `flex items-center ${
-              extended ? 'xl:hidden' : ''
-            } ${sshDisabled ? 'pointer-events-none' : ''}`,
             disabled: sshDisabled,
+            label: (
+              <>
+                SSH
+                <Button
+                  disabled={sshDisabled}
+                  type="link"
+                  className="ml-3"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={`/instance/${instance.tenantNamespace}/${instance.name}/${ENV_PLACEHOLDER}/ssh`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    </Link>
+                  }
+                ></Button>
+              </>
+            ),
+            onClick: () => setSshModal(true),
+            className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
           {
             key: 'upload',

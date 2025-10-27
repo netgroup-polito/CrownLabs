@@ -18,8 +18,8 @@ package main
 import (
 	"flag"
 	"os"
+	"path/filepath"
 	"strings"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,9 +38,9 @@ import (
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
 
@@ -62,6 +62,9 @@ func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
 	svcUrls := instctrl.ServiceUrls{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
+	publicExposureOpts := forge.PublicExposureOpts{}
+	publicExposureIPPoolRaw := ""
+	publicExposureCommonAnnotationRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -72,12 +75,11 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
+	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
+
 	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
 
-	maxConcurrentTerminationReconciles := flag.Int("max-concurrent-reconciles-termination", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Termination controller")
-	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
-	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 2*time.Minute, "The interval to check the status of Instances that require it")
-	maxConcurrentSubmissionReconciles := flag.Int("max-concurrent-reconciles-submission", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Submission controller")
+	maxConcurrentShVolReconciles := flag.Int("max-concurrent-reconciles-shvol", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Shared Volume controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -94,6 +96,10 @@ func main() {
 
 	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
 	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
+
+	flag.StringVar(&publicExposureIPPoolRaw, "public-exposure-ip-pool", "", "Comma-separated list of IPs, ranges or CIDRs for public exposure")
+	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
+	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -122,17 +128,63 @@ func main() {
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
 
+	// Configure the public exposure IP pool
+	ipPool, err := utils.ParseIPPool(publicExposureIPPoolRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure IP pool")
+		os.Exit(1)
+	}
+	log.Info("PublicExposureIPPool", "pool", ipPool)
+
+	// Parse common annotations
+	commonAnnotations, err := forge.ParseAnnotations(publicExposureCommonAnnotationRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure common annotations")
+		os.Exit(1)
+	}
+	publicExposureOpts.IPPool = ipPool
+	publicExposureOpts.CommonAnnotations = commonAnnotations
+
+	log.Info("Public exposure configuration", "ipPool", publicExposureOpts.IPPool, "commonAnnotations", publicExposureOpts.CommonAnnotations, "loadBalancerIPsKey", publicExposureOpts.LoadBalancerIPsKey)
+
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
+
+	// read the webssh public key form the secret
+	var pubKeyBytes []byte
+	if *websshKeyPathFlag != "" {
+		pubKeyBytes, err = os.ReadFile(filepath.Clean(*websshKeyPathFlag))
+		if err != nil {
+			log.Error(err, "failed to read webssh public key", "path", *websshKeyPathFlag)
+		}
+		log.Info("webssh public key correctly retrieved")
+	} else {
+		log.Error(err, "no path provided for webssh public key")
+	}
+
 	if err = (&instctrl.InstanceReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist: nsWhitelist,
-		ServiceUrls:        svcUrls,
-		ContainerEnvOpts:   containerEnvOpts,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		EventsRecorder:        mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:    nsWhitelist,
+		ServiceUrls:           svcUrls,
+		ContainerEnvOpts:      containerEnvOpts,
+		WebSSHMasterPublicKey: pubKeyBytes,
+		PublicExposureOpts:    publicExposureOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
+		os.Exit(1)
+	}
+
+	// Configure the SharedVolume controller
+	const sharedVolumeCtrl = "SharedVolume"
+	if err := (&shvolctrl.SharedVolumeReconciler{
+		Client:             mgr.GetClient(),
+		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
+		NamespaceWhitelist: nsWhitelist,
+		PVCStorageClass:    *sharedVolumeStorageClass,
+	}).SetupWithManager(mgr, *maxConcurrentShVolReconciles); err != nil {
+		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 
@@ -146,45 +198,6 @@ func main() {
 		ContainersSnapshot: instSnapOpts,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
-		os.Exit(1)
-	}
-
-	// Configure the Instance termination controller
-	instanceTermination := "InstanceTermination"
-	if err := (&instautoctrl.InstanceTerminationReconciler{
-		Client:                      mgr.GetClient(),
-		Scheme:                      mgr.GetScheme(),
-		EventsRecorder:              mgr.GetEventRecorderFor(instanceTermination),
-		NamespaceWhitelist:          nsWhitelist,
-		StatusCheckRequestTimeout:   *instanceTerminationStatusCheckTimeout,
-		InstanceStatusCheckInterval: *instanceTerminationStatusCheckInterval,
-	}).SetupWithManager(mgr, *maxConcurrentTerminationReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceTermination)
-		os.Exit(1)
-	}
-
-	// Configure the Instance submission controller
-	instanceSubmission := "InstanceSubmission"
-	if err := (&instautoctrl.InstanceSubmissionReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceSubmission),
-		ContainerEnvOpts:   containerEnvOpts,
-		NamespaceWhitelist: nsWhitelist,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceSubmission)
-		os.Exit(1)
-	}
-
-	// Configure the SharedVolume controller
-	const sharedVolumeCtrl = "SharedVolume"
-	if err := (&shvolctrl.SharedVolumeReconciler{
-		Client:             mgr.GetClient(),
-		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
-		NamespaceWhitelist: nsWhitelist,
-		PVCStorageClass:    *sharedVolumeStorageClass,
-	}).SetupWithManager(mgr, *maxConcurrentSubmissionReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 

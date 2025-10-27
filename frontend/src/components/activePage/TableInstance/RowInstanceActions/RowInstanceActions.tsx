@@ -7,6 +7,7 @@ import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
+import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -21,9 +22,14 @@ export interface IRowInstanceActionsProps {
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
   const { instance, now, fileManager, hasSSHKeys, extended, viewMode } = props;
 
+  // Use the value from the template (mapped via GraphQL)
+  const allowPublic = instance.allowPublicExposure;
+
   const { persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
+  const [showExposureModal, setShowExposureModal] = useState(false);
+  const onEnablePublicExposure = () => setShowExposureModal(true);
 
   const getTime = () => {
     if (!instance.timeStamp) return 'unknown';
@@ -50,7 +56,15 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
     return 'now';
   };
 
-  const fieldsDropdown = { instance, setSshModal, fileManager, extended };
+  // include public exposure handler only when allowed by template
+  // include public exposure handler only when allowed or in dev
+  const fieldsDropdown = {
+    instance,
+    setSshModal,
+    fileManager,
+    extended,
+    ...(allowPublic ? { onEnablePublicExposure } : {}),
+  };
 
   return (
     <>
@@ -110,8 +124,28 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
         footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
         centered
       >
-        <SSHModalContent instanceIp={instance.ip} hasSSHKeys={hasSSHKeys!} />
+        <SSHModalContent
+          instanceIp={instance.ip}
+          hasSSHKeys={hasSSHKeys!}
+          namespace={instance.tenantNamespace}
+          name={instance.name}
+          prettyName={instance.prettyName}
+          onClose={() => setSshModal(false)}
+        />
       </Modal>
+      {/* show exposure modal only when allowed or in dev */}
+      {allowPublic && (
+        <PublicExposureModal
+          open={showExposureModal}
+          onCancel={() => setShowExposureModal(false)}
+          allowPublicExposure={allowPublic}
+          existingExposure={instance.publicExposure}
+          instanceId={instance.name}
+          instancePrettyName={instance.prettyName || instance.name}
+          tenantNamespace={instance.tenantNamespace}
+          manager={instance.tenantId}
+        />
+      )}
     </>
   );
 };

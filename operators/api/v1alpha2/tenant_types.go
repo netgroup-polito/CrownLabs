@@ -31,7 +31,7 @@ type WorkspaceUserRole string
 
 const (
 	// Manager -> a Tenant with Manager role can interact with all the environments
-	// (i.e. VMs) in a Workspace, as well as add new Tenants to the Workspace.
+	// (e.g. VMs) in a Workspace, as well as add new Tenants to the Workspace.
 	Manager WorkspaceUserRole = "manager"
 	// User -> a Tenant with User role can only interact with his/her own
 	// environments (e.g. VMs) within that Workspace.
@@ -89,6 +89,10 @@ type TenantSpec struct {
 
 	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
 	Quota *TenantResourceQuota `json:"quota,omitempty"`
+
+	// +kubebuilder:default=false
+	// Whether a personal workspace should be created for the tenant
+	CreatePersonalWorkspace bool `json:"createPersonalWorkspace,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.
@@ -154,6 +158,9 @@ type TenantStatus struct {
 
 	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.
 	Quota TenantResourceQuota `json:"quota,omitempty"`
+
+	// Whether a personal workspace has been created for the tenant.
+	PersonalWorkspaceCreated bool `json:"personalWorkspaceCreated"`
 }
 
 // +kubebuilder:object:root=true

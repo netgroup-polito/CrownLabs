@@ -15,15 +15,24 @@
 package forge_test
 
 import (
+	"context"
+
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
 var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
@@ -245,7 +254,344 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("GetMyDrivePVCName", func() {
+	Context("Functions that interact with k8s", func() {
+		var (
+			ctx           context.Context
+			clientBuilder fake.ClientBuilder
+
+			template    clv1alpha2.Template
+			environment clv1alpha2.Environment
+			instance    clv1alpha2.Instance
+			tenant      clv1alpha2.Tenant
+			manager     clv1alpha2.Tenant
+
+			err error
+		)
+
+		const (
+			instanceName      = "kubernetes-0000"
+			instanceNamespace = "tenant-tester"
+			templateName      = "kubernetes"
+			templateNamespace = "workspace-netgroup"
+			workspaceName     = "netgroup"
+			environmentName   = "control-plane"
+			tenantName        = "tester"
+			tenantMgrName     = "manager"
+		)
+
+		Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+
+		pvcSecretName := types.NamespacedName{Namespace: instanceNamespace, Name: forge.NFSSecretName}
+		ForgePvcSecret := func(serviceNameKey, servicePathKey string) *v1.Secret {
+			return &v1.Secret{
+				ObjectMeta: forge.NamespacedNameToObjectMeta(pvcSecretName),
+				Data: map[string][]byte{
+					serviceNameKey: []byte(nfsServerAddress),
+					servicePathKey: []byte(nfsExportPath),
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
+			clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
+
+			instance = clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
+				Spec: clv1alpha2.InstanceSpec{
+					Running:  true,
+					Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
+					Tenant:   clv1alpha2.GenericRef{Name: tenantName},
+				},
+			}
+			template = clv1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
+				Spec: clv1alpha2.TemplateSpec{
+					WorkspaceRef: clv1alpha2.GenericRef{Name: workspaceName},
+				},
+			}
+			environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: true}
+			tenant = clv1alpha2.Tenant{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tenantName,
+					Labels: map[string]string{
+						clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.User),
+					},
+				},
+			}
+			manager = clv1alpha2.Tenant{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tenantMgrName,
+					Labels: map[string]string{
+						clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
+					},
+				},
+			}
+
+			ctx, _ = clctx.InstanceInto(ctx, &instance)
+			ctx, _ = clctx.TemplateInto(ctx, &template)
+			ctx, _ = clctx.TenantInto(ctx, &tenant)
+			ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		})
+
+		Describe("The forge.GetNFSSpecs function", func() {
+			var serverName, serverExpPath string
+
+			JustBeforeEach(func() {
+				client := clientBuilder.Build()
+				serverName, serverExpPath, err = forge.GetNFSSpecs(ctx, client)
+			})
+
+			When("The user-pvc secret does not exist", func() {
+				It("Should return a not found error", func() {
+					Expect(err).To(FailBecauseNotFound())
+				})
+			})
+
+			Context("The user-pvc secret exists", func() {
+				When("the secret contains the expected data", func() {
+					BeforeEach(func() {
+						secret := ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey)
+						clientBuilder = *clientBuilder.WithObjects(secret)
+					})
+
+					It("Should not return an error", func() {
+						Expect(err).ToNot(HaveOccurred())
+					})
+					It("The retrieved server name should be correct", func() {
+						Expect(serverName).To(BeIdenticalTo(nfsServerAddress))
+					})
+					It("The retrieved server path should be correct", func() {
+						Expect(serverExpPath).To(BeIdenticalTo(nfsExportPath))
+					})
+				})
+
+				When("the secret does not contain the dns name", func() {
+					BeforeEach(func() {
+						secret := ForgePvcSecret("invalid-key", forge.NFSSecretPathKey)
+						clientBuilder = *clientBuilder.WithObjects(secret)
+					})
+
+					It("Should return an error", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				When("the secret does not contain the path", func() {
+					BeforeEach(func() {
+						secret := ForgePvcSecret(forge.NFSSecretServerNameKey, "invalid-key")
+						clientBuilder = *clientBuilder.WithObjects(secret)
+					})
+
+					It("Should return an error", func() {
+						Expect(err).To(HaveOccurred())
+					})
+				})
+			})
+		})
+
+		Describe("The forge.NFSVolumeMountInfosFromEnvironment function", func() {
+			var (
+				shvol      clv1alpha2.SharedVolume
+				shvolRef   clv1alpha2.GenericRef
+				mountInfos []forge.NFSVolumeMountInfo
+			)
+
+			BeforeEach(func() {
+				secret := ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey)
+
+				shvol = clv1alpha2.SharedVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      templateName + "-shvol",
+						Namespace: templateNamespace,
+					},
+					Status: clv1alpha2.SharedVolumeStatus{
+						ServerAddress: nfsServerAddress,
+						ExportPath:    nfsExportPath,
+						Phase:         clv1alpha2.SharedVolumePhaseReady,
+					},
+				}
+				shvolRef = clv1alpha2.GenericRef{Name: templateName + "-shvol", Namespace: templateNamespace}
+
+				clientBuilder = *clientBuilder.WithObjects(&shvol, &tenant, &manager, secret)
+			})
+
+			JustBeforeEach(func() {
+				client := clientBuilder.Build()
+				mountInfos, _, err = forge.NFSVolumeMountInfosFromEnvironment(ctx, client, &environment)
+			})
+
+			When("The environment does not require external volumes", func() {
+				BeforeEach(func() {
+					environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: false}
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+				})
+
+				It("Should correctly generate the mountInfos", func() {
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(mountInfos).To(HaveLen(0))
+				})
+			})
+
+			When("The environment requires the personal volume", func() {
+				BeforeEach(func() {
+					environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: true}
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+				})
+
+				It("Should correctly generate the mountInfos", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mountInfos).To(HaveLen(1))
+
+					mountInfo := mountInfos[0]
+					expected := forge.NFSVolumeMountInfo{
+						VolumeName:    mountInfo.VolumeName, // Does not check real value
+						ServerAddress: nfsServerAddress,
+						ExportPath:    nfsExportPath,
+						MountPath:     forge.MyDriveVolumeMountPath,
+						ReadOnly:      false,
+					}
+
+					Expect(mountInfo).To(Equal(expected))
+				})
+			})
+
+			When("The environment requires some read-write shared volumes", func() {
+				BeforeEach(func() {
+					environment = clv1alpha2.Environment{
+						Name:               environmentName,
+						MountMyDriveVolume: false,
+						SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{
+							{
+								SharedVolumeRef: shvolRef,
+								MountPath:       nfsMountPath,
+								ReadOnly:        false,
+							},
+						},
+					}
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+				})
+
+				It("Should correctly generate the mountInfos", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mountInfos).To(HaveLen(1))
+
+					mountInfo := mountInfos[0]
+					expected := forge.NFSVolumeMountInfo{
+						VolumeName:    mountInfo.VolumeName, // Does not check real value
+						ServerAddress: nfsServerAddress,
+						ExportPath:    nfsExportPath,
+						MountPath:     nfsMountPath,
+						ReadOnly:      false,
+					}
+
+					Expect(mountInfo).To(Equal(expected))
+				})
+			})
+
+			Context("The environment requires some read-only shared volumes", func() {
+				BeforeEach(func() {
+					environment = clv1alpha2.Environment{
+						Name:               environmentName,
+						MountMyDriveVolume: false,
+						SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{
+							{
+								SharedVolumeRef: shvolRef,
+								MountPath:       nfsMountPath,
+								ReadOnly:        true,
+							},
+						},
+					}
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+				})
+
+				When("The current tenant is a manager of the workspace", func() {
+					BeforeEach(func() {
+						ctx, _ = clctx.TenantInto(ctx, &manager)
+					})
+
+					It("Should mount the shvol as read-write", func() {
+						Expect(err).ToNot(HaveOccurred())
+						Expect(mountInfos).To(HaveLen(1))
+
+						mountInfo := mountInfos[0]
+						expected := forge.NFSVolumeMountInfo{
+							VolumeName:    mountInfo.VolumeName, // Does not check real value
+							ServerAddress: nfsServerAddress,
+							ExportPath:    nfsExportPath,
+							MountPath:     nfsMountPath,
+							ReadOnly:      false,
+						}
+
+						Expect(mountInfo).To(Equal(expected))
+					})
+				})
+
+				When("The current tenant is not a manager of the workspace", func() {
+					It("Should mount the shvol as read-only", func() {
+						Expect(err).ToNot(HaveOccurred())
+						Expect(mountInfos).To(HaveLen(1))
+
+						mountInfo := mountInfos[0]
+						expected := forge.NFSVolumeMountInfo{
+							VolumeName:    mountInfo.VolumeName, // Does not check real value
+							ServerAddress: nfsServerAddress,
+							ExportPath:    nfsExportPath,
+							MountPath:     nfsMountPath,
+							ReadOnly:      true,
+						}
+
+						Expect(mountInfo).To(Equal(expected))
+					})
+				})
+			})
+
+			When("The environment requires both personal and shared volumes", func() {
+				BeforeEach(func() {
+					environment = clv1alpha2.Environment{
+						Name:               environmentName,
+						MountMyDriveVolume: true,
+						SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{
+							{
+								SharedVolumeRef: shvolRef,
+								MountPath:       nfsMountPath,
+								ReadOnly:        false,
+							},
+						},
+					}
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+				})
+
+				It("Should correctly generate the mountInfos", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(mountInfos).To(HaveLen(2))
+
+					expected := []forge.NFSVolumeMountInfo{
+						{
+							VolumeName:    mountInfos[0].VolumeName, // Does not check real value
+							ServerAddress: nfsServerAddress,
+							ExportPath:    nfsExportPath,
+							MountPath:     forge.MyDriveVolumeMountPath,
+							ReadOnly:      false,
+						},
+						{
+							VolumeName:    mountInfos[1].VolumeName, // Does not check real value
+							ServerAddress: nfsServerAddress,
+							ExportPath:    nfsExportPath,
+							MountPath:     nfsMountPath,
+							ReadOnly:      false,
+						},
+					}
+
+					Expect(mountInfos).To(Equal(expected))
+				})
+			})
+
+		})
+	})
+
+	Describe("GetMyDrivePVCName", func() {
 		It("Should correctly format PVC name for tenant name without dots", func() {
 			tenantName := "student"
 
@@ -263,7 +609,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("ConfigureMyDrivePVC", func() {
+	Describe("ConfigureMyDrivePVC", func() {
 		It("Should initialize labels if nil and set PVC properties", func() {
 			pvc := &v1.PersistentVolumeClaim{}
 			storageClassName := "example-storage-class"
@@ -337,7 +683,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("ConfigureMyDriveSecret", func() {
+	Describe("ConfigureMyDriveSecret", func() {
 		It("Should initialize labels if nil and set required data", func() {
 			secret := &v1.Secret{}
 			serverName := "nfs-server.example.com"
@@ -385,7 +731,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("UpdatePVCProvisioningJobLabel", func() {
+	Describe("UpdatePVCProvisioningJobLabel", func() {
 		It("Should initialize labels if nil and set provisioning job label", func() {
 			pvc := &v1.PersistentVolumeClaim{}
 
@@ -413,7 +759,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	var _ = Describe("ConfigureMyDriveProvisioningJob", func() {
+	Describe("ConfigureMyDriveProvisioningJob", func() {
 		It("Should configure the job spec using PVCProvisioningJobSpec", func() {
 			pvc := &v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{

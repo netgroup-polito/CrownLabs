@@ -3322,7 +3322,7 @@ export type ApplyInstanceMutationVariables = Exact<{
 }>;
 
 
-export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null } | null } | null };
+export type ApplyInstanceMutation = { __typename?: 'Mutation', applyInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> } | null } | null } | null };
 
 export type ApplySharedVolumeMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -3462,7 +3462,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3514,7 +3514,7 @@ export type UpdatedWorkspaceTemplatesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: UpdateType | null, template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null } | null };
+export type UpdatedWorkspaceTemplatesSubscription = { __typename?: 'Subscription', updatedTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateUpdate', updateType?: UpdateType | null, template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null } | null };
 
 export type UpdatedTenantSubscriptionVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3536,6 +3536,14 @@ export const ApplyInstanceDocument = gql`
     spec {
       running
       prettyName
+      publicExposure {
+        ports {
+          name
+          port
+          protocol
+          targetPort
+        }
+      }
     }
   }
 }
@@ -4139,10 +4147,28 @@ export const OwnedInstancesDocument = gql`
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+            protocol
+          }
+        }
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
@@ -4151,6 +4177,7 @@ export const OwnedInstancesDocument = gql`
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent
@@ -4218,10 +4245,28 @@ export const InstancesLabelSelectorDocument = gql`
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+            protocol
+          }
+        }
         tenantCrownlabsPolitoItTenantRef {
           name
           tenantV1alpha2Wrapper {
@@ -4241,6 +4286,7 @@ export const InstancesLabelSelectorDocument = gql`
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent
@@ -4391,6 +4437,7 @@ export const WorkspaceTemplatesDocument = gql`
       spec {
         prettyName
         description
+        allowPublicExposure
         environmentList {
           guiEnabled
           persistent
@@ -4697,10 +4744,28 @@ export const UpdatedOwnedInstancesDocument = gql`
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
@@ -4709,6 +4774,7 @@ export const UpdatedOwnedInstancesDocument = gql`
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent
@@ -4770,10 +4836,28 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
         tenantCrownlabsPolitoItTenantRef {
           name
           tenantV1alpha2Wrapper {
@@ -4793,6 +4877,7 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent
@@ -4841,6 +4926,7 @@ export const UpdatedWorkspaceTemplatesDocument = gql`
       spec {
         prettyName
         description
+        allowPublicExposure
         environmentList {
           guiEnabled
           persistent

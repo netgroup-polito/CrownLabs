@@ -12,10 +12,28 @@ query instancesLabelSelector($labels: String) {
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+            protocol
+          }
+        }
         tenantCrownlabsPolitoItTenantRef {
           name
           tenantV1alpha2Wrapper {
@@ -35,6 +53,7 @@ query instancesLabelSelector($labels: String) {
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent

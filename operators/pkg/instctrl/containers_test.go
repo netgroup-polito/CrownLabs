@@ -62,6 +62,9 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
+		tenant      clv1alpha2.Tenant
+		manager     clv1alpha2.Tenant
+		template    clv1alpha2.Template
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -83,12 +86,14 @@ var _ = Describe("Generation of the container based instances", func() {
 	)
 
 	const (
+		workspaceName     = "netgroup"
 		instanceName      = "kubernetes-0000"
 		instanceNamespace = "tenant-tester"
 		templateName      = "kubernetes"
 		templateNamespace = "workspace-netgroup"
 		environmentName   = "control-plane"
 		tenantName        = "tester"
+		tenantManagerName = "manager"
 
 		image       = "internal/registry/image:v1.0"
 		cpu         = 2
@@ -124,9 +129,30 @@ var _ = Describe("Generation of the container based instances", func() {
 				forge.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
 			},
 		}
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      templateName,
+				Namespace: templateNamespace,
+			},
+			Spec: clv1alpha2.TemplateSpec{
+				WorkspaceRef: clv1alpha2.GenericRef{
+					Name: workspaceName,
+				},
+			},
+		}
+		manager = clv1alpha2.Tenant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: tenantManagerName,
+				Labels: map[string]string{
+					clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
+				},
+			},
+		}
+
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
-			&clv1alpha2.Template{ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace}},
+			&template,
 			&myDriveSecret,
+			&manager,
 		)
 
 		instance = clv1alpha2.Instance{
@@ -190,6 +216,12 @@ var _ = Describe("Generation of the container based instances", func() {
 			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
 			forge.ShVolNFSVolumeMountInfo(0, &shvol, shvolMounts[0]),
 		}
+
+		tenant = clv1alpha2.Tenant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: tenantName,
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -201,6 +233,8 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
+		ctx, _ = clctx.TemplateInto(ctx, &template)
 		errShVol = reconciler.Create(ctx, &shvol)
 		err = reconciler.EnforceContainerEnvironment(ctx)
 	})
@@ -496,5 +530,26 @@ var _ = Describe("Generation of the container based instances", func() {
 				Expect(deploy.Spec.Template.Spec.Volumes).To(Equal(expected.Template.Spec.Volumes))
 			})
 		})
+
+		When("the tenant is a workspace manager", func() {
+			JustBeforeEach(func() {
+				ctx, _ = clctx.TenantInto(ctx, &manager)
+				err = reconciler.EnforceContainerEnvironment(ctx)
+			})
+
+			It("Should mount the shvol with RW permissions", func() {
+				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
+
+				containers := deploy.Spec.Template.Spec.Containers
+				for i := range containers {
+					cont := containers[i]
+					for j := range cont.VolumeMounts {
+						mount := cont.VolumeMounts[j]
+						Expect(mount.ReadOnly).To(Equal(false))
+					}
+				}
+			})
+		})
 	})
+
 })

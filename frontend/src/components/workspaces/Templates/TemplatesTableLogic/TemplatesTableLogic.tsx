@@ -237,8 +237,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const createInstance = (templateId: string, nodeSelector?: JSON) => {
-    return createInstanceMutation({
+  const createInstance = (
+    templateId: string,
+    nodeSelector?: Record<string, string>,
+  ) =>
+    createInstanceMutation({
       variables: {
         templateId,
         tenantNamespace,

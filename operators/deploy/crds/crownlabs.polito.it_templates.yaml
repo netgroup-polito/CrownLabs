@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: templates.crownlabs.polito.it
 spec:
   group: crownlabs.polito.it
@@ -69,6 +69,11 @@ spec:
             description: TemplateSpec is the specification of the desired state of
               the Template.
             properties:
+              allowPublicExposure:
+                default: false
+                description: Whether the Template has the authorization to be Public
+                  Exposed or not, using a LoadBalancer service.
+                type: boolean
               deleteAfter:
                 default: never
                 description: |-
@@ -268,6 +273,14 @@ spec:
                   - resources
                   type: object
                 type: array
+              inactivityTimeout:
+                default: never
+                description: |-
+                  The maximum period of inactivity after which an Instance referencing
+                  the current Template will be automatically stopped or deleted to
+                  save resources.
+                pattern: ^(never|[0-9]+[mhd])$
+                type: string
               prettyName:
                 description: The human-readable name of the Template.
                 type: string

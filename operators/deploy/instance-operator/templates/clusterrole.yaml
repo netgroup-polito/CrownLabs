@@ -45,6 +45,10 @@ rules:
   resources: ["ingresses"]
   verbs: ["get","list","watch","create","patch","update","delete"]
 
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get","list","watch","create","patch","update","delete"]
+
 - apiGroups: ["kubevirt.io"]
   resources: ["virtualmachines", "virtualmachineinstances"]
   verbs: ["get","list","watch","create","patch","update"]
