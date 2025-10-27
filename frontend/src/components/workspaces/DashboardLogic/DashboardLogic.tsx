@@ -137,6 +137,27 @@ const DashboardLogic: FC = () => {
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();
+  // When templates are created/edited/deleted elsewhere, refetch active queries so UI updates.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail ?? {};
+        console.debug('templatesChanged event received in DashboardLogic', detail);
+        // Refetch active queries so TemplatesTableLogic / other components update.
+        client
+          .refetchQueries({ include: 'active' })
+          .catch(err =>
+            console.warn('refetchQueries failed in DashboardLogic:', err),
+          );
+      } catch (err) {
+        console.warn('templatesChanged handler error in DashboardLogic', err);
+      }
+    };
+
+    window.addEventListener('templatesChanged', handler as EventListener);
+    return () =>
+      window.removeEventListener('templatesChanged', handler as EventListener);
+  }, [client]);
 
   const { data: workspaceQueryData } = useWorkspacesQuery({
     variables: {

@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import {
   Modal,
   Slider,
@@ -51,6 +51,7 @@ type ImageType =
   | EnvironmentType.Standalone;
 
 type Template = {
+  id?: string;                         // <-- add id here
   name?: string;
   image?: string;
   registry?: string;
@@ -162,11 +163,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const imageLists = getImageLists(dataImages!);
   const [availableImages, setAvailableImages] = useState<Image[]>([]);
+  // list of available images without version (deduplicated), used by the VM AutoComplete/search
+  const imagesNoVersion = useMemo(
+    () =>
+      Array.from(
+        new Set((availableImages || []).map(i => getImageNoVer(i.name))),
+      ),
+    [availableImages],
+  );
 
   // create the Ant form instance before any effects that call form.setFieldsValue
   const [form] = Form.useForm();
 
   const [formTemplate, setFormTemplate] = useState<Template>({
+    id: template && (template as any).id,
     name: template && template.name,
     image: template && template.image,
     registry: template && template.registry,
@@ -186,6 +196,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   useEffect(() => {
     if (template) {
       setFormTemplate({
+        id: (template as any).id,             // <-- preserve id on sync
         name: template.name,
         image: template.image,
         registry: template.registry,
@@ -216,6 +227,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     } else {
       // reset to defaults when creating a new template
       setFormTemplate({
+        id: undefined,                        // <-- clear id on reset
         name: undefined,
         image: undefined,
         registry: undefined,
@@ -240,14 +252,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     formTemplate.imageType &&
     formTemplate.imageType !== EnvironmentType.VirtualMachine;
 
-  // Get available images based on environment type
-  const imagesNoVersion = (() => {
-    if (formTemplate.imageType === EnvironmentType.VirtualMachine) {
-      // For VMs, show images from internal registry
-      const baseNames = availableImages.map(x => getImageNoVer(x.name));
-      return Array.from(new Set(baseNames)).sort((a, b) => a.localeCompare(b));
+  // Example text per environment type (no example for VirtualMachine)
+  const externalImageExample: string | undefined = (() => {
+    switch (formTemplate.imageType) {
+      case EnvironmentType.Container:
+        return 'Examples: ubuntu:22.04, docker.io/library/nginx:latest';
+      case EnvironmentType.Standalone:
+        return 'Example: crownlabs/vscode-rust:v0.2.0';
+      case EnvironmentType.CloudVm:
+        return 'Example: https://cloud-images.ubuntu.com/jammy/20250619/jammy-server-cloudimg-amd64-disk-kvm.img';
+      default:
+        return undefined;
     }
-    return []; // For other types, no predefined images (external only)
   })();
 
   const [buttonDisabled, setButtonDisabled] = useState(true);
@@ -781,7 +797,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               ]}
               labelCol={{ span: 6 }} // Adjust label width
               wrapperCol={{ span: 18 }} // Adjust input width
-              extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest"
+              extra={externalImageExample}
             >
               <Input
                 value={formTemplate.registry}
@@ -847,30 +863,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                     })
                   }
                 />
-                {formTemplate.imageType === EnvironmentType.CloudVm && (
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#666',
-                      marginTop: '4px',
-                    }}
-                  >
-                    CloudVM instances do not support GUI access
-                  </div>
-                )}
+                {formTemplate.imageType === EnvironmentType.CloudVm}
                 {(formTemplate.imageType === EnvironmentType.Standalone ||
-                  formTemplate.imageType === EnvironmentType.Container) && (
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#666',
-                      marginTop: '4px',
-                    }}
-                  >
-                    Standalone and Container environments only work with GUI and
-                    not SSH
-                  </div>
-                )}
+                  formTemplate.imageType === EnvironmentType.Container)}
               </Form.Item>
 
               <Form.Item className="mb-4">

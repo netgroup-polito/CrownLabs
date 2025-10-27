@@ -17,6 +17,9 @@ mutation applyTemplate(
       environmentList {
         guiEnabled
         persistent
+        image
+        environmentType
+        rewriteURL
         resources {
           cpu
           disk

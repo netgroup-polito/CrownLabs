@@ -3342,7 +3342,7 @@ export type ApplyTemplateMutationVariables = Exact<{
 }>;
 
 
-export type ApplyTemplateMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', description: string, name: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', id?: string | null } | null } | null };
+export type ApplyTemplateMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', description: string, name: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, image: string, environmentType: EnvironmentType, rewriteURL?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', id?: string | null } | null } | null };
 
 export type ApplyTenantMutationVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3644,6 +3644,9 @@ export const ApplyTemplateDocument = gql`
       environmentList {
         guiEnabled
         persistent
+        image
+        environmentType
+        rewriteURL
         resources {
           cpu
           disk
@@ -4439,6 +4442,8 @@ export const WorkspaceTemplatesDocument = gql`
         description
         allowPublicExposure
         environmentList {
+          environmentType
+          image
           guiEnabled
           persistent
           nodeSelector

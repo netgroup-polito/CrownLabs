@@ -11,7 +11,7 @@ import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
 import { QuotaProvider } from '../../../contexts/QuotaContext';
 
-const dashboard = new SessionValue(StorageKeys.Dashboard_View, '-1');
+const dashboard = new SessionValue(StorageKeys.Dashboard_View, '-3');
 export interface IDashboardProps {
   tenantNamespace: string;
   tenantPersonalWorkspace?: {
@@ -148,7 +148,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
                   <WorkspaceContainer
                     tenantNamespace={tenantNamespace}
                     workspace={{
-                      name: 'personal-frontend-only',
+                      name: 'personal',
                       prettyName: 'Personal Workspace',
                       role: WorkspaceRole.manager,
                       namespace: tenantNamespace,

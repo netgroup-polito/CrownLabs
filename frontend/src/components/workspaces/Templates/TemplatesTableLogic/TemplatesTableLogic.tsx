@@ -10,6 +10,7 @@ import {
   useDeleteTemplateMutation,
   useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
+  useImagesQuery,
   type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
@@ -274,7 +275,28 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
-    return joined;
+
+    // build map of original GraphQL templates by metadata.name for reliable lookup
+    const originalById = new Map<string, any>();
+    (templateListData?.templateList?.templates ?? []).forEach(t => {
+      const id = t?.metadata?.name;
+      if (id) originalById.set(id, t);
+    });
+
+    // Enrich joined templates using the original template spec when available
+    return (joined || []).map(t => {
+      const id = (t as any)?.id ?? (t as any)?.templateId ?? (t as any)?.original?.id;
+      const original = id ? originalById.get(id) : undefined;
+      const env =
+        original?.spec?.environmentList?.[0] ??
+        (t as any)?.original?.spec?.environmentList?.[0] ??
+        (t as any)?.spec?.environmentList?.[0];
+      return {
+        ...t,
+        image: env?.image ?? null,
+        environmentType: env?.environmentType ?? null,
+      };
+    });
   }, [dataTemplate, dataInstances]);
 
   return (
