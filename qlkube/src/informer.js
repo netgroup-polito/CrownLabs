@@ -5,7 +5,10 @@ const { logger } = require('./utils');
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 
-const tempAuthApi = kc.makeApiClient(k8s.AuthorizationV1Api);
+/**
+ * @type k8s.AuthorizationV1Api
+ */
+const authApi = kc.makeApiClient(k8s.AuthorizationV1Api);
 
 async function canWatchResource(
   token,
@@ -14,7 +17,7 @@ async function canWatchResource(
   namespace,
 ) {
   try {
-    const res = await tempAuthApi.createSelfSubjectAccessReviewWithHttpInfo({
+    const res = await authApi.createSelfSubjectAccessReviewWithHttpInfo({
       body: {
         spec: {
           resourceAttributes: {
