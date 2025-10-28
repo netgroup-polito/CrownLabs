@@ -23,7 +23,7 @@ export interface ISSHModalContentProps {
 }
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
-  const { instanceIp, hasSSHKeys, environments, namespace, name, prettyName, onClose } = props;
+  const { instanceIp, hasSSHKeys, environments, namespace, name, /* prettyName, onClose */} = props;
   
   const getFirstEnvironmentName = () => {
     return environments?.[0]?.name || 'env';

@@ -104,7 +104,7 @@ function normalizeAllFieldsRecursive(obj) {
 
   // Preserve arrays, but normalize their items
   if (Array.isArray(obj)) {
-    return obj.map(item => normalizeAllFieldsRecursive(item));
+    return obj.map((item) => normalizeAllFieldsRecursive(item));
   }
   const normalizedObj = {};
 
