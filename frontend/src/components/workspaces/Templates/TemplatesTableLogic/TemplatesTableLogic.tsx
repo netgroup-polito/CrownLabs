@@ -71,7 +71,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe = subscribeToMoreInstances({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
+        onError: (error) => {
+          // Suppress the environments error during instance deletion
+          if (error.message.includes('Expected Iterable') && error.message.includes('environments')) {
+            console.warn('Suppressed environments GraphQL error in TemplatesTableLogic');
+            // window.location.reload();
+            return;
+          }
+          makeErrorCatcher(ErrorTypes.GenericError)(error);
+        },
         document: updatedOwnedInstances,
         variables: {
           tenantNamespace,
@@ -119,7 +127,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
       const unsubscribe =
         subscribeToMoreTemplates<UpdatedWorkspaceTemplatesSubscription>({
-          onError: makeErrorCatcher(ErrorTypes.GenericError),
+          onError: (error) => {
+            // Suppress the environmentList error during template deletion
+            if (error.message.includes('Expected Iterable') && error.message.includes('environmentList')) {
+              console.warn('Suppressed environmentList GraphQL error in TemplatesTableLogic');
+              // window.location.reload();
+              return;
+            }
+            makeErrorCatcher(ErrorTypes.GenericError)(error);
+          },
           document: updatedWorkspaceTemplates,
           variables: { workspaceNamespace },
           updateQuery: (prev, { subscriptionData }) => {

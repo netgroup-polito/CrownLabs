@@ -8,6 +8,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
         description
         allowPublicExposure
         environmentList {
+          name
           guiEnabled
           persistent
           nodeSelector

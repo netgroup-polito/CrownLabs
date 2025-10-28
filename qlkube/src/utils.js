@@ -102,6 +102,10 @@ function normalizeField(field) {
 function normalizeAllFieldsRecursive(obj) {
   if (typeof obj !== 'object' || obj === null) return obj;
 
+  // Preserve arrays, but normalize their items
+  if (Array.isArray(obj)) {
+    return obj.map((item) => normalizeAllFieldsRecursive(item));
+  }
   const normalizedObj = {};
 
   for (const key in obj) {

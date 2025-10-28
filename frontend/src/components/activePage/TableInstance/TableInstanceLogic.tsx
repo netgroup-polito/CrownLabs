@@ -63,7 +63,15 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe =
         subscribeToMoreInstances<UpdatedOwnedInstancesSubscription>({
-          onError: makeErrorCatcher(ErrorTypes.GenericError),
+          onError: (error) => {
+            // Suppress the environments error during instance deletion
+            if (error.message.includes('Expected Iterable') && error.message.includes('environments')) {
+              console.warn('Suppressed environments GraphQL error in TableInstanceLogic');
+              // window.location.reload();
+              return;
+            }
+            makeErrorCatcher(ErrorTypes.GenericError)(error);
+          },
           document: updatedOwnedInstances,
           variables: { tenantNamespace },
           updateQuery: (prev, { subscriptionData }) => {

@@ -1,6 +1,6 @@
 import type { FC, SetStateAction } from 'react';
 import { useState } from 'react';
-import { Badge, Popover, Tooltip, Typography } from 'antd';
+import { Badge, Popover, Tooltip, Typography, List } from 'antd';
 import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
 import { SelectOutlined } from '@ant-design/icons';
@@ -37,7 +37,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   const { instance, time, viewMode, setSshModal } = props;
   const [showExposureModal, setShowExposureModal] = useState(false);
   const {
-    ip,
     environmentType,
     status,
     templatePrettyName,
@@ -45,6 +44,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     prettyName,
     nodeName,
     running,
+    environments
   } = instance;
 
   const sshDisabled =
@@ -62,26 +62,46 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     return 'Manage Public Exposure';
   };
 
-  const ENV_PLACEHOLDER = 'env';
-
+  const getFirstEnvironmentName = () => {
+      return instance.environments?.[0]?.name || 'env';
+  };
+  
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
+    }
+    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
+  };
+  
   const infoContent = (
     <>
       <p className="m-0">
         <strong>Instance ID: </strong>
         <Text italic>{name}</Text>
       </p>
-      {running && (
+      {running && environments && environments.length > 0 && (
         <>
-          <p className="m-0">
-            <strong>IP: </strong>
-            <Text type="warning" copyable={!!ip}>
-              {ip ?? 'unknown'}
-            </Text>
-          </p>
           <p className="m-0">
             <strong>Node: </strong>
             <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
           </p>
+          <List
+            dataSource={environments}
+            renderItem={(env) => (
+              <List.Item className="py-1 px-0">
+                <div className="w-full text-right">
+                  <Text strong>Environment ID: </Text>
+                  <Text>{env.name}</Text>
+                  <p className="m-0 text-right">
+                    <strong>IP: </strong>
+                    <Text type="warning" copyable={!!env.ip}>
+                      {env.ip ?? 'unknown'}
+                    </Text> 
+                  </p>
+                </div>
+              </List.Item>
+            )}
+          />
         </>
       )}
       {viewMode === WorkspaceRole.manager && (
@@ -123,32 +143,35 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
-              <Button
-                disabled={sshDisabled}
-                type="link"
-                className="ml-3"
-                color="primary"
-                variant="solid"
-                shape="circle"
-                size="small"
-                icon={
-                  <Link
-                    to={`/instance/${instance.tenantNamespace}/${instance.name}/${ENV_PLACEHOLDER}/ssh`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      color: 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                      <ExportOutlined style={{ fontSize: 15 }} />
-                    </span>
-                  </Link>
-                }
-              ></Button>
+              {/* Only show direct link button if there's exactly one environment */}
+              {(!instance.environments || instance.environments.length === 1) && (
+                <Button
+                  disabled={sshDisabled}
+                  type="link"
+                  className="ml-3"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={buildSSHLink(getFirstEnvironmentName())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    </Link>
+                  }
+                ></Button>
+              )}
             </Button>
           </span>
         </Tooltip>

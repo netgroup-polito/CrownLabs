@@ -131,6 +131,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({ ...props }) => {
           name={instance.name}
           prettyName={instance.prettyName}
           onClose={() => setSshModal(false)}
+          environments={instance.environments}
         />
       </Modal>
       {/* show exposure modal only when allowed or in dev */}
