@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import {
   Modal,
   Slider,
@@ -169,7 +169,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
 
-  const validateEnvironments = () => {
+  const validateEnvironments = useCallback(() => {
     const errors: string[] = [];
 
     formTemplate.environmentList.forEach((env, index) => {
@@ -189,9 +189,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
 
     return errors;
-  };
+  }, [formTemplate.environmentList]);
 
-  const hasChanges = () => {
+  const hasChanges = useCallback(() => {
     if (!template) return true;
 
     if (template.name !== formTemplate.name) return true;
@@ -215,7 +215,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         JSON.stringify(env.sharedVolumeMountInfos)
       );
     });
-  };
+  }, [template, formTemplate.name, formTemplate.environmentList]);
 
   useEffect(() => {
     const envErrors = validateEnvironments();
@@ -229,7 +229,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     } else {
       setButtonDisabled(true);
     }
-  }, [formTemplate, template, valid.name.status]);
+  }, [formTemplate, template, valid.name.status, validateEnvironments, hasChanges]);
 
   const nameValidator = () => {
     if (formTemplate.name === '' || formTemplate.name === undefined) {
