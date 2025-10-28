@@ -5,6 +5,8 @@ const { logger } = require('./utils');
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
 
+const tempAuthApi = kc.makeApiClient(k8s.AuthorizationV1Api);
+
 async function canWatchResource(
   token,
   resource,
@@ -12,9 +14,7 @@ async function canWatchResource(
   namespace,
 ) {
   try {
-    kc.users[0].token = token;
-    const tempAuthApi = kc.makeApiClient(k8s.AuthorizationV1Api);
-    const res = await tempAuthApi.createSelfSubjectAccessReview({
+    const res = await tempAuthApi.createSelfSubjectAccessReviewWithHttpInfo({
       body: {
         spec: {
           resourceAttributes: {
@@ -25,12 +25,13 @@ async function canWatchResource(
           },
         },
       },
+      authMethods: { BearerToken: token },
     });
     if (res.response && res.response.errored) {
       logger.error(res.response, 'Permission assertion error received');
       return false;
     }
-    return res.status.allowed;
+    return res.data.status.allowed;
   } catch (e) {
     logger.error(e.message, 'Permission assertion request error');
     // eslint-disable-next-line no-console
@@ -53,7 +54,7 @@ function kinformer(sub) {
   const resourceApi = `/${api}${group ? `/${group}` : ''
   }/${version}/${resource}`;
 
-  const listFn = () => k8sApi.listClusterCustomObject({ group, version, plural: resource }, {});
+  const listFn = () => k8sApi.listClusterCustomObject({ group, version, plural: resource });
 
   logger.info({ resourceApi }, 'Instantiating informer');
   const informer = k8s.makeInformer(kc, resourceApi, listFn);
