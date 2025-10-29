@@ -5,9 +5,6 @@ mutation createTemplate(
   $descriptionTemplate: String!
   $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
-  $environmentType: EnvironmentType!
-  $sharedVolumeMounts: [SharedVolumeMountsListItemInput]
-  $rewriteURL: Boolean
 ) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
@@ -17,19 +14,7 @@ mutation createTemplate(
       spec: {
         prettyName: $templateName
         description: $descriptionTemplate
-        environmentList: [
-          {
-            name: "default"
-            environmentType: $environmentType
-            image: $image
-            guiEnabled: $guiEnabled
-            persistent: $persistent
-            rewriteURL: $rewriteURL
-            resources: $resources
-            mountMyDriveVolume: $mountMyDriveVolume
-            sharedVolumeMounts: $sharedVolumeMounts
-          }
-        ]
+        environmentList: $environmentList
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
       metadata: { generateName: $templateId, namespace: $workspaceNamespace }

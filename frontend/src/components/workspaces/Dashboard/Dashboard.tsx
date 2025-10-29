@@ -50,6 +50,7 @@ export interface IDashboardProps {
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
+  console.log('Personal Workspace Config:', props.tenantPersonalWorkspace);
   const [selectedWsId, setSelectedWs] = useState(parseInt(dashboard.get()));
   const { tenantNamespace, workspaces, candidatesButton, globalQuota } = props;
 
@@ -84,16 +85,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={transformedAvailableQuota}
     >
-      {/* rely on flex to size content; do not force height via inline styles */}
-      {/* {globalQuota?.showQuotaDisplay && globalQuota.workspaceQuota && (
-            <div style={{ flexShrink: 0 }}>
-              <QuotaDisplay
-                consumedQuota={globalQuota.consumedQuota}
-                workspaceQuota={globalQuota.workspaceQuota}
-              />
-            </div>
-          )} */}
-
       <Row
         gutter={16}
         className="flex-1 lg:h-full min-h-0"
@@ -173,11 +164,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               <WorkspaceWelcome />
             )}
           </div>
-        </Col>
-      </Row>
-      <Row>
-        <Col span={24}>
-          <p> lolazo </p>
         </Col>
       </Row>
     </QuotaProvider>

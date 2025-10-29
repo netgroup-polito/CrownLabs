@@ -87,3 +87,13 @@ body.light tr.ant-table-expanded-row > td {
   width: 100% !important;
   table-layout: fixed;
 }
+
+.ant-table-expanded-row {
+  .ant-table-cell {
+    overflow: visible !important;
+    
+    > div {
+      overflow: visible !important;
+    }
+  }
+}

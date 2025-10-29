@@ -134,7 +134,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         </div>
       )}
       {/* let's make a div to make this table respect it's parent object height and scroll the overflow */}
-      <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+      <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
         <Table
           dataSource={instances}
           showHeader={false}

@@ -28,6 +28,8 @@ const DashboardLogic: FC = () => {
     loading: tenantLoading,
   } = useContext(TenantContext);
 
+  console.log('tenant data:', tenantData);
+
   const ws = useMemo(() => {
     return (
       tenantData?.tenant?.spec?.workspaces
