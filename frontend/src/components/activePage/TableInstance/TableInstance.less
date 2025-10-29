@@ -4,9 +4,7 @@
 }
 
 body.light {
-  tr.rowInstance-bg-color > td {
-    background-color: #fafafa !important;
-  }
+
 
   .rowHeader-bg-color {
     background-color: #f1f1f1;
@@ -14,9 +12,17 @@ body.light {
   }
 }
 
+
+
+.cl-table-instance,
+.cl-table-instance,
+.cl-table-instance,
 .cl-table-instance {
-  min-height: 171px;
-  height: calc(
-    100vh - var(--box-ext-height, 344px)
-  ); //465px if we want to add a Box footer
+  display: block;
+  min-height: 0;
+  overflow: auto;
 }
+
+// .ant-table-container {
+//   overflow: auto;  
+// }
