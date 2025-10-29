@@ -6,7 +6,7 @@ import { InfoOutlined } from '@ant-design/icons';
 import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
-import { EnvironmentType, Phase } from '../../../../generated-types';
+import { EnvironmentType, Phase2 } from '../../../../generated-types';
 import { Link } from 'react-router-dom';
 import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
@@ -48,12 +48,12 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   } = instance;
 
   const sshDisabled =
-    status !== Phase.Ready ||
+    status !== Phase2.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
   // Disable Public Exposure if instance is not ready
-  const publicExposureDisabled = status !== Phase.Ready;
+  const publicExposureDisabled = status !== Phase2.Ready;
 
   const getPublicExposureTooltipText = () => {
     if (publicExposureDisabled) {
@@ -111,7 +111,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === Phase.Ready, environmentType!)}
+          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -165,7 +165,11 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                 className="hidden mr-3 xl:inline-block"
                 shape="circle"
                 icon={<SelectOutlined style={{ fontSize: '16px' }} />}
-                onClick={() => publicExposureDisabled ? undefined : setShowExposureModal(true)}
+                onClick={() =>
+                  publicExposureDisabled
+                    ? undefined
+                    : setShowExposureModal(true)
+                }
                 disabled={publicExposureDisabled}
               />
             </Badge>

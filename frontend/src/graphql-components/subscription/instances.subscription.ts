@@ -58,6 +58,11 @@ export default gql`
                     guiEnabled
                     persistent
                     environmentType
+                    resources {
+                      cpu
+                      memory
+                      disk
+                    }
                   }
                 }
               }

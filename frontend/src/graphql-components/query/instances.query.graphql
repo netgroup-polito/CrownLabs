@@ -51,6 +51,11 @@ query ownedInstances($tenantNamespace: String!) {
                   guiEnabled
                   persistent
                   environmentType
+                  resources {
+                    cpu
+                    memory
+                    disk
+                  }
                 }
               }
             }

@@ -185,12 +185,14 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
         }}
       >
-        <TemplatesTableLogic
-          tenantNamespace={tenantNamespace}
-          role={workspace.role}
-          workspaceNamespace={workspace.namespace}
-          workspaceName={workspace.name}
-        />
+        <div style={{ overflow: 'auto' }}>
+          <TemplatesTableLogic
+            tenantNamespace={tenantNamespace}
+            role={workspace.role}
+            workspaceNamespace={workspace.namespace}
+            workspaceName={workspace.name}
+          />
+        </div>
         <Modal
           destroyOnHidden={true}
           title={`Users in ${workspace.prettyName} `}

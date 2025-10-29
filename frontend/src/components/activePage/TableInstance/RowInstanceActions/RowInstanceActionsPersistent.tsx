@@ -7,7 +7,7 @@ import {
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import { type Instance } from '../../../../utils';
-import { Phase, useApplyInstanceMutation } from '../../../../generated-types';
+import { Phase2, useApplyInstanceMutation } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
@@ -49,7 +49,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
     }
   };
 
-  return status === Phase.Ready || status === Phase.ResourceQuotaExceeded ? (
+  return status === Phase2.Ready || status === Phase2.ResourceQuotaExceeded ? (
     <Tooltip placement="top" title="Pause">
       <Button
         loading={disabled}
@@ -70,7 +70,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         onClick={() => mutateInstanceStatus(false)}
       />
     </Tooltip>
-  ) : status === Phase.Off ? (
+  ) : status === Phase2.Off ? (
     <Tooltip placement="top" title="Start">
       <Button
         loading={disabled}
