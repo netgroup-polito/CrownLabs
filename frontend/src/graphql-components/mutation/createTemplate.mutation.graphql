@@ -3,11 +3,7 @@ mutation createTemplate(
   $workspaceNamespace: String!
   $templateName: String!
   $descriptionTemplate: String!
-  $image: String!
-  $guiEnabled: Boolean!
-  $persistent: Boolean!
-  $mountMyDriveVolume: Boolean!
-  $resources: ResourcesInput!
+  $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
   $environmentType: EnvironmentType!
   $sharedVolumeMounts: [SharedVolumeMountsListItemInput]
@@ -43,6 +39,7 @@ mutation createTemplate(
       prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
         resources {

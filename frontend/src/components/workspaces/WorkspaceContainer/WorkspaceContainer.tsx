@@ -9,6 +9,10 @@ import {
   useApplyTemplateMutation,
   EnvironmentType,
 } from '../../../generated-types';
+import type {
+  EnvironmentListListItemInput,
+  SharedVolumeMountsListItemInput,
+} from '../../../generated-types';
 import { getTemplatePatchJson } from '../../../graphql-components/utils';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { makeRandomDigits } from '../../../utils';

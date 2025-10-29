@@ -22,10 +22,22 @@ import {
   EnvironmentType,
   useWorkspaceTemplatesQuery,
   useImagesQuery,
+  useWorkspaceSharedVolumesQuery,
 } from '../../../generated-types';
-import type { FetchResult } from '@apollo/client';
+import type { ApolloError, FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import ShVolFormItem, { type ShVolFormItemValue } from './ShVolFormItem';
+import { makeGuiSharedVolume } from '../../../utilsLogic';
+import type { SharedVolume } from '../../../utils';
+import { EnvironmentList } from './EnvironmentList';
+import type { Image, Interval, TemplateForm } from './types';
+import {
+  getDefaultTemplate,
+  getImageLists,
+  getImageNameNoVer,
+  getImagesFromList,
+  internalRegistry,
+} from './utils';
 
 const alternativeHandle = { border: 'solid 2px #1c7afdd8' };
 
@@ -88,7 +100,7 @@ export interface IModalCreateTemplateProps {
   show: boolean;
   setShow: (status: boolean) => void;
   submitHandler: (
-    t: Template,
+    t: TemplateForm,
   ) => Promise<
     FetchResult<
       CreateTemplateMutation,
@@ -275,7 +287,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     image: { status: 'success', help: undefined },
   });
 
-  const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>();
+  const [form] = Form.useForm<TemplateForm>();
 
   // Advanced options toggle (hide/show GUI, Persistent, RewriteUrl)
   const [showAdvanced, setShowAdvanced] = useState<boolean>(!!template);
@@ -308,37 +320,36 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     else setButtonDisabled(true);
   }, [formTemplate, template, valid.name.status]);
 
-  const nameValidator = () => {
-    if (formTemplate.name === '' || formTemplate.name === undefined) {
-      setValid(old => {
-        return {
-          ...old,
-          name: { status: 'error', help: 'Please insert template name' },
-        };
-      });
-    } else if (
-      !errorFetchTemplates &&
-      !loadingFetchTemplates &&
-      dataFetchTemplates?.templateList?.templates
-        ?.map(t => t?.spec?.prettyName)
-        .includes(formTemplate.name.trim())
-    ) {
-      setValid(old => {
-        return {
-          ...old,
-          name: {
-            status: 'error',
-            help: 'This name has already been used in this workspace',
-          },
-        };
-      });
-    } else {
-      setValid(old => {
-        return {
-          ...old,
-          name: { status: 'success', help: undefined },
-        };
-      });
+  useWorkspaceSharedVolumesQuery({
+    variables: { workspaceNamespace },
+    onError: apolloErrorCatcher,
+    onCompleted: data =>
+      setDataShVols(
+        data.sharedvolumeList?.sharedvolumes
+          ?.map(sv => makeGuiSharedVolume(sv))
+          .sort((a, b) =>
+            (a.prettyName ?? '').localeCompare(b.prettyName ?? ''),
+          ) ?? [],
+      ),
+    fetchPolicy: 'network-only',
+  });
+
+  const validateName = async (_: unknown, name: string) => {
+    if (!dataFetchTemplates || loadingFetchTemplates || errorFetchTemplates) {
+      throw new Error('Error fetching templates');
+    }
+
+    if (!dataFetchTemplates.templateList) return;
+
+    const trimmedName = name.trim().toLowerCase();
+    const duplicateIndex = dataFetchTemplates.templateList.templates.findIndex(
+      t => {
+        return t?.spec?.prettyName?.toLowerCase() === trimmedName;
+      },
+    );
+
+    if (duplicateIndex !== -1) {
+      throw new Error(`This name has already been used in this workspace`);
     }
   };
 
@@ -379,6 +390,25 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           };
         });
       }
+    } else { 
+      if (isEmptyOrSpaces(formTemplate.registry!)) {
+        setValid(old => {
+          return {
+            ...old,
+            image: {
+              status: 'error',
+              help: 'Enter an external image reference',
+            },
+          };
+        });
+      } else {
+        setValid(old => {
+          return {
+            ...old,
+            image: { status: 'success', help: undefined },
+          };
+        });
+      }
     }
   };
 
@@ -394,7 +424,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     data: dataFetchTemplates,
     error: errorFetchTemplates,
     loading: loadingFetchTemplates,
-    refetch: refetchTemplates,
   } = useWorkspaceTemplatesQuery({
     onError: error => {
       console.error(
@@ -613,8 +642,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       width="600px"
     >
       <Form
-        labelCol={{ span: 2 }}
-        wrapperCol={{ span: 22 }}
         form={form}
         onSubmitCapture={onSubmit}
         initialValues={{
@@ -630,16 +657,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       >
         <Form.Item
           {...fullLayout}
-          name="templatename"
+          name="name"
           className="mt-1"
           required
-          validateStatus={valid.name.status as 'success' | 'error'}
-          help={valid.name.help}
           validateTrigger="onChange"
           rules={[
             {
               required: true,
-              validator: nameValidator,
+              message: 'Please enter template name',
+            },
+            {
+              validator: validateName,
             },
           ]}
         >
@@ -917,86 +945,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           )}
         </div>
 
-        <Form.Item labelAlign="left" className="mt-10" label="CPU" name="cpu">
-          <div className="sm:pl-3 pr-1">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              defaultValue={formTemplate.cpu}
-              tooltip={{ open: false }}
-              value={formTemplate.cpu}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, cpu: value };
-                })
-              }
-              min={cpuInterval.min}
-              max={cpuInterval.max}
-              marks={{
-                [cpuInterval.min]: `${cpuInterval.min}`,
-                [formTemplate.cpu]: `${formTemplate.cpu}`,
-                [cpuInterval.max]: `${cpuInterval.max}`,
-              }}
-              included={false}
-              step={1}
-              tipFormatter={(value?: number) => `${value} Core`}
-            />
-          </div>
-        </Form.Item>
-        <Form.Item labelAlign="left" label="RAM" name="ram">
-          <div className="sm:pl-3 pr-1">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              defaultValue={formTemplate.ram}
-              tooltip={{ open: false }}
-              value={formTemplate.ram}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, ram: value };
-                })
-              }
-              min={ramInterval.min}
-              max={ramInterval.max}
-              marks={{
-                [ramInterval.min]: `${ramInterval.min}GB`,
-                [formTemplate.ram]: `${formTemplate.ram}GB`,
-                [ramInterval.max]: `${ramInterval.max}GB`,
-              }}
-              included={false}
-              step={0.25}
-              tipFormatter={(value?: number) => `${value} GB`}
-            />
-          </div>
-        </Form.Item>
-        <Form.Item
-          labelAlign="left"
-          label="DISK"
-          name="disk"
-          className={formTemplate.persistent ? '' : 'hidden'}
-        >
-          <div className="sm:pl-3 pr-1 ">
-            <Slider
-              styles={{ handle: alternativeHandle }}
-              tooltip={{ open: false }}
-              value={formTemplate.disk}
-              defaultValue={formTemplate.disk}
-              onChange={(value: number) =>
-                setFormTemplate(old => {
-                  return { ...old, disk: value };
-                })
-              }
-              min={diskInterval.min}
-              max={diskInterval.max}
-              marks={{
-                [diskInterval.min]: `${diskInterval.min}GB`,
-                [formTemplate.disk]: `${formTemplate.disk}GB`,
-                [diskInterval.max]: `${diskInterval.max}GB`,
-              }}
-              included={false}
-              step={1}
-              tipFormatter={(value?: number) => `${value} GB`}
-            />
-          </div>
-        </Form.Item>
+          <Form.Item shouldUpdate>
+            {() => {
+              const fieldsError = form.getFieldsError();
+              const hasErrors = fieldsError.some(
+                ({ errors }) => errors.length > 0,
+              );
 
         {!isPersonal && (
           <ShVolFormItem workspaceNamespace={workspaceNamespace} />
@@ -1044,5 +998,5 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   );
 };
 
-export type { Template };
+export type { TemplateForm as Template };
 export default ModalCreateTemplate;

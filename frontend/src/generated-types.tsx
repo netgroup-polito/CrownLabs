@@ -3380,11 +3380,7 @@ export type CreateTemplateMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
   templateName: Scalars['String']['input'];
   descriptionTemplate: Scalars['String']['input'];
-  image: Scalars['String']['input'];
-  guiEnabled: Scalars['Boolean']['input'];
-  persistent: Scalars['Boolean']['input'];
-  mountMyDriveVolume: Scalars['Boolean']['input'];
-  resources: ResourcesInput;
+  environmentList: Array<EnvironmentListListItemInput> | EnvironmentListListItemInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
   environmentType: EnvironmentType;
   sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>> | InputMaybe<SharedVolumeMountsListItemInput>>;
@@ -3392,7 +3388,7 @@ export type CreateTemplateMutationVariables = Exact<{
 }>;
 
 
-export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
 export type DeleteInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -3874,7 +3870,7 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput], $rewriteURL: Boolean) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String! $image: String!, $guiEnabled: Boolean!, $persistent: Boolean!, $mountMyDriveVolume: Boolean!, $resources: ResourcesInput!, $templateId: String = "template-", $environmentType: EnvironmentType!, $sharedVolumeMounts: [SharedVolumeMountsListItemInput], $rewriteURL: Boolean) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
     itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: [{name: "default", environmentType: $environmentType, image: $image, guiEnabled: $guiEnabled, persistent: $persistent, rewriteURL: $rewriteURL, resources: $resources, mountMyDriveVolume: $mountMyDriveVolume, sharedVolumeMounts: $sharedVolumeMounts}], workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
@@ -3883,6 +3879,7 @@ export const CreateTemplateDocument = gql`
       prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
         resources {
@@ -3918,11 +3915,7 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      workspaceNamespace: // value for 'workspaceNamespace'
  *      templateName: // value for 'templateName'
  *      descriptionTemplate: // value for 'descriptionTemplate'
- *      image: // value for 'image'
- *      guiEnabled: // value for 'guiEnabled'
- *      persistent: // value for 'persistent'
- *      mountMyDriveVolume: // value for 'mountMyDriveVolume'
- *      resources: // value for 'resources'
+ *      environmentList: // value for 'environmentList'
  *      templateId: // value for 'templateId'
  *      environmentType: // value for 'environmentType'
  *      sharedVolumeMounts: // value for 'sharedVolumeMounts'
