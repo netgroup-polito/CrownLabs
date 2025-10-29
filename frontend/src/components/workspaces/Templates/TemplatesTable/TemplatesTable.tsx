@@ -103,43 +103,38 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   }, [expandedId]);
 
   return (
-    <div className="w-full content-between py-0 scrollbar cl-templates-table">
-      {/* explicit scroll surface to guarantee bounded scrolling inside the card */}
-      <div className="cl-templates-scroll">
-        <Table
-          size="middle"
-          showHeader={false}
-          rowKey={record => record.id}
-          columns={columns}
-          dataSource={templates}
-          pagination={false}
-          expandable={{
-            onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
-            rowExpandable: record => !!record.instances.length,
-            expandedRowKeys: expandedId,
-            expandIcon: ({ expanded, onExpand, record }) =>
-              record.instances.length ? (
-                <CaretRightOutlined
-                  className="transition-icon"
-                  onClick={e => onExpand(record, e)}
-                  rotate={expanded ? 90 : 0}
-                />
-              ) : (
-                false
-              ),
-            expandedRowRender: template => (
-              <TableInstance
-                showGuiIcon={false}
-                viewMode={WorkspaceRole.user}
-                extended={false}
-                instances={template.instances}
-                hasSSHKeys={hasSSHKeys}
-              />
-            ),
-          }}
-        />
-      </div>
-    </div>
+    <Table
+      size="middle"
+      showHeader={false}
+      rowKey={record => record.id}
+      columns={columns}
+      dataSource={templates}
+      pagination={false}
+      expandable={{
+        onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
+        rowExpandable: record => !!record.instances.length,
+        expandedRowKeys: expandedId,
+        expandIcon: ({ expanded, onExpand, record }) =>
+          record.instances.length ? (
+            <CaretRightOutlined
+              className="transition-icon"
+              onClick={e => onExpand(record, e)}
+              rotate={expanded ? 90 : 0}
+            />
+          ) : (
+            false
+          ),
+        expandedRowRender: template => (
+          <TableInstance
+            showGuiIcon={false}
+            viewMode={WorkspaceRole.user}
+            extended={false}
+            instances={template.instances}
+            hasSSHKeys={hasSSHKeys}
+          />
+        ),
+      }}
+    />
   );
 };
 

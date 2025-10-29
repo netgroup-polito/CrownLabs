@@ -2,20 +2,40 @@ import { createContext, useContext } from 'react';
 
 export interface QuotaContextType {
   refreshQuota?: () => void;
+  consumedQuota?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  };
+  workspaceQuota?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  };
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
+    cpu: number;
+    memory: string;
+    instances: number;
   };
 }
 
 export interface QuotaProviderProps {
   children: React.ReactNode;
   refreshQuota?: () => void;
+  consumedQuota?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  };
+  workspaceQuota?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  };
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
+    cpu: number;
+    memory: string;
+    instances: number;
   };
 }
 

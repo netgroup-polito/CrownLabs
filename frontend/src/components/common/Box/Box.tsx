@@ -16,7 +16,7 @@ export type BoxHeader = {
 };
 
 const Box: FC<IBoxProps> = ({ ...props }) => {
-  const { header, children, footer } = props;
+  const { header, children } = props;
   const { center, left, right, size } = header || {};
 
   const classPerSize = {
@@ -50,8 +50,9 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
         )}
       </div>
       {/* allow Box body to shrink inside the flex chain */}
-      <div className="w-full flex-grow min-h-0">{children}</div>
-      <div className="w-full flex-none inner">{footer}</div>
+      <div className="w-full flex-grow min-h-0" style={{ display: 'flex' }}>
+        {children}
+      </div>
     </Card>
   );
 };

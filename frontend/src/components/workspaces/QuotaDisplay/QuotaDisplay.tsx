@@ -1,15 +1,14 @@
-import { Row, Col, Typography, Space, Progress } from 'antd';
+import { Row, Col, Typography, Space } from 'antd';
 import {
   DesktopOutlined,
   CloudOutlined,
   DatabaseOutlined,
-  InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { FC } from 'react';
 import { useMemo } from 'react';
 import './QuotaDisplay.less';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 export interface IQuotaDisplayProps {
   consumedQuota: {
@@ -90,127 +89,61 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
     instances: quota?.instances || 8,
   };
 
-  // Calculate percentages
-  const cpuPercent = Math.round((currentUsage.cpu / quotaLimits.cpu) * 100);
-  const memoryPercent = Math.round(
-    (currentUsage.memory / quotaLimits.memory) * 100,
-  );
-  const instancesPercent = Math.round(
-    (currentUsage.instances / quotaLimits.instances) * 100,
-  );
-
-  const getProgressColor = (percent: number) => {
-    if (percent > 80) return '#ff4d4f';
-    if (percent > 60) return '#faad14';
-    return '#52c41a';
-  };
-
   return (
-    <div className="quota-display-container">
-      <Row align="middle" justify="space-between">
-        <Col xs={24} sm={6}>
-          <Space direction="vertical" size="small">
-            <Space>
-              <InfoCircleOutlined className="primary-color-fg" />
-              <Title level={5} style={{ margin: 0 }}>
-                Resource Usage
-              </Title>
+    <div
+      className="quota-display-container"
+      style={{ height: '40px', overflow: 'hidden' }}
+    >
+      <Row gutter={[16, 0]} style={{ height: '100%' }}>
+        <Col xs={24} sm={8} style={{ height: '100%' }}>
+          <div
+            className="quota-metric"
+            style={{ height: '100%', display: 'flex', alignItems: 'center' }}
+          >
+            <Space size="small">
+              <DesktopOutlined className="primary-color-fg" />
+              <Text strong>
+                {currentUsage.cpu}/{quotaLimits.cpu}
+              </Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                CPU cores
+              </Text>
             </Space>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Current usage from running instances
-            </Text>
-          </Space>
+          </div>
         </Col>
 
-        <Col xs={24} sm={18}>
-          <Row gutter={[24, 16]} justify="end">
-            <Col xs={24} sm={8}>
-              <div className="quota-metric">
-                <Space
-                  direction="vertical"
-                  size="small"
-                  style={{ width: '100%' }}
-                >
-                  <Space>
-                    <DesktopOutlined className="primary-color-fg" />
-                    <Text strong>
-                      {currentUsage.cpu}/{quotaLimits.cpu}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      CPU cores
-                    </Text>
-                  </Space>
-                  <Progress
-                    percent={cpuPercent}
-                    size="small"
-                    strokeColor={getProgressColor(cpuPercent)}
-                    showInfo={false}
-                  />
-                  <Text type="secondary" style={{ fontSize: '11px' }}>
-                    {cpuPercent}% used
-                  </Text>
-                </Space>
-              </div>
-            </Col>
+        <Col xs={24} sm={8} style={{ height: '100%' }}>
+          <div
+            className="quota-metric"
+            style={{ height: '100%', display: 'flex', alignItems: 'center' }}
+          >
+            <Space size="small">
+              <DatabaseOutlined className="success-color-fg" />
+              <Text strong>
+                {currentUsage.memory.toFixed(1)}/{quotaLimits.memory}
+              </Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                RAM GB
+              </Text>
+            </Space>
+          </div>
+        </Col>
 
-            <Col xs={24} sm={8}>
-              <div className="quota-metric">
-                <Space
-                  direction="vertical"
-                  size="small"
-                  style={{ width: '100%' }}
-                >
-                  <Space>
-                    <DatabaseOutlined className="success-color-fg" />
-                    <Text strong>
-                      {currentUsage.memory.toFixed(1)}/{quotaLimits.memory}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      GB RAM
-                    </Text>
-                  </Space>
-                  <Progress
-                    percent={memoryPercent}
-                    size="small"
-                    strokeColor={getProgressColor(memoryPercent)}
-                    showInfo={false}
-                  />
-                  <Text type="secondary" style={{ fontSize: '11px' }}>
-                    {memoryPercent}% used
-                  </Text>
-                </Space>
-              </div>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <div className="quota-metric">
-                <Space
-                  direction="vertical"
-                  size="small"
-                  style={{ width: '100%' }}
-                >
-                  <Space>
-                    <CloudOutlined className="warning-color-fg" />
-                    <Text strong>
-                      {currentUsage.instances}/{quotaLimits.instances}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      Running instances
-                    </Text>
-                  </Space>
-                  <Progress
-                    percent={instancesPercent}
-                    size="small"
-                    strokeColor={getProgressColor(instancesPercent)}
-                    showInfo={false}
-                  />
-                  <Text type="secondary" style={{ fontSize: '11px' }}>
-                    {instancesPercent}% used
-                  </Text>
-                </Space>
-              </div>
-            </Col>
-          </Row>
+        <Col xs={24} sm={8} style={{ height: '100%' }}>
+          <div
+            className="quota-metric"
+            style={{ height: '100%', display: 'flex', alignItems: 'right' }}
+          >
+            <Space size="small">
+              <CloudOutlined className="warning-color-fg" />
+              <Text strong>
+                {currentUsage.instances}/{quotaLimits.instances}
+              </Text>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                Instances
+              </Text>
+            </Space>
+          </div>
         </Col>
       </Row>
     </div>
