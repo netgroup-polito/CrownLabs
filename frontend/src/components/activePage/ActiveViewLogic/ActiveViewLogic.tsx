@@ -18,7 +18,6 @@ const ActiveViewLogic: FC = () => {
     error: tenantError,
   } = useContext(TenantContext);
 
-  const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Fetch instance data for quota calculations
@@ -27,8 +26,8 @@ const ActiveViewLogic: FC = () => {
     loading: instancesLoading,
     refetch: refetchInstances,
   } = useOwnedInstancesQuery({
-    variables: { tenantNamespace: tenantNs || '' },
-    skip: !tenantNs,
+    variables: { tenantNamespace: tenantNamespace || '' },
+    skip: !tenantNamespace,
     onError: apolloErrorCatcher,
     fetchPolicy: 'cache-and-network',
   });
