@@ -380,7 +380,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           !loadingTemplate &&
           !loadingInstances &&
           !isPersonal ? (
-            <SharedVolumesDrawer workspaceNamespace={workspaceNamespace} />
+            <SharedVolumesDrawer
+              workspaceNamespace={workspaceNamespace}
+              isPersonal={isPersonal}
+            />
           ) : null}
         </Spin>
       </div>
