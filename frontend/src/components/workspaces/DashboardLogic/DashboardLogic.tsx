@@ -38,7 +38,7 @@ const DashboardLogic: FC = () => {
     );
   }, [tenantData?.tenant?.spec?.workspaces]);
 
-  const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
+  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Get all instances for the tenant (includes both workspace and personal instances)
   const {
