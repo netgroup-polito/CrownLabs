@@ -162,22 +162,25 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             }}
           >
             {currentView === WorkspaceRole.manager && managerView ? (
-              <TableWorkspaceLogic
-                workspaces={workspaces}
-                user={user}
-                filter={searchField}
-                collapseAll={collapseAll}
-                expandAll={expandAll}
-                setCollapseAll={setCollapseAll}
-                setExpandAll={setExpandAll}
-                showAdvanced={showAdvanced}
-                showCheckbox={showCheckbox}
-                destroySelectedTrigger={destroySelectedTrigger}
-                setDestroySelectedTrigger={setDestroySelectedTrigger}
-                selectiveDestroy={selectiveDestroy}
-                selectToDestroy={selectToDestroy}
-                setSelectedPersistent={setSelectedPersistent}
-              />
+              // lets make this div flex to allow the table to use max available space
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <TableWorkspaceLogic
+                  workspaces={workspaces}
+                  user={user}
+                  filter={searchField}
+                  collapseAll={collapseAll}
+                  expandAll={expandAll}
+                  setCollapseAll={setCollapseAll}
+                  setExpandAll={setExpandAll}
+                  showAdvanced={showAdvanced}
+                  showCheckbox={showCheckbox}
+                  destroySelectedTrigger={destroySelectedTrigger}
+                  setDestroySelectedTrigger={setDestroySelectedTrigger}
+                  selectiveDestroy={selectiveDestroy}
+                  selectToDestroy={selectToDestroy}
+                  setSelectedPersistent={setSelectedPersistent}
+                />
+              </div>
             ) : (
               <TableInstanceLogic
                 showGuiIcon={true}

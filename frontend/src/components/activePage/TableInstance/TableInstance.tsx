@@ -99,13 +99,13 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
     <>
       {/* optional compact header (keeps natural height) */}
       {extended && showAdvanced && (
-        <div
-          style={{
-            flex: '0 0 auto',
-            height: 'fit-content',
-            overflow: 'hidden',
-          }}
-        >
+        // <div
+        //   style={{
+        //     flex: '0 0 auto',
+        //     height: 'fit-content',
+        //     overflow: 'hidden',
+        //   }}
+        // >
           <Table
             dataSource={[{}]}
             showHeader={false}
@@ -131,7 +131,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               )}
             />
           </Table>
-        </div>
+        // </div>
       )}
       {/* let's make a div to make this table respect it's parent object height and scroll the overflow */}
       <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
