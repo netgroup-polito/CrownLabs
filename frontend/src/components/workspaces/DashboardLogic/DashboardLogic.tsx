@@ -53,7 +53,9 @@ const DashboardLogic: FC = () => {
 
   // Use the centralized quota calculation hook
   const quotaCalculations = useQuotaCalculations(
-    instancesData?.instanceList?.instances,
+    instancesData?.instanceList?.instances?.filter(
+      (i): i is NonNullable<typeof i> => i != null,
+    ),
     tenantData?.tenant,
   );
 

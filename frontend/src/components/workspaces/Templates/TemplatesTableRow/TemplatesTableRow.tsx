@@ -165,13 +165,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       .catch(() => setCreateDisabled(false));
   }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
 
-  // Add instance deletion handler with quota refresh
-  const handleInstanceDeletion = useCallback(() => {
-    // Refresh quota after any instance operation
-    refreshQuota?.();
-    refreshClock();
-  }, [refreshQuota, refreshClock]);
-
   const handleEditTemplate = () => {
     window.dispatchEvent(
       new CustomEvent('openTemplateModal', { detail: template }),

@@ -26,10 +26,12 @@ interface QuotaCalculationResult {
 type InstanceFromQuery = NonNullable<
   NonNullable<OwnedInstancesQuery['instanceList']>['instances']
 >[number];
-type TenantFromQuery = NonNullable<TenantQuery['tenant']>;
+type TenantFromQuery = TenantQuery['tenant']; // Remove NonNullable to allow null
 
 // Parse memory values to decimal GB (base 10)
-export const parseMemoryToGB = (v: string | number | null | undefined): number => {
+export const parseMemoryToGB = (
+  v: string | number | null | undefined,
+): number => {
   if (v == null) return 0;
   if (typeof v === 'number') return v;
   const s = String(v).trim();
@@ -37,25 +39,27 @@ export const parseMemoryToGB = (v: string | number | null | undefined): number =
   if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
   const val = parseFloat(m[1]);
   const unit = (m[2] || '').toLowerCase();
-  
+
   // Binary units (base 1024) - convert to GB
   if (unit === 'ki' || unit === 'kib') return (val * Math.pow(1024, 1)) / 1e9;
   if (unit === 'mi' || unit === 'mib') return (val * Math.pow(1024, 2)) / 1e9;
   if (unit === 'gi' || unit === 'gib') return (val * Math.pow(1024, 3)) / 1e9;
   if (unit === 'ti' || unit === 'tib') return (val * Math.pow(1024, 4)) / 1e9;
-  
+
   // Decimal units (base 1000) - already in decimal
   if (unit === 'k' || unit === 'kb') return val / 1e6;
   if (unit === 'm' || unit === 'mb') return val / 1e3;
   if (unit === 'g' || unit === 'gb') return val;
   if (unit === 't' || unit === 'tb') return val * 1e3;
-  
+
   // Default: assume GB
   return val;
 };
 
 // Keep the old function for backward compatibility (parses to GiB)
-export const parseMemoryToGi = (v: string | number | null | undefined): number => {
+export const parseMemoryToGi = (
+  v: string | number | null | undefined,
+): number => {
   if (v == null) return 0;
   if (typeof v === 'number') return v;
   const s = String(v).trim();
@@ -82,7 +86,7 @@ const formatMemory = (memoryGB: number): string => {
 
 export const useQuotaCalculations = (
   instances: NonNullable<InstanceFromQuery>[] | undefined,
-  tenant: TenantFromQuery | undefined,
+  tenant: TenantFromQuery | null | undefined, // Allow null
 ): QuotaCalculationResult => {
   return useMemo(() => {
     const consumedQuota = { cpu: 0, memoryGB: 0, instances: 0 };
