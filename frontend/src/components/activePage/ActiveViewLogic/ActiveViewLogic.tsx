@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useContext, useMemo, useCallback } from 'react';
+import { useContext, useCallback } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
@@ -8,6 +8,7 @@ import { makeWorkspace } from '../../../utilsLogic';
 import { useOwnedInstancesQuery } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
+import { useQuotaCalculations } from '../../workspaces/QuotaDisplay/useQuotaCalculation';
 
 const ActiveViewLogic: FC = () => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -42,74 +43,11 @@ const ActiveViewLogic: FC = () => {
 
   const tenantId = tenantData?.tenant?.metadata?.name;
 
-  // Calculate quota data
-  const quotaData = useMemo(() => {
-    const parseMemoryToGi = (v: string | number | null | undefined): number => {
-      if (v == null) return 0;
-      if (typeof v === 'number') return v;
-      const s = String(v).trim();
-      const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
-      if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
-      const val = parseFloat(m[1]);
-      const unit = (m[2] || '').toLowerCase();
-      const pow = (n: number) => Math.pow(1024, n);
-      if (unit === 'ki') return (val * pow(1)) / pow(3);
-      if (unit === 'mi') return (val * pow(2)) / pow(3);
-      if (unit === 'gi') return val;
-      if (unit === 'ti') return (val * pow(4)) / pow(3);
-      if (unit === 'k') return (val * 1e3) / pow(3);
-      if (unit === 'm') return (val * 1e6) / pow(3);
-      if (unit === 'g') return (val * 1e9) / pow(3);
-      if (unit === 't') return (val * 1e12) / pow(3);
-      return val;
-    };
-
-    const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
-    const items = instancesData?.instanceList?.instances ?? [];
-
-    for (const inst of items) {
-      const resources =
-        inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-          ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList?.[0]
-          ?.resources;
-      const cpu = Number(resources?.cpu ?? 0);
-      const mem = resources?.memory ?? '0Gi';
-      consumedQuota.cpu += cpu;
-      consumedQuota.memoryGi += parseMemoryToGi(mem);
-      consumedQuota.instances += 1;
-    }
-
-    const totalQuota = tenantData?.tenant?.status?.quota;
-
-    const availableQuota = {
-      cpu:
-        (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
-        consumedQuota.cpu,
-      memory: String(
-        (totalQuota?.memory ? parseMemoryToGi(totalQuota.memory) : 0) -
-          consumedQuota.memoryGi,
-      ),
-      instances:
-        (totalQuota?.instances ? totalQuota.instances : 0) -
-        consumedQuota.instances,
-    };
-    return {
-      consumedQuota: {
-        cpu: consumedQuota.cpu,
-        memory: String(consumedQuota.memoryGi),
-        instances: consumedQuota.instances,
-      },
-      availableQuota,
-      workspaceQuota: totalQuota || {
-        cpu: 0,
-        memory: 0,
-        instances: 0,
-      },
-    };
-  }, [
+  // Use the centralized quota calculation hook
+  const quotaData = useQuotaCalculations(
     instancesData?.instanceList?.instances,
-    tenantData?.tenant?.status?.quota,
-  ]);
+    tenantData?.tenant,
+  );
 
   // Enhanced refresh function with better error handling and logging
   const refreshQuota = useCallback(async () => {
@@ -117,7 +55,6 @@ const ActiveViewLogic: FC = () => {
       await refetchInstances();
     } catch (error) {
       console.error('Error refreshing quota data:', error);
-      // Type cast the error to ApolloError or create a new one
       if (error && typeof error === 'object' && 'message' in error) {
         apolloErrorCatcher(error as ApolloError);
       } else {
@@ -143,7 +80,7 @@ const ActiveViewLogic: FC = () => {
         availableQuota: quotaData.availableQuota,
         showQuotaDisplay: true,
         refreshQuota,
-      }} // Pass quota data to ActiveView
+      }}
     />
   ) : (
     <div className="h-full w-full flex justify-center items-center">

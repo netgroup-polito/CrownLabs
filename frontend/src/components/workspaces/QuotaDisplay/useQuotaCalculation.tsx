@@ -28,37 +28,64 @@ type InstanceFromQuery = NonNullable<
 >[number];
 type TenantFromQuery = NonNullable<TenantQuery['tenant']>;
 
+// Parse memory values to decimal GB (base 10)
+export const parseMemoryToGB = (v: string | number | null | undefined): number => {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim();
+  const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
+  if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
+  const val = parseFloat(m[1]);
+  const unit = (m[2] || '').toLowerCase();
+  
+  // Binary units (base 1024) - convert to GB
+  if (unit === 'ki' || unit === 'kib') return (val * Math.pow(1024, 1)) / 1e9;
+  if (unit === 'mi' || unit === 'mib') return (val * Math.pow(1024, 2)) / 1e9;
+  if (unit === 'gi' || unit === 'gib') return (val * Math.pow(1024, 3)) / 1e9;
+  if (unit === 'ti' || unit === 'tib') return (val * Math.pow(1024, 4)) / 1e9;
+  
+  // Decimal units (base 1000) - already in decimal
+  if (unit === 'k' || unit === 'kb') return val / 1e6;
+  if (unit === 'm' || unit === 'mb') return val / 1e3;
+  if (unit === 'g' || unit === 'gb') return val;
+  if (unit === 't' || unit === 'tb') return val * 1e3;
+  
+  // Default: assume GB
+  return val;
+};
+
+// Keep the old function for backward compatibility (parses to GiB)
+export const parseMemoryToGi = (v: string | number | null | undefined): number => {
+  if (v == null) return 0;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim();
+  const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
+  if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
+  const val = parseFloat(m[1]);
+  const unit = (m[2] || '').toLowerCase();
+  const pow = (n: number) => Math.pow(1024, n);
+  if (unit === 'ki') return (val * pow(1)) / pow(3);
+  if (unit === 'mi') return (val * pow(2)) / pow(3);
+  if (unit === 'gi') return val;
+  if (unit === 'ti') return (val * pow(4)) / pow(3);
+  if (unit === 'k') return (val * 1e3) / pow(3);
+  if (unit === 'm') return (val * 1e6) / pow(3);
+  if (unit === 'g') return (val * 1e9) / pow(3);
+  if (unit === 't') return (val * 1e12) / pow(3);
+  return val;
+};
+
+// Helper function to format memory with max 1 decimal place
+const formatMemory = (memoryGB: number): string => {
+  return Number(memoryGB.toFixed(1)).toString();
+};
+
 export const useQuotaCalculations = (
   instances: NonNullable<InstanceFromQuery>[] | undefined,
   tenant: TenantFromQuery | undefined,
 ): QuotaCalculationResult => {
   return useMemo(() => {
-    const parseMemoryToGi = (v: string | number | null | undefined): number => {
-      if (v == null) return 0;
-      if (typeof v === 'number') return v;
-      const s = String(v).trim();
-      const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
-      if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
-      const val = parseFloat(m[1]);
-      const unit = (m[2] || '').toLowerCase();
-      const pow = (n: number) => Math.pow(1024, n);
-      if (unit === 'ki') return (val * pow(1)) / pow(3);
-      if (unit === 'mi') return (val * pow(2)) / pow(3);
-      if (unit === 'gi') return val;
-      if (unit === 'ti') return (val * pow(4)) / pow(3);
-      if (unit === 'k') return (val * 1e3) / pow(3);
-      if (unit === 'm') return (val * 1e6) / pow(3);
-      if (unit === 'g') return (val * 1e9) / pow(3);
-      if (unit === 't') return (val * 1e12) / pow(3);
-      return val;
-    };
-
-    // Helper function to format memory with max 1 decimal place
-    const formatMemory = (memoryGi: number): string => {
-      return Number(memoryGi.toFixed(1)).toString();
-    };
-
-    const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
+    const consumedQuota = { cpu: 0, memoryGB: 0, instances: 0 };
     const items = instances ?? [];
 
     for (const inst of items) {
@@ -69,37 +96,37 @@ export const useQuotaCalculations = (
       const cpu = Number(resources?.cpu ?? 0);
       const mem = resources?.memory ?? '0Gi';
       consumedQuota.cpu += cpu;
-      consumedQuota.memoryGi += parseMemoryToGi(mem);
+      consumedQuota.memoryGB += parseMemoryToGB(mem);
       consumedQuota.instances += 1;
     }
 
     // Calculate available resources from quota - consumed
     const totalQuota = tenant?.status?.quota;
     const totalCpu = totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0;
-    const totalMemoryGi = totalQuota?.memory
-      ? parseMemoryToGi(totalQuota.memory)
+    const totalMemoryGB = totalQuota?.memory
+      ? parseMemoryToGB(totalQuota.memory)
       : 0;
     const totalInstances = totalQuota?.instances ?? 0;
 
-    const availableMemoryGi = Math.max(
+    const availableMemoryGB = Math.max(
       0,
-      totalMemoryGi - consumedQuota.memoryGi,
+      totalMemoryGB - consumedQuota.memoryGB,
     );
 
     return {
       consumedQuota: {
         cpu: consumedQuota.cpu,
-        memory: formatMemory(consumedQuota.memoryGi),
+        memory: formatMemory(consumedQuota.memoryGB),
         instances: consumedQuota.instances,
       },
       availableQuota: {
         cpu: Math.max(0, totalCpu - consumedQuota.cpu),
-        memory: formatMemory(availableMemoryGi),
+        memory: formatMemory(availableMemoryGB),
         instances: Math.max(0, totalInstances - consumedQuota.instances),
       },
       workspaceQuota: {
         cpu: totalCpu,
-        memory: formatMemory(totalMemoryGi),
+        memory: formatMemory(totalMemoryGB),
         instances: totalInstances,
       },
     };

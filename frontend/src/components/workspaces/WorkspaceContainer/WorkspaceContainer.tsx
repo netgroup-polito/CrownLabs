@@ -190,6 +190,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           role={workspace.role}
           workspaceNamespace={workspace.namespace}
           workspaceName={workspace.name}
+          availableQuota={props.availableQuota}
+          refreshQuota={refreshQuota}
           isPersonal={isPersonal}
         />
         <Modal

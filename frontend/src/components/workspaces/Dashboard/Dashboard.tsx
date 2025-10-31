@@ -50,7 +50,6 @@ export interface IDashboardProps {
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
-  console.log('Personal Workspace Config:', props.tenantPersonalWorkspace);
   const [selectedWsId, setSelectedWs] = useState(parseInt(dashboard.get()));
   const { tenantNamespace, workspaces, candidatesButton, globalQuota } = props;
 

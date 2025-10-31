@@ -381,7 +381,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           !loadingInstances &&
           !isPersonal ? (
             <>
-              {console.log('Rendering SharedVolumesDrawer:', { role, isPersonal, workspaceNamespace })}
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}
                 isPersonal={isPersonal}

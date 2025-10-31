@@ -75,15 +75,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const shouldFetchSharedVolumes =
     !!workspaceNamespace && isPersonal === false && !!show;
 
-  console.log(
-    'sharedvolumes shouldFetch:',
-    shouldFetchSharedVolumes,
-    'isPersonal:',
-    isPersonal,
-    'workspaceNamespace:',
-    workspaceNamespace,
-  );
-
   useWorkspaceSharedVolumesQuery({
     variables: { workspaceNamespace },
     onError: apolloErrorCatcher,

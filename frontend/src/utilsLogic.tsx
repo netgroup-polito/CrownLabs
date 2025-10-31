@@ -217,13 +217,16 @@ export const makeGuiInstance = (
   }
 
   const { metadata, spec, status } = instance;
-  const { namespace: tenantNamespace } = metadata ?? {};
-  const { running, publicExposure } = spec ?? {};
+  const { name, namespace: tenantNamespace } = metadata ?? {};
+  const { running, prettyName, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
-  const { environmentList } = spec?.templateCrownlabsPolitoItTemplateRef
-    ?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
+    const { environmentList, prettyName: templatePrettyName } = spec
+    ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+    ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
     environmentList: [],
+    prettyName: '',
   };
+  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
   const { guiEnabled, persistent, environmentType } =
     (environmentList ?? [])[0] ?? {};
 
@@ -244,10 +247,12 @@ export const makeGuiInstance = (
   }
   return {
     id: instanceID,
-    name: metadata?.name,
-    prettyName: spec?.prettyName,
+    name: name,
+    prettyName: prettyName,
     gui: guiEnabled,
     persistent: persistent,
+    templatePrettyName: templatePrettyName,
+    templateName: templateName ?? '',
     templateId: makeTemplateKey(
       getInstanceLabels(instance)?.crownlabsPolitoItTemplate ??
         optional?.templateName ??
