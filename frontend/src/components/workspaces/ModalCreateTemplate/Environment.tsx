@@ -199,6 +199,38 @@ export const Environment: FC<EnvironmentProps> = ({
     });
   };
 
+  const getExternalImageExample = (currIndex: number): string | undefined => {
+    if (!environments) return undefined;
+    if (!environments[currIndex]) return undefined;
+
+    switch (environments[currIndex].environmentType) {
+      case EnvironmentType.Container:
+        return 'Examples: ubuntu:22.04, docker.io/library/nginx:latest';
+      case EnvironmentType.Standalone:
+        return 'Example: crownlabs/vscode-rust:v0.2.0';
+      case EnvironmentType.CloudVm:
+        return 'Example: https://cloud-images.ubuntu.com/jammy/20250619/jammy-server-cloudimg-amd64-disk-kvm.img';
+      default:
+        return undefined;
+    }
+  };
+
+  const getExternalImagePlaceholder = (currIndex: number): string => {
+    if (!environments) return 'Enter image name';
+    if (!environments[currIndex]) return 'Enter image name';
+
+    switch (environments[currIndex].environmentType) {
+      case EnvironmentType.Container:
+        return 'Enter image name (e.g., ubuntu:22.04)';
+      case EnvironmentType.Standalone:
+        return 'Enter image name (e.g., crownlabs/vscode-rust:v0.2.0)';
+      case EnvironmentType.CloudVm:
+        return 'Enter image URL (e.g., https://cloud-images.ubuntu.com/...)';
+      default:
+        return 'Enter image name';
+    }
+  };
+
   return (
     <>
       {/* Environment Name */}
@@ -307,12 +339,12 @@ export const Environment: FC<EnvironmentProps> = ({
               },
             ]}
             {...formItemLayout}
-            extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest"
+            extra={getExternalImageExample(name)}
           >
             <Input
-              placeholder="Enter image name (e.g., ubuntu:22.04)"
+              placeholder={getExternalImagePlaceholder(name)}
               suffix={
-                <Tooltip title="Image format: [registry/]repository[:tag]">
+                <Tooltip title="Image format: [registry/]repository[:tag] or URL for CloudVM">
                   <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
                 </Tooltip>
               }
