@@ -101,17 +101,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
       refreshQuota={quotaData?.refreshQuota}
       availableQuota={transformedAvailableQuota}
     >
-      <Row
-        className="flex-1 lg:h-full min-h-0"
-        align="stretch"
-        style={{ minHeight: 0 }}
-      >
-        {/* Make column constrained to viewport minus header so inner Box can flex/scroll */}
-        <Col
-          span={24}
-          className="flex flex-col min-h-0"
-          style={{ height: '100%' }}
-        >
+      <Col span={24} lg={22} xxl={20} className="h-full overflow-hidden">
           <ModalGroupDeletion
             view={WorkspaceRole.manager}
             persistent={selectedPersistent}
@@ -162,8 +152,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             }}
           >
             {currentView === WorkspaceRole.manager && managerView ? (
-              // lets make this div flex to allow the table to use max available space
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div className="flex flex-col justify-start">
                 <TableWorkspaceLogic
                   workspaces={workspaces}
                   user={user}
@@ -190,8 +179,7 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               />
             )}
           </Box>
-        </Col>
-      </Row>
+      </Col>
     </QuotaProvider>
   );
 };
