@@ -19,7 +19,7 @@ export interface IWorkspaceGridProps {
 const WorkspaceGrid: FC<IWorkspaceGridProps> = ({ ...props }) => {
   const { workspaceItems, selectedWs, onClick } = props;
   return (
-    <div className="grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:grid-flow-row grid-rows-1 grid-flow-col gap-3 lg:gap-0">
+    <div className="grid lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 lg:grid-flow-row grid-rows-1 grid-flow-col gap-3 lg:gap-4">
       {props.tenantPersonalWorkspace?.createPWs &&
         props.tenantPersonalWorkspace?.isPWsCreated && (
           <WorkspaceGridItem
