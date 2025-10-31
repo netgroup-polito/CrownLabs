@@ -1,4 +1,4 @@
-import { Col, Button, Row } from 'antd';
+import { Col, Button } from 'antd';
 import type { FC } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { Workspace } from '../../../utils';
@@ -84,66 +84,66 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={transformedAvailableQuota}
     >
-        <Col
-          span={24}
-          lg={8}
-          xxl={8}
-          className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
-        >
-          <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
-            <WorkspaceGrid
-              tenantPersonalWorkspace={props.tenantPersonalWorkspace}
-              selectedWs={selectedWsId}
-              workspaceItems={workspaceItems}
-              onClick={setSelectedWs}
-            />
-            {candidatesButton?.show && (
-              <div className="lg:mt-4 mt-0 text-center">
-                <Button
-                  shape="round"
-                  size={'middle'}
-                  onClick={candidatesButton.select}
-                >
-                  {candidatesButton.selected ? 'Hide' : 'Load'} candidates
-                </Button>
-              </div>
-            )}
-          </div>
-        </Col>
-        <Col
-          span={24}
-          lg={14}
-          xxl={12}
-          className="lg:pl-4 lg:pr-0 px-4 flex flex-auto h-full"
-        >
-            {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
-              <WorkspaceContainer
-                tenantNamespace={tenantNamespace}
-                workspace={workspaces[selectedWsId]}
-                availableQuota={globalQuota?.availableQuota}
-                refreshQuota={globalQuota?.refreshQuota}
-                isPersonalWorkspace={false}
-              />
-            ) : selectedWsId === -1 ? (
-              <WorkspaceContainer
-                tenantNamespace={tenantNamespace}
-                workspace={{
-                  name: 'personal',
-                  prettyName: 'Personal Workspace',
-                  role: WorkspaceRole.manager,
-                  namespace: tenantNamespace,
-                  waitingTenants: undefined,
-                }}
-                availableQuota={globalQuota?.availableQuota}
-                refreshQuota={globalQuota?.refreshQuota}
-                isPersonalWorkspace={true}
-              />
-            ) : selectedWsId === -2 ? (
-              <WorkspaceAdd />
-            ) : (
-              <WorkspaceWelcome />
-            )}
-        </Col>
+      <Col
+        span={24}
+        lg={8}
+        xxl={8}
+        className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
+      >
+        <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
+          <WorkspaceGrid
+            tenantPersonalWorkspace={props.tenantPersonalWorkspace}
+            selectedWs={selectedWsId}
+            workspaceItems={workspaceItems}
+            onClick={setSelectedWs}
+          />
+          {candidatesButton?.show && (
+            <div className="lg:mt-4 mt-0 text-center">
+              <Button
+                shape="round"
+                size={'middle'}
+                onClick={candidatesButton.select}
+              >
+                {candidatesButton.selected ? 'Hide' : 'Load'} candidates
+              </Button>
+            </div>
+          )}
+        </div>
+      </Col>
+      <Col
+        span={24}
+        lg={14}
+        xxl={12}
+        className="lg:pl-4 lg:pr-0 px-4 flex flex-auto h-full"
+      >
+        {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
+          <WorkspaceContainer
+            tenantNamespace={tenantNamespace}
+            workspace={workspaces[selectedWsId]}
+            availableQuota={globalQuota?.availableQuota}
+            refreshQuota={globalQuota?.refreshQuota}
+            isPersonalWorkspace={false}
+          />
+        ) : selectedWsId === -1 ? (
+          <WorkspaceContainer
+            tenantNamespace={tenantNamespace}
+            workspace={{
+              name: 'personal',
+              prettyName: 'Personal Workspace',
+              role: WorkspaceRole.manager,
+              namespace: tenantNamespace,
+              waitingTenants: undefined,
+            }}
+            availableQuota={globalQuota?.availableQuota}
+            refreshQuota={globalQuota?.refreshQuota}
+            isPersonalWorkspace={true}
+          />
+        ) : selectedWsId === -2 ? (
+          <WorkspaceAdd />
+        ) : (
+          <WorkspaceWelcome />
+        )}
+      </Col>
     </QuotaProvider>
   );
 };

@@ -104,7 +104,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             : ''
         }`}
       >
-      {extended && showAdvanced && (
+        {extended && showAdvanced && (
           <Table
             className="rowInstance-bg-color h-10"
             dataSource={[{}]}
@@ -131,7 +131,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               )}
             />
           </Table>
-      )}
+        )}
         <Table
           className="rowInstance-bg-color"
           dataSource={instances}
@@ -191,20 +191,20 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         </Table>
       </div>
       {extended && viewMode === WorkspaceRole.user && (
-          <div className="w-full pt-5 flex justify-center ">
-            <Button
-              color="danger"
-              shape="round"
-              size="large"
-              icon={<DeleteOutlined />}
-              onClick={e => {
-                e.stopPropagation();
-                setShowAlert(true);
-              }}
-              disabled={disabled}
-            >
-              Destroy All
-            </Button>
+        <div className="w-full pt-5 flex justify-center ">
+          <Button
+            color="danger"
+            shape="round"
+            size="large"
+            icon={<DeleteOutlined />}
+            onClick={e => {
+              e.stopPropagation();
+              setShowAlert(true);
+            }}
+            disabled={disabled}
+          >
+            Destroy All
+          </Button>
           <ModalGroupDeletion
             view={WorkspaceRole.user}
             persistent={!!instances.find(i => i.persistent === true)}

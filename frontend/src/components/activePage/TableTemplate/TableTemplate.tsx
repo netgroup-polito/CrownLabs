@@ -139,7 +139,7 @@ const TableTemplate: FC<ITableTemplateProps> = ({ ...props }) => {
               showCheckbox={showCheckbox}
               selectiveDestroy={selectiveDestroy}
               selectToDestroy={selectToDestroy}
-              />
+            />
           ),
         }}
       />

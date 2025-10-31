@@ -220,7 +220,7 @@ export const makeGuiInstance = (
   const { name, namespace: tenantNamespace } = metadata ?? {};
   const { running, prettyName, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
-    const { environmentList, prettyName: templatePrettyName } = spec
+  const { environmentList, prettyName: templatePrettyName } = spec
     ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
     ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
     environmentList: [],
