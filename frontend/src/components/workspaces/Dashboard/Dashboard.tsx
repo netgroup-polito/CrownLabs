@@ -85,22 +85,13 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       refreshQuota={globalQuota?.refreshQuota}
       availableQuota={transformedAvailableQuota}
     >
-      <Row
-        gutter={16}
-        className="flex-1 lg:h-full min-h-0"
-        align="stretch"
-        style={{ minHeight: 0 }}
-      >
         <Col
           span={24}
           lg={8}
           xxl={8}
           className="lg:pr-2 lg:pt-2 lg:pb-0 py-5 lg:h-full flex"
         >
-          <div
-            className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full"
-            style={{ minHeight: 0 }}
-          >
+          <div className="flex-auto lg:overflow-x-hidden overflow-auto scrollbar lg:h-full">
             <WorkspaceGrid
               tenantPersonalWorkspace={props.tenantPersonalWorkspace}
               selectedWs={selectedWsId}
@@ -120,22 +111,12 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
             )}
           </div>
         </Col>
-
         <Col
           span={24}
-          lg={16} // <-- make columns sum to 24 (8 + 16)
-          xxl={16}
-          // ensure the right column is full height on large screens so its children can stretch
-          className="lg:pl-4 lg:pr-0 px-4 flex flex-auto lg:h-full"
+          lg={14}
+          xxl={12}
+          className="lg:pl-4 lg:pr-0 px-4 flex flex-auto h-full"
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: '1 1 auto',
-              minHeight: 0,
-            }}
-          >
             {selectedWsId >= 0 && selectedWsId < workspaces.length ? (
               <WorkspaceContainer
                 tenantNamespace={tenantNamespace}
@@ -163,9 +144,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
             ) : (
               <WorkspaceWelcome />
             )}
-          </div>
         </Col>
-      </Row>
     </QuotaProvider>
   );
 };
