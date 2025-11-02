@@ -20,6 +20,7 @@ const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
     ram: 1,
     disk: 0,
     sharedVolumeMounts: [],
+    rewriteUrl: false,
   };
 };
 
