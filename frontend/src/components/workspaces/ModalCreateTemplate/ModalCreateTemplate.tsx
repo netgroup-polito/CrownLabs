@@ -179,7 +179,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const handleFormFinish = async (template: TemplateForm) => {
-    // Prepare the template (parse the image URLs)
     const parsedTemplate = {
       ...template,
       environments: template.environments.map(env => ({
@@ -187,7 +186,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         image: parseImage(env.environmentType, env.image),
       })),
     };
-
     try {
       await submitHandler(parsedTemplate);
 

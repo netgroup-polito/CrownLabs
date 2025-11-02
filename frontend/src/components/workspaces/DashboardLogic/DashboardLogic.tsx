@@ -1,6 +1,13 @@
 import { Spin } from 'antd';
 import type { FC } from 'react';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+} from 'react';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import Dashboard from '../Dashboard/Dashboard';
@@ -17,6 +24,7 @@ import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { LocalValue, StorageKeys } from '../../../utilsStorage';
 import type { ApolloError } from '@apollo/client';
 import { useQuotaCalculations } from '../QuotaDisplay/useQuotaCalculation';
+import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 
 const dashboard = new LocalValue(StorageKeys.Dashboard_LoadCandidates, 'false');
 
@@ -59,6 +67,72 @@ const DashboardLogic: FC = () => {
     tenantData?.tenant,
   );
 
+  // push computed quotas into the global QuotaContext so the AppLayout StatusBar (mounted higher) updates
+  const {
+    setConsumedQuota,
+    setWorkspaceQuota,
+    setAvailableQuota,
+    setRefreshQuota,
+  } = useQuotaContext();
+
+  // keep last applied quotas to avoid redundant context updates
+  const lastAppliedRef = useRef<{
+    consumed?: { cpu: number; memory: string; instances: number };
+    workspace?: { cpu: number; memory: string; instances: number };
+    available?: { cpu: number; memory: string; instances: number };
+  }>({});
+
+  useEffect(() => {
+    if (!quotaCalculations) return;
+    const toConsumed = {
+      cpu: quotaCalculations.consumedQuota.cpu,
+      memory: String(quotaCalculations.consumedQuota.memory),
+      instances: quotaCalculations.consumedQuota.instances,
+    };
+    const toWorkspace = {
+      cpu: quotaCalculations.workspaceQuota.cpu,
+      memory: String(quotaCalculations.workspaceQuota.memory),
+      instances: quotaCalculations.workspaceQuota.instances,
+    };
+    const toAvailable = {
+      cpu: quotaCalculations.availableQuota.cpu,
+      memory: String(quotaCalculations.availableQuota.memory),
+      instances: quotaCalculations.availableQuota.instances,
+    };
+
+    const eq = (
+      a:
+        | { cpu: number | string; memory: string; instances: number }
+        | undefined,
+      b:
+        | { cpu: number | string; memory: string; instances: number }
+        | undefined,
+    ) =>
+      !!a &&
+      !!b &&
+      a.cpu === b.cpu &&
+      a.memory === b.memory &&
+      a.instances === b.instances;
+
+    if (!eq(lastAppliedRef.current.consumed, toConsumed)) {
+      setConsumedQuota?.(toConsumed);
+      lastAppliedRef.current.consumed = toConsumed;
+    }
+    if (!eq(lastAppliedRef.current.workspace, toWorkspace)) {
+      setWorkspaceQuota?.(toWorkspace);
+      lastAppliedRef.current.workspace = toWorkspace;
+    }
+    if (!eq(lastAppliedRef.current.available, toAvailable)) {
+      setAvailableQuota?.(toAvailable);
+      lastAppliedRef.current.available = toAvailable;
+    }
+  }, [
+    quotaCalculations,
+    setConsumedQuota,
+    setWorkspaceQuota,
+    setAvailableQuota,
+  ]);
+
   // Enhanced refresh function with better error handling and logging
   const refreshQuota = useCallback(async () => {
     try {
@@ -72,6 +146,12 @@ const DashboardLogic: FC = () => {
       }
     }
   }, [refetchInstances, apolloErrorCatcher]);
+
+  // register the refresh function with the QuotaProvider so other components can call it
+  useEffect(() => {
+    setRefreshQuota?.(refreshQuota);
+    return () => setRefreshQuota?.(undefined);
+  }, [refreshQuota, setRefreshQuota]);
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();

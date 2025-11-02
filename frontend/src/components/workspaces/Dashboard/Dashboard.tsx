@@ -8,7 +8,6 @@ import WorkspaceAdd from '../WorkspaceAdd/WorkspaceAdd';
 import { WorkspaceContainer } from '../WorkspaceContainer';
 import { WorkspaceGrid } from '../Grid/WorkspaceGrid';
 import { WorkspaceWelcome } from '../WorkspaceWelcome';
-import { QuotaProvider } from '../../../contexts/QuotaContext';
 
 const dashboard = new SessionValue(StorageKeys.Dashboard_View, '-3');
 export interface IDashboardProps {
@@ -67,23 +66,8 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [workspaces]);
 
-  // Transform the optional quota data to match QuotaProvider's expected types
-  const transformedAvailableQuota = globalQuota?.availableQuota
-    ? {
-        cpu:
-          typeof globalQuota.availableQuota.cpu === 'string'
-            ? parseFloat(globalQuota.availableQuota.cpu) || 0
-            : globalQuota.availableQuota.cpu || 0,
-        memory: globalQuota.availableQuota.memory || '0',
-        instances: globalQuota.availableQuota.instances || 0,
-      }
-    : undefined;
-
   return (
-    <QuotaProvider
-      refreshQuota={globalQuota?.refreshQuota}
-      availableQuota={transformedAvailableQuota}
-    >
+    <>
       <Col
         span={24}
         lg={8}
@@ -144,7 +128,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           <WorkspaceWelcome />
         )}
       </Col>
-    </QuotaProvider>
+    </>
   );
 };
 

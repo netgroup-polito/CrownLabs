@@ -10,7 +10,6 @@ import TableInstanceLogic from '../TableInstance/TableInstanceLogic';
 import TableWorkspaceLogic from '../TableWorkspaceLogic/TableWorkspaceLogic';
 import Toolbox from '../Toolbox/Toolbox';
 import ViewModeButton from './ViewModeButton/ViewModeButton';
-import { QuotaProvider } from '../../../contexts/QuotaContext';
 
 const view = new SessionValue(StorageKeys.Active_View, WorkspaceRole.user);
 const advanced = new SessionValue(StorageKeys.Active_Headers, 'true');
@@ -19,29 +18,10 @@ export interface IActiveViewProps {
   user: User;
   workspaces: Array<Workspace>;
   managerView: boolean;
-  quotaData: {
-    consumedQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    workspaceQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    availableQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    showQuotaDisplay: boolean;
-    refreshQuota?: () => void;
-  };
 }
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
-  const { managerView, user, workspaces, quotaData } = props;
+  const { managerView, user, workspaces } = props;
 
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
@@ -76,18 +56,6 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
     }
   };
 
-  // Transform the optional quota data to match QuotaProvider's expected types
-  const transformedAvailableQuota = quotaData?.availableQuota
-    ? {
-        cpu:
-          typeof quotaData.availableQuota.cpu === 'string'
-            ? parseFloat(quotaData.availableQuota.cpu) || 0
-            : quotaData.availableQuota.cpu || 0,
-        memory: quotaData.availableQuota.memory || '0',
-        instances: quotaData.availableQuota.instances || 0,
-      }
-    : undefined;
-
   useEffect(() => {
     view.set(currentView);
   }, [currentView]);
@@ -97,90 +65,85 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   }, [showAdvanced]);
 
   return (
-    <QuotaProvider
-      refreshQuota={quotaData?.refreshQuota}
-      availableQuota={transformedAvailableQuota}
-    >
-      <Col span={24} lg={22} xxl={20} className="h-full overflow-hidden">
-        <ModalGroupDeletion
-          view={WorkspaceRole.manager}
-          persistent={selectedPersistent}
-          selective={true}
-          instanceList={selectiveDestroy}
-          show={showAlert}
-          setShow={setShowAlert}
-          destroy={() => setDestroySelectedTrigger(true)}
-        />
-        <Box
-          header={{
-            center: !managerView ? (
-              <div className="h-full flex justify-center items-center px-5">
-                <p className="md:text-2xl text-lg text-center mb-0">
-                  <b>Active Instances</b>
-                </p>
-              </div>
-            ) : (
-              ''
-            ),
-            size: 'middle',
-            right: managerView && (
-              <div className="h-full flex justify-center items-center pr-10">
-                <Space size="small">
-                  <ViewModeButton
-                    setCurrentView={setCurrentView}
-                    currentView={currentView}
-                  />
-                </Space>
-              </div>
-            ),
-            left: managerView && currentView === WorkspaceRole.manager && (
-              <div className="h-full flex justify-center items-center pl-6 gap-4">
-                <Toolbox
-                  setSearchField={setSearchField}
-                  setExpandAll={setExpandAll}
-                  setCollapseAll={setCollapseAll}
-                  showAdvanced={showAdvanced}
-                  setShowAdvanced={setShowAdvanced}
-                  showCheckbox={showCheckbox}
-                  setShowCheckbox={displayCheckbox}
-                  setShowAlert={setShowAlert}
-                  selectiveDestroy={selectiveDestroy}
-                  deselectAll={deselectAll}
-                />
-              </div>
-            ),
-          }}
-        >
-          {currentView === WorkspaceRole.manager && managerView ? (
-            <div className="flex flex-col justify-start">
-              <TableWorkspaceLogic
-                workspaces={workspaces}
-                user={user}
-                filter={searchField}
-                collapseAll={collapseAll}
-                expandAll={expandAll}
-                setCollapseAll={setCollapseAll}
-                setExpandAll={setExpandAll}
-                showAdvanced={showAdvanced}
-                showCheckbox={showCheckbox}
-                destroySelectedTrigger={destroySelectedTrigger}
-                setDestroySelectedTrigger={setDestroySelectedTrigger}
-                selectiveDestroy={selectiveDestroy}
-                selectToDestroy={selectToDestroy}
-                setSelectedPersistent={setSelectedPersistent}
-              />
+    <Col span={24} lg={22} xxl={20}>
+      <ModalGroupDeletion
+        view={WorkspaceRole.manager}
+        persistent={selectedPersistent}
+        selective={true}
+        instanceList={selectiveDestroy}
+        show={showAlert}
+        setShow={setShowAlert}
+        destroy={() => setDestroySelectedTrigger(true)}
+      />
+      <Box
+        header={{
+          center: !managerView ? (
+            <div className="h-full flex justify-center items-center px-5">
+              <p className="md:text-2xl text-lg text-center mb-0">
+                <b>Active Instances</b>
+              </p>
             </div>
           ) : (
-            <TableInstanceLogic
-              showGuiIcon={true}
+            ''
+          ),
+          size: 'middle',
+          right: managerView && (
+            <div className="h-full flex justify-center items-center pr-10">
+              <Space size="small">
+                <ViewModeButton
+                  setCurrentView={setCurrentView}
+                  currentView={currentView}
+                />
+              </Space>
+            </div>
+          ),
+          left: managerView && currentView === WorkspaceRole.manager && (
+            <div className="h-full flex justify-center items-center pl-6 gap-4">
+              <Toolbox
+                setSearchField={setSearchField}
+                setExpandAll={setExpandAll}
+                setCollapseAll={setCollapseAll}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+                showCheckbox={showCheckbox}
+                setShowCheckbox={displayCheckbox}
+                setShowAlert={setShowAlert}
+                selectiveDestroy={selectiveDestroy}
+                deselectAll={deselectAll}
+              />
+            </div>
+          ),
+        }}
+      >
+        {currentView === WorkspaceRole.manager && managerView ? (
+          <div className="flex flex-col justify-start">
+            <TableWorkspaceLogic
+              workspaces={workspaces}
               user={user}
-              viewMode={currentView}
-              extended={true}
+              filter={searchField}
+              collapseAll={collapseAll}
+              expandAll={expandAll}
+              setCollapseAll={setCollapseAll}
+              setExpandAll={setExpandAll}
+              showAdvanced={showAdvanced}
+              showCheckbox={showCheckbox}
+              destroySelectedTrigger={destroySelectedTrigger}
+              setDestroySelectedTrigger={setDestroySelectedTrigger}
+              selectiveDestroy={selectiveDestroy}
+              selectToDestroy={selectToDestroy}
+              setSelectedPersistent={setSelectedPersistent}
             />
-          )}
-        </Box>
-      </Col>
-    </QuotaProvider>
+          </div>
+        ) : (
+          <TableInstanceLogic
+            showGuiIcon={true}
+            user={user}
+            viewMode={currentView}
+            extended={true}
+          />
+        )}
+      </Box>
+    </Col>
   );
 };
 

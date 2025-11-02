@@ -156,14 +156,30 @@ export const Environment: FC<EnvironmentProps> = ({
       environments: environments.map((env, idx) => {
         if (idx === envIndex) {
           let gui = env.gui;
+          let rewriteUrl = env.rewriteUrl;
+          let persistent = env.persistent;
+          let disk = env.disk;
+
           switch (envType) {
             case EnvironmentType.Container:
+              gui = true;
+              rewriteUrl = false;
+              break;
+
             case EnvironmentType.Standalone:
               gui = true;
+              rewriteUrl = true;
               break;
 
             case EnvironmentType.CloudVm:
               gui = false;
+              rewriteUrl = false;
+              persistent = true;
+              disk = Math.max(disk, resources.disk.min);
+              break;
+
+            case EnvironmentType.VirtualMachine:
+              rewriteUrl = false;
               break;
           }
 
@@ -171,6 +187,9 @@ export const Environment: FC<EnvironmentProps> = ({
             ...env,
             environmentType: envType,
             gui: gui,
+            rewriteUrl: rewriteUrl,
+            persistent: persistent,
+            disk: disk,
           };
         }
         return env;
@@ -373,23 +392,26 @@ export const Environment: FC<EnvironmentProps> = ({
         </div>
       </Form.Item>
 
-      {/* Rewrite URL toggle (per-environment) */}
-      <Form.Item label="Rewrite URL" {...formItemLayout}>
-        <div className="flex gap-2 items-center">
-          <Form.Item
-            {...restField}
-            name={[name, 'rewriteUrl']}
-            valuePropName="checked"
-            noStyle
-          >
-            <Checkbox />
-          </Form.Item>
+      {/* Rewrite URL toggle (per-environment) - only for Standalone */}
+      {getEnvironmentType(name) === EnvironmentType.Standalone && (
+        <Form.Item label="Rewrite URL" {...formItemLayout}>
+          <div className="flex gap-2 items-center">
+            <Form.Item
+              {...restField}
+              name={[name, 'rewriteUrl']}
+              valuePropName="checked"
+              noStyle
+            >
+              <Checkbox disabled />
+            </Form.Item>
 
-          <div className="ant-form-item-extra text-xs pt-1">
-            Rewrite incoming URLs to the application URL when enabled.
+            <div className="ant-form-item-extra text-xs pt-1">
+              Rewrite incoming URLs to the application URL (required for
+              Standalone).
+            </div>
           </div>
-        </div>
-      </Form.Item>
+        </Form.Item>
+      )}
 
       {/* CPU Slider */}
       <Form.Item
@@ -443,6 +465,7 @@ export const Environment: FC<EnvironmentProps> = ({
         parentFormName={name}
         restField={restField}
         diskResources={resources.disk}
+        isCloudVm={getEnvironmentType(name) === EnvironmentType.CloudVm}
       />
 
       {!isPersonal && (

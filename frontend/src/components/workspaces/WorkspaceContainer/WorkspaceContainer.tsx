@@ -187,25 +187,27 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
         }}
       >
-        <TemplatesTableLogic
-          tenantNamespace={tenantNamespace}
-          role={workspace.role}
-          workspaceNamespace={workspace.namespace}
-          workspaceName={workspace.name}
-          availableQuota={props.availableQuota}
-          refreshQuota={refreshQuota}
-          isPersonal={isPersonal}
-        />
-        <Modal
-          destroyOnHidden={true}
-          title={`Users in ${workspace.prettyName} `}
-          width="800px"
-          open={showUserListModal}
-          footer={null}
-          onCancel={() => setShowUserListModal(false)}
-        >
-          <UserListLogic workspace={workspace} />
-        </Modal>
+        <div className="h-full overflow-auto">
+          <TemplatesTableLogic
+            tenantNamespace={tenantNamespace}
+            role={workspace.role}
+            workspaceNamespace={workspace.namespace}
+            workspaceName={workspace.name}
+            availableQuota={props.availableQuota}
+            refreshQuota={refreshQuota}
+            isPersonal={isPersonal}
+          />
+          <Modal
+            destroyOnHidden={true}
+            title={`Users in ${workspace.prettyName} `}
+            width="800px"
+            open={showUserListModal}
+            footer={null}
+            onCancel={() => setShowUserListModal(false)}
+          >
+            <UserListLogic workspace={workspace} />
+          </Modal>
+        </div>
       </Box>
     </>
   );

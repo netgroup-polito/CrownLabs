@@ -13,6 +13,7 @@ import type { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import './AppLayout.less';
 import { AuthContext } from '../../../contexts/AuthContext';
 import QuotaStatusBar from '../QuotaStatusBar/QuotaStatusBar';
+import { QuotaProvider } from '../../../contexts/QuotaContext';
 
 const { Content } = Layout;
 
@@ -37,72 +38,75 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
 
   return (
     <BrowserRouter basename={BASE_URL}>
-      <Layout className="h-full">
-        <Navbar routes={routes} transparent={transparentNavbar} />
-        <Content className="flex">
-          {tenantNsIsReady ? (
-            <Routes>
-              {routes
-                .filter(r => r.content)
-                .map(r => (
-                  <Route
-                    key={r.route.path}
-                    path={r.route.path}
-                    element={
-                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
-                        <Col span={0} lg={1} xxl={2}></Col>
-                        {r.content}
-                        <Col span={0} lg={1} xxl={2}></Col>
-                      </Row>
-                    }
-                  />
-                ))}
-              <Route
-                element={
-                  <div className="flex justify-center items-center w-full">
-                    <Result
-                      status="404"
-                      title="404"
-                      subTitle="Sorry, the page you visited does not exist."
+      <QuotaProvider>
+        <Layout className="h-full">
+          <Navbar routes={routes} transparent={transparentNavbar} />
+          <Content className="flex">
+            {tenantNsIsReady ? (
+              <Routes>
+                {routes
+                  .filter(r => r.content)
+                  .map(r => (
+                    <Route
+                      key={r.route.path}
+                      path={r.route.path}
+                      element={
+                        <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                          <Col span={0} lg={1} xxl={2}></Col>
+                          {r.content}
+                          <Col span={0} lg={1} xxl={2}></Col>
+                        </Row>
+                      }
                     />
-                  </div>
+                  ))}
+                <Route
+                  element={
+                    <div className="flex justify-center items-center w-full">
+                      <Result
+                        status="404"
+                        title="404"
+                        subTitle="Sorry, the page you visited does not exist."
+                      />
+                    </div>
+                  }
+                />
+              </Routes>
+            ) : (
+              <FullPageLoader
+                text={
+                  firstName ? `Welcome back ${firstName}!` : 'Welcome back!'
                 }
+                subtext="Settings things back up... Hold tight!"
               />
-            </Routes>
-          ) : (
-            <FullPageLoader
-              text={firstName ? `Welcome back ${firstName}!` : 'Welcome back!'}
-              subtext="Settings things back up... Hold tight!"
-            />
-          )}
-        </Content>
-
-        <div className="left-TooltipButton">
-          <TooltipButton
-            TooltipButtonData={{
-              tooltipTitle: 'Show CrownLabs infos',
-              tooltipPlacement: 'right',
-              type: 'primary',
-              icon: <InfoOutlined style={{ fontSize: '22px' }} />,
-            }}
-            onClick={() => setSideLeftShow(true)}
-          />
-        </div>
-        <QuotaStatusBar />
-        {TooltipButtonData && (
-          <div className="right-TooltipButton">
+            )}
+          </Content>
+          <div className="left-TooltipButton">
             <TooltipButton
               TooltipButtonData={{
-                tooltipTitle: TooltipButtonData.tooltipTitle,
-                tooltipPlacement: TooltipButtonData.tooltipPlacement,
-                type: TooltipButtonData.type,
-                icon: TooltipButtonData.icon,
+                tooltipTitle: 'Show CrownLabs infos',
+                tooltipPlacement: 'right',
+                type: 'primary',
+                icon: <InfoOutlined style={{ fontSize: '22px' }} />,
               }}
-              onClick={() => window.open(TooltipButtonLink, '_blank')}
+              onClick={() => setSideLeftShow(true)}
             />
           </div>
-        )}
-      </Layout>
+          <QuotaStatusBar />
+          {TooltipButtonData && (
+            <div className="right-TooltipButton">
+              <TooltipButton
+                TooltipButtonData={{
+                  tooltipTitle: TooltipButtonData.tooltipTitle,
+                  tooltipPlacement: TooltipButtonData.tooltipPlacement,
+                  type: TooltipButtonData.type,
+                  icon: TooltipButtonData.icon,
+                }}
+                onClick={() => window.open(TooltipButtonLink, '_blank')}
+              />
+            </div>
+          )}
+        </Layout>
+      </QuotaProvider>
       <SidebarInfo
         show={sideLeftShow}
         setShow={setSideLeftShow}
