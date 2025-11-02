@@ -65,6 +65,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           memory: `${formEnv.ram * 1000}M`,
         },
         guiEnabled: formEnv.gui,
+        // preserve rewriteUrl flag from the form (matches old modal behaviour)
+        rewriteURL: formEnv.rewriteUrl ?? false,
       };
 
       // Handle persistent environments

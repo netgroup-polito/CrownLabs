@@ -329,7 +329,7 @@ export const Environment: FC<EnvironmentProps> = ({
           <Form.Item
             {...restField}
             label="External Image"
-            name={[name, 'registry']}
+            name={[name, 'image']}
             required
             validateTrigger="onChange"
             rules={[
@@ -369,6 +369,24 @@ export const Environment: FC<EnvironmentProps> = ({
 
           <div className="ant-form-item-extra text-xs pt-1">
             {getGUIDescription(name)}
+          </div>
+        </div>
+      </Form.Item>
+
+      {/* Rewrite URL toggle (per-environment) */}
+      <Form.Item label="Rewrite URL" {...formItemLayout}>
+        <div className="flex gap-2 items-center">
+          <Form.Item
+            {...restField}
+            name={[name, 'rewriteUrl']}
+            valuePropName="checked"
+            noStyle
+          >
+            <Checkbox />
+          </Form.Item>
+
+          <div className="ant-form-item-extra text-xs pt-1">
+            Rewrite incoming URLs to the application URL when enabled.
           </div>
         </div>
       </Form.Item>
