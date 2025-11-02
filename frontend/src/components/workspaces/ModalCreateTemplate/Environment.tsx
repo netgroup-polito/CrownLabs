@@ -228,7 +228,7 @@ export const Environment: FC<EnvironmentProps> = ({
       case EnvironmentType.Standalone:
         return 'Example: crownlabs/vscode-rust:v0.2.0';
       case EnvironmentType.CloudVm:
-        return 'Example: https://cloud-images.ubuntu.com/jammy/20250619/jammy-server-cloudimg-amd64-disk-kvm.img';
+        return 'Example: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64.img';
       default:
         return undefined;
     }
@@ -513,7 +513,8 @@ const CloudVmAlert = () => {
   return (
     <p>
       Can be any cloud-init compatible image, but will only be accessible via
-      SSH. Suitable for server workloads and CLI applications.
+      SSH. It requires an appropriate disk and it must be persistent. 
+      Suitable for server workloads and CLI applications.
     </p>
   );
 };
