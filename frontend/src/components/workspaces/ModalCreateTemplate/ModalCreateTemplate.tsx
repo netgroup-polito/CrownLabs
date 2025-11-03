@@ -68,7 +68,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [form] = Form.useForm<TemplateForm>();
 
+  // sharedVolumes must be declared at top-level (hooks cannot be conditional).
   const [sharedVolumes, setDataShVols] = useState<SharedVolume[]>([]);
+  // Only fetch shared volumes when we have a valid namespace and the workspace is NOT personal.
+  // Also limit fetching to when the modal is visible to avoid background/early fetches.
+  const shouldFetchSharedVolumes =
+    !!workspaceNamespace && isPersonal === false && !!show;
 
   useWorkspaceSharedVolumesQuery({
     variables: { workspaceNamespace },
@@ -82,6 +87,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           ) ?? [],
       ),
     fetchPolicy: 'network-only',
+    skip: !shouldFetchSharedVolumes,
   });
 
   const validateName = async (_: unknown, name: string) => {
@@ -173,7 +179,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const handleFormFinish = async (template: TemplateForm) => {
-    // Prepare the template (parse the image URLs)
     const parsedTemplate = {
       ...template,
       environments: template.environments.map(env => ({
@@ -181,7 +186,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         image: parseImage(env.environmentType, env.image),
       })),
     };
-
     try {
       await submitHandler(parsedTemplate);
 

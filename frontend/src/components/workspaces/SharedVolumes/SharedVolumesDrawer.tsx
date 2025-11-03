@@ -23,13 +23,14 @@ import { getShVolPatchJson } from '../../../graphql-components/utils';
 
 export interface ISharedVolumesDrawerProps {
   workspaceNamespace: string;
+  isPersonal?: boolean;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 const hoverColor = 'rgb(129, 181, 255)';
 
 const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
-  const { workspaceNamespace } = props;
+  const { workspaceNamespace, isPersonal } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
@@ -43,6 +44,8 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
   const [dataShVols, setDataShVols] = useState<SharedVolume[]>([]);
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   const [selectedShVol, setSelectedShVol] = useState<SharedVolume>();
+
+  const shouldFetch = !!workspaceNamespace && isPersonal === false;
 
   const {
     loading: loadingSharedVolumes,
@@ -60,6 +63,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
           ) ?? [],
       ),
     fetchPolicy: fetchPolicy_networkOnly,
+    skip: !shouldFetch,
   });
 
   const [createShVolMutation, { loading: loadingCreateShVolMutation }] =
@@ -89,9 +93,14 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
   };
 
   useEffect(() => {
-    const reloadHandler = setInterval(reloadSharedVolumes, 5000);
-    return () => clearInterval(reloadHandler);
-  });
+    if (!shouldFetch || !refetchSharedVolumes) return;
+    const id = setInterval(() => {
+      if (open) {
+        void refetchSharedVolumes().catch(apolloErrorCatcher);
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [shouldFetch, open, refetchSharedVolumes, apolloErrorCatcher]);
 
   const columns = [
     {

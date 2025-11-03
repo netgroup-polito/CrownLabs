@@ -5,12 +5,14 @@ import { formItemLayout } from './utils';
 
 type EnvironmentDiskProps = {
   diskResources: Interval;
+  isCloudVm?: boolean;
 } & ChildFormItem;
 
 export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
   parentFormName,
   restField,
   diskResources: resources,
+  isCloudVm = false,
 }) => {
   const form = Form.useFormInstance();
 
@@ -67,6 +69,7 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
               noStyle
             >
               <Checkbox
+                disabled={isCloudVm}
                 onChange={value => handlePersistentChange(value.target.checked)}
               />
             </Form.Item>

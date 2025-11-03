@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useContext, useMemo, useCallback } from 'react';
+import { useContext, useCallback, useEffect, useRef } from 'react';
 import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
@@ -8,9 +8,17 @@ import { makeWorkspace } from '../../../utilsLogic';
 import { useOwnedInstancesQuery } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
+import { useQuotaCalculations } from '../../workspaces/QuotaDisplay/useQuotaCalculation';
+import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 
 const ActiveViewLogic: FC = () => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const {
+    setConsumedQuota,
+    setWorkspaceQuota,
+    setAvailableQuota,
+    setRefreshQuota,
+  } = useQuotaContext();
 
   const {
     data: tenantData,
@@ -41,82 +49,73 @@ const ActiveViewLogic: FC = () => {
 
   const tenantId = tenantData?.tenant?.metadata?.name;
 
-  // Calculate quota data
-  const quotaData = useMemo(() => {
-    const parseMemoryToGi = (v: string | number | null | undefined): number => {
-      if (v == null) return 0;
-      if (typeof v === 'number') return v;
-      const s = String(v).trim();
-      const m = s.match(/^([\d.]+)\s*(Ki|Mi|Gi|Ti|K|M|G|T)?$/i);
-      if (!m) return parseFloat(s.replace(/[^\d.]/g, '')) || 0;
-      const val = parseFloat(m[1]);
-      const unit = (m[2] || '').toLowerCase();
-      const pow = (n: number) => Math.pow(1024, n);
-      if (unit === 'ki') return (val * pow(1)) / pow(3);
-      if (unit === 'mi') return (val * pow(2)) / pow(3);
-      if (unit === 'gi') return val;
-      if (unit === 'ti') return (val * pow(4)) / pow(3);
-      if (unit === 'k') return (val * 1e3) / pow(3);
-      if (unit === 'm') return (val * 1e6) / pow(3);
-      if (unit === 'g') return (val * 1e9) / pow(3);
-      if (unit === 't') return (val * 1e12) / pow(3);
-      return val;
+  // Use the centralized quota calculation hook
+  const quotaData = useQuotaCalculations(
+    instancesData?.instanceList?.instances?.filter(
+      (i): i is NonNullable<typeof i> => i != null,
+    ),
+    tenantData?.tenant,
+  );
+
+  // Avoid redundant context updates
+  const lastAppliedRef = useRef<{
+    consumed?: { cpu?: number | string; memory?: string; instances?: number };
+    workspace?: { cpu?: number | string; memory?: string; instances?: number };
+    available?: { cpu?: number | string; memory?: string; instances?: number };
+  }>({});
+
+  useEffect(() => {
+    if (!quotaData) return;
+    const toConsumed = {
+      cpu: quotaData.consumedQuota.cpu,
+      memory: String(quotaData.consumedQuota.memory),
+      instances: quotaData.consumedQuota.instances,
+    };
+    const toWorkspace = {
+      cpu: quotaData.workspaceQuota.cpu,
+      memory: String(quotaData.workspaceQuota.memory),
+      instances: quotaData.workspaceQuota.instances,
+    };
+    const toAvailable = {
+      cpu: quotaData.availableQuota.cpu,
+      memory: String(quotaData.availableQuota.memory),
+      instances: quotaData.availableQuota.instances,
     };
 
-    const consumedQuota = { cpu: 0, memoryGi: 0, instances: 0 };
-    const items = instancesData?.instanceList?.instances ?? [];
+    const eq = (
+      a:
+        | { cpu?: number | string; memory?: string; instances?: number }
+        | undefined,
+      b:
+        | { cpu?: number | string; memory?: string; instances?: number }
+        | undefined,
+    ) =>
+      !!a &&
+      !!b &&
+      a.cpu === b.cpu &&
+      a.memory === b.memory &&
+      a.instances === b.instances;
 
-    for (const inst of items) {
-      const resources =
-        inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-          ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList?.[0]
-          ?.resources;
-      const cpu = Number(resources?.cpu ?? 0);
-      const mem = resources?.memory ?? '0Gi';
-      consumedQuota.cpu += cpu;
-      consumedQuota.memoryGi += parseMemoryToGi(mem);
-      consumedQuota.instances += 1;
+    if (!eq(lastAppliedRef.current.consumed, toConsumed)) {
+      setConsumedQuota?.(toConsumed);
+      lastAppliedRef.current.consumed = toConsumed;
     }
+    if (!eq(lastAppliedRef.current.workspace, toWorkspace)) {
+      setWorkspaceQuota?.(toWorkspace);
+      lastAppliedRef.current.workspace = toWorkspace;
+    }
+    if (!eq(lastAppliedRef.current.available, toAvailable)) {
+      setAvailableQuota?.(toAvailable);
+      lastAppliedRef.current.available = toAvailable;
+    }
+  }, [quotaData, setConsumedQuota, setWorkspaceQuota, setAvailableQuota]);
 
-    const totalQuota = tenantData?.tenant?.status?.quota;
-
-    const availableQuota = {
-      cpu:
-        (totalQuota?.cpu ? parseFloat(String(totalQuota.cpu)) : 0) -
-        consumedQuota.cpu,
-      memory: String(
-        (totalQuota?.memory ? parseMemoryToGi(totalQuota.memory) : 0) -
-          consumedQuota.memoryGi,
-      ),
-      instances:
-        (totalQuota?.instances ? totalQuota.instances : 0) -
-        consumedQuota.instances,
-    };
-    return {
-      consumedQuota: {
-        cpu: consumedQuota.cpu,
-        memory: String(consumedQuota.memoryGi),
-        instances: consumedQuota.instances,
-      },
-      availableQuota,
-      workspaceQuota: totalQuota || {
-        cpu: 0,
-        memory: 0,
-        instances: 0,
-      },
-    };
-  }, [
-    instancesData?.instanceList?.instances,
-    tenantData?.tenant?.status?.quota,
-  ]);
-
-  // Enhanced refresh function with better error handling and logging
+  // register refresh function so UI actions can call refreshQuota?.()
   const refreshQuota = useCallback(async () => {
     try {
       await refetchInstances();
     } catch (error) {
       console.error('Error refreshing quota data:', error);
-      // Type cast the error to ApolloError or create a new one
       if (error && typeof error === 'object' && 'message' in error) {
         apolloErrorCatcher(error as ApolloError);
       } else {
@@ -124,6 +123,11 @@ const ActiveViewLogic: FC = () => {
       }
     }
   }, [refetchInstances, apolloErrorCatcher]);
+
+  useEffect(() => {
+    setRefreshQuota?.(refreshQuota);
+    return () => setRefreshQuota?.(undefined);
+  }, [refreshQuota, setRefreshQuota]);
 
   const isLoading = tenantLoading || instancesLoading;
 
@@ -136,13 +140,6 @@ const ActiveViewLogic: FC = () => {
       user={{ tenantId, tenantNamespace }}
       managerView={managerWorkspaces.length > 0}
       workspaces={managerWorkspaces}
-      quotaData={{
-        consumedQuota: quotaData.consumedQuota,
-        workspaceQuota: quotaData.workspaceQuota,
-        availableQuota: quotaData.availableQuota,
-        showQuotaDisplay: true,
-        refreshQuota,
-      }} // Pass quota data to ActiveView
     />
   ) : (
     <div className="h-full w-full flex justify-center items-center">

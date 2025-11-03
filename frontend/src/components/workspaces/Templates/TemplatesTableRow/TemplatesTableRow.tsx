@@ -26,6 +26,7 @@ import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
+import { parseMemoryToGB } from '../../QuotaDisplay/useQuotaCalculation';
 
 export interface ITemplatesTableRowProps {
   template: Template;
@@ -37,7 +38,7 @@ export interface ITemplatesTableRowProps {
     memory?: string;
     instances?: number;
   };
-  refreshQuota?: () => void; // Add refresh function
+  refreshQuota?: () => void;
   isPersonal?: boolean;
   deleteTemplate: (
     id: string,
@@ -67,36 +68,6 @@ const convertMemory = (s: string): string =>
     ? `${Number(s.split('M')[0]) / 1000}G`
     : s;
 
-// Helper function to parse memory string (e.g., "4Gi" -> 4)
-const parseMemory = (memoryStr: string | number): number => {
-  if (typeof memoryStr === 'number') return memoryStr;
-  if (!memoryStr) return 0;
-
-  const match = String(memoryStr).match(/^(\d+(?:\.\d+)?)(.*)?$/);
-  if (!match) return 0;
-
-  const value = parseFloat(match[1]);
-  const unit = match[2]?.toLowerCase() || '';
-
-  switch (unit) {
-    case 'gi':
-    case 'g':
-      return value;
-    case 'mi':
-    case 'm':
-      return value / 1024;
-    case 'ki':
-    case 'k':
-      return value / (1024 * 1024);
-    case 'ti':
-    case 't':
-      return value * 1024;
-    default:
-      // Assume GB if no unit
-      return value;
-  }
-};
-
 const canCreateInstance = (
   template: Template,
   availableQuota?: {
@@ -116,11 +87,8 @@ const canCreateInstance = (
         : availableQuota.cpu
       : 0;
 
-  const templateMemory = parseMemory(template.resources?.memory || '0');
-  const availableMemory =
-    availableQuota.memory !== undefined
-      ? parseMemory(availableQuota.memory)
-      : 0;
+  const templateMemory = parseMemoryToGB(template.resources?.memory || '0');
+  const availableMemory = parseMemoryToGB(availableQuota.memory || '0');
 
   const availableInstances =
     availableQuota.instances !== undefined ? availableQuota.instances : 0;
@@ -190,7 +158,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     createInstance(template.id)
       .then(() => {
         refreshClock();
-        // Refresh quota after instance creation
         refreshQuota?.();
         setTimeout(setCreateDisabled, 400, false);
         expandRow(template.id, true);
@@ -198,21 +165,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       .catch(() => setCreateDisabled(false));
   }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
 
-  // Add instance deletion handler with quota refresh
-  const handleInstanceDeletion = useCallback(() => {
-    // Refresh quota after any instance operation
-    refreshQuota?.();
-    refreshClock();
-  }, [refreshQuota, refreshClock]);
-
   const handleEditTemplate = () => {
     window.dispatchEvent(
       new CustomEvent('openTemplateModal', { detail: template }),
     );
   };
-
-  // Updates are handled by the workspace-level modal's submitHandler.
-  // TemplatesTableRow no longer performs update mutations directly.
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
@@ -260,9 +217,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             loading={deleteTemplateLoading}
             onClick={() =>
               deleteTemplate(template.id)
-                .then(() => setShowDeleteModalConfirm(false))
+                .then(() => {
+                  setShowDeleteModalConfirm(false);
+                  refreshQuota?.();
+                })
                 .catch(error => {
-                  // Handle 404 errors gracefully (template deletion succeeded but GraphQL can't return the deleted object)
                   const isNotFoundError =
                     error?.graphQLErrors?.[0]?.extensions?.statusCode === 404 ||
                     error?.graphQLErrors?.[0]?.extensions?.responseBody
@@ -270,13 +229,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                     error?.graphQLErrors?.[0]?.message?.includes('not found');
 
                   if (isNotFoundError) {
-                    // Template was successfully deleted, just close the modal
                     setShowDeleteModalConfirm(false);
+                    refreshQuota?.();
                     console.info(
                       `Template ${template.id} was successfully deleted (404 is expected for DELETE operations)`,
                     );
                   } else {
-                    // For other errors, use the error handler
                     console.error('Delete template error:', error);
                     apolloErrorCatcher(error);
                   }
@@ -393,7 +351,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                     let instances;
 
                     if (isPersonal) {
-                      // Filter instances by current template for personal workspaces
                       const allInstances =
                         ils.data.instanceList?.instances || [];
                       instances = allInstances.filter(
@@ -402,7 +359,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                             ?.name === template.id,
                       );
                     } else {
-                      // For non-personal workspaces, use all instances (already filtered by label selector)
                       instances = ils.data.instanceList?.instances || [];
                     }
 
@@ -488,10 +444,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                         label: `${cleanupLabels(key)}=${value}`,
                         disabled: loadingLabels,
                         onClick: () => {
+                          setCreateDisabled(true);
                           createInstance(template.id, JSON.parse(key))
                             .then(() => {
                               refreshClock();
-                              // Refresh quota after instance creation
                               refreshQuota?.();
                               setTimeout(setCreateDisabled, 400, false);
                               expandRow(template.id, true);
@@ -529,19 +485,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           )}
         </Space>
       </div>
-
-      {/* Pass the instance deletion handler to child components */}
-      {template.instances && template.instances.length > 0 && (
-        <div style={{ display: 'none' }}>
-          {/* This is a hack to pass the refresh function to instances */}
-          {template.instances.map(instance => (
-            <div
-              key={instance.name}
-              data-refresh-handler={handleInstanceDeletion}
-            />
-          ))}
-        </div>
-      )}
     </>
   );
 };

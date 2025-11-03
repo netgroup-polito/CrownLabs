@@ -97,16 +97,21 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
 
   return (
     <>
-      {/* optional compact header (keeps natural height) */}
-      {extended && showAdvanced && (
-        <div
-          style={{
-            flex: '0 0 auto',
-            height: 'fit-content',
-            overflow: 'hidden',
-          }}
-        >
+      <div
+        className={`rowInstance-bg-color ${
+          viewMode === WorkspaceRole.user && extended
+            ? 'cl-table-instance flex-grow flex-col py-0 content-between overflow-auto scrollbar'
+            : ''
+        }`}
+        style={
+          viewMode === WorkspaceRole.user && extended
+            ? { maxHeight: '50vh' }
+            : undefined
+        }
+      >
+        {extended && showAdvanced && (
           <Table
+            className="rowInstance-bg-color h-10"
             dataSource={[{}]}
             showHeader={false}
             pagination={false}
@@ -131,15 +136,18 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
               )}
             />
           </Table>
-        </div>
-      )}
-      {/* let's make a div to make this table respect it's parent object height and scroll the overflow */}
-      <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
+        )}
         <Table
+          className="rowInstance-bg-color"
           dataSource={instances}
           showHeader={false}
           pagination={false}
           size="middle"
+          rowClassName={
+            viewMode === WorkspaceRole.user && extended
+              ? ''
+              : 'rowInstance-bg-color'
+          }
           rowKey={record => record.id + (record.templateId || '')}
         >
           <Column
@@ -188,32 +196,20 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         </Table>
       </div>
       {extended && viewMode === WorkspaceRole.user && (
-        <>
-          {/* remove padding on the bottom of the button */}
-          <div
-            style={{
-              maxHeight: '10%',
-              margin: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+        <div className="w-full pt-5 flex justify-center ">
+          <Button
+            color="danger"
+            shape="round"
+            size="large"
+            icon={<DeleteOutlined />}
+            onClick={e => {
+              e.stopPropagation();
+              setShowAlert(true);
             }}
+            disabled={disabled}
           >
-            <Button
-              color="danger"
-              shape="round"
-              size="large"
-              icon={<DeleteOutlined />}
-              style={{ width: '100%', height: '80%' }}
-              onClick={e => {
-                e.stopPropagation();
-                setShowAlert(true);
-              }}
-              disabled={disabled}
-            >
-              Destroy All
-            </Button>
-          </div>
+            Destroy All
+          </Button>
           <ModalGroupDeletion
             view={WorkspaceRole.user}
             persistent={!!instances.find(i => i.persistent === true)}
@@ -223,7 +219,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
             setShow={setShowAlert}
             destroy={destroyAll}
           />
-        </>
+        </div>
       )}
     </>
   );

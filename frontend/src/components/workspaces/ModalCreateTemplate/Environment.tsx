@@ -156,14 +156,30 @@ export const Environment: FC<EnvironmentProps> = ({
       environments: environments.map((env, idx) => {
         if (idx === envIndex) {
           let gui = env.gui;
+          let rewriteUrl = env.rewriteUrl;
+          let persistent = env.persistent;
+          let disk = env.disk;
+
           switch (envType) {
             case EnvironmentType.Container:
+              gui = true;
+              rewriteUrl = false;
+              break;
+
             case EnvironmentType.Standalone:
               gui = true;
+              rewriteUrl = true;
               break;
 
             case EnvironmentType.CloudVm:
               gui = false;
+              rewriteUrl = false;
+              persistent = true;
+              disk = Math.max(disk, resources.disk.min);
+              break;
+
+            case EnvironmentType.VirtualMachine:
+              rewriteUrl = false;
               break;
           }
 
@@ -171,6 +187,9 @@ export const Environment: FC<EnvironmentProps> = ({
             ...env,
             environmentType: envType,
             gui: gui,
+            rewriteUrl: rewriteUrl,
+            persistent: persistent,
+            disk: disk,
           };
         }
         return env;
@@ -197,6 +216,38 @@ export const Environment: FC<EnvironmentProps> = ({
         return env;
       }),
     });
+  };
+
+  const getExternalImageExample = (currIndex: number): string | undefined => {
+    if (!environments) return undefined;
+    if (!environments[currIndex]) return undefined;
+
+    switch (environments[currIndex].environmentType) {
+      case EnvironmentType.Container:
+        return 'Examples: ubuntu:22.04, docker.io/library/nginx:latest';
+      case EnvironmentType.Standalone:
+        return 'Example: crownlabs/vscode-rust:v0.2.0';
+      case EnvironmentType.CloudVm:
+        return 'Example: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64.img';
+      default:
+        return undefined;
+    }
+  };
+
+  const getExternalImagePlaceholder = (currIndex: number): string => {
+    if (!environments) return 'Enter image name';
+    if (!environments[currIndex]) return 'Enter image name';
+
+    switch (environments[currIndex].environmentType) {
+      case EnvironmentType.Container:
+        return 'Enter image name (e.g., ubuntu:22.04)';
+      case EnvironmentType.Standalone:
+        return 'Enter image name (e.g., crownlabs/vscode-rust:v0.2.0)';
+      case EnvironmentType.CloudVm:
+        return 'Enter image URL (e.g., https://cloud-images.ubuntu.com/...)';
+      default:
+        return 'Enter image name';
+    }
   };
 
   return (
@@ -297,7 +348,7 @@ export const Environment: FC<EnvironmentProps> = ({
           <Form.Item
             {...restField}
             label="External Image"
-            name={[name, 'registry']}
+            name={[name, 'image']}
             required
             validateTrigger="onChange"
             rules={[
@@ -307,12 +358,12 @@ export const Environment: FC<EnvironmentProps> = ({
               },
             ]}
             {...formItemLayout}
-            extra="Examples: ubuntu:22.04, docker.io/library/nginx:latest"
+            extra={getExternalImageExample(name)}
           >
             <Input
-              placeholder="Enter image name (e.g., ubuntu:22.04)"
+              placeholder={getExternalImagePlaceholder(name)}
               suffix={
-                <Tooltip title="Image format: [registry/]repository[:tag]">
+                <Tooltip title="Image format: [registry/]repository[:tag] or URL for CloudVM">
                   <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />
                 </Tooltip>
               }
@@ -340,6 +391,27 @@ export const Environment: FC<EnvironmentProps> = ({
           </div>
         </div>
       </Form.Item>
+
+      {/* Rewrite URL toggle (per-environment) - only for Standalone */}
+      {getEnvironmentType(name) === EnvironmentType.Standalone && (
+        <Form.Item label="Rewrite URL" {...formItemLayout}>
+          <div className="flex gap-2 items-center">
+            <Form.Item
+              {...restField}
+              name={[name, 'rewriteUrl']}
+              valuePropName="checked"
+              noStyle
+            >
+              <Checkbox disabled />
+            </Form.Item>
+
+            <div className="ant-form-item-extra text-xs pt-1">
+              Rewrite incoming URLs to the application URL (required for
+              Standalone).
+            </div>
+          </div>
+        </Form.Item>
+      )}
 
       {/* CPU Slider */}
       <Form.Item
@@ -393,6 +465,7 @@ export const Environment: FC<EnvironmentProps> = ({
         parentFormName={name}
         restField={restField}
         diskResources={resources.disk}
+        isCloudVm={getEnvironmentType(name) === EnvironmentType.CloudVm}
       />
 
       {!isPersonal && (
@@ -440,7 +513,8 @@ const CloudVmAlert = () => {
   return (
     <p>
       Can be any cloud-init compatible image, but will only be accessible via
-      SSH. Suitable for server workloads and CLI applications.
+      SSH. It requires an appropriate disk and it must be persistent. 
+      Suitable for server workloads and CLI applications.
     </p>
   );
 };

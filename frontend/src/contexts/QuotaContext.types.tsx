@@ -17,6 +17,26 @@ export interface QuotaContextType {
     memory: string;
     instances: number;
   };
+
+  // setters so other parts of the app can update the context reactively
+  setConsumedQuota?: (q?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  }) => void;
+  setWorkspaceQuota?: (q?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  }) => void;
+  setAvailableQuota?: (q?: {
+    cpu: number;
+    memory: string;
+    instances: number;
+  }) => void;
+
+  // allow registering a refresh function (e.g. DashboardLogic.refetch)
+  setRefreshQuota?: (fn?: () => void) => void;
 }
 
 export interface QuotaProviderProps {

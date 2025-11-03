@@ -65,6 +65,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           memory: `${formEnv.ram * 1000}M`,
         },
         guiEnabled: formEnv.gui,
+        // preserve rewriteUrl flag from the form (matches old modal behaviour)
+        rewriteURL: formEnv.rewriteUrl ?? false,
       };
 
       // Handle persistent environments
@@ -185,24 +187,27 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           ),
         }}
       >
-        <div style={{ overflow: 'auto' }}>
+        <div className="h-full overflow-auto">
           <TemplatesTableLogic
             tenantNamespace={tenantNamespace}
             role={workspace.role}
             workspaceNamespace={workspace.namespace}
             workspaceName={workspace.name}
+            availableQuota={props.availableQuota}
+            refreshQuota={refreshQuota}
+            isPersonal={isPersonal}
           />
+          <Modal
+            destroyOnHidden={true}
+            title={`Users in ${workspace.prettyName} `}
+            width="800px"
+            open={showUserListModal}
+            footer={null}
+            onCancel={() => setShowUserListModal(false)}
+          >
+            <UserListLogic workspace={workspace} />
+          </Modal>
         </div>
-        <Modal
-          destroyOnHidden={true}
-          title={`Users in ${workspace.prettyName} `}
-          width="800px"
-          open={showUserListModal}
-          footer={null}
-          onCancel={() => setShowUserListModal(false)}
-        >
-          <UserListLogic workspace={workspace} />
-        </Modal>
       </Box>
     </>
   );

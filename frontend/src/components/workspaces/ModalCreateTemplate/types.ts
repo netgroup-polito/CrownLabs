@@ -27,6 +27,7 @@ export type TemplateFormEnv = {
   persistent: boolean;
   disk: number;
   sharedVolumeMounts: TemplateFormEnvShVol[];
+  rewriteUrl: boolean;
 };
 
 export type ChildFormItem = {

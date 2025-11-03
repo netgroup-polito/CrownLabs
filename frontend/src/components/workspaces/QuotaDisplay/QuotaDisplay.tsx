@@ -6,6 +6,7 @@ import {
 } from '@ant-design/icons';
 import type { FC } from 'react';
 import { useMemo } from 'react';
+import { parseMemoryToGB } from './useQuotaCalculation';
 import './QuotaDisplay.less';
 
 const { Text } = Typography;
@@ -15,7 +16,7 @@ export interface IQuotaDisplayProps {
     cpu?: string | number;
     memory?: string;
     instances?: number;
-  } | null; // Allow null
+  } | null;
   workspaceQuota: {
     cpu?: string | number;
     memory?: string;
@@ -23,55 +24,23 @@ export interface IQuotaDisplayProps {
   };
 }
 
-// Helper function to parse memory string (e.g., "4Gi" -> 4)
-const parseMemory = (memoryStr: string): number => {
-  if (!memoryStr) return 0;
-
-  const match = memoryStr.match(/^(\d+(?:\.\d+)?)(.*)?$/);
-  if (!match) return 0;
-
-  const value = parseFloat(match[1]);
-  const unit = match[2]?.toLowerCase() || '';
-
-  switch (unit) {
-    case 'gi':
-    case 'g':
-      return value;
-    case 'mi':
-    case 'm':
-      return value / 1024;
-    case 'ki':
-    case 'k':
-      return value / (1024 * 1024);
-    case 'ti':
-    case 't':
-      return value * 1024;
-    default:
-      // Assume GB if no unit
-      return value;
-  }
-};
-
 const QuotaDisplay: FC<IQuotaDisplayProps> = ({
   consumedQuota,
   workspaceQuota,
 }) => {
-  // Use workspaceQuota directly
   const quota = workspaceQuota;
 
-  // Calculate current usage: sum resources for each template times its running instances
   const currentUsage = useMemo(() => {
     let usedCpu = 0;
     let usedMemory = 0;
     let runningInstances = 0;
 
-    // Calculate current usage based on consumed resources
     if (consumedQuota) {
       usedCpu =
         typeof consumedQuota.cpu === 'string'
           ? parseFloat(consumedQuota.cpu) || 0
           : consumedQuota.cpu || 0;
-      usedMemory = parseMemory(consumedQuota.memory || '0');
+      usedMemory = parseMemoryToGB(consumedQuota.memory || '0');
       runningInstances = consumedQuota.instances || 0;
     }
 
@@ -82,10 +51,9 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
     };
   }, [consumedQuota]);
 
-  // Quota limits with defaults
   const quotaLimits = {
     cpu: quota?.cpu ? parseInt(String(quota.cpu)) : 8,
-    memory: quota?.memory ? parseMemory(quota.memory) : 16,
+    memory: quota?.memory ? parseMemoryToGB(quota.memory) : 16,
     instances: quota?.instances || 8,
   };
 
@@ -120,7 +88,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <DatabaseOutlined className="success-color-fg" />
               <Text strong>
-                {currentUsage.memory.toFixed(1)}/{quotaLimits.memory}
+                {currentUsage.memory.toFixed(1)}/{quotaLimits.memory.toFixed(1)}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 RAM GB
@@ -132,7 +100,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
         <Col xs={24} sm={8} style={{ height: '100%' }}>
           <div
             className="quota-metric"
-            style={{ height: '100%', display: 'flex', alignItems: 'right' }}
+            style={{ height: '100%', display: 'flex', alignItems: 'center' }}
           >
             <Space size="small">
               <CloudOutlined className="warning-color-fg" />

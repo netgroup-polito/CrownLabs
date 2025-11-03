@@ -36,6 +36,7 @@ export const getDefaultTemplateEnvironment = (
     ram: resources.ram.min,
     disk: 0,
     sharedVolumeMounts: [],
+    rewriteUrl: false,
   };
 };
 
