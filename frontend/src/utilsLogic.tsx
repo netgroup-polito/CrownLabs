@@ -101,7 +101,7 @@ const safePhaseConversion = (phase: unknown): Phase => {
 };
 
 const safePhase2Conversion = (phase: unknown): Phase2 => {
-  return (phase as Phase2) || Phase2.Off;
+  return (phase as Phase2) || Phase2.Running;
 };
 
 const safePhase5Conversion = (phase: unknown): Phase5 => {
