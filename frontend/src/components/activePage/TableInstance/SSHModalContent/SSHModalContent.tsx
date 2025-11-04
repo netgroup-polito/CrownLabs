@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { Typography, Space, List, Tag, Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { CodeOutlined } from '@ant-design/icons';
-import { Phase } from '../../../../generated-types';
+import { Phase2 } from '../../../../generated-types';
 import type { InstanceEnvironment } from '../../../../utils';
 
 const { Text } = Typography;
@@ -14,12 +14,7 @@ export interface ISSHModalContentProps {
   name?: string;
   prettyName?: string;
   onClose?: () => void;
-  environments?: Array<{
-    name: string;
-    ip?: string;
-    phase?: Phase;
-    guiEnabled?: boolean;
-  }>;
+  environments?: Array<InstanceEnvironment>;
 }
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
@@ -37,7 +32,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
   };
 
   const getEnvironmentStatus = (env: InstanceEnvironment) => {
-    const isReady = env.phase === Phase.Ready;
+    const isReady = env.phase === Phase2.Ready;
     return (
       <Tag color={isReady ? 'green' : 'red'}>
         {env.phase || 'Unknown'}
@@ -78,7 +73,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                       <Text strong>{env.name}</Text>
                       {getEnvironmentStatus(env)}
                     </div>
-                    {env.ip && env.phase === Phase.Ready ? (
+                    {env.ip && env.phase === Phase2.Ready ? (
                       <>
                       <Text type="warning" code copyable className="text-center">
                         {getSshCommand(env.ip)}

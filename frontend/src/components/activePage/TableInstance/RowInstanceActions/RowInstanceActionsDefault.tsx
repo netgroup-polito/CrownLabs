@@ -118,7 +118,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     if (!environments || environments.length <= 1) return [];
 
     return environments.map(env => {
-      const isReady = env.phase === Phase.Ready;
+      const isReady = env.phase === Phase2.Ready;
       const isGuiEnabled = env.guiEnabled;
 
       return {

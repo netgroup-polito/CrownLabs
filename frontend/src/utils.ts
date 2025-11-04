@@ -33,7 +33,7 @@ export type TemplateEnvironment = {
 
 export type InstanceEnvironment = {
   name: string;
-  phase?: Phase;
+  phase?: Phase2;
   ip?: string;
   guiEnabled?: boolean;
   persistent?: boolean;
