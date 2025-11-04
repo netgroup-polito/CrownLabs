@@ -14,7 +14,11 @@ import {
   Typography,
   Tooltip,
 } from 'antd';
-import { DeleteOutlined, LoadingOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  LoadingOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import type { RuleObject } from 'antd/lib/form';
 import { useApplyInstanceMutation } from '../../../../generated-types';
 import {
@@ -22,7 +26,7 @@ import {
   type PublicExposure,
   type PortListItem,
 } from '../../../../utils';
-import { Phase } from '../../../../generated-types';
+import { Phase2 } from '../../../../generated-types';
 const { Text } = Typography;
 
 interface IPublicExposureModalProps {
@@ -485,7 +489,7 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
                   _displayActualPort: '',
                   protocol: 'TCP',
                 });
-                
+
                 // Use Antd's scrollToField to scroll to the newly added field
                 setTimeout(() => {
                   form.scrollToField(['ports', newIndex, 'targetPort'], {
@@ -496,227 +500,254 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
               };
 
               return (
-              <>
-                <div
-                  className="ant-modal-body"
-                  style={{
-                    maxHeight: 320,
-                    overflowY: 'auto',
-                    paddingRight: 8,
-                    marginBottom: 16,
-                  }}
-                >
-                  {fields.map(({ key, name, ...restField }, index) => (
-                    <div key={key}>
-                      <Row gutter={8} align="bottom">
-                        <Col span={allowPublicExposure ? 4 : 5}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'name']}
-                            label={index === 0 ? 'Name' : ''}
-                            rules={[{ required: false }]}
-                          >
-                            <Input
-                              placeholder="Port name"
-                              disabled={isUpdating}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={allowPublicExposure ? 5 : 6}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'targetPort']}
-                            label={
-                              index === 0 ? (
-                                <span>
-                                  Internal Port{' '}
-                                  <Tooltip title="The port number inside your container where your service is listening (e.g., 8080 for a web server)">
-                                    <InfoCircleOutlined style={{ color: '#1890ff', fontSize: '10px', marginLeft: '2px' }} />
-                                  </Tooltip>
-                                </span>
-                              ) : (
-                                ''
-                              )
-                            }
-                            rules={[
-                              { required: true, message: 'Required' },
-                              {
-                                validator: (rule, value) =>
-                                  targetPortValidator(rule, value, name),
-                              },
-                            ]}
-                            validateTrigger={['onChange', 'onBlur']}
-                            hasFeedback={false}
-                            help=""
-                          >
-                            <Input
-                              placeholder="e.g. 8080"
-                              disabled={isUpdating}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={allowPublicExposure ? 4 : 6}>
-                          <Form.Item
-                            {...restField}
-                            name={[name, 'protocol']}
-                            label={
-                              index === 0 ? (
-                                <span>
-                                  Protocol{' '}
-                                  <Tooltip title="The network protocol used for communication. TCP is most common for web services, UDP for real-time applications">
-                                    <InfoCircleOutlined style={{ color: '#1890ff', fontSize: '10px', marginLeft: '2px' }} />
-                                  </Tooltip>
-                                </span>
-                              ) : (
-                                ''
-                              )
-                            }
-                            rules={[{ required: true, message: 'Required' }]}
-                            initialValue="TCP"
-                          >
-                            <Select
-                              placeholder="Select protocol"
-                              disabled={isUpdating}
-                            >
-                              <Select.Option value="TCP">TCP</Select.Option>
-                              <Select.Option value="UDP">UDP</Select.Option>
-                              <Select.Option value="SCTP">SCTP</Select.Option>
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        {allowPublicExposure && (
-                          <Col span={5}>
+                <>
+                  <div
+                    className="ant-modal-body"
+                    style={{
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      paddingRight: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {fields.map(({ key, name, ...restField }, index) => (
+                      <div key={key}>
+                        <Row gutter={8} align="bottom">
+                          <Col span={allowPublicExposure ? 4 : 5}>
                             <Form.Item
                               {...restField}
-                              name={[name, 'desiredPort']}
+                              name={[name, 'name']}
+                              label={index === 0 ? 'Name' : ''}
+                              rules={[{ required: false }]}
+                            >
+                              <Input
+                                placeholder="Port name"
+                                disabled={isUpdating}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={allowPublicExposure ? 5 : 6}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'targetPort']}
                               label={
                                 index === 0 ? (
                                   <span>
-                                    Requested Port{' '}
-                                    <Tooltip title="Specific external port you want to use. Leave empty for automatic assignment by the system">
-                                      <InfoCircleOutlined style={{ color: '#1890ff', fontSize: '10px', marginLeft: '2px' }} />
+                                    Internal Port{' '}
+                                    <Tooltip title="The port number inside your container where your service is listening (e.g., 8080 for a web server)">
+                                      <InfoCircleOutlined
+                                        style={{
+                                          color: '#1890ff',
+                                          fontSize: '10px',
+                                          marginLeft: '2px',
+                                        }}
+                                      />
                                     </Tooltip>
                                   </span>
                                 ) : (
                                   ''
                                 )
                               }
-                              rules={[{ validator: portValidator }]}
+                              rules={[
+                                { required: true, message: 'Required' },
+                                {
+                                  validator: (rule, value) =>
+                                    targetPortValidator(rule, value, name),
+                                },
+                              ]}
                               validateTrigger={['onChange', 'onBlur']}
                               hasFeedback={false}
                               help=""
                             >
-                              <Input placeholder="Auto" disabled={isUpdating} />
+                              <Input
+                                placeholder="e.g. 8080"
+                                disabled={isUpdating}
+                              />
                             </Form.Item>
                           </Col>
-                        )}
-                        {allowPublicExposure && (
-                          <Col span={5}>
+                          <Col span={allowPublicExposure ? 4 : 6}>
                             <Form.Item
                               {...restField}
-                              name={[name, '_displayActualPort']}
+                              name={[name, 'protocol']}
                               label={
                                 index === 0 ? (
                                   <span>
-                                    Assigned Port{' '}
-                                    <Tooltip title="The actual external port assigned by the system. This is the port you'll use to access your service from outside">
-                                      <InfoCircleOutlined style={{ color: '#1890ff', fontSize: '10px', marginLeft: '2px' }} />
+                                    Protocol{' '}
+                                    <Tooltip title="The network protocol used for communication. TCP is most common for web services, UDP for real-time applications">
+                                      <InfoCircleOutlined
+                                        style={{
+                                          color: '#1890ff',
+                                          fontSize: '10px',
+                                          marginLeft: '2px',
+                                        }}
+                                      />
                                     </Tooltip>
                                   </span>
                                 ) : (
                                   ''
                                 )
                               }
+                              rules={[{ required: true, message: 'Required' }]}
+                              initialValue="TCP"
                             >
-                              <Input placeholder="—" disabled={true} />
+                              <Select
+                                placeholder="Select protocol"
+                                disabled={isUpdating}
+                              >
+                                <Select.Option value="TCP">TCP</Select.Option>
+                                <Select.Option value="UDP">UDP</Select.Option>
+                                <Select.Option value="SCTP">SCTP</Select.Option>
+                              </Select>
                             </Form.Item>
                           </Col>
+                          {allowPublicExposure && (
+                            <Col span={5}>
+                              <Form.Item
+                                {...restField}
+                                name={[name, 'desiredPort']}
+                                label={
+                                  index === 0 ? (
+                                    <span>
+                                      Requested Port{' '}
+                                      <Tooltip title="Specific external port you want to use. Leave empty for automatic assignment by the system">
+                                        <InfoCircleOutlined
+                                          style={{
+                                            color: '#1890ff',
+                                            fontSize: '10px',
+                                            marginLeft: '2px',
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    </span>
+                                  ) : (
+                                    ''
+                                  )
+                                }
+                                rules={[{ validator: portValidator }]}
+                                validateTrigger={['onChange', 'onBlur']}
+                                hasFeedback={false}
+                                help=""
+                              >
+                                <Input
+                                  placeholder="Auto"
+                                  disabled={isUpdating}
+                                />
+                              </Form.Item>
+                            </Col>
+                          )}
+                          {allowPublicExposure && (
+                            <Col span={5}>
+                              <Form.Item
+                                {...restField}
+                                name={[name, '_displayActualPort']}
+                                label={
+                                  index === 0 ? (
+                                    <span>
+                                      Assigned Port{' '}
+                                      <Tooltip title="The actual external port assigned by the system. This is the port you'll use to access your service from outside">
+                                        <InfoCircleOutlined
+                                          style={{
+                                            color: '#1890ff',
+                                            fontSize: '10px',
+                                            marginLeft: '2px',
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    </span>
+                                  ) : (
+                                    ''
+                                  )
+                                }
+                              >
+                                <Input placeholder="—" disabled={true} />
+                              </Form.Item>
+                            </Col>
+                          )}
+                          <Col span={1}>
+                            <Form.Item label={index === 0 ? '\u00A0' : ''}>
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => remove(name)}
+                                disabled={isUpdating}
+                                block
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        {index < fields.length - 1 && (
+                          <Divider style={{ margin: '8px 0' }} />
                         )}
-                        <Col span={1}>
-                          <Form.Item label={index === 0 ? '\u00A0' : ''}>
-                            <Button
-                              type="text"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={() => remove(name)}
-                              disabled={isUpdating}
-                              block
-                            />
-                          </Form.Item>
-                        </Col>
-                      </Row>
-                      {index < fields.length - 1 && (
-                        <Divider style={{ margin: '8px 0' }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    ))}
+                  </div>
 
-                {(!ports || ports.length === 0) && (
-                  <Alert
-                    type="info"
-                    message="No ports configured"
-                    description="Add a port to expose your instance services to the external network. Specify the internal port of your service and optionally a request port. Note: Saving without any valid ports will remove the external IP address if one is currently assigned."
-                    showIcon
-                  />
-                )}
-
-                <Form.Item style={{ textAlign: 'center', marginTop: '24px' }}>
-                  <Button
-                    type="dashed"
-                    onClick={handleAddPort}
-                    disabled={isAddDisabled || isUpdating}
-                  >
-                    {addButtonText}
-                  </Button>
-                </Form.Item>
-
-                {error && (
-                  <Alert type="error" message={error.message} showIcon />
-                )}
-
-                {!hasValidPorts && ports && ports.length > 0 && (
-                  <Alert
-                    type="warning"
-                    message="At least one port with a valid Internal value is required to enable public exposure, or remove all ports to disable it."
-                    showIcon
-                  />
-                )}
-
-                {duplicateTargetPorts.length > 0 && (
-                  <Alert
-                    type="error"
-                    message={`Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
-                    showIcon
-                  />
-                )}
-
-                {duplicateRequestedPorts.length > 0 && (
-                  <Alert
-                    type="error"
-                    message={`Cannot request the same port multiple times. Duplicate requested ports: ${[...new Set(duplicateRequestedPorts)].join(', ')}`}
-                    showIcon
-                  />
-                )}
-
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {existingExposure?.externalIP &&
-                  existingExposure.phase !== Phase.Off ? (
-                    <span
-                      style={{
-                        textDecoration: !hasValidPorts
-                          ? 'line-through'
-                          : 'none',
-                        color: !hasValidPorts ? '#ff4d4f' : undefined,
-                      }}
-                    >
-                      External IP: {existingExposure.externalIP}
-                    </span>
-                  ) : (
-                    <span>No external IP assigned yet</span>
+                  {(!ports || ports.length === 0) && (
+                    <Alert
+                      type="info"
+                      message="No ports configured"
+                      description="Add a port to expose your instance services to the external network. Specify the internal port of your service and optionally a request port. Note: Saving without any valid ports will remove the external IP address if one is currently assigned."
+                      showIcon
+                    />
                   )}
-                </Text>
-              </>
+
+                  <Form.Item style={{ textAlign: 'center', marginTop: '24px' }}>
+                    <Button
+                      type="dashed"
+                      onClick={handleAddPort}
+                      disabled={isAddDisabled || isUpdating}
+                    >
+                      {addButtonText}
+                    </Button>
+                  </Form.Item>
+
+                  {error && (
+                    <Alert type="error" message={error.message} showIcon />
+                  )}
+
+                  {!hasValidPorts && ports && ports.length > 0 && (
+                    <Alert
+                      type="warning"
+                      message="At least one port with a valid Internal value is required to enable public exposure, or remove all ports to disable it."
+                      showIcon
+                    />
+                  )}
+
+                  {duplicateTargetPorts.length > 0 && (
+                    <Alert
+                      type="error"
+                      message={`Cannot expose the same internal port multiple times. Duplicate internal ports: ${[...new Set(duplicateTargetPorts)].join(', ')}`}
+                      showIcon
+                    />
+                  )}
+
+                  {duplicateRequestedPorts.length > 0 && (
+                    <Alert
+                      type="error"
+                      message={`Cannot request the same port multiple times. Duplicate requested ports: ${[...new Set(duplicateRequestedPorts)].join(', ')}`}
+                      showIcon
+                    />
+                  )}
+
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {existingExposure?.externalIP &&
+                    existingExposure.phase !== Phase2.Off ? (
+                      <span
+                        style={{
+                          textDecoration: !hasValidPorts
+                            ? 'line-through'
+                            : 'none',
+                          color: !hasValidPorts ? '#ff4d4f' : undefined,
+                        }}
+                      >
+                        External IP: {existingExposure.externalIP}
+                      </span>
+                    ) : (
+                      <span>No external IP assigned yet</span>
+                    )}
+                  </Text>
+                </>
               );
             }}
           </Form.List>

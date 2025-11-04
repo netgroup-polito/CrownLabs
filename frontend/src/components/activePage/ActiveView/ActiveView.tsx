@@ -22,6 +22,7 @@ export interface IActiveViewProps {
 
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const { managerView, user, workspaces } = props;
+
   const [expandAll, setExpandAll] = useState(false);
   const [collapseAll, setCollapseAll] = useState(false);
   const [destroySelectedTrigger, setDestroySelectedTrigger] = useState(false);

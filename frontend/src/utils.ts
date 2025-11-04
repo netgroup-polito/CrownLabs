@@ -1,5 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase5 } from './generated-types';
+import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
@@ -70,7 +70,7 @@ export type Instance = {
   name: string;
   prettyName: string;
   ip: string;
-  status: Phase;
+  status: Phase2;
   url: string | null;
   timeStamp: string;
   workspaceName: string;
@@ -97,7 +97,7 @@ export type SharedVolume = {
 
 export type PublicExposure = {
   externalIP: string;
-  phase: Phase;
+  phase: Phase2;
   ports: Array<PortListItem>;
 };
 
@@ -324,10 +324,11 @@ spec:
   // Ensure all required fields are present according to CRD and sanitize names
   const portsFormatted = portsNormalized.map(p => ({
     // Sanitize name: replace spaces with hyphens and remove special characters
-    name: p.name.trim()
-      .replace(/\s+/g, '-')      // Replace one or more spaces with single hyphen
-      .replace(/[^a-zA-Z0-9-]/g, '')  // Remove any non-alphanumeric characters except hyphens
-      .toLowerCase(),             // Convert to lowercase for consistency
+    name: p.name
+      .trim()
+      .replace(/\s+/g, '-') // Replace one or more spaces with single hyphen
+      .replace(/[^a-zA-Z0-9-]/g, '') // Remove any non-alphanumeric characters except hyphens
+      .toLowerCase(), // Convert to lowercase for consistency
     targetPort: p.targetPort,
     port: p.port,
     protocol: p.protocol.toUpperCase(), // Ensure uppercase protocol
@@ -349,6 +350,6 @@ spec:
   publicExposure:
     ports:
 ${yamlPorts}`;
-  
+
   return finalPatch;
 }

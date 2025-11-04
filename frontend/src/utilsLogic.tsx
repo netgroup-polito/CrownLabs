@@ -148,6 +148,10 @@ const safePhaseConversion = (phase: unknown): Phase => {
   return (phase as Phase) || Phase.Starting;
 };
 
+const safePhase2Conversion = (phase: unknown): Phase2 => {
+  return (phase as Phase2) || Phase2.Running;
+};
+
 const safePhase5Conversion = (phase: unknown): Phase5 => {
   return (phase as Phase5) || Phase5.Pending;
 };
@@ -325,7 +329,7 @@ export const makeGuiInstance = (
     ),
     environmentType: environmentType,
     ip: primaryStatus?.ip ?? status?.ip ?? '',
-    status: primaryStatus?.phase ?? status?.phase,
+    status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -336,7 +340,7 @@ export const makeGuiInstance = (
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
-    tenantDisplayName: '',
+    tenantDisplayName: userId, // Using userId as display name since tenant info is not available
     myDriveUrl: '',
     publicExposure: publicExposureObj,
     environments: environments,
@@ -646,7 +650,7 @@ export const getManagerInstances = (
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
     ip: primaryStatus?.ip ?? status?.ip,
-    status: primaryStatus?.phase ?? status?.phase,
+    status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -756,7 +760,7 @@ const makeNotificationContent = (
     content: (
       <div className="flex justify-between items-start gap-1 p-1 w-72">
         <div className="flex flex-none items-start ">
-          {status === Phase.Ready ? (
+          {status === Phase2.Ready ? (
             <CheckCircleOutlined
               className="success-color-fg mr-3"
               style={font20px}
@@ -780,8 +784,8 @@ const makeNotificationContent = (
             <div>
               Status:
               <i>
-                {status === Phase.Ready
-                  ? ' started'
+                {status === Phase2.Ready
+                  ? ' running'
                   : status === Phase2.Off && ' stopped'}
               </i>
             </div>
@@ -833,7 +837,7 @@ export const notifyStatus = (
           );
         }
         break;
-      case Phase.Ready:
+      case Phase2.Ready:
         if (instance.spec?.running) {
           notify(
             'success',
