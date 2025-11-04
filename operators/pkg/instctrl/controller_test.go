@@ -596,8 +596,21 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-enabled"
 				runInstance = true
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				// Public exposure only works with single environment templates
+				environmentList = []clv1alpha2.Environment{
+					{
+						Name:            "app-1",
+						Image:           "some-image:v0",
+						EnvironmentType: clv1alpha2.ClassContainer,
+						Persistent:      false,
+						GuiEnabled:      true,
+						Resources: clv1alpha2.EnvironmentResources{
+							CPU:                   1,
+							ReservedCPUPercentage: 20,
+							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+						},
+					},
 				}
 			})
 
@@ -739,8 +752,21 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-removal"
 				runInstance = true
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				// Public exposure only works with single environment templates
+				environmentList = []clv1alpha2.Environment{
+					{
+						Name:            "app-1",
+						Image:           "some-image:v0",
+						EnvironmentType: clv1alpha2.ClassContainer,
+						Persistent:      false,
+						GuiEnabled:      true,
+						Resources: clv1alpha2.EnvironmentResources{
+							CPU:                   1,
+							ReservedCPUPercentage: 20,
+							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+						},
+					},
 				}
 			})
 

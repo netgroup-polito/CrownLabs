@@ -58,7 +58,17 @@ var _ = Describe("PublicExposure", func() {
 		}
 		template = &clv1alpha2.Template{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-template", Namespace: "test-ns"},
-			Spec:       clv1alpha2.TemplateSpec{AllowPublicExposure: true},
+			Spec: clv1alpha2.TemplateSpec{
+				AllowPublicExposure: true,
+				EnvironmentList: []clv1alpha2.Environment{
+					{
+						Name:            "main",
+						Image:           "test-image:latest",
+						EnvironmentType: clv1alpha2.ClassContainer,
+						GuiEnabled:      true,
+					},
+				},
+			},
 		}
 		instance = &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-instance", Namespace: "test-ns"},
