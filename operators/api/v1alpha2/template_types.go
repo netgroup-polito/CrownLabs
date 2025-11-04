@@ -85,6 +85,10 @@ type TemplateSpec struct {
 	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
 	Scope EnvironmentScope `json:"scope,omitempty"`
 
+	// +kubebuilder:default=false
+	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
+	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
+
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
 	// +kubebuilder:default="never"
 	// The maximum period of inactivity after which an Instance referencing

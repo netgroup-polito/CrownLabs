@@ -6,7 +6,10 @@ query workspaceTemplates($workspaceNamespace: String!) {
       spec {
         prettyName
         description
+        allowPublicExposure
         environmentList {
+          environmentType
+          image
           guiEnabled
           persistent
           nodeSelector

@@ -8,7 +8,9 @@ import {
   InMemoryCache,
   split,
   type NormalizedCacheObject,
+  from,
 } from '@apollo/client';
+import { onError } from '@apollo/client/link/error';
 import {
   type FC,
   type PropsWithChildren,
@@ -62,18 +64,45 @@ const ApolloClientSetup: FC<PropsWithChildren> = props => {
         }),
       );
 
+      // remove only the exact "Expected Iterable ... Spec6.environmentList" GraphQL error
+      const removeSpecificEnvListErrorLink = onError(
+        ({ graphQLErrors, response }) => {
+          if (!graphQLErrors || !response) return;
+
+          const remaining = graphQLErrors.filter(err => {
+            const msg = typeof err?.message === 'string' ? err.message : '';
+            const path = Array.isArray(err?.path) ? err.path : [];
+
+            const isExactEnvListError =
+              msg.includes('Expected Iterable') &&
+              path.length === 4 &&
+              path[0] === 'updatedTemplate' &&
+              path[1] === 'template' &&
+              path[2] === 'spec' &&
+              path[3] === 'environmentList';
+
+            return !isExactEnvListError;
+          });
+
+          response.errors = remaining.length ? remaining : undefined;
+        },
+      );
+
       const newClient = new ApolloClient({
-        link: split(
-          ({ query }) => {
-            const { kind, operation }: Definition = getMainDefinition(query);
-            // If this is a subscription query, use wsLink, otherwise use httpLink
-            return (
-              kind === 'OperationDefinition' && operation === 'subscription'
-            );
-          },
-          wsLink,
-          httpLink,
-        ),
+        link: from([
+          removeSpecificEnvListErrorLink,
+          split(
+            ({ query }) => {
+              const { kind, operation }: Definition = getMainDefinition(query);
+              // If this is a subscription query, use wsLink, otherwise use httpLink
+              return (
+                kind === 'OperationDefinition' && operation === 'subscription'
+              );
+            },
+            wsLink,
+            httpLink,
+          ),
+        ]),
         cache: new InMemoryCache(),
       });
 

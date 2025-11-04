@@ -2,12 +2,13 @@ import {
   CodeOutlined,
   DesktopOutlined,
   PlayCircleOutlined,
+  SelectOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
 import type { FetchResult } from '@apollo/client';
 import type { FC } from 'react';
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useState, useMemo } from 'react';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
@@ -17,6 +18,7 @@ import type {
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
+  useOwnedInstancesQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
@@ -24,12 +26,20 @@ import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
+import { parseMemoryToGB } from '../../QuotaDisplay/useQuotaCalculation';
 
 export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
   totalInstances: number;
-  editTemplate: (id: string) => void;
+  tenantNamespace: string;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  refreshQuota?: () => void;
+  isPersonal?: boolean;
   deleteTemplate: (
     id: string,
   ) => Promise<
@@ -42,7 +52,7 @@ export interface ITemplatesTableRowProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: Record<string, string>,
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -53,10 +63,42 @@ export interface ITemplatesTableRowProps {
   expandRow: (value: string, create: boolean) => void;
 }
 
-const convertInG = (s: string) =>
+const convertMemory = (s: string): string =>
   s.includes('M') && Number(s.split('M')[0]) >= 1000
     ? `${Number(s.split('M')[0]) / 1000}G`
     : s;
+
+const canCreateInstance = (
+  template: Template,
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  },
+): boolean => {
+  // If no quota defined, default to allowing creation
+  if (!availableQuota) return true;
+
+  const templateCpu = template.resources?.cpu || 0;
+  const availableCpu =
+    availableQuota.cpu !== undefined
+      ? typeof availableQuota.cpu === 'string'
+        ? parseFloat(availableQuota.cpu)
+        : availableQuota.cpu
+      : 0;
+
+  const templateMemory = parseMemoryToGB(template.resources?.memory || '0');
+  const availableMemory = parseMemoryToGB(availableQuota.memory || '0');
+
+  const availableInstances =
+    availableQuota.instances !== undefined ? availableQuota.instances : 0;
+
+  return (
+    templateCpu <= availableCpu &&
+    templateMemory <= availableMemory &&
+    1 <= availableInstances
+  );
+};
 
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   const {
@@ -64,11 +106,20 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     role,
     totalInstances,
     createInstance,
-    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     expandRow,
+    tenantNamespace,
+    availableQuota,
+    refreshQuota,
+    isPersonal,
   } = props;
+
+  // Memoize the quota check to be reactive to availableQuota changes
+  const canCreate = useMemo(
+    () => canCreateInstance(template, availableQuota),
+    [template, availableQuota],
+  );
 
   const {
     data: labelsData,
@@ -88,6 +139,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       fetchPolicy: 'network-only',
     });
 
+  const { refetch: refetchOwnedInstances } = useOwnedInstancesQuery({
+    onError: apolloErrorCatcher,
+    variables: {
+      tenantNamespace: tenantNamespace || '',
+    },
+    skip: true,
+    fetchPolicy: 'network-only',
+  });
+
   const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
     useState(false);
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
@@ -98,11 +158,18 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     createInstance(template.id)
       .then(() => {
         refreshClock();
+        refreshQuota?.();
         setTimeout(setCreateDisabled, 400, false);
         expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
-  }, [createInstance, expandRow, refreshClock, template.id]);
+  }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
+
+  const handleEditTemplate = () => {
+    window.dispatchEvent(
+      new CustomEvent('openTemplateModal', { detail: template }),
+    );
+  };
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
@@ -150,8 +217,28 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             loading={deleteTemplateLoading}
             onClick={() =>
               deleteTemplate(template.id)
-                .then(() => setShowDeleteModalConfirm(false))
-                .catch(console.warn)
+                .then(() => {
+                  setShowDeleteModalConfirm(false);
+                  refreshQuota?.();
+                })
+                .catch(error => {
+                  const isNotFoundError =
+                    error?.graphQLErrors?.[0]?.extensions?.statusCode === 404 ||
+                    error?.graphQLErrors?.[0]?.extensions?.responseBody
+                      ?.code === 404 ||
+                    error?.graphQLErrors?.[0]?.message?.includes('not found');
+
+                  if (isNotFoundError) {
+                    setShowDeleteModalConfirm(false);
+                    refreshQuota?.();
+                    console.info(
+                      `Template ${template.id} was successfully deleted (404 is expected for DELETE operations)`,
+                    );
+                  } else {
+                    console.error('Delete template error:', error);
+                    apolloErrorCatcher(error);
+                  }
+                })
             }
           >
             {!deleteTemplateLoading && 'Delete'}
@@ -174,7 +261,16 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               ) : (
                 <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
               )}
-              <label className="ml-3 cursor-pointer">{template.name}</label>
+              <label className="ml-3 cursor-pointer">
+                <Space>
+                  {template.name}
+                  {template.allowPublicExposure && (
+                    <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
+                      <SelectOutlined className="text-fuchsia-400" />
+                    </Tooltip>
+                  )}
+                </Space>
+              </label>
               {template.persistent && (
                 <Tooltip
                   title={
@@ -220,16 +316,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             placement="left"
             title={
               <>
+                <div>CPU: {template.resources.cpu || 'unavailable'}vCPU(s)</div>
                 <div>
-                  CPU: {template.resources.cpu || 'unavailable'} core(s)
-                </div>
-                <div>
-                  RAM: {convertInG(template.resources.memory) || 'unavailable'}B
+                  RAM:{' '}
+                  {convertMemory(template.resources.memory) || 'unavailable'}B
                 </div>
                 <div>
                   {template.persistent
                     ? ` DISK: ${
-                        convertInG(template.resources.disk) || 'unavailable'
+                        convertMemory(template.resources.disk) || 'unavailable'
                       }B`
                     : ``}
                 </div>
@@ -243,12 +338,31 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           {role === WorkspaceRole.manager ? (
             <TemplatesTableRowSettings
               id={template.id}
+              template={template}
               createInstance={createInstance}
-              editTemplate={editTemplate}
+              editTemplate={handleEditTemplate}
               deleteTemplate={() => {
-                refetchInstancesLabelSelector()
+                const refetchQuery = isPersonal
+                  ? refetchOwnedInstances
+                  : refetchInstancesLabelSelector;
+
+                refetchQuery()
                   .then(ils => {
-                    if (!ils.data.instanceList?.instances!.length && !ils.error)
+                    let instances;
+
+                    if (isPersonal) {
+                      const allInstances =
+                        ils.data.instanceList?.instances || [];
+                      instances = allInstances.filter(
+                        instance =>
+                          instance?.spec?.templateCrownlabsPolitoItTemplateRef
+                            ?.name === template.id,
+                      );
+                    } else {
+                      instances = ils.data.instanceList?.instances || [];
+                    }
+
+                    if (!instances?.length && !ils.error)
                       setShowDeleteModalConfirm(true);
                     else setShowDeleteModalNotPossible(true);
                   })
@@ -267,17 +381,28 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               />
             </Tooltip>
           )}
-          {instancesLimit === totalInstances ? (
+          {instancesLimit === totalInstances || !canCreate ? (
             <Tooltip
               overlayClassName="w-44"
               title={
                 <>
                   <div className="text-center">
-                    You have <b>reached your limit</b> of {instancesLimit}{' '}
-                    instances
-                  </div>
-                  <div className="text-center mt-2">
-                    Please <b>delete</b> an instance to create a new one
+                    {!canCreate ? (
+                      <>
+                        <div>Not enough resources available.</div>
+                        <div>Check your workspace quota usage.</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          You have <b>reached your limit</b> of {instancesLimit}{' '}
+                          instances
+                        </div>
+                        <div className="text-center mt-2">
+                          Please <b>delete</b> an instance to create a new one
+                        </div>
+                      </>
+                    )}
                   </div>
                 </>
               }
@@ -286,7 +411,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                 <Button
                   onClick={createInstanceHandler}
                   className="hidden xs:block pointer-events-none"
-                  disabled={totalInstances === instancesLimit || createDisabled}
+                  disabled={
+                    totalInstances === instancesLimit ||
+                    createDisabled ||
+                    !canCreate
+                  }
                   type="primary"
                   shape="round"
                   size={'middle'}
@@ -315,9 +444,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                         label: `${cleanupLabels(key)}=${value}`,
                         disabled: loadingLabels,
                         onClick: () => {
-                          createInstance(template.id, { [key]: value })
+                          setCreateDisabled(true);
+                          createInstance(template.id, JSON.parse(key))
                             .then(() => {
                               refreshClock();
+                              refreshQuota?.();
                               setTimeout(setCreateDisabled, 400, false);
                               expandRow(template.id, true);
                             })
@@ -326,8 +457,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       })) || [],
               }}
               onClick={createInstanceHandler}
-              // className="hidden xs:block"
-              disabled={totalInstances === instancesLimit || createDisabled}
+              disabled={
+                totalInstances === instancesLimit ||
+                createDisabled ||
+                !canCreate
+              }
               type="primary"
               size={'middle'}
             >
@@ -337,7 +471,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <Button
               onClick={createInstanceHandler}
               className="hidden xs:block"
-              disabled={totalInstances === instancesLimit || createDisabled}
+              disabled={
+                totalInstances === instancesLimit ||
+                createDisabled ||
+                !canCreate
+              }
               type="primary"
               shape="round"
               size={'middle'}

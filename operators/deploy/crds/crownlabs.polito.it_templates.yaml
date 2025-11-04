@@ -69,6 +69,11 @@ spec:
             description: TemplateSpec is the specification of the desired state of
               the Template.
             properties:
+              allowPublicExposure:
+                default: false
+                description: Whether the Template has the authorization to be Public
+                  Exposed or not, using a LoadBalancer service.
+                type: boolean
               deleteAfter:
                 default: never
                 description: |-

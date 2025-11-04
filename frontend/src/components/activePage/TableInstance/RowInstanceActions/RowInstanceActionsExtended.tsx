@@ -1,9 +1,12 @@
 import type { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Typography } from 'antd';
+import { useState } from 'react';
+import { Badge, Popover, Tooltip, Typography } from 'antd';
 import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
+import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
-import { EnvironmentType, Phase } from '../../../../generated-types';
+import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
+import { EnvironmentType, Phase2 } from '../../../../generated-types';
 import { Link } from 'react-router-dom';
 import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
@@ -32,6 +35,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
+  const [showExposureModal, setShowExposureModal] = useState(false);
   const {
     ip,
     environmentType,
@@ -44,9 +48,19 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   } = instance;
 
   const sshDisabled =
-    status !== Phase.Ready ||
+    status !== Phase2.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
+
+  // Disable Public Exposure if instance is not ready
+  const publicExposureDisabled = status !== Phase2.Ready;
+
+  const getPublicExposureTooltipText = () => {
+    if (publicExposureDisabled) {
+      return 'Instance must be ready in order to request a Public Exposure';
+    }
+    return 'Manage Public Exposure';
+  };
 
   const ENV_PLACEHOLDER = 'env';
 
@@ -97,7 +111,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === Phase.Ready, environmentType!)}
+          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -138,7 +152,42 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             </Button>
           </span>
         </Tooltip>
+
+        {instance.allowPublicExposure && (
+          <Tooltip title={getPublicExposureTooltipText()}>
+            <Badge
+              count={(instance.publicExposure?.ports ?? []).length}
+              showZero={false}
+              size="small"
+              offset={[-8, 8]}
+            >
+              <Button
+                className="hidden mr-3 xl:inline-block"
+                shape="circle"
+                icon={<SelectOutlined style={{ fontSize: '16px' }} />}
+                onClick={() =>
+                  publicExposureDisabled
+                    ? undefined
+                    : setShowExposureModal(true)
+                }
+                disabled={publicExposureDisabled}
+              />
+            </Badge>
+          </Tooltip>
+        )}
       </div>
+      {instance.allowPublicExposure && showExposureModal && (
+        <PublicExposureModal
+          open={showExposureModal}
+          onCancel={() => setShowExposureModal(false)}
+          allowPublicExposure={instance.allowPublicExposure}
+          existingExposure={instance.publicExposure}
+          instanceId={instance.name}
+          instancePrettyName={instance.prettyName || instance.name}
+          tenantNamespace={instance.tenantNamespace}
+          manager={instance.tenantId}
+        />
+      )}
     </>
   );
 };

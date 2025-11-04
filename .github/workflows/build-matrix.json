@@ -35,10 +35,10 @@
         "harbor-project": "crownlabs-core"
     },
     {
-        "component": "webssh-bastion",
+        "component": "webssh",
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
-        "build-args": "COMPONENT=webssh-bastion",
+        "build-args": "COMPONENT=webssh",
         "harbor-project": "crownlabs-core"
     },
     {

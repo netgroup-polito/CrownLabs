@@ -20,8 +20,16 @@ export interface ITemplatesTableProps {
   totalInstances: number;
   tenantNamespace: string;
   workspaceNamespace: string;
+  workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
+  availableQuota?: {
+    cpu?: string | number;
+    memory?: string;
+    instances?: number;
+  };
+  refreshQuota?: () => void; // Add refresh function
+  isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
     id: string,
@@ -35,7 +43,7 @@ export interface ITemplatesTableProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: Record<string, string>,
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -48,12 +56,15 @@ export interface ITemplatesTableProps {
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
     totalInstances,
+    tenantNamespace,
     templates,
     role,
-    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
+    availableQuota,
+    refreshQuota,
+    isPersonal,
   } = props;
 
   const { hasSSHKeys } = useContext(TenantContext);
@@ -70,11 +81,14 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           template={record}
           role={role}
           totalInstances={totalInstances}
-          editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
+          tenantNamespace={tenantNamespace}
+          availableQuota={availableQuota}
+          refreshQuota={refreshQuota} // Pass refresh function
+          isPersonal={isPersonal}
         />
       ),
     },
@@ -89,43 +103,38 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   }, [expandedId]);
 
   return (
-    <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
-      <Table
-        size="middle"
-        showHeader={false}
-        rowKey={record => record.id}
-        columns={columns}
-        dataSource={templates}
-        pagination={false}
-        expandable={{
-          onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
-          rowExpandable: record => !!record.instances.length,
-          expandedRowKeys: expandedId,
-          expandIcon: ({ expanded, onExpand, record }) =>
-            record.instances.length ? (
-              <CaretRightOutlined
-                className="transition-icon"
-                onClick={e => onExpand(record, e)}
-                rotate={expanded ? 90 : 0}
-              />
-            ) : (
-              false
-            ),
-          /**
-           * Here we render the expandable content, for example with a nested Table
-           */
-          expandedRowRender: template => (
-            <TableInstance
-              showGuiIcon={false}
-              viewMode={WorkspaceRole.user}
-              extended={false}
-              instances={template.instances}
-              hasSSHKeys={hasSSHKeys}
+    <Table
+      size="middle"
+      showHeader={false}
+      rowKey={record => record.id}
+      columns={columns}
+      dataSource={templates}
+      pagination={false}
+      expandable={{
+        onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
+        rowExpandable: record => !!record.instances.length,
+        expandedRowKeys: expandedId,
+        expandIcon: ({ expanded, onExpand, record }) =>
+          record.instances.length ? (
+            <CaretRightOutlined
+              className="transition-icon"
+              onClick={e => onExpand(record, e)}
+              rotate={expanded ? 90 : 0}
             />
+          ) : (
+            false
           ),
-        }}
-      />
-    </div>
+        expandedRowRender: template => (
+          <TableInstance
+            showGuiIcon={false}
+            viewMode={WorkspaceRole.user}
+            extended={false}
+            instances={template.instances}
+            hasSSHKeys={hasSSHKeys}
+          />
+        ),
+      }}
+    />
   );
 };
 

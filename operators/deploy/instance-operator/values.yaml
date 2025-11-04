@@ -56,6 +56,18 @@ configurations:
     enableExpirationNotifications: true
     inactiveTerminationNotificationInterval: "24h"
     expirationNotificationInterval: "24h"
+  publicExposure:
+    # The IP pool used to assign public IPs to instances.
+    # Specify IPs as ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30"
+    ipPool:
+      - "172.18.0.240-172.18.0.249"
+      - "172.18.0.250/30"
+    # Common annotations to be added to all LoadBalancer services
+    # Format: "key1=val1,key2=val2"
+    commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Annotation key for specifying LoadBalancer IPs
+    loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+      
 
 image:
   repository: crownlabs/instance-operator
@@ -93,6 +105,6 @@ resources:
 webssh:
   masterKey:
     secretName: crownlabs-bastion-operator-web-master-key
-    keyName: webssh-bastion-master
+    keyName: webssh-master
 
 rbacResourcesName: crownlabs-instance-operator

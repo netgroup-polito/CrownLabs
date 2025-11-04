@@ -61,6 +61,11 @@ spec:
             description: TenantSpec is the specification of the desired state of the
               Tenant.
             properties:
+              createPersonalWorkspace:
+                default: false
+                description: Whether a personal workspace should be created for the
+                  tenant
+                type: boolean
               createSandbox:
                 default: false
                 description: |-
@@ -216,6 +221,10 @@ spec:
                 required:
                 - created
                 type: object
+              personalWorkspaceCreated:
+                description: Whether a personal workspace has been created for the
+                  tenant.
+                type: boolean
               quota:
                 description: The amount of resources associated with this Tenant,
                   either inherited from the Workspaces in which he/she is enrolled,
@@ -286,6 +295,7 @@ spec:
             required:
             - keycloak
             - personalNamespace
+            - personalWorkspaceCreated
             - ready
             - sandboxNamespace
             type: object

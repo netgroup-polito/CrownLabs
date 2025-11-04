@@ -16,10 +16,28 @@ query ownedInstances($tenantNamespace: String!) {
         url
         nodeName
         nodeSelector
+        publicExposure {
+          externalIP
+          phase
+          ports {
+            name
+            port
+            protocol
+            targetPort
+          }
+        }
       }
       spec {
         running
         prettyName
+        publicExposure {
+          ports {
+            name
+            port
+            targetPort
+            protocol
+          }
+        }
         templateCrownlabsPolitoItTemplateRef {
           name
           namespace
@@ -28,10 +46,16 @@ query ownedInstances($tenantNamespace: String!) {
               spec {
                 prettyName
                 description
+                allowPublicExposure
                 environmentList {
                   guiEnabled
                   persistent
                   environmentType
+                  resources {
+                    cpu
+                    memory
+                    disk
+                  }
                 }
               }
             }

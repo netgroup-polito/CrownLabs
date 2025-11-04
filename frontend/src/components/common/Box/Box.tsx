@@ -46,7 +46,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
             </div>
           )}
         </div>
-        <div className="w-full flex-grow">{children}</div>
+        <div className="w-full flex-grow overflow-auto">{children}</div>
         <div className="w-full flex-none inner">{footer}</div>
       </Card>
     </>

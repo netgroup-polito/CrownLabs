@@ -63,7 +63,7 @@ generate: controller-gen
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -74,7 +74,10 @@ run-instance: generate
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
-				--container-env-sidecars-tag=v0.14.5
+				--container-env-sidecars-tag=v0.14.5\
+				--public-exposure-ip-pool="172.18.0.240-172.18.0.248,172.18.0.249,172.18.0.250/30"\
+				--public-exposure-common-annotations="metallb.universe.tf/allow-shared-ip=pe"\
+				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"
 
 run-instance-automation: generate
 	go run cmd/instance-automation/main.go\
