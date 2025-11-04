@@ -164,6 +164,7 @@ spec:
             - --mail-template-dir={{ .Values.configurations.mailTemplateDir }}
             - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}
             - --enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}
+            - --margin-time={{ .Values.configurations.automation.marginTime }}
           ports:
             - name: auto-metrics
               containerPort: 8080

@@ -49,6 +49,7 @@ type InstanceExpirationReconciler struct {
 	EnableExpirationNotifications bool
 	MailClient                    *mail.Client
 	NotificationInterval          time.Duration
+	MarginTime                    time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -174,9 +175,9 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Calculate requeue time at the instance inactive deadline time:
 	// if the instance is not yet to be terminated, we requeue it after the remaining time
 	requeueTime := remainingTime
-	// add 1 minute to the remaining time to avoid requeueing just before the deadline
+	// add margin time to the remaining time to avoid requeueing just before the deadline
 	// avoiding a double requeue
-	requeueTime += 1 * time.Minute
+	requeueTime += r.MarginTime
 	dbgLog.Info("Remaining time before expiration", "remainingTime", remainingTime.String(), "instance", instance.Name, "namespace", instance.Namespace)
 
 	dbgLog.Info("requeueing instance")
