@@ -596,7 +596,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-enabled"
 				runInstance = true
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
 			})
 
 			JustBeforeEach(func() {
@@ -655,7 +657,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-disabled"
 				runInstance = true
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
 			})
 
 			JustBeforeEach(func() {
@@ -691,7 +695,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-not-running"
 				runInstance = false
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
 			})
 
 			JustBeforeEach(func() {
@@ -733,7 +739,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-public-exposure-removal"
 				runInstance = true
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
 			})
 
 			It("Should remove LoadBalancer service when public exposure is disabled", func() {
