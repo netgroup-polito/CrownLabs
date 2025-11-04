@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: instances.crownlabs.polito.it
 spec:
   group: crownlabs.polito.it
@@ -120,9 +120,7 @@ spec:
                           minimum: 0
                           type: integer
                         protocol:
-                          allOf:
-                          - default: TCP
-                          - default: TCP
+                          default: TCP
                           description: The port protocol
                           enum:
                           - TCP
@@ -323,9 +321,7 @@ spec:
                           minimum: 0
                           type: integer
                         protocol:
-                          allOf:
-                          - default: TCP
-                          - default: TCP
+                          default: TCP
                           description: The port protocol
                           enum:
                           - TCP
