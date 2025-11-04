@@ -177,11 +177,41 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     return true;
   };
 
+  const deleteUser = async (user: UserAccountPage) => {
+    try {
+      setLoadingSpinner(true);
+      // Remove workspace from user in kubernetes
+      await applyTenantMutation({
+        variables: {
+          tenantId: user.userid,
+          patchJson: getTenantPatchJson({
+            workspaces: users
+              .find(u => u.userid === user.userid)!
+              .workspaces?.filter(w => w.name !== workspace.name)
+              .map(({ name, role }) => ({ name, role })),
+          }),
+          manager: getManager(),
+        },
+        onError: apolloErrorCatcher,
+      });
+      // Remove workspace from user in local state
+      user.workspaces?.filter(w => w.name === workspace.name);
+      setUsers(users.filter(u => u.userid !== user.userid));
+    } catch (error) {
+      genericErrorCatcher(error as SupportedError);
+      setLoadingSpinner(false);
+      return false;
+    }
+    setLoadingSpinner(false);
+    return true;
+  }
+
   return !loading && data && !error ? (
     <>
       <UserList
         users={users}
         onAddUser={addUser}
+        onDeleteUser={deleteUser}
         onUpdateUser={updateUser}
         workspaceNamespace={workspace.namespace}
         workspaceName={workspace.name}
