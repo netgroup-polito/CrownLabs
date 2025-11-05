@@ -577,13 +577,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
-				if err != nil {
-					return false
-				}
-				return currentInstance.Spec.Running
-			}, timeout, interval).Should(BeTrue(), "The instance should be running")
+			Expect(currentInstance.Spec.Running).To(BeTrue(), "The instance should be running")
 		})
 
 	})

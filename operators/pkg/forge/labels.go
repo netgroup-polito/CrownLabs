@@ -89,6 +89,9 @@ const (
 
 	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.
 	ExpiringWarningNotificationAnnotation = "crownlabs.polito.it/sent-expiring-warning-notification"
+
+	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
+	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,

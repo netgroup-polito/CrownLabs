@@ -127,6 +127,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	tracer.Step("expiration checked")
+	log.Info("Evaluate remaining time untill expiration", remainingTime, instance.Name)
 
 	if remainingTime <= 0 {
 		tenant := pkgcontext.TenantFrom(ctx)
@@ -186,6 +187,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 // ShouldTerminateInstance checks if the instance should be terminated.
 func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Context) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("should-terminate-expiration")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
 		return false, fmt.Errorf("instance not found in context")
@@ -193,6 +195,19 @@ func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Conte
 
 	if r.EnableExpirationNotifications {
 		if _, ok := instance.Annotations[forge.ExpiringWarningNotificationAnnotation]; !ok {
+			return false, nil
+		}
+	}
+
+	// Check if enough time is passed since the warning notification
+	if timestampStr, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
+		timestampWarning, err := time.Parse(time.RFC3339, timestampStr)
+		if err != nil {
+			return false, fmt.Errorf("failed to parse expiring warning notification timestamp: %w", err)
+		}
+
+		if time.Since(timestampWarning) < r.NotificationInterval {
+			log.Info("Not enough time passed since warning notification, skipping termination for expiration", "instance", instance.Name)
 			return false, nil
 		}
 	}
@@ -288,6 +303,8 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 		instance.Annotations = make(map[string]string)
 	}
 	instance.Annotations[forge.ExpiringWarningNotificationAnnotation] = "true"
+	instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
 	}
