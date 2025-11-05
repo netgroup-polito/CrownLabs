@@ -46,11 +46,11 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
 		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfterNonPersistent       = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutNonPersistent = "1m"
+		CustomInactivityTimeoutNonPersistent = "0m"
 		CustomDeleteAfterPersistent2         = instautoctrl.NeverTimeoutValue
 		CustomInactivityTimeoutPersistent2   = "0m"
 
-		timeout  = time.Second * 150
+		timeout  = time.Second * 60
 		interval = time.Millisecond * 500
 	)
 
@@ -572,9 +572,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Getting current instance")
 			currentInstance := &crownlabsv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			//Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
-			// doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {
