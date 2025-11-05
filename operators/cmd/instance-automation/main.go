@@ -95,7 +95,7 @@ func main() {
 	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 	expirationNotificationInterval := flag.Duration("expiration-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 
-	marginTime := flag.Duration("margin-time", 1*time.Minute, "The margin time to add to operations involving time comparisons to avoid edge cases due to delays")
+	marginTime := flag.Duration("margin-time", 20*time.Second, "The margin time to add to operations involving time comparisons to avoid edge cases due to delays")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")

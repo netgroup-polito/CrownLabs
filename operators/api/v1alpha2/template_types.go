@@ -63,7 +63,7 @@ type TemplateSpec struct {
 	// The list of environments (i.e. VMs or containers) that compose the Template.
 	EnvironmentList []Environment `json:"environmentList"`
 
-	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
 	// +kubebuilder:default="never"
 
 	// The maximum lifetime of an Instance referencing the current Template.
@@ -76,7 +76,7 @@ type TemplateSpec struct {
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
 	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
 	// +kubebuilder:default="never"
 	// The maximum period of inactivity after which an Instance referencing
 	// the current Template will be automatically stopped or deleted to
