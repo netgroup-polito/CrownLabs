@@ -192,12 +192,12 @@ Below you will find a concise description of the reconcile flow, the assignment 
 - `pkg/utils/ip.go` — helpers for parsing IP pools (CIDR, ranges, single IPs) via `ParseIPPool`. Utilities currently target IPv4.
 - `pkg/forge/loadbalancers.go` — helpers that build metadata, names, labels and annotations for LoadBalancer Services; labels used to filter relevant Services are defined here and some values are configurable via Helm.
 
-References
+#### References
 - CRD fields( [Instance](deploy/crds/crownlabs.polito.it_instances.yaml) and [Template](deploy/crds/crownlabs.polito.it_templates.yaml)): `Instance.spec.publicExposure` and `Instance.status.publicExposure`; `Template.spec.allowPublicExposure` enables the feature per-template.
 - [Helm values](deploy/instance-operator/values.yaml) : see `configurations.publicExposure` below.
 - [Deployment template](deploy/instance-operator/templates/deployment.yaml) : the flag `--public-exposure-loadbalancer-ips-key=...` passes the annotation key.
 
-Assignment logic (high level)
+#### Assignment logic (high level)
 1) IP pool
   The pool of available public IPs is configured via Helm and passed to the operator in `PublicExposureOpts.IPPool`. Pool entries may be CIDRs, ranges or single IPs; parsing is performed by `operators/pkg/utils/ip.go::ParseIPPool`.
 
@@ -216,8 +216,8 @@ Assignment logic (high level)
 6) Status and network policy
   After the Service is ready, the operator updates `instance.Status.PublicExposure` with the `ExternalIP` and the assigned ports, and creates the needed `NetworkPolicy` to allow traffic to the Instance (`pkg/instctrl/networkpolicy.go`).
 
-Helm
-- The public exposure configuration lives in the instance-operator values chart under `configurations.publicExposure`.
+#### Helm
+The public exposure configuration is in the instance-operator values chart under `configurations.publicExposure`.
   ```yaml
   configurations:
     publicExposure:
@@ -231,19 +231,20 @@ Helm
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
   ```
 
-Validation and controls
+#### Validation and controls
 - Requests are validated by `ValidatePublicExposureRequest` (checks for duplicates, ranges, protocols, etc.).
 - If a request is invalid, `PublicExposure` status is set to `Error` and an explanatory message is recorded.
 
-Notes and operational caveats
+#### Notes and operational caveats
 - Requirement: MetalLB (or another LoadBalancer controller that supports the used annotation mechanism) must be installed to make this feature work out-of-the-box.
 - Port-request priority: the allocator prefers to satisfy explicitly requested ports before assigning automatic/random ports. In corner cases where a user requests a specific port on an Instance that previously had that port assigned automatically, the allocator may reassign the old automatic port to the new explicit request and select a different automatic port for the previous service.
 - Enabling public exposure: the feature is available only for Instances that reference Templates with `spec.allowPublicExposure: true`.
 
-
+#### Run-time configuration example
+When a user configures a new public exposure for his VM/container, the controller automatically generates a set of YAML configurations in order to allow the system to work.
 Below is a minimal example that follows the Instance CRD schema in `deploy/crds/crownlabs.polito.it_instances.yaml`.
 
-Instance spec (CRD-compliant example)
+##### Instance spec (CRD-compliant example)
 ```yaml
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Instance
@@ -263,7 +264,7 @@ spec:
         port: 2222     # explicit external port requested
 ```
 
-Expected status after reconcile (CRD-compliant example)
+##### Expected status after reconcile (CRD-compliant example)
 ```yaml
 kind: Instance
 metadata:
