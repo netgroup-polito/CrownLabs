@@ -127,7 +127,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	tracer.Step("expiration checked")
-	log.Info("Evaluate remaining time untill expiration", remainingTime, instance.Name)
+	log.Info("Evaluate remaining time until expiration", remainingTime, instance.Name)
 
 	if remainingTime <= 0 {
 		tenant := pkgcontext.TenantFrom(ctx)
