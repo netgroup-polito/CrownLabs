@@ -501,48 +501,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Checking the instance is deleted")
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
 		})
-		// It("The persistent VM is inactive for a long time and it is stopped", func() {
-		// 	mockProm.EXPECT().
-		// 		IsPrometheusHealthy(gomock.Any(), gomock.Any()).
-		// 		Return(true, nil).
-		// 		AnyTimes()
 
-		// 	mockProm.EXPECT().
-		// 		GetLastActivityTime(gomock.Any(), gomock.Any()).
-		// 		Return(time.Now().Add(-1000*time.Hour), nil).
-		// 		AnyTimes()
-
-		// 	mockProm.EXPECT().
-		// 		GetQueryNginxData().
-		// 		Return("").
-		// 		AnyTimes()
-
-		// 	mockProm.EXPECT().
-		// 		GetQuerySSHData().
-		// 		Return("").
-		// 		AnyTimes()
-
-		// 	mockProm.EXPECT().
-		// 		GetQueryWebSSHData().
-		// 		Return("").
-		// 		AnyTimes()
-
-		// 	By("Getting current instance")
-		// 	currentInstance := &crownlabsv1alpha2.Instance{}
-		// 	instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-		// 	Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-		// 	By("Checking the instance is stopped")
-		// 	Eventually(func() bool {
-		// 		err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
-		// 		if err != nil {
-		// 			return false
-		// 		}
-
-		// 		return currentInstance.Spec.Running
-		// 	}, timeout, interval).Should(BeFalse(), "The instance should be stopped")
-
-		// })
 		It("The persistent VM is active and is not stopped", func() {
 			mockProm.EXPECT().
 				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
@@ -572,7 +531,6 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Getting current instance")
 			currentInstance := &crownlabsv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-			// Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
