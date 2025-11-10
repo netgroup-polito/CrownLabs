@@ -54,7 +54,6 @@ func (u *ImageListUpdater) Update() {
 		log.Printf("Failed to retrieve data from upstream: %v", err)
 		return
 	}
-
 	for _, img_saver := range imagesaver.RegisteredSavers {
 		if img_saver != nil {
 			Saver := img_saver
@@ -100,7 +99,13 @@ func processImageList(images []map[string]interface{}) []map[string]interface{} 
 				"name":     name,
 				"versions": versions,
 			})
+		} else {
+			out = append(out, map[string]interface{}{
+				"name":     name,
+				"versions": []string{"latest"},
+			})
 		}
 	}
+
 	return out
 }
