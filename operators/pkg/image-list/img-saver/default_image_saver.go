@@ -4,16 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
+	imglistutilities "github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
@@ -25,18 +20,7 @@ type DefaultImageListSaver struct {
 	Namespace string // Not used for cluster-scoped resources, but kept for extensibility
 }
 
-func NewDefaultImageListSaver(name string) (*DefaultImageListSaver, error) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
-	kubeconfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("k8s config error: %w", err)
-	}
-	client, err := client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
-	}
+func NewDefaultImageListSaver(name string, client client.Client) (*DefaultImageListSaver, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "crownlabs.polito.it",
 		Version:  "v1alpha2",
@@ -128,15 +112,20 @@ func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]int
 }
 
 func init() {
-	saver, err := NewDefaultImageListSaver("crownlabs-standalone")
+	client, err := imglistutilities.NewK8sClient()
+	if err != nil {
+		fmt.Printf("Error initializing K8s client for ImageList savers: %v\n", err)
+		return
+	}
+	saver, err := NewDefaultImageListSaver("crownlabs-standalone", client)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-container-envs")
+	saver, err = NewDefaultImageListSaver("crownlabs-container-envs", client)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-containerdisks")
+	saver, err = NewDefaultImageListSaver("crownlabs-containerdisks", client)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
