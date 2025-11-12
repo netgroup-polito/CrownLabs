@@ -1,4 +1,4 @@
-package imgretriever
+package imageList
 
 import (
 	"encoding/json"

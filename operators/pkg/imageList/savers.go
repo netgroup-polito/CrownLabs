@@ -1,4 +1,4 @@
-package imagesaver
+package imageList
 
 type ImageListSaver interface {
 	UpdateImageList(imageList []map[string]interface{}) error

@@ -10,8 +10,7 @@ import (
 
 	"k8s.io/klog/v2"
 
-	imgupdate "github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/img-updater"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/imgretriever"
+	imageList "github.com/netgroup-polito/CrownLabs/operators/pkg/imageList"
 )
 
 func main() {
@@ -43,13 +42,13 @@ func main() {
 		os.Exit(1)
 	}
 	//Temporal solution until we refactor the imgretriever package
-	imgretriever.RequestersSharedData["default-requestor-registryurl"] = registryURL
-	imgretriever.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = registryUsername
-	imgretriever.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = registryPassword
+	imageList.RequestersSharedData["default-requestor-registryurl"] = registryURL
+	imageList.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = registryUsername
+	imageList.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = registryPassword
 
-	var imageListRequestors []imgretriever.ImageListRequestor
+	var imageListRequestors []imageList.ImageListRequestor
 
-	for _, r := range imgretriever.RegisteredRequestors {
+	for _, r := range imageList.RegisteredRequestors {
 		if r != nil {
 			if initResult, err := r.Initialize(); initResult && err == nil {
 				imageListRequestors = append(imageListRequestors, r)
@@ -62,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	up := imgupdate.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName)
+	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName)
 
 	stop := make(chan struct{})
 	go up.RunUpdateProcess(time.Duration(updateIntervalSec)*time.Second, stop)

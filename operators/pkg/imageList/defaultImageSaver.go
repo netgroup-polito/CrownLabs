@@ -1,10 +1,9 @@
-package imagesaver
+package imageList
 
 import (
 	"context"
 	"fmt"
 
-	imglistutilities "github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -112,7 +111,7 @@ func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]int
 }
 
 func init() {
-	client, err := imglistutilities.NewK8sClient()
+	client, err := NewK8sClient()
 	if err != nil {
 		fmt.Printf("Error initializing K8s client for ImageList savers: %v\n", err)
 		return

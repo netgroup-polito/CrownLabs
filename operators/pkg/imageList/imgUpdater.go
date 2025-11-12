@@ -1,20 +1,17 @@
-package imageupdater
+package imageList
 
 import (
 	"log"
 	"time"
-
-	imagesaver "github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/img-saver"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/image-list/imgretriever"
 )
 
 type ImageListUpdater struct {
-	Requestors        []imgretriever.ImageListRequestor
+	Requestors        []ImageListRequestor
 	RegistryAdvName   string
 	ImageListBaseName string
 }
 
-func NewImageListUpdater(reqs []imgretriever.ImageListRequestor, imageListBase, registryAdv string) *ImageListUpdater {
+func NewImageListUpdater(reqs []ImageListRequestor, imageListBase, registryAdv string) *ImageListUpdater {
 	return &ImageListUpdater{
 		Requestors:        reqs,
 		ImageListBaseName: imageListBase,
@@ -54,9 +51,9 @@ func (u *ImageListUpdater) Update() {
 		log.Printf("Failed to retrieve data from upstream: %v", err)
 		return
 	}
-	for _, img_saver := range imagesaver.RegisteredSavers {
-		if img_saver != nil {
-			Saver := img_saver
+	for _, imgSaver := range RegisteredSavers {
+		if imgSaver != nil {
+			Saver := imgSaver
 			var filteredImages []map[string]interface{}
 			for _, image := range images {
 				if Saver.IsThisImageYours(image) {

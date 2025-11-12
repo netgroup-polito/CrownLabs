@@ -1,4 +1,4 @@
-package imgretriever
+package imageList
 
 type ImageListRequestor interface {
 	GetImageList() ([]map[string]interface{}, error)
