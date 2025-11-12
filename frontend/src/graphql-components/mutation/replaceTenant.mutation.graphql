@@ -1,0 +1,25 @@
+mutation replaceTenant(
+  $tenantId: String!
+  $tenantInput: ItPolitoCrownlabsV1alpha2TenantInput!
+  $manager: String!
+) {
+  replaceTenant: replaceCrownlabsPolitoItV1alpha2Tenant(
+    name: $tenantId
+    fieldManager: $manager
+    itPolitoCrownlabsV1alpha2TenantInput: $tenantInput
+  ) {
+    metadata {
+      name
+    }
+    spec {
+      firstName
+      lastName
+      email
+      lastLogin
+      workspaces {
+        role
+        name
+      }
+    }
+  }
+}

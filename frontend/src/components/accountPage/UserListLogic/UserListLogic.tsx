@@ -3,6 +3,8 @@ import { Spin } from 'antd';
 import {
   useTenantsQuery,
   useApplyTenantMutation,
+  useTenantQuery,
+  useReplaceTenantMutation,
 } from '../../../generated-types';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
@@ -81,6 +83,11 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
+  const [replaceTenantMutation] = useReplaceTenantMutation();
+  const { refetch: refetchTenant } = useTenantQuery({
+    variables: { tenantId: '' },
+    skip: true,
+  });
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
@@ -180,23 +187,95 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   const deleteUser = async (user: UserAccountPage) => {
     try {
       setLoadingSpinner(true);
-      // Remove workspace from user in kubernetes
-      await applyTenantMutation({
+
+      // Fetch the full tenant data to preserve all fields
+      const { data: tenantData } = await refetchTenant({
+        tenantId: user.userid,
+      });
+
+      if (!tenantData?.tenant) {
+        throw new Error('Tenant not found');
+      }
+
+      const tenant = tenantData.tenant;
+
+      // Build updated workspaces array (remove current workspace)
+      const updatedWorkspaces =
+        tenant.spec?.workspaces?.filter(w => w?.name !== workspace.name).map(w => ({
+          name: w?.name || '',
+          role: w?.role || Role.User,
+        })) || [];
+
+      // Build tenant input copying all fields and replacing workspaces
+      const tenantInput = {
+        apiVersion: tenant.apiVersion,
+        kind: tenant.kind,
+        metadata: {
+          name: tenant.metadata?.name,
+          namespace: tenant.metadata?.namespace,
+          labels: tenant.metadata?.labels,
+          annotations: tenant.metadata?.annotations,
+          uid: tenant.metadata?.uid,
+          resourceVersion: tenant.metadata?.resourceVersion,
+          generation: tenant.metadata?.generation,
+          creationTimestamp: tenant.metadata?.creationTimestamp,
+          deletionTimestamp: tenant.metadata?.deletionTimestamp,
+          deletionGracePeriodSeconds: tenant.metadata?.deletionGracePeriodSeconds,
+          finalizers: tenant.metadata?.finalizers,
+          selfLink: tenant.metadata?.selfLink,
+        },
+        spec: {
+          email: tenant.spec?.email || '',
+          firstName: tenant.spec?.firstName || '',
+          lastName: tenant.spec?.lastName || '',
+          lastLogin: tenant.spec?.lastLogin ?? undefined,
+          createPersonalWorkspace: tenant.spec?.createPersonalWorkspace ?? undefined,
+          createSandbox: tenant.spec?.createSandbox ?? undefined,
+          publicKeys: tenant.spec?.publicKeys ?? undefined,
+          workspaces: updatedWorkspaces,
+          quota: tenant.spec?.quota
+            ? {
+                cpu: tenant.spec.quota.cpu,
+                memory: tenant.spec.quota.memory,
+                instances: tenant.spec.quota.instances,
+              }
+            : undefined,
+        },
+        status: tenant.status
+          ? {
+              personalNamespace: {
+                name: tenant.status.personalNamespace?.name ?? undefined,
+                created: tenant.status.personalNamespace?.created ?? false,
+              },
+              sandboxNamespace: {
+                name: tenant.status.sandboxNamespace?.name ?? undefined,
+                created: tenant.status.sandboxNamespace?.created ?? false,
+              },
+              quota: tenant.status.quota
+                ? {
+                    cpu: tenant.status.quota.cpu,
+                    memory: tenant.status.quota.memory,
+                    instances: tenant.status.quota.instances,
+                  }
+                : undefined,
+              subscriptions: tenant.status.subscriptions ?? undefined,
+              ready: tenant.status.ready ?? false,
+            }
+          : undefined,
+      };
+      // Replace the tenant (preserving all fields except the removed workspace)
+      
+      await replaceTenantMutation({
         variables: {
           tenantId: user.userid,
-          patchJson: getTenantPatchJson({
-            workspaces: users
-              .find(u => u.userid === user.userid)!
-              .workspaces?.filter(w => w.name !== workspace.name)
-              .map(({ name, role }) => ({ name, role })),
-          }),
           manager: getManager(),
+          tenantInput,
         },
         onError: apolloErrorCatcher,
       });
-      // Remove workspace from user in local state
-      user.workspaces?.filter(w => w.name === workspace.name);
-      setUsers(users.filter(u => u.userid !== user.userid));
+      
+      // Refresh user list in local state
+      await refreshUserList();
     } catch (error) {
       genericErrorCatcher(error as SupportedError);
       setLoadingSpinner(false);
@@ -204,8 +283,8 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     }
     setLoadingSpinner(false);
     return true;
-  }
-
+  };
+  ;
   return !loading && data && !error ? (
     <>
       <UserList
