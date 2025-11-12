@@ -38,9 +38,12 @@ func (r *InstanceReconciler) EnforcePublicExposure(ctx context.Context) error {
 
 	if template.Spec.AllowPublicExposure &&
 		instance.Spec.Running && instance.Spec.PublicExposure != nil &&
-		instance.Spec.PublicExposure.Ports != nil && len(instance.Spec.PublicExposure.Ports) > 0 &&
-		hasOnlyOneEnvironment {
-		return r.enforcePublicExposurePresence(ctx)
+		instance.Spec.PublicExposure.Ports != nil && len(instance.Spec.PublicExposure.Ports) > 0 {
+		if hasOnlyOneEnvironment {
+			return r.enforcePublicExposurePresence(ctx)
+		} else {
+			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
+		}
 	}
 	return r.enforcePublicExposureAbsence(ctx)
 }

@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -45,8 +46,9 @@ var _ = Describe("PublicExposure", func() {
 		ctx = context.Background()
 		fakeClient = fake.NewClientBuilder()
 		reconciler = &instctrl.InstanceReconciler{
-			Client: fakeClient.Build(),
-			Scheme: scheme.Scheme,
+			Client:         fakeClient.Build(),
+			Scheme:         scheme.Scheme,
+			EventsRecorder: record.NewFakeRecorder(1024),
 			PublicExposureOpts: forge.PublicExposureOpts{
 				IPPool: []string{"192.168.100.1"},
 				CommonAnnotations: map[string]string{
