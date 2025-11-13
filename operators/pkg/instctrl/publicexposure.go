@@ -41,9 +41,8 @@ func (r *InstanceReconciler) EnforcePublicExposure(ctx context.Context) error {
 		instance.Spec.PublicExposure.Ports != nil && len(instance.Spec.PublicExposure.Ports) > 0 {
 		if hasOnlyOneEnvironment {
 			return r.enforcePublicExposurePresence(ctx)
-		} else {
-			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
 		}
+		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
 	}
 	return r.enforcePublicExposureAbsence(ctx)
 }
