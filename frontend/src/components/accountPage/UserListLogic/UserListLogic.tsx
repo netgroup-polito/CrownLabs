@@ -3,6 +3,7 @@ import { Spin } from 'antd';
 import {
   useTenantsQuery,
   useApplyTenantMutation,
+  useTenantLazyQuery,
 } from '../../../generated-types';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
@@ -81,18 +82,24 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
+  const [getTenant] = useTenantLazyQuery();
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
-      const workspaces = users
-        .find(u => u.userid === user.userid)!
-        .workspaces?.filter(w => w.name === workspace.name)
-        .map(({ name }) => ({ name, role: newRole }));
       setLoadingSpinner(true);
+      
+      // Get all workspaces and update only the current one
+      const allWorkspaces = users
+        .find(u => u.userid === user.userid)!
+        .workspaces?.map(({ name, role }) => ({
+          name,
+          role: name === workspace.name ? newRole : role,
+        })) || [];
+      
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
-          patchJson: getTenantPatchJson({ workspaces }),
+          patchJson: getTenantPatchJson({ workspaces: allWorkspaces }),
           manager: getManager(),
         },
         onError: apolloErrorCatcher,
@@ -109,7 +116,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
             return {
               ...u,
               currentRole: newRole,
-              workspaces,
+              workspaces: allWorkspaces,
             };
           } else {
             return u;
@@ -139,6 +146,19 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       for (const user of usersToAdd) {
         if (abortUploadingRef.current) break;
         try {
+          // Fetch existing workspaces for the user
+          const { data: tenantData } = await getTenant({
+            variables: { tenantId: user.userid },
+          });
+          
+          const existingWorkspaces = tenantData?.tenant?.spec?.workspaces?.map(ws => ({
+            name: ws?.name ?? '',
+            role: ws?.role ?? Role.User,
+          })) || [];
+          
+          // Merge existing workspaces with new ones
+          const allWorkspaces = [...existingWorkspaces, ...workspaces];
+          
           await applyTenantMutation({
             variables: {
               manager: getManager(),
@@ -148,14 +168,16 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
                   email: user.email,
                   firstName: user.name,
                   lastName: user.surname,
-                  workspaces,
+                  workspaces: allWorkspaces,
                 },
                 user.userid,
               ),
             },
             onError: apolloErrorCatcher,
           });
-          user.workspaces?.push(...workspaces);
+          
+          // Update user with complete workspace list, for allowing delete operation before the first refresh
+          user.workspaces = allWorkspaces;
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {
@@ -180,7 +202,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   const deleteUser = async (user: UserAccountPage) => {
     try {
       setLoadingSpinner(true);
-
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
@@ -196,7 +217,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       });
       
       // Refresh user list in local state
-      await refreshUserList();
+      setUsers(users.filter(u => u.userid !== user.userid));
     } catch (error) {
       genericErrorCatcher(error as SupportedError);
       setLoadingSpinner(false);

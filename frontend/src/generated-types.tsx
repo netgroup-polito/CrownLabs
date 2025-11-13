@@ -1691,7 +1691,7 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs =
 
 
 export type MutationPatchCrownlabsPolitoItV1alpha2TenantArgs = {
-  applicationApplyPatchYamlInput: Scalars['String']['input'];
+  applicationMergePatchJsonInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
