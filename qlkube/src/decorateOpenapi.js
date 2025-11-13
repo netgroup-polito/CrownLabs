@@ -84,7 +84,12 @@ function decorateOpenapi(oas) {
   for (const path of Object.keys(oas.paths)) {
     const { patch } = oas.paths[path];
     if (patch) {
-      patch.consumes = ['application/apply-patch+yaml'];
+      if (patch.operationId === 'patchCrownlabsPolitoItV1alpha2Tenant') {
+        // Changing header for allowing tenant workspaces patch
+        patch.consumes = ['application/merge-patch+json'];
+      } else {
+        patch.consumes = ['application/apply-patch+yaml'];
+      }
       if (!patch.parameters.find((p) => p.name === 'force')) patch.parameters.push({ ...force });
     }
   }

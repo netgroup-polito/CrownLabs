@@ -1,28 +1,11 @@
 query tenant($tenantId: String!) {
   tenant: itPolitoCrownlabsV1alpha2Tenant(name: $tenantId) {
-    apiVersion
-    kind
-    metadata {
-      name
-      namespace
-      labels
-      annotations
-      uid
-      resourceVersion
-      generation
-      creationTimestamp
-      deletionTimestamp
-      deletionGracePeriodSeconds
-      finalizers
-      selfLink
-    }
     spec {
       email
       firstName
       lastName
       lastLogin
       createPersonalWorkspace
-      createSandbox
       workspaces {
         role
         name
@@ -40,28 +23,20 @@ query tenant($tenantId: String!) {
         }
       }
       publicKeys
-      quota {
-        cpu
-        memory
-        instances
-      }
+    }
+    metadata {
+      name
     }
     status {
       personalNamespace {
         name
         created
       }
-      sandboxNamespace {
-        name
-        created
-      }
       quota {
         cpu
         instances
         memory
       }
-      subscriptions
-      ready
     }
   }
 }

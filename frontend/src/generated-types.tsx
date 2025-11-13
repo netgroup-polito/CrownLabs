@@ -3419,15 +3419,6 @@ export type DeleteTemplateMutationVariables = Exact<{
 
 export type DeleteTemplateMutation = { __typename?: 'Mutation', deletedTemplate?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
 
-export type ReplaceTenantMutationVariables = Exact<{
-  tenantId: Scalars['String']['input'];
-  tenantInput: ItPolitoCrownlabsV1alpha2TenantInput;
-  manager: Scalars['String']['input'];
-}>;
-
-
-export type ReplaceTenantMutation = { __typename?: 'Mutation', replaceTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
-
 export type ImagesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3471,7 +3462,7 @@ export type TenantQueryVariables = Exact<{
 }>;
 
 
-export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', apiVersion?: string | null, kind?: string | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, labels?: any | null, annotations?: any | null, uid?: string | null, resourceVersion?: string | null, generation?: any | null, creationTimestamp?: string | null, deletionTimestamp?: string | null, deletionGracePeriodSeconds?: any | null, finalizers?: Array<string | null> | null, selfLink?: string | null } | null, spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, createPersonalWorkspace?: boolean | null, createSandbox?: boolean | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null, quota?: { __typename?: 'Quota2', cpu: any, memory: any, instances: number } | null } | null, status?: { __typename?: 'Status7', subscriptions: any, ready: boolean, personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, sandboxNamespace: { __typename?: 'SandboxNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null };
+export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, createPersonalWorkspace?: boolean | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null };
 
 export type TenantsQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -3703,9 +3694,8 @@ export const ApplyTenantDocument = gql`
     mutation applyTenant($tenantId: String!, $patchJson: String!, $manager: String!) {
   applyTenant: patchCrownlabsPolitoItV1alpha2Tenant(
     name: $tenantId
-    force: true
     fieldManager: $manager
-    applicationApplyPatchYamlInput: $patchJson
+    applicationMergePatchJsonInput: $patchJson
   ) {
     metadata {
       name
@@ -4081,57 +4071,6 @@ export function useDeleteTemplateMutation(baseOptions?: Apollo.MutationHookOptio
 export type DeleteTemplateMutationHookResult = ReturnType<typeof useDeleteTemplateMutation>;
 export type DeleteTemplateMutationResult = Apollo.MutationResult<DeleteTemplateMutation>;
 export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteTemplateMutation, DeleteTemplateMutationVariables>;
-export const ReplaceTenantDocument = gql`
-    mutation replaceTenant($tenantId: String!, $tenantInput: ItPolitoCrownlabsV1alpha2TenantInput!, $manager: String!) {
-  replaceTenant: replaceCrownlabsPolitoItV1alpha2Tenant(
-    name: $tenantId
-    fieldManager: $manager
-    itPolitoCrownlabsV1alpha2TenantInput: $tenantInput
-  ) {
-    metadata {
-      name
-    }
-    spec {
-      firstName
-      lastName
-      email
-      lastLogin
-      workspaces {
-        role
-        name
-      }
-    }
-  }
-}
-    `;
-export type ReplaceTenantMutationFn = Apollo.MutationFunction<ReplaceTenantMutation, ReplaceTenantMutationVariables>;
-
-/**
- * __useReplaceTenantMutation__
- *
- * To run a mutation, you first call `useReplaceTenantMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useReplaceTenantMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [replaceTenantMutation, { data, loading, error }] = useReplaceTenantMutation({
- *   variables: {
- *      tenantId: // value for 'tenantId'
- *      tenantInput: // value for 'tenantInput'
- *      manager: // value for 'manager'
- *   },
- * });
- */
-export function useReplaceTenantMutation(baseOptions?: Apollo.MutationHookOptions<ReplaceTenantMutation, ReplaceTenantMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ReplaceTenantMutation, ReplaceTenantMutationVariables>(ReplaceTenantDocument, options);
-      }
-export type ReplaceTenantMutationHookResult = ReturnType<typeof useReplaceTenantMutation>;
-export type ReplaceTenantMutationResult = Apollo.MutationResult<ReplaceTenantMutation>;
-export type ReplaceTenantMutationOptions = Apollo.BaseMutationOptions<ReplaceTenantMutation, ReplaceTenantMutationVariables>;
 export const ImagesDocument = gql`
     query images {
   imageList: itPolitoCrownlabsV1alpha1ImageListList {
@@ -4548,29 +4487,12 @@ export type WorkspaceTemplatesQueryResult = Apollo.QueryResult<WorkspaceTemplate
 export const TenantDocument = gql`
     query tenant($tenantId: String!) {
   tenant: itPolitoCrownlabsV1alpha2Tenant(name: $tenantId) {
-    apiVersion
-    kind
-    metadata {
-      name
-      namespace
-      labels
-      annotations
-      uid
-      resourceVersion
-      generation
-      creationTimestamp
-      deletionTimestamp
-      deletionGracePeriodSeconds
-      finalizers
-      selfLink
-    }
     spec {
       email
       firstName
       lastName
       lastLogin
       createPersonalWorkspace
-      createSandbox
       workspaces {
         role
         name
@@ -4588,28 +4510,20 @@ export const TenantDocument = gql`
         }
       }
       publicKeys
-      quota {
-        cpu
-        memory
-        instances
-      }
+    }
+    metadata {
+      name
     }
     status {
       personalNamespace {
         name
         created
       }
-      sandboxNamespace {
-        name
-        created
-      }
       quota {
         cpu
         instances
         memory
       }
-      subscriptions
-      ready
     }
   }
 }
