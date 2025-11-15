@@ -81,7 +81,7 @@ crownmail:
   templates:
     name: crownmail-templates
     sourceFolder: mail-templates
-    # overrides:
+    # overrides: # mail templates are available in operators/deploy/crownmail/mail-templates
     #   defaults_crownlabs_mail.eml: |
     #     From: { from }
     #     To: { to }
@@ -155,14 +155,14 @@ crownmail:
   configs:
     name: crownmail-configs
     sourceFolder: mail-configs
-    # overrides:
-    #   smtp:
-    #     smtpServer: override.smtp.example.com
-    #     smtpPort: "123"
-    #     smtpIdentity: override-debug
-    #     smtpUsername: override-debug@example.com
-    #     smtpPassword: override-debugpassword
-    #     smtpFrom: override-crownlabs@example.com
+    overrides: # default values to be overridden for mail sending in CrownLabs Production
+      smtp:
+        smtpServer: override.smtp.example.com
+        smtpPort: "123"
+        smtpIdentity: override-debug
+        smtpUsername: override-debug@example.com
+        smtpPassword: override-debugpassword
+        smtpFrom: override-crownlabs@example.com
 
 instance-operator:
   replicaCount: 1
