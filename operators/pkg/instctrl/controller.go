@@ -329,14 +329,14 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 
 	for i := range instance.Status.Environments {
 		if instance.Status.Environments[i].Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.Environments[i].InitialReadyTime != "" {
-			return
+			continue
 		}
 		duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
 		instance.Status.Environments[i].InitialReadyTime = duration.String()
 
 		// Filter out possible outliers from the prometheus metrics.
 		if duration > 30*time.Minute {
-			return
+			continue
 		}
 
 		template := clctx.TemplateFrom(ctx)

@@ -305,7 +305,7 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		Phase:    string(inst.Status.Phase),
 		Labels:   inst.GetLabels(),
 	}
-	// Usa il phase e la URL del primo environment se presente
+	// Use the phase and URL of the first environment if available
 	if len(inst.Status.Environments) > 0 {
 		adapter.URL = fmt.Sprintf("%v%v/", inst.Status.URL, inst.Status.Environments[0].Name)
 	} else {
