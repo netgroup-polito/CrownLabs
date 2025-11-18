@@ -48,12 +48,14 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
+		index       int
 
-		objectName types.NamespacedName
-		svc        corev1.Service
-		secret     corev1.Secret
-		vm         virtv1.VirtualMachine
-		vmi        virtv1.VirtualMachineInstance
+		objectName    types.NamespacedName
+		objectNameEnv types.NamespacedName
+		svc           corev1.Service
+		secret        corev1.Secret
+		vm            virtv1.VirtualMachine
+		vmi           virtv1.VirtualMachineInstance
 
 		ownerRef metav1.OwnerReference
 
@@ -99,6 +101,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
+			Status: clv1alpha2.InstanceStatus{
+				Environments: []clv1alpha2.InstanceStatusEnv{
+					{Phase: ""},
+					{Phase: ""},
+					{Phase: ""},
+				},
+			},
 		}
 		environment = clv1alpha2.Environment{
 			Name:            environmentName,
@@ -118,10 +127,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				EnvironmentList: []clv1alpha2.Environment{environment},
 			},
 		}
-
+		index = 0
 		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
 		objectName = forge.NamespacedName(&instance)
+		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
 		svc = corev1.Service{}
 		secret = corev1.Secret{}
@@ -145,12 +155,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
+		ctx = clctx.EnvironmentIndexInto(ctx, index)
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
 	Context("The environment mode is Standard", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeStandard
+			template.Spec.Scope = clv1alpha2.ScopeStandard
 		})
 		It("Should enforce the cloud-init secret", func() {
 			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
@@ -160,7 +171,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Exam", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeExam
+			template.Spec.Scope = clv1alpha2.ScopeExam
 		})
 		It("Should not enforce the cloud-init secret", func() {
 			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
@@ -172,7 +183,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Exercise", func() {
 		BeforeEach(func() {
-			environment.Mode = clv1alpha2.ModeExercise
+			template.Spec.Scope = clv1alpha2.ScopeExercise
 		})
 		It("Should not enforce the cloud-init secret", func() {
 			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
@@ -184,7 +195,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	It("Should enforce the environment exposition objects", func() {
 		// Here, we only check the service presence to assert the function execution, leaving the other assertions to the proper tests.
-		Expect(reconciler.Get(ctx, objectName, &svc)).To(Succeed())
+		Expect(reconciler.Get(ctx, objectNameEnv, &svc)).To(Succeed())
 	})
 
 	Context("The environment is not persistent", func() {
@@ -195,23 +206,24 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VMI should be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+					Expect(vmi.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
 				It("The VMI should be present and have the expected specs", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
 					// Here we overwrite the VMI resources, since they would have a different representation due to the
 					// marshaling/unmarshaling process. Still, the correctness of the value is already checked with the
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vmi.Spec.NodeSelector = map[string]string{}
-					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &environment)))
+					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
 				})
 
 				It("Should leave the instance phase unset", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[0].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
 			})
 
@@ -220,17 +232,18 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				BeforeEach(func() {
 					instance.Spec.Running = false
-					notFoundError = kerrors.NewNotFound(virtv1.Resource("virtualmachineinstances"), objectName.Name)
+					notFoundError = kerrors.NewNotFound(virtv1.Resource("virtualmachineinstances"), objectNameEnv.Name)
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VMI should not be present", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(MatchError(notFoundError))
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(MatchError(notFoundError))
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -240,7 +253,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 			BeforeEach(func() {
 				existing = virtv1.VirtualMachineInstance{
-					ObjectMeta: forge.NamespacedNameToObjectMeta(objectName),
+					ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
 					Status:     virtv1.VirtualMachineInstanceStatus{Phase: virtv1.Running},
 				}
 				existing.SetCreationTimestamp(metav1.NewTime(time.Now()))
@@ -251,18 +264,19 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VMI should still be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+					Expect(vmi.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
 				It("The VMI should still be present and have unmodified specs", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
 					Expect(vmi.Spec).To(Equal(existing.Spec))
 				})
 
 				It("Should set the correct instance phase", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
 				})
 			})
 
@@ -272,14 +286,15 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VMI should still be present and have unmodified specs", func() {
-					Expect(reconciler.Get(ctx, objectName, &vmi)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
 					Expect(vmi.Labels).To(Equal(existing.Labels))
 					Expect(vmi.Spec).To(Equal(existing.Spec))
 					Expect(vmi.Status).To(Equal(existing.Status))
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -297,13 +312,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VM should be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-					Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+					Expect(vm.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
 				It("The VM should be present and have the expected specs", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 					// Here we overwrite the VM resources, since they would have a different representation due to the
 					// marshaling/unmarshaling process. Still, the correctness of the value is already checked with the
 					// appropriate test case. Additionally, we also overwrite the running value, which is checked in a
@@ -311,23 +326,24 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &environment)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 					Expect(*vm.Spec.Running).To(BeTrue())
 				})
 
 				It("Should leave the instance phase unset", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
 			})
 
 			WhenVMAlreadyPresentCase := func(running bool) {
 				BeforeEach(func() {
 					existing := virtv1.VirtualMachine{
-						ObjectMeta: forge.NamespacedNameToObjectMeta(objectName),
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
 						Spec:       virtv1.VirtualMachineSpec{Running: ptr.To(running)},
 						Status:     virtv1.VirtualMachineStatus{PrintableStatus: virtv1.VirtualMachineStatusRunning},
 					}
@@ -338,27 +354,28 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
 				It("The VM should still be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
-					Expect(vm.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+					Expect(vm.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(vm.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
 				It("The VM should still be present and have unmodified specs", func() {
-					Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 					// Here we overwrite the running value, as it is checked in a different It clause.
 					vm.Spec.Running = nil
 					Expect(vmi.Spec).To(Equal(virtv1.VirtualMachineInstanceSpec{}))
 				})
 
 				It("Should set the correct instance phase", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseRunning))
 				})
 
 				Context("The instance is running", func() {
 					BeforeEach(func() { instance.Spec.Running = true })
 
 					It("The VM should be present and with the running flag set", func() {
-						Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 						Expect(*vm.Spec.Running).To(BeTrue())
 					})
 				})
@@ -367,7 +384,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					BeforeEach(func() { instance.Spec.Running = false })
 
 					It("The VM should be present and with the running flag not set", func() {
-						Expect(reconciler.Get(ctx, objectName, &vm)).To(Succeed())
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 						Expect(*vm.Spec.Running).To(BeFalse())
 					})
 				})
