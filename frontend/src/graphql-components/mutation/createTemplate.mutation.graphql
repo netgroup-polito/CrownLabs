@@ -3,6 +3,8 @@ mutation createTemplate(
   $workspaceNamespace: String!
   $templateName: String!
   $descriptionTemplate: String!
+  $inactivityTimeout: String!
+  $deleteAfter: String!
   $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
 ) {
@@ -14,6 +16,8 @@ mutation createTemplate(
       spec: {
         prettyName: $templateName
         description: $descriptionTemplate
+        inactivityTimeout: $inactivityTimeout
+        deleteAfter: $deleteAfter
         environmentList: $environmentList
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
@@ -23,6 +27,8 @@ mutation createTemplate(
     spec {
       prettyName
       description
+      inactivityTimeout
+      deleteAfter
       environmentList {
         name
         guiEnabled

@@ -74,6 +74,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         env.persistent = formEnv.persistent;
         env.resources.disk = `${formEnv.disk * 1000}M`;
       }
+      
 
       // Handle shared volume mounts
       if (!isPersonal) {
@@ -110,6 +111,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
         environmentList: environmentList,
+        inactivityTimeout: t.inactivityTimeout,
+        deleteAfter: t.deleteAfter,
       },
     })
       .then(result => {
@@ -133,6 +136,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
+        inactivityTimeout="Never"
+        deleteAfter="Never"
         setShow={setShow}
         show={show}
         submitHandler={submitHandler}

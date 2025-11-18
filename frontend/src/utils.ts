@@ -35,6 +35,9 @@ export type Template = {
   workspaceNamespace: string;
   /** whether public exposure is allowed by the template */
   allowPublicExposure: boolean;
+  
+  inactivityTimeout: string;
+  deleteAfter: string;
 };
 
 export type Instance = {

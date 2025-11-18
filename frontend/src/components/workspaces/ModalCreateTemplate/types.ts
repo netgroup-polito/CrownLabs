@@ -14,6 +14,8 @@ export type Resources = {
 export type TemplateForm = {
   name: string;
   environments: TemplateFormEnv[];
+  deleteAfter: string;
+  inactivityTimeout: string;
 };
 
 export type TemplateFormEnv = {
@@ -28,6 +30,7 @@ export type TemplateFormEnv = {
   disk: number;
   sharedVolumeMounts: TemplateFormEnvShVol[];
   rewriteUrl: boolean;
+
 };
 
 export type ChildFormItem = {

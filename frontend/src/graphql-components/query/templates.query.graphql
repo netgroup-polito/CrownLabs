@@ -6,6 +6,8 @@ query workspaceTemplates($workspaceNamespace: String!) {
       spec {
         prettyName
         description
+        inactivityTimeout
+        deleteAfter
         allowPublicExposure
         environmentList {
           environmentType

@@ -17,6 +17,8 @@ export const getImageNameNoVer = (image: string) => {
 export const getDefaultTemplate = (resources: Resources): Template => {
   return {
     name: '',
+    deleteAfter: 'Never',
+    inactivityTimeout: 'Never',
     environments: [getDefaultTemplateEnvironment(resources, 0)],
   };
 };
