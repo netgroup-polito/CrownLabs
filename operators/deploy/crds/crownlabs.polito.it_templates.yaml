@@ -20,8 +20,8 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
-    - jsonPath: .spec.environmentList[0].mode
-      name: Mode
+    - jsonPath: .spec.environmentList[0].scope
+      name: Scope
       type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image
@@ -87,8 +87,9 @@ spec:
                 description: A textual description of the Template.
                 type: string
               environmentList:
-                description: The list of environments (i.e. VMs or containers) that
-                  compose the Template.
+                description: |-
+                  The list of environments (i.e. VMs or containers) that compose the Template.
+                  Each environment must have a unique name within the Template.
                 items:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
@@ -142,31 +143,19 @@ spec:
                       description: The VM or container to be started when instantiating
                         the environment.
                       type: string
-                    mode:
-                      default: Standard
-                      description: The mode associated with the environment (Standard,
-                        Exam, Exercise)
-                      enum:
-                      - Standard
-                      - Exam
-                      - Exercise
-                      type: string
                     mountMyDriveVolume:
                       default: true
                       description: Whether the instance has to have the user's MyDrive
                         volume
                       type: boolean
                     name:
-                      description: The name identifying the specific environment.
-                      type: string
-                    nodeSelector:
-                      additionalProperties:
-                        type: string
                       description: |-
-                        Labels that are used for the selection of the node.
-                        They are given by means of a pointer to check the presence of the field.
-                        In case it is present, the labels that are chosen are the ones present on the instance
-                      type: object
+                        The name identifying the specific environment.
+                        The name must be unique within the Template and must follow the Kubernetes
+                        naming conventions, i.e. it must consist of lower case alphanumeric characters,
+                        '-' or '.', must start and end with an alphanumeric character.
+                      pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                      type: string
                     persistent:
                       default: false
                       description: |-
@@ -273,6 +262,9 @@ spec:
                   - resources
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
               inactivityTimeout:
                 default: never
                 description: |-
@@ -281,8 +273,25 @@ spec:
                   save resources.
                 pattern: ^(never|[0-9]+[mhd])$
                 type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels that are used for the selection of the node.
+                  They are given by means of a pointer to check the presence of the field.
+                  In case it is present, the labels that are chosen are the ones present on the instance
+                type: object
               prettyName:
                 description: The human-readable name of the Template.
+                type: string
+              scope:
+                default: Standard
+                description: The scope associated with the environments belonging
+                  to the template (Standard, Exam, Exercise)
+                enum:
+                - Standard
+                - Exam
+                - Exercise
                 type: string
               workspace.crownlabs.polito.it/WorkspaceRef:
                 description: The reference to the Workspace this Template belongs

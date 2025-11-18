@@ -62,18 +62,66 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
-  const environment = (tq.original.spec?.environmentList ?? [])[0];
+  const environmentList = tq.original.spec?.environmentList ?? [];
+  const hasMultipleEnvironments = environmentList.length > 1;
+  
+  // For backwards compatibility use the first environment for main properties
+  const primaryEnvironment = environmentList[0];
+
+  const hasGUI = environmentList.some(env => env?.guiEnabled);
+  const hasPersistent = environmentList.some(env => env?.persistent);
+  
+  const aggregatedResources = environmentList.reduce(
+    (acc, env) => {
+      if (env?.resources) {
+        acc.cpu += env.resources.cpu ?? 0;
+        const memoryStr = env.resources.memory || '0';
+        let memoryGB = 0;
+        if (memoryStr.includes('G')) {
+          memoryGB = parseInt(memoryStr.replace(/[^\d]/g, '')) || 0;
+        } else if (memoryStr.includes('M')) {
+          memoryGB = (parseInt(memoryStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+
+        const diskStr = env.resources.disk || '0';
+        let diskGB = 0;
+        if (diskStr.includes('G')) {
+          diskGB = parseInt(diskStr.replace(/[^\d]/g, '')) || 0;
+        } else if (diskStr.includes('M')) {
+          diskGB = (parseInt(diskStr.replace(/[^\d]/g, '')) || 0) / 1000;
+        }
+        
+        acc.memorySum += memoryGB;
+        acc.diskSum += diskGB;
+      }
+      return acc;
+    },
+    { cpu: 0, memorySum: 0, diskSum: 0 }
+  );
+
   return {
     id: tq.alias.id ?? '',
     name: tq.alias.name ?? '',
-    gui: !!environment?.guiEnabled,
-    persistent: !!environment?.persistent,
-    nodeSelector: environment?.nodeSelector,
+    gui: hasGUI,
+    persistent: hasPersistent,
+    nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
-      cpu: environment?.resources?.cpu ?? 0,
-      memory: environment?.resources?.memory ?? '',
-      disk: environment?.resources?.disk ?? '',
+      cpu: aggregatedResources.cpu,
+      memory: aggregatedResources.memorySum > 0 ? `${aggregatedResources.memorySum}G` : '',
+      disk: aggregatedResources.diskSum > 0 ? `${aggregatedResources.diskSum}G` : '',
     },
+    environmentList: environmentList.map(env => ({
+      name: env?.name ?? '',
+      guiEnabled: !!env?.guiEnabled,
+      persistent: !!env?.persistent,
+      environmentType: env?.environmentType,
+      resources: {
+        cpu: env?.resources?.cpu ?? 0,
+        memory: env?.resources?.memory ?? '',
+        disk: env?.resources?.disk ?? '',
+      },
+    })),
+    hasMultipleEnvironments,
     workspaceName:
       tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? '',
     instances: [],
@@ -227,8 +275,26 @@ export const makeGuiInstance = (
     prettyName: '',
   };
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   // determine if public exposure is allowed from template spec
   const allowPublicExposure =
@@ -262,8 +328,8 @@ export const makeGuiInstance = (
         '',
     ),
     environmentType: environmentType,
-    ip: status?.ip,
-    status: safePhase2Conversion(status?.phase),
+    ip: primaryStatus?.ip ?? status?.ip ?? '',
+    status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
@@ -277,6 +343,8 @@ export const makeGuiInstance = (
     tenantDisplayName: userId, // Using userId as display name since tenant info is not available
     myDriveUrl: '',
     publicExposure: publicExposureObj,
+    environments: environments,
+    hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -380,11 +448,13 @@ export const getSubObjTypeCustom = (
     running: oldRunning,
     status: oldStatus,
     publicExposure: oldPublicExposure,
+    environments: oldEnvironments
   } = oldObj ?? {};
   const {
     running: newRunning,
     status: newStatus,
     publicExposure: newPublicExposure,
+    environments: newEnvironments
   } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
@@ -401,6 +471,16 @@ export const getSubObjTypeCustom = (
       return SubObjType.UpdatedInfo;
     }
 
+    if (oldEnvironments && newEnvironments) {
+      const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+        const newEnv = newEnvironments[index];
+        return newEnv && oldEnv?.phase !== newEnv?.phase;
+      });
+
+      if (environmentPhaseChanged) {
+        return SubObjType.UpdatedInfo;
+      }
+    }
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -438,6 +518,18 @@ const getSubObjTypeK8sEnhanced = (
       return SubObjType.PublicExposureChange;
     }
 
+    // Check if any environment phase changed
+    const oldEnvironments = oldStatus?.environments || [];
+    const newEnvironments = newStatus?.environments || [];
+    
+    const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
+      const newEnv = newEnvironments[index];
+      return newEnv && oldEnv?.phase !== newEnv?.phase;
+    });
+    
+    if (environmentPhaseChanged) {
+      return SubObjType.UpdatedInfo;
+    }
     return SubObjType.Drop;
   }
   return SubObjType.Addition;
@@ -512,8 +604,27 @@ export const getManagerInstances = (
   } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
   const { prettyName: templatePrettyname, environmentList } =
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
-  const { guiEnabled, persistent, environmentType } =
-    (environmentList ?? [])[0] ?? {};
+  
+  const environments = status?.environments?.map(envStatus => {
+    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
+    return {
+      name: envStatus?.name ?? '',
+      phase: envStatus?.phase,
+      ip: envStatus?.ip,
+      guiEnabled: templateEnv?.guiEnabled ?? false,
+      persistent: templateEnv?.persistent ?? false,
+      environmentType: templateEnv?.environmentType,
+    };
+  }) ?? [];
+  
+  const hasMultipleEnvironments = environments.length > 1;
+  
+  // For backwards compatibility, use the first environment for main properties
+  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryStatus = environments[0];
+  
+  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
+  
   // determine if public exposure allowed by template
   const allowPublicExposure =
     spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
@@ -538,8 +649,8 @@ export const getManagerInstances = (
     templateName: templateName,
     templatePrettyName: templatePrettyname,
     environmentType: environmentType,
-    ip: status?.ip,
-    status: safePhase2Conversion(status?.phase),
+    ip: primaryStatus?.ip ?? status?.ip,
+    status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
     tenantId: tenantName,
@@ -553,6 +664,10 @@ export const getManagerInstances = (
       publicExposure,
       publicExposureStatus,
     ),
+    nodeSelector: status?.nodeSelector,
+    nodeName: status?.nodeName,
+    environments: environments,
+    hasMultipleEnvironments: hasMultipleEnvironments,
   } as Instance;
 };
 
@@ -590,8 +705,19 @@ export const getTemplatesMapped = (
         workspaceName,
         templatePrettyName,
         allowPublicExposure,
+        environments,
+        hasMultipleEnvironments
       },
     ] = instancesFiltered;
+
+    const environmentList = environments?.map(env => ({
+      name: env.name,
+      guiEnabled: env.guiEnabled || false,
+      persistent: env.persistent || false,
+      environmentType: env.environmentType,
+      resources: { cpu: 0, disk: '', memory: '' },
+    })) || [];
+  
     return {
       id: templateId,
       name: templatePrettyName,
@@ -602,6 +728,8 @@ export const getTemplatesMapped = (
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
       allowPublicExposure,
+      environmentList: environmentList,
+      hasMultipleEnvironments: hasMultipleEnvironments ?? false,
     };
   });
 };

@@ -27,9 +27,9 @@ type EnvironmentType string
 
 // +kubebuilder:validation:Enum="Standard";"Exam";"Exercise"
 
-// EnvironmentMode is an enumeration of the mode in which associated instances should be started:
-// each mode consists in presets for exposition and deployment.
-type EnvironmentMode string
+// EnvironmentScope is an enumeration of the scope in which the environment of the associated instance should be started:
+// each scope consists in presets for exposition and deployment.
+type EnvironmentScope string
 
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
@@ -41,12 +41,12 @@ const (
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
 
-	// ModeStandard -> Normal operation (authentication, ssh, files access).
-	ModeStandard EnvironmentMode = "Standard"
-	// ModeExam -> Restricted access (no authentication, no mydrive access).
-	ModeExam EnvironmentMode = "Exam"
-	// ModeExercise -> Restricted access (no authentication, no mydrive access).
-	ModeExercise EnvironmentMode = "Exercise"
+	// ScopeStandard -> Normal operation (authentication, ssh, files access).
+	ScopeStandard EnvironmentScope = "Standard"
+	// ScopeExam -> Restricted access (no authentication, no mydrive access).
+	ScopeExam EnvironmentScope = "Exam"
+	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
+	ScopeExercise EnvironmentScope = "Exercise"
 )
 
 // TemplateSpec is the specification of the desired state of the Template.
@@ -61,6 +61,9 @@ type TemplateSpec struct {
 	WorkspaceRef GenericRef `json:"workspace.crownlabs.polito.it/WorkspaceRef,omitempty"`
 
 	// The list of environments (i.e. VMs or containers) that compose the Template.
+	// Each environment must have a unique name within the Template.
+	// +listType=map
+	// +listMapKey=name
 	EnvironmentList []Environment `json:"environmentList"`
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[mhd])$"
@@ -71,6 +74,16 @@ type TemplateSpec struct {
 	// or stopped to save resources. If set to "never", the instance will not be
 	// automatically terminated.
 	DeleteAfter string `json:"deleteAfter,omitempty"`
+
+	// Labels that are used for the selection of the node.
+	// They are given by means of a pointer to check the presence of the field.
+	// In case it is present, the labels that are chosen are the ones present on the instance
+	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:default="Standard"
+
+	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
+	Scope EnvironmentScope `json:"scope,omitempty"`
 
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
@@ -91,6 +104,10 @@ type TemplateStatus struct {
 // Environment defines the characteristics of an environment composing the Template.
 type Environment struct {
 	// The name identifying the specific environment.
+	// The name must be unique within the Template and must follow the Kubernetes
+	// naming conventions, i.e. it must consist of lower case alphanumeric characters,
+	// '-' or '.', must start and end with an alphanumeric character.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
 	Name string `json:"name"`
 
 	// The VM or container to be started when instantiating the environment.
@@ -119,11 +136,6 @@ type Environment struct {
 	// The amount of computational resources associated with the environment.
 	Resources EnvironmentResources `json:"resources"`
 
-	// +kubebuilder:default="Standard"
-
-	// The mode associated with the environment (Standard, Exam, Exercise)
-	Mode EnvironmentMode `json:"mode,omitempty"`
-
 	// +kubebuilder:default=false
 	// Whether the environment needs the URL Rewrite or not.
 	RewriteURL bool `json:"rewriteURL,omitempty"`
@@ -140,11 +152,6 @@ type Environment struct {
 
 	// The list of information about Shared Volumes that has to be mounted to the instance.
 	SharedVolumeMounts []SharedVolumeMountInfo `json:"sharedVolumeMounts,omitempty"`
-
-	// Labels that are used for the selection of the node.
-	// They are given by means of a pointer to check the presence of the field.
-	// In case it is present, the labels that are chosen are the ones present on the instance
-	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 }
 
 // EnvironmentResources is the specification of the amount of resources
@@ -211,7 +218,7 @@ type SharedVolumeMountInfo struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
-// +kubebuilder:printcolumn:name="Mode",type=string,JSONPath=`.spec.environmentList[0].mode`
+// +kubebuilder:printcolumn:name="Scope",type=string,JSONPath=`.spec.environmentList[0].scope`
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
 // +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10

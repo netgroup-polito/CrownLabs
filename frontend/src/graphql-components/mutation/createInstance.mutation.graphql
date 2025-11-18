@@ -37,6 +37,12 @@ mutation createInstance(
       url
       nodeName
       nodeSelector
+      environments {
+        name
+        phase
+        ip
+        initialReadyTime
+      }     
     }
     spec {
       running
@@ -51,6 +57,7 @@ mutation createInstance(
               prettyName
               description
               environmentList {
+                name
                 guiEnabled
                 persistent
                 environmentType

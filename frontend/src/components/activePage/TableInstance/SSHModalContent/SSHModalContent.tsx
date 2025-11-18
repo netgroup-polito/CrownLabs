@@ -1,7 +1,10 @@
 import type { FC } from 'react';
-import { Typography, Space, Button } from 'antd';
+import { Typography, Space, List, Tag, Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { CodeOutlined } from '@ant-design/icons';
+import { Phase2 } from '../../../../generated-types';
+import type { InstanceEnvironment } from '../../../../utils';
+
 const { Text } = Typography;
 
 export interface ISSHModalContentProps {
@@ -11,12 +14,35 @@ export interface ISSHModalContentProps {
   name?: string;
   prettyName?: string;
   onClose?: () => void;
+  environments?: Array<InstanceEnvironment>;
 }
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
-  const { instanceIp, hasSSHKeys } = props;
+  const { instanceIp, hasSSHKeys, environments, namespace, name, /* prettyName, onClose */} = props;
+  
+  const getFirstEnvironmentName = () => {
+    return environments?.[0]?.name || 'env';
+  };
+  
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${namespace}/${name}/${envName}/ssh`;
+    }
+    return `/instance/${namespace}/${name}/env/ssh`;
+  };
 
-  const ENV_PLACEHOLDER = 'env';
+  const getEnvironmentStatus = (env: InstanceEnvironment) => {
+    const isReady = env.phase === Phase2.Ready;
+    return (
+      <Tag color={isReady ? 'green' : 'red'}>
+        {env.phase || 'Unknown'}
+      </Tag>
+    );
+  };
+
+  const getSshCommand = (envIP: string) => {
+    return `ssh -J bastion@ssh.crownlabs.polito.it crownlabs@${envIP}`;
+  };
 
   return (
     <Space
@@ -28,22 +54,6 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
         to use your own terminal.
       </Text>
 
-      <Link
-        to={`/instance/${props.namespace}/${props.name}/${ENV_PLACEHOLDER}/ssh`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={props.onClose}
-      >
-        <Button
-          className="mt-4 bg-green-600 hover:bg-green-700"
-          type="primary"
-          shape="round"
-        >
-          <CodeOutlined></CodeOutlined>
-          Connect via browser
-        </Button>
-      </Link>
-
       <div className="border-t border-gray-400 w-full mt-4" />
 
       {hasSSHKeys ? (
@@ -52,9 +62,75 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
             You have already registered an SSH key. You can connect via terminal
             using:
           </Text>
-          <Text type="warning" code copyable>
-            ssh -J bastion@ssh.crownlabs.polito.it crownlabs@{instanceIp}
-          </Text>
+          
+          {environments && environments.length > 1 ? (
+            <>
+              <List
+                dataSource={environments}
+                renderItem={(env) => (
+                  <List.Item className="flex flex-col">
+                    <div className="flex justify-between items-center mb-2 gap-2">
+                      <Text strong>{env.name}</Text>
+                      {getEnvironmentStatus(env)}
+                    </div>
+                    {env.ip && env.phase === Phase2.Ready ? (
+                      <>
+                      <Text type="warning" code copyable className="text-center">
+                        {getSshCommand(env.ip)}
+                      </Text>
+                      <Link
+                        to={buildSSHLink(env.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        // onClick={props.onClose}
+                      >
+                        <Button
+                          className="mt-4 bg-green-600 hover:bg-green-700"
+                          type="primary"
+                          shape="round"
+                        >
+                          <CodeOutlined></CodeOutlined>
+                          Connect via browser
+                        </Button>
+                      </Link>
+                      </>
+                    ) : (
+                      <Text type="secondary" className="text-center">
+                        Environment is not ready to connect via SSH
+                      </Text>
+                    )}
+                  </List.Item>
+                )}
+              />
+            </>
+          ) : (
+            <>
+              <Text className="flex justify-center">
+                Connect to your remote instance via the following command:
+              </Text>
+
+              <Text type="warning" code copyable className="flex justify-center">
+                {/* FIXME: use netlab username for older VMs, retrieve the correct username
+                from the VM's creation timestamp */}
+                {getSshCommand(instanceIp)}
+              </Text>
+              <Link
+                to={buildSSHLink(getFirstEnvironmentName())}
+                target="_blank"
+                rel="noopener noreferrer"
+                // onClick={props.onClose}
+              >
+                <Button
+                  className="mt-4 bg-green-600 hover:bg-green-700"
+                  type="primary"
+                  shape="round"
+                >
+                  <CodeOutlined></CodeOutlined>
+                  Connect via browser
+                </Button>
+              </Link>
+            </>
+          )}
           <Text className="text-sm text-gray-500">
             Want to update your SSH key?
           </Text>

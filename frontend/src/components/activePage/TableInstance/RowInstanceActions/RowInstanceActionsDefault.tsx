@@ -1,5 +1,6 @@
-import { DeleteOutlined, ExportOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { DeleteOutlined, ExportOutlined, DownOutlined, CodeOutlined} from '@ant-design/icons';
+import { Tooltip, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import { Button } from 'antd';
 import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
@@ -11,7 +12,7 @@ import {
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
 import { ModalAlert } from '../../../common/ModalAlert';
-
+import type { InstanceEnvironment } from '../../../../utils';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -31,6 +32,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     name,
     tenantNamespace,
     environmentType,
+    environments,
   } = instance;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -92,11 +94,46 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
   const font22px = { fontSize: '22px' };
 
-  const connectOptions = gui
-    ? { href: url!, target: '_blank' }
-    : { onClick: () => setSshModal(true), ghost: true };
-
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+
+  const handleConnect = () => {
+    if (environments && environments.length == 1) {
+      const env = environments[0];
+      handleEnvironmentConnect(env);
+    }
+  };
+
+  const handleEnvironmentConnect = (env: InstanceEnvironment) => {
+    if (env.guiEnabled) {
+      const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
+      const envUrl = `${baseUrl}/${env.name}/`;
+      window.open(envUrl, '_blank');
+    } else {
+      setSshModal(true);
+    }
+  };
+
+  // Dropdown menu items for environments
+  const createEnvironmentMenuItems = (): MenuProps['items'] => {
+    if (!environments || environments.length <= 1) return [];
+
+    return environments.map(env => {
+      const isReady = env.phase === Phase2.Ready;
+      const isGuiEnabled = env.guiEnabled;
+
+      return {
+        key: env.name,
+        label: env.name,
+        icon: isGuiEnabled ? <ExportOutlined /> : <CodeOutlined />,
+        disabled: !isReady,
+        onClick: () => handleEnvironmentConnect(env),
+      };
+    });
+  };
+
+  const environmentMenuProps: MenuProps = {
+    items: createEnvironmentMenuItems(),
+  };
 
   return (
     <>
@@ -174,18 +211,39 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               : 'sm:block '
           } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
-          <Button
-            className={`${connectDisabled ? 'pointer-events-none' : ''}`}
-            color={classFromProps()}
-            type="primary"
-            variant="solid"
-            shape="round"
-            size="middle"
-            {...connectOptions}
-            disabled={connectDisabled}
-          >
-            Connect
-          </Button>
+          {environments && environments.length > 1 ? (
+            <Dropdown
+              menu={environmentMenuProps}
+              disabled={connectDisabled}
+              trigger={['click']}
+            >
+              <Button
+                type="primary"
+                color={classFromProps()}
+                variant="solid"
+                shape="round"
+                size="middle"
+                disabled={connectDisabled}
+                icon={<DownOutlined />}
+              >
+                Connect ({environments.length} envs)
+              </Button>
+            </Dropdown>
+          ) : (
+            <Button
+              className={`${connectDisabled ? 'pointer-events-none' : ''}`}
+              color={classFromProps()}
+              type="primary"
+              variant="solid"
+              ghost={!gui}
+              shape="round"
+              size="middle"
+              onClick={handleConnect}
+              disabled={connectDisabled}
+            >
+              Connect
+            </Button>
+          )}
         </div>
         <div
           className={`hidden ${
@@ -198,23 +256,48 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             connectDisabled ? 'cursor-not-allowed' : ''
           }`}
         >
-          <Button
-            className={`${
-              connectDisabled ? 'pointer-events-none' : ''
-            } flex items-center justify-center p-0 border-0`}
-            type={!extended ? 'link' : 'default'}
-            color={classFromPropsMobile()}
-            shape="circle"
-            size="middle"
-            {...connectOptions}
-            disabled={connectDisabled}
-            icon={
-              <ExportOutlined
-                className="flex items-center justify-center"
-                style={font22px}
+          {environments && environments.length > 1 ? (
+            <Dropdown
+              menu={environmentMenuProps}
+              trigger={['click']}
+              disabled={connectDisabled}
+            >
+              <Button
+                className={`${
+                  connectDisabled ? 'pointer-events-none' : ''
+                } flex items-center justify-center p-0 border-0`}
+                type={!extended ? 'link' : 'default'}
+                color={classFromPropsMobile()}
+                shape="circle"
+                size="middle"
+                disabled={connectDisabled}
+                icon={
+                  <DownOutlined
+                    className="flex items-center justify-center"
+                    style={font22px}
+                  />
+                }
               />
-            }
-          />
+            </Dropdown>
+          ) : (
+            <Button
+              className={`${
+                connectDisabled ? 'pointer-events-none' : ''
+              } flex items-center justify-center p-0 border-0`}
+              type={!extended ? 'link' : 'default'}
+              color={classFromPropsMobile()}
+              shape="circle"
+              size="middle"
+              onClick={handleConnect}
+              disabled={connectDisabled}
+              icon={
+                <ExportOutlined
+                  className="flex items-center justify-center"
+                  style={font22px}
+                />
+              }
+            />
+          )}
         </div>
       </Tooltip>
     </>
