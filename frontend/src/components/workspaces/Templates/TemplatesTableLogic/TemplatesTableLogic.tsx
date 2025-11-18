@@ -90,15 +90,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   useEffect(() => {
     if (!loadingInstances && !errorInstances && !errorsQueue.length) {
       const unsubscribe = subscribeToMoreInstances({
-        onError: (error) => {
-          // Suppress the environments error during instance deletion
-          if (error.message.includes('Expected Iterable') && error.message.includes('environments')) {
-            console.warn('Suppressed environments GraphQL error in TemplatesTableLogic');
-            // window.location.reload();
-            return;
-          }
-          makeErrorCatcher(ErrorTypes.GenericError)(error);
-        },
+        onError: makeErrorCatcher(ErrorTypes.GenericError),
         document: updatedOwnedInstances,
         variables: {
           tenantNamespace,
