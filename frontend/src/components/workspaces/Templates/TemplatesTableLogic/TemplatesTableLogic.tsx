@@ -154,15 +154,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     if (!loadingTemplate && !errorTemplate && !errorsQueue.length) {
       const unsubscribe =
         subscribeToMoreTemplates<UpdatedWorkspaceTemplatesSubscription>({
-          onError: (error) => {
-            // Suppress the environmentList error during template deletion
-            if (error.message.includes('Expected Iterable') && error.message.includes('environmentList')) {
-              console.warn('Suppressed environmentList GraphQL error in TemplatesTableLogic');
-              // window.location.reload();
-              return;
-            }
-            makeErrorCatcher(ErrorTypes.GenericError)(error);
-          },
+          onError: makeErrorCatcher(ErrorTypes.GenericError),
           document: updatedWorkspaceTemplates,
           variables: { workspaceNamespace },
           updateQuery: (prev, { subscriptionData }) => {
