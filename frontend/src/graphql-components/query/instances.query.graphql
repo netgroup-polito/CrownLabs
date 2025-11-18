@@ -26,6 +26,12 @@ query ownedInstances($tenantNamespace: String!) {
             targetPort
           }
         }
+        environments {
+          name
+          phase
+          ip
+          initialReadyTime
+        }
       }
       spec {
         running
@@ -48,6 +54,7 @@ query ownedInstances($tenantNamespace: String!) {
                 description
                 allowPublicExposure
                 environmentList {
+                  name
                   guiEnabled
                   persistent
                   environmentType

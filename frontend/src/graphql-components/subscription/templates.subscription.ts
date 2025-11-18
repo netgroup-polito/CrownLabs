@@ -16,6 +16,7 @@ export default gql`
           description
           allowPublicExposure
           environmentList {
+            name
             guiEnabled
             persistent
             nodeSelector
