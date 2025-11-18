@@ -61,10 +61,11 @@ var _ = Describe("Generation of the container based instances", func() {
 		reconciler    instctrl.InstanceReconciler
 
 		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
 		manager     clv1alpha2.Tenant
-		template    clv1alpha2.Template
+		index       int
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -162,7 +163,15 @@ var _ = Describe("Generation of the container based instances", func() {
 				Template: clv1alpha2.GenericRef{Name: templateName, Namespace: templateNamespace},
 				Tenant:   clv1alpha2.GenericRef{Name: tenantName},
 			},
+			Status: clv1alpha2.InstanceStatus{
+				Environments: []clv1alpha2.InstanceStatusEnv{
+					{Phase: ""},
+					{Phase: ""},
+					{Phase: ""},
+				},
+			},
 		}
+
 		environment = clv1alpha2.Environment{
 			Name:               environmentName,
 			EnvironmentType:    clv1alpha2.ClassContainer,
@@ -176,7 +185,16 @@ var _ = Describe("Generation of the container based instances", func() {
 			},
 		}
 
-		objectName = forge.NamespacedName(&instance)
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+			},
+		}
+
+		index = 0
+
+		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 
 		svc = corev1.Service{}
 		deploy = appsv1.Deployment{}
@@ -232,9 +250,12 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
+		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
+		ctx = clctx.EnvironmentIndexInto(ctx, index)
+
 		errShVol = reconciler.Create(ctx, &shvol)
 		err = reconciler.EnforceContainerEnvironment(ctx)
 	})
@@ -253,13 +274,13 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -277,8 +298,20 @@ var _ = Describe("Generation of the container based instances", func() {
 				})
 
 				It("Should set the instance phase to starting", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 				})
+
+				When("the index is greater than 0 but still valid", func() {
+					BeforeEach(func() { index = 2 })
+
+					It("Should set the instance phase correctly", func() {
+						Expect(instance.Status.Environments).ToNot(BeEmpty())
+						Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+					})
+
+				})
+
 			})
 
 			When("the instance is not running", func() {
@@ -294,7 +327,8 @@ var _ = Describe("Generation of the container based instances", func() {
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -317,7 +351,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should still be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -334,7 +368,8 @@ var _ = Describe("Generation of the container based instances", func() {
 				})
 
 				It("Should set the correct instance phase", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
 				})
 			})
 
@@ -345,7 +380,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should still be present and have unmodified specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+					Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 					// Here we overwrite the replicas value, as it is checked in a different It clause.
 					deploy.Spec.Replicas = nil
 					Expect(deploy.Spec).To(Equal(appsv1.DeploymentSpec{}))
@@ -357,7 +392,8 @@ var _ = Describe("Generation of the container based instances", func() {
 				})
 
 				It("Should set the instance phase to Off", func() {
-					Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -369,7 +405,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		When("the PVC is not yet present", func() {
 			It("The PVC should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(pvc.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(pvc.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -384,13 +420,13 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, nil, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -412,7 +448,8 @@ var _ = Describe("Generation of the container based instances", func() {
 			})
 
 			It("Should set the instance phase as starting", func() {
-				Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments).ToNot(BeEmpty())
+				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 		})
 
@@ -429,7 +466,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The PVC should be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(pvc.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(pvc.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -454,7 +491,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should still be present and have the common attributes", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				Expect(deploy.GetLabels()).To(Equal(forge.InstanceObjectLabels(nil, &instance)))
+				Expect(deploy.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
 				Expect(deploy.GetOwnerReferences()).To(ContainElement(ownerRef))
 			})
 
@@ -466,7 +503,8 @@ var _ = Describe("Generation of the container based instances", func() {
 			})
 
 			It("Should set the correct instance phase", func() {
-				Expect(instance.Status.Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments).ToNot(BeEmpty())
+				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 
 			Context("The instance is running", func() {
@@ -525,7 +563,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and with the correct volumes spec", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &environment, mountInfos, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
 
 				Expect(deploy.Spec.Template.Spec.Volumes).To(Equal(expected.Template.Spec.Volumes))
 			})
