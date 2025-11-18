@@ -18,7 +18,7 @@ function App() {
   const { data: tenantData } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
-  const tenantNs = 'tenant-' + tenantData?.tenant?.metadata?.name;
+  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Get all instances for quota calculations
   const { data: instancesData, refetch: refetchInstances } =
