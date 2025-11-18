@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 type DefaultImageListSaver struct {
@@ -22,7 +23,7 @@ type DefaultImageListSaver struct {
 func NewDefaultImageListSaver(name string, client client.Client) (*DefaultImageListSaver, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "crownlabs.polito.it",
-		Version:  "v1alpha2",
+		Version:  "v1alpha1",
 		Resource: "imagelists",
 	}
 
@@ -49,7 +50,7 @@ func (s *DefaultImageListSaver) UpdateImageList(imageList []map[string]interface
 func (s *DefaultImageListSaver) getImageListVersion() (string, error) {
 	obj := &unstructured.Unstructured{}
 
-	obj.SetGroupVersionKind(clv1alpha2.GroupVersion.WithKind("ImageList"))
+	obj.SetGroupVersionKind(clv1alpha1.GroupVersion.WithKind("ImageList"))
 	key := client.ObjectKey{
 		Name:      s.Name,
 		Namespace: s.Namespace,
@@ -91,24 +92,72 @@ func (s *DefaultImageListSaver) updateImageList(imageList []map[string]interface
 	fmt.Printf("ImageList '%s' updated\n", s.Name)
 	return nil
 }
-func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]interface{}, resourceVersion string) *unstructured.Unstructured {
-	specs := map[string]interface{}{
-		"registryName": s.Name,
-		"images":       imageList,
+func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]interface{}, resourceVersion string) *clv1alpha1.ImageList {
+	// 1. Convert the input []map[string]interface{} into []ImageListItem
+	imageItems := make([]clv1alpha1.ImageListItem, len(imageList))
+	for i, imgMap := range imageList {
+		name, _ := imgMap["name"].(string)
+		versionsInterface, _ := imgMap["versions"].([]interface{})
+		versions := make([]string, len(versionsInterface))
+		if len(versions) < 1 {
+			versions = append(versions, "latest")
+		}
+		for j, v := range versionsInterface {
+			if versionStr, ok := v.(string); ok {
+				versions[j] = versionStr
+			}
+		}
+
+		imageItems[i] = clv1alpha1.ImageListItem{
+			Name:     name,
+			Versions: versions,
+		}
 	}
-	obj := map[string]interface{}{
-		"apiVersion": "crownlabs.polito.it/v1alpha2",
-		"kind":       "ImageList",
-		"metadata": map[string]interface{}{
-			"name": s.Name,
+
+	// 2. Create the ImageListSpec
+	spec := clv1alpha1.ImageListSpec{
+		RegistryName: s.Name,
+		Images:       imageItems,
+	}
+
+	// 3. Create the ImageList object
+	imgList := &clv1alpha1.ImageList{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "crownlabs.polito.it/v1alpha1", // Matches the original unstructured object
+			Kind:       "ImageList",                    // Matches the original unstructured object
 		},
-		"spec": specs,
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.Name,
+		},
+		Spec: spec,
 	}
+
+	// 4. Set the ResourceVersion if provided
 	if resourceVersion != "" {
-		obj["metadata"].(map[string]interface{})["resourceVersion"] = resourceVersion
+		imgList.ObjectMeta.ResourceVersion = resourceVersion
 	}
-	return &unstructured.Unstructured{Object: obj}
+
+	return imgList
 }
+
+// func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]interface{}, resourceVersion string) *unstructured.Unstructured {
+// 	specs := map[string]interface{}{
+// 		"registryName": s.Name,
+// 		"images":       imageList,
+// 	}
+// 	obj := map[string]interface{}{
+// 		"apiVersion": "crownlabs.polito.it/v1alpha1",
+// 		"kind":       "ImageList",
+// 		"metadata": map[string]interface{}{
+// 			"name": s.Name,
+// 		},
+// 		"spec": specs,
+// 	}
+// 	if resourceVersion != "" {
+// 		obj["metadata"].(map[string]interface{})["resourceVersion"] = resourceVersion
+// 	}
+// 	return &unstructured.Unstructured{Object: obj}
+// }
 
 func init() {
 	client, err := NewK8sClient()
