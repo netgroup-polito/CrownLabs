@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
 
 	imageList "github.com/netgroup-polito/CrownLabs/operators/pkg/imageList"
 )
@@ -32,8 +32,9 @@ func main() {
 	klog.InitFlags(nil)
 	flag.Parse()
 
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
 	if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || registryUsername == "" || registryPassword == "" || updateIntervalSec <= 0 {
-		fmt.Printf(`Usage:
+		log.Error(nil, `Usage:
 			--advertised-registry-name <registry-name>
 			--image-list-name <list-name>
 			--registry-url <url>
@@ -56,12 +57,11 @@ func main() {
 		}
 	}
 	if len(imageListRequestors) == 0 {
-		fmt.Printf(`No valid Image source is defined`)
-		fmt.Println()
+		log.Error(nil, `No valid Image source is defined`)
 		os.Exit(1)
 	}
 
-	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName)
+	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName, log)
 
 	stop := make(chan struct{})
 	go up.RunUpdateProcess(time.Duration(updateIntervalSec)*time.Second, stop)

@@ -1,21 +1,25 @@
 package imageList
 
 import (
-	"log"
+	"fmt"
 	"time"
+
+	"github.com/go-logr/logr"
 )
 
 type ImageListUpdater struct {
 	Requestors        []ImageListRequestor
 	RegistryAdvName   string
 	ImageListBaseName string
+	Log               logr.Logger
 }
 
-func NewImageListUpdater(reqs []ImageListRequestor, imageListBase, registryAdv string) *ImageListUpdater {
+func NewImageListUpdater(reqs []ImageListRequestor, imageListBase, registryAdv string, log logr.Logger) *ImageListUpdater {
 	return &ImageListUpdater{
 		Requestors:        reqs,
 		ImageListBaseName: imageListBase,
 		RegistryAdvName:   registryAdv,
+		Log:               log,
 	}
 }
 
@@ -35,8 +39,7 @@ func (u *ImageListUpdater) RunUpdateProcess(interval time.Duration, stop <-chan 
 // Update performs the actual update process.
 func (u *ImageListUpdater) Update() {
 	start := time.Now()
-	log.Println("Starting the update process")
-
+	u.Log.Info("Starting the update process")
 	var images []map[string]interface{}
 	var err error
 	for _, req := range u.Requestors {
@@ -48,7 +51,7 @@ func (u *ImageListUpdater) Update() {
 		images = append(images, list...)
 	}
 	if err != nil {
-		log.Printf("Failed to retrieve data from upstream: %v", err)
+		u.Log.Error(err, "Failed to retrieve data from upstream")
 		return
 	}
 	for _, imgSaver := range RegisteredSavers {
@@ -61,12 +64,12 @@ func (u *ImageListUpdater) Update() {
 				}
 			}
 			if err := Saver.UpdateImageList(processImageList(filteredImages)); err != nil {
-				log.Printf("Failed to save data as ImageList: %v", err)
+				u.Log.Error(err, "Failed to save data as ImageList")
 				return
 			}
 		}
 	}
-	log.Printf("Update process correctly completed in %.2f seconds", time.Since(start).Seconds())
+	u.Log.Info(fmt.Sprintf("Update process correctly completed in %.2f seconds", time.Since(start).Seconds()))
 }
 func processImageList(images []map[string]interface{}) []map[string]interface{} {
 	var out []map[string]interface{}

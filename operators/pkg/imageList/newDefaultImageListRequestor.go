@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+
+	"github.com/go-logr/logr"
+	"k8s.io/klog/v2/textlogger"
 )
 
 type DefaultImageListRequestor struct {
@@ -14,26 +17,27 @@ type DefaultImageListRequestor struct {
 	Password    string
 	Client      *http.Client
 	Initialized bool
+	Log         logr.Logger
 }
 
-func NewDefaultImageListRequestor() *DefaultImageListRequestor {
+func NewDefaultImageListRequestor(log logr.Logger) *DefaultImageListRequestor {
 	return &DefaultImageListRequestor{
 		URL:         "",
 		Username:    "",
 		Password:    "",
 		Client:      &http.Client{},
 		Initialized: false,
+		Log:         log,
 	}
 }
 
 func (r *DefaultImageListRequestor) Initialize() (bool, error) {
 	var username, password, registryURL string
-
 	username = RequestersSharedData["default-requestor-REGISTRY_USERNAME"]
 	password = RequestersSharedData["default-requestor-REGISTRY_PASSWORD"]
 	registryURL = RequestersSharedData["default-requestor-registryurl"]
 	if username == "" || password == "" || registryURL == "" {
-		fmt.Printf("Is Not a valid Image source definition (DefaultImageListRequestor ). Skipping...\n")
+		r.Log.Error(nil, "Is Not a valid Image source definition (DefaultImageListRequestor ). Skipping...\n")
 		return false, fmt.Errorf("Is Not a valid Image source definition (DefaultImageListRequestor ). Skipping...\n")
 	}
 	r.URL = registryURL
@@ -120,5 +124,7 @@ func (r *DefaultImageListRequestor) mapRepositoriesToPaths(repositories []interf
 }
 
 func init() {
-	RegisteredRequestors = append(RegisteredRequestors, NewDefaultImageListRequestor())
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
+
+	RegisteredRequestors = append(RegisteredRequestors, NewDefaultImageListRequestor(log))
 }

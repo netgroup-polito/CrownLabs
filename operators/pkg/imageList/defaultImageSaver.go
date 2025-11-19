@@ -3,24 +3,29 @@ package imageList
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2/textlogger"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/go-logr/logr"
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/examagent"
 )
 
 type DefaultImageListSaver struct {
 	Name      string
 	Client    client.Client
 	GVR       schema.GroupVersionResource
-	Namespace string // Not used for cluster-scoped resources, but kept for extensibility
+	Namespace string
+	Log       logr.Logger
 }
 
-func NewDefaultImageListSaver(name string, client client.Client) (*DefaultImageListSaver, error) {
+func NewDefaultImageListSaver(name string, client client.Client, log logr.Logger) (*DefaultImageListSaver, error) {
 	gvr := schema.GroupVersionResource{
 		Group:    "crownlabs.polito.it",
 		Version:  "v1alpha1",
@@ -31,6 +36,7 @@ func NewDefaultImageListSaver(name string, client client.Client) (*DefaultImageL
 		Name:   name,
 		Client: client,
 		GVR:    gvr,
+		Log:    log,
 	}, nil
 }
 func (s *DefaultImageListSaver) IsThisImageYours(imageListSpec map[string]interface{}) bool {
@@ -140,40 +146,28 @@ func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]int
 	return imgList
 }
 
-// func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]interface{}, resourceVersion string) *unstructured.Unstructured {
-// 	specs := map[string]interface{}{
-// 		"registryName": s.Name,
-// 		"images":       imageList,
-// 	}
-// 	obj := map[string]interface{}{
-// 		"apiVersion": "crownlabs.polito.it/v1alpha1",
-// 		"kind":       "ImageList",
-// 		"metadata": map[string]interface{}{
-// 			"name": s.Name,
-// 		},
-// 		"spec": specs,
-// 	}
-// 	if resourceVersion != "" {
-// 		obj["metadata"].(map[string]interface{})["resourceVersion"] = resourceVersion
-// 	}
-// 	return &unstructured.Unstructured{Object: obj}
-// }
-
 func init() {
-	client, err := NewK8sClient()
+
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
+	client, err := examagent.NewK8sClient()
+	if err != nil {
+		log.Error(err, "unable to prepare k8s client")
+		os.Exit(1)
+	}
+
 	if err != nil {
 		fmt.Printf("Error initializing K8s client for ImageList savers: %v\n", err)
 		return
 	}
-	saver, err := NewDefaultImageListSaver("crownlabs-standalone", client)
+	saver, err := NewDefaultImageListSaver("crownlabs-standalone", client, log)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-container-envs", client)
+	saver, err = NewDefaultImageListSaver("crownlabs-container-envs", client, log)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-containerdisks", client)
+	saver, err = NewDefaultImageListSaver("crownlabs-containerdisks", client, log)
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
