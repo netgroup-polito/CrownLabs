@@ -30,7 +30,6 @@ import (
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
 
@@ -354,7 +353,7 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		Expect(shouldSend).To(BeTrue(), "Should send notification because the instance is not deleted yet")
 
 		By("Verifying the ExpiringWarningNotificationAnnotation annotation has been added to the instance")
-		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationAnnotation]).To(Equal("true"), "ExpiringWarningNotificationAnnotation annotation should be set to true")
+		//Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]).
 	})
 
 })

@@ -87,9 +87,6 @@ const (
 	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
 	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
 
-	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.
-	ExpiringWarningNotificationAnnotation = "crownlabs.polito.it/sent-expiring-warning-notification"
-
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
 	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
 )
