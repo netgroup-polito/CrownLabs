@@ -147,8 +147,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 					log.Error(err, "failed sending expiring warning notification email")
 					return ctrl.Result{}, err
 				}
-				//return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
-				return ctrl.Result{}, nil
+				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
 			}
 			// If all notifications have been sent (or simply disabled), terminate the instance
 			// shouldTerminate, newRemainingTime, err := r.ShouldTerminateInstance(ctx)
@@ -305,20 +304,20 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 	}
 
 	// If annotation already existing, return false
-	if _, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
-		return false, nil
-	}
+	// if _, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
+	// 	return false, nil
+	// }
 
 	// If not present, add it and return true
-	patch := client.MergeFrom(instance.DeepCopy())
-	if instance.Annotations == nil {
-		instance.Annotations = make(map[string]string)
-	}
-	instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	// patch := client.MergeFrom(instance.DeepCopy())
+	// if instance.Annotations == nil {
+	// 	instance.Annotations = make(map[string]string)
+	// }
+	// instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
 
-	if err := r.Patch(ctx, instance, patch); err != nil {
-		return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
-	}
+	// if err := r.Patch(ctx, instance, patch); err != nil {
+	// 	return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
+	// }
 	return true, nil
 }
 
