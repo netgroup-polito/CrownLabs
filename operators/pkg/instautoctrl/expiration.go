@@ -147,30 +147,31 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 					log.Error(err, "failed sending expiring warning notification email")
 					return ctrl.Result{}, err
 				}
-				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+				//return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+				return ctrl.Result{}, nil
 			}
 			// If all notifications have been sent (or simply disabled), terminate the instance
-			shouldTerminate, newRemainingTime, err := r.ShouldTerminateInstance(ctx)
-			if err != nil {
-				log.Error(err, "failed to check if instance should be terminated")
-				return ctrl.Result{}, err
-			}
-			if shouldTerminate {
-				if err := r.DeleteInstance(ctx); err != nil {
-					log.Error(err, "failed to delete expired instance")
-					return ctrl.Result{}, err
-				}
-				// Send notification for instance deletion
-				if err := r.NotifyInstanceDeletion(ctx); err != nil {
-					log.Error(err, "failed to send deletion notification")
-					return ctrl.Result{}, err
-				}
-				tracer.Step("deletion notification sent")
-			} else {
-				// Requeue after the remaining time to reach the notification interval
-				requeueTime := newRemainingTime + r.MarginTime
-				return ctrl.Result{RequeueAfter: requeueTime}, nil
-			}
+			// shouldTerminate, newRemainingTime, err := r.ShouldTerminateInstance(ctx)
+			// if err != nil {
+			// 	log.Error(err, "failed to check if instance should be terminated")
+			// 	return ctrl.Result{}, err
+			// }
+			// if shouldTerminate {
+			// 	if err := r.DeleteInstance(ctx); err != nil {
+			// 		log.Error(err, "failed to delete expired instance")
+			// 		return ctrl.Result{}, err
+			// 	}
+			// 	// Send notification for instance deletion
+			// 	if err := r.NotifyInstanceDeletion(ctx); err != nil {
+			// 		log.Error(err, "failed to send deletion notification")
+			// 		return ctrl.Result{}, err
+			// 	}
+			// 	tracer.Step("deletion notification sent")
+			// } else {
+			// 	// Requeue after the remaining time to reach the notification interval
+			// 	requeueTime := newRemainingTime + r.MarginTime
+			// 	return ctrl.Result{RequeueAfter: requeueTime}, nil
+			// }
 		} else {
 			log.Info("instance deleted without notification as expiration notifications are disabled", "instance", instance.Name, "namespace", instance.Namespace)
 			if err := r.DeleteInstance(ctx); err != nil {
