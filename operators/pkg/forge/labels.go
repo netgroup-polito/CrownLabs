@@ -93,8 +93,8 @@ const (
 	// CustomNumberOfAlertsAnnotation -> annotation to mark an Instance as having a custom number of alerts.
 	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
 
-	// ExpiringWarningNotificationAnnotation -> annotation to mark an Instance as having sent the expiring warning notification.
-	ExpiringWarningNotificationAnnotation = "crownlabs.polito.it/sent-expiring-warning-notification"
+	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
+	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,

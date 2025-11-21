@@ -353,8 +353,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(shouldSend).To(BeTrue(), "Should send notification because the instance is not deleted yet")
 
-		By("Verifying the ExpiringWarningNotificationAnnotation annotation has been added to the instance")
-		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationAnnotation]).To(Equal("true"), "ExpiringWarningNotificationAnnotation annotation should be set to true")
+		By("Verifying the ExpiringWarningNotificationTimestampAnnotation annotation has been added to the instance")
+		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]).ToNot(BeEmpty())
 	})
 
 })
