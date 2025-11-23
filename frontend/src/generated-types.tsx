@@ -1691,7 +1691,7 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs =
 
 
 export type MutationPatchCrownlabsPolitoItV1alpha2TenantArgs = {
-  applicationMergePatchJsonInput: Scalars['String']['input'];
+  applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
@@ -3695,8 +3695,9 @@ export const ApplyTenantDocument = gql`
     mutation applyTenant($tenantId: String!, $patchJson: String!, $manager: String!) {
   applyTenant: patchCrownlabsPolitoItV1alpha2Tenant(
     name: $tenantId
+    force: true
     fieldManager: $manager
-    applicationMergePatchJsonInput: $patchJson
+    applicationApplyPatchYamlInput: $patchJson
   ) {
     metadata {
       name

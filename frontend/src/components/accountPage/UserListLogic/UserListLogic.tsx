@@ -3,7 +3,6 @@ import { Spin } from 'antd';
 import {
   useTenantsQuery,
   useApplyTenantMutation,
-  useTenantLazyQuery,
 } from '../../../generated-types';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
@@ -82,7 +81,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
-  const [getTenant] = useTenantLazyQuery();
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
@@ -146,19 +144,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       for (const user of usersToAdd) {
         if (abortUploadingRef.current) break;
         try {
-          // Fetch existing workspaces for the user
-          const { data: tenantData } = await getTenant({
-            variables: { tenantId: user.userid },
-          });
-          
-          const existingWorkspaces = tenantData?.tenant?.spec?.workspaces?.map(ws => ({
-            name: ws?.name ?? '',
-            role: ws?.role ?? Role.User,
-          })) || [];
-          
-          // Merge existing workspaces with new ones
-          const allWorkspaces = [...existingWorkspaces, ...workspaces];
-          
           await applyTenantMutation({
             variables: {
               manager: getManager(),
@@ -168,16 +153,14 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
                   email: user.email,
                   firstName: user.name,
                   lastName: user.surname,
-                  workspaces: allWorkspaces,
+                  workspaces,
                 },
                 user.userid,
               ),
             },
             onError: apolloErrorCatcher,
           });
-          
-          // Update user with complete workspace list, for allowing delete operation before the first refresh
-          user.workspaces = allWorkspaces;
+          user.workspaces?.push(...workspaces);
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {

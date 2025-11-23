@@ -81,18 +81,56 @@ function decorateOpenapi(oas) {
     delete oas.definitions[rk];
   });
 
+  // Process PATCH operations with multiple consumes
+  const pathsToAdd = {};
+
   for (const path of Object.keys(oas.paths)) {
-    const { patch } = oas.paths[path];
-    if (patch) {
-      if (patch.operationId === 'patchCrownlabsPolitoItV1alpha2Tenant') {
-        // Changing header for allowing tenant workspaces patch
-        patch.consumes = ['application/merge-patch+json'];
-      } else {
-        patch.consumes = ['application/apply-patch+yaml'];
+    const { patch, parameters } = oas.paths[path];
+    if (patch && Array.isArray(patch.consumes) && patch.consumes.length > 1) {
+      const originalConsumes = [...patch.consumes];
+      const baseOperationId = patch.operationId;
+
+      // Keep the standard PATCH operation with the old consume type
+      patch.consumes = ['application/apply-patch+yaml'];
+
+      // Create clones for additional consume types
+      for (let i = 0; i < originalConsumes.length; i++) {
+        // Skip the apply-patch+yaml as it's already handled in the standard patch
+        if (originalConsumes[i] !== 'application/apply-patch+yaml') {
+          const consumeType = originalConsumes[i];
+          const clone = JSON.parse(JSON.stringify(patch));
+
+          // Create unique operationId based on content type
+          const suffix = consumeType
+            .replace('application/', '')
+            .replace(/[^a-zA-Z0-9]/g, '_')
+            .replace(/_+/g, '_');
+
+          clone.operationId = `${baseOperationId}_${suffix}`;
+          clone.consumes = [consumeType];
+          clone.summary = `${patch.summary || 'Patch'} (${consumeType})`;
+
+          // Remove force parameter for non-apply patches (merge-patch, etc.)
+          clone.parameters = clone.parameters.filter((p) => p.name !== 'force' && p.$ref !== '#/parameters/force-tOGGb0Yi');
+
+          // Store clone to add later (avoid modifying paths while iterating)
+          const clonePath = `${path}#${consumeType}`;
+          pathsToAdd[clonePath] = { patch: clone };
+          // Deep-clone path-level parameters to avoid shared references
+          if (parameters) {
+            pathsToAdd[clonePath].parameters = JSON.parse(JSON.stringify(parameters));
+          }
+        }
       }
+    } else if (patch) {
+      // Handle single consume or existing logic
+      patch.consumes = patch.consumes || ['application/apply-patch+yaml'];
       if (!patch.parameters.find((p) => p.name === 'force')) patch.parameters.push({ ...force });
     }
   }
+
+  // Add cloned operations to the paths
+  Object.assign(oas.paths, pathsToAdd);
 
   Object.keys(oas.definitions).forEach((k) => setGQLEnumNodes(oas.definitions[k]));
 
