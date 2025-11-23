@@ -124,7 +124,7 @@ func (r *DefaultImageListRequestor) mapRepositoriesToPaths(repositories []interf
 }
 
 func init() {
-	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
 
 	RegisteredRequestors = append(RegisteredRequestors, NewDefaultImageListRequestor(log))
 }

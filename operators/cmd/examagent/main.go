@@ -29,7 +29,7 @@ import (
 
 func main() {
 	examagent.Options.Init()
-	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("list")
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
 
 	if err := examagent.Options.Parse(); err != nil {
 		log.Error(err, "invalid configuration")

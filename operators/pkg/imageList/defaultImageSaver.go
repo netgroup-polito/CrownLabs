@@ -148,7 +148,7 @@ func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]int
 
 func init() {
 
-	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("examagent")
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
 	client, err := examagent.NewK8sClient()
 	if err != nil {
 		log.Error(err, "unable to prepare k8s client")
