@@ -11,6 +11,8 @@ const force = {
   in: 'query',
 };
 
+const additionalAccepts = { 'application/json-patch+json': 'jsonPatch' };
+
 /**
  * Recursively add x-graphql-enum-mapping property
  * to the enum ones which values contain empty string
@@ -95,18 +97,12 @@ function decorateOpenapi(oas) {
 
       // Create clones for additional consume types
       for (let i = 0; i < originalConsumes.length; i++) {
-        // Skip the apply-patch+yaml as it's already handled in the standard patch
-        if (originalConsumes[i] !== 'application/apply-patch+yaml') {
+        // check if the originalconsume is in the additionalaccepts
+        if (additionalAccepts[originalConsumes[i]]) {
           const consumeType = originalConsumes[i];
           const clone = JSON.parse(JSON.stringify(patch));
 
-          // Create unique operationId based on content type
-          const suffix = consumeType
-            .replace('application/', '')
-            .replace(/[^a-zA-Z0-9]/g, '_')
-            .replace(/_+/g, '_');
-
-          clone.operationId = `${baseOperationId}_${suffix}`;
+          clone.operationId = `${baseOperationId}_${additionalAccepts[originalConsumes[i]]}`;
           clone.consumes = [consumeType];
           clone.summary = `${patch.summary || 'Patch'} (${consumeType})`;
 

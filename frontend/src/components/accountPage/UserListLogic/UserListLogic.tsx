@@ -185,6 +185,16 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   const deleteUser = async (user: UserAccountPage) => {
     try {
       setLoadingSpinner(true);
+      // get all the workspaces from the user
+      const workspaces = users.find(u => u.userid === user.userid)!.workspaces;
+      // get the index of the workspace to delete
+      if(!workspaces) {
+        genericErrorCatcher(new Error(`User ${user.userid} has no workspaces`));
+        setLoadingSpinner(false);
+        return false;
+      }
+      const workspaceIndex = workspaces.findIndex(w => w.name === workspace.name);
+      
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
@@ -209,7 +219,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     setLoadingSpinner(false);
     return true;
   };
-  ;
+  
   return !loading && data && !error ? (
     <>
       <UserList
