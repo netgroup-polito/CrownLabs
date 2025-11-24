@@ -57,6 +57,10 @@ function getTemplatePatchJson(
   });
 }
 
+function removeWorkspaceJsonPatch(index: number){
+  return JSON.stringify({"op": "remove", "path": `/spec/workspaces/${index}`});
+}
+
 function getTenantPatchJson(
   spec: {
     email?: string;
@@ -103,4 +107,5 @@ export {
   getTemplatePatchJson,
   getTenantPatchJson,
   getShVolPatchJson,
+  removeWorkspaceJsonPatch,
 };

@@ -4,7 +4,7 @@ import {
   useTenantsQuery,
   useApplyTenantMutation,
 } from '../../../generated-types';
-import { getTenantPatchJson } from '../../../graphql-components/utils';
+import { getTenantPatchJson, removeWorkspaceJsonPatch } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
 import {
   makeRandomDigits,
@@ -198,12 +198,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
-          patchJson: getTenantPatchJson({
-            workspaces: users
-              .find(u => u.userid === user.userid)!
-              .workspaces?.filter(w => w.name !== workspace.name)
-              .map(({ name, role }) => ({ name, role })),
-          }),
+          patchJson: removeWorkspaceJsonPatch(workspaceIndex),
           manager: getManager(),
         },
         onError: apolloErrorCatcher,
