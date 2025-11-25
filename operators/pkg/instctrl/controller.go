@@ -17,7 +17,6 @@ package instctrl
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -67,6 +66,80 @@ type ServiceUrls struct {
 	InstancesAuthURL string
 }
 
+// calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
+func (r *InstanceReconciler) calculateInstancePhase(environments []clv1alpha2.InstanceStatusEnv) clv1alpha2.EnvironmentPhase {
+	total := len(environments)
+	if total == 0 {
+		return clv1alpha2.EnvironmentPhaseUnset
+	}
+
+	var (
+		failed, creationLoopBackoff int
+		resourceQuotaExceeded       int
+		ready, running              int
+		starting, importing         int
+		stopping, off               int
+	)
+
+	for envIdx := range environments {
+		switch environments[envIdx].Phase {
+		case clv1alpha2.EnvironmentPhaseFailed:
+			failed++
+
+		case clv1alpha2.EnvironmentPhaseCreationLoopBackoff:
+			creationLoopBackoff++
+
+		case clv1alpha2.EnvironmentPhaseResourceQuotaExceeded:
+			resourceQuotaExceeded++
+
+		case clv1alpha2.EnvironmentPhaseReady:
+			ready++
+
+		case clv1alpha2.EnvironmentPhaseRunning:
+			running++
+
+		case clv1alpha2.EnvironmentPhaseStarting:
+			starting++
+
+		case clv1alpha2.EnvironmentPhaseImporting:
+			importing++
+
+		case clv1alpha2.EnvironmentPhaseStopping:
+			stopping++
+
+		case clv1alpha2.EnvironmentPhaseOff:
+			off++
+
+		default:
+			continue
+		}
+	}
+
+	if failed > 0 || creationLoopBackoff > 0 {
+		return clv1alpha2.EnvironmentPhaseFailed
+	}
+	if resourceQuotaExceeded > 0 {
+		return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
+	}
+	if ready == total {
+		return clv1alpha2.EnvironmentPhaseReady
+	}
+	if ready > 0 || running > 0 {
+		return clv1alpha2.EnvironmentPhaseRunning
+	}
+	if starting > 0 || importing > 0 {
+		return clv1alpha2.EnvironmentPhaseStarting
+	}
+	if stopping > 0 {
+		return clv1alpha2.EnvironmentPhaseStopping
+	}
+	if off == total {
+		return clv1alpha2.EnvironmentPhaseOff
+	}
+
+	return clv1alpha2.EnvironmentPhaseUnset
+}
+
 // Reconcile reconciles the state of an Instance resource.
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	if r.ReconcileDeferHook != nil {
@@ -110,8 +183,12 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		// If the reconciliation failed with an error, set the instance phase to CreationLoopBackOff.
 		// Do not set the CreationLoopBackOff phase in case of conflicts, to prevent transients.
 		if err != nil && !kerrors.IsConflict(err) {
-			instance.Status.Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+			for i := range instance.Status.Environments {
+				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseCreationLoopBackoff
+			}
 		}
+
+		instance.Status.Phase = r.calculateInstancePhase(instance.Status.Environments)
 
 		// Avoid triggering the status update if not necessary.
 		if !reflect.DeepEqual(original.Status, updated.Status) {
@@ -193,33 +270,55 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
-	for i := range template.Spec.EnvironmentList {
-		environment := &template.Spec.EnvironmentList[i]
-		ctx, log := clctx.EnvironmentInto(ctx, environment)
-
-		// Currently, only instances composed of a single environment are supported.
-		// Nonetheless, we return nil in the end, since it is useless to retry later.
-		if i >= 1 {
-			err := fmt.Errorf("instances composed of multiple environments are currently not supported")
-			log.Error(err, "failed to process environment")
-			return nil
-		}
-
-		switch template.Spec.EnvironmentList[i].EnvironmentType {
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-			if err := r.EnforceVMEnvironment(ctx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
-				return err
-			}
-		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
-			if err := r.EnforceContainerEnvironment(ctx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, environment.Name)
-				return err
-			}
-		}
-
-		r.setInitialReadyTimeIfNecessary(ctx)
+	// Make sure the list of instance environments status is initialized
+	tmplEnvCount := len(template.Spec.EnvironmentList)
+	if len(instance.Status.Environments) != tmplEnvCount {
+		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
 	}
+
+	urlNeeded := false
+
+	for i := range template.Spec.EnvironmentList {
+		tmplEnv := &template.Spec.EnvironmentList[i]
+
+		// Set the name of the environment for the instance status
+		// to the current template environment name.
+		instance.Status.Environments[i].Name = tmplEnv.Name
+
+		// Set an inner context for each environment
+		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
+		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
+
+		switch tmplEnv.EnvironmentType {
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+			if err := r.EnforceVMEnvironment(innCtx); err != nil {
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				return err
+			}
+			if tmplEnv.GuiEnabled {
+				urlNeeded = true
+			}
+
+		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
+			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
+				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				return err
+			}
+			urlNeeded = true
+		}
+
+		r.setInitialReadyTimeIfNecessary(innCtx)
+	}
+	if urlNeeded {
+		// Enforce the ingress to access the GUI
+		host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+
+		// Define url of the instance. This will be the root for the urls of the single environments
+		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+	} else {
+		instance.Status.URL = ""
+	}
+
 	return nil
 }
 
@@ -227,28 +326,30 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 // prometheus metric, in case it was not already present and the instance is currently ready.
 func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context) {
 	instance := clctx.InstanceFrom(ctx)
-	if instance.Status.Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.InitialReadyTime != "" {
-		return
+
+	for i := range instance.Status.Environments {
+		if instance.Status.Environments[i].Phase != clv1alpha2.EnvironmentPhaseReady || instance.Status.Environments[i].InitialReadyTime != "" {
+			continue
+		}
+		duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
+		instance.Status.Environments[i].InitialReadyTime = duration.String()
+
+		// Filter out possible outliers from the prometheus metrics.
+		if duration > 30*time.Minute {
+			continue
+		}
+
+		template := clctx.TemplateFrom(ctx)
+		environment := clctx.EnvironmentFrom(ctx)
+
+		metricInitialReadyTimes.With(prometheus.Labels{
+			metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
+			metricInitialReadyTimesLabelTemplate:    template.GetName(),
+			metricInitialReadyTimesLabelEnvironment: environment.Name,
+			metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
+			metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
+		}).Observe(duration.Seconds())
 	}
-
-	duration := time.Since(instance.GetCreationTimestamp().Time).Truncate(time.Second)
-	instance.Status.InitialReadyTime = duration.String()
-
-	// Filter out possible outliers from the prometheus metrics.
-	if duration > 30*time.Minute {
-		return
-	}
-
-	template := clctx.TemplateFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-
-	metricInitialReadyTimes.With(prometheus.Labels{
-		metricInitialReadyTimesLabelWorkspace:   template.Spec.WorkspaceRef.Name,
-		metricInitialReadyTimesLabelTemplate:    template.GetName(),
-		metricInitialReadyTimesLabelEnvironment: environment.Name,
-		metricInitialReadyTimesLabelType:        string(environment.EnvironmentType),
-		metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
-	}).Observe(duration.Seconds())
 }
 
 // SetupWithManager registers a new controller for Instance resources.

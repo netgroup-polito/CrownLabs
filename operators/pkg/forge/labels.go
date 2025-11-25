@@ -35,6 +35,7 @@ const (
 	labelTypeKey         = "crownlabs.polito.it/type"
 	labelVolumeTypeKey   = "crownlabs.polito.it/volume-type"
 	labelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
+	labelEnvironmentKey  = "crownlabs.polito.it/environment"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -48,6 +49,9 @@ const (
 	InstanceInactivityIgnoreNamespace = "crownlabs.polito.it/instance-inactivity-ignore"
 	// ExpirationIgnoreNamespace -> label added to the Namespace to ignore expiration termination for Instances in it.
 	ExpirationIgnoreNamespace = "crownlabs.polito.it/expiration-ignore"
+
+	// EnvironmentNameLabel -> Key of the label used to store the environment name.
+	EnvironmentNameLabel = "crownlabs.polito.it/environment-name"
 
 	labelManagedByInstanceValue  = "instance"
 	labelManagedByTenantValue    = "tenant"
@@ -68,6 +72,7 @@ const (
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
+
 	// AlertAnnotationNum -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
 	AlertAnnotationNum = "crownlabs.polito.it/number-alerts-sent"
 
@@ -84,7 +89,8 @@ const (
 	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
 	// NoWorkspacesLabelValue -> value of the label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelValue = "true"
-	// CustomNumberOfAlertsAnnotation -> override the default InstanceMaxNumberOfAlerts in the InstanceInactiveTerminationReconciler for a specific template.
+
+	// CustomNumberOfAlertsAnnotation -> annotation to mark an Instance as having a custom number of alerts.
 	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
 
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
@@ -101,12 +107,10 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
 	update = updateLabel(labels, labelTemplateKey, template.Name) || update
 	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
-	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(template.Spec.EnvironmentList, instance)) || update
+	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(instance, template)) || update
 
 	if instance != nil {
-		instCustomizationUrls := instance.Spec.CustomizationUrls
-
-		if instCustomizationUrls != nil && instCustomizationUrls.StatusCheck != "" && labels[InstanceTerminationSelectorLabel] == "" {
+		if instance.Spec.StatusCheckURL != "" && labels[InstanceTerminationSelectorLabel] == "" {
 			update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
 		}
 	}
@@ -120,6 +124,19 @@ func InstanceObjectLabels(labels map[string]string, instance *clv1alpha2.Instanc
 
 	labels[labelManagedByKey] = labelManagedByInstanceValue
 	labels[labelInstanceKey] = instance.Name
+	labels[labelTemplateKey] = instance.Spec.Template.Name
+	labels[labelTenantKey] = instance.Spec.Tenant.Name
+
+	return labels
+}
+
+// EnvironmentObjectLabels receives in input a set of labels and returns the updated set depending on the specified environment.
+func EnvironmentObjectLabels(labels map[string]string, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels[labelManagedByKey] = labelManagedByInstanceValue
+	labels[labelInstanceKey] = instance.Name
+	labels[labelEnvironmentKey] = environment.Name
 	labels[labelTemplateKey] = instance.Spec.Template.Name
 	labels[labelTenantKey] = instance.Spec.Tenant.Name
 
@@ -146,17 +163,29 @@ func InstanceSelectorLabels(instance *clv1alpha2.Instance) map[string]string {
 	}
 }
 
+// EnvironmentSelectorLabels returns a set of selector labels depending on the specified environment.
+func EnvironmentSelectorLabels(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
+	return map[string]string{
+		labelInstanceKey:    instance.Name,
+		labelEnvironmentKey: environment.Name,
+		labelTemplateKey:    instance.Spec.Template.Name,
+		labelTenantKey:      instance.Spec.Tenant.Name,
+	}
+}
+
 // InstanceAutomationLabelsOnTermination returns a set of labels to be set on an instance when it is terminated.
-func InstanceAutomationLabelsOnTermination(labels map[string]string, submissionRequired bool) map[string]string {
+func InstanceAutomationLabelsOnTermination(labels map[string]string, envName string, submissionRequired bool) map[string]string {
 	labels = deepCopyLabels(labels)
+	labels[EnvironmentNameLabel] = envName
 	labels[InstanceTerminationSelectorLabel] = strconv.FormatBool(false)
 	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(submissionRequired)
 	return labels
 }
 
 // InstanceAutomationLabelsOnSubmission returns a set of labels to be set on an instance when it is submitted.
-func InstanceAutomationLabelsOnSubmission(labels map[string]string, submissionSucceded bool) map[string]string {
+func InstanceAutomationLabelsOnSubmission(labels map[string]string, envName string, submissionSucceded bool) map[string]string {
 	labels = deepCopyLabels(labels)
+	labels[EnvironmentNameLabel] = envName
 	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(false)
 	labels[InstanceSubmissionCompletedLabel] = strconv.FormatBool(submissionSucceded)
 	return labels
@@ -236,13 +265,11 @@ func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
 }
 
 // nodeSelectorLabelValue returns the value to be assigned to the node selector label, depending on the presence or the absence of the field.
-func nodeSelectorLabelValue(environmentList []clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
-	if instance != nil {
-		for i := range environmentList {
-			nodeSel := NodeSelectorLabels(instance, &environmentList[i])
-			if len(nodeSel) > 0 {
-				return strconv.FormatBool(true)
-			}
+func nodeSelectorLabelValue(instance *clv1alpha2.Instance, template *clv1alpha2.Template) string {
+	if instance != nil && template != nil {
+		nodeSel := NodeSelectorLabels(instance, template)
+		if len(nodeSel) > 0 {
+			return strconv.FormatBool(true)
 		}
 	}
 	return strconv.FormatBool(false)

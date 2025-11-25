@@ -3,6 +3,8 @@ import {
   DeleteOutlined,
   DesktopOutlined,
   MoreOutlined,
+  AppstoreAddOutlined,
+  DockerOutlined,
 } from '@ant-design/icons';
 import { Badge, Dropdown, Space, Tooltip, Typography } from 'antd';
 import { Button } from 'antd';
@@ -21,8 +23,7 @@ export interface ITableTemplateRowProps {
 const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
   const { template, destroyAll, expandRow } = props;
 
-  const { id, name, persistent, gui } = template;
-
+  const { id, name, persistent, gui, hasMultipleEnvironments } = template;
   const [showAlert, setShowAlert] = useState(false);
 
   const { nRunning, nTotal } = useMemo(() => {
@@ -38,7 +39,63 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
         onClick={() => expandRow(id)}
       >
         <Space size="middle">
-          {gui ? (
+          {hasMultipleEnvironments ? (
+              <Tooltip
+                  placement="right"
+                  title={
+                    <div className="p-2">
+                      <div className="font-semibold mb-2 text-center">
+                        Multiple Environments ({template.environmentList.length})
+                      </div>
+                      {template.environmentList.map((env, index) => (
+                        <div key={index} className="p-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">{env.name}</span>
+                            {env.guiEnabled ? (
+                              <div className="flex items-center gap-1.5">
+                                <DesktopOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                <span className="text-xs">VM GUI</span>
+                                {env.persistent && (
+                                  <>
+                                    <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                    <span className="text-xs">Persistent</span>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              env.environmentType === 'Container' ? (
+                                <div className="flex items-center gap-1.5">
+                                  <DockerOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                  <span className="text-xs">Container SSH</span>
+                                  {env.persistent && (
+                                    <>
+                                      <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                      <span className="text-xs">Persistent</span>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <CodeOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                  <span className="text-xs">VM SSH</span>
+                                  {env.persistent && (
+                                    <>
+                                      <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                      <span className="text-xs">Persistent</span>
+                                    </>
+                                  )}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  }
+                >
+                  <AppstoreAddOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
+                </Tooltip>
+          ) : gui ? (
             <DesktopOutlined
               className="primary-color-fg"
               style={{ fontSize: '24px' }}

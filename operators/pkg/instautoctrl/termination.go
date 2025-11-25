@@ -134,11 +134,7 @@ func (r *InstanceTerminationReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // CheckInstanceTermination checks if the Instance has to be terminated.
 func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
-	if instance.Spec.CustomizationUrls == nil {
-		return false, errors.New("customization urls field is not set for Instance")
-	}
-
-	statusCheckURL := instance.Spec.CustomizationUrls.StatusCheck
+	statusCheckURL := instance.Spec.StatusCheckURL
 	if statusCheckURL == "" {
 		return false, errors.New("status check url field is not set for Instance")
 	}
@@ -152,13 +148,16 @@ func (r *InstanceTerminationReconciler) CheckInstanceTermination(ctx context.Con
 		return false, err
 	}
 
-	instance.Status.Automation.LastCheckTime = metav1.Now()
-	switch statusCode {
-	case http.StatusOK:
-		instance.Status.Automation.TerminationTime = metav1.Time{Time: statusCheckReponse.Deadline}
-	case http.StatusNotFound:
-		instance.Status.Automation.TerminationTime = metav1.Now()
-	default:
+	for instStatusEnvIdx := range instance.Status.Environments {
+		instanceStatusEnv := &instance.Status.Environments[instStatusEnvIdx]
+
+		instanceStatusEnv.Automation.LastCheckTime = metav1.Now()
+		switch statusCode {
+		case http.StatusOK:
+			instanceStatusEnv.Automation.TerminationTime = metav1.Time{Time: statusCheckReponse.Deadline}
+		case http.StatusNotFound:
+			instanceStatusEnv.Automation.TerminationTime = metav1.Now()
+		}
 	}
 
 	if err := r.Status().Update(ctx, instance); err != nil {
@@ -185,20 +184,21 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 
 	submissionRequired := false
 
-	environment, err := RetrieveEnvironment(ctx, r.Client, instance)
+	environmentList, err := RetrieveEnvironmentList(ctx, r.Client, instance)
 	if err != nil {
-		log.Error(err, "failed retrieving environment")
+		log.Info("failed retrieving environment list", "error", err)
 		return err
 	}
 
-	if err := CheckEnvironmentValidity(instance, environment); err != nil {
-		log.Info("instance not eligible for submission", "error", err)
-	} else {
-		submissionRequired = true
-		log.Info("submission required")
+	for _, environment := range environmentList {
+		if err := CheckEnvironmentValidity(instance, environment); err != nil {
+			log.Info("instance not eligible for submission", "error", err)
+		} else {
+			submissionRequired = true
+			log.Info("submission required")
+		}
+		instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), environment.Name, submissionRequired))
 	}
-
-	instance.SetLabels(forge.InstanceAutomationLabelsOnTermination(instance.GetLabels(), submissionRequired))
 
 	instance.Spec.Running = false
 
