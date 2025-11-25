@@ -2,5 +2,7 @@ ignorePatterns:
   - pattern: "^https://.*\\.example\\.com/.*$"
   # This link often returns http code 429 ("too many requests") when executed from github  
   - pattern: "^https://developer.hashicorp.com/packer$"
+  # ignore https://github.com/vmware-tanzu/helm-charts/blob/main/charts/velero/README.md because of 503 error in github actions
+  - pattern: "^https://github.com/vmware-tanzu/helm-charts/blob/main/charts/velero/README.md$"
 dirs:
   - .
