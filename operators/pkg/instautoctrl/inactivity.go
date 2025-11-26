@@ -234,16 +234,29 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
 	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, inactivityTimeoutDuration)
 
-	querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), instance.Status.IP)
-	lastActivityTimeSSH, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration)
-
 	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Namespace, instance.Name)
 	lastActivityTimeWebSSH, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, inactivityTimeoutDuration)
 
-	if errNginx != nil && errSSH != nil && errWebSSH != nil {
+	// Aggregate SSH activity times across all environments (find minimum non-zero)
+	var lastActivityTimeSSH time.Time
+	lastActivityTimeSSHFound := false
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
+		querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
+		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration)
+		if errSSH == nil && !envActivityTime.IsZero() {
+			if !lastActivityTimeSSHFound || envActivityTime.Before(lastActivityTimeSSH) {
+				lastActivityTimeSSH = envActivityTime
+				lastActivityTimeSSHFound = true
+			}
+		}
+	}
+
+	// If all queries failed, return error
+	if errNginx != nil && !lastActivityTimeSSHFound && errWebSSH != nil {
 		return fmt.Errorf("failed retrieving last activity time from all queries: %w", errNginx)
 	}
-	if lastActivityTimeNginx.IsZero() && lastActivityTimeSSH.IsZero() && lastActivityTimeWebSSH.IsZero() {
+	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && lastActivityTimeWebSSH.IsZero() {
 		log.Info("No activity detected for the instance", "instance", instance.Name, "namespace", instance.Namespace)
 		return nil // No activity detected, do not update the last activity time
 	}

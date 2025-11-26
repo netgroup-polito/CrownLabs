@@ -167,8 +167,8 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 	return tenant, nil
 }
 
-// RetrieveEnvironment retrieves the environment associated to the given instance.
-func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) (*clv1alpha2.Environment, error) {
+// RetrieveEnvironmentList retrieves the template's environments associated to the given instance.
+func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) ([]*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
 	templateName := types.NamespacedName{
@@ -181,18 +181,19 @@ func RetrieveEnvironment(ctx context.Context, c client.Client, instance *clv1alp
 		return nil, fmt.Errorf("failed retrieving the instance template")
 	}
 
-	log.Info("retrieved the instance environment", "template", templateName)
+	log.Info("retrieved the instance environment list", "template", templateName)
 
-	if len(template.Spec.EnvironmentList) != 1 {
-		return nil, fmt.Errorf("only one environment per template is supported")
+	envListPtr := make([]*clv1alpha2.Environment, 0, len(template.Spec.EnvironmentList))
+	for i := range template.Spec.EnvironmentList {
+		envListPtr = append(envListPtr, &template.Spec.EnvironmentList[i])
 	}
 
-	return &template.Spec.EnvironmentList[0], nil
+	return envListPtr, nil
 }
 
 // CheckEnvironmentValidity checks whether the given environment is valid and returns it (there must be one environment that must be persistent and contestDestination within instance spec customization urls must be present).
 func CheckEnvironmentValidity(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) error {
-	if instance.Spec.CustomizationUrls == nil || instance.Spec.CustomizationUrls.ContentDestination == "" {
+	if instance.Spec.ContentUrls == nil || instance.Spec.ContentUrls[environment.Name].Destination == "" {
 		return fmt.Errorf("missing content-destination field for instance")
 	}
 

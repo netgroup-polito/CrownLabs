@@ -1,0 +1,41 @@
+{
+  "editor.wordWrap": "bounded",
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "texliveonfly",
+      "args": [
+        "--compiler=pdflatex",
+        "-a", // Arguments for compiler
+        "-interaction=nonstopmode -output-directory=build",
+        "%DOC%"
+      ]
+    },
+    {
+      "name": "cp-pdf",
+      "command": "bash",
+      "args": [
+        "-c",
+        "cp %DIR%/build/*.pdf %DIR%"
+      ]
+    },
+    {
+      "name": "mkdir-build",
+      "command": "mkdir",
+      "args": [
+        "-p",
+        "build"
+      ]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex",
+      "tools": [
+        "mkdir-build",
+        "pdflatex",
+        "cp-pdf"
+      ]
+    }
+  ]
+}

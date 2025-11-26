@@ -23,6 +23,23 @@ export type Resources = {
   disk: string;
   memory: string;
 };
+export type TemplateEnvironment = {
+  name: string;
+  guiEnabled: boolean;
+  persistent: boolean;
+  environmentType?: EnvironmentType;
+  resources: Resources;
+};
+
+export type InstanceEnvironment = {
+  name: string;
+  phase?: Phase2;
+  ip?: string;
+  guiEnabled?: boolean;
+  persistent?: boolean;
+  environmentType?: EnvironmentType;
+};
+
 export type Template = {
   id: string;
   name: string;
@@ -35,6 +52,8 @@ export type Template = {
   workspaceNamespace: string;
   /** whether public exposure is allowed by the template */
   allowPublicExposure: boolean;
+  environmentList: Array<TemplateEnvironment>;
+  hasMultipleEnvironments: boolean;
 };
 
 export type Instance = {
@@ -62,6 +81,8 @@ export type Instance = {
   publicExposure?: PublicExposure;
   /** whether public exposure is allowed by the template */
   allowPublicExposure: boolean;
+  environments?: Array<InstanceEnvironment>;
+  hasMultipleEnvironments?: boolean;
 };
 
 export type SharedVolume = {

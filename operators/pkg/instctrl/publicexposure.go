@@ -33,10 +33,16 @@ func (r *InstanceReconciler) EnforcePublicExposure(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 
+	// Public exposure is only allowed for single-environment templates
+	hasOnlyOneEnvironment := len(template.Spec.EnvironmentList) == 1
+
 	if template.Spec.AllowPublicExposure &&
 		instance.Spec.Running && instance.Spec.PublicExposure != nil &&
 		instance.Spec.PublicExposure.Ports != nil && len(instance.Spec.PublicExposure.Ports) > 0 {
-		return r.enforcePublicExposurePresence(ctx)
+		if hasOnlyOneEnvironment {
+			return r.enforcePublicExposurePresence(ctx)
+		}
+		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
 	}
 	return r.enforcePublicExposureAbsence(ctx)
 }
