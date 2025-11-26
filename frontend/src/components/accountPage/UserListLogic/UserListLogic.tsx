@@ -163,7 +163,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
             onError: apolloErrorCatcher,
           });
           user.workspaces?.push(...workspaces);
-          console.log(user.workspaces);
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {
@@ -189,7 +188,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     try {
       setLoadingSpinner(true);
       // get all the workspaces from the user
-      console.log(users.find(u => u.userid === user.userid));
       const workspaces = users.find(u => u.userid === user.userid)!.workspaces;
       // get the index of the workspace to delete
       if(!workspaces) {
@@ -198,8 +196,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         return false;
       }
       const workspaceIndex = workspaces.findIndex(w => w.name === workspace.name);
-      console.log("Deleting workspace at index:", workspaceIndex);
-      console.log(removeWorkspaceJsonPatch(workspaceIndex, workspace.name, workspace.role));
       
       await applyTenantJsonPatchJsonMutation({
         variables: {
