@@ -20,11 +20,13 @@ function App() {
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  // Get all instances for quota calculations
+  console.log('tenantNs:', tenantNs);
+
+  // Get all instances for quota calculations - always call hook, use skip to prevent execution
   const { data: instancesData, refetch: refetchInstances } =
     useOwnedInstancesQuery({
       variables: { tenantNamespace: tenantNs || '' },
-      skip: !tenantNs,
+      skip: !tenantNs, // Skip query execution when tenantNs is undefined
       onError: apolloErrorCatcher,
       fetchPolicy: 'cache-and-network',
     });
@@ -40,15 +42,37 @@ function App() {
 
   const quotaCalculations = useQuotaCalculations(validInstances, tenant);
 
-  // Enhanced refresh function
+  // Enhanced refresh function with guard
   const refreshQuota = useCallback(async () => {
+    if (!tenantNs) {
+      console.warn('Cannot refresh quota: tenant namespace not available');
+      return;
+    }
     try {
+      console.log('Refreshing quota for namespace:', tenantNs);
       await refetchInstances();
     } catch (error) {
       console.error('Error refreshing quota data:', error);
       apolloErrorCatcher(error as ApolloError);
     }
-  }, [refetchInstances, apolloErrorCatcher]);
+  }, [refetchInstances, apolloErrorCatcher, tenantNs]);
+
+  // Early return AFTER all hooks are called
+  if (!tenantNs) {
+    console.warn('Tenant namespace is undefined or null. Waiting...');
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
+        <div>Loading tenant information...</div>
+      </div>
+    );
+  }
 
   return (
     <QuotaProvider
