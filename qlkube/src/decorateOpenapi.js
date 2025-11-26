@@ -96,13 +96,11 @@ function decorateOpenapi(oas) {
       patch.consumes = ['application/apply-patch+yaml'];
 
       // Create clones for additional consume types
-      for (let i = 0; i < originalConsumes.length; i++) {
-        // check if the originalconsume is in the additionalaccepts
-        if (additionalAccepts[originalConsumes[i]]) {
-          const consumeType = originalConsumes[i];
+      originalConsumes.forEach((consumeType) => {
+        if (additionalAccepts[consumeType]) {
           const clone = JSON.parse(JSON.stringify(patch));
 
-          clone.operationId = `${baseOperationId}_${additionalAccepts[originalConsumes[i]]}`;
+          clone.operationId = `${baseOperationId}_${additionalAccepts[consumeType]}`;
           clone.consumes = [consumeType];
           clone.summary = `${patch.summary || 'Patch'} (${consumeType})`;
 
@@ -117,7 +115,7 @@ function decorateOpenapi(oas) {
             pathsToAdd[clonePath].parameters = JSON.parse(JSON.stringify(parameters));
           }
         }
-      }
+      });
     } else if (patch) {
       // Handle single consume or existing logic
       patch.consumes = patch.consumes || ['application/apply-patch+yaml'];

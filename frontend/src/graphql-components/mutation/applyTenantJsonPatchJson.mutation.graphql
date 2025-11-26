@@ -3,7 +3,7 @@ mutation applyTenantJsonPatchJson(
   $patchJson: String!
   $manager: String!
 ) {
-  applyTenant: patchCrownlabsPolitoItV1alpha2TenantJsonPatchJson(
+  applyTenant: patchCrownlabsPolitoItV1alpha2TenantJsonPatch(
     name: $tenantId
     fieldManager: $manager
     applicationJsonPatchJsonInput: $patchJson

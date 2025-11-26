@@ -57,8 +57,12 @@ function getTemplatePatchJson(
   });
 }
 
-function removeWorkspaceJsonPatch(index: number){
-  return JSON.stringify({"op": "remove", "path": `/spec/workspaces/${index}`});
+function removeWorkspaceJsonPatch(index: number, workspaceName: string, workspaceRole: Role): string {
+  // test before removing to ensure no shift in indexes
+  return JSON.stringify([
+    {"op": "test", "path": `/spec/workspaces/${index}`, "value": {role: workspaceRole, name: workspaceName}},
+    {"op": "remove", "path": `/spec/workspaces/${index}`}
+  ]);
 }
 
 function getTenantPatchJson(
