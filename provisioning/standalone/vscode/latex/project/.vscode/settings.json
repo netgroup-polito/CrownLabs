@@ -3,10 +3,11 @@
   "latex-workshop.latex.tools": [
     {
       "name": "pdflatex",
-      "command": "pdflatex",
+      "command": "texliveonfly",
       "args": [
-        "-interaction=nonstopmode",
-        "-output-directory=build",
+        "--compiler=pdflatex",
+        "-a", // Arguments for compiler
+        "-interaction=nonstopmode -output-directory=build",
         "%DOC%"
       ]
     },
