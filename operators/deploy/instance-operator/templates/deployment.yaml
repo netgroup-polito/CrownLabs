@@ -55,6 +55,7 @@ spec:
             - '--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join "," }}'
             - '--public-exposure-common-annotations={{ .Values.configurations.publicExposure.commonAnnotations | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
+            - "--shared-volume-storage-class={{.Values.configurations.sharedVolumeOptions.storageClass }}"
           ports:
             - name: op-metrics
               containerPort: 8080
