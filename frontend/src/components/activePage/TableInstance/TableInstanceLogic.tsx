@@ -1,6 +1,5 @@
-import { Button, Empty, Spin } from 'antd';
+import { Empty, Spin } from 'antd';
 import { type FC, useContext, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import {
