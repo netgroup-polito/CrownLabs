@@ -20,7 +20,6 @@ function App() {
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  console.log('tenantNs:', tenantNs);
 
   // Get all instances for quota calculations - always call hook, use skip to prevent execution
   const { data: instancesData, refetch: refetchInstances } =
