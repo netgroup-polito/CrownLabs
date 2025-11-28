@@ -45,11 +45,11 @@ function App() {
   // Enhanced refresh function with guard
   const refreshQuota = useCallback(async () => {
     if (!tenantNs) {
-      console.warn('Cannot refresh quota: tenant namespace not available');
+      // Cannot refresh quota: tenant namespace not available
       return;
     }
     try {
-      console.log('Refreshing quota for namespace:', tenantNs);
+      // Refreshing quota for namespace tenantNs
       await refetchInstances();
     } catch (error) {
       console.error('Error refreshing quota data:', error);
@@ -59,7 +59,7 @@ function App() {
 
   // Early return AFTER all hooks are called
   if (!tenantNs) {
-    console.warn('Tenant namespace is undefined or null. Waiting...');
+    // Tenant namespace is undefined or null. Waiting...
     return (
       <div
         style={{
