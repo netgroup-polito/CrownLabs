@@ -18,8 +18,8 @@ export const getDefaultTemplate = (resources: Resources): Template => {
   return {
     name: '',
     environments: [getDefaultTemplateEnvironment(resources, 0)],
-    deleteAfter: '',
-    inactivityTimeout: '',
+    deleteAfter: 'never',
+    inactivityTimeout: 'never',
   };
 };
 

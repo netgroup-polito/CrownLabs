@@ -193,7 +193,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     };
     try {
       await submitHandler(parsedTemplate);
-
+      
       setShow(false);
       form.resetFields();
       setTimeouts({
@@ -242,13 +242,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       ...prevTimeouts,
       [field]: {
         value: value ? Number(value) : 0,
-        unit: Number(value) === 0 ? '' : prevTimeouts[field].unit,
+        unit: prevTimeouts[field].unit,
       },
     }));
     form.setFieldValue(field, {
     value,
-    unit: value === 0 ? '' : timeouts[field].unit,
+    unit: timeouts[field].unit,
     });
+    form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
   }
 
   const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'deleteAfter') => {
@@ -263,21 +264,23 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     value: timeouts[field].value,
     unit: value,
     });
+    form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
   }
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'deleteAfter') => {
     return timeouts[field].value === 0;
   };
   
-  const validateTimeout = async (_: any, _val: { value: number; unit: string }) => {
-    if (_val.value === 0) {
-      return; 
+  const validateTimeout = async (_: any, _val: { value: number; unit: string } ) => {
+    console.log('_val:', _val);
+    if (_val.value === undefined || _val.value === 0) {
+      return true; 
     }
 
     if (TimeUnitOptions.map(option => option.value).includes(_val.unit) === false) {
       throw new Error("Insert a valid time unit");
     } 
-    return;
+    return true;
   };
 
   const validateTimeoutOrder = async (rule: any, _val: { value: number; unit: string } | undefined) => {
@@ -296,20 +299,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout');
     const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter');
 
-    if (!inactivity || !deleteAfter) return;
+    if (!inactivity || !deleteAfter) return true;
 
     const inactivityMin = toMinutes(inactivity);
     const deleteAfterMin = toMinutes(deleteAfter);
 
-    if (deleteAfterMin === Infinity) return;
+    if (deleteAfterMin === Infinity) return true;
 
-    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
+    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return true;
 
     if (inactivityMin >= deleteAfterMin) {
       throw new Error('Inactivity must be smaller than Expiration');
     }
 
-    return;
+    return true;
   };
 
   return (
@@ -321,8 +324,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       title={template ? 'Modify template' : 'Create a new template'}
       open={show}
       onCancel={closehandler}
-      width="600px"
-    >
+      width="600px">
       <Form
         form={form}
         onFinish={handleFormFinish}
@@ -355,7 +357,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         name="inactivityTimeout"
         required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
         validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, {validator: validateTimeoutOrder}]}
+        rules={[{ validator: validateTimeout }, { validator: validateTimeoutOrder }]}
         {...formItemLayout}> 
         
         <div className="flex gap-4 items-center">
@@ -402,7 +404,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
             min={0}
             max={60}
-            defaultValue={timeouts.inactivityTimeout.value}
+            defaultValue={timeouts.deleteAfter.value}
           >
           </InputNumber>
 
