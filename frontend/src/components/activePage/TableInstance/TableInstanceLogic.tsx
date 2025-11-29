@@ -1,6 +1,5 @@
-import { Button, Empty, Spin } from 'antd';
+import { Empty, Spin } from 'antd';
 import { type FC, useContext, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import {
@@ -173,13 +172,6 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
             <p className="text-xl xs:text-3xl text-center px-5 xs:px-24">
               No running instances
             </p>
-            <div className="w-full pb-10 flex justify-center">
-              <Link to="/">
-                <Button type="primary" shape="round" size="large">
-                  Create Instance
-                </Button>
-              </Link>
-            </div>
           </div>
         )
       ) : (
