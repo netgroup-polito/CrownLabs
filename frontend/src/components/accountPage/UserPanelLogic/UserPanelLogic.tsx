@@ -1,7 +1,7 @@
 import { Spin } from 'antd';
 import { useContext } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useApplyTenantMutation, TenantDocument } from '../../../generated-types';
+import { useApplyTenantMutation } from '../../../generated-types';
 import { TenantContext } from '../../../contexts/TenantContext';
 import { getTenantPatchJson } from '../../../graphql-components/utils';
 import UserPanel from '../UserPanel';
@@ -56,10 +56,6 @@ function UserPanelLogic() {
           }),
           manager: 'frontend-tenant-new-keys',
         },
-        // ensure Tenant query is refreshed so TenantContext and UI update
-        refetchQueries: [
-          { query: TenantDocument, variables: { tenantId: userId! } },
-        ],
         onError: apolloErrorCatcher,
       });
     } catch (_error) {
