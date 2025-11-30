@@ -64,13 +64,13 @@ export const makeGuiTemplate = (
   }
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
-  
+
   // For backwards compatibility use the first environment for main properties
   const primaryEnvironment = environmentList[0];
 
   const hasGUI = environmentList.some(env => env?.guiEnabled);
   const hasPersistent = environmentList.some(env => env?.persistent);
-  
+
   const aggregatedResources = environmentList.reduce(
     (acc, env) => {
       if (env?.resources) {
@@ -90,13 +90,13 @@ export const makeGuiTemplate = (
         } else if (diskStr.includes('M')) {
           diskGB = (parseInt(diskStr.replace(/[^\d]/g, '')) || 0) / 1000;
         }
-        
+
         acc.memorySum += memoryGB;
         acc.diskSum += diskGB;
       }
       return acc;
     },
-    { cpu: 0, memorySum: 0, diskSum: 0 }
+    { cpu: 0, memorySum: 0, diskSum: 0 },
   );
 
   return {
@@ -107,8 +107,14 @@ export const makeGuiTemplate = (
     nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
       cpu: aggregatedResources.cpu,
-      memory: aggregatedResources.memorySum > 0 ? `${aggregatedResources.memorySum}G` : '',
-      disk: aggregatedResources.diskSum > 0 ? `${aggregatedResources.diskSum}G` : '',
+      memory:
+        aggregatedResources.memorySum > 0
+          ? `${aggregatedResources.memorySum}G`
+          : '',
+      disk:
+        aggregatedResources.diskSum > 0
+          ? `${aggregatedResources.diskSum}G`
+          : '',
     },
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
@@ -276,24 +282,27 @@ export const makeGuiInstance = (
   };
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
 
-  const environments = status?.environments?.map(envStatus => {
-    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
-    return {
-      name: envStatus?.name ?? '',
-      phase: envStatus?.phase,
-      ip: envStatus?.ip,
-      guiEnabled: templateEnv?.guiEnabled ?? false,
-      persistent: templateEnv?.persistent ?? false,
-      environmentType: templateEnv?.environmentType,
-    };
-  }) ?? [];
-  
+  const environments =
+    status?.environments?.map(envStatus => {
+      const templateEnv = environmentList?.find(
+        env => env?.name === envStatus?.name,
+      );
+      return {
+        name: envStatus?.name ?? '',
+        phase: envStatus?.phase,
+        ip: envStatus?.ip,
+        guiEnabled: templateEnv?.guiEnabled ?? false,
+        persistent: templateEnv?.persistent ?? false,
+        environmentType: templateEnv?.environmentType,
+      };
+    }) ?? [];
+
   const hasMultipleEnvironments = environments.length > 1;
-  
+
   // For backwards compatibility, use the first environment for main properties
   const primaryEnvironment = (environmentList ?? [])[0] ?? {};
   const primaryStatus = environments[0];
-  
+
   const { guiEnabled, persistent, environmentType } = primaryEnvironment;
 
   // determine if public exposure is allowed from template spec
@@ -448,13 +457,13 @@ export const getSubObjTypeCustom = (
     running: oldRunning,
     status: oldStatus,
     publicExposure: oldPublicExposure,
-    environments: oldEnvironments
+    environments: oldEnvironments,
   } = oldObj ?? {};
   const {
     running: newRunning,
     status: newStatus,
     publicExposure: newPublicExposure,
-    environments: newEnvironments
+    environments: newEnvironments,
   } = newObj;
   if (oldObj) {
     if (oldObj.prettyName !== newObj.prettyName) return SubObjType.PrettyName;
@@ -521,12 +530,12 @@ const getSubObjTypeK8sEnhanced = (
     // Check if any environment phase changed
     const oldEnvironments = oldStatus?.environments || [];
     const newEnvironments = newStatus?.environments || [];
-    
+
     const environmentPhaseChanged = oldEnvironments.some((oldEnv, index) => {
       const newEnv = newEnvironments[index];
       return newEnv && oldEnv?.phase !== newEnv?.phase;
     });
-    
+
     if (environmentPhaseChanged) {
       return SubObjType.UpdatedInfo;
     }
@@ -604,27 +613,30 @@ export const getManagerInstances = (
   } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
   const { prettyName: templatePrettyname, environmentList } =
     templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
-  
-  const environments = status?.environments?.map(envStatus => {
-    const templateEnv = environmentList?.find(env => env?.name === envStatus?.name);
-    return {
-      name: envStatus?.name ?? '',
-      phase: envStatus?.phase,
-      ip: envStatus?.ip,
-      guiEnabled: templateEnv?.guiEnabled ?? false,
-      persistent: templateEnv?.persistent ?? false,
-      environmentType: templateEnv?.environmentType,
-    };
-  }) ?? [];
-  
+
+  const environments =
+    status?.environments?.map(envStatus => {
+      const templateEnv = environmentList?.find(
+        env => env?.name === envStatus?.name,
+      );
+      return {
+        name: envStatus?.name ?? '',
+        phase: envStatus?.phase,
+        ip: envStatus?.ip,
+        guiEnabled: templateEnv?.guiEnabled ?? false,
+        persistent: templateEnv?.persistent ?? false,
+        environmentType: templateEnv?.environmentType,
+      };
+    }) ?? [];
+
   const hasMultipleEnvironments = environments.length > 1;
-  
+
   // For backwards compatibility, use the first environment for main properties
   const primaryEnvironment = (environmentList ?? [])[0] ?? {};
   const primaryStatus = environments[0];
-  
+
   const { guiEnabled, persistent, environmentType } = primaryEnvironment;
-  
+
   // determine if public exposure allowed by template
   const allowPublicExposure =
     spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
@@ -706,18 +718,19 @@ export const getTemplatesMapped = (
         templatePrettyName,
         allowPublicExposure,
         environments,
-        hasMultipleEnvironments
+        hasMultipleEnvironments,
       },
     ] = instancesFiltered;
 
-    const environmentList = environments?.map(env => ({
-      name: env.name,
-      guiEnabled: env.guiEnabled || false,
-      persistent: env.persistent || false,
-      environmentType: env.environmentType,
-      resources: { cpu: 0, disk: '', memory: '' },
-    })) || [];
-  
+    const environmentList =
+      environments?.map(env => ({
+        name: env.name,
+        guiEnabled: env.guiEnabled || false,
+        persistent: env.persistent || false,
+        environmentType: env.environmentType,
+        resources: { cpu: 0, disk: '', memory: '' },
+      })) || [];
+
     return {
       id: templateId,
       name: templatePrettyName,

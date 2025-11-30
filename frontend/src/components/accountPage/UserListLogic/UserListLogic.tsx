@@ -3,8 +3,9 @@ import { Spin } from 'antd';
 import {
   useTenantsQuery,
   useApplyTenantMutation,
+  useApplyTenantJsonPatchJsonMutation,
 } from '../../../generated-types';
-import { getTenantPatchJson } from '../../../graphql-components/utils';
+import { getTenantPatchJson, removeWorkspaceJsonPatch } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
 import {
   makeRandomDigits,
@@ -81,18 +82,24 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
+  const [applyTenantJsonPatchJsonMutation] = useApplyTenantJsonPatchJsonMutation();
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
-      const workspaces = users
-        .find(u => u.userid === user.userid)!
-        .workspaces?.filter(w => w.name === workspace.name)
-        .map(({ name }) => ({ name, role: newRole }));
       setLoadingSpinner(true);
+      
+      // Get all workspaces and update only the current one
+      const allWorkspaces = users
+        .find(u => u.userid === user.userid)!
+        .workspaces?.map(({ name, role }) => ({
+          name,
+          role: name === workspace.name ? newRole : role,
+        })) || [];
+      
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
-          patchJson: getTenantPatchJson({ workspaces }),
+          patchJson: getTenantPatchJson({ workspaces: allWorkspaces }),
           manager: getManager(),
         },
         onError: apolloErrorCatcher,
@@ -109,7 +116,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
             return {
               ...u,
               currentRole: newRole,
-              workspaces,
+              workspaces: allWorkspaces,
             };
           } else {
             return u;
@@ -177,11 +184,46 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     return true;
   };
 
+  const deleteUser = async (user: UserAccountPage) => {
+    try {
+      setLoadingSpinner(true);
+      // get all the workspaces from the user
+      const workspaces = users.find(u => u.userid === user.userid)!.workspaces;
+      // get the index of the workspace to delete
+      if(!workspaces) {
+        genericErrorCatcher(new Error(`User ${user.userid} has no workspaces`));
+        setLoadingSpinner(false);
+        return false;
+      }
+      const workspaceIndex = workspaces.findIndex(w => w.name === workspace.name);
+      
+      await applyTenantJsonPatchJsonMutation({
+        variables: {
+          tenantId: user.userid,
+          patchJson: removeWorkspaceJsonPatch(workspaceIndex, workspace.name, workspaces[workspaceIndex].role),
+          manager: getManager(),
+        },
+        onError: apolloErrorCatcher,
+      });
+      
+      
+      // Refresh user list in local state
+      setUsers(users.filter(u => u.userid !== user.userid));
+    } catch (error) {
+      genericErrorCatcher(error as SupportedError);
+      setLoadingSpinner(false);
+      return false;
+    }
+    setLoadingSpinner(false);
+    return true;
+  };
+  
   return !loading && data && !error ? (
     <>
       <UserList
         users={users}
         onAddUser={addUser}
+        onDeleteUser={deleteUser}
         onUpdateUser={updateUser}
         workspaceNamespace={workspace.namespace}
         workspaceName={workspace.name}
