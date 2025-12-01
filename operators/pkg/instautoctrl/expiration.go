@@ -188,7 +188,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 // ShouldTerminateInstance checks if the instance should be terminated.
 func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Context) (bool, time.Duration, error) {
-	log := ctrl.LoggerFrom(ctx).WithName("should-terminate-expiration")
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
 		return false, r.NotificationInterval, fmt.Errorf("instance not found in context")
@@ -204,17 +203,16 @@ func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Conte
 	if timestampStr, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
 		timestampWarning, err := time.Parse(time.RFC3339, timestampStr)
 		if err != nil {
-			return false, r.NotificationInterval, fmt.Errorf("failed to parse expiring warning notification timestamp: %w", err)
+			return false, r.NotificationInterval, err
 		}
 		elapsed := time.Since(timestampWarning)
 		if elapsed < r.NotificationInterval {
 			// evaluate the remaining time to reach the notification interval
 			remainingTime := r.NotificationInterval - elapsed + r.MarginTime
-			log.Info("Not enough time passed since warning notification, requeueing", "remainingTime", remainingTime.String(), "instance", instance.Name, "namespace", instance.Namespace)
 			return false, remainingTime, nil
 		}
 	} else {
-		return false, r.NotificationInterval, fmt.Errorf("expiring warning notification timestamp annotation not found")
+		return false, r.NotificationInterval, nil
 	}
 
 	return true, 0, nil
