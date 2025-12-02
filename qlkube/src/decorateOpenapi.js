@@ -105,7 +105,7 @@ function decorateOpenapi(oas) {
           clone.summary = `${patch.summary || 'Patch'} (${consumeType})`;
 
           // Remove force parameter for non-apply patches (merge-patch, etc.)
-          clone.parameters = clone.parameters.filter((p) => p.name !== 'force' && p.$ref !== '#/parameters/force-tOGGb0Yi');
+          clone.parameters = clone.parameters.filter((p) => !p.$ref || p.$ref.search('force') === -1);
 
           // Store clone to add later (avoid modifying paths while iterating)
           const clonePath = `${path}#${consumeType}`;
