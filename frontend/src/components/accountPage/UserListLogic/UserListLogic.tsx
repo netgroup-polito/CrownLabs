@@ -4,6 +4,7 @@ import {
   useTenantsQuery,
   useApplyTenantMutation,
   useApplyTenantJsonPatchJsonMutation,
+  useTenantLazyQuery,
 } from '../../../generated-types';
 import { getTenantPatchJson, removeWorkspaceJsonPatch } from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
@@ -82,6 +83,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
   }, [loading, data, workspace.name]);
 
   const [applyTenantMutation] = useApplyTenantMutation();
+  const [executeTenantQuery] = useTenantLazyQuery();
   const [applyTenantJsonPatchJsonMutation] = useApplyTenantJsonPatchJsonMutation();
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
@@ -162,7 +164,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
             },
             onError: apolloErrorCatcher,
           });
-          user.workspaces?.push(...workspaces);
           setUploadedUserNumber(number => number + 1);
           usersAdded.push(user);
         } catch (error) {
@@ -174,7 +175,26 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         }
         setUploadedNumber(number => number + 1);
       }
-      setUsers([...users, ...usersAdded]);
+      // Fetch each created tenant to get the authoritative workspaces list
+      for (const u of usersAdded) {
+        try {
+          const { data: tenantData } = await executeTenantQuery({
+            variables: { tenantId: u.userid },
+            fetchPolicy: 'network-only',
+          });
+          const spec = tenantData?.tenant?.spec;
+          u.workspaces =
+            spec?.workspaces
+              ?.filter((w): w is { name: string; role: Role } => w != null)
+              ?.map(w => ({ name: w.name ?? '', role: w.role as Role })) ??
+            u.workspaces;
+        } catch (_error) {
+          genericErrorCatcher(new Error(`Could not fetch created user ${u.userid} to update workspaces`));
+        }
+      }
+
+      // Merge created users into local state with updated workspaces
+      setUsers(prev => [...prev, ...usersAdded]);
     } catch (error) {
       genericErrorCatcher(error as SupportedError);
       setLoadingSpinner(false);
@@ -205,7 +225,6 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
         },
         onError: apolloErrorCatcher,
       });
-      
       
       // Refresh user list in local state
       setUsers(users.filter(u => u.userid !== user.userid));
