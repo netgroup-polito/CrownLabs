@@ -272,7 +272,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
   
   const validateTimeout = async (_: any, _val: { value: number; unit: string } ) => {
-    console.log('_val:', _val);
     if (_val.value === undefined || _val.value === 0) {
       return true; 
     }
@@ -349,7 +348,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <Input placeholder="Insert template name" allowClear />
         </Form.Item>
-        <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic stopping</Checkbox>
+        <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
       <Form.Item
         hidden={!automaticStoppingEnabled}
@@ -361,7 +360,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         {...formItemLayout}> 
         
         <div className="flex gap-4 items-center">
-          <Tooltip title={<p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p>}>
+          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
             <InfoCircleOutlined />
           </Tooltip>
           <InputNumber
@@ -389,7 +388,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
       <Form.Item
         hidden={!automaticStoppingEnabled}
-        label="Max Expiration"
+        label="Max Lifetime"
         name="deleteAfter"
         required={isTimeUnitDisabled('deleteAfter') ? false : true}
         validateTrigger="onChange"
@@ -397,7 +396,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         {...formItemLayout}> 
         
         <div className="flex gap-4 items-center">
-          <Tooltip title={<p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p>}>
+          <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
+          
             <InfoCircleOutlined />
           </Tooltip>
           <InputNumber
