@@ -822,10 +822,20 @@ export const notifyStatus = (
   if (updateType !== UpdateType.Deleted) {
     const { name, namespace } = instance.metadata ?? {};
     const { prettyName } = instance.spec ?? {};
-    const { url } = instance.status ?? {};
+    const { url, environments } = instance.status ?? {};
     const { prettyName: templateName } =
       instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
+
+    // Only set URL for single-environment instances
+    let iUrl;
+    if (url && environments && environments.length == 1) {
+      const firstEnvName = environments[0]?.name;
+      if (firstEnvName) {
+        const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+        iUrl = `${baseUrl}/${firstEnvName}/`;
+      }
+    }
 
     switch (status) {
       case Phase2.Off:
@@ -846,7 +856,7 @@ export const notifyStatus = (
               templateName,
               prettyName || name,
               status,
-              url,
+              iUrl,
             ),
           );
         }
