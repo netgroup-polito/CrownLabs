@@ -46,10 +46,6 @@ var _ = Describe("Instautoctrl-expiration", func() {
 		CustomInactivityTimeout    = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfter2         = "10s"
 		CustomInactivityTimeout2   = "1m"
-
-		timeout = time.Second * 30
-
-		interval = time.Millisecond * 1000
 	)
 
 	var (
@@ -249,32 +245,12 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
 		}
 
-		By("By checking that the namespace has been created")
-		createdNs := &v1.Namespace{}
-
-		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
-		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval, k8sClientExpiration)
-
 		By("Creating the templates")
 		Expect(k8sClientExpiration.Create(ctx, newPersistentTemplate)).Should(Succeed())
 		Expect(k8sClientExpiration.Create(ctx, newNonPersistentTemplate)).Should(Succeed())
 
-		By("By checking that the template has been created")
-		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
-		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		createdPersitentTemplate := &crownlabsv1alpha2.Template{}
-		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
-
-		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClientExpiration)
-		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClientExpiration)
-
 		By("Creating the tenant")
 		Expect(k8sClientExpiration.Create(ctx, newTenant)).Should(Succeed())
-
-		By("Checking that the tenant has been created")
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: WorkingNamespace}
-		createdTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval, k8sClientExpiration)
 
 	})
 
