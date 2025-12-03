@@ -827,8 +827,8 @@ export const notifyStatus = (
       instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
         ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
-    // Build the URL with the first environment name
-    let iUrl = url;
+    // Only set URL for single-environment instances
+    let iUrl;
     if (url && environments && environments.length == 1) {
       const firstEnvName = environments[0]?.name;
       if (firstEnvName) {
