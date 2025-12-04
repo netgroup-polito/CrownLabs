@@ -40,6 +40,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
       overlayClassName="pt-1 pr-2 2xl:pr-0"
       open={visible}
       onOpenChange={handleVisibleChange}
+      overlayStyle={{ minWidth: 200 }}
       placement="bottom"
       trigger={['click']}
       menu={{
@@ -63,7 +64,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
             return {
               type: 'item',
               key: r.path,
-              title: 'pef',
+              title: r.name,
               onClick: () => isExtLink && window.open(r.path, '_blank'),
               icon: r.navbarMenuIcon,
               className: currentPath === r.path ? 'primary-color-bg' : '',
