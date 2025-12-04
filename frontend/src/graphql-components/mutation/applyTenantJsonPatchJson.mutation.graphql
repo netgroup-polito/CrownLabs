@@ -1,0 +1,25 @@
+mutation applyTenantJsonPatchJson(
+  $tenantId: String!
+  $patchJson: String!
+  $manager: String!
+) {
+  applyTenant: patchCrownlabsPolitoItV1alpha2TenantJsonPatch(
+    name: $tenantId
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    metadata {
+      name
+    }
+    spec {
+      firstName
+      lastName
+      email
+      lastLogin
+      workspaces {
+        role
+        name
+      }
+    }
+  }
+}
