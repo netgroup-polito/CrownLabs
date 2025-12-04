@@ -64,7 +64,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
             return {
               type: 'item',
               key: r.path,
-              title: 'Manage your account',
+              title: r.name,
               onClick: () => isExtLink && window.open(r.path, '_blank'),
               icon: r.navbarMenuIcon,
               className: currentPath === r.path ? 'primary-color-bg' : '',
