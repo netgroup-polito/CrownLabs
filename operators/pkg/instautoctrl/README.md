@@ -92,7 +92,7 @@ The controller retrieves all the active Instances and fetches the related **Temp
 When omitted, this value is set to never, meaning the Instance is not scheduled for termination. However, it can be configured with a time interval representing durations in minutes, hours, or days.
 
 Once the instance lifespan expires, the controller sends a warning email to the tenant informing them that their Instance will be deleted soon.
-The controller adds a new `ExpiringWarningNotificationAnnotation` annotation to the Instance to know that the first warning notification has been sent.
+The controller adds a new `ExpiringWarningNotificationTimestampAnnotation` annotation to store the timestamp of the warning notification. This annotation is used to determine whether the required interval has elapsed since the warning notification, thereby allowing the deletion of the Instance if necessary.
 After the `notificationInterval` time has passed since the warning, the controller proceeds to delete the Instance and sends a second email to the tenant confirming that the Instance has been deleted.
 
 
@@ -105,8 +105,7 @@ The **InstanceExpirationReconciler** is set to watch and react to events related
 
 ### Labels and Annotations
 * **ExpirationIgnoreNamespace**: `Namespace` label used to ignore the expiration for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
-* **ExpiringWarningNotificationAnnotation**: Instance annotation that stores whether a warning notification has already been sent to the `Tenant` before the Instance expiration.
-
+* **ExpiringWarningNotificationTimestampAnnotation**: Instance annotation that stores the timestamp of the warning notification sent to the `Tenant`. If it is present, it means that the warning notification has already been sent, therefore the Instance is ready to be deleted after the notification interval.
 
 ## Instance Termination Controller
 This controller specifically focuses on instance termination in **exam scenarios**.
@@ -140,6 +139,8 @@ Main automation parameters:
 * **enableExpirationNotifications**: flag to enable the notification for the Instance Expiration Termination controller.
 * **inactiveTerminationNotificationInterval**: time interval between two consecutive email notifications.
 * **expirationNotificationInterval**: time interval between the warning notification and the Instance deletion.
+* **marginTime**: margin time (in minutes) added when calculating the remaining time for inactivity and expiration checks.
+
 
 Main monitoring parameters:
 

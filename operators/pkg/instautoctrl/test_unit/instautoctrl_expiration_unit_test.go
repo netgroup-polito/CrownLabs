@@ -245,9 +245,9 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		tenantNs := &v1.Namespace{}
 
 		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
-		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, nsLookupKey, createdNs)).To(Succeed())
 		tenantNsLookupKey := types.NamespacedName{Name: TenantName}
-		doesEventuallyExists(ctx, tenantNsLookupKey, tenantNs, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, tenantNsLookupKey, tenantNs)).To(Succeed())
 
 		By("Creating the tenant")
 		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
@@ -262,8 +262,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		createdPersitentTemplate := &crownlabsv1alpha2.Template{}
 		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
 
-		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, persistentTemplateLookupKey, createdPersitentTemplate)).To(Succeed())
+		Expect(k8sClient.Get(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate)).To(Succeed())
 
 		By("Creating the instances")
 		Expect(k8sClient.Create(ctx, newPersistentInstance)).Should(Succeed())
@@ -275,8 +275,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		createdPersistentInstance := &crownlabsv1alpha2.Instance{}
 		createdNonPersistentInstance := &crownlabsv1alpha2.Instance{}
 
-		doesEventuallyExists(ctx, persistanteInstanceLookupKey, createdPersistentInstance, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, persistanteInstanceLookupKey, createdPersistentInstance)).To(Succeed())
+		Expect(k8sClient.Get(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance)).To(Succeed())
 
 	})
 
@@ -287,13 +287,13 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
 		currentInstance := &crownlabsv1alpha2.Instance{}
-		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
 		currentTemplate := &crownlabsv1alpha2.Template{}
-		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
 		currentTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
 		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
 		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
@@ -312,13 +312,13 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
 		currentInstance := &crownlabsv1alpha2.Instance{}
-		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
 		currentTemplate := &crownlabsv1alpha2.Template{}
-		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
 		currentTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
 		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
 		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
@@ -336,13 +336,13 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
 		currentInstance := &crownlabsv1alpha2.Instance{}
-		doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
 		currentTemplate := &crownlabsv1alpha2.Template{}
-		doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
 		currentTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
 		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
 		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
@@ -353,8 +353,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(shouldSend).To(BeTrue(), "Should send notification because the instance is not deleted yet")
 
-		By("Verifying the ExpiringWarningNotificationAnnotation annotation has been added to the instance")
-		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationAnnotation]).To(Equal("true"), "ExpiringWarningNotificationAnnotation annotation should be set to true")
+		By("Verifying the ExpiringWarningNotificationTimestampAnnotation annotation has been added to the instance")
+		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]).ToNot(BeEmpty())
 	})
 
 })

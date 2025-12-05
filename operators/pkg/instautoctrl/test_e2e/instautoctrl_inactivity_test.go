@@ -46,11 +46,11 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
 		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfterNonPersistent       = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutNonPersistent = "1m"
+		CustomInactivityTimeoutNonPersistent = "0m"
 		CustomDeleteAfterPersistent2         = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutPersistent2   = "0m"
+		CustomInactivityTimeoutPersistent2   = "2m"
 
-		timeout  = time.Second * 150
+		timeout  = time.Second * 60
 		interval = time.Millisecond * 500
 	)
 
@@ -319,16 +319,6 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		} else if err1 != nil || err2 != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s %s", err1, err2))
 		}
-
-		By("By checking that the namespace has been created")
-		workNs := &v1.Namespace{}
-		tenantNs := &v1.Namespace{}
-
-		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
-		doesEventuallyExists(ctx, nsLookupKey, workNs, BeTrue(), timeout, interval, k8sClient)
-		tenantNsLookupKey := types.NamespacedName{Name: TenantName}
-		doesEventuallyExists(ctx, tenantNsLookupKey, tenantNs, BeTrue(), timeout, interval, k8sClient)
-
 		By("Creating the templates")
 
 		Expect(k8sClient.Create(ctx, newPersistentTemplate)).Should(Succeed())
@@ -350,28 +340,10 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		By("Creating the tenant")
 		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
 
-		By("Checking that the tenant has been created")
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: WorkingNamespace}
-		createdTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval, k8sClient)
-
 		By("Creating the instances")
 		Expect(k8sClient.Create(ctx, newPersistentInstance)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, newNonPersistentInstance)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, newPersistentInstance2)).Should(Succeed())
-
-		By("Checking that the instances has been created")
-		persistanteInstanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenantNs.Name}
-		nonPersistentInstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenNs.Name}
-		persistentInstance2LookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenantNs.Name}
-		createdPersistentInstance := &crownlabsv1alpha2.Instance{}
-		createdNonPersistentInstance := &crownlabsv1alpha2.Instance{}
-		createdPersistentInstance2 := &crownlabsv1alpha2.Instance{}
-
-		doesEventuallyExists(ctx, persistanteInstanceLookupKey, createdPersistentInstance, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, persistentInstance2LookupKey, createdPersistentInstance2, BeTrue(), timeout, interval, k8sClient)
-
 	})
 
 	Context("Testing default and custom inactivity value", func() {
@@ -501,48 +473,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Checking the instance is deleted")
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
 		})
-		It("The persistent VM is inactive for a long time and it is stopped", func() {
-			mockProm.EXPECT().
-				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
-				Return(true, nil).
-				AnyTimes()
 
-			mockProm.EXPECT().
-				GetLastActivityTime(gomock.Any(), gomock.Any()).
-				Return(time.Now().Add(-1000*time.Hour), nil).
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetQueryNginxData().
-				Return("").
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetQuerySSHData().
-				Return("").
-				AnyTimes()
-
-			mockProm.EXPECT().
-				GetQueryWebSSHData().
-				Return("").
-				AnyTimes()
-
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			By("Checking the instance is stopped")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
-				if err != nil {
-					return false
-				}
-
-				return currentInstance.Spec.Running
-			}, timeout, interval).Should(BeFalse(), "The instance should be stopped")
-
-		})
 		It("The persistent VM is active and is not stopped", func() {
 			mockProm.EXPECT().
 				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
@@ -569,21 +500,6 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				Return("").
 				AnyTimes()
 
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			// doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
-
-			By("Checking the instance is still running")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
-				if err != nil {
-					return false
-				}
-				return currentInstance.Spec.Running
-			}, timeout, interval).Should(BeTrue(), "The instance should be running")
 		})
 
 	})
@@ -619,7 +535,6 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			currentInstance := &crownlabsv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
 			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-			// doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {

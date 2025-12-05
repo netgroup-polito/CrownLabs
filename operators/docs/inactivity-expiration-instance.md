@@ -50,7 +50,7 @@ If the namespace containing an instance has the label `ExpirationIgnoreNamespace
 
 ## Additional details
 - The time between warning and deletion is controlled by the `expirationNotificationInterval` Helm parameter.
-- The controller uses the annotation `ExpiringWarningNotificationAnnotation` to track if a warning has already been sent.
+- The controller uses the annotation `ExpiringWarningNotificationTimestampAnnotation` to track if a warning has already been sent and when.
 - The controller only deletes instances when the maximum age is reached, regardless of activity.
 
 For more technical details, see the [Instance Automation Controller README](../pkg/instautoctrl/README.md).
