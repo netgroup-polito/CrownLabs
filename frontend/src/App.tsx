@@ -2,6 +2,7 @@ import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext, useCallback } from 'react';
 import './App.css';
 import { TenantContext } from './contexts/TenantContext';
+import { OwnedInstancesContext } from './contexts/OwnedInstancesContext';
 import { QuotaProvider } from './contexts/QuotaContext';
 import { LinkPosition } from './utils';
 import AppLayout from './components/common/AppLayout';
@@ -9,7 +10,6 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
-import { useOwnedInstancesQuery } from './generated-types';
 import { useQuotaCalculations } from './components/workspaces/QuotaDisplay/useQuotaCalculation';
 import { ErrorContext } from './errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
@@ -17,28 +17,20 @@ import type { ApolloError } from '@apollo/client';
 function App() {
   const { data: tenantData } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { rawInstances, refetch: refetchInstances } = useContext(
+    OwnedInstancesContext,
+  );
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
-
-  // Get all instances for quota calculations - always call hook, use skip to prevent execution
-  const { data: instancesData, refetch: refetchInstances } =
-    useOwnedInstancesQuery({
-      variables: { tenantNamespace: tenantNs || '' },
-      skip: !tenantNs, // Skip query execution when tenantNs is undefined
-      onError: apolloErrorCatcher,
-      fetchPolicy: 'cache-and-network',
-    });
-
-  // Calculate quota using our new hook
-  // Filter out null instances before passing to the hook
-  const validInstances = instancesData?.instanceList?.instances?.filter(
-    (instance): instance is NonNullable<typeof instance> => instance != null,
-  );
 
   // Handle null tenant by converting to undefined
   const tenant = tenantData?.tenant ?? undefined;
 
-  const quotaCalculations = useQuotaCalculations(validInstances, tenant);
+  // Calculate quota using raw instances from context
+  const quotaCalculations = useQuotaCalculations(
+    rawInstances as Parameters<typeof useQuotaCalculations>[0],
+    tenant,
+  );
 
   // Enhanced refresh function with guard
   const refreshQuota = useCallback(async () => {
