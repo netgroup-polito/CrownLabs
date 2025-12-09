@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2/textlogger"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/go-logr/logr"
@@ -126,23 +127,38 @@ func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]int
 		Images:       imageItems,
 	}
 
-	// 3. Create the ImageList object
+	// // 3. Create the ImageList object
+	// imgList := &clv1alpha1.ImageList{
+	// 	TypeMeta: metav1.TypeMeta{
+	// 		APIVersion: "crownlabs.polito.it/v1alpha1", // Matches the original unstructured object
+	// 		Kind:       "ImageList",                    // Matches the original unstructured object
+	// 	},
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name: s.Name,
+	// 	},
+	// 	Spec: spec,
+	// }
+	imgList := createEmptyImageListObject(s)
+	op, err := ctrl.CreateOrUpdate(context.TODO(), s.Client, imgList, func() error {
+		imgList.Spec = spec
+		return nil
+	})
+
+	if err != nil {
+		s.Log.Error(err, "failed performing operation")
+		return nil
+
+	}
+	s.Log.WithValues("operation done sucessfully. ", op)
+	return imgList
+}
+
+func createEmptyImageListObject(s *DefaultImageListSaver) *clv1alpha1.ImageList {
 	imgList := &clv1alpha1.ImageList{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "crownlabs.polito.it/v1alpha1", // Matches the original unstructured object
-			Kind:       "ImageList",                    // Matches the original unstructured object
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.Name,
 		},
-		Spec: spec,
 	}
-
-	// 4. Set the ResourceVersion if provided
-	if resourceVersion != "" {
-		imgList.ObjectMeta.ResourceVersion = resourceVersion
-	}
-
 	return imgList
 }
 
