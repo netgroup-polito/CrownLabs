@@ -81,16 +81,88 @@ crownmail:
   templates:
     name: crownmail-templates
     sourceFolder: mail-templates
+    # overrides: # mail templates are available in operators/deploy/crownmail/mail-templates
+    #   defaults_crownlabs_mail.eml: |
+    #     From: { from }
+    #     To: { to }
+    #     Subject: { subject }
+    #     Date: { date }
+    #     Message-ID: { message-id }
+    #     MIME-Version: 1.0
+    #     Content-Type: multipart/alternative; boundary=CrownLabsEmailBoundary
+
+    #     --CrownLabsEmailBoundary
+    #     Content-Type: text/plain; charset=UTF-8
+
+    #     { plaintext_header }
+    #     { plaintext_content }
+    #     { plaintext_footer }
+
+    #     --CrownLabsEmailBoundary
+    #     Content-Type: text/html; charset=UTF-8
+
+    #     { html_header }
+    #     { html_content }
+    #     { html_footer }
+
+    #     --CrownLabsEmailBoundary--
+    #   defaults_crownlabs_headers.yaml: |
+    #     from: noreply@crownlabs.polito.it
+    #     html_header: |-
+    #       <!DOCTYPE html>
+    #       <html>
+    #       <body>
+    #       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    #           <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+    #               <h2>CrownLabs Notification</h2>
+    #           </div>
+    #           <div style="padding: 20px;">
+    #               <p>Dear user,</p>
+    #     html_footer: |-
+    #       <p>Best regards,<br>
+    #               CrownLabs Team</p>
+    #           </div>
+    #           <div style="background-color: #f8f9fa; padding: 15px; font-size: 12px; text-align: center;">
+    #               <p>This is an automated message from CrownLabs.</p>
+    #               <p>If you need assistance, please contact support.</p>
+    #           </div>
+    #       </div>
+    #       </body>
+    #       </html>
+    #     plaintext_header: |
+    #       === CROWNLABS NOTIFICATION ===
+
+    #       Dear user,
+
+    #     plaintext_footer: |
+
+    #       Best regards,
+    #       CrownLabs Team
+
+    #       ---
+    #       This is an automated message from CrownLabs.
+    #       If you need assistance, please contact support.
+    #   instautoctrl_expiration_warning_notification.yaml: |
+    #     to: |-
+    #       { tenantEmail }
+    #     subject: |-
+    #       CrownLabs: Instance { prettyName } is expiring soon
+    #     plaintext_content: |-
+    #       Your instance { prettyName } will expire in { remainingTime } and will be permanently deleted. Please take any necessary actions to save your data.
+    #     html_content: |-
+    #       <p>Your instance <strong>{ prettyName }</strong> will expire in <strong>{ remainingTime }</strong> and will be permanently deleted. </p>
+    #       <p>Please take any necessary actions to save your data.</p>
   configs:
     name: crownmail-configs
     sourceFolder: mail-configs
-    smtp:
-      server: override.smtp.example.com
-      port: "123"
-      identity: override-debug
-      username: override-debug@example.com
-      password: override-debugpassword
-      from: override-crownlabs@example.com
+    overrides: # default values to be overridden for mail sending in CrownLabs Production
+      smtp:
+        smtpServer: override.smtp.example.com
+        smtpPort: "123"
+        smtpIdentity: override-debug
+        smtpUsername: override-debug@example.com
+        smtpPassword: override-debugpassword
+        smtpFrom: override-crownlabs@example.com
 
 instance-operator:
   replicaCount: 1
@@ -142,8 +214,8 @@ instance-operator:
       terminationStatusCheckInterval: "2m"
       inactiveTerminationStatusCheckTimeout: "3s"
       inactiveTerminationMaxNumberOfAlerts: 3
-      enableInactivityNotifications: true
-      enableExpirationNotifications: true
+      enableInactivityNotifications: false
+      enableExpirationNotifications: false
       inactiveTerminationNotificationInterval: "24h"
       expirationNotificationInterval: "24h"
 
