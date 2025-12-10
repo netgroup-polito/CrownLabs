@@ -4,6 +4,7 @@ import './theming';
 import '@ant-design/v5-patch-for-react-19';
 import App from './App';
 import TenantContextProvider from './contexts/TenantContextProvider';
+import OwnedInstancesContextProvider from './contexts/OwnedInstancesContextProvider';
 import ErrorContextProvider from './errorHandling/ErrorContextProvider';
 import AuthContextProvider from './contexts/AuthContextProvider';
 import { AuthProvider, type AuthProviderProps } from 'react-oidc-context';
@@ -38,7 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <AuthContextProvider>
               <ApolloClientSetup>
                 <TenantContextProvider>
-                  <App />
+                  <OwnedInstancesContextProvider>
+                    <App />
+                  </OwnedInstancesContextProvider>
                 </TenantContextProvider>
               </ApolloClientSetup>
             </AuthContextProvider>

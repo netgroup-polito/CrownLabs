@@ -9,13 +9,13 @@ import {
   useRef,
 } from 'react';
 import { TenantContext } from '../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import Dashboard from '../Dashboard/Dashboard';
 import {
   Role,
   TenantsDocument,
   useWorkspacesQuery,
-  useOwnedInstancesQuery,
 } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
 import { WorkspaceRole } from '../../../utils';
@@ -47,23 +47,16 @@ const DashboardLogic: FC = () => {
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  // Get all instances for the tenant (includes both workspace and personal instances)
+  // Get all instances from context
   const {
-    data: instancesData,
+    rawInstances,
     loading: instancesLoading,
     refetch: refetchInstances,
-  } = useOwnedInstancesQuery({
-    variables: { tenantNamespace: tenantNs || '' },
-    skip: !tenantNs,
-    onError: apolloErrorCatcher,
-    fetchPolicy: 'cache-and-network',
-  });
+  } = useContext(OwnedInstancesContext);
 
   // Use the centralized quota calculation hook
   const quotaCalculations = useQuotaCalculations(
-    instancesData?.instanceList?.instances?.filter(
-      (i): i is NonNullable<typeof i> => i != null,
-    ),
+    rawInstances as Parameters<typeof useQuotaCalculations>[0],
     tenantData?.tenant,
   );
 

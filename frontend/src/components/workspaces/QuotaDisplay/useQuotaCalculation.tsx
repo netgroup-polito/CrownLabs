@@ -93,20 +93,22 @@ export const useQuotaCalculations = (
     const items = instances ?? [];
 
     for (const inst of items) {
-      const { cpu, mem } = (
-        inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-          ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList ?? []
-      ).reduce(
-        (acc, env) => ({
-          cpu: acc.cpu + Number(env?.resources?.cpu ?? 0),
-          mem: acc.mem + parseMemoryToGB(env?.resources?.memory ?? '0Gi'),
-        }),
-        { cpu: 0, mem: 0 }
-      );
+      if (inst.spec?.running) {
+        const { cpu, mem } = (
+          inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+            ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList ?? []
+        ).reduce(
+          (acc, env) => ({
+            cpu: acc.cpu + Number(env?.resources?.cpu ?? 0),
+            mem: acc.mem + parseMemoryToGB(env?.resources?.memory ?? '0Gi'),
+          }),
+          { cpu: 0, mem: 0 }
+        );
 
-      consumedQuota.cpu += cpu;
-      consumedQuota.memoryGB += mem;
-      consumedQuota.instances += 1;
+        consumedQuota.cpu += cpu;
+        consumedQuota.memoryGB += mem;
+        consumedQuota.instances += 1;
+      }
     }
 
     // Calculate available resources from quota - consumed

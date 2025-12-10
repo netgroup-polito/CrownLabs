@@ -20,9 +20,9 @@ import type {
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
-  useOwnedInstancesQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 import type { Template } from '../../../../utils';
 import { cleanupLabels, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
@@ -111,7 +111,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     expandRow,
-    tenantNamespace,
     availableQuota,
     refreshQuota,
     isPersonal,
@@ -131,6 +130,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
   const { data, refreshClock } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { refetch: refetchOwnedInstances, data: instancesData } = useContext(
+    OwnedInstancesContext,
+  );
+
   const { refetch: refetchInstancesLabelSelector } =
     useInstancesLabelSelectorQuery({
       onError: apolloErrorCatcher,
@@ -140,15 +143,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
       skip: true,
       fetchPolicy: 'network-only',
     });
-
-  const { refetch: refetchOwnedInstances } = useOwnedInstancesQuery({
-    onError: apolloErrorCatcher,
-    variables: {
-      tenantNamespace: tenantNamespace || '',
-    },
-    skip: true,
-    fetchPolicy: 'network-only',
-  });
 
   const [showDeleteModalNotPossible, setShowDeleteModalNotPossible] =
     useState(false);
@@ -440,31 +434,34 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               createInstance={createInstance}
               editTemplate={handleEditTemplate}
               deleteTemplate={() => {
-                const refetchQuery = isPersonal
-                  ? refetchOwnedInstances
-                  : refetchInstancesLabelSelector;
+                if (isPersonal) {
+                  // For personal templates, use data from context
+                  refetchOwnedInstances().then(() => {
+                    const allInstances =
+                      instancesData?.instanceList?.instances || [];
+                    const instances = allInstances.filter(
+                      (instance): instance is NonNullable<typeof instance> =>
+                        instance != null &&
+                        instance?.spec?.templateCrownlabsPolitoItTemplateRef
+                          ?.name === template.id,
+                    );
 
-                refetchQuery()
-                  .then(ils => {
-                    let instances;
-
-                    if (isPersonal) {
-                      const allInstances =
-                        ils.data.instanceList?.instances || [];
-                      instances = allInstances.filter(
-                        instance =>
-                          instance?.spec?.templateCrownlabsPolitoItTemplateRef
-                            ?.name === template.id,
-                      );
-                    } else {
-                      instances = ils.data.instanceList?.instances || [];
-                    }
-
-                    if (!instances?.length && !ils.error)
-                      setShowDeleteModalConfirm(true);
+                    if (!instances?.length) setShowDeleteModalConfirm(true);
                     else setShowDeleteModalNotPossible(true);
-                  })
-                  .catch(console.warn);
+                  });
+                } else {
+                  // For workspace templates, use label selector query
+                  refetchInstancesLabelSelector()
+                    .then(ils => {
+                      const instances =
+                        ils?.data?.instanceList?.instances || [];
+
+                      if (!instances?.length && !ils?.error)
+                        setShowDeleteModalConfirm(true);
+                      else setShowDeleteModalNotPossible(true);
+                    })
+                    .catch(console.warn);
+                }
               }}
             />
           ) : (
@@ -481,7 +478,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
           )}
           {instancesLimit === totalInstances || !canCreate ? (
             <Tooltip
-              overlayClassName="w-44"
+              classNames={{ root: 'w-44' }}
               title={
                 <>
                   <div className="text-center">

@@ -8,13 +8,11 @@ import {
   UpdateType,
   useCreateInstanceMutation,
   useDeleteTemplateMutation,
-  useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
   type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
-  updatedOwnedInstances,
   updatedWorkspaceTemplates,
 } from '../../../../graphql-components/subscription';
 import { type Instance, WorkspaceRole } from '../../../../utils';
@@ -23,13 +21,12 @@ import {
   makeGuiInstance,
   makeGuiTemplate,
   joinInstancesAndTemplates,
-  updateQueryOwnedInstancesQuery,
 } from '../../../../utilsLogic';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
-import { TenantContext } from '../../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -62,57 +59,13 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const [dataInstances, setDataInstances] = useState<Instance[]>([]);
 
-  // Add the missing instances query
-  const {
-    loading: loadingInstances,
-    error: errorInstances,
-    subscribeToMore: subscribeToMoreInstances,
-  } = useOwnedInstancesQuery({
-    variables: { tenantNamespace },
-    onError: apolloErrorCatcher,
-    onCompleted: data => {
-      const instances =
-        data?.instanceList?.instances
-          ?.map(i => {
-            const guiInstance = makeGuiInstance(i, userId);
-            return guiInstance;
-          })
-          .filter(Boolean) ?? [];
-      setDataInstances(instances);
-    },
-    fetchPolicy: fetchPolicy_networkOnly,
-    nextFetchPolicy: 'cache-only',
-  });
+  // Get instances from context
+  const { instances: ownedInstances } = useContext(OwnedInstancesContext);
 
-  // Subscribe to instance updates
-  const notifier = useContext(TenantContext).notify;
-
+  // Update local state when context changes
   useEffect(() => {
-    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
-      const unsubscribe = subscribeToMoreInstances({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
-        document: updatedOwnedInstances,
-        variables: {
-          tenantNamespace,
-        },
-        updateQuery: updateQueryOwnedInstancesQuery(
-          setDataInstances,
-          userId ?? '',
-          notifier,
-        ),
-      });
-      return unsubscribe;
-    }
-  }, [
-    loadingInstances,
-    errorInstances,
-    errorsQueue.length,
-    subscribeToMoreInstances,
-    tenantNamespace,
-    userId,
-    makeErrorCatcher,
-    notifier,
-  ]);
+    setDataInstances(ownedInstances);
+  }, [ownedInstances]);
 
   const {
     loading: loadingTemplate,
@@ -305,7 +258,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       >
         <Spin
           size="large"
-          spinning={loadingTemplate || loadingInstances}
+          spinning={loadingTemplate}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -314,9 +267,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }}
         >
           {!loadingTemplate &&
-          !loadingInstances &&
           !errorTemplate &&
-          !errorInstances &&
           templates &&
           dataInstances ? (
             <div
@@ -358,9 +309,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             <div
               className={
                 loadingTemplate ||
-                loadingInstances ||
-                errorTemplate ||
-                errorInstances
+                errorTemplate
                   ? 'invisible'
                   : 'visible'
               }
@@ -378,7 +327,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
           {role === WorkspaceRole.manager &&
           !loadingTemplate &&
-          !loadingInstances &&
           !isPersonal ? (
             <>
               <SharedVolumesDrawer
