@@ -21,9 +21,7 @@ const WorkspaceWelcome: FC = () => {
           <Logo widthPx={150} />
         </div>
         <p className="text-xl xs:text-3xl text-center px-5 xs:px-24 hidden md:flex">
-          Select a Workspace <br />
-          to explore Virtual Machines <br />
-          and Services available
+          No workspace selected
         </p>
       </div>
     </Box>
