@@ -10,6 +10,7 @@ export default gql`
           firstName
           lastName
           lastLogin
+          createPersonalWorkspace
           workspaces {
             role
             name
