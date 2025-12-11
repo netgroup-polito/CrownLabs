@@ -14,6 +14,8 @@ export type Resources = {
 export type TemplateForm = {
   name: string;
   environments: TemplateFormEnv[];
+  deleteAfter: string;
+  inactivityTimeout: string;
 };
 
 export type TemplateFormEnv = {
