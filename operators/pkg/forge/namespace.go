@@ -41,7 +41,7 @@ func ConfigureWorkspaceNamespace(ns *corev1.Namespace, labels map[string]string)
 	maps.Copy(ns.Labels, labels)
 
 	// Set the workspace type
-	ns.Labels[labelTypeKey] = labelTypeWorkspaceValue
+	ns.Labels[LabelTypeKey] = labelTypeWorkspaceValue
 }
 
 // GetTenantNamespaceName returns the name of the namespace for a tenant.

@@ -39,7 +39,7 @@ func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel comm
 		labels = make(map[string]string, 1)
 	}
 	labels[targetLabel.GetKey()] = targetLabel.GetValue()
-	labels[labelManagedByKey] = labelManagedByTenantValue
+	labels[LabelManagedByKey] = labelManagedByTenantValue
 
 	return labels
 }
