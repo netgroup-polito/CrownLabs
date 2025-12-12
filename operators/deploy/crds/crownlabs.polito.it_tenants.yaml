@@ -91,22 +91,21 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: The maximum amount of CPU which can be used by this
-                      Tenant.
+                    description: The maximum amount of CPU required by this Workspace.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                   instances:
-                    description: The maximum number of concurrent instances which
-                      can be created by this Tenant.
+                    description: The maximum number of concurrent instances required
+                      by this Workspace.
                     format: int64
-                    minimum: 0
+                    minimum: 1
                     type: integer
                   memory:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: The maximum amount of RAM memory which can be used
-                      by this Tenant.
+                    description: The maximum amount of RAM memory required by this
+                      Workspace.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                 required:
