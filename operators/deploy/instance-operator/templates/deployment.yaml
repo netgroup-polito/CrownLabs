@@ -63,6 +63,9 @@ spec:
             - name: op-probes
               containerPort: 8081
               protocol: TCP
+            - name: k8s-wh
+              containerPort: 9443
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
@@ -81,11 +84,16 @@ spec:
             - name: webbastion-master-key
               mountPath: /webbastion-key
               readOnly: true
+            - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
+              name: webhook-certs
       volumes:
         - name: webbastion-master-key
           secret:
             secretName: {{ .Values.webssh.masterKey.secretName }}
             defaultMode: 0444
+        - name: webhook-certs
+          secret:
+            secretName: {{ include "operator.webhookname" . }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

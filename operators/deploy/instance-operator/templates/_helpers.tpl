@@ -68,6 +68,13 @@ app.kubernetes.io/component: metrics
 {{- end }}
 
 {{/*
+Create a qualified app name for the webhook components.
+*/}}
+{{- define "operator.webhookname" -}}
+{{ .Values.rbacResourcesName }}
+{{- end }}
+
+{{/*
 The tag to be used for sidecar containers images
 */}}
 {{- define "instance-operator.containerEnvironmentSidecarsTag" -}}

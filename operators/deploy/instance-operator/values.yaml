@@ -108,4 +108,9 @@ webssh:
     secretName: crownlabs-bastion-operator-web-master-key
     keyName: webssh-master
 
+webhook:
+  deployment:
+    certsMount: /tmp/k8s-webhook-server/serving-certs/
+  clusterIssuer: self-signed
+
 rbacResourcesName: crownlabs-instance-operator
