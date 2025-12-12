@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -64,7 +65,7 @@ func (iv *InstanceValidator) ValidateCreate(
 
 	// Get the workspace details (quota, templates namespace)
 	wsName := instanceTemplate.Spec.WorkspaceRef.Name
-	wsQuota := v1alpha1.WorkspaceResourceQuota{}
+	wsQuota := common.WorkspaceResourceQuota{}
 	templatesNamespace := ""
 
 	if wsName == personalWorkspaceName {
