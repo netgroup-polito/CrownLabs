@@ -46,7 +46,7 @@ func (r *Reconciler) enforceResourcesRelatedToPersonalNamespace(
 	log.Info("Personal namespace created")
 
 	// manage resource quota
-	if err := r.enforceResourceQuota(ctx, tn); err != nil {
+	if err := r.enforceResourceQuota(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
 	log.Info("Resource quota created")
@@ -201,8 +201,23 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 
 func (r *Reconciler) enforceResourceQuota(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
+	// get the enrolled workspaces
+	wss, err := r.getWorkspacesList(
+		ctx,
+		log,
+		r.getEnrolledWorkspaces(tn),
+	)
+	if err != nil {
+		return err
+	}
+
+	// calculate the resource quota
+	quota := forge.TenantResourceList(wss, tn.Spec.PersonalWorkspaceQuota)
+
+	// update or create the resource quota
 	nsName := forge.GetTenantNamespaceName(tn)
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -213,7 +228,7 @@ func (r *Reconciler) enforceResourceQuota(
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		// Configure the resource quota
-		forge.ConfigureTenantResourceQuota(&rq, &tn.Status.Quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
+		forge.ConfigureTenantResourceQuota(&rq, &quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
 	}); err != nil {
