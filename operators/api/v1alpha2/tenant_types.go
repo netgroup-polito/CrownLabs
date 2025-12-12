@@ -15,7 +15,7 @@
 package v1alpha2
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -87,12 +87,8 @@ type TenantSpec struct {
 	// with Kubernetes.
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
-	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
-	Quota *TenantResourceQuota `json:"quota,omitempty"`
-
-	// +kubebuilder:default=false
-	// Whether a personal workspace should be created for the tenant
-	CreatePersonalWorkspace bool `json:"createPersonalWorkspace,omitempty"`
+	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
+	PersonalWorkspaceQuota *common.WorkspaceResourceQuota `json:"personalWorkspaceQuota,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.
@@ -110,19 +106,6 @@ type KeycloakStatus struct {
 	// This is set to true only if the Tenant has been successfully synchronized with Keycloak
 	// the last time the operator has run.
 	UserSynchronized bool `json:"userSynchronized"`
-}
-
-// TenantResourceQuota defines resource quota for each Tenant.
-type TenantResourceQuota struct {
-	// The maximum amount of CPU which can be used by this Tenant.
-	CPU resource.Quantity `json:"cpu"`
-
-	// The maximum amount of RAM memory which can be used by this Tenant.
-	Memory resource.Quantity `json:"memory"`
-
-	// +kubebuilder:validation:Minimum:=0
-	// The maximum number of concurrent instances which can be created by this Tenant.
-	Instances int64 `json:"instances"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.
@@ -155,9 +138,6 @@ type TenantStatus struct {
 	// information about which problem occurred.
 	// Will be set to true even when personal workspace is intentionally deleted.
 	Ready bool `json:"ready"`
-
-	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.
-	Quota TenantResourceQuota `json:"quota,omitempty"`
 
 	// Whether a personal workspace has been created for the tenant.
 	PersonalWorkspaceCreated bool `json:"personalWorkspaceCreated"`
