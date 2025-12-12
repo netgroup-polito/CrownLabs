@@ -41,6 +41,8 @@ func (iv *InstanceValidator) ValidateCreate(
 	ctx context.Context,
 	obj runtime.Object,
 ) (admission.Warnings, error) {
+	// TODO: handle personal workspace quotas
+
 	var warnings admission.Warnings
 
 	instance, ok := obj.(*v1alpha2.Instance)

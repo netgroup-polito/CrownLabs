@@ -132,27 +132,6 @@ func (r *Reconciler) removeNoWorkspaceLabel(
 	delete(labels, forge.NoWorkspacesLabelKey)
 }
 
-func (r *Reconciler) enforceServiceQuota(
-	ctx context.Context,
-	log logr.Logger,
-	tn *v1alpha2.Tenant,
-) error {
-	// get the enrolled workspaces
-	wss, err := r.getWorkspacesList(
-		ctx,
-		log,
-		r.getEnrolledWorkspaces(tn),
-	)
-	if err != nil {
-		return err
-	}
-
-	// update resource quota in the status of the tenant after checking validity of workspaces.
-	tn.Status.Quota = forge.TenantResourceList(wss, tn.Spec.Quota)
-
-	return nil
-}
-
 func (r *Reconciler) getEnrolledWorkspaces(
 	tn *v1alpha2.Tenant,
 ) []v1alpha2.TenantWorkspaceEntry {
