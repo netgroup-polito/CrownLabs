@@ -47,12 +47,8 @@ var (
 	SandboxMemoryQuota = *resource.NewScaledQuantity(8, resource.Giga)
 )
 
-// TenantResourceList forges the Tenant Resource Quota as the value defined in TenantSpec, if any, otherwise it keeps the sum of all quota for each workspace.
-func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.TenantResourceQuota) clv1alpha2.TenantResourceQuota {
-	// if an override value is defined it is used as return parameter.
-	if override != nil {
-		return *override.DeepCopy()
-	}
+// Forges the TenantResourceQuota as the sum of all quota for each workspace plus the personal workspace quota.
+func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuota *clv1alpha2.TenantResourceQuota) clv1alpha2.TenantResourceQuota {
 	var quota clv1alpha2.TenantResourceQuota
 
 	// sum all quota for each existing workspace
@@ -62,6 +58,14 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 		quota.Instances += workspaces[i].Spec.Quota.Instances
 	}
 
+	// add personal workspace quota if defined
+	if personalWorkspaceQuota != nil {
+		quota.CPU.Add(personalWorkspaceQuota.CPU)
+		quota.Memory.Add(personalWorkspaceQuota.Memory)
+		quota.Instances += personalWorkspaceQuota.Instances
+	}
+
+	// cap the quota if needed
 	if CapCPU > 0 {
 		quota.CPU = CapResourceQuantity(quota.CPU, *resource.NewQuantity(int64(CapCPU), resource.DecimalSI))
 	}
@@ -75,7 +79,7 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, override *clv1alpha2.
 	return quota
 }
 
-// TenantResourceQuotaSpec forges the Resource Quota spec as the value defined in TenantStatus.
+// Converts a TenantResourceQuota to a ResourceQuota's resource list.
 func TenantResourceQuotaSpec(quota *clv1alpha2.TenantResourceQuota) corev1.ResourceList {
 	return corev1.ResourceList{
 		corev1.ResourceLimitsCPU:      quota.CPU,
