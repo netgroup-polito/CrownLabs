@@ -87,12 +87,8 @@ type TenantSpec struct {
 	// with Kubernetes.
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
-	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
-	Quota *TenantResourceQuota `json:"quota,omitempty"`
-
-	// +kubebuilder:default=false
-	// Whether a personal workspace should be created for the tenant
-	CreatePersonalWorkspace bool `json:"createPersonalWorkspace,omitempty"`
+	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
+	PersonalWorkspaceQuota *TenantResourceQuota `json:"personalWorkspaceQuota,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.
@@ -155,9 +151,6 @@ type TenantStatus struct {
 	// information about which problem occurred.
 	// Will be set to true even when personal workspace is intentionally deleted.
 	Ready bool `json:"ready"`
-
-	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.
-	Quota TenantResourceQuota `json:"quota,omitempty"`
 
 	// Whether a personal workspace has been created for the tenant.
 	PersonalWorkspaceCreated bool `json:"personalWorkspaceCreated"`
