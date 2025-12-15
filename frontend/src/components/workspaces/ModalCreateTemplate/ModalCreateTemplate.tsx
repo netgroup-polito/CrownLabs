@@ -4,6 +4,8 @@ import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox } from 'antd
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
+import type { RuleObject } from 'antd/es/form';
+
 import {
   EnvironmentType,
   useWorkspaceTemplatesQuery,
@@ -271,7 +273,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return timeouts[field].value === 0;
   };
   
-  const validateTimeout = async (_: any, _val: { value: number; unit: string } ) => {
+  const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } ) => {
     if (_val.value === undefined || _val.value === 0) {
       return true; 
     }
@@ -282,8 +284,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return true;
   };
 
-  const validateTimeoutOrder = async (rule: any, _val: { value: number; unit: string } | undefined) => {
-    
+  const validateTimeoutOrder = async (rule: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
+    console.log("RULE:", rule);
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
       if (t.value === 0) return Infinity;
@@ -291,27 +293,24 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       const mul = u === 'h' ? 60 : u === 'd' ? 1440 : 1;
       return Number(t.value) * mul;
     };
+    
+    const current =  form.getFieldValue(field);
+    const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout') as { value: number; unit: string } | undefined;
+    const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter') as { value: number; unit: string } | undefined;
 
-    const field = rule?.field || rule?.name;
-
-    const current = (_val as any) ?? form.getFieldValue(field);
-    const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout');
-    const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter');
-
-    if (!inactivity || !deleteAfter) return true;
+    if (!inactivity || !deleteAfter) return;
 
     const inactivityMin = toMinutes(inactivity);
     const deleteAfterMin = toMinutes(deleteAfter);
 
-    if (deleteAfterMin === Infinity) return true;
+    if (deleteAfterMin === Infinity) return;
 
-    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return true;
+    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
 
     if (inactivityMin >= deleteAfterMin) {
       throw new Error('Inactivity must be smaller than Expiration');
     }
-
-    return true;
+    return;
   };
 
   return (
@@ -356,7 +355,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         name="inactivityTimeout"
         required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
         validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, { validator: validateTimeoutOrder }]}
+        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
         {...formItemLayout}> 
         
         <div className="flex gap-4 items-center">
