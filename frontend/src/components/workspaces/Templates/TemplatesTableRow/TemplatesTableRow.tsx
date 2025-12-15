@@ -4,7 +4,7 @@ import {
   PlayCircleOutlined,
   SelectOutlined,
   AppstoreAddOutlined,
-  DockerOutlined
+  DockerOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -256,7 +256,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                   title={
                     <div className="p-2">
                       <div className="font-semibold mb-2 text-center">
-                        Multiple Environments ({template.environmentList.length})
+                        Multiple Environments ({template.environmentList.length}
+                        )
                       </div>
                       {template.environmentList.map((env, index) => (
                         <div key={index} className="p-1">
@@ -264,39 +265,52 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                             <span className="font-medium">{env.name}</span>
                             {env.guiEnabled ? (
                               <div className="flex items-center gap-1.5">
-                                <DesktopOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
+                                <DesktopOutlined
+                                  style={{ fontSize: '14px', color: '#1c7afd' }}
+                                />
                                 <span className="text-xs">VM GUI</span>
                                 {env.persistent && (
                                   <>
-                                    <SvgInfinite width="14px" className="success-color-fg ml-1" />
+                                    <SvgInfinite
+                                      width="14px"
+                                      className="success-color-fg ml-1"
+                                    />
+                                    <span className="text-xs">Persistent</span>
+                                  </>
+                                )}
+                              </div>
+                            ) : env.environmentType === 'Container' ? (
+                              <div className="flex items-center gap-1.5">
+                                <DockerOutlined
+                                  style={{ fontSize: '14px', color: '#1c7afd' }}
+                                />
+                                <span className="text-xs">Container SSH</span>
+                                {env.persistent && (
+                                  <>
+                                    <SvgInfinite
+                                      width="14px"
+                                      className="success-color-fg ml-1"
+                                    />
                                     <span className="text-xs">Persistent</span>
                                   </>
                                 )}
                               </div>
                             ) : (
-                              env.environmentType === 'Container' ? (
-                                <div className="flex items-center gap-1.5">
-                                  <DockerOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
-                                  <span className="text-xs">Container SSH</span>
-                                  {env.persistent && (
-                                    <>
-                                      <SvgInfinite width="14px" className="success-color-fg ml-1" />
-                                      <span className="text-xs">Persistent</span>
-                                    </>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5">
-                                  <CodeOutlined style={{ fontSize: '14px', color: '#1c7afd' }} />
-                                  <span className="text-xs">VM SSH</span>
-                                  {env.persistent && (
-                                    <>
-                                      <SvgInfinite width="14px" className="success-color-fg ml-1" />
-                                      <span className="text-xs">Persistent</span>
-                                    </>
-                                  )}
-                                </div>
-                              )
+                              <div className="flex items-center gap-1.5">
+                                <CodeOutlined
+                                  style={{ fontSize: '14px', color: '#1c7afd' }}
+                                />
+                                <span className="text-xs">VM SSH</span>
+                                {env.persistent && (
+                                  <>
+                                    <SvgInfinite
+                                      width="14px"
+                                      className="success-color-fg ml-1"
+                                    />
+                                    <span className="text-xs">Persistent</span>
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -310,26 +324,27 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                     color="green"
                     offset={[3, -3]}
                   >
-                  <AppstoreAddOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-                </Badge>
+                    <AppstoreAddOutlined
+                      style={{ fontSize: '24px', color: '#1c7afd' }}
+                    />
+                  </Badge>
                 </Tooltip>
+              ) : template.gui ? (
+                <DesktopOutlined
+                  style={{ fontSize: '24px', color: '#1c7afd' }}
+                />
               ) : (
-                template.gui ? (
-                  <DesktopOutlined
-                    style={{ fontSize: '24px', color: '#1c7afd' }}
-                  />
-                ) : (
-                  <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
-                )
+                <CodeOutlined style={{ fontSize: '24px', color: '#1c7afd' }} />
               )}
               <label className="ml-3 cursor-pointer">
                 <Space>
                   {template.name}
-                  {!template.hasMultipleEnvironments && template.allowPublicExposure && (
-                    <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
-                      <SelectOutlined className="text-fuchsia-400" />
-                    </Tooltip>
-                  )}
+                  {!template.hasMultipleEnvironments &&
+                    template.allowPublicExposure && (
+                      <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
+                        <SelectOutlined className="text-fuchsia-400" />
+                      </Tooltip>
+                    )}
                   {template.hasMultipleEnvironments && (
                     <span className="text-xs text-gray-500 ml-2">
                       ({template.environmentList.length} environments)
@@ -384,37 +399,60 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               <>
                 {template.hasMultipleEnvironments ? (
                   <div>
-                    <div className="font-semibold mb-2">Multiple Environments ({template.environmentList.length}):</div>
+                    <div className="font-semibold mb-2">
+                      Multiple Environments ({template.environmentList.length}):
+                    </div>
                     {template.environmentList.map((env, index) => (
-                      <div key={index} className="mb-2 p-2 border-l-2 border-blue-300">
+                      <div
+                        key={index}
+                        className="mb-2 p-2 border-l-2 border-blue-300"
+                      >
                         <div className="font-medium">Env: {env.name}</div>
                         <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
                         <div>CPU: {env.resources.cpu} core(s)</div>
-                        <div>RAM: {convertMemory(env.resources.memory) || 'unavailable'}B</div>
+                        <div>
+                          RAM:{' '}
+                          {convertMemory(env.resources.memory) || 'unavailable'}
+                          B
+                        </div>
                         {env.persistent && (
-                          <div>DISK: {convertMemory(env.resources.disk) || 'unavailable'}B</div>
+                          <div>
+                            DISK:{' '}
+                            {convertMemory(env.resources.disk) || 'unavailable'}
+                            B
+                          </div>
                         )}
                       </div>
                     ))}
                     <div className="mt-2 pt-2 border-t border-gray-300">
                       <div className="font-medium">Total Resources:</div>
                       <div>Total CPU: {template.resources.cpu} core(s)</div>
-                      <div>Total RAM: {convertMemory(template.resources.memory)}B</div>
+                      <div>
+                        Total RAM: {convertMemory(template.resources.memory)}B
+                      </div>
                       {template.persistent && (
-                        <div>Total DISK: {convertMemory(template.resources.disk)}B</div>
+                        <div>
+                          Total DISK: {convertMemory(template.resources.disk)}B
+                        </div>
                       )}
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div>CPU: {template.resources.cpu || 'unavailable'}vCPU(s)</div>
                     <div>
-                      RAM: {convertMemory(template.resources.memory) || 'unavailable'}B
+                      CPU: {template.resources.cpu || 'unavailable'}vCPU(s)
+                    </div>
+                    <div>
+                      RAM:{' '}
+                      {convertMemory(template.resources.memory) ||
+                        'unavailable'}
+                      B
                     </div>
                     <div>
                       {template.persistent
                         ? ` DISK: ${
-                            convertMemory(template.resources.disk) || 'unavailable'
+                            convertMemory(template.resources.disk) ||
+                            'unavailable'
                           }B`
                         : ``}
                     </div>

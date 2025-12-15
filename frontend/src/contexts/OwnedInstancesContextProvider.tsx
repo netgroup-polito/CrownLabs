@@ -18,16 +18,11 @@ import { TenantContext } from './TenantContext';
 import { AuthContext } from './AuthContext';
 import { OwnedInstancesContext } from './OwnedInstancesContext';
 import type { Instance } from '../utils';
-import {
-  makeGuiInstance,
-  SubObjType,
-} from '../utilsLogic';
+import { makeGuiInstance, SubObjType } from '../utilsLogic';
 import { useQuotaCalculations } from '../components/workspaces/QuotaDisplay/useQuotaCalculation';
 import { QuotaContext } from './QuotaContext.types';
 import type { ApolloError } from '@apollo/client';
-import {
-  handleInstanceUpdate,
-} from '../utils/instanceSubscriptionHandler';
+import { handleInstanceUpdate } from '../utils/instanceSubscriptionHandler';
 
 const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;

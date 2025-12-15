@@ -12,9 +12,7 @@ import {
   type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import {
-  updatedWorkspaceTemplates,
-} from '../../../../graphql-components/subscription';
+import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
 import { WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
@@ -247,10 +245,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             minHeight: 0,
           }}
         >
-          {!loadingTemplate &&
-          !errorTemplate &&
-          templates &&
-          ownedInstances ? (
+          {!loadingTemplate && !errorTemplate && templates && ownedInstances ? (
             <div
               style={{
                 display: 'flex',
@@ -289,10 +284,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ) : (
             <div
               className={
-                loadingTemplate ||
-                errorTemplate
-                  ? 'invisible'
-                  : 'visible'
+                loadingTemplate || errorTemplate ? 'invisible' : 'visible'
               }
               style={{
                 flex: '1 1 auto',
@@ -306,9 +298,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             </div>
           )}
 
-          {role === WorkspaceRole.manager &&
-          !loadingTemplate &&
-          !isPersonal ? (
+          {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
             <>
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}

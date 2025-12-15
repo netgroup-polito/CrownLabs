@@ -104,7 +104,7 @@ export const useQuotaCalculations = (
             cpu: acc.cpu + Number(env?.resources?.cpu ?? 0),
             mem: acc.mem + parseMemoryToGB(env?.resources?.memory ?? '0Gi'),
           }),
-          { cpu: 0, mem: 0 }
+          { cpu: 0, mem: 0 },
         );
 
         consumedQuota.cpu += cpu;

@@ -117,7 +117,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
 
   const getFirstEnvironmentName = () => {
-      return instance.environments?.[0]?.name || 'env';
+    return instance.environments?.[0]?.name || 'env';
   };
 
   const buildSSHLink = (envName: string) => {
@@ -126,7 +126,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     }
     return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
   };
-  
+
   return (
     <Dropdown
       trigger={['click']}
@@ -198,7 +198,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               <>
                 SSH
                 {/* Only show direct link button if there's exactly one environment */}
-                {(!instance.environments || instance.environments.length === 1) && (
+                {(!instance.environments ||
+                  instance.environments.length === 1) && (
                   <Button
                     disabled={sshDisabled}
                     type="link"

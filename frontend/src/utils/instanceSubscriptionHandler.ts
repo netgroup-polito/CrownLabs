@@ -101,11 +101,15 @@ export function handleInstanceUpdate(
 export function createInstanceUpdateQuery(
   options: SubscriptionHandlerOptions = {},
 ) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <T extends { instanceList?: { instances?: any[]; __typename?: string } | null }>(
+   
+  return <
+    T extends {
+      instanceList?: { instances?: any[]; __typename?: string } | null;
+    },
+  >(
     prev: T,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { subscriptionData }: { subscriptionData: any }
+    { subscriptionData }: { subscriptionData: any },
   ): T => {
     const data = subscriptionData?.data;
 

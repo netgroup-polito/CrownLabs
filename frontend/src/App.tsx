@@ -32,67 +32,67 @@ function App() {
 
   return (
     <AppLayout
-        TooltipButtonLink={
-          'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
-          tenantData?.tenant?.status?.personalNamespace?.name
-        }
-        TooltipButtonData={{
-          tooltipPlacement: 'left',
-          tooltipTitle: 'Statistics',
-          icon: (
-            <BarChartOutlined
-              style={{ fontSize: '22px' }}
-              className="flex items-center justify-center "
-            />
+      TooltipButtonLink={
+        'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
+        tenantData?.tenant?.status?.personalNamespace?.name
+      }
+      TooltipButtonData={{
+        tooltipPlacement: 'left',
+        tooltipTitle: 'Statistics',
+        icon: (
+          <BarChartOutlined
+            style={{ fontSize: '22px' }}
+            className="flex items-center justify-center "
+          />
+        ),
+        color: 'green',
+      }}
+      routes={[
+        {
+          route: { name: 'Dashboard', path: '/' },
+          content: <DashboardLogic key="/" />,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: { name: 'Active', path: '/active' },
+          content: <ActiveViewLogic key="/active" />,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Drive',
+            path: 'https://crownlabs.polito.it/cloud',
+          },
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Support',
+            path: 'https://support.crownlabs.polito.it/',
+          },
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: {
+            name: 'Manage account',
+            path: '/account',
+            navbarMenuIcon: <UserOutlined />,
+          },
+          content: <UserPanelLogic key="/account" />,
+          linkPosition: LinkPosition.MenuButton,
+        },
+        {
+          route: {
+            name: 'Web SSH',
+            path: '/instance/:namespace/:VMname/:environment/ssh',
+          },
+          content: (
+            <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
           ),
-          color: 'green',
-        }}
-        routes={[
-          {
-            route: { name: 'Dashboard', path: '/' },
-            content: <DashboardLogic key="/" />,
-            linkPosition: LinkPosition.NavbarButton,
-          },
-          {
-            route: { name: 'Active', path: '/active' },
-            content: <ActiveViewLogic key="/active" />,
-            linkPosition: LinkPosition.NavbarButton,
-          },
-          {
-            route: {
-              name: 'Drive',
-              path: 'https://crownlabs.polito.it/cloud',
-            },
-            linkPosition: LinkPosition.NavbarButton,
-          },
-          {
-            route: {
-              name: 'Support',
-              path: 'https://support.crownlabs.polito.it/',
-            },
-            linkPosition: LinkPosition.NavbarButton,
-          },
-          {
-            route: {
-              name: 'Manage account',
-              path: '/account',
-              navbarMenuIcon: <UserOutlined />,
-            },
-            content: <UserPanelLogic key="/account" />,
-            linkPosition: LinkPosition.MenuButton,
-          },
-          {
-            route: {
-              name: 'Web SSH',
-              path: '/instance/:namespace/:VMname/:environment/ssh',
-            },
-            content: (
-              <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
-            ),
-            linkPosition: LinkPosition.Hidden,
-          },
-        ]}
-      />
+          linkPosition: LinkPosition.Hidden,
+        },
+      ]}
+    />
   );
 }
 

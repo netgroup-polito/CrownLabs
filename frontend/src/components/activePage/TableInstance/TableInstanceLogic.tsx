@@ -17,9 +17,11 @@ export interface ITableInstanceLogicProps {
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
   const { viewMode, extended, showGuiIcon } = props;
   const { hasSSHKeys } = useContext(TenantContext);
-  const { instances: allInstances, loading, error } = useContext(
-    OwnedInstancesContext,
-  );
+  const {
+    instances: allInstances,
+    loading,
+    error,
+  } = useContext(OwnedInstancesContext);
 
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
