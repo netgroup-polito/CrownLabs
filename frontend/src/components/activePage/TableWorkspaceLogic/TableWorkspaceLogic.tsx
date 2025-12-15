@@ -9,19 +9,16 @@ import {
   UpdatedInstancesLabelSelectorDocument,
   useInstancesLabelSelectorQuery,
 } from '../../../generated-types';
-import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
 import type { User, Workspace } from '../../../utils';
 import { multiStringIncludes } from '../../../utils';
 import {
   getManagerInstances,
-  getSubObjTypeK8s,
   getTemplatesMapped,
   getWorkspacesMapped,
-  notifyStatus,
-  SubObjType,
 } from '../../../utilsLogic';
 import TableWorkspace from '../TableWorkspace/TableWorkspace';
 import { TenantContext } from '../../../contexts/TenantContext';
+import { createInstanceUpdateQuery } from '../../../utils/instanceSubscriptionHandler';
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 
@@ -105,68 +102,10 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
           onError: makeErrorCatcher(ErrorTypes.GenericError),
           document: UpdatedInstancesLabelSelectorDocument,
           variables: { labels },
-          updateQuery: (prev, { subscriptionData }) => {
-            const { data } = subscriptionData;
-            if (!data?.updateInstanceLabelSelector?.instance) return prev;
-
-            const { instance, updateType } = data.updateInstanceLabelSelector;
-            if (!instance.metadata) return prev;
-
-            const { namespace: ns } = instance.metadata;
-            let notify = false;
-            const matchNS = ns === tenantNamespace;
-
-            let instances = prev.instanceList?.instances;
-
-            if (!instances) return prev;
-
-            const found = instances.find(matchK8sObject(instance, false));
-            const objType = getSubObjTypeK8s(found, instance, updateType);
-
-            switch (objType) {
-              case SubObjType.Deletion:
-                instances = instances.filter(matchK8sObject(instance, true));
-                notify = false;
-                break;
-              case SubObjType.Addition:
-                instances = [...instances, instance];
-                notify = true;
-                break;
-              case SubObjType.PrettyName:
-                instances = instances.map(replaceK8sObject(instance));
-                notify = false;
-                break;
-              case SubObjType.UpdatedInfo:
-                instances = instances.map(replaceK8sObject(instance));
-                notify = true;
-                break;
-              case SubObjType.PublicExposureChange:
-                instances = instances.map(replaceK8sObject(instance));
-                notify = false;
-                break;
-              case SubObjType.Drop:
-                notify = false;
-                break;
-              default:
-                break;
-            }
-
-            if (notify && matchNS) {
-              notifyStatus(
-                instance.status?.phase,
-                instance,
-                updateType,
-                notifier,
-              );
-            }
-
-            return Object.assign({}, prev, {
-              instanceList: {
-                __typename: prev.instanceList?.__typename,
-                instances,
-              },
-            });
-          },
+          updateQuery: createInstanceUpdateQuery({
+            tenantNamespace,
+            notifier,
+          }),
         });
       return unsubscribe;
     }

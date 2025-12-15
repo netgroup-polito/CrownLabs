@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import type {
-  OwnedInstancesQuery,
-  TenantQuery,
+import {
+  Phase2,
+  type OwnedInstancesQuery,
+  type TenantQuery,
 } from '../../../generated-types';
 
 interface QuotaCalculationResult {
@@ -93,7 +94,8 @@ export const useQuotaCalculations = (
     const items = instances ?? [];
 
     for (const inst of items) {
-      if (inst.spec?.running) {
+      // Count all instances not in 'Off' phase
+      if (inst.status?.phase !== Phase2.Off) {
         const { cpu, mem } = (
           inst?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
             ?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList ?? []

@@ -1,7 +1,7 @@
 import { type FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { type FC } from 'react';
 import {
   type UpdatedWorkspaceTemplatesSubscription,
@@ -15,10 +15,9 @@ import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   updatedWorkspaceTemplates,
 } from '../../../../graphql-components/subscription';
-import { type Instance, WorkspaceRole } from '../../../../utils';
+import { WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
-  makeGuiInstance,
   makeGuiTemplate,
   joinInstancesAndTemplates,
 } from '../../../../utilsLogic';
@@ -57,15 +56,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     isPersonal,
   } = props;
 
-  const [dataInstances, setDataInstances] = useState<Instance[]>([]);
-
   // Get instances from context
   const { instances: ownedInstances } = useContext(OwnedInstancesContext);
-
-  // Update local state when context changes
-  useEffect(() => {
-    setDataInstances(ownedInstances);
-  }, [ownedInstances]);
 
   const {
     loading: loadingTemplate,
@@ -201,17 +193,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       },
     })
       .then(i => {
-        setDataInstances(old =>
-          !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
-            ? [
-                ...old,
-                makeGuiInstance(i.data?.createdInstance, userId, {
-                  templateName: templateId,
-                  workspaceName: workspaceName,
-                }),
-              ]
-            : old,
-        );
         // Refresh quota after instance creation
         refreshQuota?.();
         return i;
@@ -222,7 +203,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       });
 
   const templates = useMemo(() => {
-    const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
+    const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -243,7 +224,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         environmentType: env?.environmentType ?? null,
       };
     });
-  }, [dataTemplate, dataInstances, templateListData?.templateList?.templates]);
+  }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
   return (
     <>
@@ -269,7 +250,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           {!loadingTemplate &&
           !errorTemplate &&
           templates &&
-          dataInstances ? (
+          ownedInstances ? (
             <div
               style={{
                 display: 'flex',
@@ -279,7 +260,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
               }}
             >
               <TemplatesTable
-                totalInstances={dataInstances.length}
+                totalInstances={ownedInstances.length}
                 tenantNamespace={tenantNamespace}
                 workspaceNamespace={workspaceNamespace}
                 workspaceName={workspaceName}

@@ -20,11 +20,14 @@ import { OwnedInstancesContext } from './OwnedInstancesContext';
 import type { Instance } from '../utils';
 import {
   makeGuiInstance,
-  getSubObjTypeK8s,
-  notifyStatus,
   SubObjType,
 } from '../utilsLogic';
-import { matchK8sObject, replaceK8sObject } from '../k8sUtils';
+import { useQuotaCalculations } from '../components/workspaces/QuotaDisplay/useQuotaCalculation';
+import { QuotaContext } from './QuotaContext.types';
+import type { ApolloError } from '@apollo/client';
+import {
+  handleInstanceUpdate,
+} from '../utils/instanceSubscriptionHandler';
 
 const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;
@@ -36,6 +39,7 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const [instances, setInstances] = useState<Instance[]>([]);
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
+  const tenant = tenantData?.tenant ?? undefined;
 
   const {
     data,
@@ -76,64 +80,28 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
       document: updatedOwnedInstances,
       variables: { tenantNamespace: tenantNs },
       updateQuery: (prev, { subscriptionData }) => {
-        const { data } = subscriptionData;
+        const data = subscriptionData?.data;
 
         if (!data?.updateInstance?.instance) return prev;
 
         const { instance, updateType } = data.updateInstance;
+
+        if (!updateType) return prev;
 
         // Convert to GUI instance for state updates
         const guiInstance = makeGuiInstance(instance, userId ?? '');
 
         if (!guiInstance) return prev;
 
-        // Update the raw GraphQL data
-        const newData = { ...prev };
-        if (!newData.instanceList) {
-          newData.instanceList = {
-            __typename: 'ItPolitoCrownlabsV1alpha2InstanceList',
-            instances: [],
-          };
-        }
-
-        let instances = [...(newData.instanceList.instances || [])];
-        const found = instances.find(matchK8sObject(instance, false));
-        const objType = getSubObjTypeK8s(found, instance, updateType);
-        let notify = false;
-
-        // Handle different update types
-        switch (objType) {
-          case SubObjType.Deletion:
-            instances = instances.filter(matchK8sObject(instance, true));
-            notify = false;
-            break;
-          case SubObjType.Addition:
-            instances = [...instances, instance];
-            notify = true;
-            break;
-          case SubObjType.PrettyName:
-            instances = instances.map(replaceK8sObject(instance));
-            notify = false;
-            break;
-          case SubObjType.UpdatedInfo:
-            instances = instances.map(replaceK8sObject(instance));
-            notify = true;
-            break;
-          case SubObjType.PublicExposureChange:
-            instances = instances.map(replaceK8sObject(instance));
-            notify = false;
-            break;
-          case SubObjType.Drop:
-            notify = false;
-            break;
-          default:
-            break;
-        }
-
-        // Send notification if needed
-        if (notify) {
-          notifyStatus(instance.status?.phase, instance, updateType, notifier);
-        }
+        // Use the shared handler for instance updates
+        const { instances, objType } = handleInstanceUpdate(
+          { instanceList: prev.instanceList ?? undefined },
+          { instance, updateType },
+          {
+            tenantNamespace: tenantNs,
+            notifier,
+          },
+        );
 
         // Update GUI instances state based on objType
         if (objType !== SubObjType.Drop) {
@@ -161,12 +129,13 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
           });
         }
 
-        newData.instanceList = {
-          ...newData.instanceList,
-          instances,
+        return {
+          ...prev,
+          instanceList: {
+            __typename: prev.instanceList?.__typename,
+            instances,
+          },
         };
-
-        return newData;
       },
     });
 
@@ -191,6 +160,23 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
     }
   }, [tenantNs, refetchQuery]);
 
+  // Calculate quota using raw instances
+  const quotaCalculations = useQuotaCalculations(
+    rawInstances as Parameters<typeof useQuotaCalculations>[0],
+    tenant,
+  );
+
+  // Enhanced refresh function for quota
+  const refreshQuota = useCallback(async () => {
+    if (!tenantNs) return;
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing quota data:', error);
+      apolloErrorCatcher(error as ApolloError);
+    }
+  }, [refetch, apolloErrorCatcher, tenantNs]);
+
   const contextValue = useMemo(
     () => ({
       data,
@@ -203,9 +189,21 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
     [data, rawInstances, instances, loading, error, refetch],
   );
 
+  const quotaContextValue = useMemo(
+    () => ({
+      refreshQuota,
+      consumedQuota: quotaCalculations.consumedQuota,
+      workspaceQuota: quotaCalculations.workspaceQuota,
+      availableQuota: quotaCalculations.availableQuota,
+    }),
+    [refreshQuota, quotaCalculations],
+  );
+
   return (
     <OwnedInstancesContext.Provider value={contextValue}>
-      {children}
+      <QuotaContext.Provider value={quotaContextValue}>
+        {children}
+      </QuotaContext.Provider>
     </OwnedInstancesContext.Provider>
   );
 };
