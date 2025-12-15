@@ -52,10 +52,11 @@ configurations:
     terminationStatusCheckInterval: "2m"
     inactiveTerminationStatusCheckTimeout: "3s"
     inactiveTerminationMaxNumberOfAlerts: 3
-    enableInactivityNotifications: true
-    enableExpirationNotifications: true
+    enableInactivityNotifications: false
+    enableExpirationNotifications: false
     inactiveTerminationNotificationInterval: "24h"
     expirationNotificationInterval: "24h"
+    marginTime: "1m"
   publicExposure:
     # The IP pool used to assign public IPs to instances.
     # Specify IPs as ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30"

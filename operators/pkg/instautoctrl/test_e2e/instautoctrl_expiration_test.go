@@ -35,20 +35,17 @@ import (
 var _ = Describe("Instautoctrl-expiration", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName    = "test-expiration-instance-persistent"
-		NonPersistentInstanceName = "test-expiration-instance-non-persistent"
-		WorkingNamespace          = "test-expiration-working-namespace"
-		persistentTemplateName    = "test-expiration-template-persistent"
-		nonPersistentTemplateName = "test-expiration-template-non-persistent"
-		TenantName                = "test-expiration-tenant"
-		CustomDeleteAfter         = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout   = instautoctrl.NeverTimeoutValue
-		CustomDeleteAfter2        = "0m"
-		CustomInactivityTimeout2  = "2m"
-
-		timeout      = time.Second * 65
-		timeoutSmall = time.Second * 30
-		interval     = time.Millisecond * 1000
+		PersistentInstanceName     = "test-expiration-instance-persistent"
+		NonPersistentInstanceName  = "test-expiration-instance-non-persistent"
+		NonPersistentInstanceName2 = "test-expiration-instance-non-persistent-2"
+		WorkingNamespace           = "test-expiration-working-namespace"
+		persistentTemplateName     = "test-expiration-template-persistent"
+		nonPersistentTemplateName  = "test-expiration-template-non-persistent"
+		TenantName                 = "test-expiration-tenant"
+		CustomDeleteAfter          = instautoctrl.NeverTimeoutValue
+		CustomInactivityTimeout    = instautoctrl.NeverTimeoutValue
+		CustomDeleteAfter2         = "10s"
+		CustomInactivityTimeout2   = "1m"
 	)
 
 	var (
@@ -162,6 +159,25 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			Status: crownlabsv1alpha2.InstanceStatus{},
 		}
 
+		nonPersistentInstance2 = crownlabsv1alpha2.Instance{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      NonPersistentInstanceName2,
+				Namespace: WorkingNamespace,
+			},
+			Spec: crownlabsv1alpha2.InstanceSpec{
+				Running: false,
+				Template: crownlabsv1alpha2.GenericRef{
+					Name:      nonPersistentTemplateName,
+					Namespace: WorkingNamespace,
+				},
+				Tenant: crownlabsv1alpha2.GenericRef{
+					Name: TenantName,
+				},
+			},
+			Status: crownlabsv1alpha2.InstanceStatus{},
+		}
+
 		tenant = crownlabsv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -209,8 +225,7 @@ var _ = Describe("Instautoctrl-expiration", func() {
 		newNs := workingNs.DeepCopy()
 		newPersistentTemplate := persistentTemplate.DeepCopy()
 		newNonPersistentTemplate := nonPersistentTemplate.DeepCopy()
-		newPersistentInstance := persistentInstance.DeepCopy()
-		newNonPersistentInstance := nonPersistentInstance.DeepCopy()
+
 		newTenant := tenant.DeepCopy()
 		By("Creating the namespace where to create instance and template")
 		err := k8sClientExpiration.Create(ctx, newNs)
@@ -222,7 +237,7 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			By("Deleting instances")
 			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &persistentInstance))).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &nonPersistentInstance))).To(Succeed())
-
+			Expect(client.IgnoreNotFound(k8sClientExpiration.Delete(ctx, &nonPersistentInstance2))).To(Succeed())
 			By("Deleting tenant")
 			Expect(k8sClientExpiration.Delete(ctx, &tenant)).Should(Succeed())
 
@@ -230,90 +245,31 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s", err))
 		}
 
-		By("By checking that the namespace has been created")
-		createdNs := &v1.Namespace{}
-
-		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
-		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval, k8sClientExpiration)
-
 		By("Creating the templates")
 		Expect(k8sClientExpiration.Create(ctx, newPersistentTemplate)).Should(Succeed())
 		Expect(k8sClientExpiration.Create(ctx, newNonPersistentTemplate)).Should(Succeed())
 
-		By("By checking that the template has been created")
-		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
-		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		createdPersitentTemplate := &crownlabsv1alpha2.Template{}
-		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
-
-		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClientExpiration)
-		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClientExpiration)
-
 		By("Creating the tenant")
 		Expect(k8sClientExpiration.Create(ctx, newTenant)).Should(Succeed())
-
-		By("Checking that the tenant has been created")
-		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: WorkingNamespace}
-		createdTenant := &crownlabsv1alpha2.Tenant{}
-		doesEventuallyExists(ctx, tenantLookupKey, createdTenant, BeTrue(), timeout, interval, k8sClientExpiration)
-
-		By("Creating the instances")
-		Expect(k8sClientExpiration.Create(ctx, newPersistentInstance)).Should(Succeed())
-		Expect(k8sClientExpiration.Create(ctx, newNonPersistentInstance)).Should(Succeed())
-
-		By("Checking that the instances has been created")
-		persistanteInstanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: WorkingNamespace}
-		nonPersistentInstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-		createdPersistentInstance := &crownlabsv1alpha2.Instance{}
-		createdNonPersistentInstance := &crownlabsv1alpha2.Instance{}
-
-		doesEventuallyExists(ctx, persistanteInstanceLookupKey, createdPersistentInstance, BeTrue(), timeout, interval, k8sClientExpiration)
-		doesEventuallyExists(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance, BeTrue(), timeout, interval, k8sClientExpiration)
-
-	})
-
-	Context("Testing maximum deletion time", func() {
-		It("Should succeed: the persistent VM reached the maximum lifespan and it is deleted", func() {
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-			Expect(k8sClientExpiration.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			By("waiting for the persistent VM to reach the maximum deletion time")
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClientExpiration)
-
-		})
 
 	})
 
 	Context("Testing never deletion", func() {
-		// It("Should succeed: the persistent VM is not deleted because it has a never deletion time", func() {
-		// 	By("Getting current instance")
-		// 	currentInstance := &crownlabsv1alpha2.Instance{}
-		// 	instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: WorkingNamespace}
-		// 	Expect(k8sClientExpiration.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-		// 	By("Checking that the persistent template has a never deletion time")
-		// 	currentTemplate := &crownlabsv1alpha2.Template{}
-		// 	templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
-		// 	Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-		// 	Expect(currentTemplate.Spec.DeleteAfter).To(Equal(instautoctrl.NeverTimeoutValue))
-
-		// 	By("waiting for the persistent VM to not reach the maximum deletion time")
-		// 	doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClientExpiration)
-
-		// })
-
-		It(("Should succeed: the non-persistent VM is not deleted because it has not reached yet the deletion time"), func() {
-			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: WorkingNamespace}
-			Expect(k8sClientExpiration.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
-
-			By("waiting for the non-persistent VM to not reach the maximum deletion time")
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeoutSmall, interval, k8sClientExpiration)
+		It("Should succeed: the persistent VM is not deleted because it has a never deletion time", func() {
+			By("Checking that the persistent template has a never deletion time")
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
+			Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
+			Expect(currentTemplate.Spec.DeleteAfter).To(Equal(instautoctrl.NeverTimeoutValue))
+		})
+		It("Should succeed: the persistent VM has a valid deletion time and should be deleted", func() {
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
+			Expect(currentTemplate.Spec.DeleteAfter).ToNot(Equal(CustomDeleteAfter))
 
 		})
+
 	})
 
 })

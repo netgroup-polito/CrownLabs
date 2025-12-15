@@ -49,6 +49,7 @@ type InstanceExpirationReconciler struct {
 	EnableExpirationNotifications bool
 	MailClient                    *mail.Client
 	NotificationInterval          time.Duration
+	MarginTime                    time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -99,6 +100,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
+			log.Info("instance not found", "name", req.NamespacedName, "namespace", req.Namespace)
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "failed to retrieve instance/template/tenant")
@@ -126,7 +128,6 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	tracer.Step("expiration checked")
-
 	if remainingTime <= 0 {
 		tenant := pkgcontext.TenantFrom(ctx)
 		if tenant == nil {
@@ -147,7 +148,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 				return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
 			}
 			// If all notifications have been sent (or simply disabled), terminate the instance
-			shouldTerminate, err := r.ShouldTerminateInstance(ctx)
+			shouldTerminate, newRemainingTime, err := r.ShouldTerminateInstance(ctx)
 			if err != nil {
 				log.Error(err, "failed to check if instance should be terminated")
 				return ctrl.Result{}, err
@@ -163,6 +164,10 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 					return ctrl.Result{}, err
 				}
 				tracer.Step("deletion notification sent")
+			} else {
+				// Requeue after the remaining time to reach the notification interval
+				requeueTime := newRemainingTime + r.MarginTime
+				return ctrl.Result{RequeueAfter: requeueTime}, nil
 			}
 		} else {
 			if err := r.DeleteInstance(ctx); err != nil {
@@ -174,29 +179,43 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Calculate requeue time at the instance inactive deadline time:
 	// if the instance is not yet to be terminated, we requeue it after the remaining time
 	requeueTime := remainingTime
-	// add 1 minute to the remaining time to avoid requeueing just before the deadline
-	// avoiding a double requeue
-	requeueTime += 1 * time.Minute
+	// add margin time to the remaining time to avoid requeueing just before the deadline avoiding a double requeue
+	requeueTime += r.MarginTime
 	dbgLog.Info("Remaining time before expiration", "remainingTime", remainingTime.String(), "instance", instance.Name, "namespace", instance.Namespace)
 
-	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
 
 // ShouldTerminateInstance checks if the instance should be terminated.
-func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Context) (bool, error) {
+func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Context) (bool, time.Duration, error) {
 	instance := pkgcontext.InstanceFrom(ctx)
 	if instance == nil {
-		return false, fmt.Errorf("instance not found in context")
+		return false, r.NotificationInterval, fmt.Errorf("instance not found in context")
 	}
 
 	if r.EnableExpirationNotifications {
-		if _, ok := instance.Annotations[forge.ExpiringWarningNotificationAnnotation]; !ok {
-			return false, nil
+		if _, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; !ok {
+			return false, r.NotificationInterval, nil
 		}
 	}
 
-	return true, nil
+	// Check if enough time is passed since the warning notification
+	if timestampStr, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
+		timestampWarning, err := time.Parse(time.RFC3339, timestampStr)
+		if err != nil {
+			return false, r.NotificationInterval, err
+		}
+		elapsed := time.Since(timestampWarning)
+		if elapsed < r.NotificationInterval {
+			// evaluate the remaining time to reach the notification interval
+			remainingTime := r.NotificationInterval - elapsed + r.MarginTime
+			return false, remainingTime, nil
+		}
+	} else {
+		return false, r.NotificationInterval, nil
+	}
+
+	return true, 0, nil
 }
 
 // CheckInstanceExpiration returns the remaining time before expiration as a time.Duration.
@@ -277,7 +296,7 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 	}
 
 	// If annotation already existing, return false
-	if _, ok := instance.Annotations[forge.ExpiringWarningNotificationAnnotation]; ok {
+	if _, ok := instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]; ok {
 		return false, nil
 	}
 
@@ -286,7 +305,8 @@ func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context
 	if instance.Annotations == nil {
 		instance.Annotations = make(map[string]string)
 	}
-	instance.Annotations[forge.ExpiringWarningNotificationAnnotation] = "true"
+	instance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+
 	if err := r.Patch(ctx, instance, patch); err != nil {
 		return false, fmt.Errorf("failed to patch instance with expiring warning notification annotation: %w", err)
 	}

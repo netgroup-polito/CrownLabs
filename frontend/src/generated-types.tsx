@@ -1129,11 +1129,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha1ImageList?: Maybe<ItPolitoCrownlabsV1alpha1ImageList>;
   /**
+   * partially update the specified ImageList
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/imagelists/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha1ImageListJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha1ImageList>;
+  /**
    * partially update status of the specified ImageList
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/imagelists/{name}/status
    */
   patchCrownlabsPolitoItV1alpha1ImageListStatus?: Maybe<ItPolitoCrownlabsV1alpha1ImageList>;
+  /**
+   * partially update status of the specified ImageList
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/imagelists/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha1ImageListStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha1ImageList>;
   /**
    * partially update the specified Workspace
    *
@@ -1141,11 +1153,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha1Workspace?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
   /**
+   * partially update the specified Workspace
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/workspaces/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha1WorkspaceJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
+  /**
    * partially update status of the specified Workspace
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/workspaces/{name}/status
    */
   patchCrownlabsPolitoItV1alpha1WorkspaceStatus?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
+  /**
+   * partially update status of the specified Workspace
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha1/workspaces/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha1WorkspaceStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
   /**
    * partially update the specified Instance
    *
@@ -1153,11 +1177,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstance?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
+   * partially update the specified Instance
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedInstanceJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
+  /**
    * partially update the specified InstanceSnapshot
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
+  /**
+   * partially update the specified InstanceSnapshot
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
   /**
    * partially update status of the specified InstanceSnapshot
    *
@@ -1165,11 +1201,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatus?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
   /**
+   * partially update status of the specified InstanceSnapshot
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
+  /**
    * partially update status of the specified Instance
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}/status
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstanceStatus?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
+  /**
+   * partially update status of the specified Instance
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
    * partially update the specified SharedVolume
    *
@@ -1177,11 +1225,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2NamespacedSharedVolume?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
   /**
+   * partially update the specified SharedVolume
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
    * partially update status of the specified SharedVolume
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}/status
    */
   patchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatus?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
+  /**
+   * partially update status of the specified SharedVolume
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2SharedVolume>;
   /**
    * partially update the specified Template
    *
@@ -1189,11 +1249,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2NamespacedTemplate?: Maybe<ItPolitoCrownlabsV1alpha2Template>;
   /**
+   * partially update the specified Template
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedTemplateJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Template>;
+  /**
    * partially update status of the specified Template
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}/status
    */
   patchCrownlabsPolitoItV1alpha2NamespacedTemplateStatus?: Maybe<ItPolitoCrownlabsV1alpha2Template>;
+  /**
+   * partially update status of the specified Template
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/templates/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Template>;
   /**
    * partially update the specified Tenant
    *
@@ -1201,11 +1273,23 @@ export type Mutation = {
    */
   patchCrownlabsPolitoItV1alpha2Tenant?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
   /**
+   * partially update the specified Tenant
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/tenants/{name}#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2TenantJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
+  /**
    * partially update status of the specified Tenant
    *
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/tenants/{name}/status
    */
   patchCrownlabsPolitoItV1alpha2TenantStatus?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
+  /**
+   * partially update status of the specified Tenant
+   *
+   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/tenants/{name}/status#application/json-patch+json
+   */
+  patchCrownlabsPolitoItV1alpha2TenantStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Tenant>;
   /**
    * replace the specified ImageList
    *
@@ -1561,12 +1645,32 @@ export type MutationPatchCrownlabsPolitoItV1alpha1ImageListArgs = {
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha1ImageListJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha1ImageListStatusArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha1ImageListStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1583,6 +1687,16 @@ export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceArgs = {
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceStatusArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
@@ -1594,12 +1708,33 @@ export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceStatusArgs = {
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha1WorkspaceStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
@@ -1618,12 +1753,34 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
@@ -1642,12 +1799,34 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs =
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
@@ -1666,12 +1845,34 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusAr
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedSharedVolumeStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
@@ -1690,6 +1891,17 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusArgs =
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedTemplateStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2TenantArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
@@ -1701,12 +1913,32 @@ export type MutationPatchCrownlabsPolitoItV1alpha2TenantArgs = {
 };
 
 
+export type MutationPatchCrownlabsPolitoItV1alpha2TenantJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationPatchCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   applicationApplyPatchYamlInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   force?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  pretty?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationPatchCrownlabsPolitoItV1alpha2TenantStatusJsonPatchArgs = {
+  applicationJsonPatchJsonInput: Scalars['String']['input'];
+  dryRun?: InputMaybe<Scalars['String']['input']>;
+  fieldManager?: InputMaybe<Scalars['String']['input']>;
+  fieldValidation?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3353,6 +3585,15 @@ export type ApplyTenantMutationVariables = Exact<{
 
 export type ApplyTenantMutation = { __typename?: 'Mutation', applyTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
 
+export type ApplyTenantJsonPatchJsonMutationVariables = Exact<{
+  tenantId: Scalars['String']['input'];
+  patchJson: Scalars['String']['input'];
+  manager: Scalars['String']['input'];
+}>;
+
+
+export type ApplyTenantJsonPatchJsonMutation = { __typename?: 'Mutation', applyTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
+
 export type CreateInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
   templateId: Scalars['String']['input'];
@@ -3745,6 +3986,57 @@ export function useApplyTenantMutation(baseOptions?: Apollo.MutationHookOptions<
 export type ApplyTenantMutationHookResult = ReturnType<typeof useApplyTenantMutation>;
 export type ApplyTenantMutationResult = Apollo.MutationResult<ApplyTenantMutation>;
 export type ApplyTenantMutationOptions = Apollo.BaseMutationOptions<ApplyTenantMutation, ApplyTenantMutationVariables>;
+export const ApplyTenantJsonPatchJsonDocument = gql`
+    mutation applyTenantJsonPatchJson($tenantId: String!, $patchJson: String!, $manager: String!) {
+  applyTenant: patchCrownlabsPolitoItV1alpha2TenantJsonPatch(
+    name: $tenantId
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    metadata {
+      name
+    }
+    spec {
+      firstName
+      lastName
+      email
+      lastLogin
+      workspaces {
+        role
+        name
+      }
+    }
+  }
+}
+    `;
+export type ApplyTenantJsonPatchJsonMutationFn = Apollo.MutationFunction<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>;
+
+/**
+ * __useApplyTenantJsonPatchJsonMutation__
+ *
+ * To run a mutation, you first call `useApplyTenantJsonPatchJsonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplyTenantJsonPatchJsonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applyTenantJsonPatchJsonMutation, { data, loading, error }] = useApplyTenantJsonPatchJsonMutation({
+ *   variables: {
+ *      tenantId: // value for 'tenantId'
+ *      patchJson: // value for 'patchJson'
+ *      manager: // value for 'manager'
+ *   },
+ * });
+ */
+export function useApplyTenantJsonPatchJsonMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>(ApplyTenantJsonPatchJsonDocument, options);
+      }
+export type ApplyTenantJsonPatchJsonMutationHookResult = ReturnType<typeof useApplyTenantJsonPatchJsonMutation>;
+export type ApplyTenantJsonPatchJsonMutationResult = Apollo.MutationResult<ApplyTenantJsonPatchJsonMutation>;
+export type ApplyTenantJsonPatchJsonMutationOptions = Apollo.BaseMutationOptions<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>;
 export const CreateInstanceDocument = gql`
     mutation createInstance($tenantNamespace: String!, $templateId: String!, $workspaceNamespace: String!, $tenantId: String!, $generateName: String = "instance-", $nodeSelector: JSON) {
   createdInstance: createCrownlabsPolitoItV1alpha2NamespacedInstance(

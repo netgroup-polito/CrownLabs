@@ -52,6 +52,7 @@ type InstanceInactiveTerminationReconciler struct {
 	NotificationInterval          time.Duration
 	MailClient                    *mail.Client
 	Prometheus                    PrometheusClientInterface
+	MarginTime                    time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -209,8 +210,8 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("Inactive termination done")
 
 	// Calculate requeue time at the instance inactive deadline time: if the instance is not yet to be terminated, we requeue it after the remaining time
-	// Let's add 1 minute to the remaining time to avoid requeueing just before the deadline, avoiding a double requeue
-	requeueTime := remainingTime + 1*time.Minute
+	// Let's add margin time to the remaining time to avoid requeueing just before the deadline, avoiding a double requeue
+	requeueTime := remainingTime + r.MarginTime
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
@@ -563,7 +564,7 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendWarningNotification(ct
 		return false, err
 	}
 	if numAlerts > 0 {
-		if time.Since(lastNotificationTime) < r.NotificationInterval-1*time.Minute {
+		if time.Since(lastNotificationTime) < r.NotificationInterval-r.MarginTime {
 			log.Info("Last notification sent within the notification interval, skipping email notification", "instance", instance.Name)
 			return false, nil
 		}

@@ -109,6 +109,7 @@ var _ = BeforeSuite(func() {
 		NotificationInterval:          1 * time.Second,
 		EnableInactivityNotifications: false,
 		StatusCheckRequestTimeout:     10 * time.Second,
+		MarginTime:                    10 * time.Second,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -120,6 +121,7 @@ var _ = BeforeSuite(func() {
 		MailClient:                    nil,
 		NotificationInterval:          1 * time.Second,
 		EnableExpirationNotifications: false,
+		MarginTime:                    2 * time.Second,
 	}).SetupWithManager(k8sManager, 1)
 	Expect(err).ToNot(HaveOccurred())
 

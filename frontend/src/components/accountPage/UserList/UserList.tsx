@@ -29,6 +29,7 @@ export interface IUserListProps {
     users: UserAccountPage[],
     workspaces: WorkspaceEntry[],
   ) => Promise<boolean>;
+  onDeleteUser: (user: UserAccountPage) => Promise<boolean>;
   onUpdateUser: (user: UserAccountPage, role: Role) => Promise<boolean>;
   setAbortUploading: (value: boolean) => void;
   setUploadingErrors: (errors: EnrichedError[]) => void;
@@ -159,8 +160,12 @@ const UserList: FC<IUserListProps> = props => {
                       />
                     </Tooltip>
                   )}
-
-                  <DeleteOutlined className="text-gray-700" />
+                  <Tooltip title="Delete user">
+                    <DeleteOutlined
+                    className="text-gray-700"
+                      onClick={async () => await props.onDeleteUser(record)}
+                    />
+                  </Tooltip>
                 </div>
               ) : null
             }
