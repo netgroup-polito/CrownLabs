@@ -101,10 +101,9 @@ export function handleInstanceUpdate(
 export function createInstanceUpdateQuery(
   options: SubscriptionHandlerOptions = {},
 ) {
-   
   return <
     T extends {
-      instanceList?: { instances?: any[]; __typename?: string } | null;
+      instanceList?: { instances?: InstanceType[]; __typename?: string } | null;
     },
   >(
     prev: T,
