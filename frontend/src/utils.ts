@@ -40,6 +40,12 @@ export type TemplateEnvironment = {
   
 };
 
+export type InstanceResources = {
+  cpu: number;
+  memory: number;
+  disk: number;
+};
+
 export type InstanceEnvironment = {
   name: string;
   phase?: Phase2;
@@ -47,6 +53,7 @@ export type InstanceEnvironment = {
   guiEnabled?: boolean;
   persistent?: boolean;
   environmentType?: EnvironmentType;
+  quota: InstanceResources;
 };
 
 export type Template = {
@@ -95,6 +102,7 @@ export type Instance = {
   allowPublicExposure: boolean;
   environments?: Array<InstanceEnvironment>;
   hasMultipleEnvironments?: boolean;
+  resources: InstanceResources;
 };
 
 export type SharedVolume = {
