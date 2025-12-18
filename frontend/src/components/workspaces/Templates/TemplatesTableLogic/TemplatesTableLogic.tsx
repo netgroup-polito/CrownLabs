@@ -293,7 +293,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   }, [dataTemplate, dataInstances, templateListData?.templateList?.templates]);
 
   return (
-    <>
+    <div
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+        minHeight: 0,
+      }}
+    >
       {/* full-height flex column so TemplatesTable can take the remaining space and scroll */}
       <div
         style={{
@@ -382,14 +390,21 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           !loadingTemplate &&
           !loadingInstances &&
           !isPersonal ? (
-            <>
+            <div
+              style={{
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 100,
+                backgroundColor: 'white',
+              }}
+            >
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}
                 isPersonal={isPersonal}
               />
-            </>
+            </div>
           ) : null}
-    </>
+    </div>
   );
 };
 

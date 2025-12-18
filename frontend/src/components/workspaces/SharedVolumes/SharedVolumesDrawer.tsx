@@ -178,22 +178,18 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
 
           {/*
             FIXME: Someone makes a scroll bar appear when the Drawer is opening.
-            FIXME: There is no animation when the Drawer closes.
           */}
           <Drawer
             title="Shared Volumes"
             placement="bottom"
             height={open ? 300 : 0}
             getContainer={false}
-            destroyOnHidden={true}
             open={open}
             closable={true}
             onClose={() => setOpen(false)}
             rootStyle={{
               position: 'absolute',
-              opacity: open ? 1 : 0,
-              transition: 'all 0.3s',
-              overflow: open ? 'auto' : 'hidden',
+              zIndex: 1000,
             }}
             extra={
               <Space>
