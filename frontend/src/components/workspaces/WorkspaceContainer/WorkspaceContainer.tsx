@@ -110,6 +110,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.name?.trim() || '',
         environmentList: environmentList,
+        deleteAfter: t.deleteAfter,
+        inactivityTimeout: t.inactivityTimeout,
       },
     })
       .then(result => {
