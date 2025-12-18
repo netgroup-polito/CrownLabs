@@ -17,12 +17,13 @@ import { updatedOwnedInstances } from '../graphql-components/subscription';
 import { TenantContext } from './TenantContext';
 import { AuthContext } from './AuthContext';
 import { OwnedInstancesContext } from './OwnedInstancesContext';
-import type { Instance } from '../utils';
+import { type Instance } from '../utils';
 import { makeGuiInstance, SubObjType } from '../utilsLogic';
 import { useQuotaCalculations } from '../components/workspaces/QuotaDisplay/useQuotaCalculation';
 import { QuotaContext } from './QuotaContext.types';
 import type { ApolloError } from '@apollo/client';
 import { handleInstanceUpdate } from '../utils/instanceSubscriptionHandler';
+import { calculateWorkspaceConsumedQuota } from '../utils/quota';
 
 const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;
@@ -172,6 +173,11 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
     }
   }, [refetch, apolloErrorCatcher, tenantNs]);
 
+  const consumedQuota = useMemo(
+    () => calculateWorkspaceConsumedQuota(instances),
+    [instances],
+  );
+
   const contextValue = useMemo(
     () => ({
       data,
@@ -180,6 +186,7 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
       loading,
       error: error ? new Error(error.message) : undefined,
       refetch,
+      consumedQuota,
     }),
     [data, rawInstances, instances, loading, error, refetch],
   );
