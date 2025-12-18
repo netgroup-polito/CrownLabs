@@ -27,12 +27,13 @@ import {
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
+  InstanceEnvironment,
   SharedVolume,
   Template,
   Workspace,
   WorkspacesAvailable,
 } from './utils';
-import { WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import { convertToGB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
@@ -294,7 +295,16 @@ export const makeGuiInstance = (
         guiEnabled: templateEnv?.guiEnabled ?? false,
         persistent: templateEnv?.persistent ?? false,
         environmentType: templateEnv?.environmentType,
-      };
+        quota: {
+          cpu: templateEnv?.resources?.cpu || 0,
+          memory: templateEnv?.resources?.memory
+            ? convertToGB(templateEnv?.resources?.memory)
+            : 0,
+          disk: templateEnv?.resources?.disk
+            ? convertToGB(templateEnv?.resources?.disk)
+            : 0,
+        },
+      } as InstanceEnvironment;
     }) ?? [];
 
   const hasMultipleEnvironments = environments.length > 1;
@@ -354,6 +364,11 @@ export const makeGuiInstance = (
     publicExposure: publicExposureObj,
     environments: environments,
     hasMultipleEnvironments,
+    resources: {
+      cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
+      memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
+      disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+    },
   } as Instance;
 };
 
