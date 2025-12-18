@@ -376,7 +376,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             </div>
           )}
 
-          {role === WorkspaceRole.manager &&
+        </Spin>
+      </div>
+      {role === WorkspaceRole.manager &&
           !loadingTemplate &&
           !loadingInstances &&
           !isPersonal ? (
@@ -387,8 +389,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
               />
             </>
           ) : null}
-        </Spin>
-      </div>
     </>
   );
 };
