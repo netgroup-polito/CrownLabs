@@ -45,8 +45,6 @@ func (iv *InstanceValidator) ValidateCreate(
 	ctx context.Context,
 	obj runtime.Object,
 ) (admission.Warnings, error) {
-	// TODO: handle suspended instances
-
 	var warnings admission.Warnings
 
 	// Get the instance being created
@@ -136,6 +134,11 @@ func (iv *InstanceValidator) ValidateCreate(
 	for _, inst := range workspaceInstances.Items {
 		// Skip the instance being created if found in the list
 		if inst.Name == instance.Name {
+			continue
+		}
+
+		// Skip suspended instances
+		if inst.Spec.Running == false {
 			continue
 		}
 
