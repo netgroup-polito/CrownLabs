@@ -395,8 +395,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 position: 'sticky',
                 bottom: 0,
                 zIndex: 100,
-                backgroundColor: 'white',
               }}
+              className="navbar-bg"
             >
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}

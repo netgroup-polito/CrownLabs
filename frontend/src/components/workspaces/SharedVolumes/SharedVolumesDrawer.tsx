@@ -182,10 +182,9 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
           <Drawer
             title="Shared Volumes"
             placement="bottom"
-            height={open ? 300 : 0}
+            height={300}
             getContainer={false}
             open={open}
-            closable={true}
             onClose={() => setOpen(false)}
             rootStyle={{
               position: 'absolute',
