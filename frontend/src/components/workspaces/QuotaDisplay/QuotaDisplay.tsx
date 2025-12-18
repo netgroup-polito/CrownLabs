@@ -59,11 +59,10 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
 
   return (
     <div
-      className="quota-display-container"
-      style={{ height: '40px', overflow: 'hidden' }}
+      className="quota-display-container h-25 md:h-10 px-5 h-full overflow-hidden"
     >
       <Row gutter={[16, 0]} style={{ height: '100%' }}>
-        <Col xs={24} sm={8} style={{ height: '100%' }}>
+        <Col xs={24} md={8} className='md:h-full'>
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
@@ -80,7 +79,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
           </div>
         </Col>
 
-        <Col xs={24} sm={8} style={{ height: '100%' }}>
+        <Col xs={24} md={8} className='md:h-full'>
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
@@ -97,7 +96,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
           </div>
         </Col>
 
-        <Col xs={24} sm={8} style={{ height: '100%' }}>
+        <Col xs={24} md={8} className='md:h-full'>
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
