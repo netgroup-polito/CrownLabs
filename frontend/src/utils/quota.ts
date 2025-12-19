@@ -1,5 +1,5 @@
 import type { IQuota } from '../contexts/OwnedInstancesContext';
-import type { TenantQuery } from '../generated-types';
+import { Phase2, type TenantQuery } from '../generated-types';
 import { convertToGB, type Instance } from '../utils';
 
 export function calculateWorkspaceConsumedQuota(
@@ -9,24 +9,27 @@ export function calculateWorkspaceConsumedQuota(
 
   const workspaceUsedResources: Record<string, IQuota> = {};
 
-  instances.forEach(instance => {
-    if (!workspaceUsedResources[instance.workspaceName]) {
-      workspaceUsedResources[instance.workspaceName] = {
-        instances: 0,
-        cpu: 0,
-        memory: 0,
-        disk: 0,
-      };
-    }
+  // Skip paused instances when calculating consumed quota
+  instances
+    .filter(instance => instance.status !== Phase2.Off)
+    .forEach(instance => {
+      if (!workspaceUsedResources[instance.workspaceName]) {
+        workspaceUsedResources[instance.workspaceName] = {
+          instances: 0,
+          cpu: 0,
+          memory: 0,
+          disk: 0,
+        };
+      }
 
-    workspaceUsedResources[instance.workspaceName].instances += 1;
-    workspaceUsedResources[instance.workspaceName].cpu +=
-      instance.resources.cpu;
-    workspaceUsedResources[instance.workspaceName].memory +=
-      instance.resources.memory;
-    workspaceUsedResources[instance.workspaceName].disk +=
-      instance.resources.disk;
-  });
+      workspaceUsedResources[instance.workspaceName].instances += 1;
+      workspaceUsedResources[instance.workspaceName].cpu +=
+        instance.resources.cpu;
+      workspaceUsedResources[instance.workspaceName].memory +=
+        instance.resources.memory;
+      workspaceUsedResources[instance.workspaceName].disk +=
+        instance.resources.disk;
+    });
 
   return workspaceUsedResources;
 }
