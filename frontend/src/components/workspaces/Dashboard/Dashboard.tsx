@@ -15,11 +15,6 @@ export interface IDashboardProps {
   tenantPersonalWorkspace?: {
     createPWs: boolean;
     isPWsCreated: boolean;
-    quota: {
-      cpu: string;
-      memory: string;
-      instances: number;
-    } | null;
   };
   workspaces: Array<Workspace>;
   candidatesButton?: {
@@ -27,30 +22,11 @@ export interface IDashboardProps {
     selected: boolean;
     select: () => void;
   };
-  globalQuota?: {
-    consumedQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    workspaceQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    availableQuota: {
-      cpu?: string | number;
-      memory?: string;
-      instances?: number;
-    };
-    showQuotaDisplay: boolean;
-    refreshQuota?: () => void; // Add refresh function
-  };
 }
 
 const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
   const [selectedWsId, setSelectedWs] = useState(parseInt(dashboard.get()));
-  const { tenantNamespace, workspaces, candidatesButton, globalQuota } = props;
+  const { tenantNamespace, workspaces, candidatesButton } = props;
 
   useEffect(() => {
     dashboard.set(String(selectedWsId));
@@ -104,8 +80,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           <WorkspaceContainer
             tenantNamespace={tenantNamespace}
             workspace={workspaces[selectedWsId]}
-            availableQuota={globalQuota?.availableQuota}
-            refreshQuota={globalQuota?.refreshQuota}
             isPersonalWorkspace={false}
           />
         ) : selectedWsId === -1 ? (
@@ -118,8 +92,6 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               namespace: tenantNamespace,
               waitingTenants: undefined,
             }}
-            availableQuota={globalQuota?.availableQuota}
-            refreshQuota={globalQuota?.refreshQuota}
             isPersonalWorkspace={true}
           />
         ) : selectedWsId === -2 ? (

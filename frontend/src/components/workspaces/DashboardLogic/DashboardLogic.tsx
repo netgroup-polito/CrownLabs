@@ -15,7 +15,6 @@ import { WorkspaceRole } from '../../../utils';
 import { useApolloClient } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { LocalValue, StorageKeys } from '../../../utilsStorage';
-import { useQuotaCalculations } from '../QuotaDisplay/useQuotaCalculation';
 
 const dashboard = new LocalValue(StorageKeys.Dashboard_LoadCandidates, 'false');
 
@@ -38,15 +37,9 @@ const DashboardLogic: FC = () => {
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  // Get all instances from context
-  const { rawInstances, loading: instancesLoading } = useContext(
+  // Check loading state of owned instances
+  const { loading: instancesLoading } = useContext(
     OwnedInstancesContext,
-  );
-
-  // Use the centralized quota calculation hook
-  const quotaCalculations = useQuotaCalculations(
-    rawInstances as Parameters<typeof useQuotaCalculations>[0],
-    tenantData?.tenant,
   );
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
@@ -161,25 +154,12 @@ const DashboardLogic: FC = () => {
         createPWs: tenantData?.tenant?.spec?.quota !== null,
         isPWsCreated:
           tenantData?.tenant?.status?.personalNamespace?.created ?? false,
-        quota: quotaCalculations.workspaceQuota
-          ? {
-              cpu: String(quotaCalculations.workspaceQuota.cpu),
-              memory: String(quotaCalculations.workspaceQuota.memory),
-              instances: quotaCalculations.workspaceQuota.instances,
-            }
-          : null,
       }}
       workspaces={viewWs}
       candidatesButton={{
         show: ws.some(w => wsIsManagedWithApproval(w)),
         selected: loadCandidates,
         select: selectLoadCandidates,
-      }}
-      globalQuota={{
-        consumedQuota: quotaCalculations.consumedQuota,
-        workspaceQuota: quotaCalculations.workspaceQuota,
-        availableQuota: quotaCalculations.availableQuota,
-        showQuotaDisplay: true,
       }}
     />
   ) : (
