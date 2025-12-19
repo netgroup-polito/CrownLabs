@@ -23,12 +23,6 @@ export interface ITemplatesTableProps {
   workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
@@ -62,9 +56,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
-    availableQuota,
-    refreshQuota,
     isPersonal,
+    workspaceName,
   } = props;
 
   const { hasSSHKeys } = useContext(TenantContext);
@@ -86,9 +79,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           createInstance={createInstance}
           expandRow={listToggler}
           tenantNamespace={tenantNamespace}
-          availableQuota={availableQuota}
-          refreshQuota={refreshQuota} // Pass refresh function
           isPersonal={isPersonal}
+          workspaceName={workspaceName}
         />
       ),
     },
