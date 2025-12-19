@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
@@ -48,7 +49,7 @@ var _ = Describe("InstanceValidator", func() {
 		ws := &v1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
 			Spec: v1alpha1.WorkspaceSpec{
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
@@ -91,7 +92,7 @@ var _ = Describe("InstanceValidator", func() {
 		ws := &v1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
 			Spec: v1alpha1.WorkspaceSpec{
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 1,
 					CPU:       resource.MustParse("2"),
 					Memory:    resource.MustParse("2Gi"),
@@ -135,7 +136,7 @@ var _ = Describe("InstanceValidator", func() {
 		ws := &v1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
 			Spec: v1alpha1.WorkspaceSpec{
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
