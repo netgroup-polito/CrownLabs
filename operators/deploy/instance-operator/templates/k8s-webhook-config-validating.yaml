@@ -12,7 +12,7 @@ webhooks:
   rules:
   - apiGroups:   ["crownlabs.polito.it"]
     apiVersions: ["v1alpha2"]
-    operations:  ["CREATE"]
+    operations:  ["CREATE","UPDATE"]
     resources:   ["instances"]
     scope:       "Namespaced"
   clientConfig:
