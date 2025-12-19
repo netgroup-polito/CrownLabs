@@ -150,6 +150,20 @@ export const getInstanceLabels = (
   i: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
 ): InstanceLabels | undefined => i.metadata?.labels as InstanceLabels;
 
+/** Gets the workspace name of an instance from its labels.
+ * If not available, derives it from the template's namespace */
+export function getInstanceWorkspaceName(
+  instance: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
+): string {
+  return (
+    getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ||
+    instance?.spec?.templateCrownlabsPolitoItTemplateRef?.namespace?.slice(
+      'workspace-'.length,
+    ) ||
+    ''
+  );
+}
+
 // Helper functions for type conversions
 const safePhaseConversion = (phase: unknown): Phase => {
   return (phase as Phase) || Phase.Starting;
@@ -277,13 +291,16 @@ export const makeGuiInstance = (
   const { publicExposure: publicExposureStatus } = status ?? {};
 
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
-  const templateSpec = spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec;
+  const templateSpec =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec;
   const templatePrettyName = templateSpec?.prettyName || '';
 
   const templateEnvironmentList = templateSpec?.environmentList || [];
   const instanceStatusEnvironmentList = status?.environments || [];
 
-  const environments = templateEnvironmentList.map(templateEnv => {
+  const environments =
+    templateEnvironmentList.map(templateEnv => {
       const envStatus = instanceStatusEnvironmentList.find(
         env => env?.name === templateEnv?.name,
       );
@@ -331,8 +348,6 @@ export const makeGuiInstance = (
     publicExposureObj.ports = [];
   }
 
-  console.log("makeGuiInstance", prettyName, environments)
-
   return {
     id: instanceID,
     name: name,
@@ -356,8 +371,7 @@ export const makeGuiInstance = (
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
-    workspaceName:
-      getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
+    workspaceName: getInstanceWorkspaceName(instance),
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
