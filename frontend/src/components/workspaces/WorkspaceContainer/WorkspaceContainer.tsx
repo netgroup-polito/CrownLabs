@@ -21,24 +21,13 @@ import QuotaDisplay from '../QuotaDisplay';
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonalWorkspace?: boolean;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const {
-    tenantNamespace,
-    workspace,
-    refreshQuota,
-    isPersonalWorkspace: isPersonal,
-  } = props;
+  const { tenantNamespace, workspace, isPersonalWorkspace: isPersonal } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -114,19 +103,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
       },
-    })
-      .then(result => {
-        // Refresh quota after template creation
-        refreshQuota?.();
-        return result;
-      })
-      .catch(error => {
-        console.error(
-          'WorkspaceContainer createTemplateMutation error:',
-          error,
-        );
-        throw error;
-      });
+    }).catch(error => {
+      console.error('WorkspaceContainer createTemplateMutation error:', error);
+      throw error;
+    });
   };
 
   return (
@@ -206,8 +186,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             role={workspace.role}
             workspaceNamespace={workspace.namespace}
             workspaceName={workspace.name}
-            availableQuota={props.availableQuota}
-            refreshQuota={refreshQuota}
             isPersonal={isPersonal}
           />
           <Modal
