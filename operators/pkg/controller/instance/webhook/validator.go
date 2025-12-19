@@ -40,24 +40,14 @@ type InstanceValidator struct {
 	Client client.Client
 }
 
-// ValidateCreate validates a new instance creation request.
-func (iv *InstanceValidator) ValidateCreate(
-	ctx context.Context,
-	obj runtime.Object,
-) (admission.Warnings, error) {
+func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.Client) (admission.Warnings, error) {
 	var warnings admission.Warnings
-
-	// Get the instance being created
-	instance, ok := obj.(*v1alpha2.Instance)
-	if !ok {
-		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
-	}
 
 	tenantNamespace := instance.Namespace
 
 	// Get the instance's template
 	instanceTemplate := &v1alpha2.Template{}
-	if err := iv.Client.Get(ctx, types.NamespacedName{Name: instance.Spec.Template.Name, Namespace: instance.Spec.Template.Namespace}, instanceTemplate); err != nil {
+	if err := cl.Get(ctx, types.NamespacedName{Name: instance.Spec.Template.Name, Namespace: instance.Spec.Template.Namespace}, instanceTemplate); err != nil {
 		return warnings, fmt.Errorf("failed to get instance template: %v", err)
 	}
 
@@ -73,7 +63,7 @@ func (iv *InstanceValidator) ValidateCreate(
 		}
 
 		tenant := &v1alpha2.Tenant{}
-		if err := iv.Client.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
 			return warnings, fmt.Errorf("failed to get tenant %s: %v", req.UserInfo.Username, err)
 		}
 
@@ -84,7 +74,7 @@ func (iv *InstanceValidator) ValidateCreate(
 		templatesNamespace = tenantNamespace
 	} else {
 		ws := &v1alpha1.Workspace{}
-		if err := iv.Client.Get(ctx, types.NamespacedName{Name: wsName}, ws); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: wsName}, ws); err != nil {
 			return warnings, fmt.Errorf("failed to get workspace: %v", err)
 		}
 
@@ -95,7 +85,7 @@ func (iv *InstanceValidator) ValidateCreate(
 	// Get all the templates in the workspace namespace, they are needed to calculate the resource usage.
 	// Instead of querying the cluster for each instance's template, we get them all at once and store them in a map.
 	wsTemplateList := &v1alpha2.TemplateList{}
-	if err := iv.Client.List(
+	if err := cl.List(
 		ctx,
 		wsTemplateList,
 		client.InNamespace(templatesNamespace),
@@ -110,7 +100,7 @@ func (iv *InstanceValidator) ValidateCreate(
 
 	// Find the other instances in the same workspace owned by the same user
 	workspaceInstances := &v1alpha2.InstanceList{}
-	if err := iv.Client.List(
+	if err := cl.List(
 		ctx,
 		workspaceInstances,
 		client.InNamespace(tenantNamespace),
@@ -170,4 +160,46 @@ func (iv *InstanceValidator) ValidateCreate(
 	}
 
 	return warnings, nil
+}
+
+// ValidateCreate validates a new instance creation request.
+func (iv *InstanceValidator) ValidateCreate(
+	ctx context.Context,
+	obj runtime.Object,
+) (admission.Warnings, error) {
+	var warnings admission.Warnings
+
+	// Get the instance being created
+	instance, ok := obj.(*v1alpha2.Instance)
+	if !ok {
+		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
+	}
+
+	return validateQuota(instance, ctx, iv.Client)
+}
+
+// ValidateUpdate checks if a paused instance can be started again.
+func (iv *InstanceValidator) ValidateUpdate(
+	ctx context.Context,
+	oldObj, newObj runtime.Object,
+) (admission.Warnings, error) {
+	var warnings admission.Warnings
+
+	// Get the instance objects
+	oldInstance, ok := oldObj.(*v1alpha2.Instance)
+	if !ok {
+		return warnings, fmt.Errorf("expected Instance resource but got %T", oldObj)
+	}
+
+	newInstance, ok := newObj.(*v1alpha2.Instance)
+	if !ok {
+		return warnings, fmt.Errorf("expected Instance resource but got %T", newObj)
+	}
+
+	// If the instance is not being started, no further checks are needed
+	if !(oldInstance.Spec.Running == false && newInstance.Spec.Running == true) {
+		return warnings, nil
+	}
+
+	return validateQuota(newInstance, ctx, iv.Client)
 }
