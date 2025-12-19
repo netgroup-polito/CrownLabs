@@ -103,6 +103,8 @@ export const makeGuiTemplate = (
     id: tq.alias.id ?? '',
     name: tq.alias.name ?? '',
     gui: hasGUI,
+    deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
+    inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
     persistent: hasPersistent,
     nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
@@ -121,6 +123,8 @@ export const makeGuiTemplate = (
       guiEnabled: !!env?.guiEnabled,
       persistent: !!env?.persistent,
       environmentType: env?.environmentType,
+      image: env?.image ?? '',
+      sharedVolumeMounts:  [],
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',

@@ -120,7 +120,12 @@ export type EnvironmentListListItem = {
   mode?: Maybe<Mode>;
   /** Whether the instance has to have the user's MyDrive volume */
   mountMyDriveVolume: Scalars['Boolean']['output'];
-  /** The name identifying the specific environment. */
+  /**
+   * The name identifying the specific environment.
+   * The name must be unique within the Template and must follow the Kubernetes
+   * naming conventions, i.e. it must consist of lower case alphanumeric characters,
+   * '-' or '.', must start and end with an alphanumeric character.
+   */
   name: Scalars['String']['output'];
   /**
    * Labels that are used for the selection of the node.
@@ -162,7 +167,12 @@ export type EnvironmentListListItemInput = {
   mode?: InputMaybe<Mode>;
   /** Whether the instance has to have the user's MyDrive volume */
   mountMyDriveVolume: Scalars['Boolean']['input'];
-  /** The name identifying the specific environment. */
+  /**
+   * The name identifying the specific environment.
+   * The name must be unique within the Template and must follow the Kubernetes
+   * naming conventions, i.e. it must consist of lower case alphanumeric characters,
+   * '-' or '.', must start and end with an alphanumeric character.
+   */
   name: Scalars['String']['input'];
   /**
    * Labels that are used for the selection of the node.
@@ -3698,7 +3708,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, image: string, guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, image: string, guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -4747,6 +4757,8 @@ export const WorkspaceTemplatesDocument = gql`
         prettyName
         description
         allowPublicExposure
+        deleteAfter
+        inactivityTimeout
         environmentList {
           name
           environmentType

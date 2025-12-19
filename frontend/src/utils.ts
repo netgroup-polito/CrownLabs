@@ -29,6 +29,12 @@ export type TemplateEnvironment = {
   persistent: boolean;
   environmentType?: EnvironmentType;
   resources: Resources;
+  image: string;
+  sharedVolumeMounts: Array<{
+    name: string;
+    mountPath: string;
+  }>;
+  
 };
 
 export type InstanceEnvironment = {
@@ -54,6 +60,8 @@ export type Template = {
   allowPublicExposure: boolean;
   environmentList: Array<TemplateEnvironment>;
   hasMultipleEnvironments: boolean;
+  deleteAfter: string;
+  inactivityTimeout: string;
 };
 
 export type Instance = {

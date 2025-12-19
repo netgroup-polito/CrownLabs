@@ -29,6 +29,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
   const { id, template, createInstance, editTemplate, deleteTemplate } = props;
 
   return (
+    
     <Dropdown
       menu={{
         items: [

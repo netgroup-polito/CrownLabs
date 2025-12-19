@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { FC, JSX } from 'react';
 import { useState, useContext, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox } from 'antd';
 import { Button } from 'antd';
@@ -72,6 +72,34 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const [form] = Form.useForm<TemplateForm>();
+  useEffect(() => {
+  if (!show) return;
+
+  if (template) {
+    form.setFieldsValue(template);
+  } else {
+    form.resetFields();
+    form.setFieldsValue(
+      getDefaultTemplate({
+        cpu: cpuInterval,
+        ram: ramInterval,
+        disk: diskInterval,
+      }),
+    );
+  }
+
+  // reset anche stato locale collegato
+  setTimeouts({
+    inactivityTimeout: { value: 0, unit: '' },
+    deleteAfter: { value: 0, unit: '' },
+  });
+
+  setAutomaticStoppingEnabled(
+    template?.inactivityTimeout !== 'never' ||
+    template?.deleteAfter !== 'never',
+  );
+}, [template, show]);
+
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
   const [sharedVolumes, setDataShVols] = useState<SharedVolume[]>([]);
@@ -96,6 +124,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const validateName = async (_: unknown, name: string) => {
+    if (template) { // we are editing an existing template, not creating a new one
+      return;
+    }
     if (!dataFetchTemplates || loadingFetchTemplates || errorFetchTemplates) {
       throw new Error('Error fetching templates');
     }
@@ -209,6 +240,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const getInitialValues = (template?: TemplateForm) => {
+    console.log("template in getInitialValues:", template);
     if (template) return template;
 
     return getDefaultTemplate({
@@ -232,10 +264,48 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     { label: 'Days', value: 'd' },
   ];
 
-  const [timeouts, setTimeouts] = useState({
-    inactivityTimeout: { value: form.getFieldValue('inactivityTimeout') || 0, unit: '' },
-    deleteAfter: { value: form.getFieldValue('deleteAfter') || 0, unit: '' },
+  const parseTimeoutString = (s?: string) => {
+    if (!s || s === 'never') return { value: 0, unit: '' }
+    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
+    if (!m) return { value: 0, unit: '' }
+    
+    const unitOpt = TimeUnitOptions.find(
+      opt => opt.value === m[2].toLowerCase(),
+    );
+
+    console.log("Parsed timeout string:", { value: Number(m[1]), unit:  unitOpt ? unitOpt.label : '' });
+    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
+  };
+  const [timeouts, setTimeouts] = useState(
+    {
+    inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
+    deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
   });
+
+  useEffect(() => {
+  if (!show) return;
+
+  if (template) {
+    const initial = getInitialValues(template);
+    form.setFieldsValue(initial);
+    setTimeouts({
+      inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
+      deleteAfter: parseTimeoutString(initial.deleteAfter),
+    });
+    setAutomaticStoppingEnabled(
+      (initial.inactivityTimeout) !== 'never' ||
+        (initial.deleteAfter) !== 'never',
+    );
+  } else {
+    form.resetFields();
+    form.setFieldsValue(getInitialValues(undefined));
+    setTimeouts({
+      inactivityTimeout: { value: 0, unit: '' },
+      deleteAfter: { value: 0, unit: '' },
+    });
+    setAutomaticStoppingEnabled(false);
+  }
+}, [template, show, form]);
 
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
 
@@ -284,8 +354,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return true;
   };
 
-  const validateTimeoutOrder = async (rule: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
-    console.log("RULE:", rule);
+  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
+   
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
       if (t.value === 0) return Infinity;
@@ -314,7 +384,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   return (
+    
     <Modal
+    
       destroyOnHidden={true}
       styles={{ body: { paddingBottom: '5px' } }}
       centered
@@ -375,6 +447,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             disabled={isTimeUnitDisabled('inactivityTimeout')}
             placeholder="Select Time unit"
             getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
           >
             {TimeUnitOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
@@ -412,6 +485,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             disabled={isTimeUnitDisabled('deleteAfter')}
             placeholder="Select Time unit"
             getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.deleteAfter).unit}
           >
             {TimeUnitOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
