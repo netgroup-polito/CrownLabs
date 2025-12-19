@@ -5,64 +5,39 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import type { FC } from 'react';
-import { useMemo } from 'react';
-import { parseMemoryToGB } from './useQuotaCalculation';
+import { useContext } from 'react';
 import './QuotaDisplay.less';
+import {
+  OwnedInstancesContext,
+  type IQuota,
+} from '../../../contexts/OwnedInstancesContext';
 
 const { Text } = Typography;
 
 export interface IQuotaDisplayProps {
-  consumedQuota: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  } | null;
-  workspaceQuota: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
+  workspaceName?: string;
 }
 
-const QuotaDisplay: FC<IQuotaDisplayProps> = ({
-  consumedQuota,
-  workspaceQuota,
-}) => {
-  const quota = workspaceQuota;
+const QuotaDisplay: FC<IQuotaDisplayProps> = ({ workspaceName }) => {
+  const { consumedQuota, totalQuota } = useContext(OwnedInstancesContext);
 
-  const currentUsage = useMemo(() => {
-    let usedCpu = 0;
-    let usedMemory = 0;
-    let runningInstances = 0;
-
-    if (consumedQuota) {
-      usedCpu =
-        typeof consumedQuota.cpu === 'string'
-          ? parseFloat(consumedQuota.cpu) || 0
-          : consumedQuota.cpu || 0;
-      usedMemory = parseMemoryToGB(consumedQuota.memory || '0');
-      runningInstances = consumedQuota.instances || 0;
-    }
-
-    return {
-      cpu: usedCpu,
-      memory: usedMemory,
-      instances: runningInstances,
-    };
-  }, [consumedQuota]);
-
-  const quotaLimits = {
-    cpu: quota?.cpu ? parseInt(String(quota.cpu)) : 8,
-    memory: quota?.memory ? parseMemoryToGB(quota.memory) : 16,
-    instances: quota?.instances || 8,
+  const workspaceConsumedQuota: IQuota = consumedQuota[workspaceName || ''] || {
+    instances: 0,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+  };
+  const workspaceTotalQuota: IQuota = totalQuota[workspaceName || ''] || {
+    instances: 0,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
   };
 
   return (
-    <div
-      className="quota-display-container h-25 md:h-10 px-5 h-full overflow-hidden"
-    >
+    <div className="quota-display-container h-25 md:h-10 px-5 h-full overflow-hidden">
       <Row gutter={[16, 0]} style={{ height: '100%' }}>
-        <Col xs={24} md={8} className='md:h-full'>
+        <Col xs={24} md={8} className="md:h-full">
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
@@ -70,7 +45,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <DesktopOutlined className="primary-color-fg" />
               <Text strong>
-                {currentUsage.cpu}/{quotaLimits.cpu}
+                {workspaceConsumedQuota.cpu}/{workspaceTotalQuota.cpu}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 CPU cores
@@ -79,7 +54,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
           </div>
         </Col>
 
-        <Col xs={24} md={8} className='md:h-full'>
+        <Col xs={24} md={8} className="md:h-full">
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
@@ -87,7 +62,8 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <DatabaseOutlined className="success-color-fg" />
               <Text strong>
-                {currentUsage.memory.toFixed(1)}/{quotaLimits.memory.toFixed(1)}
+                {workspaceConsumedQuota.memory.toFixed(1)}/
+                {workspaceTotalQuota.memory.toFixed(1)}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 RAM GB
@@ -96,7 +72,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
           </div>
         </Col>
 
-        <Col xs={24} md={8} className='md:h-full'>
+        <Col xs={24} md={8} className="md:h-full">
           <div
             className="quota-metric"
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
@@ -104,7 +80,8 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <CloudOutlined className="warning-color-fg" />
               <Text strong>
-                {currentUsage.instances}/{quotaLimits.instances}
+                {workspaceConsumedQuota.instances}/
+                {workspaceTotalQuota.instances}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 Instances

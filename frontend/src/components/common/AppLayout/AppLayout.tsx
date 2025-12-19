@@ -12,7 +12,6 @@ import TooltipButton from '../TooltipButton';
 import type { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import './AppLayout.less';
 import { AuthContext } from '../../../contexts/AuthContext';
-import { QuotaProvider } from '../../../contexts/QuotaContext';
 
 const { Content } = Layout;
 
@@ -37,75 +36,72 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
 
   return (
     <BrowserRouter basename={BASE_URL}>
-      <QuotaProvider>
-        <Layout className="h-full">
-          <Navbar routes={routes} transparent={transparentNavbar} />
-          <Content className="flex">
-            {tenantNsIsReady ? (
-              <Routes>
-                {routes
-                  .filter(r => r.content)
-                  .map(r => (
-                    <Route
-                      key={r.route.path}
-                      path={r.route.path}
-                      element={
-                        <Row className="h-full pt-5 xs:pt-10 pb-5 flex w-full px-4">
-                          <Col span={0} lg={1} xxl={2}></Col>
-                          {r.content}
-                          <Col span={0} lg={1} xxl={2}></Col>
-                        </Row>
-                      }
+      <Layout className="h-full">
+        <Navbar routes={routes} transparent={transparentNavbar} />
+        <Content className="flex">
+          {tenantNsIsReady ? (
+            <Routes>
+              {routes
+                .filter(r => r.content)
+                .map(r => (
+                  <Route
+                    key={r.route.path}
+                    path={r.route.path}
+                    element={
+                      <Row className="h-full pt-5 xs:pt-10 pb-5 flex w-full px-4">
+                        <Col span={0} lg={1} xxl={2}></Col>
+                        {r.content}
+                        <Col span={0} lg={1} xxl={2}></Col>
+                      </Row>
+                    }
+                  />
+                ))}
+              <Route
+                element={
+                  <div className="flex justify-center items-center w-full">
+                    <Result
+                      status="404"
+                      title="404"
+                      subTitle="Sorry, the page you visited does not exist."
                     />
-                  ))}
-                <Route
-                  element={
-                    <div className="flex justify-center items-center w-full">
-                      <Result
-                        status="404"
-                        title="404"
-                        subTitle="Sorry, the page you visited does not exist."
-                      />
-                    </div>
-                  }
-                />
-              </Routes>
-            ) : (
-              <FullPageLoader
-                text={
-                  firstName ? `Welcome back ${firstName}!` : 'Welcome back!'
+                  </div>
                 }
-                subtext="Settings things back up... Hold tight!"
               />
-            )}
-          </Content>
+            </Routes>
+          ) : (
+            <FullPageLoader
+              text={firstName ? `Welcome back ${firstName}!` : 'Welcome back!'}
+              subtext="Settings things back up... Hold tight!"
+            />
+          )}
+        </Content>
 
-          <div className="left-TooltipButton">
+        <div className="left-TooltipButton">
+          <TooltipButton
+            TooltipButtonData={{
+              tooltipTitle: 'Show CrownLabs infos',
+              tooltipPlacement: 'right',
+              type: 'primary',
+              icon: <InfoOutlined style={{ fontSize: '22px' }} />,
+            }}
+            onClick={() => setSideLeftShow(true)}
+          />
+        </div>
+        {TooltipButtonData && (
+          <div className="right-TooltipButton">
             <TooltipButton
               TooltipButtonData={{
-                tooltipTitle: 'Show CrownLabs infos',
-                tooltipPlacement: 'right',
-                type: 'primary',
-                icon: <InfoOutlined style={{ fontSize: '22px' }} />,
+                tooltipTitle: TooltipButtonData.tooltipTitle,
+                tooltipPlacement: TooltipButtonData.tooltipPlacement,
+                type: TooltipButtonData.type,
+                icon: TooltipButtonData.icon,
               }}
-              onClick={() => setSideLeftShow(true)}
+              onClick={() => window.open(TooltipButtonLink, '_blank')}
             />
           </div>
-          {TooltipButtonData && (
-            <div className="right-TooltipButton">
-              <TooltipButton
-                TooltipButtonData={{
-                  tooltipTitle: TooltipButtonData.tooltipTitle,
-                  tooltipPlacement: TooltipButtonData.tooltipPlacement,
-                  type: TooltipButtonData.type,
-                  icon: TooltipButtonData.icon,
-                }}
-                onClick={() => window.open(TooltipButtonLink, '_blank')}
-              />
-            </div>
-          )}
-        </Layout>
-      </QuotaProvider>
+        )}
+      </Layout>
+
       <SidebarInfo
         show={sideLeftShow}
         setShow={setSideLeftShow}

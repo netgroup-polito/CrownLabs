@@ -19,11 +19,12 @@ import { AuthContext } from './AuthContext';
 import { OwnedInstancesContext } from './OwnedInstancesContext';
 import { type Instance } from '../utils';
 import { makeGuiInstance, SubObjType } from '../utilsLogic';
-import { useQuotaCalculations } from '../components/workspaces/QuotaDisplay/useQuotaCalculation';
-import { QuotaContext } from './QuotaContext.types';
-import type { ApolloError } from '@apollo/client';
 import { handleInstanceUpdate } from '../utils/instanceSubscriptionHandler';
-import { calculateWorkspaceConsumedQuota } from '../utils/quota';
+import {
+  calculateAvailableQuota,
+  calculateWorkspaceConsumedQuota,
+  calculateWorkspaceTotalQuota,
+} from '../utils/quota';
 
 const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;
@@ -35,7 +36,6 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const [instances, setInstances] = useState<Instance[]>([]);
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
-  const tenant = tenantData?.tenant ?? undefined;
 
   const {
     data,
@@ -156,26 +156,18 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
     }
   }, [tenantNs, refetchQuery]);
 
-  // Calculate quota using raw instances
-  const quotaCalculations = useQuotaCalculations(
-    rawInstances as Parameters<typeof useQuotaCalculations>[0],
-    tenant,
-  );
-
-  // Enhanced refresh function for quota
-  const refreshQuota = useCallback(async () => {
-    if (!tenantNs) return;
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error refreshing quota data:', error);
-      apolloErrorCatcher(error as ApolloError);
-    }
-  }, [refetch, apolloErrorCatcher, tenantNs]);
-
+  // Quota calculations
   const consumedQuota = useMemo(
     () => calculateWorkspaceConsumedQuota(instances),
     [instances],
+  );
+  const totalQuota = useMemo(
+    () => calculateWorkspaceTotalQuota(tenantData),
+    [tenantData],
+  );
+  const availableQuota = useMemo(
+    () => calculateAvailableQuota(totalQuota, consumedQuota),
+    [totalQuota, consumedQuota],
   );
 
   const contextValue = useMemo(
@@ -187,25 +179,25 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
       error: error ? new Error(error.message) : undefined,
       refetch,
       consumedQuota,
+      totalQuota,
+      availableQuota,
     }),
-    [data, rawInstances, instances, loading, error, refetch],
-  );
-
-  const quotaContextValue = useMemo(
-    () => ({
-      refreshQuota,
-      consumedQuota: quotaCalculations.consumedQuota,
-      workspaceQuota: quotaCalculations.workspaceQuota,
-      availableQuota: quotaCalculations.availableQuota,
-    }),
-    [refreshQuota, quotaCalculations],
+    [
+      data,
+      rawInstances,
+      instances,
+      loading,
+      error,
+      refetch,
+      consumedQuota,
+      totalQuota,
+      availableQuota,
+    ],
   );
 
   return (
     <OwnedInstancesContext.Provider value={contextValue}>
-      <QuotaContext.Provider value={quotaContextValue}>
-        {children}
-      </QuotaContext.Provider>
+      {children}
     </OwnedInstancesContext.Provider>
   );
 };
