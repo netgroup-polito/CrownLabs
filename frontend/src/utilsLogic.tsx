@@ -275,19 +275,19 @@ export const makeGuiInstance = (
   const { name, namespace: tenantNamespace } = metadata ?? {};
   const { running, prettyName, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
-  const { environmentList, prettyName: templatePrettyName } = spec
-    ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-    ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
-    environmentList: [],
-    prettyName: '',
-  };
-  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
 
-  const environments =
-    status?.environments?.map(envStatus => {
-      const templateEnv = environmentList?.find(
-        env => env?.name === envStatus?.name,
+  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
+  const templateSpec = spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec;
+  const templatePrettyName = templateSpec?.prettyName || '';
+
+  const templateEnvironmentList = templateSpec?.environmentList || [];
+  const instanceStatusEnvironmentList = status?.environments || [];
+
+  const environments = templateEnvironmentList.map(templateEnv => {
+      const envStatus = instanceStatusEnvironmentList.find(
+        env => env?.name === templateEnv?.name,
       );
+
       return {
         name: envStatus?.name ?? '',
         phase: envStatus?.phase,
@@ -310,7 +310,7 @@ export const makeGuiInstance = (
   const hasMultipleEnvironments = environments.length > 1;
 
   // For backwards compatibility, use the first environment for main properties
-  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryEnvironment = (templateEnvironmentList ?? [])[0] ?? {};
   const primaryStatus = environments[0];
 
   const { guiEnabled, persistent, environmentType } = primaryEnvironment;
@@ -330,6 +330,9 @@ export const makeGuiInstance = (
   if (publicExposureObj && !publicExposureObj.ports) {
     publicExposureObj.ports = [];
   }
+
+  console.log("makeGuiInstance", prettyName, environments)
+
   return {
     id: instanceID,
     name: name,
