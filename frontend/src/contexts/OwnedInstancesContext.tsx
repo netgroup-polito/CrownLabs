@@ -23,7 +23,12 @@ interface IOwnedInstancesContext {
   refetch: () => Promise<void>;
 
   // Quotas
-  consumedQuota: Record<string, IQuota>; // Map of used quotas per workspace
+  /** Map of used quotas per workspace */
+  consumedQuota: Record<string, IQuota>;
+  /** Map of total quotas per workspace */
+  totalQuota: Record<string, IQuota>;
+  /** Map of available quotas per workspace */
+  availableQuota: Record<string, IQuota>;
 }
 
 export const OwnedInstancesContext = createContext<IOwnedInstancesContext>({
@@ -34,4 +39,6 @@ export const OwnedInstancesContext = createContext<IOwnedInstancesContext>({
   error: undefined,
   refetch: async () => {},
   consumedQuota: {},
+  totalQuota: {},
+  availableQuota: {},
 });
