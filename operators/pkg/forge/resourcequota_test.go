@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -31,12 +32,12 @@ var _ = Describe("Resource quota spec forging", func() {
 		var (
 			tenant clv1alpha2.Tenant
 		)
-		Describe("Forging the tenant resource quota with a defined spec value", func() {
 
+		Describe("Forging the tenant resource quota with only the personal workspace", func() {
 			BeforeEach(func() {
 				tenant = clv1alpha2.Tenant{
 					Spec: clv1alpha2.TenantSpec{
-						Quota: &clv1alpha2.TenantResourceQuota{
+						PersonalWorkspaceQuota: &common.WorkspaceResourceQuota{
 							CPU:       *resource.NewQuantity(25, resource.DecimalSI),
 							Memory:    *resource.NewScaledQuantity(50, resource.Giga),
 							Instances: 6,
@@ -45,19 +46,17 @@ var _ = Describe("Resource quota spec forging", func() {
 				}
 			})
 
-			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(nil, tenant.Spec.Quota)
-			})
-
-			When("Forging resource quota in tenant status", func() {
-				It("It should forge tenant resource quota by overriding from the tenant spec", func() {
-					Expect(tenant.Status.Quota).To(Equal(*tenant.Spec.Quota))
+			When("Forging resource quota", func() {
+				It("It should forge tenant resource quota by reading the personal workspace quota from the tenant spec", func() {
+					Expect(forge.TenantResourceList(nil, tenant.Spec.PersonalWorkspaceQuota)).To(Equal(*tenant.Spec.PersonalWorkspaceQuota))
 				})
 			})
 		})
-		Describe("Forging the tenant resource quota with a sample workspaces", func() {
+
+		Describe("Forging the tenant resource quota with sample workspaces", func() {
 			var (
-				workspaces []clv1alpha1.Workspace
+				workspaces  []clv1alpha1.Workspace
+				resultQuota common.WorkspaceResourceQuota
 			)
 
 			BeforeEach(func() {
@@ -65,13 +64,13 @@ var _ = Describe("Resource quota spec forging", func() {
 				workspaces = make([]clv1alpha1.Workspace, 0)
 				var sampleWorkspace1, sampleWorkspace2 clv1alpha1.Workspace
 				// sample resource quota spec for each workspace.
-				quota1 := clv1alpha1.WorkspaceResourceQuota{
+				quota1 := common.WorkspaceResourceQuota{
 					CPU:       *resource.NewQuantity(10, resource.DecimalSI),
 					Memory:    *resource.NewScaledQuantity(15, resource.Giga),
 					Instances: 2,
 				}
 
-				quota2 := clv1alpha1.WorkspaceResourceQuota{
+				quota2 := common.WorkspaceResourceQuota{
 					CPU:       *resource.NewQuantity(20, resource.DecimalSI),
 					Memory:    *resource.NewScaledQuantity(25, resource.Giga),
 					Instances: 3,
@@ -85,20 +84,20 @@ var _ = Describe("Resource quota spec forging", func() {
 			})
 
 			JustBeforeEach(func() {
-				tenant.Status.Quota = forge.TenantResourceList(workspaces, tenant.Spec.Quota)
+				resultQuota = forge.TenantResourceList(workspaces, tenant.Spec.PersonalWorkspaceQuota)
 			})
 
-			When("Forging resource quota in tenant status", func() {
+			When("Forging resource quota", func() {
 				It("Should have total amount of CPU equal to the defined cap, because the sum for each workspace exceedes it", func() {
-					Expect(tenant.Status.Quota.CPU).To(Equal(*resource.NewQuantity(25, resource.DecimalSI)))
+					Expect(resultQuota.CPU).To(Equal(*resource.NewQuantity(25, resource.DecimalSI)))
 				})
 
 				It("Should have total amount of memory equal to the sum for each workspace", func() {
-					Expect(tenant.Status.Quota.Memory).To(Equal(*resource.NewScaledQuantity(40, resource.Giga)))
+					Expect(resultQuota.Memory).To(Equal(*resource.NewScaledQuantity(40, resource.Giga)))
 				})
 
 				It("Should have total number of instances equal to the sum for each workspace", func() {
-					Expect(tenant.Status.Quota.Instances).To(Equal(int64(5)))
+					Expect(resultQuota.Instances).To(Equal(int64(5)))
 				})
 			})
 		})
@@ -113,7 +112,7 @@ var _ = Describe("Resource quota spec forging", func() {
 		BeforeEach(func() {
 			tenant = clv1alpha2.Tenant{
 				Spec: clv1alpha2.TenantSpec{
-					Quota: &clv1alpha2.TenantResourceQuota{
+					PersonalWorkspaceQuota: &common.WorkspaceResourceQuota{
 						CPU:       *resource.NewQuantity(15, resource.DecimalSI),
 						Memory:    *resource.NewScaledQuantity(20, resource.Giga),
 						Instances: 3,
@@ -123,22 +122,22 @@ var _ = Describe("Resource quota spec forging", func() {
 		})
 
 		JustBeforeEach(func() {
-			spec = forge.TenantResourceQuotaSpec(&tenant.Status.Quota)
+			spec = forge.TenantResourceQuotaSpec(tenant.Spec.PersonalWorkspaceQuota)
 		})
 
 		When("Forging the resource quota specifications", func() {
 			It("Should have total amount of CPU requests and limits equal to the ones associated with the Tenant", func() {
-				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(tenant.Status.Quota.CPU))
-				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(tenant.Status.Quota.CPU))
+				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(tenant.Spec.PersonalWorkspaceQuota.CPU))
+				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(tenant.Spec.PersonalWorkspaceQuota.CPU))
 			})
 
 			It("Should have total amount of memory requests and limits equal to the ones associated with the Tenant", func() {
-				Expect(spec[corev1.ResourceLimitsMemory]).To(Equal(tenant.Status.Quota.Memory))
-				Expect(spec[corev1.ResourceRequestsMemory]).To(Equal(tenant.Status.Quota.Memory))
+				Expect(spec[corev1.ResourceLimitsMemory]).To(Equal(tenant.Spec.PersonalWorkspaceQuota.Memory))
+				Expect(spec[corev1.ResourceRequestsMemory]).To(Equal(tenant.Spec.PersonalWorkspaceQuota.Memory))
 			})
 
 			It("Should have total number of instances equal to the one associated with the Tenant", func() {
-				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(tenant.Status.Quota.Instances, resource.DecimalSI)))
+				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(tenant.Spec.PersonalWorkspaceQuota.Instances, resource.DecimalSI)))
 			})
 		})
 	})
