@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -871,7 +873,11 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.CreatePersonalWorkspace = true
+				tnResource.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+					Instances: 2,
+					CPU:       resource.MustParse("4"),
+					Memory:    resource.MustParse("8Gi"),
+				}
 			})
 			When("Personal workspace has templates", func() {
 				var testTemplate *v1alpha2.Template
@@ -918,7 +924,7 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is disabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.CreatePersonalWorkspace = false
+				tnResource.Spec.PersonalWorkspaceQuota = nil
 			})
 			It("Should delete the namespace", func() {
 				ns := &v1.Namespace{}
@@ -929,7 +935,11 @@ var _ = Describe("Namespace management", func() {
 	When("Namespace is present", func() {
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.CreatePersonalWorkspace = true
+				tnResource.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+					Instances: 2,
+					CPU:       resource.MustParse("4"),
+					Memory:    resource.MustParse("8Gi"),
+				}
 			})
 			It("Should keep the namespace", func() {
 				ns := &v1.Namespace{}
@@ -938,7 +948,7 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is disabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.CreatePersonalWorkspace = false
+				tnResource.Spec.PersonalWorkspaceQuota = nil
 			})
 			It("Should keep the namespace", func() {
 				ns := &v1.Namespace{}
