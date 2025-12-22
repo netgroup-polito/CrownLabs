@@ -30,7 +30,7 @@ export interface ITemplatesTableProps {
   };
   refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
-  editTemplate: (id: string) => void;
+  editTemplate: (t: Template) => void;
   deleteTemplate: (
     id: string,
   ) => Promise<
@@ -59,6 +59,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     tenantNamespace,
     templates,
     role,
+    editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
@@ -80,6 +81,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
         <TemplatesTableRow
           template={record}
           role={role}
+          editTemplate={editTemplate}
           totalInstances={totalInstances}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
