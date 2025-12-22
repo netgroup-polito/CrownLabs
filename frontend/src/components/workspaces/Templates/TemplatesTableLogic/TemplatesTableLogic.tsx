@@ -37,6 +37,7 @@ import { TenantContext } from '../../../../contexts/TenantContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm } from '../../ModalCreateTemplate/types';
 import { getTemplatePatchJson } from '../../../../graphql-components/utils';
+import { getImageNameNoVer } from '../../ModalCreateTemplate/utils';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -317,16 +318,16 @@ const submitPatchHandler = async (t: TemplateForm) => {
         prettyName: t.name,
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
-        description: t.name,
+        description: usedTemplate?.description ?? t.name,
         environmentList: t.environments.map(
           (env): EnvironmentListListItemInput => ({
             name: env.name,
-            mountMyDriveVolume: true,
+            mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
             guiEnabled: env.gui,
             persistent: env.persistent,
             environmentType: env.environmentType,
             resources: {
-              reservedCPUPercentage: 50,
+              reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
               cpu: env.cpu,
               memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
               disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
@@ -345,6 +346,8 @@ const submitPatchHandler = async (t: TemplateForm) => {
         ),
       },
     });
+
+    console.log("patch json:", patchJson);
 
     return await applyTemplateMutation({
       variables: {
@@ -418,8 +421,8 @@ const submitPatchHandler = async (t: TemplateForm) => {
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
-                  setUsedTemplate(template)
-                  
+                  console.log("Editing template:", template);
+                  setUsedTemplate(template)                  
                   const templateForm: TemplateForm = {
                     name: template.name,
                     deleteAfter: template.deleteAfter,
@@ -433,13 +436,18 @@ const submitPatchHandler = async (t: TemplateForm) => {
                       disk: env.resources.disk
                         ? parseInt(env.resources.disk) / 1000
                         : 0, // convert from Mi to Gi
-                      image: (env.image.split('/')[1] + '/' + env.image.split('/')[2]).split(':')[0],
-                      registry: env.image.split('/')[0] ?? '',
-                      sharedVolumeMounts: [],
+                      image: getImageNameNoVer(env.image).split('/').slice(-2).join('/') ?? '',
+                      registry: getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '',
+                      sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
+                        sharedVolume: svm.name,
+                        mountPath: svm.mountPath,
+                        readOnly: svm.readOnly,
+                      })),
                       rewriteUrl: false,
                       gui: env.guiEnabled,
                     })),
                   };
+                  console.log("Template form for editing:", templateForm);
                   setEditingTemplate(templateForm);
                   setShowTemplateModal(true);
                   

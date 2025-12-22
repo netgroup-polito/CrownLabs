@@ -8,10 +8,12 @@ query workspaceTemplates($workspaceNamespace: String!) {
         description
         allowPublicExposure
         deleteAfter
+        description
         inactivityTimeout
         environmentList {
           name
           environmentType
+          mountMyDriveVolume
           image
           guiEnabled
           persistent
@@ -20,6 +22,15 @@ query workspaceTemplates($workspaceNamespace: String!) {
             cpu
             disk
             memory
+            reservedCPUPercentage
+          }
+          sharedVolumeMounts {
+            sharedVolume {
+              name
+              namespace
+            }
+            mountPath
+            readOnly
           }
         }
         workspaceCrownlabsPolitoItWorkspaceRef {

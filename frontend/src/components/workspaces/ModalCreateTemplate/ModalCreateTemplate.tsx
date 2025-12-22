@@ -240,7 +240,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const getInitialValues = (template?: TemplateForm) => {
-    console.log("template in getInitialValues:", template);
     if (template) return template;
 
     return getDefaultTemplate({
@@ -273,7 +272,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       opt => opt.value === m[2].toLowerCase(),
     );
 
-    console.log("Parsed timeout string:", { value: Number(m[1]), unit:  unitOpt ? unitOpt.label : '' });
     return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
   };
   const [timeouts, setTimeouts] = useState(
