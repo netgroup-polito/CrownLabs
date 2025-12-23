@@ -57,20 +57,25 @@ const RowInstanceStatus: FC<IRowInstanceStatusProps> = ({ ...props }) => {
 
   const getTooltipContent = () => {
     const mainStatus = findKeyByValue(Phase2, status || Phase2.Starting);
-    
+
     if (!environments || environments.length === 0) {
       return mainStatus;
     }
 
     return (
       <div>
-        <div><strong>Instance:</strong> {mainStatus}</div>
+        <div>
+          <strong>Instance:</strong> {mainStatus}
+        </div>
         {environments.length > 0 && (
           <>
-            <div style={{ marginTop: '2px' }}><strong>Environments:</strong></div>
+            <div style={{ marginTop: '2px' }}>
+              <strong>Environments:</strong>
+            </div>
             {environments.map((env, index) => (
               <div key={index} style={{ marginLeft: '8px' }}>
-                {env.name}: {findKeyByValue(Phase2, env.phase || Phase2.Starting)}
+                {env.name}:{' '}
+                {findKeyByValue(Phase2, env.phase || Phase2.Starting)}
               </div>
             ))}
           </>

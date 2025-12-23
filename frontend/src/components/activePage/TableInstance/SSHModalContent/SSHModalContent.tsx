@@ -18,12 +18,18 @@ export interface ISSHModalContentProps {
 }
 
 const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
-  const { instanceIp, hasSSHKeys, environments, namespace, name, /* prettyName, onClose */} = props;
-  
+  const {
+    instanceIp,
+    hasSSHKeys,
+    environments,
+    namespace,
+    name /* prettyName, onClose */,
+  } = props;
+
   const getFirstEnvironmentName = () => {
     return environments?.[0]?.name || 'env';
   };
-  
+
   const buildSSHLink = (envName: string) => {
     if (envName) {
       return `/instance/${namespace}/${name}/${envName}/ssh`;
@@ -34,9 +40,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
   const getEnvironmentStatus = (env: InstanceEnvironment) => {
     const isReady = env.phase === Phase2.Ready;
     return (
-      <Tag color={isReady ? 'green' : 'red'}>
-        {env.phase || 'Unknown'}
-      </Tag>
+      <Tag color={isReady ? 'green' : 'red'}>{env.phase || 'Unknown'}</Tag>
     );
   };
 
@@ -62,12 +66,12 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
             You have already registered an SSH key. You can connect via terminal
             using:
           </Text>
-          
+
           {environments && environments.length > 1 ? (
             <>
               <List
                 dataSource={environments}
-                renderItem={(env) => (
+                renderItem={env => (
                   <List.Item className="flex flex-col">
                     <div className="flex justify-between items-center mb-2 gap-2">
                       <Text strong>{env.name}</Text>
@@ -75,24 +79,29 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                     </div>
                     {env.ip && env.phase === Phase2.Ready ? (
                       <>
-                      <Text type="warning" code copyable className="text-center">
-                        {getSshCommand(env.ip)}
-                      </Text>
-                      <Link
-                        to={buildSSHLink(env.name)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        // onClick={props.onClose}
-                      >
-                        <Button
-                          className="mt-4 bg-green-600 hover:bg-green-700"
-                          type="primary"
-                          shape="round"
+                        <Text
+                          type="warning"
+                          code
+                          copyable
+                          className="text-center"
                         >
-                          <CodeOutlined></CodeOutlined>
-                          Connect via browser
-                        </Button>
-                      </Link>
+                          {getSshCommand(env.ip)}
+                        </Text>
+                        <Link
+                          to={buildSSHLink(env.name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          // onClick={props.onClose}
+                        >
+                          <Button
+                            className="mt-4 bg-green-600 hover:bg-green-700"
+                            type="primary"
+                            shape="round"
+                          >
+                            <CodeOutlined></CodeOutlined>
+                            Connect via browser
+                          </Button>
+                        </Link>
                       </>
                     ) : (
                       <Text type="secondary" className="text-center">
@@ -109,7 +118,12 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                 Connect to your remote instance via the following command:
               </Text>
 
-              <Text type="warning" code copyable className="flex justify-center">
+              <Text
+                type="warning"
+                code
+                copyable
+                className="flex justify-center"
+              >
                 {/* FIXME: use netlab username for older VMs, retrieve the correct username
                 from the VM's creation timestamp */}
                 {getSshCommand(instanceIp)}

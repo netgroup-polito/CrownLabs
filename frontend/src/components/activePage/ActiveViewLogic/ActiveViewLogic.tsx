@@ -4,8 +4,8 @@ import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
 import { TenantContext } from '../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import { makeWorkspace } from '../../../utilsLogic';
-import { useOwnedInstancesQuery } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
 import { useQuotaCalculations } from '../../workspaces/QuotaDisplay/useQuotaCalculation';
@@ -28,17 +28,12 @@ const ActiveViewLogic: FC = () => {
 
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  // Fetch instance data for quota calculations
+  // Get instance data from context
   const {
-    data: instancesData,
+    rawInstances,
     loading: instancesLoading,
     refetch: refetchInstances,
-  } = useOwnedInstancesQuery({
-    variables: { tenantNamespace: tenantNamespace || '' },
-    skip: !tenantNamespace,
-    onError: apolloErrorCatcher,
-    fetchPolicy: 'cache-and-network',
-  });
+  } = useContext(OwnedInstancesContext);
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
@@ -49,11 +44,9 @@ const ActiveViewLogic: FC = () => {
 
   const tenantId = tenantData?.tenant?.metadata?.name;
 
-  // Use the centralized quota calculation hook
+  // Use the centralized quota calculation hook with raw instances from context
   const quotaData = useQuotaCalculations(
-    instancesData?.instanceList?.instances?.filter(
-      (i): i is NonNullable<typeof i> => i != null,
-    ),
+    rawInstances as Parameters<typeof useQuotaCalculations>[0],
     tenantData?.tenant,
   );
 

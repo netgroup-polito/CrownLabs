@@ -6,7 +6,10 @@ import {
   useApplyTenantJsonPatchJsonMutation,
   useTenantLazyQuery,
 } from '../../../generated-types';
-import { getTenantPatchJson, removeWorkspaceJsonPatch } from '../../../graphql-components/utils';
+import {
+  getTenantPatchJson,
+  removeWorkspaceJsonPatch,
+} from '../../../graphql-components/utils';
 import UserList from '../UserList/UserList';
 import {
   makeRandomDigits,
@@ -84,20 +87,22 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
 
   const [applyTenantMutation] = useApplyTenantMutation();
   const [executeTenantQuery] = useTenantLazyQuery();
-  const [applyTenantJsonPatchJsonMutation] = useApplyTenantJsonPatchJsonMutation();
+  const [applyTenantJsonPatchJsonMutation] =
+    useApplyTenantJsonPatchJsonMutation();
 
   const updateUser = async (user: UserAccountPage, newRole: Role) => {
     try {
       setLoadingSpinner(true);
-      
+
       // Get all workspaces and update only the current one
-      const allWorkspaces = users
-        .find(u => u.userid === user.userid)!
-        .workspaces?.map(({ name, role }) => ({
-          name,
-          role: name === workspace.name ? newRole : role,
-        })) || [];
-      
+      const allWorkspaces =
+        users
+          .find(u => u.userid === user.userid)!
+          .workspaces?.map(({ name, role }) => ({
+            name,
+            role: name === workspace.name ? newRole : role,
+          })) || [];
+
       await applyTenantMutation({
         variables: {
           tenantId: user.userid,
@@ -189,7 +194,11 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
               ?.map(w => ({ name: w.name ?? '', role: w.role as Role })) ??
             u.workspaces;
         } catch (_error) {
-          genericErrorCatcher(new Error(`Could not fetch created user ${u.userid} to update workspaces`));
+          genericErrorCatcher(
+            new Error(
+              `Could not fetch created user ${u.userid} to update workspaces`,
+            ),
+          );
         }
       }
 
@@ -210,22 +219,28 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
       // get all the workspaces from the user
       const workspaces = users.find(u => u.userid === user.userid)!.workspaces;
       // get the index of the workspace to delete
-      if(!workspaces) {
+      if (!workspaces) {
         genericErrorCatcher(new Error(`User ${user.userid} has no workspaces`));
         setLoadingSpinner(false);
         return false;
       }
-      const workspaceIndex = workspaces.findIndex(w => w.name === workspace.name);
-      
+      const workspaceIndex = workspaces.findIndex(
+        w => w.name === workspace.name,
+      );
+
       await applyTenantJsonPatchJsonMutation({
         variables: {
           tenantId: user.userid,
-          patchJson: removeWorkspaceJsonPatch(workspaceIndex, workspace.name, workspaces[workspaceIndex].role),
+          patchJson: removeWorkspaceJsonPatch(
+            workspaceIndex,
+            workspace.name,
+            workspaces[workspaceIndex].role,
+          ),
           manager: getManager(),
         },
         onError: apolloErrorCatcher,
       });
-      
+
       // Refresh user list in local state
       setUsers(users.filter(u => u.userid !== user.userid));
     } catch (error) {
@@ -236,7 +251,7 @@ const UserListLogic: FC<IUserListLogicProps> = props => {
     setLoadingSpinner(false);
     return true;
   };
-  
+
   return !loading && data && !error ? (
     <>
       <UserList

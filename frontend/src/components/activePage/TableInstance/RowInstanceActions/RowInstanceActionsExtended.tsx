@@ -44,7 +44,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     prettyName,
     nodeName,
     running,
-    environments
+    environments,
   } = instance;
 
   const sshDisabled =
@@ -63,16 +63,16 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   };
 
   const getFirstEnvironmentName = () => {
-      return instance.environments?.[0]?.name || 'env';
+    return instance.environments?.[0]?.name || 'env';
   };
-  
+
   const buildSSHLink = (envName: string) => {
     if (envName) {
       return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
     }
     return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
   };
-  
+
   const infoContent = (
     <>
       <p className="m-0">
@@ -87,7 +87,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           </p>
           <List
             dataSource={environments}
-            renderItem={(env) => (
+            renderItem={env => (
               <List.Item className="py-1 px-0">
                 <div className="w-full text-right">
                   <Text strong>Environment ID: </Text>
@@ -96,7 +96,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                     <strong>IP: </strong>
                     <Text type="warning" copyable={!!env.ip}>
                       {env.ip ?? 'unknown'}
-                    </Text> 
+                    </Text>
                   </p>
                 </div>
               </List.Item>
@@ -144,7 +144,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
             >
               SSH
               {/* Only show direct link button if there's exactly one environment */}
-              {(!instance.environments || instance.environments.length === 1) && (
+              {(!instance.environments ||
+                instance.environments.length === 1) && (
                 <Button
                   disabled={sshDisabled}
                   type="link"

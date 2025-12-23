@@ -162,7 +162,7 @@ const UserList: FC<IUserListProps> = props => {
                   )}
                   <Tooltip title="Delete user">
                     <DeleteOutlined
-                    className="text-gray-700"
+                      className="text-gray-700"
                       onClick={async () => await props.onDeleteUser(record)}
                     />
                   </Tooltip>
