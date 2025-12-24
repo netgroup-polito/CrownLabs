@@ -67,9 +67,9 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 			return warnings, fmt.Errorf("failed to get tenant %s: %v", req.UserInfo.Username, err)
 		}
 
-		wsQuota.CPU = tenant.Spec.PersonalWorkspaceQuota.CPU
-		wsQuota.Memory = tenant.Spec.PersonalWorkspaceQuota.Memory
-		wsQuota.Instances = tenant.Spec.PersonalWorkspaceQuota.Instances
+		wsQuota.CPU = tenant.Spec.PersonalWorkspace.CPU
+		wsQuota.Memory = tenant.Spec.PersonalWorkspace.Memory
+		wsQuota.Instances = tenant.Spec.PersonalWorkspace.Instances
 
 		templatesNamespace = tenantNamespace
 	} else {

@@ -179,8 +179,8 @@ func (tv *TenantValidator) ValidateUpdate(
 	}
 	if validate.stopEarly {
 		// only check personal workspace if the validation is overridden, it is handled by the self-edit handler otherwise
-		oldPersonalWorkspaceEnabled := validate.oldTenant.Spec.PersonalWorkspaceQuota != nil
-		newPersonalWorkspaceEnabled := validate.newTenant.Spec.PersonalWorkspaceQuota != nil
+		oldPersonalWorkspaceEnabled := validate.oldTenant.Spec.PersonalWorkspace != nil
+		newPersonalWorkspaceEnabled := validate.newTenant.Spec.PersonalWorkspace != nil
 		if oldPersonalWorkspaceEnabled != newPersonalWorkspaceEnabled {
 			_, err := tv.HandlePersonalWorkspaceModification(ctx, validate.newTenant, validate.oldTenant)
 			if err != nil {
@@ -372,11 +372,11 @@ func mapFromWorkspacesList(tenant *v1alpha2.Tenant) map[string]v1alpha2.Workspac
 func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Context, newTenant, oldTenant *v1alpha2.Tenant) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// if the personal workspace was disabled before then there is nothing to check
-	if oldTenant.Spec.PersonalWorkspaceQuota == nil {
+	if oldTenant.Spec.PersonalWorkspace == nil {
 		return nil, nil
 	}
 	// personal workspace was enabled, and is being disabled
-	if newTenant.Spec.PersonalWorkspaceQuota == nil {
+	if newTenant.Spec.PersonalWorkspace == nil {
 		instances := &v1alpha2.InstanceList{}
 		if err := tv.Client.List(ctx, instances, client.InNamespace(oldTenant.Status.PersonalNamespace.Name)); err != nil {
 			log.Error(err, "failed to list instances in personal namespace")

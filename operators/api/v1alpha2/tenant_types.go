@@ -88,7 +88,7 @@ type TenantSpec struct {
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
 	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
-	PersonalWorkspaceQuota *common.WorkspaceResourceQuota `json:"personalWorkspaceQuota,omitempty"`
+	PersonalWorkspace *common.WorkspaceResourceQuota `json:"personalWorkspace,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.

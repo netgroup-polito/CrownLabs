@@ -83,7 +83,7 @@ spec:
               lastName:
                 description: The last name of the Tenant.
                 type: string
-              personalWorkspaceQuota:
+              personalWorkspace:
                 description: The amount of resources associated with the Tenant's
                   personal workspace. If defined, the personal workspace is enabled.
                 properties:

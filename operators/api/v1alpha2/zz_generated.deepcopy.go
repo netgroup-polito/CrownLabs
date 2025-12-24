@@ -743,8 +743,8 @@ func (in *TenantSpec) DeepCopyInto(out *TenantSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.PersonalWorkspaceQuota != nil {
-		in, out := &in.PersonalWorkspaceQuota, &out.PersonalWorkspaceQuota
+	if in.PersonalWorkspace != nil {
+		in, out := &in.PersonalWorkspace, &out.PersonalWorkspace
 		*out = new(common.WorkspaceResourceQuota)
 		(*in).DeepCopyInto(*out)
 	}
