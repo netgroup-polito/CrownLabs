@@ -215,7 +215,7 @@ func (r *Reconciler) enforceResourceQuota(
 	}
 
 	// calculate the resource quota
-	quota := forge.TenantResourceList(wss, tn.Spec.PersonalWorkspaceQuota)
+	quota := forge.TenantResourceList(wss, tn.Spec.PersonalWorkspace)
 
 	// update or create the resource quota
 	nsName := forge.GetTenantNamespaceName(tn)

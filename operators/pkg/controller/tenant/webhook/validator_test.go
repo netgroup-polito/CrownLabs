@@ -471,7 +471,7 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being enabled", func() {
 				BeforeEach(func() {
-					newTenant.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),
@@ -479,7 +479,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was disabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspaceQuota = nil
+						oldTenant.Spec.PersonalWorkspace = nil
 					})
 					It("should allow the change", func() {
 						Expect(response.Allowed).To(BeTrue())
@@ -487,7 +487,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 							Instances: 2,
 							CPU:       resource.MustParse("4"),
 							Memory:    resource.MustParse("8Gi"),
@@ -500,11 +500,11 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being disabled", func() {
 				BeforeEach(func() {
-					newTenant.Spec.PersonalWorkspaceQuota = nil
+					newTenant.Spec.PersonalWorkspace = nil
 				})
 				When("It was disabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspaceQuota = nil
+						oldTenant.Spec.PersonalWorkspace = nil
 					})
 					It("should allow the change", func() {
 						Expect(response.Allowed).To(BeTrue())
@@ -512,7 +512,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 							Instances: 2,
 							CPU:       resource.MustParse("4"),
 							Memory:    resource.MustParse("8Gi"),
@@ -593,8 +593,8 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being enabled", func() {
 				BeforeEach(func() {
-					oldTenant.Spec.PersonalWorkspaceQuota = nil
-					newTenant.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+					oldTenant.Spec.PersonalWorkspace = nil
+					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),
@@ -608,12 +608,12 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being disabled", func() {
 				BeforeEach(func() {
-					oldTenant.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+					oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),
 					}
-					newTenant.Spec.PersonalWorkspaceQuota = nil
+					newTenant.Spec.PersonalWorkspace = nil
 				})
 				It("should deny the change", func() {
 					Expect(response.Allowed).To(BeFalse())
