@@ -41,7 +41,7 @@ var _ = Describe("Personal workspace handling", func() {
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),

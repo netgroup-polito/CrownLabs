@@ -873,7 +873,7 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
@@ -924,7 +924,7 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is disabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspaceQuota = nil
+				tnResource.Spec.PersonalWorkspace = nil
 			})
 			It("Should delete the namespace", func() {
 				ns := &v1.Namespace{}
@@ -935,7 +935,7 @@ var _ = Describe("Namespace management", func() {
 	When("Namespace is present", func() {
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspaceQuota = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
@@ -948,7 +948,7 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is disabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspaceQuota = nil
+				tnResource.Spec.PersonalWorkspace = nil
 			})
 			It("Should keep the namespace", func() {
 				ns := &v1.Namespace{}
