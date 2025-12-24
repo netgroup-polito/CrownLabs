@@ -38,7 +38,7 @@ export interface ITemplatesTableRowProps {
   totalInstances: number;
   tenantNamespace: string;
   isPersonal?: boolean;
-  workspaceName: string;
+  workspaceAvailableQuota: IQuota;
   deleteTemplate: (
     id: string,
   ) => Promise<
@@ -49,6 +49,7 @@ export interface ITemplatesTableRowProps {
     >
   >;
   deleteTemplateLoading: boolean;
+  editTemplate: (template: Template) => void;
   createInstance: (
     id: string,
     labelSelector?: JSON,
@@ -75,39 +76,29 @@ const canCreateInstance = (
   if (!availableQuota) return true;
 
   const templateCpu = template.resources?.cpu || 0;
-  const templateMemory = convertToGB(template.resources?.memory || '0');
+  const templateMemory = convertToGB(template.resources?.memory || '0GB');
+  const templateDisk = convertToGB(template.resources?.disk || '0GB');
 
-  // TODO: check for disk quota when implemented
   return (
     availableQuota.instances >= 1 &&
     availableQuota.cpu >= templateCpu &&
-    availableQuota.memory >= templateMemory
+    availableQuota.memory >= templateMemory &&
+    availableQuota.disk >= templateDisk
   );
 };
 
-const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
-  const {
-    template,
-    role,
-    totalInstances,
-    createInstance,
-    deleteTemplate,
-    editTemplate,
-    deleteTemplateLoading,
-    expandRow,
-    isPersonal,
-    workspaceName,
-  } = props;
-
-  // Get the available quota in the workspace from the OwnedInstancesContext
-  const { availableQuota } = useContext(OwnedInstancesContext);
-  const workspaceAvailableQuota: IQuota = availableQuota?.[workspaceName] || {
-    instances: 0,
-    cpu: 0,
-    memory: 0,
-    disk: 0,
-  };
-
+const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
+  template,
+  role,
+  totalInstances,
+  createInstance,
+  deleteTemplate,
+  deleteTemplateLoading,
+  editTemplate,
+  expandRow,
+  isPersonal,
+  workspaceAvailableQuota,
+}) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
 
   const {
