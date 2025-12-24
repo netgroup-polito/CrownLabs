@@ -8,8 +8,11 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import TenantsView from './components/tenants/TenantsView';
 
 function App() {
+  // TODO: show tenants page only for admin users
+
   const { data: tenantData } = useContext(TenantContext);
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
@@ -56,6 +59,11 @@ function App() {
         {
           route: { name: 'Active', path: '/active' },
           content: <ActiveViewLogic key="/active" />,
+          linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: { name: 'Tenants', path: '/tenants' },
+          content: <TenantsView key="/tenants" />,
           linkPosition: LinkPosition.NavbarButton,
         },
         {
