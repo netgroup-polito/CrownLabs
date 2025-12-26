@@ -29,7 +29,7 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   const [confirmDeletion, setConfirmDeletion] = useState(false);
 
   const title = selective ? 'Destroy selected instances' : 'Destroy all instances';
-  const message = <b>Important warning!</b>;
+  const message = <b>Important warning</b>;
   const description = (
     <>
       <div>
@@ -38,26 +38,25 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
           <>{` the ${instanceList.length} selected instances`}</>
         ) : groupName ? (
           <>
-            {' all instances of '}
-            <b>
-              <i>{groupName}</i>
-            </b>
+            {' all '}
+            <b><i>{groupName}</i></b>
+            {' instances.'}
           </>
         ) : (
-          ' all instances'
+          ' all instances.'
         )}
-        . <br />
+        <br/>
         This operation is <u>dangerous and irreversible</u>!
       </div>
 
       {persistent ? (
-        <div className="text-center text-xs">
+        <div>
           <br/>
             You are also going to destroy one or more Persistent instances,
             which will delete also the data stored on their persistent disks.
             {view === WorkspaceRole.manager
-              ? ' You need to confirm their deletion.)'
-              : ' These will be skipped, you need to <b>manually</b> destroy them one by one.)'}
+              ? ' You need to confirm their deletion.'
+              : ' These will be skipped, you need to <b>manually</b> destroy them one by one.'}
         </div>
       ) : (
         ''
