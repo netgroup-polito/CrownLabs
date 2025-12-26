@@ -29,8 +29,8 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   } = props;
   const [confirmDeletion, setConfirmDeletion] = useState(false);
 
-  const title = selective ? 'Destroy Selected' : 'Destroy All';
-  const message = <b>ATTENTION</b>;
+  const title = selective ? 'Destroy selected instances' : 'Destroy all instances';
+  const message = <b>Important warning!</b>;
   const description = (
     <>
       <div>
@@ -53,12 +53,12 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
 
       {persistent ? (
         <div className="text-center text-xs">
-          <i>
-            You are also going to destroy one or more Persistent instances.
+          <br/>
+            You are also going to destroy one or more Persistent instances,
+            which will delete also the data stored on their persistent disks.
             {view === WorkspaceRole.manager
               ? ' You need to confirm their deletion.)'
-              : ' These will be skipped, you need to <b>manually</b> destroy them.)'}
-            </i>
+              : ' These will be skipped, you need to <b>manually</b> destroy them one by one.)'}
         </div>
       ) : (
         ''
