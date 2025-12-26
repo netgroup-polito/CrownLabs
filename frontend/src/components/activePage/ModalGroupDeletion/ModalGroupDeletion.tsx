@@ -1,7 +1,6 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Button, Divider } from 'antd';
+import { Button } from 'antd';
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react';
-import SvgInfinite from '../../../assets/infinite.svg?react';
 import { WorkspaceRole } from '../../../utils';
 import { ModalAlert } from '../../common/ModalAlert';
 
