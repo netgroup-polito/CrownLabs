@@ -34,7 +34,7 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   const description = (
     <>
       <div>
-        Are you sure that you want to destroy
+        You are about to destroy
         {selective ? (
           <>{` the ${instanceList.length} selected instances`}</>
         ) : groupName ? (
@@ -47,27 +47,18 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
         ) : (
           ' all instances'
         )}
-        ? <br />
+        . <br />
         This operation is <u>dangerous and irreversible</u>!
       </div>
 
       {persistent ? (
         <div className="text-center text-xs">
-          <Divider type="horizontal" className="my-3" />
-          <div className="flex items-end">
-            <i>
-              (Seems you are also trying to destroy one or more Persistent
-              instances
-              <SvgInfinite
-                width="16px"
-                className="ml-1.5 success-color-fg align-bottom"
-              />
-              .
-              {view === WorkspaceRole.manager
-                ? ' You need to confirm their deletion)'
-                : ' They will be skipped, you need to MANUALLY destroy them)'}
+          <i>
+            You are also going to destroy one or more Persistent instances.
+            {view === WorkspaceRole.manager
+              ? ' You need to confirm their deletion.)'
+              : ' These will be skipped, you need to <b>manually</b> destroy them.)'}
             </i>
-          </div>
         </div>
       ) : (
         ''
@@ -95,7 +86,7 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   const checkbox = {
     confirmCheckbox: confirmDeletion,
     setConfirmCheckbox: setConfirmDeletion,
-    checkboxLabel: 'I understand the risk and I want to proceed',
+    checkboxLabel: 'I understand the risk and I agree to proceed',
   };
 
   return (
