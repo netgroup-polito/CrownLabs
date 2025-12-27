@@ -30,7 +30,6 @@ import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { ThemeContext } from '../../../../contexts/ThemeContext';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -51,7 +50,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
-  const { isDarkTheme } = useContext(ThemeContext);
   const {
     tenantNamespace,
     workspaceNamespace,
@@ -397,8 +395,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 position: 'sticky',
                 bottom: 0,
                 zIndex: 100,
-                backgroundColor: isDarkTheme ? '#141414' : '#fff',
               }}
+              className="cl-shared-volumes-bg"
             >
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}
