@@ -82,8 +82,8 @@ const canCreateInstance = (
   return (
     availableQuota.instances >= 1 &&
     availableQuota.cpu >= templateCpu &&
-    availableQuota.memory >= templateMemory &&
-    availableQuota.disk >= templateDisk
+    availableQuota.memory >= templateMemory
+    // TODO: add this when disk quota is available - availableQuota.disk >= templateDisk
   );
 };
 

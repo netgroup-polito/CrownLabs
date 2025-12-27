@@ -58,8 +58,8 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
     return (
       workspaceAvailableQuota.instances >= 1 &&
       workspaceAvailableQuota.cpu >= instance.resources.cpu &&
-      workspaceAvailableQuota.memory >= instance.resources.memory &&
-      workspaceAvailableQuota.disk >= instance.resources.disk
+      workspaceAvailableQuota.memory >= instance.resources.memory
+      // TODO: add this when disk quota is available - workspaceAvailableQuota.disk >= instance.resources.disk
     );
   }, [instance, workspaceAvailableQuota]);
 
