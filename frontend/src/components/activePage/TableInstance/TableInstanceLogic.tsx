@@ -1,24 +1,10 @@
 import { Empty, Spin } from 'antd';
-import { type FC, useContext, useEffect, useState } from 'react';
-import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { ErrorTypes } from '../../../errorHandling/utils';
-import {
-  type OwnedInstancesQuery,
-  type UpdatedOwnedInstancesSubscription,
-  useOwnedInstancesQuery,
-} from '../../../generated-types';
-import { updatedOwnedInstances } from '../../../graphql-components/subscription';
+import { type FC, useContext, useMemo, useState } from 'react';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { matchK8sObject, replaceK8sObject } from '../../../k8sUtils';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import type { WorkspaceRole } from '../../../utils';
-import { type Instance, JSONDeepCopy, type User } from '../../../utils';
-import {
-  getSubObjTypeK8s,
-  makeGuiInstance,
-  notifyStatus,
-  sorter,
-  SubObjType,
-} from '../../../utilsLogic';
+import { type Instance, type User } from '../../../utils';
+import { sorter } from '../../../utilsLogic';
 import TableInstance from './TableInstance';
 import './TableInstance.less';
 export interface ITableInstanceLogicProps {
@@ -29,12 +15,14 @@ export interface ITableInstanceLogicProps {
 }
 
 const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
-  const { viewMode, extended, showGuiIcon, user } = props;
-  const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
-    useContext(ErrorContext);
-  const { tenantNamespace, tenantId } = user;
-  const { hasSSHKeys, notify: notifier } = useContext(TenantContext);
-  const [dataInstances, setDataInstances] = useState<OwnedInstancesQuery>();
+  const { viewMode, extended, showGuiIcon } = props;
+  const { hasSSHKeys } = useContext(TenantContext);
+  const {
+    instances: allInstances,
+    loading,
+    error,
+  } = useContext(OwnedInstancesContext);
+
   const [sortingData, setSortingData] = useState<{
     sortingType: string;
     sorting: number;
@@ -44,116 +32,21 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
     setSortingData({ sortingType, sorting });
   };
 
-  const {
-    loading: loadingInstances,
-    error: errorInstances,
-    subscribeToMore: subscribeToMoreInstances,
-  } = useOwnedInstancesQuery({
-    skip: !tenantId,
-    variables: { tenantNamespace },
-    onCompleted: data => {
-      setDataInstances(data);
-    },
-    fetchPolicy: 'network-only',
-    onError: apolloErrorCatcher,
-  });
-
-  useEffect(() => {
-    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
-      const unsubscribe =
-        subscribeToMoreInstances<UpdatedOwnedInstancesSubscription>({
-          onError: makeErrorCatcher(ErrorTypes.GenericError),
-          document: updatedOwnedInstances,
-          variables: { tenantNamespace },
-          updateQuery: (prev, { subscriptionData }) => {
-            const { data } = subscriptionData;
-
-            if (!data?.updateInstance?.instance) return prev;
-
-            const { instance, updateType } = data.updateInstance;
-            let notify = false;
-            const newItem = JSONDeepCopy(prev);
-            let objType;
-
-            if (newItem.instanceList?.instances) {
-              let { instances } = newItem.instanceList;
-              const found = instances.find(matchK8sObject(instance, false));
-              objType = getSubObjTypeK8s(found, instance, updateType);
-
-              switch (objType) {
-                case SubObjType.Deletion:
-                  instances = instances.filter(matchK8sObject(instance, true));
-                  notify = false;
-                  break;
-                case SubObjType.Addition:
-                  instances = [...instances, instance];
-                  notify = true;
-                  break;
-                case SubObjType.PrettyName:
-                  instances = instances.map(replaceK8sObject(instance));
-                  notify = false;
-                  break;
-                case SubObjType.UpdatedInfo:
-                  instances = instances.map(replaceK8sObject(instance));
-                  notify = true;
-                  break;
-                case SubObjType.PublicExposureChange:
-                  instances = instances.map(replaceK8sObject(instance));
-                  notify = false;
-                  break;
-                case SubObjType.Drop:
-                  notify = false;
-                  break;
-                default:
-                  break;
-              }
-              newItem.instanceList.instances = instances;
-            }
-
-            if (notify) {
-              notifyStatus(
-                instance.status?.phase,
-                instance,
-                updateType,
-                notifier,
-              );
-            }
-
-            if (objType !== SubObjType.Drop) {
-              setDataInstances(newItem);
-            }
-            return newItem;
-          },
-        });
-      return unsubscribe;
-    }
-  }, [
-    loadingInstances,
-    subscribeToMoreInstances,
-    tenantNamespace,
-    tenantId,
-    errorsQueue.length,
-    errorInstances,
-    apolloErrorCatcher,
-    makeErrorCatcher,
-    notifier,
-  ]);
-
-  const instances =
-    dataInstances?.instanceList?.instances
-      ?.map(i => makeGuiInstance(i, tenantId))
-      .sort((a, b) =>
-        sorter(
-          a,
-          b,
-          sortingData.sortingType as keyof Instance,
-          sortingData.sorting,
-        ),
-      ) || [];
+  // Sort instances based on current sorting settings
+  const instances = useMemo(() => {
+    return [...allInstances].sort((a, b) =>
+      sorter(
+        a,
+        b,
+        sortingData.sortingType as keyof Instance,
+        sortingData.sorting,
+      ),
+    );
+  }, [allInstances, sortingData]);
 
   return (
     <>
-      {!loadingInstances && !errorInstances && dataInstances ? (
+      {!loading && !error ? (
         instances.length ? (
           <TableInstance
             showGuiIcon={showGuiIcon}
@@ -176,10 +69,10 @@ const TableInstanceLogic: FC<ITableInstanceLogicProps> = ({ ...props }) => {
         )
       ) : (
         <div className="flex justify-center h-full items-center">
-          {loadingInstances ? (
-            <Spin size="large" spinning={loadingInstances} />
+          {loading ? (
+            <Spin size="large" spinning={loading} />
           ) : (
-            <>{errorInstances && <p>{errorInstances.message}</p>}</>
+            <>{error && <p>{error.message}</p>}</>
           )}
         </div>
       )}

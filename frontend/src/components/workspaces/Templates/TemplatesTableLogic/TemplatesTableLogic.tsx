@@ -1,35 +1,29 @@
 import { type FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { type FC } from 'react';
 import {
   type UpdatedWorkspaceTemplatesSubscription,
   UpdateType,
   useCreateInstanceMutation,
   useDeleteTemplateMutation,
-  useOwnedInstancesQuery,
   useWorkspaceTemplatesQuery,
   type UpdatedWorkspaceTemplatesSubscriptionResult,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import {
-  updatedOwnedInstances,
-  updatedWorkspaceTemplates,
-} from '../../../../graphql-components/subscription';
-import { type Instance, WorkspaceRole } from '../../../../utils';
+import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
+import { WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
-  makeGuiInstance,
   makeGuiTemplate,
   joinInstancesAndTemplates,
-  updateQueryOwnedInstancesQuery,
 } from '../../../../utilsLogic';
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
-import { TenantContext } from '../../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -60,59 +54,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     isPersonal,
   } = props;
 
-  const [dataInstances, setDataInstances] = useState<Instance[]>([]);
-
-  // Add the missing instances query
-  const {
-    loading: loadingInstances,
-    error: errorInstances,
-    subscribeToMore: subscribeToMoreInstances,
-  } = useOwnedInstancesQuery({
-    variables: { tenantNamespace },
-    onError: apolloErrorCatcher,
-    onCompleted: data => {
-      const instances =
-        data?.instanceList?.instances
-          ?.map(i => {
-            const guiInstance = makeGuiInstance(i, userId);
-            return guiInstance;
-          })
-          .filter(Boolean) ?? [];
-      setDataInstances(instances);
-    },
-    fetchPolicy: fetchPolicy_networkOnly,
-    nextFetchPolicy: 'cache-only',
-  });
-
-  // Subscribe to instance updates
-  const notifier = useContext(TenantContext).notify;
-
-  useEffect(() => {
-    if (!loadingInstances && !errorInstances && !errorsQueue.length) {
-      const unsubscribe = subscribeToMoreInstances({
-        onError: makeErrorCatcher(ErrorTypes.GenericError),
-        document: updatedOwnedInstances,
-        variables: {
-          tenantNamespace,
-        },
-        updateQuery: updateQueryOwnedInstancesQuery(
-          setDataInstances,
-          userId ?? '',
-          notifier,
-        ),
-      });
-      return unsubscribe;
-    }
-  }, [
-    loadingInstances,
-    errorInstances,
-    errorsQueue.length,
-    subscribeToMoreInstances,
-    tenantNamespace,
-    userId,
-    makeErrorCatcher,
-    notifier,
-  ]);
+  // Get instances from context
+  const { instances: ownedInstances } = useContext(OwnedInstancesContext);
 
   const {
     loading: loadingTemplate,
@@ -248,17 +191,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       },
     })
       .then(i => {
-        setDataInstances(old =>
-          !old.find(x => x.name === i.data?.createdInstance?.metadata?.name)
-            ? [
-                ...old,
-                makeGuiInstance(i.data?.createdInstance, userId, {
-                  templateName: templateId,
-                  workspaceName: workspaceName,
-                }),
-              ]
-            : old,
-        );
         // Refresh quota after instance creation
         refreshQuota?.();
         return i;
@@ -269,7 +201,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       });
 
   const templates = useMemo(() => {
-    const joined = joinInstancesAndTemplates(dataTemplate, dataInstances);
+    const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -290,7 +222,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         environmentType: env?.environmentType ?? null,
       };
     });
-  }, [dataTemplate, dataInstances, templateListData?.templateList?.templates]);
+  }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
   return (
     <div
@@ -313,7 +245,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       >
         <Spin
           size="large"
-          spinning={loadingTemplate || loadingInstances}
+          spinning={loadingTemplate}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -321,12 +253,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             minHeight: 0,
           }}
         >
-          {!loadingTemplate &&
-          !loadingInstances &&
-          !errorTemplate &&
-          !errorInstances &&
-          templates &&
-          dataInstances ? (
+          {!loadingTemplate && !errorTemplate && templates && ownedInstances ? (
             <div
               style={{
                 display: 'flex',
@@ -336,7 +263,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
               }}
             >
               <TemplatesTable
-                totalInstances={dataInstances.length}
+                totalInstances={ownedInstances.length}
                 tenantNamespace={tenantNamespace}
                 workspaceNamespace={workspaceNamespace}
                 workspaceName={workspaceName}
@@ -365,12 +292,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ) : (
             <div
               className={
-                loadingTemplate ||
-                loadingInstances ||
-                errorTemplate ||
-                errorInstances
-                  ? 'invisible'
-                  : 'visible'
+                loadingTemplate || errorTemplate ? 'invisible' : 'visible'
               }
               style={{
                 flex: '1 1 auto',
@@ -384,20 +306,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             </div>
           )}
 
-        </Spin>
-      </div>
-      {role === WorkspaceRole.manager &&
-          !loadingTemplate &&
-          !loadingInstances &&
-          !isPersonal ? (
-            <div
-              style={{
-                position: 'sticky',
-                bottom: 0,
-                zIndex: 100,
-              }}
-              className="cl-shared-volumes-bg"
-            >
+          {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
+            <>
               <SharedVolumesDrawer
                 workspaceNamespace={workspaceNamespace}
                 isPersonal={isPersonal}

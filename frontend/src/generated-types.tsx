@@ -120,7 +120,12 @@ export type EnvironmentListListItem = {
   mode?: Maybe<Mode>;
   /** Whether the instance has to have the user's MyDrive volume */
   mountMyDriveVolume: Scalars['Boolean']['output'];
-  /** The name identifying the specific environment. */
+  /**
+   * The name identifying the specific environment.
+   * The name must be unique within the Template and must follow the Kubernetes
+   * naming conventions, i.e. it must consist of lower case alphanumeric characters,
+   * '-' or '.', must start and end with an alphanumeric character.
+   */
   name: Scalars['String']['output'];
   /**
    * Labels that are used for the selection of the node.
@@ -162,7 +167,12 @@ export type EnvironmentListListItemInput = {
   mode?: InputMaybe<Mode>;
   /** Whether the instance has to have the user's MyDrive volume */
   mountMyDriveVolume: Scalars['Boolean']['input'];
-  /** The name identifying the specific environment. */
+  /**
+   * The name identifying the specific environment.
+   * The name must be unique within the Template and must follow the Kubernetes
+   * naming conventions, i.e. it must consist of lower case alphanumeric characters,
+   * '-' or '.', must start and end with an alphanumeric character.
+   */
   name: Scalars['String']['input'];
   /**
    * Labels that are used for the selection of the node.
@@ -3623,10 +3633,12 @@ export type CreateTemplateMutationVariables = Exact<{
   descriptionTemplate: Scalars['String']['input'];
   environmentList: Array<EnvironmentListListItemInput> | EnvironmentListListItemInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
+  deleteAfter?: InputMaybe<Scalars['String']['input']>;
+  inactivityTimeout?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
-export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, deleteAfter?: string | null, inactivityTimeout?: string | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
 export type DeleteInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -3755,7 +3767,7 @@ export type UpdatedTenantSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null } | null };
+export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, createPersonalWorkspace?: boolean | null, publicKeys?: Array<string | null> | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null } | null };
 
 
 export const ApplyInstanceDocument = gql`
@@ -4167,14 +4179,16 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-") {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $descriptionTemplate: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-", $deleteAfter: String, $inactivityTimeout: String) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, environmentList: $environmentList, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, deleteAfter: $deleteAfter, inactivityTimeout: $inactivityTimeout, environmentList: $environmentList, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName
       description
+      deleteAfter
+      inactivityTimeout
       environmentList {
         name
         guiEnabled
@@ -4214,6 +4228,8 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      descriptionTemplate: // value for 'descriptionTemplate'
  *      environmentList: // value for 'environmentList'
  *      templateId: // value for 'templateId'
+ *      deleteAfter: // value for 'deleteAfter'
+ *      inactivityTimeout: // value for 'inactivityTimeout'
  *   },
  * });
  */
@@ -5304,6 +5320,7 @@ export const UpdatedTenantDocument = gql`
         firstName
         lastName
         lastLogin
+        createPersonalWorkspace
         workspaces {
           role
           name
