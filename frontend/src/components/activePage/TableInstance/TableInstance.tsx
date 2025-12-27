@@ -9,8 +9,8 @@ import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
 import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
-import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 import './TableInstance.less';
+import type { IQuota } from '../../../contexts/OwnedInstancesContext';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -29,30 +29,29 @@ export interface ITableInstanceProps {
   ) => void;
   selectiveDestroy?: string[];
   selectToDestroy?: (instanceId: string) => void;
+  workspaceAvailableQuota: IQuota;
 }
 
-const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
-  const {
-    instances,
-    viewMode,
-    extended,
-    hasSSHKeys,
-    showGuiIcon,
-    showAdvanced,
-    showCheckbox,
-    handleSorting,
-    handleManagerSorting,
-    selectiveDestroy,
-    selectToDestroy,
-  } = props;
-
+const TableInstance: FC<ITableInstanceProps> = ({
+  instances,
+  viewMode,
+  extended,
+  hasSSHKeys,
+  showGuiIcon,
+  showAdvanced,
+  showCheckbox,
+  handleSorting,
+  handleManagerSorting,
+  selectiveDestroy,
+  selectToDestroy,
+  workspaceAvailableQuota,
+}) => {
   const { now } = useContext(TenantContext);
   const [showAlert, setShowAlert] = useState(false);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
   });
-  const { refreshQuota } = useQuotaContext(); // Use the quota context
 
   const destroyAll = () => {
     const deletePromises = instances
@@ -66,10 +65,8 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
         }),
       );
 
-    // Wait for all deletions to complete, then refresh quota
-    Promise.allSettled(deletePromises).then(() => {
-      refreshQuota?.(); // Add optional chaining
-    });
+    // Wait for all deletions to complete
+    Promise.allSettled(deletePromises);
   };
 
   const disabled = !instances.find(i => i.persistent === false);
@@ -190,6 +187,7 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
                 fileManager={true}
                 extended={extended}
                 viewMode={viewMode}
+                workspaceAvailableQuota={workspaceAvailableQuota}
               />
             )}
           />
