@@ -304,17 +304,27 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             >
               <TemplatesEmpty role={role} />
             </div>
-          )}
-
-          {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
-            <>
-              <SharedVolumesDrawer
-                workspaceNamespace={workspaceNamespace}
-                isPersonal={isPersonal}
-              />
-            </div>
-          ) : null}
-    </div>
+            )}
+          </Spin>
+        </div>
+        {role === WorkspaceRole.manager &&
+            !loadingTemplate &&
+            !isPersonal ? (
+              <div
+                style={{
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 100,
+                }}
+                className="cl-shared-volumes-bg"
+              >
+                <SharedVolumesDrawer
+                  workspaceNamespace={workspaceNamespace}
+                  isPersonal={isPersonal}
+                />
+              </div>
+            ) : null}
+      </div>
   );
 };
 
