@@ -175,6 +175,7 @@ export type RouteDescriptor = {
   route: RouteData;
   content?: ReactNode;
   linkPosition: LinkPosition;
+  requiredGroups?: string[];
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
