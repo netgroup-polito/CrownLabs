@@ -131,7 +131,7 @@ export const makeGuiTemplate = (
       mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
       image: env?.image ?? '',
       sharedVolumeMounts: env?.sharedVolumeMounts?.filter(svm => svm!= null).map(svm => ({
-        name: "a",//getPrettyNameSharedVolumes(svm.sharedVolume?.namespace ?? '', svm?.sharedVolume?.name ?? '') ,
+        name: svm?.sharedVolume?.name ?? '',
         mountPath: svm.mountPath ?? '',
         readOnly: svm.readOnly ?? false,
       })) ?? [],

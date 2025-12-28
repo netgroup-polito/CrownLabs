@@ -339,7 +339,10 @@ const submitPatchHandler = async (t: TemplateForm) => {
               (svm): SharedVolumeMountsListItemInput => ({
                 mountPath: svm.mountPath,
                 readOnly: svm.readOnly,
-                sharedVolume: (svm as any).sharedVolume ?? (svm as any).sharedVolumeName ?? '',
+                sharedVolume: {
+                  name: svm.sharedVolume,
+                  namespace: workspaceNamespace,
+                }
               }),
             ),
           }),
@@ -347,7 +350,6 @@ const submitPatchHandler = async (t: TemplateForm) => {
       },
     });
 
-    console.log("patch json:", patchJson);
 
     return await applyTemplateMutation({
       variables: {
@@ -421,7 +423,6 @@ const submitPatchHandler = async (t: TemplateForm) => {
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
-                  console.log("Editing template:", template);
                   setUsedTemplate(template)                  
                   const templateForm: TemplateForm = {
                     name: template.name,
@@ -447,7 +448,6 @@ const submitPatchHandler = async (t: TemplateForm) => {
                       gui: env.guiEnabled,
                     })),
                   };
-                  console.log("Template form for editing:", templateForm);
                   setEditingTemplate(templateForm);
                   setShowTemplateModal(true);
                   
@@ -465,9 +465,9 @@ const submitPatchHandler = async (t: TemplateForm) => {
                 cpuInterval={{ max: 8, min: 1 }}
                 ramInterval={{ max: 32, min: 1 }}
                 diskInterval={{ max: 50, min: 10 }}
-                submitHandler={() => {
-                  throw new Error('Not implemented'); // <-- Change with submitPatchHandler
-                }}
+                submitHandler={
+                 submitPatchHandler // <-- Change with submitPatchHandler
+                }
                 loading={false}
                 isPersonal={isPersonal}
               />
