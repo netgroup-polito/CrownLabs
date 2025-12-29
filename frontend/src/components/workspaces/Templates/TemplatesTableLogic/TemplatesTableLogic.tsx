@@ -1,7 +1,7 @@
 import { type FetchPolicy } from '@apollo/client';
 import { Spin } from 'antd';
 
-import { useContext, useEffect, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { type FC } from 'react';
 import {
   type UpdatedWorkspaceTemplatesSubscription,
@@ -17,12 +17,9 @@ import {
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
-  updatedOwnedInstances,
   updatedWorkspaceTemplates,
 } from '../../../../graphql-components/subscription';
-import { type Instance, type Template, WorkspaceRole } from '../../../../utils';
-import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
-import { WorkspaceRole } from '../../../../utils';
+import {type Template, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiTemplate,
@@ -32,7 +29,6 @@ import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
-import { TenantContext } from '../../../../contexts/TenantContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm } from '../../ModalCreateTemplate/types';
 import { getTemplatePatchJson } from '../../../../graphql-components/utils';

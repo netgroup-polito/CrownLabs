@@ -1,5 +1,5 @@
-import type { FC, JSX } from 'react';
-import { useState, useContext, useEffect } from 'react';
+import type { FC } from 'react';
+import { useState, useContext, useEffect, useCallback } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
@@ -48,6 +48,24 @@ export interface IModalCreateTemplateProps {
   loading: boolean;
   isPersonal?: boolean;
 }
+
+const TimeUnitOptions = [
+    { label: 'Minutes', value: 'm' },
+    { label: 'Hours', value: 'h' },
+    { label: 'Days', value: 'd' },
+  ];
+
+const parseTimeoutString = (s?: string) => {
+    if (!s || s === 'never') return { value: 0, unit: '' }
+    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
+    if (!m) return { value: 0, unit: '' }
+    
+    const unitOpt = TimeUnitOptions.find(
+      opt => opt.value === m[2].toLowerCase(),
+    );
+
+    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
+  };
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -98,7 +116,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     template?.inactivityTimeout !== 'never' ||
     template?.deleteAfter !== 'never',
   );
-}, [template, show]);
+}, [template, show, form, cpuInterval, ramInterval, diskInterval]);
 
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
@@ -239,7 +257,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const getInitialValues = (template?: TemplateForm) => {
+  const getInitialValues = useCallback((template?: TemplateForm) => {
     if (template) return template;
 
     return getDefaultTemplate({
@@ -247,7 +265,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       ram: ramInterval,
       disk: diskInterval,
     });
-  };
+  }, [cpuInterval, ramInterval, diskInterval]);
 
   const handleFormSubmit = async () => {
     try {
@@ -257,23 +275,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const TimeUnitOptions = [
-    { label: 'Minutes', value: 'm' },
-    { label: 'Hours', value: 'h' },
-    { label: 'Days', value: 'd' },
-  ];
-
-  const parseTimeoutString = (s?: string) => {
-    if (!s || s === 'never') return { value: 0, unit: '' }
-    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-    if (!m) return { value: 0, unit: '' }
-    
-    const unitOpt = TimeUnitOptions.find(
-      opt => opt.value === m[2].toLowerCase(),
-    );
-
-    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
-  };
   const [timeouts, setTimeouts] = useState(
     {
     inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
@@ -303,7 +304,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     });
     setAutomaticStoppingEnabled(false);
   }
-}, [template, show, form]);
+}, [template, show, form, getInitialValues]);
 
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
 

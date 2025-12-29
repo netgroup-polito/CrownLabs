@@ -165,9 +165,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
   const handleEditTemplate = () => {
     editTemplate(template);
-    window.dispatchEvent(
-      new CustomEvent('openTemplateModal', { detail: template }),
-    );
   };
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
