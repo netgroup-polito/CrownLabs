@@ -744,6 +744,9 @@ export const getTemplatesMapped = (
         persistent: env.persistent || false,
         environmentType: env.environmentType,
         resources: { cpu: 0, disk: '', memory: '' },
+        image: '',
+        mountMyDriveVolume: false,
+        sharedVolumeMounts: [],
       })) || [];
 
     return {
@@ -758,6 +761,8 @@ export const getTemplatesMapped = (
       allowPublicExposure,
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
+      deleteAfter: '',
+      inactivityTimeout:''
     };
   });
 };
