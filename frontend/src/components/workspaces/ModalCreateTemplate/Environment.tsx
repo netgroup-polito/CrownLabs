@@ -513,8 +513,8 @@ const CloudVmAlert = () => {
   return (
     <p>
       Can be any cloud-init compatible image, but will only be accessible via
-      SSH. It requires an appropriate disk and it must be persistent. 
-      Suitable for server workloads and CLI applications.
+      SSH. It requires an appropriate disk and it must be persistent. Suitable
+      for server workloads and CLI applications.
     </p>
   );
 };
