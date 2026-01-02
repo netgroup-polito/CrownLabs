@@ -8,7 +8,6 @@ import type { Instance, Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
-import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 
 const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
@@ -56,8 +55,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const { refreshQuota } = useQuotaContext(); // Use the quota context
-
   const expandWorkspace = () => {
     setExpandedId(workspaces.map(ws => ws.name));
   };
@@ -80,8 +77,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       // Removing from selection list after deletion
       selectToDestroy(id);
     }
-    // Refresh quota after bulk deletion
-    refreshQuota?.();
   };
 
   const columns = [

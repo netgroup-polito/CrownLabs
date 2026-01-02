@@ -23,11 +23,13 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -39,7 +41,11 @@ var _ = Describe("Personal workspace handling", func() {
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.CreatePersonalWorkspace = true
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					Instances: 2,
+					CPU:       resource.MustParse("4"),
+					Memory:    resource.MustParse("8Gi"),
+				}
 			})
 			It("Should create the manage templates role binding for the tenant", func() {
 				rb := &rbacv1.RoleBinding{}
