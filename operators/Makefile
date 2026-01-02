@@ -32,10 +32,10 @@ uninstall: manifests
 manifests: controller-gen
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=deploy/crds
 
-# Install gci if not available
-gci:
-ifeq (, $(shell which gci))
-	@go install github.com/daixiang0/gci@v0.7.0
+# Install golangci-lint if not available
+golangci-lint:
+ifeq (, $(shell which golangci-lint))
+	@curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.7.2
 endif
 
 # Install addlicense if not available
@@ -46,12 +46,12 @@ ifeq (, $(shell which addlicense))
 	}
 endif
 
-# Run go fmt and gci against code
-fmt: gci addlicense
+# Run go fmt and golangci-lint against code
+fmt: golangci-lint addlicense
 	go mod tidy
 	go fmt ./...
-	find . -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci write -s standard -s default -s "prefix(github.com/netgroup-polito/CrownLabs)" {} \;
 	find . -type f -name '*.go' -exec addlicense -l apache -c "Politecnico di Torino" -y "2020-$(shell date +%Y)" {} \;
+	golangci-lint run --fix
 
 # Run go vet against code
 vet:
