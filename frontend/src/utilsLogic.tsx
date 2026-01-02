@@ -4,7 +4,7 @@ import {
 } from '@ant-design/icons';
 import type { FetchResult, MutationFunctionOptions } from '@apollo/client';
 import { Button } from 'antd';
-import { type Dispatch, type SetStateAction } from 'react';
+import {  type Dispatch, type SetStateAction } from 'react';
 import type {
   ApplyInstanceMutation,
   Exact,
@@ -54,6 +54,8 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
     id: string;
   };
 }
+
+
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias,
 ): Template => {
@@ -62,6 +64,8 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
+
+
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
 
@@ -103,6 +107,9 @@ export const makeGuiTemplate = (
     id: tq.alias.id ?? '',
     name: tq.alias.name ?? '',
     gui: hasGUI,
+    description: tq.original.spec?.description ?? '',
+    deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
+    inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
     persistent: hasPersistent,
     nodeSelector: primaryEnvironment?.nodeSelector,
     resources: {
@@ -121,10 +128,18 @@ export const makeGuiTemplate = (
       guiEnabled: !!env?.guiEnabled,
       persistent: !!env?.persistent,
       environmentType: env?.environmentType,
+      mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
+      image: env?.image ?? '',
+      sharedVolumeMounts: env?.sharedVolumeMounts?.filter(svm => svm!= null).map(svm => ({
+        name: svm?.sharedVolume?.name ?? '',
+        mountPath: svm.mountPath ?? '',
+        readOnly: svm.readOnly ?? false,
+      })) ?? [],
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
         disk: env?.resources?.disk ?? '',
+        reservedCPUPercentage: env?.resources?.reservedCPUPercentage ?? 50,
       },
     })),
     hasMultipleEnvironments,
@@ -729,6 +744,9 @@ export const getTemplatesMapped = (
         persistent: env.persistent || false,
         environmentType: env.environmentType,
         resources: { cpu: 0, disk: '', memory: '' },
+        image: '',
+        mountMyDriveVolume: false,
+        sharedVolumeMounts: [],
       })) || [];
 
     return {
@@ -743,6 +761,8 @@ export const getTemplatesMapped = (
       allowPublicExposure,
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
+      deleteAfter: '',
+      inactivityTimeout:''
     };
   });
 };
