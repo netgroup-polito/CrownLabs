@@ -225,7 +225,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
   return (
-    <>
+    <div
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: '1 1 auto',
+        minHeight: 0,
+      }}
+    >
       {/* full-height flex column so TemplatesTable can take the remaining space and scroll */}
       <div
         style={{
@@ -296,19 +304,27 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             >
               <TemplatesEmpty role={role} />
             </div>
-          )}
-
-          {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
-            <>
-              <SharedVolumesDrawer
-                workspaceNamespace={workspaceNamespace}
-                isPersonal={isPersonal}
-              />
-            </>
-          ) : null}
-        </Spin>
+            )}
+          </Spin>
+        </div>
+        {role === WorkspaceRole.manager &&
+            !loadingTemplate &&
+            !isPersonal ? (
+              <div
+                style={{
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 100,
+                }}
+                className="cl-shared-volumes-bg"
+              >
+                <SharedVolumesDrawer
+                  workspaceNamespace={workspaceNamespace}
+                  isPersonal={isPersonal}
+                />
+              </div>
+            ) : null}
       </div>
-    </>
   );
 };
 
