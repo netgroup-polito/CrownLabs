@@ -15,6 +15,7 @@ import { LogoutButton } from '../LogoutButton';
 import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
 import { useEffect } from 'react';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 const Header = Layout.Header;
 const { Title } = Typography;
@@ -26,12 +27,15 @@ export interface INavbarProps {
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent } = props;
+
+  const { profile } = useContext(AuthContext);
   const routesData = routes.map(r => r.route);
   const {
     data,
     loading: tenantLoading,
     error: tenantError,
   } = useContext(TenantContext);
+
   const [show, setShow] = useState(false);
 
   const currentPath = useLocation().pathname;
@@ -43,63 +47,73 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const currentName = routesData.find(r => r.path === currentPath)?.name || '';
   const displayName = currentName || (isSSHRoute ? 'Web SSH' : '');
 
-  const buttons = routes.map((b, i) => {
-    const routeData = b.route;
-    const isExtLink = routeData.path.indexOf('http') === 0;
-    return {
-      linkPosition: b.linkPosition,
-      content: (
-        <Link
-          key={i}
-          to={{
-            pathname:
-              b.linkPosition === LinkPosition.Hidden && isSSHRoute
-                ? currentPath
-                : isExtLink
-                  ? ''
-                  : routeData.path,
-          }}
-          rel={isExtLink ? 'noopener noreferrer' : ''}
-        >
-          <Button
-            onClick={() =>
-              isExtLink ? window.open(routeData.path, '_blank') : setShow(false)
-            }
-            ghost={
-              b.linkPosition === LinkPosition.Hidden
-                ? false
-                : currentPath !== routeData.path
-            }
-            className={
-              'my-3 ' +
-              (isSSHRoute
-                ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
-                : 'w-full flex justify-center ') +
-              (routes.length <= 4
-                ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-                : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-              (b.linkPosition === LinkPosition.Hidden
-                ? ''
-                : currentPath !== routeData.path
-                  ? ' navbar-button '
-                  : '')
-            }
-            size="large"
-            type={
-              b.linkPosition === LinkPosition.Hidden
-                ? 'primary'
-                : currentPath !== routeData.path
-                  ? 'default'
-                  : 'primary'
-            }
-            shape="round"
+  const userGroups = (profile?.groups || []) as string[];
+
+  const buttons = routes
+    .filter(
+      b =>
+        !b.requiredGroups ||
+        (profile && b.requiredGroups.some(g => userGroups.includes(g))),
+    )
+    .map((b, i) => {
+      const routeData = b.route;
+      const isExtLink = routeData.path.indexOf('http') === 0;
+      return {
+        linkPosition: b.linkPosition,
+        content: (
+          <Link
+            key={i}
+            to={{
+              pathname:
+                b.linkPosition === LinkPosition.Hidden && isSSHRoute
+                  ? currentPath
+                  : isExtLink
+                    ? ''
+                    : routeData.path,
+            }}
+            rel={isExtLink ? 'noopener noreferrer' : ''}
           >
-            {routeData.name}
-          </Button>
-        </Link>
-      ),
-    };
-  });
+            <Button
+              onClick={() =>
+                isExtLink
+                  ? window.open(routeData.path, '_blank')
+                  : setShow(false)
+              }
+              ghost={
+                b.linkPosition === LinkPosition.Hidden
+                  ? false
+                  : currentPath !== routeData.path
+              }
+              className={
+                'my-3 ' +
+                (isSSHRoute
+                  ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
+                  : 'w-full flex justify-center ') +
+                (routes.length <= 4
+                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
+                (b.linkPosition === LinkPosition.Hidden
+                  ? ''
+                  : currentPath !== routeData.path
+                    ? ' navbar-button '
+                    : '')
+              }
+              size="large"
+              type={
+                b.linkPosition === LinkPosition.Hidden
+                  ? 'primary'
+                  : currentPath !== routeData.path
+                    ? 'default'
+                    : 'primary'
+              }
+              shape="round"
+            >
+              {routeData.name}
+            </Button>
+          </Link>
+        ),
+      };
+    });
 
   const [isHeightTooSmall, setIsHeightTooSmall] = useState(false);
   const headerRef = useRef<HTMLDivElement | null>(null);

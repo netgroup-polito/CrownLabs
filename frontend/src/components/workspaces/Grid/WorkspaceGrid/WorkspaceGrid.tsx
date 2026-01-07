@@ -5,11 +5,6 @@ export interface IWorkspaceGridProps {
   tenantPersonalWorkspace?: {
     createPWs: boolean;
     isPWsCreated: boolean;
-    quota: {
-      cpu: string;
-      memory: string;
-      instances: number;
-    } | null;
   };
   workspaceItems: Array<{ id: number; title: string; waitingTenants?: number }>;
   selectedWs: number;

@@ -8,6 +8,7 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import TenantsView from './components/tenants/TenantsView';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -57,6 +58,12 @@ function App() {
           route: { name: 'Active', path: '/active' },
           content: <ActiveViewLogic key="/active" />,
           linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: { name: 'Tenants', path: '/tenants' },
+          content: <TenantsView key="/tenants" />,
+          linkPosition: LinkPosition.NavbarButton,
+          requiredGroups: ['admin'],
         },
         {
           route: {

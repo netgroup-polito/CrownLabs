@@ -10,7 +10,11 @@ export default gql`
           firstName
           lastName
           lastLogin
-          createPersonalWorkspace
+          quota {
+            cpu
+            instances
+            memory
+          }
           workspaces {
             role
             name
@@ -18,6 +22,11 @@ export default gql`
               itPolitoCrownlabsV1alpha1Workspace {
                 spec {
                   prettyName
+                  quota {
+                    cpu
+                    instances
+                    memory
+                  }
                 }
                 status {
                   namespace {

@@ -14,6 +14,10 @@ import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
 import { TemplatesTableRow } from '../TemplatesTableRow';
 import './TemplatesTable.less';
+import {
+  OwnedInstancesContext,
+  type IQuota,
+} from '../../../../contexts/OwnedInstancesContext';
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
@@ -23,12 +27,6 @@ export interface ITemplatesTableProps {
   workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
   editTemplate: (id: string) => void;
   deleteTemplate: (
@@ -62,16 +60,24 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
-    availableQuota,
-    refreshQuota,
     isPersonal,
+    workspaceName,
   } = props;
 
   const { hasSSHKeys } = useContext(TenantContext);
+
+  // Get the available quota in the workspace from the OwnedInstancesContext
+  const { availableQuota } = useContext(OwnedInstancesContext);
+  const workspaceAvailableQuota: IQuota = availableQuota?.[workspaceName] || {
+    instances: 0,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+  };
+
   /**
    * Our Table has just one column which render all rows using a component TemplateTableRow
    */
-
   const columns = [
     {
       title: 'Template',
@@ -86,9 +92,8 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           createInstance={createInstance}
           expandRow={listToggler}
           tenantNamespace={tenantNamespace}
-          availableQuota={availableQuota}
-          refreshQuota={refreshQuota} // Pass refresh function
           isPersonal={isPersonal}
+          workspaceAvailableQuota={workspaceAvailableQuota}
         />
       ),
     },
@@ -131,6 +136,7 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
             extended={false}
             instances={template.instances}
             hasSSHKeys={hasSSHKeys}
+            workspaceAvailableQuota={workspaceAvailableQuota}
           />
         ),
       }}

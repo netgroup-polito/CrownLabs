@@ -30,12 +30,6 @@ export interface ITemplateTableLogicProps {
   workspaceNamespace: string;
   workspaceName: string;
   role: WorkspaceRole;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
 }
 
@@ -49,8 +43,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     workspaceNamespace,
     workspaceName,
     role,
-    availableQuota,
-    refreshQuota,
     isPersonal,
   } = props;
 
@@ -189,16 +181,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         workspaceNamespace,
         nodeSelector: labelSelector as Record<string, string> | undefined,
       },
-    })
-      .then(i => {
-        // Refresh quota after instance creation
-        refreshQuota?.();
-        return i;
-      })
-      .catch(error => {
-        console.error('TemplatesTableLogic createInstance error:', error);
-        throw error;
-      });
+    }).catch(error => {
+      console.error('TemplatesTableLogic createInstance error:', error);
+      throw error;
+    });
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
@@ -267,17 +253,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       workspaceNamespace,
                       templateId,
                     },
-                  }).then(result => {
-                    // Refresh quota after template deletion
-                    refreshQuota?.();
-                    return result;
                   })
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={() => null}
                 createInstance={createInstance}
-                availableQuota={availableQuota}
-                refreshQuota={refreshQuota}
                 isPersonal={isPersonal}
               />
             </div>
