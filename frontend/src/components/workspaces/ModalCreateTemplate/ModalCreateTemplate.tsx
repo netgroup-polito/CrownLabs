@@ -244,9 +244,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       })),
     };
     try {
+      setShow(false);
       await submitHandler(parsedTemplate);
       
-      setShow(false);
       form.resetFields();
       setTimeouts({
         inactivityTimeout: { value: 0, unit: '' },
