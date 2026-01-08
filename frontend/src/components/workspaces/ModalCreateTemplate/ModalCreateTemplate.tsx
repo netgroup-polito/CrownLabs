@@ -168,6 +168,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const closehandler = () => {
+    form.resetFields();
     setShow(false);
   };
 

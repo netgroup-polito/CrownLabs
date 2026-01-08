@@ -11,9 +11,9 @@ import {
   useWorkspaceTemplatesQuery,
   type UpdatedWorkspaceTemplatesSubscriptionResult,
   EnvironmentType,
-  useApplyTemplateMutation,
   type EnvironmentListListItemInput,
   type SharedVolumeMountsListItemInput,
+  useApplyTemplateJsonPatchMutation,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
@@ -31,7 +31,6 @@ import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm } from '../../ModalCreateTemplate/types';
-import { getTemplatePatchJson } from '../../../../graphql-components/utils';
 import { getImageNameNoVer } from '../../ModalCreateTemplate/utils';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 
@@ -237,9 +236,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 const [showTemplateModal, setShowTemplateModal] = useState(false);
 const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
 
-  const [applyTemplateMutation] = useApplyTemplateMutation({
-    onError: apolloErrorCatcher,
-  });
+  const [applyTemplateJsonPatchMutation] = useApplyTemplateJsonPatchMutation({
+  onError: apolloErrorCatcher,
+});
+
 
 const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
 
@@ -247,13 +247,44 @@ const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
 const submitPatchHandler = async (t: TemplateForm) => {
   try {
     
-    const patchJson = getTemplatePatchJson({
-      spec: {
-        prettyName: t.name,
-        deleteAfter: t.deleteAfter,
-        inactivityTimeout: t.inactivityTimeout,
-        description: usedTemplate?.description ?? t.name,
-        environmentList: t.environments.map(
+    // const patchJson = getTemplatePatchJson({
+    //   spec: {
+    //     prettyName: t.name,
+    //     deleteAfter: t.deleteAfter,
+    //     inactivityTimeout: t.inactivityTimeout,
+    //     description: usedTemplate?.description ?? t.name,
+    //     environmentList: t.environments.map(
+    //       (env): EnvironmentListListItemInput => ({
+    //         name: env.name,
+    //         mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
+    //         guiEnabled: env.gui,
+    //         persistent: env.persistent,
+    //         environmentType: env.environmentType,
+    //         resources: {
+    //           reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
+    //           cpu: env.cpu,
+    //           memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
+    //           disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
+    //         },
+    //         image: env.registry
+    //           ? `${env.registry}/${env.image}`
+    //           : env.image,
+    //         sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
+    //           (svm): SharedVolumeMountsListItemInput => ({
+    //             mountPath: svm.mountPath,
+    //             readOnly: svm.readOnly,
+    //             sharedVolume: {
+    //               name: svm.sharedVolume,
+    //               namespace: workspaceNamespace,
+    //             }
+    //           }),
+    //         ),
+    //       }),
+    //     ),
+    //   },
+    // });
+
+    const environmentList = t.environments.map(
           (env): EnvironmentListListItemInput => ({
             name: env.name,
             mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
@@ -280,12 +311,19 @@ const submitPatchHandler = async (t: TemplateForm) => {
               }),
             ),
           }),
-        ),
-      },
-    });
+        );
+    
 
+    const patchJson = JSON.stringify([
+      { op: 'replace', path: '/spec/environmentList', value: environmentList },
+      { op: 'replace', path: '/spec/prettyName', value: t.name },
+      { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
+      { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
+    ]);
 
-    return await applyTemplateMutation({
+//    console.log('Patch JSON:', patchJson); 
+
+    return await applyTemplateJsonPatchMutation({
       variables: {
         workspaceNamespace,
         templateId: usedTemplate?.id ?? '',
@@ -395,7 +433,7 @@ const submitPatchHandler = async (t: TemplateForm) => {
                 ramInterval={{ max: 32, min: 1 }}
                 diskInterval={{ max: 50, min: 10 }}
                 submitHandler={
-                 submitPatchHandler // <-- Change with submitPatchHandler
+                 submitPatchHandler 
                 }
                 loading={false}
                 isPersonal={isPersonal}
