@@ -3586,6 +3586,16 @@ export type ApplyTemplateMutationVariables = Exact<{
 
 export type ApplyTemplateMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', description: string, name: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, image: string, environmentType: EnvironmentType, rewriteURL?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', id?: string | null } | null } | null };
 
+export type ApplyTemplateJsonPatchMutationVariables = Exact<{
+  templateId: Scalars['String']['input'];
+  workspaceNamespace: Scalars['String']['input'];
+  patchJson: Scalars['String']['input'];
+  manager: Scalars['String']['input'];
+}>;
+
+
+export type ApplyTemplateJsonPatchMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, image: string, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null } | null };
+
 export type ApplyTenantMutationVariables = Exact<{
   tenantId: Scalars['String']['input'];
   patchJson: Scalars['String']['input'];
@@ -3708,7 +3718,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, image: string, guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any } } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, persistent?: boolean | null, nodeSelector?: any | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3944,6 +3954,73 @@ export function useApplyTemplateMutation(baseOptions?: Apollo.MutationHookOption
 export type ApplyTemplateMutationHookResult = ReturnType<typeof useApplyTemplateMutation>;
 export type ApplyTemplateMutationResult = Apollo.MutationResult<ApplyTemplateMutation>;
 export type ApplyTemplateMutationOptions = Apollo.BaseMutationOptions<ApplyTemplateMutation, ApplyTemplateMutationVariables>;
+export const ApplyTemplateJsonPatchDocument = gql`
+    mutation applyTemplateJsonPatch($templateId: String!, $workspaceNamespace: String!, $patchJson: String!, $manager: String!) {
+  applyTemplate: patchCrownlabsPolitoItV1alpha2NamespacedTemplateJsonPatch(
+    name: $templateId
+    namespace: $workspaceNamespace
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    spec {
+      prettyName
+      description
+      environmentList {
+        name
+        guiEnabled
+        persistent
+        image
+        environmentType
+        resources {
+          cpu
+          disk
+          memory
+        }
+        sharedVolumeMounts {
+          sharedVolume {
+            namespace
+            name
+          }
+          mountPath
+          readOnly
+        }
+      }
+    }
+    metadata {
+      name
+    }
+  }
+}
+    `;
+export type ApplyTemplateJsonPatchMutationFn = Apollo.MutationFunction<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>;
+
+/**
+ * __useApplyTemplateJsonPatchMutation__
+ *
+ * To run a mutation, you first call `useApplyTemplateJsonPatchMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplyTemplateJsonPatchMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applyTemplateJsonPatchMutation, { data, loading, error }] = useApplyTemplateJsonPatchMutation({
+ *   variables: {
+ *      templateId: // value for 'templateId'
+ *      workspaceNamespace: // value for 'workspaceNamespace'
+ *      patchJson: // value for 'patchJson'
+ *      manager: // value for 'manager'
+ *   },
+ * });
+ */
+export function useApplyTemplateJsonPatchMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>(ApplyTemplateJsonPatchDocument, options);
+      }
+export type ApplyTemplateJsonPatchMutationHookResult = ReturnType<typeof useApplyTemplateJsonPatchMutation>;
+export type ApplyTemplateJsonPatchMutationResult = Apollo.MutationResult<ApplyTemplateJsonPatchMutation>;
+export type ApplyTemplateJsonPatchMutationOptions = Apollo.BaseMutationOptions<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>;
 export const ApplyTenantDocument = gql`
     mutation applyTenant($tenantId: String!, $patchJson: String!, $manager: String!) {
   applyTenant: patchCrownlabsPolitoItV1alpha2Tenant(
@@ -4757,9 +4834,13 @@ export const WorkspaceTemplatesDocument = gql`
         prettyName
         description
         allowPublicExposure
+        deleteAfter
+        description
+        inactivityTimeout
         environmentList {
           name
           environmentType
+          mountMyDriveVolume
           image
           guiEnabled
           persistent
@@ -4768,6 +4849,15 @@ export const WorkspaceTemplatesDocument = gql`
             cpu
             disk
             memory
+            reservedCPUPercentage
+          }
+          sharedVolumeMounts {
+            sharedVolume {
+              name
+              namespace
+            }
+            mountPath
+            readOnly
           }
         }
         workspaceCrownlabsPolitoItWorkspaceRef {

@@ -22,6 +22,7 @@ export type Resources = {
   cpu: number;
   disk: string;
   memory: string;
+  reservedCPUPercentage?: number;
 };
 export type TemplateEnvironment = {
   name: string;
@@ -29,6 +30,14 @@ export type TemplateEnvironment = {
   persistent: boolean;
   environmentType?: EnvironmentType;
   resources: Resources;
+  image: string;
+  mountMyDriveVolume?: boolean;
+  sharedVolumeMounts: Array<{
+    name: string;
+    mountPath: string;
+    readOnly: boolean;
+  }>;
+  
 };
 
 export type InstanceEnvironment = {
@@ -43,6 +52,7 @@ export type InstanceEnvironment = {
 export type Template = {
   id: string;
   name: string;
+  description?: string;
   gui: boolean;
   persistent: boolean;
   nodeSelector?: Record<string, string>;
@@ -54,6 +64,8 @@ export type Template = {
   allowPublicExposure: boolean;
   environmentList: Array<TemplateEnvironment>;
   hasMultipleEnvironments: boolean;
+  deleteAfter: string;
+  inactivityTimeout: string;
 };
 
 export type Instance = {

@@ -1,0 +1,41 @@
+mutation applyTemplateJsonPatch(
+  $templateId: String!
+  $workspaceNamespace: String!
+  $patchJson: String!
+  $manager: String!
+) {
+  applyTemplate: patchCrownlabsPolitoItV1alpha2NamespacedTemplateJsonPatch(
+    name: $templateId
+    namespace: $workspaceNamespace
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    spec {
+      prettyName
+      description
+      environmentList {
+        name
+        guiEnabled
+        persistent
+        image
+        environmentType
+        resources {
+          cpu
+          disk
+          memory
+        }
+        sharedVolumeMounts {
+          sharedVolume {
+            namespace
+            name
+          }
+          mountPath
+          readOnly
+        }
+      }
+    }
+    metadata {
+      name
+    }
+  }
+}
