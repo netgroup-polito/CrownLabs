@@ -510,7 +510,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         />
 
         <div className="flex justify-end gap-2">
-          <Button htmlType="submit" onClick={() => closehandler()}>
+          <Button type="default" onClick={() => closehandler()}>
             Cancel
           </Button>
 
