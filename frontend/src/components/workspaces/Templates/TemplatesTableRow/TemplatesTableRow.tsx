@@ -40,6 +40,7 @@ export interface ITemplatesTableRowProps {
     memory?: string;
     instances?: number;
   };
+  editTemplate: (template: Template) => void;
   refreshQuota?: () => void;
   isPersonal?: boolean;
   deleteTemplate: (
@@ -109,6 +110,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     totalInstances,
     createInstance,
     deleteTemplate,
+    editTemplate,
     deleteTemplateLoading,
     expandRow,
     availableQuota,
@@ -162,9 +164,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
   }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
 
   const handleEditTemplate = () => {
-    window.dispatchEvent(
-      new CustomEvent('openTemplateModal', { detail: template }),
-    );
+    editTemplate(template);
   };
 
   const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;

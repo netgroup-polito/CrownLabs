@@ -29,6 +29,7 @@ const TemplatesTableRowSettings = ({ ...props }) => {
   const { id, template, createInstance, editTemplate, deleteTemplate } = props;
 
   return (
+    
     <Dropdown
       menu={{
         items: [
@@ -51,14 +52,6 @@ const TemplatesTableRowSettings = ({ ...props }) => {
                 editTemplate?.(template);
               } catch (_e) {
                 /* ignore handler errors */
-              }
-              // also emit a global event so parents that didn't wire editTemplate can react
-              try {
-                window.dispatchEvent(
-                  new CustomEvent('openTemplateModal', { detail: template }),
-                );
-              } catch (_e) {
-                /* ignore dispatch errors */
               }
             },
           },
