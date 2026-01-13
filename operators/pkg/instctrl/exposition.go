@@ -87,7 +87,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
 
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+forge.IngressGUIName(environment))}
+	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
 		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
@@ -139,7 +139,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	}
 
 	// Enforce gui ingress absence
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+forge.IngressGUINameSuffix)}
+	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
 		return err
 	}

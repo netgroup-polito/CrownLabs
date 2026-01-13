@@ -162,7 +162,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
 	})
 
-	StandaloneContainerIt := func(namespacedNameSuffix string) {
+	StandaloneContainerIt := func() {
 		It("Should correctly reconcile the instance", func() {
 			Expect(RunReconciler()).To(Succeed())
 
@@ -196,7 +196,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the exposition resources aren't present", func() {
 				for _, env := range template.Spec.EnvironmentList {
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name+"-"+namespacedNameSuffix), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
 				}
 			})
 
@@ -209,7 +209,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the right exposition resources exist", func() {
 				for _, env := range template.Spec.EnvironmentList {
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name+"-"+namespacedNameSuffix), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
 				}
 			})
 
@@ -247,7 +247,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				runInstance = false
 			})
 
-			StandaloneContainerIt(forge.IngressAppSuffix)
+			StandaloneContainerIt()
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
@@ -258,7 +258,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressAppSuffix)
+			StandaloneContainerIt()
 		})
 	})
 
@@ -272,7 +272,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressGUINameSuffix)
+			StandaloneContainerIt()
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
@@ -283,7 +283,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressGUINameSuffix)
+			StandaloneContainerIt()
 		})
 	})
 
@@ -328,7 +328,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the exposition resources aren't present", func() {
 						for _, env := range template.Spec.EnvironmentList {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name+"-"+forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
 						}
 					})
 
@@ -341,7 +341,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the right exposition resources exist", func() {
 						for _, env := range template.Spec.EnvironmentList {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name+"-"+forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
 						}
 					})
 
@@ -421,7 +421,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the exposition resources aren't present", func() {
 					for i := range template.Spec.EnvironmentList {
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(FailBecauseNotFound())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name+"-"+forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(FailBecauseNotFound())
 					}
 				})
 
@@ -434,7 +434,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the right exposition resources exist", func() {
 					for i := range template.Spec.EnvironmentList {
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(Succeed())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name+"-"+forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(Succeed())
 					}
 				})
 
