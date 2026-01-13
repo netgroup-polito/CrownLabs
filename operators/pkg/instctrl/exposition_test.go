@@ -117,7 +117,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		index = 0
 
 		serviceName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
-		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, environment.Name+"-"+forge.IngressGUINameSuffix)
+		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 
 		service = corev1.Service{}
 		ingress = netv1.Ingress{}

@@ -230,7 +230,6 @@ var _ = Describe("Ingresses", func() {
 			instance    clv1alpha2.Instance
 			path        string
 			statusPath  string
-			GUIName     string
 			environment clv1alpha2.Environment
 		)
 
@@ -325,43 +324,8 @@ var _ = Describe("Ingresses", func() {
 			JustBeforeEach(func() {
 				statusPath = forge.IngressGuiStatusURL(host, &environment, &instance)
 			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/app/"))
-				})
-			})
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/app/"))
-				})
-			})
-		})
-
-		Describe("The forge.IngressGUIName function", func() {
-			JustBeforeEach(func() {
-				GUIName = forge.IngressGUIName(&environment)
-			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(GUIName).To(BeIdenticalTo("app"))
-				})
-			})
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				It("Should generate a path based on the instance UID", func() {
-					Expect(GUIName).To(BeIdenticalTo("gui"))
-				})
+			It("Should generate a path based on the instance UID and /app at the end", func() {
+				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))
 			})
 		})
 	})
