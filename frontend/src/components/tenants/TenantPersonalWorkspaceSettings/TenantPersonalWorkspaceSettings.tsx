@@ -4,11 +4,11 @@ import {
   TenantDocument,
   useApplyTenantMutation,
   type TenantQuery,
-} from '../../generated-types';
+} from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGB } from '../../utils';
-import { getTenantPatchJson } from '../../graphql-components/utils';
-import { ErrorContext } from '../../errorHandling/ErrorContext';
+import { convertToGB } from '../../../utils';
+import { getTenantPatchJson } from '../../../graphql-components/utils';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;

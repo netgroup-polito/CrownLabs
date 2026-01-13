@@ -1,10 +1,10 @@
-import { useTenantLazyQuery, type TenantQuery } from '../../generated-types';
-import Box from '../common/Box';
-import TenantSearchForm from './TenantSearchForm';
+import { useTenantLazyQuery, type TenantQuery } from '../../../generated-types';
+import Box from '../../common/Box';
+import TenantSearchForm from '../TenantSearchForm';
 import { Button, Tooltip } from 'antd';
 import { LeftOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import TenantPanel from './TenantPanel';
+import TenantPanel from '../TenantPanel';
 
 export default function TenantsView() {
   const [tenant, setTenant] = useState<TenantQuery | undefined>(undefined);
