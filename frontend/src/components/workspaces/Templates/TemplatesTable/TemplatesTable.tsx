@@ -138,7 +138,6 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
             extended={false}
             instances={template.instances}
             hasSSHKeys={hasSSHKeys}
-            workspaceAvailableQuota={workspaceAvailableQuota}
           />
         ),
       }}

@@ -77,7 +77,7 @@ const canCreateInstance = (
 
   const templateCpu = template.resources?.cpu || 0;
   const templateMemory = convertToGB(template.resources?.memory || '0GB');
-  const templateDisk = convertToGB(template.resources?.disk || '0GB');
+  // TODO: add this when disk quota is available - const templateDisk = convertToGB(template.resources?.disk || '0GB');
 
   return (
     availableQuota.instances >= 1 &&
