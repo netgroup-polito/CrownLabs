@@ -2135,6 +2135,27 @@ export type PersonalNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+export type PersonalWorkspace = {
+  __typename?: 'PersonalWorkspace';
+  /** The maximum amount of CPU required by this Workspace. */
+  cpu: Scalars['JSON']['output'];
+  /** The maximum number of concurrent instances required by this Workspace. */
+  instances: Scalars['BigInt']['output'];
+  /** The maximum amount of RAM memory required by this Workspace. */
+  memory: Scalars['JSON']['output'];
+};
+
+/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+export type PersonalWorkspaceInput = {
+  /** The maximum amount of CPU required by this Workspace. */
+  cpu: Scalars['JSON']['input'];
+  /** The maximum number of concurrent instances required by this Workspace. */
+  instances: Scalars['BigInt']['input'];
+  /** The maximum amount of RAM memory required by this Workspace. */
+  memory: Scalars['JSON']['input'];
+};
+
 export enum Phase {
   CreationLoopBackoff = 'CreationLoopBackoff',
   Failed = 'Failed',
@@ -3166,6 +3187,8 @@ export type Spec7 = {
   lastLogin?: Maybe<Scalars['String']['output']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['output'];
+  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  personalWorkspace?: Maybe<PersonalWorkspace>;
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
@@ -3188,6 +3211,8 @@ export type Spec7Input = {
   lastLogin?: InputMaybe<Scalars['String']['input']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['input'];
+  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  personalWorkspace?: InputMaybe<PersonalWorkspaceInput>;
   /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
   publicKeys?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
@@ -3725,7 +3750,7 @@ export type TenantQueryVariables = Exact<{
 }>;
 
 
-export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, quota?: { __typename?: 'Quota2', cpu: any, instances: number, memory: any } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: number, memory: any } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null };
+export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: number, memory: any } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null };
 
 export type TenantsQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -3777,7 +3802,7 @@ export type UpdatedTenantSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, quota?: { __typename?: 'Quota2', cpu: any, instances: number, memory: any } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: number, memory: any } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean }, quota?: { __typename?: 'Quota3', cpu: any, instances: number, memory: any } | null } | null } | null } | null };
+export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: number, memory: any } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null } | null };
 
 
 export const ApplyInstanceDocument = gql`
@@ -4913,7 +4938,7 @@ export const TenantDocument = gql`
       firstName
       lastName
       lastLogin
-      quota {
+      personalWorkspace {
         cpu
         instances
         memory
@@ -4948,11 +4973,6 @@ export const TenantDocument = gql`
       personalNamespace {
         name
         created
-      }
-      quota {
-        cpu
-        instances
-        memory
       }
     }
   }
@@ -5419,7 +5439,7 @@ export const UpdatedTenantDocument = gql`
         firstName
         lastName
         lastLogin
-        quota {
+        personalWorkspace {
           cpu
           instances
           memory
@@ -5454,11 +5474,6 @@ export const UpdatedTenantDocument = gql`
         personalNamespace {
           name
           created
-        }
-        quota {
-          cpu
-          instances
-          memory
         }
       }
     }

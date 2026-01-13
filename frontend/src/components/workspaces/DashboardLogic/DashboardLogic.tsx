@@ -38,9 +38,7 @@ const DashboardLogic: FC = () => {
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Check loading state of owned instances
-  const { loading: instancesLoading } = useContext(
-    OwnedInstancesContext,
-  );
+  const { loading: instancesLoading } = useContext(OwnedInstancesContext);
 
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();
@@ -151,7 +149,7 @@ const DashboardLogic: FC = () => {
     <Dashboard
       tenantNamespace={tenantNs}
       tenantPersonalWorkspace={{
-        createPWs: tenantData?.tenant?.spec?.quota !== null,
+        createPWs: tenantData?.tenant?.spec?.personalWorkspace !== null,
         isPWsCreated:
           tenantData?.tenant?.status?.personalNamespace?.created ?? false,
       }}

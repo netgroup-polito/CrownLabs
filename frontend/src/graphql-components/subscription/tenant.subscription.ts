@@ -10,7 +10,7 @@ export default gql`
           firstName
           lastName
           lastLogin
-          quota {
+          personalWorkspace {
             cpu
             instances
             memory
@@ -45,11 +45,6 @@ export default gql`
           personalNamespace {
             name
             created
-          }
-          quota {
-            cpu
-            instances
-            memory
           }
         }
       }
