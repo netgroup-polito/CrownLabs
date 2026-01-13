@@ -1,4 +1,4 @@
-import { type FC, useState } from 'react';
+import { type FC, useContext, useState } from 'react';
 import { Modal, Typography } from 'antd';
 import { Button } from 'antd';
 import { type Instance, WorkspaceRole } from '../../../../utils';
@@ -8,7 +8,7 @@ import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
-import type { IQuota } from '../../../../contexts/OwnedInstancesContext';
+import { OwnedInstancesContext, type IQuota } from '../../../../contexts/OwnedInstancesContext';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -18,7 +18,6 @@ export interface IRowInstanceActionsProps {
   hasSSHKeys?: boolean;
   extended: boolean;
   viewMode: WorkspaceRole;
-  workspaceAvailableQuota: IQuota;
 }
 
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
@@ -28,8 +27,16 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   hasSSHKeys,
   extended,
   viewMode,
-  workspaceAvailableQuota,
 }) => {
+  // Get the available quota in the workspace from the OwnedInstancesContext
+  const { availableQuota } = useContext(OwnedInstancesContext);
+  const workspaceAvailableQuota: IQuota = availableQuota?.[instance.workspaceName || ""] || {
+    instances: 0,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+  };
+
   // Use the value from the template (mapped via GraphQL)
   const allowPublic = instance.allowPublicExposure;
 

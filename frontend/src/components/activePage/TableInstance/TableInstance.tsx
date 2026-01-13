@@ -10,7 +10,6 @@ import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
 import './TableInstance.less';
-import type { IQuota } from '../../../contexts/OwnedInstancesContext';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -29,7 +28,6 @@ export interface ITableInstanceProps {
   ) => void;
   selectiveDestroy?: string[];
   selectToDestroy?: (instanceId: string) => void;
-  workspaceAvailableQuota: IQuota;
 }
 
 const TableInstance: FC<ITableInstanceProps> = ({
@@ -44,7 +42,6 @@ const TableInstance: FC<ITableInstanceProps> = ({
   handleManagerSorting,
   selectiveDestroy,
   selectToDestroy,
-  workspaceAvailableQuota,
 }) => {
   const { now } = useContext(TenantContext);
   const [showAlert, setShowAlert] = useState(false);
@@ -187,7 +184,6 @@ const TableInstance: FC<ITableInstanceProps> = ({
                 fileManager={true}
                 extended={extended}
                 viewMode={viewMode}
-                workspaceAvailableQuota={workspaceAvailableQuota}
               />
             )}
           />
