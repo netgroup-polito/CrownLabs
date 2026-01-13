@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package common contains common API types used across different CrownLabs operator groups.
 package common
 
 import "k8s.io/apimachinery/pkg/api/resource"
