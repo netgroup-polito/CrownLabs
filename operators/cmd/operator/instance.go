@@ -15,10 +15,11 @@
 package main
 
 import (
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	instancewebhook "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	instancewebhook "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 )
 
 const (
