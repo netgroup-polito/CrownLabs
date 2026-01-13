@@ -15,9 +15,10 @@
 package v1alpha2
 
 import (
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

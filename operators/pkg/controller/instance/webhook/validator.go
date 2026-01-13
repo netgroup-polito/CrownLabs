@@ -19,15 +19,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 const (
@@ -40,7 +41,7 @@ type InstanceValidator struct {
 	Client client.Client
 }
 
-func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.Client) (admission.Warnings, error) {
+func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.Client) (admission.Warnings, error) {
 	var warnings admission.Warnings
 
 	tenantNamespace := instance.Namespace
@@ -48,7 +49,7 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 	// Get the instance's template
 	instanceTemplate := &v1alpha2.Template{}
 	if err := cl.Get(ctx, types.NamespacedName{Name: instance.Spec.Template.Name, Namespace: instance.Spec.Template.Namespace}, instanceTemplate); err != nil {
-		return warnings, fmt.Errorf("failed to get instance template: %v", err)
+		return warnings, fmt.Errorf("failed to get instance template: %w", err)
 	}
 
 	// Get the workspace details (quota, templates namespace)
@@ -59,12 +60,12 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 	if wsName == personalWorkspaceName {
 		req, err := admission.RequestFromContext(ctx)
 		if err != nil {
-			return warnings, fmt.Errorf("failed to get admission request from context: %v", err)
+			return warnings, fmt.Errorf("failed to get admission request from context: %w", err)
 		}
 
 		tenant := &v1alpha2.Tenant{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
-			return warnings, fmt.Errorf("failed to get tenant %s: %v", req.UserInfo.Username, err)
+			return warnings, fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
 		}
 
 		wsQuota.CPU = tenant.Spec.PersonalWorkspace.CPU
@@ -75,7 +76,7 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 	} else {
 		ws := &v1alpha1.Workspace{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: wsName}, ws); err != nil {
-			return warnings, fmt.Errorf("failed to get workspace: %v", err)
+			return warnings, fmt.Errorf("failed to get workspace: %w", err)
 		}
 
 		wsQuota = ws.Spec.Quota
@@ -90,12 +91,12 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 		wsTemplateList,
 		client.InNamespace(templatesNamespace),
 	); err != nil {
-		return warnings, fmt.Errorf("failed to list templates in workspace namespace: %v", err)
+		return warnings, fmt.Errorf("failed to list templates in workspace namespace: %w", err)
 	}
 
 	wsTemplates := make(map[string]v1alpha2.Template)
-	for _, tmpl := range wsTemplateList.Items {
-		wsTemplates[tmpl.Name] = tmpl
+	for i := range wsTemplateList.Items {
+		wsTemplates[wsTemplateList.Items[i].Name] = wsTemplateList.Items[i]
 	}
 
 	// Find the other instances in the same workspace owned by the same user
@@ -106,43 +107,43 @@ func validateQuota(instance *v1alpha2.Instance, ctx context.Context, cl client.C
 		client.InNamespace(tenantNamespace),
 		client.MatchingLabels{forge.LabelWorkspaceKey: wsName},
 	); err != nil {
-		return warnings, fmt.Errorf("failed to list instances in workspace: %v", err)
+		return warnings, fmt.Errorf("failed to list instances in workspace: %w", err)
 	}
 
 	// Calculate total resource usage
 	var totalInstances int64 = 1 // Count the instance being created.
-	var totalCPU int64 = 0
-	var totalMemory resource.Quantity = resource.MustParse("0")
+	var totalCPU int64
+	totalMemory := resource.MustParse("0")
 
 	// Add the resources of the instance being created
-	for _, env := range instanceTemplate.Spec.EnvironmentList {
-		totalCPU += int64(env.Resources.CPU)
-		totalMemory.Add(env.Resources.Memory)
+	for i := range instanceTemplate.Spec.EnvironmentList {
+		totalCPU += int64(instanceTemplate.Spec.EnvironmentList[i].Resources.CPU)
+		totalMemory.Add(instanceTemplate.Spec.EnvironmentList[i].Resources.Memory)
 	}
 
 	// Add the resources of the other instances
-	for _, inst := range workspaceInstances.Items {
+	for i := range workspaceInstances.Items {
 		// Skip the instance being created if found in the list
-		if inst.Name == instance.Name {
+		if workspaceInstances.Items[i].Name == instance.Name {
 			continue
 		}
 
 		// Skip suspended instances
-		if inst.Spec.Running == false {
+		if !workspaceInstances.Items[i].Spec.Running {
 			continue
 		}
 
 		totalInstances++
 
-		instanceTemplate, exists := wsTemplates[inst.Spec.Template.Name]
+		instanceTemplate, exists := wsTemplates[workspaceInstances.Items[i].Spec.Template.Name]
 		if !exists {
-			warnings = append(warnings, fmt.Sprintf("template %s not found in workspace namespace for instance %s; skipping resource calculation for this instance", inst.Spec.Template.Name, inst.Name))
+			warnings = append(warnings, fmt.Sprintf("template %s not found in workspace namespace for instance %s; skipping resource calculation for this instance", workspaceInstances.Items[i].Spec.Template.Name, workspaceInstances.Items[i].Name))
 			continue
 		}
 
-		for _, env := range instanceTemplate.Spec.EnvironmentList {
-			totalCPU += int64(env.Resources.CPU)
-			totalMemory.Add(env.Resources.Memory)
+		for j := range instanceTemplate.Spec.EnvironmentList {
+			totalCPU += int64(instanceTemplate.Spec.EnvironmentList[j].Resources.CPU)
+			totalMemory.Add(instanceTemplate.Spec.EnvironmentList[j].Resources.Memory)
 		}
 	}
 
@@ -175,7 +176,7 @@ func (iv *InstanceValidator) ValidateCreate(
 		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
 	}
 
-	return validateQuota(instance, ctx, iv.Client)
+	return validateQuota(ctx, instance, iv.Client)
 }
 
 // ValidateUpdate checks if a paused instance can be started again.
@@ -197,9 +198,9 @@ func (iv *InstanceValidator) ValidateUpdate(
 	}
 
 	// If the instance is not being started, no further checks are needed
-	if !(oldInstance.Spec.Running == false && newInstance.Spec.Running == true) {
+	if oldInstance.Spec.Running || !newInstance.Spec.Running {
 		return warnings, nil
 	}
 
-	return validateQuota(newInstance, ctx, iv.Client)
+	return validateQuota(ctx, newInstance, iv.Client)
 }
