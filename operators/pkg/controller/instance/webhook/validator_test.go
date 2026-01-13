@@ -66,19 +66,30 @@ var _ = Describe("InstanceValidator", func() {
 						Memory: resource.MustParse("2Gi"),
 					},
 				}},
+				WorkspaceRef: v1alpha2.GenericRef{Name: testWorkspace},
 			},
 		}
 		inst := &v1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{Name: testNewInstance, Namespace: testTenantNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
 			Spec: v1alpha2.InstanceSpec{
 				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
 			},
 		}
 		// Add another instance to exceed quota
 		otherInst := &v1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{Name: testExistingInstance, Namespace: testTenantNamespace, Labels: map[string]string{forge.LabelWorkspaceKey: testWorkspace}},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testExistingInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
 			Spec: v1alpha2.InstanceSpec{
 				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl, otherInst).Build()
@@ -109,19 +120,30 @@ var _ = Describe("InstanceValidator", func() {
 						Memory: resource.MustParse("2Gi"),
 					},
 				}},
+				WorkspaceRef: v1alpha2.GenericRef{Name: testWorkspace},
 			},
 		}
 		inst := &v1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{Name: testNewInstance, Namespace: testTenantNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
 			Spec: v1alpha2.InstanceSpec{
 				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
 			},
 		}
 		// Add another instance to exceed quota
 		otherInst := &v1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{Name: testExistingInstance, Namespace: testTenantNamespace, Labels: map[string]string{forge.LabelWorkspaceKey: testWorkspace}},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testExistingInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
 			Spec: v1alpha2.InstanceSpec{
 				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl, otherInst).Build()
@@ -144,16 +166,21 @@ var _ = Describe("InstanceValidator", func() {
 			},
 		}
 		inst := &v1alpha2.Instance{
-			ObjectMeta: metav1.ObjectMeta{Name: testNewInstance, Namespace: testTenantNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
 			Spec: v1alpha2.InstanceSpec{
 				Template: v1alpha2.GenericRef{Name: testMissingTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws).Build()
 		validator := &webhook.InstanceValidator{Client: fakeClient}
 		warnings, err := validator.ValidateCreate(ctx, inst)
 		Expect(err).ToNot(BeNil())
-		Expect(err.Error()).To(ContainSubstring("template missing"))
+		Expect(err.Error()).To(ContainSubstring("failed to get instance template"))
 		Expect(warnings).To(BeEmpty())
 	})
 })
