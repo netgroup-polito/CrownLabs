@@ -74,9 +74,11 @@ func main() {
 	// Enabling modules
 	var enableTenant bool
 	var enableWorkspace bool
+	var enableInstance bool
 	var enableKeycloak bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
+	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
@@ -133,6 +135,14 @@ func main() {
 		err := setupWorkspace(mgr, log, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create workspace controller")
+		}
+	}
+
+	if enableInstance {
+		log.Info("Starting the instance webhook")
+		err := setupInstance(mgr)
+		if err != nil {
+			klog.Fatal(err, "Unable to create instance webhook")
 		}
 	}
 

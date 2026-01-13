@@ -33,11 +33,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	instancewebhook "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
@@ -48,11 +46,6 @@ import (
 
 var (
 	scheme = runtime.NewScheme()
-)
-
-const (
-	// ValidatorWebhookPath is the path on which the validator webhook will be bound.
-	ValidatorWebhookPath = "/validator-v1alpha2-instance"
 )
 
 func init() {
@@ -123,7 +116,6 @@ func main() {
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                server.Options{BindAddress: *metricsAddr},
-		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		LeaderElection:         *enableLeaderElection,
 		HealthProbeBindAddress: ":8081",
 		LivenessEndpointName:   "/healthz",
@@ -209,12 +201,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the validating webhook for Instance resources
-	if err = setupInstanceWebhook(mgr); err != nil {
-		log.Error(err, "unable to setup webhook for", "webhook", "InstanceValidator")
-		os.Exit(1)
-	}
-
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {
@@ -245,17 +231,4 @@ func parseMap(raw string) map[string]string {
 		m[z[0]] = z[1]
 	}
 	return m
-}
-
-// This method configures the Webhook that validates the resources available for the Tenant in the Workspace.
-func setupInstanceWebhook(
-	mgr ctrl.Manager,
-) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&crownlabsv1alpha2.Instance{}).
-		WithValidator(&instancewebhook.InstanceValidator{
-			Client: mgr.GetClient(),
-		}).
-		WithValidatorCustomPath(ValidatorWebhookPath).
-		Complete()
 }

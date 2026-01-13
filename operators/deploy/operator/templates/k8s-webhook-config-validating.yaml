@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ include "operator.webhookname" . }}
+  name: {{ include "operator.webhookname" . }}-tenant
   annotations:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "operator.webhookname" . }}
 webhooks:
@@ -23,5 +23,33 @@ webhooks:
       name: {{ include "operator.webhookname" . }}
       namespace: {{ .Release.Namespace }}
       path: /validator-v1alpha2-tenant
+      port: 443
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "operator.webhookname" . }}-instance
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "operator.webhookname" . }}
+webhooks:
+- name: validate.instance.crownlabs.polito.it
+  failurePolicy: Fail
+  admissionReviewVersions:
+  - v1
+  objectSelector:
+    matchLabels:
+      {{ (split "=" .Values.configurations.targetLabel)._0 }}: {{ (split "=" .Values.configurations.targetLabel)._1 }}
+  rules:
+  - apiGroups:   ["crownlabs.polito.it"]
+    apiVersions: ["v1alpha2"]
+    operations:  ["CREATE","UPDATE"]
+    resources:   ["instances"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      name: {{ include "operator.webhookname" . }}
+      namespace: {{ .Release.Namespace }}
+      path: /validator-v1alpha2-instance
       port: 443
   sideEffects: None
