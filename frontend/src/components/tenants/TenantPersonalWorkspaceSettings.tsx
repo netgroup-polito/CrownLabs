@@ -1,17 +1,24 @@
 import { Button, Checkbox, Form, InputNumber, Row } from 'antd';
-import { useContext, useEffect, useState, type FC } from 'react';
+import { useContext, useState, type FC } from 'react';
 import {
   TenantDocument,
   useApplyTenantMutation,
   type TenantQuery,
 } from '../../generated-types';
-import type { RuleRender } from 'antd/es/form';
+import type { RuleRender, RuleObject } from 'antd/es/form';
 import { convertToGB } from '../../utils';
 import { getTenantPatchJson } from '../../graphql-components/utils';
 import { ErrorContext } from '../../errorHandling/ErrorContext';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;
+}
+
+interface QuotaFormData {
+  enabled: boolean;
+  cpu?: number;
+  memory?: number;
+  instances?: number;
 }
 
 const TenantPersonalWorkspaceSettings: FC<
@@ -21,14 +28,14 @@ const TenantPersonalWorkspaceSettings: FC<
     tenant.tenant?.spec?.quota != null,
   );
 
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<QuotaFormData>();
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [applyTenantMutation] = useApplyTenantMutation({
     onError: apolloErrorCatcher,
   });
 
-  const submitForm = async (data: any) => {
+  const submitForm = async (data: QuotaFormData) => {
     const tenantId = tenant.tenant?.metadata?.name;
     if (!tenantId) {
       throw new Error('Tenant ID is missing');
@@ -66,7 +73,7 @@ const TenantPersonalWorkspaceSettings: FC<
   const numberValidator: RuleRender = f => {
     if (f.getFieldValue('enabled')) {
       return {
-        validator(_: any, value: number) {
+        validator(_: RuleObject, value: number) {
           if (value >= 1) {
             return Promise.resolve();
           }
@@ -75,14 +82,14 @@ const TenantPersonalWorkspaceSettings: FC<
       };
     } else {
       return {
-        validator(_: any, _value: number) {
+        validator(_: RuleObject, _value: number) {
           return Promise.resolve();
         },
       };
     }
   };
 
-  const onValuesChange = (data: any) => {
+  const onValuesChange = (data: QuotaFormData) => {
     if (data.enabled !== undefined) setIsEnabled(data.enabled);
   };
 
