@@ -24,18 +24,30 @@ import (
 )
 
 const (
-	LabelManagedByKey    = "crownlabs.polito.it/managed-by"
-	LabelInstanceKey     = "crownlabs.polito.it/instance"
-	LabelWorkspaceKey    = "crownlabs.polito.it/workspace"
-	LabelTemplateKey     = "crownlabs.polito.it/template"
-	LabelTenantKey       = "crownlabs.polito.it/tenant"
-	LabelPersistentKey   = "crownlabs.polito.it/persistent"
-	LabelComponentKey    = "crownlabs.polito.it/component"
-	LabelMetricsEnabled  = "crownlabs.polito.it/metrics-enabled"
-	LabelTypeKey         = "crownlabs.polito.it/type"
-	LabelVolumeTypeKey   = "crownlabs.polito.it/volume-type"
+	// LabelManagedByKey is the key of the label identifying the managing resource.
+	LabelManagedByKey = "crownlabs.polito.it/managed-by"
+	// LabelInstanceKey is the key of the label identifying the instance name.
+	LabelInstanceKey = "crownlabs.polito.it/instance"
+	// LabelWorkspaceKey is the key of the label identifying the workspace name.
+	LabelWorkspaceKey = "crownlabs.polito.it/workspace"
+	// LabelTemplateKey is the key of the label identifying the template name.
+	LabelTemplateKey = "crownlabs.polito.it/template"
+	// LabelTenantKey is the key of the label identifying the tenant name.
+	LabelTenantKey = "crownlabs.polito.it/tenant"
+	// LabelPersistentKey is the key of the label identifying if any environment is persistent.
+	LabelPersistentKey = "crownlabs.polito.it/persistent"
+	// LabelComponentKey is the key of the label identifying the component name.
+	LabelComponentKey = "crownlabs.polito.it/component"
+	// LabelMetricsEnabled is the key of the label identifying if metrics are enabled.
+	LabelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
+	// LabelTypeKey is the key of the label identifying the resource type.
+	LabelTypeKey = "crownlabs.polito.it/type"
+	// LabelVolumeTypeKey is the key of the label identifying the volume type.
+	LabelVolumeTypeKey = "crownlabs.polito.it/volume-type"
+	// LabelNodeSelectorKey is the key of the label identifying if a node selector is present.
 	LabelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
-	LabelEnvironmentKey  = "crownlabs.polito.it/environment"
+	// LabelEnvironmentKey is the key of the label identifying the environment name.
+	LabelEnvironmentKey = "crownlabs.polito.it/environment"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"

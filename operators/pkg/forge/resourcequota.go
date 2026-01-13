@@ -47,7 +47,7 @@ var (
 	SandboxMemoryQuota = *resource.NewScaledQuantity(8, resource.Giga)
 )
 
-// Forges the WorkspaceResourceQuota as the sum of all quota for each workspace plus the personal workspace quota.
+// TenantResourceList forges the WorkspaceResourceQuota as the sum of all quota for each workspace plus the personal workspace quota.
 func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuota *common.WorkspaceResourceQuota) common.WorkspaceResourceQuota {
 	var quota common.WorkspaceResourceQuota
 
@@ -79,7 +79,7 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuot
 	return quota
 }
 
-// Converts a WorkspaceResourceQuota to a ResourceQuota's resource list.
+// TenantResourceQuotaSpec converts a WorkspaceResourceQuota to a ResourceQuota's resource list.
 func TenantResourceQuotaSpec(quota *common.WorkspaceResourceQuota) corev1.ResourceList {
 	return corev1.ResourceList{
 		corev1.ResourceLimitsCPU:      quota.CPU,

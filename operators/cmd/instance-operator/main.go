@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instancewebhook "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -52,7 +51,7 @@ var (
 )
 
 const (
-	// Path on which the validator webhook will be bound.
+	// ValidatorWebhookPath is the path on which the validator webhook will be bound.
 	ValidatorWebhookPath = "/validator-v1alpha2-instance"
 )
 
@@ -253,7 +252,7 @@ func setupInstanceWebhook(
 	mgr ctrl.Manager,
 ) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha2.Instance{}).
+		For(&crownlabsv1alpha2.Instance{}).
 		WithValidator(&instancewebhook.InstanceValidator{
 			Client: mgr.GetClient(),
 		}).
