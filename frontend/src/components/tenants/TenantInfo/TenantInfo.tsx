@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import type { TenantQuery } from '../../generated-types';
+import type { TenantQuery } from '../../../generated-types';
 
 export interface ITenantInfoProps {
   tenant: TenantQuery;

@@ -1,10 +1,10 @@
 import { type FC } from 'react';
 import { Row, Col, Avatar, Tabs } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
-import { generateAvatarUrl } from '../../utils';
-import type { TenantQuery } from '../../generated-types';
-import TenantInfo from './TenantInfo';
-import TenantPersonalWorkspaceSettings from './TenantPersonalWorkspaceSettings';
+import { generateAvatarUrl } from '../../../utils';
+import type { TenantQuery } from '../../../generated-types';
+import TenantInfo from '../TenantInfo';
+import TenantPersonalWorkspaceSettings from '../TenantPersonalWorkspaceSettings';
 
 export interface ITenantPanelProps {
   tenant: TenantQuery;
