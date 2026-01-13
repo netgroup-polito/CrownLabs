@@ -25,7 +25,7 @@ const TenantPersonalWorkspaceSettings: FC<
   ITenantPersonalWorkspaceSettingsProps
 > = ({ tenant }) => {
   const [isEnabled, setIsEnabled] = useState(
-    tenant.tenant?.spec?.quota != null,
+    tenant.tenant?.spec?.personalWorkspace != null,
   );
 
   const [form] = Form.useForm<QuotaFormData>();
@@ -58,7 +58,7 @@ const TenantPersonalWorkspaceSettings: FC<
       variables: {
         tenantId: tenantId,
         patchJson: getTenantPatchJson({
-          quota: newQuota,
+          personalWorkspace: newQuota,
         }),
         manager: 'frontend-tenant-personal-workspace',
       },
@@ -101,10 +101,12 @@ const TenantPersonalWorkspaceSettings: FC<
       onFinish={submitForm}
       onValuesChange={onValuesChange}
       initialValues={{
-        enabled: tenant.tenant?.spec?.quota != null,
-        cpu: parseFloat(tenant.tenant?.spec?.quota?.cpu ?? '0'),
-        memory: convertToGB(tenant.tenant?.spec?.quota?.memory ?? '0'),
-        instances: tenant.tenant?.spec?.quota?.instances ?? 0,
+        enabled: tenant.tenant?.spec?.personalWorkspace != null,
+        cpu: parseFloat(tenant.tenant?.spec?.personalWorkspace?.cpu ?? '0'),
+        memory: convertToGB(
+          tenant.tenant?.spec?.personalWorkspace?.memory ?? '0',
+        ),
+        instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
       }}
     >
       <Form.Item

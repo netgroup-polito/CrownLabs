@@ -80,7 +80,7 @@ function getTenantPatchJson(
     lastName?: string;
     publicKeys?: string[];
     lastLogin?: Date;
-    quota?: {
+    personalWorkspace?: {
       cpu?: string;
       memory?: string;
       instances?: number;

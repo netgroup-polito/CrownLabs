@@ -35,7 +35,6 @@ import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon'
 export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
-  totalInstances: number;
   tenantNamespace: string;
   isPersonal?: boolean;
   workspaceAvailableQuota: IQuota;
@@ -90,7 +89,6 @@ const canCreateInstance = (
 const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   template,
   role,
-  totalInstances,
   createInstance,
   deleteTemplate,
   deleteTemplateLoading,
@@ -107,7 +105,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
     error: labelsError,
   } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
 
-  const { data, refreshClock } = useContext(TenantContext);
+  const { refreshClock } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const { refetch: refetchOwnedInstances, data: instancesData } = useContext(
     OwnedInstancesContext,
@@ -142,8 +140,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   const handleEditTemplate = () => {
     editTemplate(template);
   };
-
-  const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
   return (
     <>
@@ -488,41 +484,21 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               />
             </Tooltip>
           )}
-          {instancesLimit === totalInstances || !canCreate ? (
+          {!canCreate ? (
             <Tooltip
               classNames={{ root: 'w-44' }}
               title={
-                <>
-                  <div className="text-center">
-                    {!canCreate ? (
-                      <>
-                        <div>Not enough resources available.</div>
-                        <div>Check your workspace quota usage.</div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          You have <b>reached your limit</b> of {instancesLimit}{' '}
-                          instances
-                        </div>
-                        <div className="text-center mt-2">
-                          Please <b>delete</b> an instance to create a new one
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </>
+                <div className="text-center">
+                  <div>Not enough resources available.</div>
+                  <div>Check your workspace quota usage.</div>
+                </div>
               }
             >
               <span className="cursor-not-allowed">
                 <Button
                   onClick={createInstanceHandler}
                   className="hidden xs:block pointer-events-none"
-                  disabled={
-                    totalInstances === instancesLimit ||
-                    createDisabled ||
-                    !canCreate
-                  }
+                  disabled={createDisabled || !canCreate}
                   type="primary"
                   shape="round"
                   size={'middle'}
@@ -563,11 +539,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                       })) || [],
               }}
               onClick={createInstanceHandler}
-              disabled={
-                totalInstances === instancesLimit ||
-                createDisabled ||
-                !canCreate
-              }
+              disabled={createDisabled || !canCreate}
               type="primary"
               size={'middle'}
             >
@@ -577,11 +549,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
             <Button
               onClick={createInstanceHandler}
               className="hidden xs:block"
-              disabled={
-                totalInstances === instancesLimit ||
-                createDisabled ||
-                !canCreate
-              }
+              disabled={createDisabled || !canCreate}
               type="primary"
               shape="round"
               size={'middle'}

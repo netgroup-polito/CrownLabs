@@ -5,7 +5,7 @@ query tenant($tenantId: String!) {
       firstName
       lastName
       lastLogin
-      quota {
+      personalWorkspace {
         cpu
         instances
         memory
@@ -40,11 +40,6 @@ query tenant($tenantId: String!) {
       personalNamespace {
         name
         created
-      }
-      quota {
-        cpu
-        instances
-        memory
       }
     }
   }

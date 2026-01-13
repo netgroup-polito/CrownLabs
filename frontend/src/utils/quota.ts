@@ -63,7 +63,7 @@ export function calculateWorkspaceTotalQuota(
     ) || {};
 
   // Add personal workspace quota (if enabled)
-  const personalWorkspaceQuota = tenantData?.tenant?.spec?.quota;
+  const personalWorkspaceQuota = tenantData?.tenant?.spec?.personalWorkspace;
   quotas['personal'] = {
     instances: personalWorkspaceQuota?.instances || 0,
     cpu: personalWorkspaceQuota?.cpu

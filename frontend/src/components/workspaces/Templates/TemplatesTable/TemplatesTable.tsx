@@ -21,7 +21,6 @@ import {
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
-  totalInstances: number;
   tenantNamespace: string;
   workspaceNamespace: string;
   workspaceName: string;
@@ -53,7 +52,6 @@ export interface ITemplatesTableProps {
 
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
-    totalInstances,
     tenantNamespace,
     templates,
     role,
@@ -88,7 +86,6 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
           template={record}
           role={role}
           editTemplate={editTemplate}
-          totalInstances={totalInstances}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
