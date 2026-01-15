@@ -1,0 +1,11 @@
+# for testing purposes
+services:
+  newdesktop:
+    build: .
+    image: crownlabs/standalone-vnc-base:v0.1.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - CROWNLABS_LISTEN_PORT=8080
+      - CROWNLABS_BASE_PATH=sub_path/
