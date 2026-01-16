@@ -137,7 +137,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
               setEditOpen(true);
             }}
           />
-          <Tooltip title="Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.">
+          <Tooltip title="Remember that you cannot delete a Shared Volume that is mounted on a Template. Unmount it before deletion.">
             <DeleteOutlined
               style={{ cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.color = hoverColor)}
@@ -259,7 +259,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                       All data will be lost.
                     </>
                   }
-                  description={`Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
+                  description={`Remember that you cannot delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
                   type="warning"
                   buttons={[
                     <Button
