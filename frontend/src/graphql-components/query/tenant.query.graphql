@@ -5,7 +5,11 @@ query tenant($tenantId: String!) {
       firstName
       lastName
       lastLogin
-      createPersonalWorkspace
+      personalWorkspace {
+        cpu
+        instances
+        memory
+      }
       workspaces {
         role
         name
@@ -13,6 +17,11 @@ query tenant($tenantId: String!) {
           itPolitoCrownlabsV1alpha1Workspace {
             spec {
               prettyName
+              quota {
+                cpu
+                instances
+                memory
+              }
             }
             status {
               namespace {
@@ -31,11 +40,6 @@ query tenant($tenantId: String!) {
       personalNamespace {
         name
         created
-      }
-      quota {
-        cpu
-        instances
-        memory
       }
     }
   }

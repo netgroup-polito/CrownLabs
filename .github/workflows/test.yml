@@ -80,7 +80,7 @@ jobs:
       - name: Install Kubebuilder
         run: |
           version=4.6.0 # latest stable version
-          kubernetes_version=1.28.0
+          kubernetes_version=1.29.0
           curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
           curl --fail -sSLo envtest-bins.tar.gz "https://go.kubebuilder.io/test-tools/${kubernetes_version}/$(go env GOOS)/$(go env GOARCH)"
           tar -zxvf envtest-bins.tar.gz && rm -f envtest-bins.tar.gz

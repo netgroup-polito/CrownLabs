@@ -1,0 +1,2 @@
+import TenantPersonalWorkspaceSettings from './TenantPersonalWorkspaceSettings';
+export default TenantPersonalWorkspaceSettings;

@@ -16,10 +16,8 @@ import {
   useApplyTemplateJsonPatchMutation,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import {
-  updatedWorkspaceTemplates,
-} from '../../../../graphql-components/subscription';
-import {type Template, WorkspaceRole } from '../../../../utils';
+import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
+import { type Template, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiTemplate,
@@ -39,12 +37,6 @@ export interface ITemplateTableLogicProps {
   workspaceNamespace: string;
   workspaceName: string;
   role: WorkspaceRole;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonal?: boolean;
 }
 
@@ -58,8 +50,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     workspaceNamespace,
     workspaceName,
     role,
-    availableQuota,
-    refreshQuota,
     isPersonal,
   } = props;
 
@@ -198,16 +188,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         workspaceNamespace,
         nodeSelector: labelSelector as Record<string, string> | undefined,
       },
-    })
-      .then(i => {
-        // Refresh quota after instance creation
-        refreshQuota?.();
-        return i;
-      })
-      .catch(error => {
-        console.error('TemplatesTableLogic createInstance error:', error);
-        throw error;
-      });
+    }).catch(error => {
+      console.error('TemplatesTableLogic createInstance error:', error);
+      throw error;
+    });
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
@@ -233,111 +217,115 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     });
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
-const [showTemplateModal, setShowTemplateModal] = useState(false);
-const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
 
   const [applyTemplateJsonPatchMutation] = useApplyTemplateJsonPatchMutation({
-  onError: apolloErrorCatcher,
-});
+    onError: apolloErrorCatcher,
+  });
 
+  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
 
-const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
+  const submitPatchHandler = async (t: TemplateForm) => {
+    try {
+      // const patchJson = getTemplatePatchJson({
+      //   spec: {
+      //     prettyName: t.name,
+      //     deleteAfter: t.deleteAfter,
+      //     inactivityTimeout: t.inactivityTimeout,
+      //     description: usedTemplate?.description ?? t.name,
+      //     environmentList: t.environments.map(
+      //       (env): EnvironmentListListItemInput => ({
+      //         name: env.name,
+      //         mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
+      //         guiEnabled: env.gui,
+      //         persistent: env.persistent,
+      //         environmentType: env.environmentType,
+      //         resources: {
+      //           reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
+      //           cpu: env.cpu,
+      //           memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
+      //           disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
+      //         },
+      //         image: env.registry
+      //           ? `${env.registry}/${env.image}`
+      //           : env.image,
+      //         sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
+      //           (svm): SharedVolumeMountsListItemInput => ({
+      //             mountPath: svm.mountPath,
+      //             readOnly: svm.readOnly,
+      //             sharedVolume: {
+      //               name: svm.sharedVolume,
+      //               namespace: workspaceNamespace,
+      //             }
+      //           }),
+      //         ),
+      //       }),
+      //     ),
+      //   },
+      // });
 
+      const environmentList = t.environments.map(
+        (env): EnvironmentListListItemInput => ({
+          name: env.name,
+          mountMyDriveVolume:
+            usedTemplate?.environmentList.find(e => e.name === env.name)
+              ?.mountMyDriveVolume ?? true,
+          guiEnabled: env.gui,
+          persistent: env.persistent,
+          environmentType: env.environmentType,
+          resources: {
+            reservedCPUPercentage:
+              usedTemplate?.environmentList.find(e => e.name === env.name)
+                ?.resources.reservedCPUPercentage ?? 50,
+            cpu: env.cpu,
+            memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
+            disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
+          },
+          image: env.registry ? `${env.registry}/${env.image}` : env.image,
+          sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
+            (svm): SharedVolumeMountsListItemInput => ({
+              mountPath: svm.mountPath,
+              readOnly: svm.readOnly,
+              sharedVolume: {
+                name: svm.sharedVolume,
+                namespace: workspaceNamespace,
+              },
+            }),
+          ),
+        }),
+      );
 
-const submitPatchHandler = async (t: TemplateForm) => {
-  try {
-    
-    // const patchJson = getTemplatePatchJson({
-    //   spec: {
-    //     prettyName: t.name,
-    //     deleteAfter: t.deleteAfter,
-    //     inactivityTimeout: t.inactivityTimeout,
-    //     description: usedTemplate?.description ?? t.name,
-    //     environmentList: t.environments.map(
-    //       (env): EnvironmentListListItemInput => ({
-    //         name: env.name,
-    //         mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
-    //         guiEnabled: env.gui,
-    //         persistent: env.persistent,
-    //         environmentType: env.environmentType,
-    //         resources: {
-    //           reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
-    //           cpu: env.cpu,
-    //           memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-    //           disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
-    //         },
-    //         image: env.registry
-    //           ? `${env.registry}/${env.image}`
-    //           : env.image,
-    //         sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
-    //           (svm): SharedVolumeMountsListItemInput => ({
-    //             mountPath: svm.mountPath,
-    //             readOnly: svm.readOnly,
-    //             sharedVolume: {
-    //               name: svm.sharedVolume,
-    //               namespace: workspaceNamespace,
-    //             }
-    //           }),
-    //         ),
-    //       }),
-    //     ),
-    //   },
-    // });
+      const patchJson = JSON.stringify([
+        {
+          op: 'replace',
+          path: '/spec/environmentList',
+          value: environmentList,
+        },
+        { op: 'replace', path: '/spec/prettyName', value: t.name },
+        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
+        {
+          op: 'replace',
+          path: '/spec/inactivityTimeout',
+          value: t.inactivityTimeout,
+        },
+      ]);
 
-    const environmentList = t.environments.map(
-          (env): EnvironmentListListItemInput => ({
-            name: env.name,
-            mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
-            guiEnabled: env.gui,
-            persistent: env.persistent,
-            environmentType: env.environmentType,
-            resources: {
-              reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
-              cpu: env.cpu,
-              memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-              disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
-            },
-            image: env.registry
-              ? `${env.registry}/${env.image}`
-              : env.image,
-            sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
-              (svm): SharedVolumeMountsListItemInput => ({
-                mountPath: svm.mountPath,
-                readOnly: svm.readOnly,
-                sharedVolume: {
-                  name: svm.sharedVolume,
-                  namespace: workspaceNamespace,
-                }
-              }),
-            ),
-          }),
-        );
-    
+      //    console.log('Patch JSON:', patchJson);
 
-    const patchJson = JSON.stringify([
-      { op: 'replace', path: '/spec/environmentList', value: environmentList },
-      { op: 'replace', path: '/spec/prettyName', value: t.name },
-      { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-      { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
-    ]);
-
-//    console.log('Patch JSON:', patchJson); 
-
-    return await applyTemplateJsonPatchMutation({
-      variables: {
-        workspaceNamespace,
-        templateId: usedTemplate?.id ?? '',
-        patchJson: patchJson,
-        manager: 'frontend-template-patch',
-      },
-    });
-  } catch (error) {
-    console.error('TemplatesTableLogic applyTemplateMutation error:', error);
-    throw error;
-  }
-};
-
-
+      return await applyTemplateJsonPatchMutation({
+        variables: {
+          workspaceNamespace,
+          templateId: usedTemplate?.id ?? '',
+          patchJson: patchJson,
+          manager: 'frontend-template-patch',
+        },
+      });
+    } catch (error) {
+      console.error('TemplatesTableLogic applyTemplateMutation error:', error);
+      throw error;
+    }
+  };
 
   return (
     <div
@@ -378,7 +366,6 @@ const submitPatchHandler = async (t: TemplateForm) => {
               }}
             >
               <TemplatesTable
-                totalInstances={ownedInstances.length}
                 tenantNamespace={tenantNamespace}
                 workspaceNamespace={workspaceNamespace}
                 workspaceName={workspaceName}
@@ -390,15 +377,11 @@ const submitPatchHandler = async (t: TemplateForm) => {
                       workspaceNamespace,
                       templateId,
                     },
-                  }).then(result => {
-                    // Refresh quota after template deletion
-                    refreshQuota?.();
-                    return result;
                   })
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
-                  setUsedTemplate(template)                  
+                  setUsedTemplate(template);
                   const templateForm: TemplateForm = {
                     name: template.name,
                     deleteAfter: template.deleteAfter,
@@ -406,14 +389,21 @@ const submitPatchHandler = async (t: TemplateForm) => {
                     environments: template.environmentList.map(env => ({
                       name: env.name,
                       persistent: env.persistent,
-                      environmentType: env.environmentType?? EnvironmentType.VirtualMachine,
+                      environmentType:
+                        env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
                       ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
                       disk: env.resources.disk
                         ? parseInt(env.resources.disk) / 1000
                         : 0, // convert from Mi to Gi
-                      image: getImageNameNoVer(env.image).split('/').slice(-2).join('/') ?? '',
-                      registry: getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '',
+                      image:
+                        getImageNameNoVer(env.image)
+                          .split('/')
+                          .slice(-2)
+                          .join('/') ?? '',
+                      registry:
+                        getImageNameNoVer(env.image).split('/').slice(0)[0] ??
+                        '',
                       sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
                         sharedVolume: svm.name,
                         mountPath: svm.mountPath,
@@ -425,11 +415,8 @@ const submitPatchHandler = async (t: TemplateForm) => {
                   };
                   setEditingTemplate(templateForm);
                   setShowTemplateModal(true);
-                  
                 }}
                 createInstance={createInstance}
-                availableQuota={availableQuota}
-                refreshQuota={refreshQuota}
                 isPersonal={isPersonal}
               />
               <ModalCreateTemplate
@@ -440,13 +427,10 @@ const submitPatchHandler = async (t: TemplateForm) => {
                 cpuInterval={{ max: 8, min: 1 }}
                 ramInterval={{ max: 32, min: 1 }}
                 diskInterval={{ max: 50, min: 10 }}
-                submitHandler={
-                 submitPatchHandler 
-                }
+                submitHandler={submitPatchHandler}
                 loading={false}
                 isPersonal={isPersonal}
               />
-
             </div>
           ) : (
             <div
@@ -463,29 +447,26 @@ const submitPatchHandler = async (t: TemplateForm) => {
             >
               <TemplatesEmpty role={role} />
             </div>
-            )}
-          </Spin>
-        </div>
-        {role === WorkspaceRole.manager &&
-            !loadingTemplate &&
-            !isPersonal ? (
-              <div
-                style={{
-                  position: 'sticky',
-                  bottom: 0,
-                  zIndex: 100,
-                }}
-                className="cl-shared-volumes-bg"
-              >
-                <SharedVolumesDrawer
-                  workspaceNamespace={workspaceNamespace}
-                  isPersonal={isPersonal}
-                />
-              </div>
-            ) : null}
+          )}
+        </Spin>
       </div>
+      {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
+        <div
+          style={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 100,
+          }}
+          className="cl-shared-volumes-bg"
+        >
+          <SharedVolumesDrawer
+            workspaceNamespace={workspaceNamespace}
+            isPersonal={isPersonal}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 };
 
 export default TemplatesTableLogic;
-

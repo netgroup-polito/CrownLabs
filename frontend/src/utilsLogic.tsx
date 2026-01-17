@@ -27,12 +27,13 @@ import {
 import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
+  InstanceEnvironment,
   SharedVolume,
   Template,
   Workspace,
   WorkspacesAvailable,
 } from './utils';
-import { WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import { convertToGB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
@@ -164,6 +165,20 @@ export const getInstanceLabels = (
   i: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
 ): InstanceLabels | undefined => i.metadata?.labels as InstanceLabels;
 
+/** Gets the workspace name of an instance from its labels.
+ * If not available, derives it from the template's namespace */
+export function getInstanceWorkspaceName(
+  instance: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
+): string {
+  return (
+    getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ||
+    instance?.spec?.templateCrownlabsPolitoItTemplateRef?.namespace?.slice(
+      'workspace-'.length,
+    ) ||
+    ''
+  );
+}
+
 // Helper functions for type conversions
 const safePhaseConversion = (phase: unknown): Phase => {
   return (phase as Phase) || Phase.Starting;
@@ -289,19 +304,22 @@ export const makeGuiInstance = (
   const { name, namespace: tenantNamespace } = metadata ?? {};
   const { running, prettyName, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
-  const { environmentList, prettyName: templatePrettyName } = spec
-    ?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-    ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {
-    environmentList: [],
-    prettyName: '',
-  };
+
   const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
+  const templateSpec =
+    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec;
+  const templatePrettyName = templateSpec?.prettyName || '';
+
+  const templateEnvironmentList = templateSpec?.environmentList || [];
+  const instanceStatusEnvironmentList = status?.environments || [];
 
   const environments =
-    status?.environments?.map(envStatus => {
-      const templateEnv = environmentList?.find(
-        env => env?.name === envStatus?.name,
+    templateEnvironmentList.map(templateEnv => {
+      const envStatus = instanceStatusEnvironmentList.find(
+        env => env?.name === templateEnv?.name,
       );
+
       return {
         name: envStatus?.name ?? '',
         phase: envStatus?.phase,
@@ -309,13 +327,22 @@ export const makeGuiInstance = (
         guiEnabled: templateEnv?.guiEnabled ?? false,
         persistent: templateEnv?.persistent ?? false,
         environmentType: templateEnv?.environmentType,
-      };
+        quota: {
+          cpu: templateEnv?.resources?.cpu || 0,
+          memory: templateEnv?.resources?.memory
+            ? convertToGB(templateEnv?.resources?.memory)
+            : 0,
+          disk: templateEnv?.resources?.disk
+            ? convertToGB(templateEnv?.resources?.disk)
+            : 0,
+        },
+      } as InstanceEnvironment;
     }) ?? [];
 
   const hasMultipleEnvironments = environments.length > 1;
 
   // For backwards compatibility, use the first environment for main properties
-  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
+  const primaryEnvironment = (templateEnvironmentList ?? [])[0] ?? {};
   const primaryStatus = environments[0];
 
   const { guiEnabled, persistent, environmentType } = primaryEnvironment;
@@ -335,6 +362,7 @@ export const makeGuiInstance = (
   if (publicExposureObj && !publicExposureObj.ports) {
     publicExposureObj.ports = [];
   }
+
   return {
     id: instanceID,
     name: name,
@@ -358,8 +386,7 @@ export const makeGuiInstance = (
     timeStamp: metadata?.creationTimestamp,
     tenantId: userId,
     tenantNamespace: tenantNamespace,
-    workspaceName:
-      getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ?? '',
+    workspaceName: getInstanceWorkspaceName(instance),
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
@@ -369,6 +396,11 @@ export const makeGuiInstance = (
     publicExposure: publicExposureObj,
     environments: environments,
     hasMultipleEnvironments,
+    resources: {
+      cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
+      memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
+      disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+    },
   } as Instance;
 };
 

@@ -53,10 +53,10 @@ const (
 	// KeycloakEventsWebhookPath -> path on which the tenant webhook will be bound.
 	KeycloakEventsWebhookPath = "/tenant-webhook"
 
-	// ValidatorWebhookPath -> path on which the validator webhook will be bound.
-	ValidatorWebhookPath = "/validator-v1alpha2-tenant"
-	// DefaulterWebhookPath -> path on which the defaulter webhook will be bound.
-	DefaulterWebhookPath = "/defaulter-v1alpha2-tenant"
+	// TenantValidatorWebhookPath -> path on which the Tenant validator webhook will be bound.
+	TenantValidatorWebhookPath = "/validator-v1alpha2-tenant"
+	// TenantDefaulterWebhookPath -> path on which the Tenant defaulter webhook will be bound.
+	TenantDefaulterWebhookPath = "/defaulter-v1alpha2-tenant"
 )
 
 func init() {
@@ -195,14 +195,14 @@ func setupTenantWebhook(
 		WithValidator(&webhook.TenantValidator{
 			TenantWebhook: tnWh,
 		}).
-		WithValidatorCustomPath(ValidatorWebhookPath).
+		WithValidatorCustomPath(TenantValidatorWebhookPath).
 		WithDefaulter(&webhook.TenantDefaulter{
 			TenantWebhook:   tnWh,
 			Decoder:         admission.NewDecoder(mgr.GetScheme()),
 			OpSelectorLabel: targetLabel,
 			BaseWorkspaces:  baseWorkspaces,
 		}).
-		WithDefaulterCustomPath(DefaulterWebhookPath).
+		WithDefaulterCustomPath(TenantDefaulterWebhookPath).
 		Complete(); err != nil {
 		return err
 	}
