@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "image-list.fullname" . }}
+  labels:
+    {{- include "image-list.labels" . | nindent 4 }}
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "image-list.fullname" . }}
+          containers:
+            - name: {{ .Chart.Name }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ include "image-list.version" . }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if .Values.configurations.dryRun }}
+              args:
+                - --advertised-registry-name={{ .Values.configurations.advRegistryName }}
+                - --image-list-name={{ .Values.configurations.imageListName }}
+                - --registry-url={{ .Values.configurations.registryUrl }}
+                - --update-interval={{ .Values.configurations.updateInterval }}
+                - --registry-username={{ .Values.configurations.username }}
+                - --registry-password={{ .Values.configurations.password }}
+              {{- end }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          restartPolicy: OnFailure
+  schedule: {{ .Values.configurations.schedule | quote }}
+  startingDeadlineSeconds: {{ .Values.configurations.startingDeadlineSeconds }}

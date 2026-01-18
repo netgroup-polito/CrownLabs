@@ -23,17 +23,8 @@ func NewImageListUpdater(reqs []ImageListRequestor, imageListBase, registryAdv s
 	}
 }
 
-func (u *ImageListUpdater) RunUpdateProcess(interval time.Duration, stop <-chan struct{}) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			u.Update()
-		case <-stop:
-			return
-		}
-	}
+func (u *ImageListUpdater) RunUpdateProcess() {
+	u.Update()
 }
 
 // Update performs the actual update process.

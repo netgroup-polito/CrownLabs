@@ -8,7 +8,11 @@ configurations:
   registryUrl: http://docker-registry.docker-registry:5000
   advRegistryName: registry.crownlabs.example.com
   imageListName: crownlabs-virtual-machine-images
+  username: test
+  password: test
   updateInterval: 60
+  schedule: "*/1 * * * *"
+
 
 image:
   repository: crownlabs/crownlabs-image-list

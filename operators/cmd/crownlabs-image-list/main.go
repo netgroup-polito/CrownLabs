@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -63,12 +60,15 @@ func main() {
 
 	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName, log)
 
-	stop := make(chan struct{})
-	go up.RunUpdateProcess(time.Duration(updateIntervalSec)*time.Second, stop)
+	// without cronjob
+	// for {
+	// 	up.RunUpdateProcess()
+	// 	// t := time.NewTicker(time.Duration(updateIntervalSec) * time.Second)
+	// 	time.Sleep(time.Duration(updateIntervalSec) * time.Second)
+	// }
+	///
 
-	// graceful shutdown
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
-	<-sigc
-	close(stop)
+	// with the cronjob
+	up.RunUpdateProcess()
+
 }
