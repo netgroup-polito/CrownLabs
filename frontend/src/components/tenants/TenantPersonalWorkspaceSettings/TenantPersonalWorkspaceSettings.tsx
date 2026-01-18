@@ -49,7 +49,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       newQuota = {
         cpu: data.cpu?.toString() ?? '0',
-        memory: `${data.memory?.toString() ?? '0'}Gi`,
+        memory: `${data.memory?.toString() ?? '0'}GiB`,
         instances: data.instances ?? 0,
       };
     }
@@ -104,7 +104,7 @@ const TenantPersonalWorkspaceSettings: FC<
         enabled: tenant.tenant?.spec?.personalWorkspace != null,
         cpu: parseFloat(tenant.tenant?.spec?.personalWorkspace?.cpu ?? '0'),
         memory: convertToGB(
-          tenant.tenant?.spec?.personalWorkspace?.memory ?? '0',
+          tenant.tenant?.spec?.personalWorkspace?.memory ?? '0GiB',
         ),
         instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
       }}
