@@ -1,6 +1,10 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
+import {
+  VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+  VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+} from './env';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 import AppLayout from './components/common/AppLayout';
@@ -63,7 +67,9 @@ function App() {
           route: { name: 'Tenants', path: '/tenants' },
           content: <TenantsView key="/tenants" />,
           linkPosition: LinkPosition.NavbarButton,
-          requiredGroups: ['admin'],
+          requiredGroups: [
+            `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+          ],
         },
         {
           route: {
