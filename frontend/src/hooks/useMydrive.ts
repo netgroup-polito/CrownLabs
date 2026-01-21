@@ -95,14 +95,14 @@ export const useMydrive = () => {
             tenantNamespace,
             tenantId,
             workspaceNamespace: VITE_APP_MYDRIVE_WORKSPACE_NAMESPACE,
-            generateName: 'mydrive-',
+            generateName: 'mydrive',
           },
         });
         // Show info modal
         Modal.info({
           title: 'Avvio in corso',
           content:
-            "L'istanza MyDrive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
+            "L'instanza per accedere al drive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
           okText: 'OK',
         });
         // Instance will be picked up by the useEffect and will open when ready
@@ -119,7 +119,7 @@ export const useMydrive = () => {
           Modal.info({
             title: 'Avvio in corso',
             content:
-              "L'istanza MyDrive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
+              "L'instanza per accedere al drive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
             okText: 'OK',
           });
           // Will be opened when ready by useEffect
@@ -128,7 +128,7 @@ export const useMydrive = () => {
           Modal.info({
             title: 'Avvio in corso',
             content:
-              "L'istanza MyDrive è già in fase di avvio. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
+              "L'instanza per accedere al drive è già in fase di avvio. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
             okText: 'OK',
           });
           // Will be opened when ready by useEffect
