@@ -8,9 +8,11 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import { useMydrive } from './hooks/useMydrive';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
+  const { handleDriveClick, isLoading, hasUtilitiesAccess } = useMydrive();
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
@@ -58,13 +60,19 @@ function App() {
           content: <ActiveViewLogic key="/active" />,
           linkPosition: LinkPosition.NavbarButton,
         },
-        {
-          route: {
-            name: 'Drive',
-            path: 'https://crownlabs.polito.it/cloud',
-          },
-          linkPosition: LinkPosition.NavbarButton,
-        },
+        ...(hasUtilitiesAccess
+          ? [
+              {
+                route: {
+                  name: 'Drive',
+                  path: '#',
+                  onClick: handleDriveClick,
+                  loading: isLoading,
+                },
+                linkPosition: LinkPosition.NavbarButton,
+              },
+            ]
+          : []),
         {
           route: {
             name: 'Support',

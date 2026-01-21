@@ -23,6 +23,7 @@ import {
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
+import { useMydrive } from '../../../../hooks/useMydrive';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -64,6 +65,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     onError: apolloErrorCatcher,
   });
   const { refreshQuota } = useQuotaContext(); // Use the quota context
+  const { handleDriveClick, hasUtilitiesAccess } = useMydrive();
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {
@@ -232,18 +234,18 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             onClick: () => setSshModal(true),
             className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
-          {
-            key: 'upload',
-            label: isContainer
-              ? 'File Manager'
-              : environmentType === EnvironmentType.VirtualMachine
-                ? 'Drive'
-                : '',
-            icon: <FolderOpenOutlined style={font20px} />,
-            disabled: fileManagerDisabled,
-            className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
-            onClick: () => {},
-          },
+          ...(hasUtilitiesAccess && environmentType === EnvironmentType.VirtualMachine
+            ? [
+                {
+                  key: 'upload',
+                  label: 'Drive',
+                  icon: <FolderOpenOutlined style={font20px} />,
+                  disabled: fileManagerDisabled,
+                  className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
+                  onClick: handleDriveClick,
+                },
+              ]
+            : []),
           {
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,

@@ -46,6 +46,9 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const buttons = routes.map((b, i) => {
     const routeData = b.route;
     const isExtLink = routeData.path.indexOf('http') === 0;
+    const hasCustomOnClick = !!routeData.onClick;
+    const isLoading = routeData.loading || false;
+    
     return {
       linkPosition: b.linkPosition,
       content: (
@@ -55,16 +58,27 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             pathname:
               b.linkPosition === LinkPosition.Hidden && isSSHRoute
                 ? currentPath
-                : isExtLink
+                : isExtLink || hasCustomOnClick
                   ? ''
                   : routeData.path,
           }}
           rel={isExtLink ? 'noopener noreferrer' : ''}
         >
           <Button
-            onClick={() =>
-              isExtLink ? window.open(routeData.path, '_blank') : setShow(false)
-            }
+            onClick={(e) => {
+              if (hasCustomOnClick) {
+                e.preventDefault();
+                if (!isLoading) {
+                  routeData.onClick!();
+                }
+              } else if (isExtLink) {
+                window.open(routeData.path, '_blank');
+              } else {
+                setShow(false);
+              }
+            }}
+            loading={isLoading}
+            disabled={isLoading}
             ghost={
               b.linkPosition === LinkPosition.Hidden
                 ? false
