@@ -20,9 +20,9 @@ configuration:
     realm: <realm>
     providerUrl: https://auth.example.com/auth/
   mydrive:
-    templateName: <template-name>
-    workspaceName: <workspace-name>
-    workspaceNamespace: <workspace-namespace>
+    templateName: mydrive
+    workspaceName: utilities
+    workspaceNamespace: workspace-utilities
 
 imagePullSecrets: []
 nameOverride: ""
