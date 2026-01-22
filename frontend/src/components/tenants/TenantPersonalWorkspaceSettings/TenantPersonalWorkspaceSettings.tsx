@@ -96,8 +96,8 @@ const TenantPersonalWorkspaceSettings: FC<
   return (
     <Form
       form={form}
-      labelCol={{ span: 12 }}
-      wrapperCol={{ span: 12 }}
+      labelCol={{ span: 6 }}
+      wrapperCol={{ span: 18 }}
       onFinish={submitForm}
       onValuesChange={onValuesChange}
       initialValues={{
@@ -124,7 +124,7 @@ const TenantPersonalWorkspaceSettings: FC<
         validateTrigger="onBlur"
         rules={[numberValidator]}
       >
-        <InputNumber min={0} disabled={!isEnabled} />
+        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
       </Form.Item>
 
       <Form.Item
@@ -133,7 +133,12 @@ const TenantPersonalWorkspaceSettings: FC<
         validateTrigger="onBlur"
         rules={[numberValidator]}
       >
-        <InputNumber min={0} disabled={!isEnabled} />
+        <InputNumber
+          min={0}
+          disabled={!isEnabled}
+          className="w-100"
+          addonAfter="GB"
+        />
       </Form.Item>
 
       <Form.Item
@@ -142,7 +147,7 @@ const TenantPersonalWorkspaceSettings: FC<
         validateTrigger="onBlur"
         rules={[numberValidator]}
       >
-        <InputNumber min={0} disabled={!isEnabled} />
+        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
       </Form.Item>
 
       <Row justify="center">

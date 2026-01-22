@@ -14,6 +14,7 @@ import type {
   ItPolitoCrownlabsV1alpha2Template,
   Maybe,
   OwnedInstancesQuery,
+  TenantsQuery,
   UpdatedOwnedInstancesSubscriptionResult,
   WorkspacesListItem,
 } from './generated-types';
@@ -23,6 +24,7 @@ import {
   Phase,
   Phase2,
   Phase5,
+  Role,
   UpdateType,
 } from './generated-types';
 import { getInstancePatchJson } from './graphql-components/utils';
@@ -35,6 +37,7 @@ import type {
   Workspace,
   WorkspacesAvailable,
   PublicExposure,
+  Tenant,
 } from './utils';
 import { convertToGB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
@@ -988,4 +991,21 @@ export const makeGuiSharedVolume = (
     timeStamp: metadata?.creationTimestamp,
     namespace: metadata?.namespace,
   } as SharedVolume;
+};
+
+export const makeTenantsList = (rawTenantsQuery?: TenantsQuery): Tenant[] => {
+  return (
+    rawTenantsQuery?.tenants?.items?.map(user => ({
+      key: user?.metadata?.name || '',
+      userid: user?.metadata?.name || '',
+      name: user?.spec?.firstName || '',
+      surname: user?.spec?.lastName || '',
+      email: user?.spec?.email || '',
+      workspaces:
+        user?.spec?.workspaces?.map(workspace => ({
+          role: workspace?.role || Role.User,
+          name: workspace?.name || '',
+        })) || [],
+    })) || []
+  );
 };
