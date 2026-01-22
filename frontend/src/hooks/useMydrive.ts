@@ -9,7 +9,7 @@ import {
   Phase2,
 } from '../generated-types';
 import type { Instance } from '../utils';
-import { setInstanceRunning } from '../utilsLogic';
+import { setInstanceRunning, setInstancePrettyname } from '../utilsLogic';
 import {
   VITE_APP_MYDRIVE_TEMPLATE_NAME,
   VITE_APP_MYDRIVE_WORKSPACE_NAME,
@@ -70,6 +70,13 @@ export const useMydrive = () => {
     return false;
   }, [mydriveInstance]);
 
+  // Set prettyname if not already set
+  useEffect(() => {
+    if (mydriveInstance && mydriveInstance.prettyName !== 'filemanager') {
+      setInstancePrettyname('filemanager', mydriveInstance, applyInstanceMutation);
+    }
+  }, [mydriveInstance, applyInstanceMutation]);
+
   // Monitor instance status and open when ready
   useEffect(() => {
     if (isLoading && mydriveInstance?.status === Phase2.Ready) {
@@ -95,7 +102,6 @@ export const useMydrive = () => {
             tenantNamespace,
             tenantId,
             workspaceNamespace: VITE_APP_MYDRIVE_WORKSPACE_NAMESPACE,
-            generateName: 'mydrive',
           },
         });
         // Show info modal
