@@ -51,18 +51,8 @@ const DriveView: React.FC = () => {
 
   const handleIframeLoad = () => {
     setIframeLoading(false);
-    // Try to detect if iframe loaded successfully or was blocked
-    try {
-      // This will throw if cross-origin or blocked
-      const iframeDoc = iframeRef.current?.contentDocument;
-      if (iframeDoc === null) {
-        // null means cross-origin (potentially blocked)
-        setIframeError(true);
-      }
-    } catch {
-      // Cross-origin error - might be working fine
-      setIframeError(false);
-    }
+    setIframeError(false);
+    
   };
 
   const handleIframeError = () => {
