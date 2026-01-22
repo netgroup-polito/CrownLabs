@@ -137,6 +137,16 @@ const DriveView: React.FC = () => {
         onError={handleIframeError}
         title="CrownLabs Drive"
       />
+      {/* Always show button as fallback option */}
+      <div className="drive-view-fallback-button">
+        <Button
+          type="link"
+          icon={<FolderOpenOutlined />}
+          onClick={openInNewTab}
+        >
+          Having trouble? Open in new tab
+        </Button>
+      </div>
     </div>
   );
 };

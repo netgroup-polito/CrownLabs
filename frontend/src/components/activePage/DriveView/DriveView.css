@@ -44,3 +44,11 @@
 :global(.dark) .drive-view-iframe {
   background: #1f1f1f;
 }
+
+.drive-view-fallback-button {
+  position: absolute;
+  bottom: 8px;
+  right: 50px;
+  z-index: 5;
+  color: red;
+}
