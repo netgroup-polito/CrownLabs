@@ -13,7 +13,6 @@ import { setInstanceRunning, setInstancePrettyname } from '../utilsLogic';
 import {
   VITE_APP_MYDRIVE_TEMPLATE_NAME,
   VITE_APP_MYDRIVE_WORKSPACE_NAME,
-  VITE_APP_MYDRIVE_WORKSPACE_NAMESPACE,
 } from '../env';
 
 export const useMydrive = () => {
@@ -26,6 +25,13 @@ export const useMydrive = () => {
 
   const tenantId = tenantData?.tenant?.metadata?.name;
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  // Derive utilities workspace namespace dynamically from the workspace object
+  const utilitiesWorkspace = tenantData?.tenant?.spec?.workspaces?.find(
+    ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME
+  );
+
+  const workspaceNamespace = utilitiesWorkspace?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace?.name;
 
   // Check if user has access to utilities workspace
   const hasUtilitiesAccess = Boolean(
@@ -91,6 +97,12 @@ export const useMydrive = () => {
       return;
     }
 
+    if (!workspaceNamespace) {
+      console.error('Utilities workspace namespace not available');
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -101,7 +113,7 @@ export const useMydrive = () => {
             templateId: VITE_APP_MYDRIVE_TEMPLATE_NAME,
             tenantNamespace,
             tenantId,
-            workspaceNamespace: VITE_APP_MYDRIVE_WORKSPACE_NAMESPACE,
+            workspaceNamespace,
           },
         });
         // Show info modal

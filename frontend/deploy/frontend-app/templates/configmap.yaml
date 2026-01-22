@@ -11,4 +11,4 @@ data:
     window.VITE_APP_CROWNLABS_OIDC_AUTHORITY="{{ .Values.configuration.oidc.providerUrl }}realms/{{ .Values.configuration.oidc.realm }}/";
     window.VITE_APP_MYDRIVE_TEMPLATE_NAME="{{ .Values.configuration.mydrive.templateName }}";
     window.VITE_APP_MYDRIVE_WORKSPACE_NAME="{{ .Values.configuration.mydrive.workspaceName }}";
-    window.VITE_APP_MYDRIVE_WORKSPACE_NAMESPACE="{{ .Values.configuration.mydrive.workspaceNamespace }}";
+
