@@ -17,7 +17,7 @@ import { cn } from '../../../../utils/style';
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
   instance: Instance;
-  workspaceAvailableQuota: IQuota;
+  workspaceAvailableQuota?: IQuota;
 }
 
 const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
