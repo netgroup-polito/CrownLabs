@@ -74,7 +74,7 @@ The **InstanceInactiveTerminationReconciler** is set to watch and react to event
 
 
 ### Labels and Annotations
-* **InstanceInactivityIgnoreNamespace**: `Namespace` annotation used to ignore the inactivity termination for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
+* **crownlabs.polito.it/instance-inactivity-ignore**: `Namespace` label used to ignore the inactivity termination for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
 * **crownlabs.polito.it/number-alerts-sent**: Instance annotation that stores the number of email notifications sent to the `Tenant`.
 * **LastNotificationTimestampAnnotation**: Instance annotation that stores the timestamp of the last email notification sent to the `Tenant`.
 * **LastRunningAnnotation**: Instance annotation that stores the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.

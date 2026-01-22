@@ -164,7 +164,7 @@ The number of notifications sent is defined by the `inactiveTerminationMaxNumber
 Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**.
 After the final action, an additional email is sent to inform the tenant.
 Both the controller and the email notifications can be enabled or disabled through the Helm chart using the `enableInstanceInactiveTermination` and `enableInactivityNotifications` parameters.
-In addition, the behavior can be customized using annotations. For example, the `crownlabs.polito.it/custom-number-alerts` on a Template allows overriding the default number of notifications for a specific Instance type, while the `crownlabs.polito.it/instance-inactivity-ignore` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
+In addition, the behavior can be customized using annotations. For example, the `crownlabs.polito.it/custom-number-alerts` annotation on a Template allows overriding the default number of notifications for a specific Instance type, while the `crownlabs.polito.it/instance-inactivity-ignore` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
 
 #### Instance Expiration controller
 While the Instance Inactive Termination Controller deletes Instances when these are not used for an extended period of time, this controller (_Instance Expiration Controller_) introduces an orthogonal feature, i.e., the capability to delete an Instance when its maximum lifespan has expired, no matter if the instance has been used or not.

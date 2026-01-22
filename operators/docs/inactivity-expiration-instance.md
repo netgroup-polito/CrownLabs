@@ -15,13 +15,13 @@ Each `Template` resource defines an `InactivityTimeout` field, which specifies t
 By default, new Templates have `InactivityTimeout` set to `never`, meaning inactivity checks are disabled. Instances created from such templates will never be terminated due to inactivity.
 
 ## Namespace-level opt-out
-You can prevent all instances in a namespace from being considered for inactivity-based suspension or deletion by adding the label `InstanceInactivityIgnoreNamespace: "true"` to the namespace. If this label is present and set to `true`, the inactivity controller will ignore all instances in that namespace, regardless of their template settings. If omitted or set to `false`, inactivity checks are enabled as usual.
+You can prevent all instances in a namespace from being considered for inactivity-based suspension or deletion by adding the label `crownlabs.polito.it/instance-inactivity-ignore: "true"` to the namespace. If this label is present and set to `true`, the inactivity controller will ignore all instances in that namespace, regardless of their template settings. If omitted or set to `false`, inactivity checks are enabled as usual.
 
 ## Additional details
 - The number of warning notifications sent before action is taken is controlled by the `inactiveTerminationMaxNumberOfAlerts` Helm parameter, and can be overridden per-template using the `rownlabs.polito.it/custom-number-alerts` annotation.
 - The time between notifications is controlled by the `inactiveTerminationNotificationInterval` Helm parameter.
 - The controller uses Prometheus metrics (Nginx and SSH) to determine last activity.
-- The following annotations and labels are used:
+- The following annotations are used:
 	- `crownlabs.polito.it/number-alerts-sent`: Number of notifications sent to the tenant.
 	- `crownlabs.polito.it/last-notification-timestamp`: Timestamp of the last notification sent.
 	- `crownlabs.polito.it/last-running`: Used to detect if the instance has been restarted after being paused.
