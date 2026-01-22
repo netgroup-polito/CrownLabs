@@ -18,14 +18,14 @@ By default, new Templates have `InactivityTimeout` set to `never`, meaning inact
 You can prevent all instances in a namespace from being considered for inactivity-based suspension or deletion by adding the label `InstanceInactivityIgnoreNamespace: "true"` to the namespace. If this label is present and set to `true`, the inactivity controller will ignore all instances in that namespace, regardless of their template settings. If omitted or set to `false`, inactivity checks are enabled as usual.
 
 ## Additional details
-- The number of warning notifications sent before action is taken is controlled by the `inactiveTerminationMaxNumberOfAlerts` Helm parameter, and can be overridden per-template using the `CustomNumberOfAlertsAnnotation` annotation.
+- The number of warning notifications sent before action is taken is controlled by the `inactiveTerminationMaxNumberOfAlerts` Helm parameter, and can be overridden per-template using the `rownlabs.polito.it/custom-number-alerts` annotation.
 - The time between notifications is controlled by the `inactiveTerminationNotificationInterval` Helm parameter.
 - The controller uses Prometheus metrics (Nginx and SSH) to determine last activity.
 - The following annotations and labels are used:
-	- `AlertAnnotationNum`: Number of notifications sent to the tenant.
-	- `LastNotificationTimestampAnnotation`: Timestamp of the last notification sent.
-	- `LastRunningAnnotation`: Used to detect if the instance has been restarted after being paused.
-	- `CustomNumberOfAlertsAnnotation`: Overrides the default max number of alerts for a specific template.
+	- `crownlabs.polito.it/number-alerts-sent`: Number of notifications sent to the tenant.
+	- `crownlabs.polito.it/last-notification-timestamp`: Timestamp of the last notification sent.
+	- `crownlabs.polito.it/last-running`: Used to detect if the instance has been restarted after being paused.
+	- `rownlabs.polito.it/custom-number-alerts`: Overrides the default max number of alerts for a specific template.
 
 For more technical details, see the [Instance Automation Controller README](../pkg/instautoctrl/README.md).
 
@@ -46,11 +46,11 @@ Each `Template` resource defines a `DeleteAfter` field, which specifies the maxi
 By default, new Templates have the `DeleteAfter` field set to `never`, meaning expiration-based deletion is disabled. Instances created from such templates do not have any maximum age constraint.
 
 ## Namespace-level opt-out
-If the namespace containing an instance has the label `ExpirationIgnoreNamespace: "true"`, expiration checks are also skipped for all instances in that namespace.
+If the namespace containing an instance has the label `crownlabs.polito.it/expiration-ignore: "true"`, expiration checks are also skipped for all instances in that namespace.
 
 ## Additional details
 - The time between warning and deletion is controlled by the `expirationNotificationInterval` Helm parameter.
-- The controller uses the annotation `ExpiringWarningNotificationTimestampAnnotation` to track if a warning has already been sent and when.
+- The controller uses the annotation `crownlabs.polito.it/expiring-warning-notification-timestamp` to track if a warning has already been sent and when.
 - The controller only deletes instances when the maximum age is reached, regardless of activity.
 
 For more technical details, see the [Instance Automation Controller README](../pkg/instautoctrl/README.md).
