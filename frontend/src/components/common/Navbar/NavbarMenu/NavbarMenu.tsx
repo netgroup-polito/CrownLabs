@@ -84,7 +84,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
                   target={isExtLink ? '_blank' : ''}
                   to={{ pathname: isExtLink || hasCustomOnClick ? '' : r.path }}
                   rel={isExtLink ? 'noopener noreferrer' : ''}
-                  onClick={(e) => {
+                  onClick={e => {
                     if (hasCustomOnClick) {
                       e.preventDefault();
                     }

@@ -4,7 +4,7 @@ import {
 } from '@ant-design/icons';
 import type { FetchResult, MutationFunctionOptions } from '@apollo/client';
 import { Button } from 'antd';
-import {  type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import type {
   ApplyInstanceMutation,
   Exact,
@@ -55,7 +55,6 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
   };
 }
 
-
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias,
 ): Template => {
@@ -64,7 +63,6 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
-
 
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
@@ -130,11 +128,14 @@ export const makeGuiTemplate = (
       environmentType: env?.environmentType,
       mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
       image: env?.image ?? '',
-      sharedVolumeMounts: env?.sharedVolumeMounts?.filter(svm => svm!= null).map(svm => ({
-        name: svm?.sharedVolume?.name ?? '',
-        mountPath: svm.mountPath ?? '',
-        readOnly: svm.readOnly ?? false,
-      })) ?? [],
+      sharedVolumeMounts:
+        env?.sharedVolumeMounts
+          ?.filter(svm => svm != null)
+          .map(svm => ({
+            name: svm?.sharedVolume?.name ?? '',
+            mountPath: svm.mountPath ?? '',
+            readOnly: svm.readOnly ?? false,
+          })) ?? [],
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
@@ -762,7 +763,7 @@ export const getTemplatesMapped = (
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
       deleteAfter: '',
-      inactivityTimeout:''
+      inactivityTimeout: '',
     };
   });
 };

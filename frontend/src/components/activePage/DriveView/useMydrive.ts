@@ -1,18 +1,18 @@
 import { useState, useCallback, useContext, useEffect, useRef } from 'react';
-import { TenantContext } from '../contexts/TenantContext';
-import { OwnedInstancesContext } from '../contexts/OwnedInstancesContext';
-import { ErrorContext } from '../errorHandling/ErrorContext';
+import { TenantContext } from '../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
   useCreateInstanceMutation,
   useApplyInstanceMutation,
   Phase2,
-} from '../generated-types';
-import type { Instance } from '../utils';
-import { setInstanceRunning, setInstancePrettyname } from '../utilsLogic';
+} from '../../../generated-types';
+import type { Instance } from '../../../utils';
+import { setInstanceRunning, setInstancePrettyname } from '../../../utilsLogic';
 import {
   VITE_APP_MYDRIVE_TEMPLATE_NAME,
   VITE_APP_MYDRIVE_WORKSPACE_NAME,
-} from '../env';
+} from '../../../env';
 
 export const useMydrive = () => {
   const [isLoading, setIsLoading] = useState(false);

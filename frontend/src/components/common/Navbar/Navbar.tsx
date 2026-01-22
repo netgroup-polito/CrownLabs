@@ -48,7 +48,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
     const isExtLink = routeData.path.indexOf('http') === 0;
     const hasCustomOnClick = !!routeData.onClick;
     const isLoading = routeData.loading || false;
-    
+
     return {
       linkPosition: b.linkPosition,
       content: (
@@ -65,7 +65,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           rel={isExtLink ? 'noopener noreferrer' : ''}
         >
           <Button
-            onClick={(e) => {
+            onClick={e => {
               if (hasCustomOnClick) {
                 e.preventDefault();
                 if (!isLoading) {

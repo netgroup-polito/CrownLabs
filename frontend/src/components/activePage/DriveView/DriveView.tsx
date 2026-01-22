@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Spin, Button, Alert } from 'antd';
 import { LoadingOutlined, FolderOpenOutlined } from '@ant-design/icons';
-import { useMydrive } from '../../../hooks/useMydrive';
+import { useMydrive } from './useMydrive';
 import { Phase2 } from '../../../generated-types';
 import './DriveView.css';
 
@@ -12,8 +12,39 @@ const DriveView: React.FC = () => {
   const [iframeError, setIframeError] = useState(false);
   const hasStartedRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [readyDelayed, setReadyDelayed] = useState(false);
+  const initialCheckDoneRef = useRef(false);
 
   const driveUrl = getDriveUrl();
+
+  // Handle delay logic:
+  // 1. If instance is Ready on first load -> No delay
+  // 2. If instance becomes Ready after starting -> 2s delay for ingress
+  useEffect(() => {
+    if (!instancesLoaded) return;
+
+    // Status can be undefined if no instance exists yet
+    const currentStatus = mydriveInstance?.status;
+
+    if (currentStatus === Phase2.Ready) {
+      if (!initialCheckDoneRef.current) {
+        // Was ready immediately on load - no delay needed
+        setReadyDelayed(true);
+      } else if (!readyDelayed) {
+        // Became ready dynamically - wait for ingress
+        const timer = setTimeout(() => {
+          setReadyDelayed(true);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      // Not ready (or failed/off)
+      setReadyDelayed(false);
+    }
+
+    // Mark that we have performed the initial check
+    initialCheckDoneRef.current = true;
+  }, [mydriveInstance?.status, instancesLoaded, readyDelayed]);
 
   // Automatically start the drive if it's not running
   // Use a ref to ensure we only attempt to start once per mount
@@ -52,7 +83,6 @@ const DriveView: React.FC = () => {
   const handleIframeLoad = () => {
     setIframeLoading(false);
     setIframeError(false);
-    
   };
 
   const handleIframeError = () => {
@@ -66,20 +96,25 @@ const DriveView: React.FC = () => {
     }
   };
 
-  if (
-    !mydriveInstance ||
-    mydriveInstance.status !== Phase2.Ready ||
-    !driveUrl
-  ) {
+  const isInstanceReady =
+    mydriveInstance && mydriveInstance.status === Phase2.Ready;
+
+  if (!isInstanceReady || !driveUrl || !readyDelayed) {
     return (
       <div className="drive-view-container drive-view-loading">
         <Spin
           indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
           tip={
             <div style={{ marginTop: 16 }}>
-              <p>Starting the drive instance...</p>
+              <p>
+                {isInstanceReady
+                  ? 'Connecting to drive...'
+                  : 'Starting the drive instance...'}
+              </p>
               <p style={{ fontSize: 12, color: '#888' }}>
-                Drive instance is loading. This may take a few moments.
+                {isInstanceReady
+                  ? 'Establishing secure connection...'
+                  : 'Drive instance is loading. This may take a few moments.'}
               </p>
             </div>
           }
