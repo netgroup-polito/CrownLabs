@@ -1,5 +1,4 @@
-import { useState, useCallback, useContext, useEffect } from 'react';
-import { Modal } from 'antd';
+import { useState, useCallback, useContext, useEffect, useRef } from 'react';
 import { TenantContext } from '../contexts/TenantContext';
 import { OwnedInstancesContext } from '../contexts/OwnedInstancesContext';
 import { ErrorContext } from '../errorHandling/ErrorContext';
@@ -17,27 +16,41 @@ import {
 
 export const useMydrive = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [mydriveInstance, setMydriveInstance] = useState<Instance | null>(null);
+  const isStartingRef = useRef(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   const { data: tenantData } = useContext(TenantContext);
-  const { instances: ownedInstances } = useContext(OwnedInstancesContext);
+  const {
+    instances: ownedInstances,
+    loading: instancesLoading,
+    data: instancesData,
+  } = useContext(OwnedInstancesContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
+
+  // Track when data has been loaded at least once
+  useEffect(() => {
+    if (!hasLoadedOnce && !instancesLoading && instancesData) {
+      setHasLoadedOnce(true);
+    }
+  }, [instancesLoading, instancesData, hasLoadedOnce]);
 
   const tenantId = tenantData?.tenant?.metadata?.name;
   const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
   // Derive utilities workspace namespace dynamically from the workspace object
   const utilitiesWorkspace = tenantData?.tenant?.spec?.workspaces?.find(
-    ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME
+    ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
   );
 
-  const workspaceNamespace = utilitiesWorkspace?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace?.name;
+  const workspaceNamespace =
+    utilitiesWorkspace?.workspaceWrapperTenantV1alpha2
+      ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace?.name;
 
   // Check if user has access to utilities workspace
   const hasUtilitiesAccess = Boolean(
     tenantData?.tenant?.spec?.workspaces?.some(
-      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME
-    )
+      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
+    ),
   );
 
   const [createInstanceMutation] = useCreateInstanceMutation({
@@ -48,50 +61,54 @@ export const useMydrive = () => {
     onError: apolloErrorCatcher,
   });
 
-  // Find mydrive instance in owned instances
-  // We look for any instance with the mydrive template in utilities workspace
-  // Since Kubernetes generates the name automatically, we can't rely on a fixed name
-  useEffect(() => {
-    const instance = ownedInstances.find(
+  // Find mydrive instance directly from ownedInstances (no state, computed value)
+  // This ensures we always have the latest value without race conditions
+  const mydriveInstance =
+    ownedInstances.find(
       (inst: Instance) =>
         inst.templateName === VITE_APP_MYDRIVE_TEMPLATE_NAME &&
         inst.workspaceName === VITE_APP_MYDRIVE_WORKSPACE_NAME,
-    );
-    setMydriveInstance(instance || null);
-  }, [ownedInstances]);
+    ) || null;
 
-  // Check if instance is ready and open it
-  const openMydrive = useCallback(() => {
+  // Get the drive URL without opening it
+  const getDriveUrl = useCallback((): string | null => {
     if (mydriveInstance?.status === Phase2.Ready && mydriveInstance.url) {
       const env = mydriveInstance.environments?.[0];
       if (env) {
         const baseUrl = mydriveInstance.url.endsWith('/')
           ? mydriveInstance.url.slice(0, -1)
           : mydriveInstance.url;
-        const envUrl = `${baseUrl}/${env.name}/`;
-        window.open(envUrl, '_blank');
-        return true;
+        return `${baseUrl}/${env.name}/`;
       }
     }
-    return false;
+    return null;
   }, [mydriveInstance]);
 
   // Set prettyname if not already set
   useEffect(() => {
     if (mydriveInstance && mydriveInstance.prettyName !== 'filemanager') {
-      setInstancePrettyname('filemanager', mydriveInstance, applyInstanceMutation);
+      setInstancePrettyname(
+        'filemanager',
+        mydriveInstance,
+        applyInstanceMutation,
+      );
     }
   }, [mydriveInstance, applyInstanceMutation]);
 
-  // Monitor instance status and open when ready
+  // Monitor instance status - just stop loading when ready
   useEffect(() => {
     if (isLoading && mydriveInstance?.status === Phase2.Ready) {
       setIsLoading(false);
-      openMydrive();
     }
-  }, [mydriveInstance, isLoading, openMydrive]);
+  }, [mydriveInstance, isLoading]);
 
-  const handleDriveClick = useCallback(async () => {
+  // Start the drive instance without navigating (used by DriveView component)
+  const startDriveInstance = useCallback(async () => {
+    // Prevent concurrent calls
+    if (isStartingRef.current) {
+      return;
+    }
+
     if (!tenantId || !tenantNamespace) {
       console.error('Tenant information not available');
       return;
@@ -99,10 +116,19 @@ export const useMydrive = () => {
 
     if (!workspaceNamespace) {
       console.error('Utilities workspace namespace not available');
-      setIsLoading(false);
       return;
     }
 
+    // If instance is ready or already starting/running, no need to do anything
+    if (
+      mydriveInstance?.status === Phase2.Ready ||
+      mydriveInstance?.status === Phase2.Starting ||
+      mydriveInstance?.status === Phase2.Importing
+    ) {
+      return;
+    }
+
+    isStartingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -116,59 +142,42 @@ export const useMydrive = () => {
             workspaceNamespace,
           },
         });
-        // Show info modal
-        Modal.info({
-          title: 'Avvio in corso',
-          content:
-            "L'instanza per accedere al drive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
-          okText: 'OK',
-        });
-        // Instance will be picked up by the useEffect and will open when ready
-      } else {
-        // Instance exists - check its status
-        if (mydriveInstance.status === Phase2.Ready) {
-          // Instance is ready, open it
-          setIsLoading(false);
-          openMydrive();
-        } else if (mydriveInstance.status === Phase2.Off) {
-          // Instance is off, start it
-          await setInstanceRunning(true, mydriveInstance, applyInstanceMutation);
-          // Show info modal
-          Modal.info({
-            title: 'Avvio in corso',
-            content:
-              "L'instanza per accedere al drive sta per essere avviata. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
-            okText: 'OK',
-          });
-          // Will be opened when ready by useEffect
-        } else {
-          // Instance is starting or in another transitional state, just wait
-          Modal.info({
-            title: 'Avvio in corso',
-            content:
-              "L'instanza per accedere al drive è già in fase di avvio. Attendi qualche istante, verrà aperta automaticamente quando pronta.",
-            okText: 'OK',
-          });
-          // Will be opened when ready by useEffect
-        }
+      } else if (mydriveInstance.status === Phase2.Off) {
+        // Instance is off, start it
+        await setInstanceRunning(true, mydriveInstance, applyInstanceMutation);
       }
+      // For other states (starting, etc.), just wait for it to be ready
     } catch (error) {
-      console.error('Error handling mydrive instance:', error);
+      console.error('Error starting mydrive instance:', error);
+      isStartingRef.current = false;
       setIsLoading(false);
     }
   }, [
     tenantId,
     tenantNamespace,
+    workspaceNamespace,
     mydriveInstance,
     createInstanceMutation,
     applyInstanceMutation,
-    openMydrive,
   ]);
 
+  // Reset starting ref when instance becomes ready
+  useEffect(() => {
+    if (mydriveInstance?.status === Phase2.Ready) {
+      isStartingRef.current = false;
+    }
+  }, [mydriveInstance?.status]);
+
+  // instancesLoaded is true only when data has been loaded at least once
+  // This prevents creating instances before we know if one already exists
+  const instancesLoaded = hasLoadedOnce;
+
   return {
-    handleDriveClick,
+    startDriveInstance,
     isLoading,
     mydriveInstance,
     hasUtilitiesAccess,
+    getDriveUrl,
+    instancesLoaded,
   };
 };
