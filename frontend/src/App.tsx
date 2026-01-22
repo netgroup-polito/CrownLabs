@@ -12,7 +12,8 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
-import TenantsView from './components/tenants/TenantsView';
+import TenantPage from './components/tenants/TenantPage';
+import TenantListPage from './components/tenants/TenantListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -65,11 +66,16 @@ function App() {
         },
         {
           route: { name: 'Tenants', path: '/tenants' },
-          content: <TenantsView key="/tenants" />,
+          content: <TenantListPage />,
           linkPosition: LinkPosition.NavbarButton,
           requiredGroups: [
             `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
           ],
+        },
+        {
+          route: { name: 'Tenant', path: '/tenants/:tenantId' },
+          content: <TenantPage />,
+          linkPosition: LinkPosition.Hidden,
         },
         {
           route: {

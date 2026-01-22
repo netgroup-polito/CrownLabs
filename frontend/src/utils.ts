@@ -37,7 +37,6 @@ export type TemplateEnvironment = {
     mountPath: string;
     readOnly: boolean;
   }>;
-  
 };
 
 export type InstanceResources = {
@@ -218,6 +217,15 @@ export type UserAccountPage = {
   email: string;
   currentRole?: string;
   workspaces?: WorkspaceEntry[];
+};
+
+export type Tenant = {
+  key: string;
+  userid: string;
+  name: string;
+  surname: string;
+  email: string;
+  workspaces: WorkspaceEntry[];
 };
 
 export function makeRandomDigits(value: number) {
