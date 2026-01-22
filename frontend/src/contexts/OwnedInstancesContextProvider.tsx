@@ -52,7 +52,7 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
       // Convert GraphQL instances to GUI instances
       const guiInstances =
         data?.instanceList?.instances
-          ?.map(i => makeGuiInstance(i, userId ?? ''))
+          ?.map(makeGuiInstance)
           .filter((i): i is Instance => i !== null) ?? [];
       setInstances(guiInstances);
     },
@@ -85,7 +85,7 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
         if (!updateType) return prev;
 
         // Convert to GUI instance for state updates
-        const guiInstance = makeGuiInstance(instance, userId ?? '');
+        const guiInstance = makeGuiInstance(instance);
 
         if (!guiInstance) return prev;
 

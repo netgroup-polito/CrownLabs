@@ -4,7 +4,7 @@ import {
 } from '@ant-design/icons';
 import type { FetchResult, MutationFunctionOptions } from '@apollo/client';
 import { Button } from 'antd';
-import {  type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import type {
   ApplyInstanceMutation,
   Exact,
@@ -56,7 +56,6 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
   };
 }
 
-
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias,
 ): Template => {
@@ -65,7 +64,6 @@ export const makeGuiTemplate = (
       'makeGuiTemplate() error: a required parameter is undefined',
     );
   }
-
 
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
@@ -131,11 +129,14 @@ export const makeGuiTemplate = (
       environmentType: env?.environmentType,
       mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
       image: env?.image ?? '',
-      sharedVolumeMounts: env?.sharedVolumeMounts?.filter(svm => svm!= null).map(svm => ({
-        name: svm?.sharedVolume?.name ?? '',
-        mountPath: svm.mountPath ?? '',
-        readOnly: svm.readOnly ?? false,
-      })) ?? [],
+      sharedVolumeMounts:
+        env?.sharedVolumeMounts
+          ?.filter(svm => svm != null)
+          .map(svm => ({
+            name: svm?.sharedVolume?.name ?? '',
+            mountPath: svm.mountPath ?? '',
+            readOnly: svm.readOnly ?? false,
+          })) ?? [],
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
@@ -166,7 +167,8 @@ export const getInstanceLabels = (
 ): InstanceLabels | undefined => i.metadata?.labels as InstanceLabels;
 
 /** Gets the workspace name of an instance from its labels.
- * If not available, derives it from the template's namespace */
+ * If not available, derives it from the template's namespace
+ */
 export function getInstanceWorkspaceName(
   instance: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
 ): string {
@@ -175,6 +177,19 @@ export function getInstanceWorkspaceName(
     instance?.spec?.templateCrownlabsPolitoItTemplateRef?.namespace?.slice(
       'workspace-'.length,
     ) ||
+    ''
+  );
+}
+
+/** Gets the template name of an instance from its labels.
+ * If not available, derives it from the instance's spec.
+ */
+export function getInstanceTemplateName(
+  instance: DeepPartial<ItPolitoCrownlabsV1alpha2Instance>,
+): string {
+  return (
+    getInstanceLabels(instance)?.crownlabsPolitoItTemplate ||
+    instance?.spec?.templateCrownlabsPolitoItTemplateRef?.name ||
     ''
   );
 }
@@ -290,14 +305,11 @@ const buildPublicExposureObject = (
 
 export const makeGuiInstance = (
   instance?: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
-  userId?: string,
-  optional?: {
-    workspaceName: string;
-    templateName: string;
-  },
 ) => {
-  if (!instance || !userId) {
-    throw new Error('getInstances() error: a required parameter is undefined');
+  if (!instance) {
+    throw new Error(
+      'makeGuiInstance() error: a required parameter is undefined',
+    );
   }
 
   const { metadata, spec, status } = instance;
@@ -305,12 +317,24 @@ export const makeGuiInstance = (
   const { running, prettyName, publicExposure } = spec ?? {};
   const { publicExposure: publicExposureStatus } = status ?? {};
 
-  const templateName = spec?.templateCrownlabsPolitoItTemplateRef?.name;
+  // Template Info
   const templateSpec =
     spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
       ?.itPolitoCrownlabsV1alpha2Template?.spec;
   const templatePrettyName = templateSpec?.prettyName || '';
 
+  const templateName = getInstanceTemplateName(instance);
+
+  // Workspace Info
+  const workspaceName = getInstanceWorkspaceName(instance);
+
+  // Tenant Info
+  const { name: tenantName, tenantV1alpha2Wrapper } =
+    spec?.tenantCrownlabsPolitoItTenantRef ?? {};
+  const { firstName, lastName } =
+    tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
+
+  // Environments
   const templateEnvironmentList = templateSpec?.environmentList || [];
   const instanceStatusEnvironmentList = status?.environments || [];
 
@@ -371,27 +395,20 @@ export const makeGuiInstance = (
     persistent: persistent,
     templatePrettyName: templatePrettyName,
     templateName: templateName ?? '',
-    templateId: makeTemplateKey(
-      getInstanceLabels(instance)?.crownlabsPolitoItTemplate ??
-        optional?.templateName ??
-        '',
-      getInstanceLabels(instance)?.crownlabsPolitoItWorkspace ??
-        optional?.workspaceName ??
-        '',
-    ),
+    templateId: makeTemplateKey(templateName, workspaceName),
     environmentType: environmentType,
     ip: primaryStatus?.ip ?? status?.ip ?? '',
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url,
     timeStamp: metadata?.creationTimestamp,
-    tenantId: userId,
+    tenantId: tenantName,
     tenantNamespace: tenantNamespace,
-    workspaceName: getInstanceWorkspaceName(instance),
+    workspaceName: workspaceName,
     running: running,
     nodeName: status?.nodeName,
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
-    tenantDisplayName: userId, // Using userId as display name since tenant info is not available
+    tenantDisplayName: `${firstName}\n${lastName}`,
     myDriveUrl: '',
     publicExposure: publicExposureObj,
     environments: environments,
@@ -428,7 +445,6 @@ interface InstancesSubscriptionData {
 }
 export const updateQueryOwnedInstancesQuery = (
   setDataInstances: Dispatch<SetStateAction<Instance[]>>,
-  userId: string,
   _notifier: Notifier,
 ) => {
   return (
@@ -444,7 +460,7 @@ export const updateQueryOwnedInstancesQuery = (
     let shouldNotify = false;
 
     setDataInstances(old => {
-      const instanceGui = makeGuiInstance(instanceK8s, userId);
+      const instanceGui = makeGuiInstance(instanceK8s);
       const objType = getSubObjTypeCustom(
         old.find(i => i.id === instanceGui.id),
         instanceGui,
@@ -640,96 +656,6 @@ export const availableWorkspaces = (
     );
 
 //Utilities for active page only
-
-export const getManagerInstances = (
-  instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
-  _index: number,
-) => {
-  if (!instance) {
-    throw new Error('getInstances() error: a required parameter is undefined');
-  }
-  const { metadata, spec, status } = instance;
-  const { publicExposure } = spec ?? {};
-  const { publicExposure: publicExposureStatus } = status ?? {};
-
-  // Template Info
-  const {
-    templateWrapper,
-    name: templateName,
-    namespace: templateNamespace,
-  } = spec?.templateCrownlabsPolitoItTemplateRef ?? {};
-  const { prettyName: templatePrettyname, environmentList } =
-    templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
-
-  const environments =
-    status?.environments?.map(envStatus => {
-      const templateEnv = environmentList?.find(
-        env => env?.name === envStatus?.name,
-      );
-      return {
-        name: envStatus?.name ?? '',
-        phase: envStatus?.phase,
-        ip: envStatus?.ip,
-        guiEnabled: templateEnv?.guiEnabled ?? false,
-        persistent: templateEnv?.persistent ?? false,
-        environmentType: templateEnv?.environmentType,
-      };
-    }) ?? [];
-
-  const hasMultipleEnvironments = environments.length > 1;
-
-  // For backwards compatibility, use the first environment for main properties
-  const primaryEnvironment = (environmentList ?? [])[0] ?? {};
-  const primaryStatus = environments[0];
-
-  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
-
-  // determine if public exposure allowed by template
-  const allowPublicExposure =
-    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
-
-  // Tenant Info
-  const { namespace: tenantNamespace } = metadata ?? {};
-  const { name: tenantName, tenantV1alpha2Wrapper } =
-    spec?.tenantCrownlabsPolitoItTenantRef ?? {};
-  const { firstName, lastName } =
-    tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
-  const workspaceName = (templateNamespace ?? '').replace(/^workspace-/, '');
-  const instanceID = tenantNamespace + '/' + metadata?.name;
-
-  return {
-    id: instanceID,
-    name: metadata?.name,
-    prettyName: spec?.prettyName,
-    gui: guiEnabled,
-    persistent: persistent,
-    templateId: makeTemplateKey(templateName, workspaceName),
-    templateName: templateName,
-    templatePrettyName: templatePrettyname,
-    environmentType: environmentType,
-    ip: primaryStatus?.ip ?? status?.ip,
-    status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
-    url: status?.url,
-    timeStamp: metadata?.creationTimestamp,
-    tenantId: tenantName,
-    tenantNamespace: tenantNamespace,
-    tenantDisplayName: `${firstName}\n${lastName}`,
-    workspaceName: workspaceName,
-    running: spec?.running,
-    allowPublicExposure,
-    myDriveUrl: '',
-    publicExposure: buildPublicExposureObject(
-      publicExposure,
-      publicExposureStatus,
-    ),
-    nodeSelector: status?.nodeSelector,
-    nodeName: status?.nodeName,
-    environments: environments,
-    hasMultipleEnvironments: hasMultipleEnvironments,
-  } as Instance;
-};
-
 export const getTemplatesMapped = (
   instances: Instance[],
   sortingData: Array<{
@@ -794,7 +720,7 @@ export const getTemplatesMapped = (
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
       deleteAfter: '',
-      inactivityTimeout:''
+      inactivityTimeout: '',
     };
   });
 };

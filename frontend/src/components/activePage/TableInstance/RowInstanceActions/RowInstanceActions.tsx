@@ -8,7 +8,10 @@ import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
-import { OwnedInstancesContext, type IQuota } from '../../../../contexts/OwnedInstancesContext';
+import {
+  OwnedInstancesContext,
+  type IQuota,
+} from '../../../../contexts/OwnedInstancesContext';
 
 const { Text } = Typography;
 export interface IRowInstanceActionsProps {
@@ -30,7 +33,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
 }) => {
   // Get the available quota in the workspace from the OwnedInstancesContext
   const { availableQuota } = useContext(OwnedInstancesContext);
-  const workspaceAvailableQuota: IQuota = availableQuota?.[instance.workspaceName || ""] || {
+  const workspaceAvailableQuota: IQuota = availableQuota?.[
+    instance.workspaceName || ''
+  ] || {
     instances: 0,
     cpu: 0,
     memory: 0,
@@ -119,7 +124,11 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
             <RowInstanceActionsPersistent
               instance={instance}
               extended={extended}
-              workspaceAvailableQuota={workspaceAvailableQuota}
+              workspaceAvailableQuota={
+                viewMode === WorkspaceRole.user
+                  ? workspaceAvailableQuota
+                  : undefined
+              }
             />
           )}
           <RowInstanceActionsDefault
