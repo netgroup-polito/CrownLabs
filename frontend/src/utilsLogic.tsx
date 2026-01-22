@@ -19,6 +19,7 @@ import type {
 } from './generated-types';
 import {
   AutoEnroll,
+  EnvironmentType,
   Phase,
   Phase2,
   Phase5,
@@ -28,10 +29,12 @@ import { getInstancePatchJson } from './graphql-components/utils';
 import type {
   Instance,
   InstanceEnvironment,
+  PortListItem,
   SharedVolume,
   Template,
   Workspace,
   WorkspacesAvailable,
+  PublicExposure,
 } from './utils';
 import { convertToGB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
@@ -244,7 +247,10 @@ const hasActivePublicExposure = (
   );
 };
 
-const mapPortToPortListItem = (p: unknown, specPort?: unknown) => {
+const mapPortToPortListItem = (
+  p: unknown,
+  specPort?: unknown,
+): PortListItem => {
   const port = p as PublicExposurePort;
   const spec = specPort as PublicExposurePort;
 
@@ -266,7 +272,7 @@ const mapPortToPortListItem = (p: unknown, specPort?: unknown) => {
 const buildPublicExposureObject = (
   publicExposure: unknown,
   publicExposureStatus: unknown,
-) => {
+): PublicExposure | undefined => {
   if (!hasActivePublicExposure(publicExposure, publicExposureStatus)) {
     return undefined;
   }
@@ -290,7 +296,7 @@ const buildPublicExposureObject = (
 
   return {
     externalIP: status?.externalIP || '',
-    phase: safePhaseConversion(status?.phase),
+    phase: safePhase2Conversion(status?.phase),
     ports: portsToUse
       .filter((p): p is PublicExposurePort => p != null)
       .map(p => {
@@ -305,7 +311,7 @@ const buildPublicExposureObject = (
 
 export const makeGuiInstance = (
   instance?: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,
-) => {
+): Instance => {
   if (!instance) {
     throw new Error(
       'makeGuiInstance() error: a required parameter is undefined',
@@ -389,23 +395,23 @@ export const makeGuiInstance = (
 
   return {
     id: instanceID,
-    name: name,
-    prettyName: prettyName,
-    gui: guiEnabled,
-    persistent: persistent,
+    name: name || '',
+    prettyName: prettyName || '',
+    gui: guiEnabled || false,
+    persistent: persistent || false,
     templatePrettyName: templatePrettyName,
-    templateName: templateName ?? '',
+    templateName: templateName,
     templateId: makeTemplateKey(templateName, workspaceName),
-    environmentType: environmentType,
+    environmentType: environmentType || EnvironmentType.CloudVm,
     ip: primaryStatus?.ip ?? status?.ip ?? '',
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
-    url: status?.url,
-    timeStamp: metadata?.creationTimestamp,
-    tenantId: tenantName,
-    tenantNamespace: tenantNamespace,
+    url: status?.url || '',
+    timeStamp: metadata?.creationTimestamp || '',
+    tenantId: tenantName || '',
+    tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
-    running: running,
-    nodeName: status?.nodeName,
+    running: running || true,
+    nodeName: status?.nodeName || '',
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
     tenantDisplayName: `${firstName}\n${lastName}`,
@@ -418,7 +424,7 @@ export const makeGuiInstance = (
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
       disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
     },
-  } as Instance;
+  };
 };
 
 export const makeWorkspace = (
