@@ -63,6 +63,9 @@ type TenantSpec struct {
 	// The last name of the Tenant.
 	LastName string `json:"lastName"`
 
+	// +kubebuilder:validation:Optional
+	// +nullable
+
 	// The last login timestamp.
 	LastLogin metav1.Time `json:"lastLogin,omitempty"`
 
