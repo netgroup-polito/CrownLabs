@@ -65,7 +65,7 @@ function App() {
           linkPosition: LinkPosition.NavbarButton,
         },
         {
-          route: { name: 'Tenants', path: '/tenants' },
+          route: { name: 'Users', path: '/tenants' },
           content: <TenantListPage />,
           linkPosition: LinkPosition.NavbarButton,
           requiredGroups: [

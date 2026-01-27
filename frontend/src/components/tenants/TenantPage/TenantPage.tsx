@@ -41,7 +41,7 @@ export default function TenantPage() {
           center: (
             <div className="h-full flex flex-col justify-center items-center gap-4">
               <p className="md:text-2xl text-lg text-center mb-0">
-                <b>Manage tenant {tenantId}</b>
+                <b>Manage user {tenantId}</b>
               </p>
             </div>
           ),
