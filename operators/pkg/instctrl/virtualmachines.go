@@ -88,7 +88,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
 		vm.SetLabels(forge.EnvironmentObjectLabels(vm.GetLabels(), instance, environment))
-		if len(vm.Spec.Template.Spec.Domain.Devices.Interfaces) > 0 && len(vmi.Status.Interfaces) > 0 && vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress == "" {
+		if vm.Spec.Template != nil && len(vm.Spec.Template.Spec.Domain.Devices.Interfaces) > 0 && len(vmi.Status.Interfaces) > 0 && vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress == "" {
 			vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress = vmi.Status.Interfaces[0].MAC
 		}
 		return ctrl.SetControllerReference(instance, &vm, r.Scheme)
