@@ -49,7 +49,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       newQuota = {
         cpu: data.cpu?.toString() ?? '0',
-        memory: `${data.memory?.toString() ?? '0'}GiB`,
+        memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
       };
     }
