@@ -45,7 +45,7 @@ export default function TenantListPage() {
           center: (
             <div className="h-full flex flex-col justify-center items-center gap-4">
               <p className="md:text-2xl text-lg text-center mb-0">
-                <b>Manage tenant</b>
+                <b>Manage users</b>
               </p>
 
               <Input.Search
