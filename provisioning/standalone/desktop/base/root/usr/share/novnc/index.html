@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrownLabs Desktop</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #vnc {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #fileman {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      line-height: 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      transition: all 0.3s;
+      opacity: 0.7;
+    }
+
+    #fileman::before {
+      content: "📁";
+    }
+
+    #fileman:hover {
+      opacity: 1;
+    }
+
+    #fileman:active {
+      background: #0056b3 !important;
+      transition-duration: 0ms;
+    }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      width: min(30vw, 400px);
+      left: calc(min(30vw, 400px) * -1);
+      height: 100%;
+      background: white;
+      transition: left 0.3s;
+      z-index: 999;
+      border: none;
+    }
+
+    body.files #sidebar {
+      left: 0;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    body.files #fileman {
+      top: 0;
+      left: min(30vw, 400px);
+      height: 64px;
+      width: 60px;
+      opacity: 1;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      background: #21292f;
+      box-shadow: 8px 2px 10px rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid #444;
+    }
+    body.files #fileman:hover {
+      background: #383f44;
+    }
+
+    body.files #fileman::before {
+      content: "❌";
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: sans-serif;
+      font-size: 24px;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">Loading...</div>
+  <iframe id="vnc" title="Desktop" style="display: none;">
+    Your browser does not support iframes.
+  </iframe>
+
+  <button id="fileman" onclick="toggleFiles()" type="button"></button>
+
+  <iframe id="sidebar" src="about:blank" title="Files"></iframe>
+
+  <script>
+    const filesFrame = document.getElementById('sidebar');
+    (async () => {
+      // try to connect websocket to /websockify endpoint
+      filesFrame.onload = async () => {
+        await new Promise(res => setTimeout(res, 500));
+        const inr = filesFrame.contentDocument;
+        inr.querySelector('#app nav button').remove();
+        inr.querySelector('#app nav button[title="Settings"]').parentElement.remove();
+      };
+      while (true) {
+        try {
+          await new Promise((res, rej) => {
+            const ws = new WebSocket(`websockify`);
+            ws.onopen = () => {
+              ws.close();
+              res();
+            };
+            ws.onerror = () => {
+              rej();
+            };
+          });
+          break;
+        } catch (e) {
+          // ignore
+        }
+        await new Promise(res => setTimeout(res, 1000));
+      }
+      const vncFrame = document.getElementById('vnc');
+      vncFrame.removeAttribute('style');
+      vncFrame.onload = () => {
+        document.getElementById('loading').remove();
+        const inr = vncFrame.contentDocument;
+        inr.querySelector('#noVNC_settings_button').style.display = 'none';
+        inr.querySelector('#noVNC_disconnect_button').style.display = 'none';
+        inr.querySelector('#noVNC_connect_dlg p').style.display = 'none';
+        inr.querySelector('#noVNC_fullscreen_button').style.display = 'none';
+      };
+      vncFrame.src = 'vnc.html?resize=remote&autoconnect=true&view_only=false';
+    })();
+
+    function toggleFiles() {
+      if (document.body.classList.contains('files')) {
+        document.body.classList.remove('files');
+        filesFrame.src = 'about:blank';
+      } else {
+        document.body.classList.add('files');
+        filesFrame.src = 'files/';
+      }
+    }
+  </script>
+</body>
+
+</html>
