@@ -36,20 +36,20 @@ For each instance, it determines whether it should be monitored or not.
 
 Once it realizes that the instance should be monitored, the controller adds several annotations to it.
 These include the `crownlabs.polito.it/number-alerts-sent`, which tracks the number of notifications sent to inform the tenant that the instance has been idle for some time and will soon be stopped or deleted.
-This number ranges from zero up to a maximum limit defined by `InstanceMaxNumberOfAlerts`, a custom parameter defined via Helm chart.
+This number ranges from zero up to a maximum limit defined by `inactiveTerminationMaxNumberOfAlerts`, a custom parameter defined via Helm chart.
 This value could be overwritten by the `crownlabs.polito.it/custom-number-alerts` annotation in the associated Template resource. Another annotation is the `crownlabs.polito.it/last-activity`, which records the last time the user accessed the instance either via the frontend through the Ingress or via SSH (info available through the SSH bastion tracker).
-When a new email notification is triggered, the controller adds the `LastNotificationTimestampAnnotation` to the instance, recording the timestamp of the last sent notification (if the feature is enabled). This annotation is used to determine whether the required interval has elapsed since the previous notification, thereby allowing a new alert to be sent if necessary.
-The Helm Chart introduces the `notificationInterval` parameter, which defines the minimum time interval between two consecutive email notifications.
+When a new email notification is triggered, the controller adds the `crownlabs.polito.it/last-notification-timestamp` to the instance, recording the timestamp of the last sent notification (if the feature is enabled). This annotation is used to determine whether the required interval has elapsed since the previous notification, thereby allowing a new alert to be sent if necessary.
+The Helm Chart introduces the `inactiveTerminationNotificationInterval` parameter, which defines the minimum time interval between two consecutive email notifications.
 If the interval has passed, a new email is sent; otherwise, the notification is skipped.
 
 Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the **InactivityTimeout** value specified in the Template. 
 If the instance is found to be inactive (meaning the remaining time is zero or less), a series of notification emails are sent to the instance owner.
-Once the number of alerts reaches a configurable threshold (either defined via `InstanceMaxNumberOfAlerts` or `crownlabs.polito.it/custom-number-alerts`), CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent.
+Once the number of alerts reaches a configurable threshold, either defined via `inactiveTerminationMaxNumberOfAlerts` in the Chart or via `crownlabs.polito.it/custom-number-alerts ` annotation, CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent.
 On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
 
 Finally, if the instance has been paused and the user restarts it, the `crownlabs.polito.it/number-alerts-sent` annotation is reset and the `crownlabs.polito.it/last-activity` annotation is updated.
 The controller then evaluates the new remaining time, and the entire monitoring process begins again.
-This mechanism relies on the `LastRunningAnnotation` annotation to detect if the instance has been restarted after being paused.
+This mechanism relies on the `crownlabs.polito.it/last-running` annotation to detect if the instance has been restarted after being paused.
 
 
 ### Inactivity detection
@@ -59,10 +59,10 @@ The controller uses **Prometheus** to do this check:
 * It uses Nginx metrics to verify the last access to the Frontend
 * It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses. Read [here](../../README.md#bastion-ssh-tracker) for more info on how SSH connections are monitored.
 
-Note: a single query on Prometheus cannot return more than **11000 data points**. In order to cover all the scenarios, a new parameter **queryStep** has been defined in the Helm Chart to modify the query resolution (query step), based on the **InactivityTimeout** selected.
+Note: a single query on Prometheus cannot return more than **11000 data points**. In order to cover all the scenarios, a new parameter `queryStep` has been defined in the Helm Chart to modify the query resolution (query step), based on the **InactivityTimeout** selected.
 
 After this check, the **crownlabs.polito.it/last-activity** is updated with the most recent timestamp.
-If the last access is above the max threshold (defined with the `inactivityTimeout` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval (**NotificationInterval** parameter in the Helm chart).
+If the last access is above the max threshold (defined with the `inactivityTimeout` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval -`inactiveTerminationNotificationInterval` parameter in the Helm chart.
 After the maximum time of notifications, the Instance is stopped.
 
 
@@ -70,14 +70,14 @@ After the maximum time of notifications, the Instance is stopped.
 The **InstanceInactiveTerminationReconciler** is set to watch and react to events related to the following resources in an efficient way:
 * **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
 * **Templates**: if the `inactivityTimeout` is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances.
-* **Namespaces**: if a `Namespace` is set to be monitored (`InstanceInactivityIgnoreNamespace != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **inactivityIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
+* **Namespaces**: if a `Namespace` is set to be monitored (`annotation crownlabs.polito.it/instance-inactivity-ignore != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **inactivityIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
 
 ### Labels and Annotations
 * **crownlabs.polito.it/instance-inactivity-ignore**: `Namespace` label used to ignore the inactivity termination for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
 * **crownlabs.polito.it/number-alerts-sent**: Instance annotation that stores the number of email notifications sent to the `Tenant`.
-* **LastNotificationTimestampAnnotation**: Instance annotation that stores the timestamp of the last email notification sent to the `Tenant`.
-* **LastRunningAnnotation**: Instance annotation that stores the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
+* **crownlabs.polito.it/last-notification-timestamp**: Instance annotation that stores the timestamp of the last email notification sent to the `Tenant`.
+* **crownlabs.polito.it/last-running**: Instance annotation that stores the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
 * **crownlabs.polito.it/custom-number-alerts**: Template annotation that stores the override the default `InstanceMaxNumberOfAlerts` in the **InstanceInactiveTerminationReconciler** for a specific template.
 
 
@@ -134,7 +134,7 @@ Main automation parameters:
 * **enableInstanceTermination**: flag to enable the Instance Termination controller.
 * **enableInstanceInactiveTermination**: flag to enable the Instance Inactive Termination controller.
 * **enableInstanceExpiration**: flag to enable the Instance Expiration controller.
-* **inactiveTerminationMaxNumberOfAlerts**: maximum number of email notifications to send to the Tenant before deleting/pausing the Instance.
+* **inactiveTerminationMaxNumberOfAlerts**:  maximum number of email notifications to send to the Tenant before deleting/pausing the Instance.
 * **enableInactivityNotifications**: flag to enable the notification for the Instance Inactive Termination controller.
 * **enableExpirationNotifications**: flag to enable the notification for the Instance Expiration Termination controller.
 * **inactiveTerminationNotificationInterval**: time interval between two consecutive email notifications.
