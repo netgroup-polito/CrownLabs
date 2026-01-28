@@ -8,7 +8,6 @@ import './DriveView.css';
 const DriveView: React.FC = () => {
   const { mydriveInstance, startDriveInstance, getDriveUrl, instancesLoaded } =
     useMydrive();
-  const [iframeLoading, setIframeLoading] = useState(true);
   const [iframeError, setIframeError] = useState(false);
   const hasStartedRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -82,12 +81,10 @@ const DriveView: React.FC = () => {
   }, [mydriveInstance, startDriveInstance, instancesLoaded]);
 
   const handleIframeLoad = () => {
-    setIframeLoading(false);
     setIframeError(false);
   };
 
   const handleIframeError = () => {
-    setIframeLoading(false);
     setIframeError(true);
   };
 
