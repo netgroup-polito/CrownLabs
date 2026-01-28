@@ -2,12 +2,11 @@ import { Button, Checkbox, Form, InputNumber, Row } from 'antd';
 import { useContext, useState, type FC } from 'react';
 import {
   TenantDocument,
-  useApplyTenantMutation,
+  useApplyTenantJsonPatchJsonMutation,
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
 import { convertToGB } from '../../../utils';
-import { getTenantPatchJson } from '../../../graphql-components/utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
@@ -31,9 +30,10 @@ const TenantPersonalWorkspaceSettings: FC<
   const [form] = Form.useForm<QuotaFormData>();
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const [applyTenantMutation] = useApplyTenantMutation({
-    onError: apolloErrorCatcher,
-  });
+  const [applyTenantJsonPatchJsonMutation] =
+    useApplyTenantJsonPatchJsonMutation({
+      onError: apolloErrorCatcher,
+    });
 
   const submitForm = async (data: QuotaFormData) => {
     const tenantId = tenant.tenant?.metadata?.name;
@@ -54,12 +54,12 @@ const TenantPersonalWorkspaceSettings: FC<
       };
     }
 
-    await applyTenantMutation({
+    await applyTenantJsonPatchJsonMutation({
       variables: {
         tenantId: tenantId,
-        patchJson: getTenantPatchJson({
-          personalWorkspace: newQuota,
-        }),
+        patchJson: JSON.stringify([
+          { op: 'replace', path: '/spec/personalWorkspace', value: newQuota },
+        ]),
         manager: 'frontend-tenant-personal-workspace',
       },
       // ensure Tenant query is refreshed so TenantContext and UI update
