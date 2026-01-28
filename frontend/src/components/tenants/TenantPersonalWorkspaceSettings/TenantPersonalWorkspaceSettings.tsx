@@ -8,6 +8,7 @@ import {
 import type { RuleRender, RuleObject } from 'antd/es/form';
 import { convertToGB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { CheckOutlined } from '@ant-design/icons';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;
@@ -26,16 +27,19 @@ const TenantPersonalWorkspaceSettings: FC<
   const [isEnabled, setIsEnabled] = useState(
     tenant.tenant?.spec?.personalWorkspace != null,
   );
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const [form] = Form.useForm<QuotaFormData>();
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const [applyTenantJsonPatchJsonMutation] =
+  const [applyTenantJsonPatchJsonMutation, { loading }] =
     useApplyTenantJsonPatchJsonMutation({
       onError: apolloErrorCatcher,
     });
 
   const submitForm = async (data: QuotaFormData) => {
+    setIsSuccess(false);
+
     const tenantId = tenant.tenant?.metadata?.name;
     if (!tenantId) {
       throw new Error('Tenant ID is missing');
@@ -54,7 +58,7 @@ const TenantPersonalWorkspaceSettings: FC<
       };
     }
 
-    await applyTenantJsonPatchJsonMutation({
+    const result = await applyTenantJsonPatchJsonMutation({
       variables: {
         tenantId: tenantId,
         patchJson: JSON.stringify([
@@ -68,6 +72,10 @@ const TenantPersonalWorkspaceSettings: FC<
       ],
       onError: apolloErrorCatcher,
     });
+
+    if (result.errors == null) {
+      setIsSuccess(true);
+    }
   };
 
   const numberValidator: RuleRender = f => {
@@ -90,6 +98,7 @@ const TenantPersonalWorkspaceSettings: FC<
   };
 
   const onValuesChange = (data: QuotaFormData) => {
+    setIsSuccess(false);
     if (data.enabled !== undefined) setIsEnabled(data.enabled);
   };
 
@@ -152,8 +161,20 @@ const TenantPersonalWorkspaceSettings: FC<
 
       <Row justify="center">
         <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Save
+          <Button
+            type="primary"
+            color={isSuccess ? 'green' : 'primary'}
+            variant="solid"
+            htmlType="submit"
+            loading={loading}
+          >
+            {isSuccess ? (
+              <>
+                <CheckOutlined /> Saved!
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </Form.Item>
       </Row>
