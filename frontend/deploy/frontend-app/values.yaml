@@ -19,6 +19,10 @@ configuration:
     clientId: <client-id>
     realm: <realm>
     providerUrl: https://auth.example.com/auth/
+  mydrive:
+    templateName: mydrive
+    workspaceName: utilities
+    workspaceNamespace: workspace-utilities
 
 imagePullSecrets: []
 nameOverride: ""

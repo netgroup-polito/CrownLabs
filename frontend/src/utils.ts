@@ -37,7 +37,6 @@ export type TemplateEnvironment = {
     mountPath: string;
     readOnly: boolean;
   }>;
-  
 };
 
 export type InstanceEnvironment = {
@@ -161,6 +160,8 @@ export type RouteData = {
   name: string;
   path: string;
   navbarMenuIcon?: ReactNode;
+  onClick?: () => void;
+  loading?: boolean;
 };
 
 export type RouteDescriptor = {
