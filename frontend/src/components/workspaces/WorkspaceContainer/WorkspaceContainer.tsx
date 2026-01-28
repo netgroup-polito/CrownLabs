@@ -129,24 +129,26 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             <div className="h-full flex justify-center items-center flex-col">
               <div className="w-full flex-grow flex justify-center items-center">
                 {workspace.role === WorkspaceRole.manager && (
-                  <div className="h-full flex-none flex justify-center items-center pl-10">
-                    <Tooltip title="Manage users">
-                      <Button
-                        type="primary"
-                        shape="circle"
-                        size="large"
-                        icon={<UserSwitchOutlined />}
-                        onClick={() => setShowUserListModal(true)}
-                      >
-                        {workspace.waitingTenants && (
-                          <Badge
-                            count={workspace.waitingTenants}
-                            color="yellow"
-                            className="absolute -top-2.5 -right-2.5"
-                          />
-                        )}
-                      </Button>
-                    </Tooltip>
+                  <div className="h-full w-18 md:w-24 flex-none flex justify-center items-center">
+                    {!isPersonal && (
+                      <Tooltip title="Manage users">
+                        <Button
+                          type="primary"
+                          shape="circle"
+                          size="large"
+                          icon={<UserSwitchOutlined />}
+                          onClick={() => setShowUserListModal(true)}
+                        >
+                          {workspace.waitingTenants && (
+                            <Badge
+                              count={workspace.waitingTenants}
+                              color="yellow"
+                              className="absolute -top-2.5 -right-2.5"
+                            />
+                          )}
+                        </Button>
+                      </Tooltip>
+                    )}
                   </div>
                 )}
 
@@ -157,7 +159,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                 </div>
 
                 {workspace.role === WorkspaceRole.manager && (
-                  <div className="h-full flex-none flex justify-center items-center pr-10">
+                  <div className="h-full w-18 md:w-24 flex-none flex justify-center items-center">
                     <Tooltip title="Create template">
                       <Button
                         onClick={() => {
