@@ -60,10 +60,10 @@ securityContext:
 
 resources:
   limits:
-    memory: 700Mi
+    memory: 1Gi
     cpu: 1000m
   requests:
-    memory: 700Mi
+    memory: 1Gi
     cpu: 100m
 
 webhook:
@@ -74,4 +74,4 @@ webhook:
   enableMutating: false
   clusterIssuer: self-signed
 
-rbacResourcesName: crownlabs-tenant-operator
+rbacResourcesName: crownlabs-operator

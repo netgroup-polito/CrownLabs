@@ -61,11 +61,6 @@ spec:
             description: TenantSpec is the specification of the desired state of the
               Tenant.
             properties:
-              createPersonalWorkspace:
-                default: false
-                description: Whether a personal workspace should be created for the
-                  tenant
-                type: boolean
               createSandbox:
                 default: false
                 description: |-
@@ -88,6 +83,42 @@ spec:
               lastName:
                 description: The last name of the Tenant.
                 type: string
+              personalWorkspace:
+                description: The amount of resources associated with the Tenant's
+                  personal workspace. If defined, the personal workspace is enabled.
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of CPU required by this Workspace.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                    x-kubernetes-validations:
+                    - message: Minimum 1 CPU core is required
+                      rule: quantity(self).compareTo(quantity('1')) >= 0
+                  instances:
+                    description: The maximum number of concurrent instances required
+                      by this Workspace.
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory required by this
+                      Workspace.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                    x-kubernetes-validations:
+                    - message: Minimum 1 GB of RAM is required
+                      rule: quantity(self).compareTo(quantity('1Gi')) >= 0
+                required:
+                - cpu
+                - instances
+                - memory
+                type: object
               publicKeys:
                 description: |-
                   The list of the SSH public keys associated with the Tenant. These will be
@@ -95,38 +126,6 @@ spec:
                 items:
                   type: string
                 type: array
-              quota:
-                description: The amount of resources associated with this Tenant,
-                  if defined it overrides the one computed from the workspaces the
-                  tenant is enrolled in.
-                properties:
-                  cpu:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: The maximum amount of CPU which can be used by this
-                      Tenant.
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  instances:
-                    description: The maximum number of concurrent instances which
-                      can be created by this Tenant.
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  memory:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: The maximum amount of RAM memory which can be used
-                      by this Tenant.
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                required:
-                - cpu
-                - instances
-                - memory
-                type: object
               workspaces:
                 description: |-
                   The list of the Workspaces the Tenant is subscribed to, along with his/her
@@ -225,38 +224,6 @@ spec:
                 description: Whether a personal workspace has been created for the
                   tenant.
                 type: boolean
-              quota:
-                description: The amount of resources associated with this Tenant,
-                  either inherited from the Workspaces in which he/she is enrolled,
-                  or manually overridden.
-                properties:
-                  cpu:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: The maximum amount of CPU which can be used by this
-                      Tenant.
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  instances:
-                    description: The maximum number of concurrent instances which
-                      can be created by this Tenant.
-                    format: int64
-                    minimum: 0
-                    type: integer
-                  memory:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: The maximum amount of RAM memory which can be used
-                      by this Tenant.
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                required:
-                - cpu
-                - instances
-                - memory
-                type: object
               ready:
                 description: |-
                   Whether all subscriptions and resource creations succeeded or an error
