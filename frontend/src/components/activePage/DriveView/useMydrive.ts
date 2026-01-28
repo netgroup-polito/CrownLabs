@@ -86,9 +86,9 @@ export const useMydrive = () => {
 
   // Set prettyname if not already set
   useEffect(() => {
-    if (mydriveInstance && mydriveInstance.prettyName !== 'filemanager') {
+    if (mydriveInstance && mydriveInstance.prettyName !== 'file-manager') {
       setInstancePrettyname(
-        'filemanager',
+        'file-manager',
         mydriveInstance,
         applyInstanceMutation,
       );

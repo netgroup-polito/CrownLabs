@@ -35,6 +35,7 @@ const DriveView: React.FC = () => {
         const timer = setTimeout(() => {
           setReadyDelayed(true);
         }, 2000);
+        // TODO (see issue #1040): after this issue will be solved the timeout can be removed
         return () => clearTimeout(timer);
       }
     } else {
@@ -99,9 +100,13 @@ const DriveView: React.FC = () => {
   const isInstanceReady =
     mydriveInstance && mydriveInstance.status === Phase2.Ready;
 
+  let content: React.ReactNode;
+  let containerClassName = 'drive-view-container';
+
   if (!isInstanceReady || !driveUrl || !readyDelayed) {
-    return (
-      <div className="drive-view-container drive-view-loading">
+    containerClassName += ' drive-view-loading';
+    content = (
+      <>
         <Spin
           indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
           tip={
@@ -119,18 +124,17 @@ const DriveView: React.FC = () => {
             </div>
           }
         />
-        <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>
-          Please be patient while the drive loads, it will take a few moments.
-          It will open automatically when ready.
+        <div style={{ marginTop: 10 }}>
+          <p>Please be patient while the drive loads, it will take a few moments.
+          It will open automatically when ready.</p>
         </div>
-      </div>
+      </>
     );
-  }
-
-  // If iframe is blocked, show a fallback with button to open in new tab
-  if (iframeError) {
-    return (
-      <div className="drive-view-container drive-view-loading">
+  } else if (iframeError) {
+    // If iframe is blocked, show a fallback with button to open in new tab
+    containerClassName += ' drive-view-loading';
+    content = (
+      <>
         <Alert
           message="Sorry, we cannot load the drive here"
           description="You can open it in a new tab using the button below"
@@ -146,44 +150,23 @@ const DriveView: React.FC = () => {
         >
           Open drive in new tab
         </Button>
-      </div>
+      </>
+    );
+  } else {
+    containerClassName += ' ant-card ant-layout-content';
+    content = (
+        <iframe
+          ref={iframeRef}
+          src={driveUrl}
+          className="drive-view-iframe"
+          onLoad={handleIframeLoad}
+          onError={handleIframeError}
+          title="CrownLabs Drive"
+        />
     );
   }
 
-  return (
-    <div className="drive-view-container">
-      {iframeLoading && (
-        <div className="drive-view-loading-overlay">
-          <Spin
-            indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />}
-            tip="Loading drive..."
-          />
-          <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>
-            Please be patient while the drive loads, it will take a few moments.
-            It will open automatically when ready.
-          </div>
-        </div>
-      )}
-      <iframe
-        ref={iframeRef}
-        src={driveUrl}
-        className="drive-view-iframe"
-        onLoad={handleIframeLoad}
-        onError={handleIframeError}
-        title="CrownLabs Drive"
-      />
-      {/* Always show button as fallback option */}
-      <div className="drive-view-fallback-button">
-        <Button
-          type="link"
-          icon={<FolderOpenOutlined />}
-          onClick={openInNewTab}
-        >
-          Having trouble? Open in new tab
-        </Button>
-      </div>
-    </div>
-  );
+  return <div className={containerClassName}>{content}</div>;
 };
 
 export default DriveView;
