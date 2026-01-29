@@ -340,6 +340,30 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				})
 			})
 
+			Context("MAC Address Persistence", func() {
+				const expectedMAC = "aa:bb:cc:dd:ee:ff"
+
+				BeforeEach(func() {
+					existingVMI := virtv1.VirtualMachineInstance{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
+						Status: virtv1.VirtualMachineInstanceStatus{
+							Phase: virtv1.Running,
+							Interfaces: []virtv1.VirtualMachineInstanceNetworkInterface{
+								{MAC: expectedMAC},
+							},
+						},
+					}
+					clientBuilder.WithObjects(&existingVMI)
+				})
+
+				It("Should enforce the existing VMI MAC into the VM Spec", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+					Expect(vm.Spec.Template.Spec.Domain.Devices.Interfaces).ToNot(BeEmpty())
+					Expect(vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress).To(Equal(expectedMAC))
+				})
+			})
+
 			WhenVMAlreadyPresentCase := func(running bool) {
 				BeforeEach(func() {
 					existing := virtv1.VirtualMachine{
