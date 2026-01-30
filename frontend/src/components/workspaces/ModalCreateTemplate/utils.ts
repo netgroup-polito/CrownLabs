@@ -7,6 +7,7 @@ export const internalRegistry = 'registry.internal.crownlabs.polito.it';
 export const formItemLayout = {
   labelCol: { span: 5 },
   wrapperCol: { span: 19 },
+  style: { marginBottom: 14 },
 };
 
 export const getImageNameNoVer = (image: string) => {
