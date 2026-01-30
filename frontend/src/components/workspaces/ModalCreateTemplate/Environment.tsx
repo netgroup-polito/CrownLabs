@@ -51,6 +51,8 @@ export const Environment: FC<EnvironmentProps> = ({
     'environments',
   );
 
+
+
   // Custom validator for unique environment names
   const validateUniqueName = (currIndex: number) => {
     return async (_: unknown, name: string) => {
@@ -260,6 +262,10 @@ export const Environment: FC<EnvironmentProps> = ({
         validateTrigger={['onChange', 'onBlur']}
         rules={[
           { required: true, message: 'Environment name is required' },
+          { 
+            pattern: /^[a-z\d][a-z\d-]{2,10}[a-z\d]$/,
+            message: 'Name must be 4-12 characters: lowercase letters, digits, hyphens (no hyphens at start/end)'
+          },
           { validator: validateUniqueName(name) },
         ]}
         validateDebounce={500}
@@ -419,6 +425,7 @@ export const Environment: FC<EnvironmentProps> = ({
         label="CPU"
         name={[name, 'cpu']}
         {...formItemLayout}
+        className="mb-0"
       >
         <Slider
           className="ml-2"
@@ -441,6 +448,7 @@ export const Environment: FC<EnvironmentProps> = ({
         {...restField}
         label="RAM"
         name={[name, 'ram']}
+        className="mb-0"
         {...formItemLayout}
       >
         <Slider
@@ -469,7 +477,7 @@ export const Environment: FC<EnvironmentProps> = ({
       />
 
       {!isPersonal && (
-        <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes} />
+        <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes}  />
       )}
     </>
   );

@@ -57,7 +57,7 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
   };
 
   return (
-    <Form.Item label="Persistent" {...formItemLayout}>
+    <Form.Item label="Persistent" {...formItemLayout} className="mb-4">
       <div className="flex gap-4 items-start">
         <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
           <div className="pt-[6px]">
@@ -77,7 +77,7 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
         </Tooltip>
 
         <div className="flex-1">
-          <Form.Item {...restField} name={[parentFormName, 'disk']} noStyle>
+          <Form.Item {...restField} name={[parentFormName, 'disk']} noStyle className="mb-0">
             <Slider
               tooltip={{
                 defaultOpen: false,
