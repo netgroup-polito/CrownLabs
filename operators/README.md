@@ -164,7 +164,7 @@ The number of notifications sent is defined by the `inactiveTerminationMaxNumber
 Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**.
 After the final action, an additional email is sent to inform the tenant.
 Both the controller and the email notifications can be enabled or disabled through the Helm chart using the `enableInstanceInactiveTermination` and `enableInactivityNotifications` parameters.
-In addition, the behavior can be customized using annotations. For example, the `CustomNumberOfAlertsAnnotation` on a Template allows overriding the default number of notifications for a specific Instance type, while the `InstanceInactivityIgnoreNamespace` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
+In addition, the behavior can be customized using annotations. For example, the `crownlabs.polito.it/custom-number-alerts` annotation on a Template allows overriding the default number of notifications for a specific Instance type, while the `crownlabs.polito.it/instance-inactivity-ignore` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
 
 #### Instance Expiration controller
 While the Instance Inactive Termination Controller deletes Instances when these are not used for an extended period of time, this controller (_Instance Expiration Controller_) introduces an orthogonal feature, i.e., the capability to delete an Instance when its maximum lifespan has expired, no matter if the instance has been used or not.
@@ -172,7 +172,7 @@ Each Template defines a `DeleteAfter` field that specifies how long an Instance 
 Analogously to the Instance Inactive Termination Controller, omitting the `DeleteAfter` field means it is automatically set to `never` by default, meaning that Instances created from that template will be ignored by this controller.
 As with inactivity termination, this feature can be managed through Helm chart parameters: `enableInstanceExpiration` controls whether the controller is active, while `enableExpirationNotifications` enables or disables email alerts to inform tenants before deletion.
 This feature can be used when we know already that an Instance will not be needed after a given period; a possible example is the instance used to carry out an exam, which can be safely deleted when the exam has finished.
-The `ExpirationIgnoreNamespace` annotation, when set to `True`, allows to ignore all Instances in a Namespace, preventing them from being deleted due to expiration.
+The `crownlabs.polito.it/expiration-ignore` annotation, when set to `True`, allows to ignore all Instances in a Namespace, preventing them from being deleted due to expiration.
 
 ### Instance services public exposure
 The "Instance services public exposure" feature allows services running inside an Instance (for example, a web server in a VM) to be reachable from outside the cluster. Public exposure is implemented by creating a Kubernetes Service of type LoadBalancer and mapping public ports on the LoadBalancer IP 1:1 to the target ports inside the VM. MetalLB (or another LoadBalancer controller) is responsible for advertising and assigning the LoadBalancer IP to the Service.
