@@ -58,7 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName, log)
+	up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName, log.WithName("crownlabs-imagelists-updater"))
 
 	// without cronjob
 	// for {

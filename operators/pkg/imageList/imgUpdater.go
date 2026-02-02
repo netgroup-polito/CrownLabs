@@ -27,7 +27,6 @@ func (u *ImageListUpdater) RunUpdateProcess() {
 	u.Update()
 }
 
-// Update performs the actual update process.
 func (u *ImageListUpdater) Update() {
 	start := time.Now()
 	u.Log.Info("Starting the update process")

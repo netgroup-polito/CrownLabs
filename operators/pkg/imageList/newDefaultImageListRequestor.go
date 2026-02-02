@@ -126,5 +126,5 @@ func (r *DefaultImageListRequestor) mapRepositoriesToPaths(repositories []interf
 func init() {
 	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
 
-	RegisteredRequestors = append(RegisteredRequestors, NewDefaultImageListRequestor(log))
+	RegisteredRequestors = append(RegisteredRequestors, NewDefaultImageListRequestor(log.WithName("crownlabs-imagelists-updaterdefaultImageSource")))
 }

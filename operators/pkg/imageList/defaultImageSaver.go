@@ -18,25 +18,20 @@ import (
 )
 
 type DefaultImageListSaver struct {
-	Name   string
-	Client client.Client
-	// GVR       schema.GroupVersionResource
+	Name      string
+	Client    client.Client
 	Namespace string
 	Log       logr.Logger
+	Ctx       context.Context
 }
 
-func NewDefaultImageListSaver(name string, client client.Client, log logr.Logger) (*DefaultImageListSaver, error) {
-	// gvr := schema.GroupVersionResource{
-	// 	Group:    "crownlabs.polito.it",
-	// 	Version:  "v1alpha1",
-	// 	Resource: "imagelists",
-	// }
+func NewDefaultImageListSaver(ctx context.Context, name string, client client.Client, log logr.Logger) (*DefaultImageListSaver, error) {
 
 	return &DefaultImageListSaver{
 		Name:   name,
 		Client: client,
-		// GVR:    gvr,
-		Log: log,
+		Log:    log,
+		Ctx:    ctx,
 	}, nil
 }
 func (s *DefaultImageListSaver) IsThisImageYours(imageListSpec map[string]interface{}) bool {
@@ -54,12 +49,11 @@ func (s *DefaultImageListSaver) UpdateImageList(imageList []map[string]interface
 }
 
 func (s *DefaultImageListSaver) getImageListVersion() (string, error) {
-	// obj := &unstructured.Unstructured{}
 	obj := createEmptyImageListObject(s)
 
 	obj.SetGroupVersionKind(clv1alpha1.GroupVersion.WithKind("ImageList"))
 	key := forge.NamespacedNameImageList(obj)
-	err := s.Client.Get(context.TODO(), key, obj)
+	err := s.Client.Get(s.Ctx, key, obj)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -77,7 +71,7 @@ func (s *DefaultImageListSaver) getImageListVersion() (string, error) {
 
 func (s *DefaultImageListSaver) createImageList(imageList []map[string]interface{}) error {
 	obj := s.createImageListObject(imageList, "")
-	err := s.Client.Create(context.TODO(), obj)
+	err := s.Client.Create(s.Ctx, obj)
 	if err != nil {
 		return fmt.Errorf("failed to create ImageList: %w", err)
 	}
@@ -88,7 +82,7 @@ func (s *DefaultImageListSaver) createImageList(imageList []map[string]interface
 func (s *DefaultImageListSaver) updateImageList(imageList []map[string]interface{}, resourceVersion string) error {
 	obj := s.createImageListObject(imageList, resourceVersion)
 
-	err := s.Client.Update(context.TODO(), obj)
+	err := s.Client.Update(s.Ctx, obj)
 	if err != nil {
 		return fmt.Errorf("failed to update ImageList: %w", err)
 	}
@@ -99,8 +93,7 @@ func (s *DefaultImageListSaver) updateImageList(imageList []map[string]interface
 func (s *DefaultImageListSaver) createImageListObject(imageList []map[string]interface{}, resourceVersion string) *clv1alpha1.ImageList {
 
 	imgList := createEmptyImageListObject(s)
-	op, err := ctrl.CreateOrUpdate(context.TODO(), s.Client, imgList, func() error {
-		// 1. Convert the input []map[string]interface{} into []ImageListItem
+	op, err := ctrl.CreateOrUpdate(s.Ctx, s.Client, imgList, func() error {
 		imageItems := make([]clv1alpha1.ImageListItem, len(imageList))
 		for i, imgMap := range imageList {
 			name, _ := imgMap["name"].(string)
@@ -161,15 +154,16 @@ func init() {
 		fmt.Printf("Error initializing K8s client for ImageList savers: %v\n", err)
 		return
 	}
-	saver, err := NewDefaultImageListSaver("crownlabs-standalone", client, log)
+	ctx := context.Background()
+	saver, err := NewDefaultImageListSaver(ctx, "crownlabs-standalone", client, log.WithName("crownlabs-imagelists-standalone"))
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-container-envs", client, log)
+	saver, err = NewDefaultImageListSaver(ctx, "crownlabs-container-envs", client, log.WithName("crownlabs-imagelists-container-envs"))
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
-	saver, err = NewDefaultImageListSaver("crownlabs-containerdisks", client, log)
+	saver, err = NewDefaultImageListSaver(ctx, "crownlabs-containerdisks", client, log.WithName("crownlabs-imagelists-containerdisks"))
 	if err == nil {
 		RegisteredSavers = append(RegisteredSavers, saver)
 	}
