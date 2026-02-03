@@ -12,11 +12,20 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import DriveView from './components/activePage/DriveView';
+import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
 import TenantPage from './components/tenants/TenantPage';
 import TenantListPage from './components/tenants/TenantListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
+
+  // Check if user has access to utilities workspace
+  const hasUtilitiesAccess = Boolean(
+    tenantData?.tenant?.spec?.workspaces?.some(
+      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
+    ),
+  );
 
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
@@ -64,6 +73,18 @@ function App() {
           content: <ActiveViewLogic key="/active" />,
           linkPosition: LinkPosition.NavbarButton,
         },
+        ...(hasUtilitiesAccess
+          ? [
+              {
+                route: {
+                  name: 'Drive',
+                  path: '/drive',
+                },
+                content: <DriveView key="/drive" />,
+                linkPosition: LinkPosition.NavbarButton,
+              },
+            ]
+          : []),
         {
           route: { name: 'Users', path: '/tenants' },
           content: <TenantListPage />,
@@ -76,13 +97,6 @@ function App() {
           route: { name: 'Tenant', path: '/tenants/:tenantId' },
           content: <TenantPage />,
           linkPosition: LinkPosition.Hidden,
-        },
-        {
-          route: {
-            name: 'Drive',
-            path: 'https://crownlabs.polito.it/cloud',
-          },
-          linkPosition: LinkPosition.NavbarButton,
         },
         {
           route: {

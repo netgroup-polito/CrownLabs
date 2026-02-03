@@ -21,6 +21,9 @@ configuration:
     providerUrl: https://auth.example.com/auth/
     claimPrefix: kubernetes
     adminClaim: admin
+  mydrive:
+    templateName: mydrive
+    workspaceName: utilities
 
 imagePullSecrets: []
 nameOverride: ""

@@ -7,6 +7,7 @@ import { TenantContext } from '../../../../contexts/TenantContext';
 import { generateAvatarUrl } from '../../../../utils';
 import { type RouteData } from '../Navbar';
 import type { MenuItemType } from 'antd/lib/menu/interface';
+import type { MenuInfo } from 'rc-menu/lib/interface';
 import { AuthContext } from '../../../../contexts/AuthContext';
 
 export interface INavbarMenuProps {
@@ -61,20 +62,35 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
 
           ...routes.map(r => {
             const isExtLink = r.path.startsWith('http');
+            const hasCustomOnClick = !!r.onClick;
+            const isLoading = r.loading || false;
             return {
               type: 'item',
               key: r.path,
               title: r.name,
-              onClick: () => isExtLink && window.open(r.path, '_blank'),
+              disabled: isLoading,
+              onClick: (e: MenuInfo) => {
+                if (hasCustomOnClick && !isLoading) {
+                  e.domEvent?.preventDefault();
+                  r.onClick!();
+                } else if (isExtLink) {
+                  window.open(r.path, '_blank');
+                }
+              },
               icon: r.navbarMenuIcon,
               className: currentPath === r.path ? 'primary-color-bg' : '',
               label: (
                 <Link
                   target={isExtLink ? '_blank' : ''}
-                  to={{ pathname: isExtLink ? '' : r.path }}
+                  to={{ pathname: isExtLink || hasCustomOnClick ? '' : r.path }}
                   rel={isExtLink ? 'noopener noreferrer' : ''}
+                  onClick={e => {
+                    if (hasCustomOnClick) {
+                      e.preventDefault();
+                    }
+                  }}
                 >
-                  {r.name}
+                  {isLoading ? 'Loading...' : r.name}
                 </Link>
               ),
             } as MenuItemType;

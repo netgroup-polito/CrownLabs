@@ -1,6 +1,14 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox } from 'antd';
+import {
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Tooltip,
+  Checkbox,
+} from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
@@ -27,7 +35,6 @@ import {
   internalRegistry,
 } from './utils';
 
-
 export interface IModalCreateTemplateProps {
   workspaceNamespace: string;
   template?: TemplateForm;
@@ -50,22 +57,22 @@ export interface IModalCreateTemplateProps {
 }
 
 const TimeUnitOptions = [
-    { label: 'Minutes', value: 'm' },
-    { label: 'Hours', value: 'h' },
-    { label: 'Days', value: 'd' },
-  ];
+  { label: 'Minutes', value: 'm' },
+  { label: 'Hours', value: 'h' },
+  { label: 'Days', value: 'd' },
+];
 
 const parseTimeoutString = (s?: string) => {
-    if (!s || s === 'never') return { value: 0, unit: '' }
-    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-    if (!m) return { value: 0, unit: '' }
-    
-    const unitOpt = TimeUnitOptions.find(
-      opt => opt.value === m[2].toLowerCase(),
-    );
+  if (!s || s === 'never') return { value: 0, unit: '' };
+  const m = String(s)
+    .trim()
+    .match(/^(\d+)\s*([mhd])$/i);
+  if (!m) return { value: 0, unit: '' };
 
-    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
-  };
+  const unitOpt = TimeUnitOptions.find(opt => opt.value === m[2].toLowerCase());
+
+  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : '' };
+};
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -91,33 +98,32 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [form] = Form.useForm<TemplateForm>();
   useEffect(() => {
-  if (!show) return;
+    if (!show) return;
 
-  if (template) {
-    form.setFieldsValue(template);
-  } else {
-    form.resetFields();
-    form.setFieldsValue(
-      getDefaultTemplate({
-        cpu: cpuInterval,
-        ram: ramInterval,
-        disk: diskInterval,
-      }),
+    if (template) {
+      form.setFieldsValue(template);
+    } else {
+      form.resetFields();
+      form.setFieldsValue(
+        getDefaultTemplate({
+          cpu: cpuInterval,
+          ram: ramInterval,
+          disk: diskInterval,
+        }),
+      );
+    }
+
+    // reset anche stato locale collegato
+    setTimeouts({
+      inactivityTimeout: { value: 0, unit: '' },
+      deleteAfter: { value: 0, unit: '' },
+    });
+
+    setAutomaticStoppingEnabled(
+      template?.inactivityTimeout !== 'never' ||
+        template?.deleteAfter !== 'never',
     );
-  }
-
-  // reset anche stato locale collegato
-  setTimeouts({
-    inactivityTimeout: { value: 0, unit: '' },
-    deleteAfter: { value: 0, unit: '' },
-  });
-
-  setAutomaticStoppingEnabled(
-    template?.inactivityTimeout !== 'never' ||
-    template?.deleteAfter !== 'never',
-  );
-}, [template, show, form, cpuInterval, ramInterval, diskInterval]);
-
+  }, [template, show, form, cpuInterval, ramInterval, diskInterval]);
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
   const [sharedVolumes, setDataShVols] = useState<SharedVolume[]>([]);
@@ -142,7 +148,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const validateName = async (_: unknown, name: string) => {
-    if (template) { // we are editing an existing template, not creating a new one
+    if (template) {
+      // we are editing an existing template, not creating a new one
       return;
     }
     if (!dataFetchTemplates || loadingFetchTemplates || errorFetchTemplates) {
@@ -236,8 +243,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const handleFormFinish = async (template: TemplateForm) => {
     const parsedTemplate = {
       ...template,
-      inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
-      deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
+      inactivityTimeout:
+        timeouts.inactivityTimeout.value === 0
+          ? 'never'
+          : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
+      deleteAfter:
+        timeouts.deleteAfter.value === 0
+          ? 'never'
+          : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
       environments: template.environments.map(env => ({
         ...env,
         image: parseImage(env.environmentType, env.image),
@@ -246,7 +259,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     try {
       setShow(false);
       await submitHandler(parsedTemplate);
-      
+
       form.resetFields();
       setTimeouts({
         inactivityTimeout: { value: 0, unit: '' },
@@ -258,15 +271,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const getInitialValues = useCallback((template?: TemplateForm) => {
-    if (template) return template;
+  const getInitialValues = useCallback(
+    (template?: TemplateForm) => {
+      if (template) return template;
 
-    return getDefaultTemplate({
-      cpu: cpuInterval,
-      ram: ramInterval,
-      disk: diskInterval,
-    });
-  }, [cpuInterval, ramInterval, diskInterval]);
+      return getDefaultTemplate({
+        cpu: cpuInterval,
+        ram: ramInterval,
+        disk: diskInterval,
+      });
+    },
+    [cpuInterval, ramInterval, diskInterval],
+  );
 
   const handleFormSubmit = async () => {
     try {
@@ -276,40 +292,49 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const [timeouts, setTimeouts] = useState(
-    {
-    inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
-    deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
+  const [timeouts, setTimeouts] = useState({
+    inactivityTimeout: {
+      value: parseTimeoutString(template?.inactivityTimeout).value ?? 0,
+      unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '',
+    },
+    deleteAfter: {
+      value: parseTimeoutString(template?.deleteAfter).value ?? 0,
+      unit: parseTimeoutString(template?.deleteAfter).unit ?? '',
+    },
   });
 
   useEffect(() => {
-  if (!show) return;
+    if (!show) return;
 
-  if (template) {
-    const initial = getInitialValues(template);
-    form.setFieldsValue(initial);
-    setTimeouts({
-      inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
-      deleteAfter: parseTimeoutString(initial.deleteAfter),
-    });
-    setAutomaticStoppingEnabled(
-      (initial.inactivityTimeout) !== 'never' ||
-        (initial.deleteAfter) !== 'never',
-    );
-  } else {
-    form.resetFields();
-    form.setFieldsValue(getInitialValues(undefined));
-    setTimeouts({
-      inactivityTimeout: { value: 0, unit: '' },
-      deleteAfter: { value: 0, unit: '' },
-    });
-    setAutomaticStoppingEnabled(false);
-  }
-}, [template, show, form, getInitialValues]);
+    if (template) {
+      const initial = getInitialValues(template);
+      form.setFieldsValue(initial);
+      setTimeouts({
+        inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
+        deleteAfter: parseTimeoutString(initial.deleteAfter),
+      });
+      setAutomaticStoppingEnabled(
+        initial.inactivityTimeout !== 'never' ||
+          initial.deleteAfter !== 'never',
+      );
+    } else {
+      form.resetFields();
+      form.setFieldsValue(getInitialValues(undefined));
+      setTimeouts({
+        inactivityTimeout: { value: 0, unit: '' },
+        deleteAfter: { value: 0, unit: '' },
+      });
+      setAutomaticStoppingEnabled(false);
+    }
+  }, [template, show, form, getInitialValues]);
 
-  const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
+  const [automaticStoppingEnabled, setAutomaticStoppingEnabled] =
+    useState(false);
 
-  const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeoutValueChange = (
+    value: number | null,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -318,13 +343,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       },
     }));
     form.setFieldValue(field, {
-    value,
-    unit: timeouts[field].unit,
+      value,
+      unit: timeouts[field].unit,
     });
     form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
-  }
+  };
 
-  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeUnitChange = (
+    value: string,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -333,29 +361,37 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       },
     }));
     form.setFieldValue(field, {
-    value: timeouts[field].value,
-    unit: value,
+      value: timeouts[field].value,
+      unit: value,
     });
     form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
-  }
+  };
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'deleteAfter') => {
     return timeouts[field].value === 0;
   };
-  
-  const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } ) => {
+
+  const validateTimeout = async (
+    _: RuleObject,
+    _val: { value: number; unit: string },
+  ) => {
     if (_val.value === undefined || _val.value === 0) {
-      return true; 
+      return true;
     }
 
-    if (TimeUnitOptions.map(option => option.value).includes(_val.unit) === false) {
-      throw new Error("Insert a valid time unit");
-    } 
+    if (
+      TimeUnitOptions.map(option => option.value).includes(_val.unit) === false
+    ) {
+      throw new Error('Insert a valid time unit');
+    }
     return true;
   };
 
-  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
-   
+  const validateTimeoutOrder = async (
+    _: RuleObject,
+    _val: { value: number; unit: string } | undefined,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
       if (t.value === 0) return Infinity;
@@ -363,10 +399,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       const mul = u === 'h' ? 60 : u === 'd' ? 1440 : 1;
       return Number(t.value) * mul;
     };
-    
-    const current =  form.getFieldValue(field);
-    const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout') as { value: number; unit: string } | undefined;
-    const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter') as { value: number; unit: string } | undefined;
+
+    const current = form.getFieldValue(field);
+    const inactivity =
+      field === 'inactivityTimeout'
+        ? current
+        : (form.getFieldValue('inactivityTimeout') as
+            | { value: number; unit: string }
+            | undefined);
+    const deleteAfter =
+      field === 'deleteAfter'
+        ? current
+        : (form.getFieldValue('deleteAfter') as
+            | { value: number; unit: string }
+            | undefined);
 
     if (!inactivity || !deleteAfter) return;
 
@@ -375,7 +421,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
     if (deleteAfterMin === Infinity) return;
 
-    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
+    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number')
+      return;
 
     if (inactivityMin >= deleteAfterMin) {
       throw new Error('Inactivity must be smaller than Expiration');
@@ -384,9 +431,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   return (
-    
     <Modal
-    
       destroyOnHidden={true}
       styles={{ body: { paddingBottom: '5px' } }}
       centered
@@ -394,7 +439,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       title={template ? 'Modify template' : 'Create a new template'}
       open={show}
       onCancel={closehandler}
-      width="600px">
+      width="600px"
+    >
       <Form
         form={form}
         onFinish={handleFormFinish}
@@ -419,85 +465,134 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <Input placeholder="Insert template name" allowClear />
         </Form.Item>
-        <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic clean-up</Checkbox>
-        
-      <Form.Item
-        hidden={!automaticStoppingEnabled}
-        label="Max Inactivity"
-        name="inactivityTimeout"
-        required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-            <InfoCircleOutlined />
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.inactivityTimeout.value}
-          >
-          </InputNumber>
+        <Checkbox
+          className="mb-4"
+          checked={automaticStoppingEnabled}
+          onChange={e => setAutomaticStoppingEnabled(e.target.checked)}
+        >
+          Enable automatic clean-up
+        </Checkbox>
 
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
-            disabled={isTimeUnitDisabled('inactivityTimeout')}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
+        <Form.Item
+          hidden={!automaticStoppingEnabled}
+          label="Max Inactivity"
+          name="inactivityTimeout"
+          required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
+          validateTrigger="onChange"
+          rules={[
+            { validator: validateTimeout },
+            {
+              validator: (rule, value) =>
+                validateTimeoutOrder(rule, value, 'inactivityTimeout'),
+            },
+          ]}
+          {...formItemLayout}
+        >
+          <div className="flex gap-4 items-center">
+            <Tooltip
+              title={
+                <>
+                  <p>
+                    Instances based on this template are stopped / deleted
+                    (based on their persistency) if they're not accessed within
+                    this time (in certain special cases, activity might not be
+                    correctly detected, see{' '}
+                    <a href="https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller">
+                      here
+                    </a>{' '}
+                    for further technical information).
+                  </p>{' '}
+                  <p>
+                    {' '}
+                    <b>Set 0 to disable the feature.</b>
+                  </p>
+                </>
+              }
+            >
+              <InfoCircleOutlined />
+            </Tooltip>
+            <InputNumber
+              onChange={value =>
+                handleTimeoutValueChange(value, 'inactivityTimeout')
+              }
+              min={0}
+              max={60}
+              defaultValue={timeouts.inactivityTimeout.value}
+            ></InputNumber>
 
-      <Form.Item
-        hidden={!automaticStoppingEnabled}
-        label="Max Lifetime"
-        name="deleteAfter"
-        required={isTimeUnitDisabled('deleteAfter') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
-          
-            <InfoCircleOutlined />
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.deleteAfter.value}
-          >
-          </InputNumber>
+            <Select
+              onChange={value =>
+                handleTimeUnitChange(value, 'inactivityTimeout')
+              }
+              disabled={isTimeUnitDisabled('inactivityTimeout')}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
+              defaultValue={
+                parseTimeoutString(template?.inactivityTimeout).unit
+              }
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
 
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'deleteAfter')}
-            disabled={isTimeUnitDisabled('deleteAfter')}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.deleteAfter).unit}
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
+        <Form.Item
+          hidden={!automaticStoppingEnabled}
+          label="Max Lifetime"
+          name="deleteAfter"
+          required={isTimeUnitDisabled('deleteAfter') ? false : true}
+          validateTrigger="onChange"
+          rules={[{ validator: validateTimeout }]}
+          {...formItemLayout}
+        >
+          <div className="flex gap-4 items-center">
+            <Tooltip
+              title={
+                <>
+                  <p>
+                    Time, since the creation, after which instances based on
+                    this template are automatically deleted. Users will be
+                    preemptively alerted through email to take actions.
+                  </p>{' '}
+                  <p>
+                    <b>Set 0 to disable the feature.</b>
+                  </p>
+                </>
+              }
+            >
+              <InfoCircleOutlined />
+            </Tooltip>
+            <InputNumber
+              onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
+              min={0}
+              max={60}
+              defaultValue={timeouts.deleteAfter.value}
+            ></InputNumber>
 
-        
-        
+            <Select
+              onChange={value => handleTimeUnitChange(value, 'deleteAfter')}
+              disabled={isTimeUnitDisabled('deleteAfter')}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
+              defaultValue={parseTimeoutString(template?.deleteAfter).unit}
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
+
         <EnvironmentList
           availableImages={availableImages}
           resources={{
