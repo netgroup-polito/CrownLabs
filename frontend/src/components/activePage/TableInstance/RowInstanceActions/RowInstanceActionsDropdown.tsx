@@ -22,7 +22,6 @@ import {
 } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
 import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from '../../../../env';
 import { TenantContext } from '../../../../contexts/TenantContext';
 
@@ -65,7 +64,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
-  const { refreshQuota } = useQuotaContext(); // Use the quota context
   const navigate = useNavigate();
   const { data: tenantData } = useContext(TenantContext);
 

@@ -1,7 +1,6 @@
 import { MenuOutlined, ExportOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Divider, Drawer, Layout, Typography } from 'antd';
-import { Button } from 'antd';
-import { type FC, useContext, useState, useRef } from 'react';
+import { Divider, Drawer, Layout, Typography, Button } from 'antd';
+import { type FC, useContext, useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
 import {
@@ -14,7 +13,6 @@ import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
 import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
-import { useEffect } from 'react';
 import { useMydrive } from '../../activePage/DriveView/useMydrive';
 import { Phase2 } from '../../../generated-types';
 import { AuthContext } from '../../../contexts/AuthContext';
@@ -87,20 +85,19 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           >
             <Button
               onClick={e => {
-              if (hasCustomOnClick) {
-                e.preventDefault();
-                if (!isLoading) {
-                  routeData.onClick!();
+                if (hasCustomOnClick) {
+                  e.preventDefault();
+                  if (!isLoading) {
+                    routeData.onClick!();
+                  }
+                } else if (isExtLink) {
+                  window.open(routeData.path, '_blank');
+                } else {
+                  setShow(false);
                 }
-              } else if (isExtLink) {
-                window.open(routeData.path, '_blank');
-              } else {
-                setShow(false);
-              }
-            }}
-            loading={isLoading}
-            disabled={isLoading}
-              }
+              }}
+              loading={isLoading}
+              disabled={isLoading}
               ghost={
                 b.linkPosition === LinkPosition.Hidden
                   ? false

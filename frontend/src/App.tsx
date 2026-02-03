@@ -100,13 +100,6 @@ function App() {
         },
         {
           route: {
-            name: 'Drive',
-            path: 'https://crownlabs.polito.it/cloud',
-          },
-          linkPosition: LinkPosition.NavbarButton,
-        },
-        {
-          route: {
             name: 'Support',
             path: 'https://support.crownlabs.polito.it/',
           },
