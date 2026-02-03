@@ -1,6 +1,10 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
+import {
+  VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+  VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+} from './env';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 import AppLayout from './components/common/AppLayout';
@@ -10,6 +14,8 @@ import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLog
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
 import DriveView from './components/activePage/DriveView';
 import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
+import TenantPage from './components/tenants/TenantPage';
+import TenantListPage from './components/tenants/TenantListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -79,6 +85,26 @@ function App() {
               },
             ]
           : []),
+        {
+          route: { name: 'Users', path: '/tenants' },
+          content: <TenantListPage />,
+          linkPosition: LinkPosition.NavbarButton,
+          requiredGroups: [
+            `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+          ],
+        },
+        {
+          route: { name: 'Tenant', path: '/tenants/:tenantId' },
+          content: <TenantPage />,
+          linkPosition: LinkPosition.Hidden,
+        },
+        {
+          route: {
+            name: 'Drive',
+            path: 'https://crownlabs.polito.it/cloud',
+          },
+          linkPosition: LinkPosition.NavbarButton,
+        },
         {
           route: {
             name: 'Support',

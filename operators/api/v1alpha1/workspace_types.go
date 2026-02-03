@@ -15,9 +15,9 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -49,7 +49,7 @@ type WorkspaceSpec struct {
 	AutoEnroll WorkspaceAutoenroll `json:"autoEnroll,omitempty"`
 
 	// The amount of resources associated with this workspace, and inherited by enrolled tenants.
-	Quota WorkspaceResourceQuota `json:"quota"`
+	Quota common.WorkspaceResourceQuota `json:"quota"`
 }
 
 // WorkspaceStatus reflects the most recently observed status of the Workspace.
@@ -69,19 +69,6 @@ type WorkspaceStatus struct {
 	// occurred. In case of errors, the other status fields provide additional
 	// information about which problem occurred.
 	Ready bool `json:"ready,omitempty"`
-}
-
-// WorkspaceResourceQuota defines the resource quota for each Workspace.
-type WorkspaceResourceQuota struct {
-	// The maximum amount of CPU required by this Workspace.
-	CPU resource.Quantity `json:"cpu"`
-
-	// The maximum amount of RAM memory required by this Workspace.
-	Memory resource.Quantity `json:"memory"`
-
-	// +kubebuilder:validation:Minimum:=1
-	// The maximum number of concurrent instances required by this Workspace.
-	Instances int64 `json:"instances"`
 }
 
 // +kubebuilder:object:root=true

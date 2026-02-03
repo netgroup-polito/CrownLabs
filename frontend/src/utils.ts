@@ -39,6 +39,12 @@ export type TemplateEnvironment = {
   }>;
 };
 
+export type InstanceResources = {
+  cpu: number;
+  memory: number;
+  disk: number;
+};
+
 export type InstanceEnvironment = {
   name: string;
   phase?: Phase2;
@@ -46,6 +52,7 @@ export type InstanceEnvironment = {
   guiEnabled?: boolean;
   persistent?: boolean;
   environmentType?: EnvironmentType;
+  quota: InstanceResources;
 };
 
 export type Template = {
@@ -94,6 +101,7 @@ export type Instance = {
   allowPublicExposure: boolean;
   environments?: Array<InstanceEnvironment>;
   hasMultipleEnvironments?: boolean;
+  resources: InstanceResources;
 };
 
 export type SharedVolume = {
@@ -168,6 +176,7 @@ export type RouteDescriptor = {
   route: RouteData;
   content?: ReactNode;
   linkPosition: LinkPosition;
+  requiredGroups?: string[];
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
@@ -210,6 +219,15 @@ export type UserAccountPage = {
   email: string;
   currentRole?: string;
   workspaces?: WorkspaceEntry[];
+};
+
+export type Tenant = {
+  key: string;
+  userid: string;
+  name: string;
+  surname: string;
+  email: string;
+  workspaces: WorkspaceEntry[];
 };
 
 export function makeRandomDigits(value: number) {

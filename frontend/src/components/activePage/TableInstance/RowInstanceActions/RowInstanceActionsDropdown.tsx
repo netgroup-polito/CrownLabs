@@ -275,9 +275,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                   instanceId: name,
                   tenantNamespace: tenantNamespace!,
                 },
-              }).then(() => {
-                // Refresh quota after deletion
-                refreshQuota?.();
               }),
             className: `flex items-center ${
               extended ? ' sm:hidden' : 'xs:hidden'

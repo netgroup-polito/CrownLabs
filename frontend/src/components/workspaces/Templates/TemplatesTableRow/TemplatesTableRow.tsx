@@ -10,7 +10,7 @@ import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
 import type { FetchResult } from '@apollo/client';
 import type { FC } from 'react';
-import { useCallback, useContext, useState, useMemo } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type {
@@ -22,27 +22,22 @@ import {
   useNodesLabelsQuery,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
-import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
+import {
+  OwnedInstancesContext,
+  type IQuota,
+} from '../../../../contexts/OwnedInstancesContext';
 import type { Template } from '../../../../utils';
-import { cleanupLabels, WorkspaceRole } from '../../../../utils';
+import { cleanupLabels, convertToGB, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
-import { parseMemoryToGB } from '../../QuotaDisplay/useQuotaCalculation';
 
 export interface ITemplatesTableRowProps {
   template: Template;
   role: WorkspaceRole;
-  totalInstances: number;
   tenantNamespace: string;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  editTemplate: (template: Template) => void;
-  refreshQuota?: () => void;
   isPersonal?: boolean;
+  workspaceAvailableQuota: IQuota;
   deleteTemplate: (
     id: string,
   ) => Promise<
@@ -53,6 +48,7 @@ export interface ITemplatesTableRowProps {
     >
   >;
   deleteTemplateLoading: boolean;
+  editTemplate: (template: Template) => void;
   createInstance: (
     id: string,
     labelSelector?: JSON,
@@ -73,56 +69,35 @@ const convertMemory = (s: string): string =>
 
 const canCreateInstance = (
   template: Template,
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  },
+  availableQuota: IQuota,
 ): boolean => {
   // If no quota defined, default to allowing creation
   if (!availableQuota) return true;
 
   const templateCpu = template.resources?.cpu || 0;
-  const availableCpu =
-    availableQuota.cpu !== undefined
-      ? typeof availableQuota.cpu === 'string'
-        ? parseFloat(availableQuota.cpu)
-        : availableQuota.cpu
-      : 0;
-
-  const templateMemory = parseMemoryToGB(template.resources?.memory || '0');
-  const availableMemory = parseMemoryToGB(availableQuota.memory || '0');
-
-  const availableInstances =
-    availableQuota.instances !== undefined ? availableQuota.instances : 0;
+  const templateMemory = convertToGB(template.resources?.memory || '0GB');
+  // TODO: add this when disk quota is available - const templateDisk = convertToGB(template.resources?.disk || '0GB');
 
   return (
-    templateCpu <= availableCpu &&
-    templateMemory <= availableMemory &&
-    1 <= availableInstances
+    availableQuota.instances >= 1 &&
+    availableQuota.cpu >= templateCpu &&
+    availableQuota.memory >= templateMemory
+    // TODO: add this when disk quota is available - availableQuota.disk >= templateDisk
   );
 };
 
-const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
-  const {
-    template,
-    role,
-    totalInstances,
-    createInstance,
-    deleteTemplate,
-    editTemplate,
-    deleteTemplateLoading,
-    expandRow,
-    availableQuota,
-    refreshQuota,
-    isPersonal,
-  } = props;
-
-  // Memoize the quota check to be reactive to availableQuota changes
-  const canCreate = useMemo(
-    () => canCreateInstance(template, availableQuota),
-    [template, availableQuota],
-  );
+const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
+  template,
+  role,
+  createInstance,
+  deleteTemplate,
+  deleteTemplateLoading,
+  editTemplate,
+  expandRow,
+  isPersonal,
+  workspaceAvailableQuota,
+}) => {
+  const canCreate = canCreateInstance(template, workspaceAvailableQuota);
 
   const {
     data: labelsData,
@@ -130,7 +105,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     error: labelsError,
   } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
 
-  const { data, refreshClock } = useContext(TenantContext);
+  const { refreshClock } = useContext(TenantContext);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const { refetch: refetchOwnedInstances, data: instancesData } = useContext(
     OwnedInstancesContext,
@@ -156,18 +131,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
     createInstance(template.id)
       .then(() => {
         refreshClock();
-        refreshQuota?.();
         setTimeout(setCreateDisabled, 400, false);
         expandRow(template.id, true);
       })
       .catch(() => setCreateDisabled(false));
-  }, [createInstance, expandRow, refreshClock, refreshQuota, template.id]);
+  }, [createInstance, expandRow, refreshClock, template.id]);
 
   const handleEditTemplate = () => {
     editTemplate(template);
   };
-
-  const instancesLimit = data?.tenant?.status?.quota?.instances ?? 1;
 
   return (
     <>
@@ -215,7 +187,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               deleteTemplate(template.id)
                 .then(() => {
                   setShowDeleteModalConfirm(false);
-                  refreshQuota?.();
                 })
                 .catch(error => {
                   const isNotFoundError =
@@ -226,7 +197,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
 
                   if (isNotFoundError) {
                     setShowDeleteModalConfirm(false);
-                    refreshQuota?.();
                     console.info(
                       `Template ${template.id} was successfully deleted (404 is expected for DELETE operations)`,
                     );
@@ -514,41 +484,21 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
               />
             </Tooltip>
           )}
-          {instancesLimit === totalInstances || !canCreate ? (
+          {!canCreate ? (
             <Tooltip
               classNames={{ root: 'w-44' }}
               title={
-                <>
-                  <div className="text-center">
-                    {!canCreate ? (
-                      <>
-                        <div>Not enough resources available.</div>
-                        <div>Check your workspace quota usage.</div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          You have <b>reached your limit</b> of {instancesLimit}{' '}
-                          instances
-                        </div>
-                        <div className="text-center mt-2">
-                          Please <b>delete</b> an instance to create a new one
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </>
+                <div className="text-center">
+                  <div>Not enough resources available.</div>
+                  <div>Check your workspace quota usage.</div>
+                </div>
               }
             >
               <span className="cursor-not-allowed">
                 <Button
                   onClick={createInstanceHandler}
                   className="hidden xs:block pointer-events-none"
-                  disabled={
-                    totalInstances === instancesLimit ||
-                    createDisabled ||
-                    !canCreate
-                  }
+                  disabled={createDisabled || !canCreate}
                   type="primary"
                   shape="round"
                   size={'middle'}
@@ -581,7 +531,6 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                           createInstance(template.id, JSON.parse(key))
                             .then(() => {
                               refreshClock();
-                              refreshQuota?.();
                               setTimeout(setCreateDisabled, 400, false);
                               expandRow(template.id, true);
                             })
@@ -590,11 +539,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
                       })) || [],
               }}
               onClick={createInstanceHandler}
-              disabled={
-                totalInstances === instancesLimit ||
-                createDisabled ||
-                !canCreate
-              }
+              disabled={createDisabled || !canCreate}
               type="primary"
               size={'middle'}
             >
@@ -604,11 +549,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({ ...props }) => {
             <Button
               onClick={createInstanceHandler}
               className="hidden xs:block"
-              disabled={
-                totalInstances === instancesLimit ||
-                createDisabled ||
-                !canCreate
-              }
+              disabled={createDisabled || !canCreate}
               type="primary"
               shape="round"
               size={'middle'}
