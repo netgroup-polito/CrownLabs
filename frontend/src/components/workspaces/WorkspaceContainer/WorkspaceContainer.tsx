@@ -16,28 +16,18 @@ import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
+import QuotaDisplay from '../QuotaDisplay';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
-  availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonalWorkspace?: boolean;
 }
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
-  const {
-    tenantNamespace,
-    workspace,
-    refreshQuota,
-    isPersonalWorkspace: isPersonal,
-  } = props;
+  const { tenantNamespace, workspace, isPersonalWorkspace: isPersonal } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -113,19 +103,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
       },
-    })
-      .then(result => {
-        // Refresh quota after template creation
-        refreshQuota?.();
-        return result;
-      })
-      .catch(error => {
-        console.error(
-          'WorkspaceContainer createTemplateMutation error:',
-          error,
-        );
-        throw error;
-      });
+    }).catch(error => {
+      console.error('WorkspaceContainer createTemplateMutation error:', error);
+      throw error;
+    });
   };
 
   return (
@@ -143,48 +124,60 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       />
       <Box
         header={{
-          size: 'large',
+          className: 'h-50 md:h-34',
           center: (
-            <div className="h-full flex justify-center items-center px-5">
-              <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{workspace.prettyName}</b>
-              </p>
-            </div>
-          ),
-          left: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<UserSwitchOutlined />}
-                  onClick={() => setShowUserListModal(true)}
-                >
-                  {workspace.waitingTenants && (
-                    <Badge
-                      count={workspace.waitingTenants}
-                      color="yellow"
-                      className="absolute -top-2.5 -right-2.5"
-                    />
-                  )}
-                </Button>
-              </Tooltip>
-            </div>
-          ),
-          right: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pr-10">
-              <Tooltip title="Create template">
-                <Button
-                  onClick={() => {
-                    setShow(true);
-                  }}
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<PlusOutlined />}
-                />
-              </Tooltip>
+            <div className="h-full flex justify-center items-center flex-col">
+              <div className="w-full flex-grow flex justify-center items-center">
+                {workspace.role === WorkspaceRole.manager && (
+                  <div className="h-full w-18 md:w-24 flex-none flex justify-center items-center">
+                    {!isPersonal && (
+                      <Tooltip title="Manage users">
+                        <Button
+                          type="primary"
+                          shape="circle"
+                          size="large"
+                          icon={<UserSwitchOutlined />}
+                          onClick={() => setShowUserListModal(true)}
+                        >
+                          {workspace.waitingTenants && (
+                            <Badge
+                              count={workspace.waitingTenants}
+                              color="yellow"
+                              className="absolute -top-2.5 -right-2.5"
+                            />
+                          )}
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
+
+                <div className="h-full flex-grow flex flex-col justify-center items-center px-5">
+                  <p className="md:text-4xl text-2xl text-center mb-0">
+                    <b>{workspace.prettyName}</b>
+                  </p>
+                </div>
+
+                {workspace.role === WorkspaceRole.manager && (
+                  <div className="h-full w-18 md:w-24 flex-none flex justify-center items-center">
+                    <Tooltip title="Create template">
+                      <Button
+                        onClick={() => {
+                          setShow(true);
+                        }}
+                        type="primary"
+                        shape="circle"
+                        size="large"
+                        icon={<PlusOutlined />}
+                      />
+                    </Tooltip>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full flex-none p-2">
+                <QuotaDisplay workspaceName={workspace.name} />
+              </div>
             </div>
           ),
         }}
@@ -195,8 +188,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             role={workspace.role}
             workspaceNamespace={workspace.namespace}
             workspaceName={workspace.name}
-            availableQuota={props.availableQuota}
-            refreshQuota={refreshQuota}
             isPersonal={isPersonal}
           />
           <Modal

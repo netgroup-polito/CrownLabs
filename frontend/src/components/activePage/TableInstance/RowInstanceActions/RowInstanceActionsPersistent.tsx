@@ -1,4 +1,4 @@
-import { type FC, useContext, useState } from 'react';
+import { type FC, useContext, useMemo, useState } from 'react';
 import { Tooltip } from 'antd';
 import { Button } from 'antd';
 import {
@@ -11,17 +11,20 @@ import { Phase2, useApplyInstanceMutation } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import type { ApolloError } from '@apollo/client';
+import type { IQuota } from '../../../../contexts/OwnedInstancesContext';
+import { cn } from '../../../../utils/style';
 
 export interface IRowInstanceActionsPersistentProps {
   extended: boolean;
   instance: Instance;
+  workspaceAvailableQuota?: IQuota;
 }
 
 const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
-  ...props
+  extended,
+  instance,
+  workspaceAvailableQuota,
 }) => {
-  const { extended, instance } = props;
-
   const { status } = instance;
 
   const font22px = { fontSize: '22px' };
@@ -48,6 +51,17 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
       }
     }
   };
+
+  const canStartInstance = useMemo(() => {
+    if (!workspaceAvailableQuota) return true;
+
+    return (
+      workspaceAvailableQuota.instances >= 1 &&
+      workspaceAvailableQuota.cpu >= instance.resources.cpu &&
+      workspaceAvailableQuota.memory >= instance.resources.memory
+      // TODO: add this when disk quota is available - workspaceAvailableQuota.disk >= instance.resources.disk
+    );
+  }, [instance, workspaceAvailableQuota]);
 
   return status === Phase2.Ready || status === Phase2.ResourceQuotaExceeded ? (
     <Tooltip placement="top" title="Pause">
@@ -78,10 +92,13 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         type="link"
         shape="circle"
         size="middle"
-        disabled={disabled}
+        disabled={disabled || !canStartInstance}
         icon={
           <PlayCircleOutlined
-            className="flex justify-center items-center success-color-fg"
+            className={cn(
+              'flex justify-center items-center',
+              canStartInstance && 'success-color-fg',
+            )}
             style={font22px}
           />
         }
