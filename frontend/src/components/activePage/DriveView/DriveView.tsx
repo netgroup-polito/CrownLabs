@@ -122,8 +122,10 @@ const DriveView: React.FC = () => {
           }
         />
         <div style={{ marginTop: 10 }}>
-          <p>Please be patient while the drive loads, it will take a few moments.
-          It will open automatically when ready.</p>
+          <p>
+            Please be patient while the drive loads, it will take a few moments.
+            It will open automatically when ready.
+          </p>
         </div>
       </>
     );
@@ -152,14 +154,14 @@ const DriveView: React.FC = () => {
   } else {
     containerClassName += ' ant-card ant-layout-content';
     content = (
-        <iframe
-          ref={iframeRef}
-          src={driveUrl}
-          className="drive-view-iframe"
-          onLoad={handleIframeLoad}
-          onError={handleIframeError}
-          title="CrownLabs Drive"
-        />
+      <iframe
+        ref={iframeRef}
+        src={driveUrl}
+        className="drive-view-iframe"
+        onLoad={handleIframeLoad}
+        onError={handleIframeError}
+        title="CrownLabs Drive"
+      />
     );
   }
 

@@ -1,4 +1,8 @@
-import { MenuOutlined, ExportOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  MenuOutlined,
+  ExportOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { Divider, Drawer, Layout, Typography, Button } from 'antd';
 import { type FC, useContext, useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -128,31 +132,31 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               shape="round"
             >
               {isDrive ? (
-              <div className="flex items-center gap-2">
-                <span>{routeData.name}</span>
-                {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
-                {driveUrl && (
-                  <div
-                    className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
-                    style={{
-                      padding: '0 4px',
-                      marginRight: '-8px',
-                      cursor: 'pointer',
-                    }}
-                    onClick={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      window.open(driveUrl, '_blank');
-                    }}
-                    title="Open in new tab"
-                  >
-                    <ExportOutlined />
-                  </div>
-                )}
-              </div>
-            ) : (
-              routeData.name
-            )}
+                <div className="flex items-center gap-2">
+                  <span>{routeData.name}</span>
+                  {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
+                  {driveUrl && (
+                    <div
+                      className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
+                      style={{
+                        padding: '0 4px',
+                        marginRight: '-8px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(driveUrl, '_blank');
+                      }}
+                      title="Open in new tab"
+                    >
+                      <ExportOutlined />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                routeData.name
+              )}
             </Button>
           </Link>
         ),
