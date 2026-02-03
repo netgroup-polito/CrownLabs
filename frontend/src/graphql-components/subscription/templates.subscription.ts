@@ -19,7 +19,6 @@ export default gql`
             name
             guiEnabled
             persistent
-            nodeSelector
             resources {
               cpu
               disk
