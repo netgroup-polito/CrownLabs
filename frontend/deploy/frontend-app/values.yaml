@@ -22,7 +22,6 @@ configuration:
   mydrive:
     templateName: mydrive
     workspaceName: utilities
-    workspaceNamespace: workspace-utilities
 
 imagePullSecrets: []
 nameOverride: ""
