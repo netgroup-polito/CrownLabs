@@ -17,7 +17,6 @@ query workspaceTemplates($workspaceNamespace: String!) {
           image
           guiEnabled
           persistent
-          nodeSelector
           resources {
             cpu
             disk
