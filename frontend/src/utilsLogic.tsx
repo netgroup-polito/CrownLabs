@@ -74,9 +74,6 @@ export const makeGuiTemplate = (
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
 
-  // For backwards compatibility use the first environment for main properties
-  const primaryEnvironment = environmentList[0];
-
   const hasGUI = environmentList.some(env => env?.guiEnabled);
   const hasPersistent = environmentList.some(env => env?.persistent);
 
@@ -116,7 +113,7 @@ export const makeGuiTemplate = (
     deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
     inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
     persistent: hasPersistent,
-    nodeSelector: primaryEnvironment?.nodeSelector,
+    nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
       cpu: aggregatedResources.cpu,
       memory:
