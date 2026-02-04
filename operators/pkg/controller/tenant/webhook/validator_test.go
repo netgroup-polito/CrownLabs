@@ -224,7 +224,7 @@ var _ = Describe("Validator webhook", func() {
 		When("lastLogin is changed within the LastLoginToleration", func() {
 			BeforeEach(func() {
 				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
-					LastLogin: metav1.Time{
+					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration / 2),
 					},
 				}}
@@ -237,7 +237,7 @@ var _ = Describe("Validator webhook", func() {
 		When("lastLogin too far from now (abs(lastLogin-now)) > LastLoginToleration)", func() {
 			BeforeEach(func() {
 				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
-					LastLogin: metav1.Time{
+					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration + time.Millisecond),
 					},
 				}}
