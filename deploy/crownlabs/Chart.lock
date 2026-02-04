@@ -5,18 +5,18 @@ dependencies:
 - name: qlkube
   repository: file://../../qlkube/deploy/qlkube
   version: 0.1.0
+- name: operator
+  repository: file://../../operators/deploy/operator
+  version: 0.1.1
 - name: crownmail
   repository: file://../../operators/deploy/crownmail
   version: 0.1.0
 - name: instance-operator
   repository: file://../../operators/deploy/instance-operator
   version: 0.1.2
-- name: tenant-operator
-  repository: file://../../operators/deploy/tenant-operator
-  version: 0.1.0
 - name: bastion-operator
   repository: file://../../operators/deploy/bastion-operator
-  version: 0.1.0
+  version: 0.1.1
 - name: image-list
   repository: file://../../operators/deploy/image-list
   version: 0.1.0
@@ -29,5 +29,5 @@ dependencies:
 - name: policies
   repository: file://../../policies
   version: 0.1.0
-digest: sha256:3ef8ee147fe7efb16c335870531e1a71deecbbe87d85671734d71c101560e235
-generated: "2025-08-22T12:30:28.50327485+02:00"
+digest: sha256:75487f599fce689665361a10184caa0d380d94ed867554e3c2414caf76f3f86b
+generated: "2026-01-13T23:04:40.563359171Z"

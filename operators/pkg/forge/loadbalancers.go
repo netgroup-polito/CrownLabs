@@ -100,7 +100,7 @@ func LoadBalancerServiceAnnotations(externalIP string, opts *PublicExposureOpts)
 // LoadBalancerServiceLabels forges the labels for a LoadBalancer service.
 func LoadBalancerServiceLabels() map[string]string {
 	labels := map[string]string{
-		labelComponentKey: LabelPublicExposureValue,
+		LabelComponentKey: LabelPublicExposureValue,
 	}
 
 	return labels

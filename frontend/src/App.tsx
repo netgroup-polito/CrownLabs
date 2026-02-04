@@ -1,6 +1,10 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
+import {
+  VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+  VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+} from './env';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 import AppLayout from './components/common/AppLayout';
@@ -8,6 +12,8 @@ import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogi
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
 import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import TenantPage from './components/tenants/TenantPage';
+import TenantListPage from './components/tenants/TenantListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -57,6 +63,19 @@ function App() {
           route: { name: 'Active', path: '/active' },
           content: <ActiveViewLogic key="/active" />,
           linkPosition: LinkPosition.NavbarButton,
+        },
+        {
+          route: { name: 'Users', path: '/tenants' },
+          content: <TenantListPage />,
+          linkPosition: LinkPosition.NavbarButton,
+          requiredGroups: [
+            `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+          ],
+        },
+        {
+          route: { name: 'Tenant', path: '/tenants/:tenantId' },
+          content: <TenantPage />,
+          linkPosition: LinkPosition.Hidden,
         },
         {
           route: {
