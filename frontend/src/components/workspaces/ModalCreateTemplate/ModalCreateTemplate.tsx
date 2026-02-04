@@ -1,12 +1,15 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Dropdown } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import type { CollapseProps } from 'antd';
-
+import {
+  useInstancesLabelSelectorQuery,
+  useNodesLabelsQuery,
+} from '../../../generated-types';
 import {
   EnvironmentType,
   useWorkspaceTemplatesQuery,
@@ -16,7 +19,7 @@ import {
 import type { ApolloError, FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
-import type { SharedVolume } from '../../../utils';
+import { cleanupLabels, type SharedVolume } from '../../../utils';
 import { EnvironmentList } from './EnvironmentList';
 import type { Image, Interval, TemplateForm } from './types';
 import {
@@ -238,6 +241,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const handleFormFinish = async (template: TemplateForm) => {
     const parsedTemplate = {
       ...template,
+      description: template.description || template.name,
+      nodeSelector: {},
       inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
       deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
       environments: template.environments.map(env => ({
@@ -248,6 +253,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     try {
       setShow(false);
       await submitHandler(parsedTemplate);
+      console.log('Submitting template:', parsedTemplate);
       
       form.resetFields();
       setTimeouts({
@@ -310,7 +316,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 }, [template, show, form, getInitialValues]);
 
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
-  const [automaticExposureEnabled, setAutomaticExposureEnabled] = useState(false);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -387,6 +392,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const [infoNumberTemplate, setInfoNumberTemplate] = useState<number>(template?.environments?.length ?? 1 );
+
+  const {
+      data: labelsData,
+      loading: loadingLabels,
+      error: labelsError,
+    } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
 
   const automaticInstanceStopForm = <>
   <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic clean-up</Checkbox>
@@ -479,25 +490,88 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           isPersonal={isPersonal === undefined ? false : isPersonal}
         /></>
   
-    
+  const handleNodeSelectorChange = (values: string[]) => {
+  
+  }
+
+  const handleChangeExposure = (checked: boolean) => {
+    form.setFieldValue('allowPublicExposure', checked);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    form.setFieldValue('description', value);
+  };
 
   const advancedFeaturesForm = <>
     {/* TODO: public exporsure, nodeselector, template description */ }
-    <Typography.Paragraph className="mb-2">Template Description</Typography.Paragraph>
+    <Form.Item
+      name="description"
+      className="mb-4"
+      required={false}
+      label="Description"
+      {...formItemLayout}
+      >
     <Input.TextArea
       className="mb-4"
       rows={3}
       placeholder="Insert template description"
       maxLength={500}
     />
-    <Checkbox className="mb-4" checked={automaticExposureEnabled} onChange={e => setAutomaticExposureEnabled(e.target.checked)}>Enable public exposure</Checkbox>
+    </Form.Item>
+    <Form.Item name="allowPublicExposure" valuePropName='checked'>
+      <Checkbox className="mb-4"  onChange={e => handleChangeExposure(e.target.checked)}>Enable public exposure</Checkbox>
+    </Form.Item>
     <Typography.Paragraph className="mb-2">Node Selector</Typography.Paragraph>
-    <Select
-      mode="tags"
-      style={{ width: '100%' }}
-      placeholder="Select node labels"
 
-    />
+    <Select
+          mode="multiple"
+          placeholder="Select"
+          onChange={handleNodeSelectorChange}
+          style={{ width: '100%' }}
+          
+          options={loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        
+                      })) }
+        />
+
+
+    {/* <Dropdown.Button
+              menu={{
+                items:
+                  loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                          disabled: true,
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        disabled: loadingLabels,
+                        
+                      })) || [],
+              }}
+              type="primary"
+              size={'middle'}
+            >
+              Create
+            </Dropdown.Button> */}
+
 
   </>
 

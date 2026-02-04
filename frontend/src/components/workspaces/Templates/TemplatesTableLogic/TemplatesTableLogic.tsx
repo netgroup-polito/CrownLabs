@@ -297,19 +297,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       );
 
       const patchJson = JSON.stringify([
-        {
-          op: 'replace',
-          path: '/spec/environmentList',
-          value: environmentList,
-        },
-        { op: 'replace', path: '/spec/prettyName', value: t.name },
-        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        {
-          op: 'replace',
-          path: '/spec/inactivityTimeout',
-          value: t.inactivityTimeout,
-        },
+        { op: 'replace', path: '/spec/environmentList', value: environmentList },
+      { op: 'replace', path: '/spec/prettyName', value: t.name },
+      { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
+      { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
+      { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
+      { op: 'replace', path: '/spec/description', value: t.description },
       ]);
+
 
       //    console.log('Patch JSON:', patchJson);
 
@@ -384,7 +379,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                   setUsedTemplate(template);
                   const templateForm: TemplateForm = {
                     name: template.name,
+                    nodeSelector: template.nodeSelector ?? {},
+                    description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
+                    allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
                     environments: template.environmentList.map(env => ({
                       name: env.name,

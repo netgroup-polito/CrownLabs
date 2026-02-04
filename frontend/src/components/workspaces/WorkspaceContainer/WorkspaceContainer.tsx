@@ -98,10 +98,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         workspaceNamespace: workspaceNamespace,
         templateId: templateIdValue,
         templateName: t.name?.trim() || '',
-        descriptionTemplate: t.name?.trim() || '',
+        descriptionTemplate: t.description,
         environmentList: environmentList,
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
+        allowPublicExposure: t.allowPublicExposure,
+        ...(t.nodeSelector !== null && { nodeSelector: t.nodeSelector }),
       },
     }).catch(error => {
       console.error('WorkspaceContainer createTemplateMutation error:', error);

@@ -1,4 +1,4 @@
-import { Checkbox, Form, Slider, Tooltip } from 'antd';
+import { Checkbox, Form, Slider, Space, Input, Tooltip, InputNumber } from 'antd';
 import type { ChildFormItem, Interval, TemplateFormEnv } from './types';
 import type { FC } from 'react';
 import { formItemLayout } from './utils';
@@ -38,7 +38,8 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
     });
   };
 
-  const handleDiskChange = (disk: number) => {
+  const handleDiskChange = (disk: number | null) => {
+    if (disk === null) return;
     if (!environments) return;
     if (!environments[parentFormName]) return;
 
@@ -57,8 +58,33 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
   };
 
   return (
-    <Form.Item label="Persistent" {...formItemLayout} className="mb-4">
+    <Space direction='horizontal' className='ml-6 mt-4' >
+    <Form.Item  className="mb-4" label="Disk" labelCol={{ span: 24 }}
+        wrapperCol={{ span: 24 }}>
       <div className="flex gap-4 items-start">
+
+
+        <div className="flex-1">
+          <Form.Item {...restField} name={[parentFormName, 'disk']} noStyle className="mb-0">
+            <Space.Compact block>
+              {/* Dovremmo ricevere il metadato relativo alla dimensione minima direttamente dall'img della VM. Per il momento se VM, min 10; se altro miniumo 1*/}
+            <InputNumber
+              
+              max={resources.max}
+              step={1}
+              style={{ width: "30%", textAlignLast: "center" }}
+              defaultValue={form.getFieldValue(['environments', parentFormName, 'disk']) || 0}
+              onChange={value => handleDiskChange(value)}
+            />
+            <Input disabled className="site-input-right" value="DISK GB:" style={{
+          width: "30%",
+          borderInlineStart: 0,
+          borderInlineEnd: 0,
+          pointerEvents: 'none',
+        }} />
+            </Space.Compact>
+          </Form.Item>
+        </div>
         <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
           <div className="pt-[6px]">
             <Form.Item
@@ -70,30 +96,13 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
             >
               <Checkbox
                 disabled={isCloudVm}
-                onChange={value => handlePersistentChange(value.target.checked)}
-              />
+                onChange={value => handlePersistentChange(value.target.checked)}>Persistent</Checkbox>
             </Form.Item>
           </div>
         </Tooltip>
-
-        <div className="flex-1">
-          <Form.Item {...restField} name={[parentFormName, 'disk']} noStyle className="mb-0">
-            <Slider
-              tooltip={{
-                defaultOpen: false,
-                formatter: value => `${value} GB`,
-              }}
-              max={resources.max}
-              marks={{
-                0: '0GB',
-                [resources.min]: `${resources.min}GB`,
-                [resources.max]: `${resources.max}GB`,
-              }}
-              onChangeComplete={value => handleDiskChange(value)}
-            />
-          </Form.Item>
-        </div>
       </div>
+      
     </Form.Item>
+    </Space> 
   );
 };

@@ -2,11 +2,13 @@ mutation createTemplate(
   $workspaceId: String!
   $workspaceNamespace: String!
   $templateName: String!
-  $descriptionTemplate: String!
   $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
   $deleteAfter: String
+  $descriptionTemplate: String!
   $inactivityTimeout: String
+  $allowPublicExposure: Boolean
+  $nodeSelector: JSON
 ) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
@@ -19,6 +21,8 @@ mutation createTemplate(
         deleteAfter: $deleteAfter
         inactivityTimeout: $inactivityTimeout
         environmentList: $environmentList
+        allowPublicExposure: $allowPublicExposure
+        nodeSelector: $nodeSelector
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
       metadata: { generateName: $templateId, namespace: $workspaceNamespace }
@@ -29,6 +33,8 @@ mutation createTemplate(
       description
       deleteAfter
       inactivityTimeout
+      allowPublicExposure
+      nodeSelector
       environmentList {
         name
         guiEnabled

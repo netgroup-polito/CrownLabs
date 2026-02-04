@@ -5,7 +5,7 @@ import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 export const internalRegistry = 'registry.internal.crownlabs.polito.it';
 
 export const formItemLayout = {
-  labelCol: { span: 5 },
+  labelCol: { span: 4 },
   wrapperCol: { span: 19 },
   style: { marginBottom: 14 },
 };
@@ -18,9 +18,12 @@ export const getImageNameNoVer = (image: string) => {
 export const getDefaultTemplate = (resources: Resources): Template => {
   return {
     name: '',
+    description: '',
+    nodeSelector: null,
     environments: [getDefaultTemplateEnvironment(resources, 0)],
     deleteAfter: 'never',
     inactivityTimeout: 'never',
+    allowPublicExposure: false,
   };
 };
 

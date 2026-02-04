@@ -1,4 +1,4 @@
-import { Form, Tabs, Typography } from 'antd';
+import { Form, Tabs } from 'antd';
 import { useState, type FC } from 'react';
 import { EnvironmentTabLabel } from './EnvironmentTabLabel';
 import { EnvironmentType } from '../../../generated-types';

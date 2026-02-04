@@ -13,9 +13,12 @@ export type Resources = {
 
 export type TemplateForm = {
   name: string;
+  description: string;
   environments: TemplateFormEnv[];
   deleteAfter: string;
   inactivityTimeout: string;
+  allowPublicExposure: boolean;
+  nodeSelector: Record<string, string> | null;
 };
 
 export type TemplateFormEnv = {
