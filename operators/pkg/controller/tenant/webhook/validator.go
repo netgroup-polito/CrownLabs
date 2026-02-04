@@ -23,7 +23,6 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -237,12 +236,27 @@ func (tv *TenantValidator) HandleSelfEdit(
 	newTenant.Spec.PublicKeys = nil
 	oldTenant.Spec.PublicKeys = nil
 
-	lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
-	if newTenant.Spec.LastLogin != oldTenant.Spec.LastLogin && lastLoginDelta > LastLoginToleration {
-		return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
+	// manage last login
+	lastLoginChanged := false
+	if newTenant.Spec.LastLogin == nil && oldTenant.Spec.LastLogin == nil {
+		lastLoginChanged = false
+	} else if newTenant.Spec.LastLogin == nil || oldTenant.Spec.LastLogin == nil {
+		lastLoginChanged = true
+	} else {
+		lastLoginChanged = !newTenant.Spec.LastLogin.Time.Equal(oldTenant.Spec.LastLogin.Time)
 	}
-	newTenant.Spec.LastLogin = metav1.Time{}
-	oldTenant.Spec.LastLogin = metav1.Time{}
+
+	if lastLoginChanged {
+		if newTenant.Spec.LastLogin != nil {
+			lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
+			if lastLoginDelta > LastLoginToleration {
+				return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
+			}
+		}
+	}
+
+	newTenant.Spec.LastLogin = nil
+	oldTenant.Spec.LastLogin = nil
 
 	// manage workspaces
 	newWorkspaces := newTenant.Spec.Workspaces

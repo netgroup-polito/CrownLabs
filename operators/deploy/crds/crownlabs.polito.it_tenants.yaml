@@ -79,7 +79,6 @@ spec:
               lastLogin:
                 description: The last login timestamp.
                 format: date-time
-                nullable: true
                 type: string
               lastName:
                 description: The last name of the Tenant.
