@@ -15,7 +15,6 @@ import {
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
-import { useQuotaContext } from '../../../../contexts/QuotaContext.types';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
 export interface IRowInstanceActionsDefaultProps {
@@ -41,7 +40,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   } = instance;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const { refreshQuota } = useQuotaContext(); // Use the quota context
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
@@ -176,8 +174,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               })
                 .then(() => {
                   setShowDeleteModalConfirm(false);
-                  // Refresh quota after deletion
-                  refreshQuota?.();
                 })
                 .catch(() => null)
             }

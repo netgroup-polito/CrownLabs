@@ -21,6 +21,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	commonapi "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -101,7 +102,7 @@ var _ = Describe("Tenant forging", func() {
 	var _ = Describe("ConfigureTenantResourceQuota", func() {
 		It("Should initialize labels if nil and set quota spec", func() {
 			rq := &corev1.ResourceQuota{}
-			quota := &v1alpha2.TenantResourceQuota{}
+			quota := &commonapi.WorkspaceResourceQuota{}
 			labels := map[string]string{
 				"custom-label": "custom-value",
 			}
@@ -122,7 +123,7 @@ var _ = Describe("Tenant forging", func() {
 				},
 			}
 
-			quota := &v1alpha2.TenantResourceQuota{}
+			quota := &commonapi.WorkspaceResourceQuota{}
 			labels := map[string]string{
 				"custom-label": "custom-value",
 			}

@@ -12,7 +12,7 @@ import {
 import type { User, Workspace } from '../../../utils';
 import { multiStringIncludes } from '../../../utils';
 import {
-  getManagerInstances,
+  makeGuiInstance,
   getTemplatesMapped,
   getWorkspacesMapped,
 } from '../../../utilsLogic';
@@ -113,7 +113,7 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
   }, [loadingInstances, subscribeToMoreInstances, tenantNamespace, tenantId]);
 
   const instancesMapped = useMemo(
-    () => instList?.instanceList?.instances.map(getManagerInstances) || [],
+    () => instList?.instanceList?.instances.map(makeGuiInstance) || [],
     [instList],
   );
 

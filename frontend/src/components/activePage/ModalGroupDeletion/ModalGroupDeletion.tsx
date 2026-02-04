@@ -14,7 +14,6 @@ export interface IModalGroupDeletionProps {
   show: boolean;
   setShow: Dispatch<SetStateAction<boolean>>;
   destroy: () => void;
-  refreshQuota?: () => void; // Add this
 }
 
 const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
@@ -27,7 +26,6 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
     show,
     setShow,
     destroy,
-    refreshQuota, // Add this
   } = props;
   const [confirmDeletion, setConfirmDeletion] = useState(false);
 
@@ -87,7 +85,6 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
       className="border-0"
       onClick={() => {
         destroy();
-        refreshQuota?.(); // Add this
         setShow(false);
       }}
     >
