@@ -512,13 +512,16 @@ export const Environment: FC<EnvironmentProps> = ({
       </Form.Item>
 
       {/* Disk */}
+        {/* TODO: The minimum disk size should be dynamically set based on the VM image metadata. Right now, if instance is a VM, min 10; otherwise minimum 1 */}
       <Form.Item {...restField} name={[name,'disk']} label="Disk" {...propInputField} >
             <InputNumber
               step={1}
               style={{ width: "120px", textAlignLast: "center" }}
-              defaultValue={0}
+              
               addonAfter="GB"
               disabled={!isPersistent(name)}
+              max={resources.disk.max}
+              min={getEnvironmentType(name) === EnvironmentType.VirtualMachine ? isPersistent(name) ? resources.disk.min : 0 : 0}
             />
           </Form.Item>
       </Space>

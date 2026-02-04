@@ -67,9 +67,7 @@ export const EnvironmentDisk: FC<EnvironmentDiskProps> = ({
         <div className="flex-1">
           <Form.Item {...restField} name={[parentFormName, 'disk']} noStyle className="mb-0">
             <Space.Compact block>
-              {/* Dovremmo ricevere il metadato relativo alla dimensione minima direttamente dall'img della VM. Per il momento se VM, min 10; se altro miniumo 1*/}
             <InputNumber
-              
               max={resources.max}
               step={1}
               style={{ width: "30%", textAlignLast: "center" }}
