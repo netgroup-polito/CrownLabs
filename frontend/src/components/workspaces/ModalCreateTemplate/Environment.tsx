@@ -215,7 +215,7 @@ export const Environment: FC<EnvironmentProps> = ({
 
   const handleResourceChange = (
     currIndex: number,
-    field: 'cpu' | 'ram',
+    field: 'cpu' | 'ram' | 'reservedCpu',
     value: number | null,
   ) => {
     if (value === null) return;
@@ -473,7 +473,7 @@ export const Environment: FC<EnvironmentProps> = ({
       )}
     </Flex>
       
-      <Space direction="horizontal" className='ml-8 mb-4'  >
+      <Space direction="horizontal" className='ml-2 mb-4'  >
       {/* CPU Input */}
       <Form.Item 
         {...restField}
@@ -513,7 +513,7 @@ export const Environment: FC<EnvironmentProps> = ({
 
       {/* Disk */}
         {/* TODO: The minimum disk size should be dynamically set based on the VM image metadata. Right now, if instance is a VM, min 10; otherwise minimum 1 */}
-      <Form.Item {...restField} name={[name,'disk']} label="Disk" {...propInputField} >
+        <Form.Item {...restField} name={[name,'disk']} label="Disk" {...propInputField} >
             <InputNumber
               step={1}
               style={{ width: "120px", textAlignLast: "center" }}
@@ -522,6 +522,19 @@ export const Environment: FC<EnvironmentProps> = ({
               disabled={!isPersistent(name)}
               max={resources.disk.max}
               min={getEnvironmentType(name) === EnvironmentType.VirtualMachine ? isPersistent(name) ? resources.disk.min : 0 : 0}
+            />
+          </Form.Item>
+
+        {/* Reserved CPU Percentage */}
+        <Form.Item {...restField} name={[name,'reservedCpu']} label="Reserved CPU" {...propInputField} >
+            <InputNumber
+              onChange={value => handleResourceChange(name, 'reservedCpu', value)}
+              step={1}
+              style={{ width: "120px", textAlignLast: "center" }}
+              defaultValue={50}
+              addonAfter="%"
+              max={100}
+              min={1}
             />
           </Form.Item>
       </Space>

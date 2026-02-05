@@ -43,6 +43,7 @@ mutation createTemplate(
           cpu
           disk
           memory
+          reservedCPUPercentage
         }
       }
     }

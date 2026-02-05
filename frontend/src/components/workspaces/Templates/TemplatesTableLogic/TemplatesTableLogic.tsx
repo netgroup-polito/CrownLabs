@@ -276,8 +276,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           environmentType: env.environmentType,
           resources: {
             reservedCPUPercentage:
-              usedTemplate?.environmentList.find(e => e.name === env.name)
-                ?.resources.reservedCPUPercentage ?? 50,
+             env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
             disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
@@ -390,6 +389,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       environmentType:
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
+                      reservedCpu: env.resources.reservedCPUPercentage ?? 50,
                       ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
                       disk: env.resources.disk
                         ? parseInt(env.resources.disk) / 1000

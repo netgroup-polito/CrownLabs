@@ -5,8 +5,8 @@ import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 export const internalRegistry = 'registry.internal.crownlabs.polito.it';
 
 export const formItemLayout = {
-  labelCol: { span: 4 },
-  wrapperCol: { span: 19 },
+  labelCol: { span: 5 },
+  wrapperCol: { span: 18 },
   style: { marginBottom: 14 },
 };
 
@@ -41,6 +41,7 @@ export const getDefaultTemplateEnvironment = (
     cpu: resources.cpu.min,
     ram: resources.ram.min,
     disk: 0,
+    reservedCpu: 50,
     sharedVolumeMounts: [],
     rewriteUrl: false,
   };

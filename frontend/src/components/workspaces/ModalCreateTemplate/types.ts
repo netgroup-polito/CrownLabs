@@ -30,6 +30,7 @@ export type TemplateFormEnv = {
   cpu: number;
   ram: number;
   persistent: boolean;
+  reservedCpu: number;
   disk: number;
   sharedVolumeMounts: TemplateFormEnvShVol[];
   rewriteUrl: boolean;

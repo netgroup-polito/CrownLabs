@@ -399,8 +399,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       error: labelsError,
     } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
 
-  const automaticInstanceStopForm = <>
-  <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic clean-up</Checkbox>
+    const handleEnablingCleanUp = (enabled: boolean) => {
+      setAutomaticStoppingEnabled(enabled);
+      if (!enabled) {
+        // If disabling, reset timeouts to 0
+        setTimeouts({
+          inactivityTimeout: { value: 0, unit: '' },
+          deleteAfter: { value: 0, unit: '' },
+        });
+        form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
+        form.setFieldValue('deleteAfter', { value: 0, unit: '' });
+        form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
+      }
+    };
+
+  const automaticInstanceSavingResource = <>
+  <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
       <Form.Item
         label="Max Inactivity"
@@ -412,13 +426,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         
         <div className="flex gap-4 items-center">
           <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-            <InfoCircleOutlined />
+            <InfoCircleOutlined className='ml-2'/>
           </Tooltip>
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
             min={0}
             max={60}
-            defaultValue={timeouts.inactivityTimeout.value}
+            defaultValue={timeouts.inactivityTimeout.value }
             disabled={!automaticStoppingEnabled}
           >
           </InputNumber>
@@ -429,6 +443,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             placeholder="Select Time unit"
             getPopupContainer={trigger => trigger.parentElement || document.body}
             defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
+            
           >
             {TimeUnitOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
@@ -450,7 +465,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         <div className="flex gap-4 items-center">
           <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
           
-            <InfoCircleOutlined />
+            <InfoCircleOutlined className='ml-2'/>
           </Tooltip>
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
@@ -475,7 +490,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             ))}
           </Select>
         </div>
-      </Form.Item></>
+      </Form.Item>
+      </>
 
   const environmentListForm = <>
   <EnvironmentList
@@ -587,13 +603,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
 
+
   const collapseFormItems: CollapseProps['items'] = [
   {
     key: '1',
     label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
-    children: automaticInstanceStopForm,
+    children: automaticInstanceSavingResource,
     style: panelStyle,
-    extra: <Text keyboard>{automaticStoppingEnabled ? 'Enabled' : 'Disabled'}</Text>
+    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
   },
   {
     key: '2',
@@ -621,7 +638,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       title={template ? 'Modify template' : 'Create a new template'}
       open={show}
       onCancel={closehandler}
-      width="600px">
+      width="620px">
       <Form
         form={form}
         onFinish={handleFormFinish}

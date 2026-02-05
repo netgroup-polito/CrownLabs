@@ -51,7 +51,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         mountMyDriveVolume: true,
         resources: {
           cpu: formEnv.cpu,
-          reservedCPUPercentage: 50,
+          reservedCPUPercentage: formEnv.reservedCpu,
           memory: `${formEnv.ram * 1000}M`,
         },
         guiEnabled: formEnv.gui,
