@@ -1,4 +1,4 @@
-import { Form, Tabs, Typography } from 'antd';
+import { Form, Tabs } from 'antd';
 import { useState, type FC } from 'react';
 import { EnvironmentTabLabel } from './EnvironmentTabLabel';
 import { EnvironmentType } from '../../../generated-types';
@@ -19,6 +19,7 @@ const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
     cpu: 1,
     ram: 1,
     disk: 0,
+    reservedCpu: 50,
     sharedVolumeMounts: [],
     rewriteUrl: false,
   };
@@ -29,6 +30,7 @@ interface IEnvironmentLabelProps {
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
+  setInfoNumberTemplate: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
@@ -36,6 +38,7 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
   resources,
   sharedVolumes,
   isPersonal,
+  setInfoNumberTemplate
 }) => {
   const form = Form.useFormInstance();
   const environments = Form.useWatch<TemplateFormEnv[] | undefined>(
@@ -87,18 +90,20 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
     switch (action) {
       case 'add':
         addEnv();
+        setInfoNumberTemplate((prev) => prev + 1);
         return;
       case 'remove':
         removeEnv(targetKey);
+        setInfoNumberTemplate((prev) => prev == 1 ? prev : prev - 1);
         return;
     }
   };
 
   return (
     <>
-      <div className="mb-2">
+      {/* <div className="mb-2">
         <Typography.Text strong>Virtual Machines / Containers</Typography.Text>
-      </div>
+      </div> */}
 
       <Form.List name="environments">
         {(fields, _) => (

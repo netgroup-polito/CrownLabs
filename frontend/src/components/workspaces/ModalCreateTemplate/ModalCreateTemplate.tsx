@@ -1,11 +1,15 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Dropdown } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
-
+import type { CollapseProps } from 'antd';
+import {
+  useInstancesLabelSelectorQuery,
+  useNodesLabelsQuery,
+} from '../../../generated-types';
 import {
   EnvironmentType,
   useWorkspaceTemplatesQuery,
@@ -15,7 +19,7 @@ import {
 import type { ApolloError, FetchResult } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
-import type { SharedVolume } from '../../../utils';
+import { cleanupLabels, type SharedVolume } from '../../../utils';
 import { EnvironmentList } from './EnvironmentList';
 import type { Image, Interval, TemplateForm } from './types';
 import {
@@ -26,6 +30,8 @@ import {
   getImagesFromList,
   internalRegistry,
 } from './utils';
+
+const { Text } = Typography;
 
 
 export interface IModalCreateTemplateProps {
@@ -106,7 +112,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     );
   }
 
-  // reset anche stato locale collegato
   setTimeouts({
     inactivityTimeout: { value: 0, unit: '' },
     deleteAfter: { value: 0, unit: '' },
@@ -236,6 +241,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const handleFormFinish = async (template: TemplateForm) => {
     const parsedTemplate = {
       ...template,
+      description: template.description || template.name,
+      nodeSelector: {},
       inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
       deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
       environments: template.environments.map(env => ({
@@ -246,6 +253,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     try {
       setShow(false);
       await submitHandler(parsedTemplate);
+      console.log('Submitting template:', parsedTemplate);
       
       form.resetFields();
       setTimeouts({
@@ -383,6 +391,242 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return;
   };
 
+  const [infoNumberTemplate, setInfoNumberTemplate] = useState<number>(template?.environments?.length ?? 1 );
+
+  const {
+      data: labelsData,
+      loading: loadingLabels,
+      error: labelsError,
+    } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
+
+    const handleEnablingCleanUp = (enabled: boolean) => {
+      setAutomaticStoppingEnabled(enabled);
+      if (!enabled) {
+        // If disabling, reset timeouts to 0
+        setTimeouts({
+          inactivityTimeout: { value: 0, unit: '' },
+          deleteAfter: { value: 0, unit: '' },
+        });
+        form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
+        form.setFieldValue('deleteAfter', { value: 0, unit: '' });
+        form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
+      }
+    };
+
+  const automaticInstanceSavingResource = <>
+  <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
+        
+      <Form.Item
+        label="Max Inactivity"
+        name="inactivityTimeout"
+        required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
+        validateTrigger="onChange"
+        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
+        {...formItemLayout}> 
+        
+        <div className="flex gap-4 items-center">
+          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
+            <InfoCircleOutlined className='ml-2'/>
+          </Tooltip>
+          <InputNumber
+            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
+            min={0}
+            max={60}
+            defaultValue={timeouts.inactivityTimeout.value }
+            disabled={!automaticStoppingEnabled}
+          >
+          </InputNumber>
+
+          <Select
+            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
+            disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
+            placeholder="Select Time unit"
+            getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
+            
+          >
+            {TimeUnitOptions.map(option => (
+              <Select.Option key={option.value} value={option.value}>
+                {option.label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      </Form.Item>
+
+      <Form.Item
+        label="Max Lifetime"
+        name="deleteAfter"
+        required={isTimeUnitDisabled('deleteAfter') ? false : true}
+        validateTrigger="onChange"
+        rules={[{ validator: validateTimeout }]}
+        {...formItemLayout}> 
+        
+        <div className="flex gap-4 items-center">
+          <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
+          
+            <InfoCircleOutlined className='ml-2'/>
+          </Tooltip>
+          <InputNumber
+            onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
+            min={0}
+            max={60}
+            defaultValue={timeouts.deleteAfter.value}
+            disabled={!automaticStoppingEnabled}
+          >
+          </InputNumber>
+
+          <Select
+            onChange={value => handleTimeUnitChange(value, 'deleteAfter')}
+            disabled={isTimeUnitDisabled('deleteAfter') || !automaticStoppingEnabled}
+            placeholder="Select Time unit"
+            getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.deleteAfter).unit}
+          >
+            {TimeUnitOptions.map(option => (
+              <Select.Option key={option.value} value={option.value}>
+                {option.label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      </Form.Item>
+      </>
+
+  const environmentListForm = <>
+  <EnvironmentList
+          availableImages={availableImages}
+          resources={{
+            cpu: cpuInterval,
+            ram: ramInterval,
+            disk: diskInterval,
+          }}
+          sharedVolumes={sharedVolumes}
+          setInfoNumberTemplate={setInfoNumberTemplate}
+          isPersonal={isPersonal === undefined ? false : isPersonal}
+        /></>
+  
+  const handleNodeSelectorChange = (values: string[]) => {
+  
+  }
+
+  const handleChangeExposure = (checked: boolean) => {
+    form.setFieldValue('allowPublicExposure', checked);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    form.setFieldValue('description', value);
+  };
+
+  const advancedFeaturesForm = <>
+    {/* TODO: public exporsure, nodeselector, template description */ }
+    <Form.Item
+      name="description"
+      className="mb-4"
+      required={false}
+      label="Description"
+      {...formItemLayout}
+      >
+    <Input.TextArea
+      className="mb-4"
+      rows={3}
+      placeholder="Insert template description"
+      maxLength={500}
+    />
+    </Form.Item>
+    <Form.Item name="allowPublicExposure" valuePropName='checked'>
+      <Checkbox className="mb-4"  onChange={e => handleChangeExposure(e.target.checked)}>Enable public exposure</Checkbox>
+    </Form.Item>
+    <Typography.Paragraph className="mb-2">Node Selector</Typography.Paragraph>
+
+    <Select
+          mode="multiple"
+          placeholder="Select"
+          onChange={handleNodeSelectorChange}
+          style={{ width: '100%' }}
+          
+          options={loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        
+                      })) }
+        />
+
+
+    {/* <Dropdown.Button
+              menu={{
+                items:
+                  loadingLabels || labelsError
+                    ? [
+                        {
+                          key: 'error',
+                          label: loadingLabels
+                            ? 'Loading labels...'
+                            : 'Error loading labels',
+                          disabled: true,
+                        },
+                      ]
+                    : labelsData?.labels?.map(({ key, value }) => ({
+                        key: JSON.stringify({ [key]: value }),
+                        label: `${cleanupLabels(key)}=${value}`,
+                        disabled: loadingLabels,
+                        
+                      })) || [],
+              }}
+              type="primary"
+              size={'middle'}
+            >
+              Create
+            </Dropdown.Button> */}
+
+
+  </>
+
+
+  const { token } = theme.useToken();
+  const panelStyle: React.CSSProperties = {
+    marginBottom: 10,
+    background: `${token.colorFillAlter}`,
+    borderRadius: token.borderRadiusLG,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    padding: '0px 10px',
+    
+  };
+
+
+
+  const collapseFormItems: CollapseProps['items'] = [
+  {
+    key: '1',
+    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
+    children: automaticInstanceSavingResource,
+    style: panelStyle,
+    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
+  },
+  {
+    key: '2',
+    label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
+    children: environmentListForm,
+    style: panelStyle,
+    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment set' : `${infoNumberTemplate} environments set` : 'No environments set'}</Text>
+  },
+  {
+    key: '3',
+    label: <Typography.Text strong>Advanced Features</Typography.Text>,
+    children: advancedFeaturesForm,
+    style: panelStyle,
+  },
+];
+
   return (
     
     <Modal
@@ -394,7 +638,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       title={template ? 'Modify template' : 'Create a new template'}
       open={show}
       onCancel={closehandler}
-      width="600px">
+      width="620px">
       <Form
         form={form}
         onFinish={handleFormFinish}
@@ -419,95 +663,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         >
           <Input placeholder="Insert template name" allowClear />
         </Form.Item>
-        <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => setAutomaticStoppingEnabled(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
-      <Form.Item
-        hidden={!automaticStoppingEnabled}
-        label="Max Inactivity"
-        name="inactivityTimeout"
-        required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
-        {...formItemLayout}> 
+          <Collapse size="small" bordered={false} ghost accordion items={collapseFormItems} defaultActiveKey={['2']}  />
         
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-            <InfoCircleOutlined />
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.inactivityTimeout.value}
-          >
-          </InputNumber>
-
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
-            disabled={isTimeUnitDisabled('inactivityTimeout')}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
-
-      <Form.Item
-        hidden={!automaticStoppingEnabled}
-        label="Max Lifetime"
-        name="deleteAfter"
-        required={isTimeUnitDisabled('deleteAfter') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
-          
-            <InfoCircleOutlined />
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.deleteAfter.value}
-          >
-          </InputNumber>
-
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'deleteAfter')}
-            disabled={isTimeUnitDisabled('deleteAfter')}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.deleteAfter).unit}
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
-
-        
-        
-        <EnvironmentList
-          availableImages={availableImages}
-          resources={{
-            cpu: cpuInterval,
-            ram: ramInterval,
-            disk: diskInterval,
-          }}
-          sharedVolumes={sharedVolumes}
-          isPersonal={isPersonal === undefined ? false : isPersonal}
-        />
 
         <div className="flex justify-end gap-2">
           <Button type="default" onClick={() => closehandler()}>
