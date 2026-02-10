@@ -38,15 +38,16 @@ export const SharedVolumeList: FC<SharedVolumeListProps> = ({
                   {...restField}
                   name={[name, 'sharedVolume']}
                   rules={[{ required: true, message: 'Missing Shared Volume' }]}
-                   getValueFromEvent={(value) => {
+                  getValueFromEvent={value => {
                     const selected = sharedVolumes.find(sv => sv.id === value);
                     return selected?.name ?? value;
                   }}
-                  getValueProps={(value) => {
-                    const selected = sharedVolumes.find(sv => sv.name === value);
+                  getValueProps={value => {
+                    const selected = sharedVolumes.find(
+                      sv => sv.name === value,
+                    );
                     return { value: selected?.id ?? value };
                   }}
-                  
                 >
                   <Select placeholder="Select..." style={{ width: '160px' }}>
                     {sharedVolumes.map(shvol => (
