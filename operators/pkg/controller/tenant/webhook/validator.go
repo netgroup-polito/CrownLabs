@@ -237,17 +237,7 @@ func (tv *TenantValidator) HandleSelfEdit(
 	oldTenant.Spec.PublicKeys = nil
 
 	// manage last login
-	lastLoginChanged := false
-	switch {
-	case newTenant.Spec.LastLogin == nil && oldTenant.Spec.LastLogin == nil:
-		lastLoginChanged = false
-	case newTenant.Spec.LastLogin == nil || oldTenant.Spec.LastLogin == nil:
-		lastLoginChanged = true
-	default:
-		lastLoginChanged = !newTenant.Spec.LastLogin.Time.Equal(oldTenant.Spec.LastLogin.Time)
-	}
-
-	if lastLoginChanged && newTenant.Spec.LastLogin != nil {
+	if newTenant.Spec.LastLogin != nil {
 		lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
 		if lastLoginDelta > LastLoginToleration {
 			return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
