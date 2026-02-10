@@ -163,14 +163,13 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
 	// if so, temporarily delete the namespace. The lastLogin field is omitted when a user is first created
 
-	var sPassed time.Duration
+	sPassed := r.TenantNSKeepAlive + (1 * time.Second)
 
 	if tn.Spec.LastLogin != nil {
 		// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
 		sPassed = time.Since(tn.Spec.LastLogin.Time)
 		log.Info("Last login checked", "tenant", tn.Name, "elapsed", sPassed)
 	} else {
-		sPassed = r.TenantNSKeepAlive + (1 * time.Second)
 		log.Info("No last login found: assuming tenant inactive", "tenant", tn.Name)
 	}
 
