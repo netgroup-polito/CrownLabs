@@ -161,12 +161,17 @@ func (r *Reconciler) enforcePersonalNamespaceAbsence(
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
 func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) (keepNsOpen bool, err error) {
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
-	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
+	// if so, temporarily delete the namespace. The lastLogin field is omitted when a user is first created
 
-	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
-	sPassed := time.Since(tn.Spec.LastLogin.Time)
+	sPassed := r.TenantNSKeepAlive + (1 * time.Second)
 
-	log.Info("Last login checked", "tenant", tn.Name, "elapsed", sPassed)
+	if tn.Spec.LastLogin != nil {
+		// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
+		sPassed = time.Since(tn.Spec.LastLogin.Time)
+		log.Info("Last login checked", "tenant", tn.Name, "elapsed", sPassed)
+	} else {
+		log.Info("No last login found: assuming tenant inactive", "tenant", tn.Name)
+	}
 
 	// Attempt to get instances in current namespace
 	list := &v1alpha2.InstanceList{}

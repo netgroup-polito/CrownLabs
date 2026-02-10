@@ -118,7 +118,7 @@ var _ = Describe("Personal workspace handling", func() {
 	})
 	When("Tenant namespace does not exist", func() {
 		BeforeEach(func() {
-			tnResource.Spec.LastLogin = metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second)))
+			tnResource.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second))))
 		})
 		JustBeforeEach(func() {
 			namespace := &v1.Namespace{}
