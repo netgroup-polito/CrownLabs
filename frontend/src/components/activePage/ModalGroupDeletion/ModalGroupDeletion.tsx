@@ -1,7 +1,6 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Button, Divider } from 'antd';
+import { Button } from 'antd';
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react';
-import SvgInfinite from '../../../assets/infinite.svg?react';
 import { WorkspaceRole } from '../../../utils';
 import { ModalAlert } from '../../common/ModalAlert';
 
@@ -29,45 +28,35 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   } = props;
   const [confirmDeletion, setConfirmDeletion] = useState(false);
 
-  const title = selective ? 'Destroy Selected' : 'Destroy All';
-  const message = <b>ATTENTION</b>;
+  const title = selective ? 'Destroy selected instances' : 'Destroy all instances';
+  const message = <b>Important warning</b>;
   const description = (
     <>
       <div>
-        Are you sure that you want to destroy
+        You are going to destroy
         {selective ? (
           <>{` the ${instanceList.length} selected instances`}</>
         ) : groupName ? (
           <>
-            {' all instances of '}
-            <b>
-              <i>{groupName}</i>
-            </b>
+            {' all '}
+            <b><i>{groupName}</i></b>
+            {' instances.'}
           </>
         ) : (
-          ' all instances'
+          ' all instances.'
         )}
-        ? <br />
-        This operation is <u>dangerous and irreversible</u>!
+        <br/>
+        This operation is <u>dangerous and irreversible</u>.
       </div>
 
       {persistent ? (
-        <div className="text-center text-xs">
-          <Divider type="horizontal" className="my-3" />
-          <div className="flex items-end">
-            <i>
-              (Seems you are also trying to destroy one or more Persistent
-              instances
-              <SvgInfinite
-                width="16px"
-                className="ml-1.5 success-color-fg align-bottom"
-              />
-              .
-              {view === WorkspaceRole.manager
-                ? ' You need to confirm their deletion)'
-                : ' They will be skipped, you need to MANUALLY destroy them)'}
-            </i>
-          </div>
+        <div>
+          <br/>
+            Remember that in case of <b>persistent</b> instances you will 
+            also delete the data stored on their persistent disks.
+            {view === WorkspaceRole.manager
+              ? ' You need to confirm their deletion.'
+              : ' These will be skipped, you need to <b>manually</b> destroy them one by one.'}
         </div>
       ) : (
         ''
@@ -95,7 +84,7 @@ const ModalGroupDeletion: FC<IModalGroupDeletionProps> = ({ ...props }) => {
   const checkbox = {
     confirmCheckbox: confirmDeletion,
     setConfirmCheckbox: setConfirmDeletion,
-    checkboxLabel: 'I understand the risk and I want to proceed',
+    checkboxLabel: 'I understand the risk and I agree to proceed',
   };
 
   return (
