@@ -9,5 +9,8 @@ data:
     window.VITE_APP_CROWNLABS_GRAPHQL_URL="{{ .Values.configuration.backend.graphql }}";
     window.VITE_APP_CROWNLABS_OIDC_CLIENT_ID="{{ .Values.configuration.oidc.clientId }}";
     window.VITE_APP_CROWNLABS_OIDC_AUTHORITY="{{ .Values.configuration.oidc.providerUrl }}realms/{{ .Values.configuration.oidc.realm }}/";
+    window.VITE_APP_MYDRIVE_TEMPLATE_NAME="{{ .Values.configuration.mydrive.templateName }}";
+    window.VITE_APP_MYDRIVE_WORKSPACE_NAME="{{ .Values.configuration.mydrive.workspaceName }}";
+
     window.VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX="{{ .Values.configuration.oidc.claimPrefix }}";
     window.VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM="{{ .Values.configuration.oidc.adminClaim }}";

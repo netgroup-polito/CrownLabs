@@ -56,22 +56,22 @@ export interface IModalCreateTemplateProps {
 }
 
 const TimeUnitOptions = [
-    { label: 'Minutes', value: 'm' },
-    { label: 'Hours', value: 'h' },
-    { label: 'Days', value: 'd' },
-  ];
+  { label: 'Minutes', value: 'm' },
+  { label: 'Hours', value: 'h' },
+  { label: 'Days', value: 'd' },
+];
 
 const parseTimeoutString = (s?: string) => {
-    if (!s || s === 'never') return { value: 0, unit: '' }
-    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-    if (!m) return { value: 0, unit: '' }
-    
-    const unitOpt = TimeUnitOptions.find(
-      opt => opt.value === m[2].toLowerCase(),
-    );
+  if (!s || s === 'never') return { value: 0, unit: '' };
+  const m = String(s)
+    .trim()
+    .match(/^(\d+)\s*([mhd])$/i);
+  if (!m) return { value: 0, unit: '' };
 
-    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
-  };
+  const unitOpt = TimeUnitOptions.find(opt => opt.value === m[2].toLowerCase());
+
+  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : '' };
+};
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -97,6 +97,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [form] = Form.useForm<TemplateForm>();
 
+    setAutomaticStoppingEnabled(
+      template?.inactivityTimeout !== 'never' ||
+        template?.deleteAfter !== 'never',
+    );
+  }, [template, show, form, cpuInterval, ramInterval, diskInterval]);
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
   const [sharedVolumes, setDataShVols] = useState<SharedVolume[]>([]);
@@ -121,7 +126,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const validateName = async (_: unknown, name: string) => {
-    if (template) { // we are editing an existing template, not creating a new one
+    if (template) {
+      // we are editing an existing template, not creating a new one
       return;
     }
     if (!dataFetchTemplates || loadingFetchTemplates || errorFetchTemplates) {
@@ -243,15 +249,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const getInitialValues = useCallback((template?: TemplateForm) => {
-    if (template) return template;
+  const getInitialValues = useCallback(
+    (template?: TemplateForm) => {
+      if (template) return template;
 
-    return getDefaultTemplate({
-      cpu: cpuInterval,
-      ram: ramInterval,
-      disk: diskInterval,
-    });
-  }, [cpuInterval, ramInterval, diskInterval]);
+      return getDefaultTemplate({
+        cpu: cpuInterval,
+        ram: ramInterval,
+        disk: diskInterval,
+      });
+    },
+    [cpuInterval, ramInterval, diskInterval],
+  );
 
   const handleFormSubmit = async () => {
     try {
@@ -261,14 +270,19 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
   };
 
-  const [timeouts, setTimeouts] = useState(
-    {
-    inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
-    deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
+  const [timeouts, setTimeouts] = useState({
+    inactivityTimeout: {
+      value: parseTimeoutString(template?.inactivityTimeout).value ?? 0,
+      unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '',
+    },
+    deleteAfter: {
+      value: parseTimeoutString(template?.deleteAfter).value ?? 0,
+      unit: parseTimeoutString(template?.deleteAfter).unit ?? '',
+    },
   });
 
   useEffect(() => {
-  if (!show) return;
+    if (!show) return;
 
   if (template) {
     const initial = getInitialValues(template);
@@ -343,7 +357,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   setLabelsNodeSelected(prev => [...prev.filter(label => !labelArray.includes(label)), ...labelArray]);
 }
 
-  const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeoutValueChange = (
+    value: number | null,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -352,13 +369,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       },
     }));
     form.setFieldValue(field, {
-    value,
-    unit: timeouts[field].unit,
+      value,
+      unit: timeouts[field].unit,
     });
     form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
-  }
+  };
 
-  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeUnitChange = (
+    value: string,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -367,29 +387,37 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       },
     }));
     form.setFieldValue(field, {
-    value: timeouts[field].value,
-    unit: value,
+      value: timeouts[field].value,
+      unit: value,
     });
     form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
-  }
+  };
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'deleteAfter') => {
     return timeouts[field].value === 0;
   };
-  
-  const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } ) => {
+
+  const validateTimeout = async (
+    _: RuleObject,
+    _val: { value: number; unit: string },
+  ) => {
     if (_val.value === undefined || _val.value === 0) {
-      return true; 
+      return true;
     }
 
-    if (TimeUnitOptions.map(option => option.value).includes(_val.unit) === false) {
-      throw new Error("Insert a valid time unit");
-    } 
+    if (
+      TimeUnitOptions.map(option => option.value).includes(_val.unit) === false
+    ) {
+      throw new Error('Insert a valid time unit');
+    }
     return true;
   };
 
-  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
-   
+  const validateTimeoutOrder = async (
+    _: RuleObject,
+    _val: { value: number; unit: string } | undefined,
+    field: 'inactivityTimeout' | 'deleteAfter',
+  ) => {
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
       if (t.value === 0) return Infinity;
@@ -397,10 +425,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       const mul = u === 'h' ? 60 : u === 'd' ? 1440 : 1;
       return Number(t.value) * mul;
     };
-    
-    const current =  form.getFieldValue(field);
-    const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout') as { value: number; unit: string } | undefined;
-    const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter') as { value: number; unit: string } | undefined;
+
+    const current = form.getFieldValue(field);
+    const inactivity =
+      field === 'inactivityTimeout'
+        ? current
+        : (form.getFieldValue('inactivityTimeout') as
+            | { value: number; unit: string }
+            | undefined);
+    const deleteAfter =
+      field === 'deleteAfter'
+        ? current
+        : (form.getFieldValue('deleteAfter') as
+            | { value: number; unit: string }
+            | undefined);
 
     if (!inactivity || !deleteAfter) return;
 
@@ -409,7 +447,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
     if (deleteAfterMin === Infinity) return;
 
-    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
+    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number')
+      return;
 
     if (inactivityMin >= deleteAfterMin) {
       throw new Error('Inactivity must be smaller than Expiration');

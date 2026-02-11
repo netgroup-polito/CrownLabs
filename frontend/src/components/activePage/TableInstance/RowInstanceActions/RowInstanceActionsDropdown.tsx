@@ -1,7 +1,7 @@
 import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { Dropdown, Badge, Space } from 'antd';
 import { Button } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   SelectOutlined,
   CodeOutlined,
@@ -22,6 +22,8 @@ import {
 } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from '../../../../env';
+import { TenantContext } from '../../../../contexts/TenantContext';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -62,6 +64,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
+  const navigate = useNavigate();
+  const { data: tenantData } = useContext(TenantContext);
+
+  // Check if user has access to utilities workspace
+  const hasUtilitiesAccess = Boolean(
+    tenantData?.tenant?.spec?.workspaces?.some(
+      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
+    ),
+  );
+
+  const handleDriveClick = () => {
+    navigate('/drive');
+  };
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {
@@ -230,18 +245,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             onClick: () => setSshModal(true),
             className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
-          {
-            key: 'upload',
-            label: isContainer
-              ? 'File Manager'
-              : environmentType === EnvironmentType.VirtualMachine
-                ? 'Drive'
-                : '',
-            icon: <FolderOpenOutlined style={font20px} />,
-            disabled: fileManagerDisabled,
-            className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
-            onClick: () => {},
-          },
+          ...(hasUtilitiesAccess &&
+          environmentType === EnvironmentType.VirtualMachine
+            ? [
+                {
+                  key: 'upload',
+                  label: 'Drive',
+                  icon: <FolderOpenOutlined style={font20px} />,
+                  disabled: fileManagerDisabled,
+                  className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
+                  onClick: handleDriveClick,
+                },
+              ]
+            : []),
           {
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,

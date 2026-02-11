@@ -1,7 +1,10 @@
-import { MenuOutlined } from '@ant-design/icons';
-import { Divider, Drawer, Layout, Typography } from 'antd';
-import { Button } from 'antd';
-import { type FC, useContext, useState, useRef } from 'react';
+import {
+  MenuOutlined,
+  ExportOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
+import { Divider, Drawer, Layout, Typography, Button } from 'antd';
+import { type FC, useContext, useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
 import {
@@ -14,7 +17,8 @@ import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
 import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
-import { useEffect } from 'react';
+import { useMydrive } from '../../activePage/DriveView/useMydrive';
+import { Phase2 } from '../../../generated-types';
 import { AuthContext } from '../../../contexts/AuthContext';
 
 const Header = Layout.Header;
@@ -27,6 +31,7 @@ export interface INavbarProps {
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent } = props;
+  const { getDriveUrl, mydriveInstance } = useMydrive();
 
   const { profile } = useContext(AuthContext);
   const routesData = routes.map(r => r.route);
@@ -58,6 +63,15 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
     .map((b, i) => {
       const routeData = b.route;
       const isExtLink = routeData.path.indexOf('http') === 0;
+      const hasCustomOnClick = !!routeData.onClick;
+      const isLoading = routeData.loading || false;
+      const isDrive = routeData.name === 'Drive';
+      const driveUrl = getDriveUrl();
+      const isDriveStarting =
+        mydriveInstance &&
+        (mydriveInstance.status === Phase2.Starting ||
+          mydriveInstance.status === Phase2.Importing);
+
       return {
         linkPosition: b.linkPosition,
         content: (
@@ -67,18 +81,27 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               pathname:
                 b.linkPosition === LinkPosition.Hidden && isSSHRoute
                   ? currentPath
-                  : isExtLink
+                  : isExtLink || hasCustomOnClick
                     ? ''
                     : routeData.path,
             }}
             rel={isExtLink ? 'noopener noreferrer' : ''}
           >
             <Button
-              onClick={() =>
-                isExtLink
-                  ? window.open(routeData.path, '_blank')
-                  : setShow(false)
-              }
+              onClick={e => {
+                if (hasCustomOnClick) {
+                  e.preventDefault();
+                  if (!isLoading) {
+                    routeData.onClick!();
+                  }
+                } else if (isExtLink) {
+                  window.open(routeData.path, '_blank');
+                } else {
+                  setShow(false);
+                }
+              }}
+              loading={isLoading}
+              disabled={isLoading}
               ghost={
                 b.linkPosition === LinkPosition.Hidden
                   ? false
@@ -108,7 +131,32 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               }
               shape="round"
             >
-              {routeData.name}
+              {isDrive ? (
+                <div className="flex items-center gap-2">
+                  <span>{routeData.name}</span>
+                  {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
+                  {driveUrl && (
+                    <div
+                      className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
+                      style={{
+                        padding: '0 4px',
+                        marginRight: '-8px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(driveUrl, '_blank');
+                      }}
+                      title="Open in new tab"
+                    >
+                      <ExportOutlined />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                routeData.name
+              )}
             </Button>
           </Link>
         ),
