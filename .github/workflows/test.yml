@@ -82,7 +82,7 @@ jobs:
           version=4.6.0 # latest stable version
           kubernetes_version=1.29.0
           curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
-          curl --fail -sSLo envtest-bins.tar.gz "https://go.kubebuilder.io/test-tools/${kubernetes_version}/$(go env GOOS)/$(go env GOARCH)"
+          curl --fail -sSLo envtest-bins.tar.gz "https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v$(go env GOOS)/envtest-v$(go env GOOS)-$(go env GOOS)-$(go env GOARCH).tar.gz"
           tar -zxvf envtest-bins.tar.gz && rm -f envtest-bins.tar.gz
           mv kubebuilder_linux_$(go env GOARCH) kubebuilder/bin/kubebuilder
           sudo mv kubebuilder /usr/local/
