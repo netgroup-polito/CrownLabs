@@ -19,7 +19,6 @@ export const getDefaultTemplate = (resources: Resources): Template => {
   return {
     name: '',
     description: '',
-    nodeSelector: null,
     environments: [getDefaultTemplateEnvironment(resources, 0)],
     deleteAfter: 'never',
     inactivityTimeout: 'never',

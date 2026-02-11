@@ -195,6 +195,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
+  
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,6 +217,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       };
     });
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
+
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
@@ -376,9 +378,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+                  
                   const templateForm: TemplateForm = {
                     name: template.name,
-                    nodeSelector: template.nodeSelector ?? {},
+                    ...(template.nodeSelector !== undefined && template.nodeSelector !== null ? { nodeSelector: template.nodeSelector } : {}),
                     description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
                     allowPublicExposure: template.allowPublicExposure,

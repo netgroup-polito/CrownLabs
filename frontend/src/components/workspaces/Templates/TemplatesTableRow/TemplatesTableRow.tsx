@@ -141,6 +141,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
     editTemplate(template);
   };
 
+
   return (
     <>
       <ModalAlert

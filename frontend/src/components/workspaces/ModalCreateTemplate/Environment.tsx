@@ -477,7 +477,7 @@ export const Environment: FC<EnvironmentProps> = ({
       {/* CPU Input */}
       <Form.Item 
         {...restField}
-        label="CPU"
+        label={<>CPU <Tooltip title="Number of virtual CPUs allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
         name={[name, 'cpu']}
         {...propInputField}
       > 
@@ -497,7 +497,7 @@ export const Environment: FC<EnvironmentProps> = ({
       <Form.Item
         {...restField}
         name={[name, 'ram']}
-        label="RAM"
+        label={<>RAM <Tooltip title="Amount of RAM allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
         {...propInputField}
       >
         <InputNumber
@@ -513,11 +513,12 @@ export const Environment: FC<EnvironmentProps> = ({
 
       {/* Disk */}
         {/* TODO: The minimum disk size should be dynamically set based on the VM image metadata. Right now, if instance is a VM, min 10; otherwise minimum 1 */}
-        <Form.Item {...restField} name={[name,'disk']} label="Disk" {...propInputField} >
+        <Form.Item {...restField} name={[name,'disk']} 
+        label={<>Disk <Tooltip title="Amount of disk space allocated to the environment, if persistent"><InfoCircleOutlined className='ml-1' /></Tooltip></>} 
+        {...propInputField} >
             <InputNumber
               step={1}
               style={{ width: "120px", textAlignLast: "center" }}
-              
               addonAfter="GB"
               disabled={!isPersistent(name)}
               max={resources.disk.max}
@@ -526,7 +527,9 @@ export const Environment: FC<EnvironmentProps> = ({
           </Form.Item>
 
         {/* Reserved CPU Percentage */}
-        <Form.Item {...restField} name={[name,'reservedCpu']} label="Reserved CPU" {...propInputField} >
+        <Form.Item {...restField} name={[name,'reservedCpu']} 
+        label={<>Reserved CPU <Tooltip title="Percentage of CPU reserved for the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>} 
+        {...propInputField} >
             <InputNumber
               onChange={value => handleResourceChange(name, 'reservedCpu', value)}
               step={1}

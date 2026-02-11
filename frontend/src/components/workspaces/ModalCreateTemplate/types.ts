@@ -18,7 +18,7 @@ export type TemplateForm = {
   deleteAfter: string;
   inactivityTimeout: string;
   allowPublicExposure: boolean;
-  nodeSelector: Record<string, string> | null;
+  nodeSelector?: Record<string, string> | null;
 };
 
 export type TemplateFormEnv = {

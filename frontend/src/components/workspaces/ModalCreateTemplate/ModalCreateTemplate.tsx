@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Dropdown } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Dropdown, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
@@ -96,32 +96,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const [form] = Form.useForm<TemplateForm>();
-  useEffect(() => {
-  if (!show) return;
-
-  if (template) {
-    form.setFieldsValue(template);
-  } else {
-    form.resetFields();
-    form.setFieldsValue(
-      getDefaultTemplate({
-        cpu: cpuInterval,
-        ram: ramInterval,
-        disk: diskInterval,
-      }),
-    );
-  }
-
-  setTimeouts({
-    inactivityTimeout: { value: 0, unit: '' },
-    deleteAfter: { value: 0, unit: '' },
-  });
-
-  setAutomaticStoppingEnabled(
-    template?.inactivityTimeout !== 'never' ||
-    template?.deleteAfter !== 'never',
-  );
-}, [template, show, form, cpuInterval, ramInterval, diskInterval]);
 
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
@@ -239,16 +213,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const handleFormFinish = async (template: TemplateForm) => {
+    
     const parsedTemplate = {
       ...template,
       description: template.description || template.name,
-      nodeSelector: {},
       inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
       deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
       environments: template.environments.map(env => ({
         ...env,
         image: parseImage(env.environmentType, env.image),
       })),
+      ...(nodeSelectorOption === 'Let user choose' && { nodeSelector: {} }),
+      ...(nodeSelectorOption === 'Fixed Labels' && { nodeSelector: nodeSelectorLabels }),
     };
     try {
       setShow(false);
@@ -260,6 +236,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         inactivityTimeout: { value: 0, unit: '' },
         deleteAfter: { value: 0, unit: '' },
       });
+      setNodeSelectorOption('Disabled');
     } catch (error) {
       console.error('ModalCreateTemplate submitHandler error:', error);
       apolloErrorCatcher(error as ApolloError);
@@ -304,6 +281,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       (initial.inactivityTimeout) !== 'never' ||
         (initial.deleteAfter) !== 'never',
     );
+      console.log('Loaded template into form:', template);
+    // Set node selector option based on template
+    if (template.nodeSelector) {
+      if (Object.keys(template.nodeSelector).length === 0) {
+        setNodeSelectorOption('Let user choose');
+      } else {
+        setNodeSelectorOption('Fixed Labels');
+        const labels = Object.keys(template.nodeSelector).map(key => `${cleanupLabels(key)}=${template.nodeSelector![key]}`)
+        console.log('Loaded node selector labels:', labels);
+        setLabelsNodeSelected(labels);
+      }
+    } else {
+      setNodeSelectorOption('Disabled');
+    }
   } else {
     form.resetFields();
     form.setFieldsValue(getInitialValues(undefined));
@@ -312,10 +303,45 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       deleteAfter: { value: 0, unit: '' },
     });
     setAutomaticStoppingEnabled(false);
+    setNodeSelectorOption('Disabled');
+    setNodeSelectorLabels({});
   }
 }, [template, show, form, getInitialValues]);
 
+  const NodeSelectorOption: string[] = ['Disabled', 'Let user choose', 'Fixed Labels'];
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
+  const [nodeSelectorOption, setNodeSelectorOption] = useState('Disabled');
+
+  const [nodeSelectorLabels, setNodeSelectorLabels] = useState<{ [key: string]: string }>({});
+  const [labelsNodeSelected, setLabelsNodeSelected] = useState<string[]>([]);
+
+  const handleNodeSelectorChange = (value: string) => {
+    setNodeSelectorOption(value)
+    if (value === 'Let user choose') {
+      setNodeSelectorLabels({});
+      form.setFieldValue('nodeSelector', {});
+    } else if (value === 'Fixed Labels') {
+      form.setFieldValue('nodeSelector', nodeSelectorLabels);
+    }
+
+  }
+
+ const handleNodeSelectorLabelChange = (selectedValues: string[]) => {
+  const labelsObject = selectedValues.reduce((acc, jsonStr) => {
+    try {
+      const labelPair = JSON.parse(jsonStr);
+      return { ...acc, ...labelPair };
+    } catch (e) {
+      console.error('Error parsing label:', e);
+      return acc;
+    }
+  }, {});
+
+  const labelArray = Object.entries(labelsObject).map(([key, value]) => `${cleanupLabels(key)}=${value}`);
+  
+  setNodeSelectorLabels(labelsObject);
+  setLabelsNodeSelected(prev => [...prev.filter(label => !labelArray.includes(label)), ...labelArray]);
+}
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -413,6 +439,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       }
     };
 
+    const isPublicExposureEnabled = Form.useWatch('allowPublicExposure', form);
+
   const automaticInstanceSavingResource = <>
   <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
@@ -506,17 +534,24 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           isPersonal={isPersonal === undefined ? false : isPersonal}
         /></>
   
-  const handleNodeSelectorChange = (values: string[]) => {
-  
-  }
 
-  const handleChangeExposure = (checked: boolean) => {
-    form.setFieldValue('allowPublicExposure', checked);
+  const getNodeLabelsOptions = () => {
+    if (loadingLabels || labelsError) {
+      return [
+        {
+          value: 'error',
+          label: loadingLabels ? 'Loading labels...' : 'Error loading labels',
+          disabled: true,
+        },
+      ];
+    }
+    
+    return labelsData?.labels?.map(({ key, value }) => ({
+      value: JSON.stringify({ [key]: value }),
+      label: `${cleanupLabels(key)}=${value}`,
+    })) ?? [];
   };
 
-  const handleDescriptionChange = (value: string) => {
-    form.setFieldValue('description', value);
-  };
 
   const advancedFeaturesForm = <>
     {/* TODO: public exporsure, nodeselector, template description */ }
@@ -528,66 +563,45 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       {...formItemLayout}
       >
     <Input.TextArea
-      className="mb-4"
-      rows={3}
+      rows={2}
       placeholder="Insert template description"
-      maxLength={500}
+      maxLength={250}
     />
     </Form.Item>
-    <Form.Item name="allowPublicExposure" valuePropName='checked'>
-      <Checkbox className="mb-4"  onChange={e => handleChangeExposure(e.target.checked)}>Enable public exposure</Checkbox>
-    </Form.Item>
-    <Typography.Paragraph className="mb-2">Node Selector</Typography.Paragraph>
-
+          <Form.Item
+            label="Pub. Exposure"
+            name="allowPublicExposure"
+            valuePropName="checked"
+            className="gap-6 "
+              {...formItemLayout}
+          >
+              <Checkbox><Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
+                  <InfoCircleOutlined />
+                </Tooltip></Checkbox>
+          </Form.Item>
+        
+   <Flex justify='space-around' className="mb-0 gap-2" {...formItemLayout}  align="center">
+    <Space direction='vertical' style={{width:"50%"}}>
+      <Typography.Paragraph className="mb-0">Node Selector: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+      <Select style={{width:"100%"}} onChange={value => handleNodeSelectorChange(value)} value={nodeSelectorOption}>
+        {NodeSelectorOption.map(option => (
+              <Select.Option key={option} value={option}>{option}</Select.Option>
+            ))}
+      </Select>
+    </Space>
+    <Space direction='vertical'  style={{width:"50%"}}>
+      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed Labels</strong> is selected</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
     <Select
+          disabled={nodeSelectorOption !== 'Fixed Labels'}
+          style={{width:"100%"}}
           mode="multiple"
           placeholder="Select"
-          onChange={handleNodeSelectorChange}
-          style={{ width: '100%' }}
-          
-          options={loadingLabels || labelsError
-                    ? [
-                        {
-                          key: 'error',
-                          label: loadingLabels
-                            ? 'Loading labels...'
-                            : 'Error loading labels',
-                        },
-                      ]
-                    : labelsData?.labels?.map(({ key, value }) => ({
-                        key: JSON.stringify({ [key]: value }),
-                        label: `${cleanupLabels(key)}=${value}`,
-                        
-                      })) }
+          value={labelsNodeSelected} 
+          onChange={handleNodeSelectorLabelChange}
+          options={getNodeLabelsOptions()}
         />
-
-
-    {/* <Dropdown.Button
-              menu={{
-                items:
-                  loadingLabels || labelsError
-                    ? [
-                        {
-                          key: 'error',
-                          label: loadingLabels
-                            ? 'Loading labels...'
-                            : 'Error loading labels',
-                          disabled: true,
-                        },
-                      ]
-                    : labelsData?.labels?.map(({ key, value }) => ({
-                        key: JSON.stringify({ [key]: value }),
-                        label: `${cleanupLabels(key)}=${value}`,
-                        disabled: loadingLabels,
-                        
-                      })) || [],
-              }}
-              type="primary"
-              size={'middle'}
-            >
-              Create
-            </Dropdown.Button> */}
-
+    </Space>
+    </Flex>
 
   </>
 
@@ -624,6 +638,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     label: <Typography.Text strong>Advanced Features</Typography.Text>,
     children: advancedFeaturesForm,
     style: panelStyle,
+        extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorOption !== 'Disabled' ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
+
   },
 ];
 
