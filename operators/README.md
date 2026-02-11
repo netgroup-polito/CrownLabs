@@ -401,11 +401,21 @@ The actions performed by the operator are the following:
   - create the corresponding keycloak roles to allow tenant to consume them
   - delete all managed resources upon workspace deletion
   - upon deletion, unsubscribe all tenants which previously subscribed to the workspace
+- `Instance` ([details](pkg/controller/instance/))
+  - ensures that the tenant has sufficient resources for the instance in the workspace, using a webhook
 
 ### Keycloak integration
 The operator integrates with Keycloak to manage the users and roles of the CrownLabs platform.
 In order to connect to Keycloak, a dedicated Keycloak client is required, which can be created using the Keycloak admin console, and some authorization needs to be granted to the client.
 More information are available in the [dedicated page](./Keycloak.md).
+
+### Instance quota validation
+The operator is responsible for ensuring that a tenant does not use more resources than those made available by a workspace.
+
+Since all instances created by a tenant are placed in the same namespace regardless of the workspace, the ResourceQuota created by the tenant operator is only a final global security barrier.
+The operator exposes a validation webhook for instances that controls the creation or unpause of instances.
+
+To increase the resources available to a Tenant in their personal workspace, you must modify the personalWorkspace field in the Tenant CR.
 
 ### Usage
 
@@ -436,6 +446,12 @@ Arguments:
                 The client secret for authentication with keycloak
   --keycloak-roles-client-id
                 The target client for keycloak users and roles
+  --enable-tenant
+                Enable the tenant controller
+  --enable-workspace
+                Enable the workspace controller
+  --enable-instance
+                Enable the instance controller
   --enable-webhooks
                 Enable webhook endpoints in the operator
   --mydrive-pvcs-size
