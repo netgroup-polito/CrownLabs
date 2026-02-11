@@ -84,9 +84,11 @@ jobs:
           curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
           curl --fail -sSLo envtest-bins.tar.gz "https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v${kubernetes_version}/envtest-v${kubernetes_version}-$(go env GOOS)-$(go env GOARCH).tar.gz"
           tar -zxvf envtest-bins.tar.gz && rm -f envtest-bins.tar.gz
-          mv kubebuilder_linux_$(go env GOARCH) controller-tools/envtest/kubebuilder
-          sudo mv controller-tools /usr/local/
-          sudo chmod +x /usr/local/controller-tools/envtest/*
+          mv controller-tools kubebuilder #rename directories after download source changes
+          mv kubebuilder/envtest kubebuilder/bin
+          mv kubebuilder_linux_$(go env GOARCH) kubebuilder/bin/kubebuilder
+          sudo mv kubebuilder /usr/local/
+          sudo chmod +x /usr/local/kubebuilder/bin/*
       - name: Perform the tests
         working-directory: operators/
         run: |
