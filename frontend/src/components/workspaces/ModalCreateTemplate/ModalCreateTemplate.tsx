@@ -1,13 +1,12 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Dropdown, Space, Flex } from 'antd';
+import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import type { CollapseProps } from 'antd';
 import {
-  useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
 } from '../../../generated-types';
 import {

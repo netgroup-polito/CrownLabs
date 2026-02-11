@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   Select,
-  Slider,
   Flex,
   Tooltip,
   InputNumber,
@@ -17,7 +16,6 @@ import { EnvironmentType } from '../../../generated-types';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
 import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
-import { EnvironmentDisk } from './EnvironmentDisk';
 import { formItemLayout, getImageNameNoVer } from './utils';
 
 // Environment type options
