@@ -306,24 +306,20 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
         { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
         { op: 'replace', path: '/spec/description', value: t.description },
+        ...(t.nodeSelector !== null && t.nodeSelector !== undefined 
+          ? [{ op: 'replace', path: '/spec/nodeSelector', value: t.nodeSelector }] 
+          : []),
+        ...(t.nodeSelector === undefined 
+          ? [{ op: 'remove', path: '/spec/nodeSelector', value: {} }] 
+          : [])
       ];
-      
-      if (t.nodeSelector !== null) {
-        patches.push({ op: 'replace', path: '/spec/nodeSelector', value: t.nodeSelector as any });
-      }
-      if (t.nodeSelector === undefined) {
-        patches.push({ op: 'remove', path: '/spec/nodeSelector', value: {} as any });
-      }
-      const patchJson = JSON.stringify(patches);
 
-
-      //    console.log('Patch JSON:', patchJson);
 
       return await applyTemplateJsonPatchMutation({
         variables: {
           workspaceNamespace,
           templateId: usedTemplate?.id ?? '',
-          patchJson: patchJson,
+          patchJson: JSON.stringify(patches),
           manager: 'frontend-template-patch',
         },
       });

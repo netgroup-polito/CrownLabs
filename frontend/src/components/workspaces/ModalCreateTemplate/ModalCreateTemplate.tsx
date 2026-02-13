@@ -294,6 +294,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       (initial.inactivityTimeout) !== 'never' ||
         (initial.deleteAfter) !== 'never',
     );
+    setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
       // Set node selector mode and labels based on template
       if (template.nodeSelector) {
         if (Object.keys(template.nodeSelector).length === 0) {
@@ -330,13 +331,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setAutomaticStoppingEnabled(false);
     setNodeSelectorMode('Disabled');
     setSelectedLabels([]);
+    setIsPublicExposureEnabled(false);
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [template, show, form, getInitialValues]);
 
   const NodeSelectorOption: string[] = ['Disabled', 'Let user choose', 'Fixed Labels'];
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>('Disabled');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
 
    const getNodeLabelsOptions = () => {
     if (loadingLabels || labelsError) {
@@ -377,7 +381,7 @@ const handleSelectorLabelChange = useCallback((values: string[]) => {
       console.error('Error parsing label:', e);
     }
   }
-  
+  console.log('Filtered label values (duplicates removed):', filteredValues);
   setSelectedLabels(filteredValues);
 }, []);
 
@@ -503,8 +507,6 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       }
     };
 
-    const isPublicExposureEnabled = Form.useWatch('allowPublicExposure', form);
-
   const automaticInstanceSavingResource = <>
   <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
@@ -623,7 +625,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
             className="gap-6 "
               {...formItemLayout}
           >
-              <Checkbox><Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
+              <Checkbox onChange={(e) => setIsPublicExposureEnabled(e.target.checked)}><Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
                   <InfoCircleOutlined />
                 </Tooltip></Checkbox>
           </Form.Item>
@@ -643,7 +645,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       </Select>
     </Space>
     <Space direction='vertical'  style={{width:"50%"}}>
-      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed Labels</strong> is selected</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed Labels</strong> is selected. For the same tag, only one value can be selected (e.g. nodeSize=big and nodeSize=small cannot be selected simultaneously).</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
     <Select
           disabled={nodeSelectorMode !== 'Fixed Labels'}
           style={{width:"100%"}}
