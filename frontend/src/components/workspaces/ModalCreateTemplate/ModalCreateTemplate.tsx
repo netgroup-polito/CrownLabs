@@ -212,6 +212,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const handleFormFinish = async (template: TemplateForm) => {
+    let nodeSelectorObject: { [key: string]: string } | undefined;
+    if (nodeSelectorMode === 'Let user choose') {
+      nodeSelectorObject = {};
+    } else if (nodeSelectorMode === 'Fixed Labels' && selectedLabels.length > 0) {
+      nodeSelectorObject = selectedLabels.reduce((acc, jsonStr) => {
+        try {
+          const labelPair = JSON.parse(jsonStr);
+          return { ...acc, ...labelPair };
+        } catch (e) {
+          console.error('Error parsing label:', e);
+          return acc;
+        }
+      }, {});
+    }
+
     
     const parsedTemplate = {
       ...template,
@@ -222,20 +237,19 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         ...env,
         image: parseImage(env.environmentType, env.image),
       })),
-      ...(nodeSelectorOption === 'Let user choose' && { nodeSelector: {} }),
-      ...(nodeSelectorOption === 'Fixed Labels' && { nodeSelector: nodeSelectorLabels }),
+      ...(nodeSelectorObject !== undefined && { nodeSelector: nodeSelectorObject }),
     };
     try {
       setShow(false);
       await submitHandler(parsedTemplate);
-      console.log('Submitting template:', parsedTemplate);
       
       form.resetFields();
       setTimeouts({
         inactivityTimeout: { value: 0, unit: '' },
         deleteAfter: { value: 0, unit: '' },
       });
-      setNodeSelectorOption('Disabled');
+      setNodeSelectorMode('Disabled');
+      setSelectedLabels([]);
     } catch (error) {
       console.error('ModalCreateTemplate submitHandler error:', error);
       apolloErrorCatcher(error as ApolloError);
@@ -280,20 +294,32 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       (initial.inactivityTimeout) !== 'never' ||
         (initial.deleteAfter) !== 'never',
     );
-      console.log('Loaded template into form:', template);
-    // Set node selector option based on template
-    if (template.nodeSelector) {
-      if (Object.keys(template.nodeSelector).length === 0) {
-        setNodeSelectorOption('Let user choose');
+      // Set node selector mode and labels based on template
+      if (template.nodeSelector) {
+        if (Object.keys(template.nodeSelector).length === 0) {
+          setNodeSelectorMode('Let user choose');
+          setSelectedLabels([]);
+        } else {
+          setNodeSelectorMode('Fixed Labels');
+          // Convert nodeSelector object to JSON values matching the Select options
+          // Map camelCase keys back to original format using available labels
+          const jsonValues = Object.entries(template.nodeSelector)
+            .map(([key, value]) => {
+              const originalLabel = findOriginalLabelKey(key, value as string);
+              if (originalLabel) {
+                return JSON.stringify({ [originalLabel.key]: originalLabel.value });
+              }
+              // Fallback to the key as-is if we can't find a match
+              console.warn('Could not find original label for:', key, value);
+              return JSON.stringify({ [key]: value });
+            });
+          setSelectedLabels(jsonValues);
+        }
       } else {
-        setNodeSelectorOption('Fixed Labels');
-        const labels = Object.keys(template.nodeSelector).map(key => `${cleanupLabels(key)}=${template.nodeSelector![key]}`)
-        console.log('Loaded node selector labels:', labels);
-        setLabelsNodeSelected(labels);
+        setNodeSelectorMode('Disabled');
+        setSelectedLabels([]);
       }
-    } else {
-      setNodeSelectorOption('Disabled');
-    }
+
   } else {
     form.resetFields();
     form.setFieldsValue(getInitialValues(undefined));
@@ -302,45 +328,65 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       deleteAfter: { value: 0, unit: '' },
     });
     setAutomaticStoppingEnabled(false);
-    setNodeSelectorOption('Disabled');
-    setNodeSelectorLabels({});
+    setNodeSelectorMode('Disabled');
+    setSelectedLabels([]);
   }
 }, [template, show, form, getInitialValues]);
 
   const NodeSelectorOption: string[] = ['Disabled', 'Let user choose', 'Fixed Labels'];
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
-  const [nodeSelectorOption, setNodeSelectorOption] = useState('Disabled');
+  const [nodeSelectorMode, setNodeSelectorMode] = useState<string>('Disabled');
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
-  const [nodeSelectorLabels, setNodeSelectorLabels] = useState<{ [key: string]: string }>({});
-  const [labelsNodeSelected, setLabelsNodeSelected] = useState<string[]>([]);
-
-  const handleNodeSelectorChange = (value: string) => {
-    setNodeSelectorOption(value)
-    if (value === 'Let user choose') {
-      setNodeSelectorLabels({});
-      form.setFieldValue('nodeSelector', {});
-    } else if (value === 'Fixed Labels') {
-      form.setFieldValue('nodeSelector', nodeSelectorLabels);
+   const getNodeLabelsOptions = () => {
+    if (loadingLabels || labelsError) {
+      return [
+        {
+          value: 'error',
+          label: loadingLabels ? 'Loading labels...' : 'Error loading labels',
+          disabled: true,
+        },
+      ];
     }
+    
+    return labelsData?.labels?.map(({ key, value }) => ({
+      value: JSON.stringify({ [key]: value }),
+      label: `${cleanupLabels(key)}=${value}`,
+    })) ?? [];
+  };
 
-  }
-
- const handleNodeSelectorLabelChange = (selectedValues: string[]) => {
-  const labelsObject = selectedValues.reduce((acc, jsonStr) => {
+  
+const handleSelectorLabelChange = useCallback((values: string[]) => {
+  console.log('Selected label values:', values);
+  
+  // Filter out duplicate keys - keep only the last selected value for each key
+  const seenKeys = new Map<string, string>();
+  const filteredValues: string[] = [];
+  
+  // Process in reverse to keep the most recent selection for each key
+  for (let i = values.length - 1; i >= 0; i--) {
     try {
-      const labelPair = JSON.parse(jsonStr);
-      return { ...acc, ...labelPair };
+      const labelPair = JSON.parse(values[i]);
+      const key = Object.keys(labelPair)[0];
+      
+      if (!seenKeys.has(key)) {
+        seenKeys.set(key, values[i]);
+        filteredValues.unshift(values[i]); // Add to beginning to maintain order
+      }
     } catch (e) {
       console.error('Error parsing label:', e);
-      return acc;
     }
-  }, {});
-
-  const labelArray = Object.entries(labelsObject).map(([key, value]) => `${cleanupLabels(key)}=${value}`);
+  }
   
-  setNodeSelectorLabels(labelsObject);
-  setLabelsNodeSelected(prev => [...prev.filter(label => !labelArray.includes(label)), ...labelArray]);
-}
+  setSelectedLabels(filteredValues);
+}, []);
+
+const handleNodeSelectorModeChange = useCallback((value: string) => {
+  setNodeSelectorMode(value);
+  if (value === 'Disabled') {
+    setSelectedLabels([]);
+  }
+}, []);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -423,6 +469,25 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       loading: loadingLabels,
       error: labelsError,
     } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
+
+  // Helper function to map camelCase keys back to original format
+  const findOriginalLabelKey = (camelCaseKey: string, value: string): { key: string; value: string } | null => {
+    if (!labelsData?.labels) return null;
+    
+    // First, try exact match (in case the key wasn't camelCased)
+    const exactMatch = labelsData.labels.find(
+      label => label.key === camelCaseKey && label.value === value
+    );
+    if (exactMatch) return exactMatch;
+    
+    // Otherwise, find by matching cleaned version
+    const cleanedCamelCase = cleanupLabels(camelCaseKey);
+    const match = labelsData.labels.find(
+      label => cleanupLabels(label.key) === cleanedCamelCase && label.value === value
+    );
+    
+    return match || null;
+  };
 
     const handleEnablingCleanUp = (enabled: boolean) => {
       setAutomaticStoppingEnabled(enabled);
@@ -534,22 +599,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         /></>
   
 
-  const getNodeLabelsOptions = () => {
-    if (loadingLabels || labelsError) {
-      return [
-        {
-          value: 'error',
-          label: loadingLabels ? 'Loading labels...' : 'Error loading labels',
-          disabled: true,
-        },
-      ];
-    }
-    
-    return labelsData?.labels?.map(({ key, value }) => ({
-      value: JSON.stringify({ [key]: value }),
-      label: `${cleanupLabels(key)}=${value}`,
-    })) ?? [];
-  };
 
 
   const advancedFeaturesForm = <>
@@ -582,7 +631,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
    <Flex justify='space-around' className="mb-0 gap-2" {...formItemLayout}  align="center">
     <Space direction='vertical' style={{width:"50%"}}>
       <Typography.Paragraph className="mb-0">Node Selector: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
-      <Select style={{width:"100%"}} onChange={value => handleNodeSelectorChange(value)} value={nodeSelectorOption}>
+      <Select 
+        style={{width:"100%"}} 
+        value={nodeSelectorMode}
+        onChange={handleNodeSelectorModeChange}
+
+      >
         {NodeSelectorOption.map(option => (
               <Select.Option key={option} value={option}>{option}</Select.Option>
             ))}
@@ -591,13 +645,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     <Space direction='vertical'  style={{width:"50%"}}>
       <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed Labels</strong> is selected</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
     <Select
-          disabled={nodeSelectorOption !== 'Fixed Labels'}
+          disabled={nodeSelectorMode !== 'Fixed Labels'}
           style={{width:"100%"}}
           mode="multiple"
           placeholder="Select"
-          value={labelsNodeSelected} 
-          onChange={handleNodeSelectorLabelChange}
+          onChange={handleSelectorLabelChange}
           options={getNodeLabelsOptions()}
+          value={selectedLabels}
+          status={nodeSelectorMode === 'Fixed Labels' && selectedLabels.length === 0 ? 'error' : undefined}
         />
     </Space>
     </Flex>
@@ -637,8 +692,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     label: <Typography.Text strong>Advanced Features</Typography.Text>,
     children: advancedFeaturesForm,
     style: panelStyle,
-        extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorOption !== 'Disabled' ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
-
+    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== 'Disabled' ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
   },
 ];
 
@@ -692,7 +746,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               const fieldsError = form.getFieldsError();
               const hasErrors = fieldsError.some(
                 ({ errors }) => errors.length > 0,
-              );
+              ) || (nodeSelectorMode === 'Fixed Labels' && selectedLabels.length === 0)
 
               return (
                 <Button htmlType="submit" type="primary" disabled={hasErrors}>

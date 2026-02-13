@@ -484,7 +484,6 @@ export const Environment: FC<EnvironmentProps> = ({
           style={{width:"120px", textAlignLast: "center"}}
           min={resources.cpu.min}
           max={resources.cpu.max}
-          defaultValue={form.getFieldValue(['environments', name, 'cpu']) || 1.0}
           onChange={value => handleResourceChange(name, 'cpu', value)}
           addonAfter="vCPU"
         />
@@ -502,10 +501,10 @@ export const Environment: FC<EnvironmentProps> = ({
           style={{width:"120px", textAlignLast: "center"}}
           min={resources.ram.min}
           max={resources.ram.max}
-          defaultValue={form.getFieldValue(['environments', name, 'ram']) || 1.0}
           step={0.25}
           onChange={value => handleResourceChange(name, 'ram', value)}
           addonAfter="GB"
+          
         />
       </Form.Item>
 
@@ -532,7 +531,6 @@ export const Environment: FC<EnvironmentProps> = ({
               onChange={value => handleResourceChange(name, 'reservedCpu', value)}
               step={1}
               style={{ width: "120px", textAlignLast: "center" }}
-              defaultValue={50}
               addonAfter="%"
               max={100}
               min={1}
@@ -540,13 +538,6 @@ export const Environment: FC<EnvironmentProps> = ({
           </Form.Item>
       </Space>
 
-      {/* Persistance/Disk */}
-      {/* <EnvironmentDisk
-        parentFormName={name}
-        restField={restField}
-        diskResources={resources.disk}
-        isCloudVm={getEnvironmentType(name) === EnvironmentType.CloudVm}
-      /> */}
 
       {!isPersonal && (
         <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes}  />

@@ -226,7 +226,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
+  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null)
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
@@ -296,15 +296,25 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
-
-      const patchJson = JSON.stringify([
+      
+      console.log("nodeSelector edit:", t.nodeSelector);
+      console.log(JSON.stringify(t.nodeSelector));
+      const patches = [
         { op: 'replace', path: '/spec/environmentList', value: environmentList },
-      { op: 'replace', path: '/spec/prettyName', value: t.name },
-      { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-      { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
-      { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
-      { op: 'replace', path: '/spec/description', value: t.description },
-      ]);
+        { op: 'replace', path: '/spec/prettyName', value: t.name },
+        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
+        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
+        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
+        { op: 'replace', path: '/spec/description', value: t.description },
+      ];
+      
+      if (t.nodeSelector !== null) {
+        patches.push({ op: 'replace', path: '/spec/nodeSelector', value: t.nodeSelector as any });
+      }
+      if (t.nodeSelector === undefined) {
+        patches.push({ op: 'remove', path: '/spec/nodeSelector', value: {} as any });
+      }
+      const patchJson = JSON.stringify(patches);
 
 
       //    console.log('Patch JSON:', patchJson);
