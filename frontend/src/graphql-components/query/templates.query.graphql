@@ -10,6 +10,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
         deleteAfter
         description
         inactivityTimeout
+        nodeSelector
         environmentList {
           name
           environmentType
