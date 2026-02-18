@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@apollo/server": "^5.4.0",
+    "@as-integrations/express5": "^1.1.2",
     "@graphql-tools/schema": "10.0.4",
     "@graphql-tools/stitch": "^9.2.9",
     "@graphql-tools/wrap": "10.0.5",
