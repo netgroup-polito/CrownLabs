@@ -413,7 +413,11 @@ More information are available in the [dedicated page](./Keycloak.md).
 The operator guarantees that a tenant does not use more resources than those made available by a workspace.
 
 Since all instances created by a tenant are placed in the same namespace regardless of the (CrownLabs) workspace they belong to, the `ResourceQuota` parameter created by the tenant operator represents only a _last resort_ global security barrier.
-The operator exposes a validation webhook for instances that controls the creation or unpause of instances.
+The operator creates a validation webhook that is triggered when an instance is created or resumed (after been paused), hence updating the amount of used resources, and ensuring that those do not exceed the resource quota.
+
+Each user can therefore leverage the resources granted by the workspace his pods belongs to.
+In other words, a user can consume a quota Q1 for all the pods belonging to workspace W1, a quota Q2 for all the pods belonging to workspace W2, and more.
+Furthermore, a further quota (e.g., QP) is specified for the pods belonging to his Personal Workspace.
 
 To increase the resources available to a Tenant in their personal workspace, you must modify the `personalWorkspace` field in the Tenant CR.
 
